@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "netbox-nsm"
+version = "0.0.1"
+description = "Initial minimal package to reserve the PyPI name."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+  { name = "Christian Bur" }
+]

@@ -10,7 +10,7 @@ from netbox.forms import (
     PrimaryModelFilterSetForm,
     PrimaryModelForm,
 )
-from utilities.forms.fields import DynamicModelChoiceField, TagFilterField
+from utilities.forms.fields import DynamicModelChoiceField, DynamicModelMultipleChoiceField, TagFilterField
 from utilities.forms.rendering import FieldSet, TabbedGroups
 
 from netbox_nsm.models import ObjectCustomObject, ObjectCustomType
@@ -84,6 +84,35 @@ class ObjectCustomObjectForm(PrimaryModelForm):
                             required=False,
                             label=field_def.get("label", field_def["name"]),
                             initial=self.instance.field_data.get(field_def["name"], "") if self.instance.pk else "",
+                        )
+                elif ftype == "multi_object_ref":
+                    model_str = field_def.get("model", "")
+                    try:
+                        model_class = apps.get_model(model_str)
+                        queryset = model_class.objects.all()
+                        # Auf gleiche area des Custom Types filtern
+                        if field_def.get("area_filter") and ct:
+                            queryset = queryset.filter(custom_type__area=ct.area)
+                        # Statische Filter
+                        if field_def.get("limit_choices_to"):
+                            queryset = queryset.filter(**field_def["limit_choices_to"])
+                        # Aktuelles Objekt ausschliessen (keine Selbst-Referenz)
+                        if self.instance.pk:
+                            queryset = queryset.exclude(pk=self.instance.pk)
+                        stored = (self.instance.field_data.get(field_def["name"], []) or []) if self.instance.pk else []
+                        initial_pks = [item["pk"] for item in stored if isinstance(item, dict) and "pk" in item]
+                        self.fields[fname] = DynamicModelMultipleChoiceField(
+                            queryset=queryset,
+                            required=field_def.get("required", False),
+                            label=field_def.get("label", field_def["name"]),
+                            selector=field_def.get("selector", False),
+                        )
+                        if initial_pks:
+                            self.initial[fname] = initial_pks
+                    except (LookupError, Exception):
+                        self.fields[fname] = forms.CharField(
+                            required=False,
+                            label=field_def.get("label", field_def["name"]),
                         )
                 elif ftype == "date":
                     self.fields[fname] = forms.DateField(
@@ -165,6 +194,11 @@ class ObjectCustomObjectForm(PrimaryModelForm):
                         "url": val.get_absolute_url(),
                         "str": str(val),
                     }
+                elif ftype == "multi_object_ref":
+                    field_data[field_def["name"]] = [
+                        {"pk": obj.pk, "url": obj.get_absolute_url(), "str": str(obj)}
+                        for obj in val
+                    ]
                 elif ftype == "date":
                     field_data[field_def["name"]] = val.isoformat() if hasattr(val, "isoformat") else str(val)
                 else:

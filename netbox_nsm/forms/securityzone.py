@@ -44,7 +44,7 @@ class SecurityZoneForm(PrimaryModelForm):
         max_length=7,
         required=True,
         widget=forms.TextInput(attrs={"type": "color"}),
-        label=_("Farbe"),
+        label=_("Color"),
     )
     description = forms.CharField(max_length=200, required=False)
     fieldsets = (

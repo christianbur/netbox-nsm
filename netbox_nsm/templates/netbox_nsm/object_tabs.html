@@ -63,9 +63,15 @@
                               {% endif %}
                             </td>
                           {% endfor %}
-                          <td class="text-end text-nowrap">
-                            <a class="btn btn-sm btn-outline-warning" href="{{ row.edit_url }}"><i class="mdi mdi-pencil"></i></a>
-                            <a class="btn btn-sm btn-outline-danger" href="{{ row.delete_url }}"><i class="mdi mdi-trash-can-outline"></i></a>
+                          <td class="text-end text-nowrap noprint p-1">
+                            <span class="btn-group dropdown">
+                              <a class="btn btn-sm btn-warning" href="{{ row.edit_url }}" type="button" aria-label="Edit"><i class="mdi mdi-pencil"></i></a>
+                              <a class="btn btn-sm btn-warning dropdown-toggle" type="button" data-bs-toggle="dropdown" style="padding-left:2px"><span class="visually-hidden">Toggle Dropdown</span></a>
+                              <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ row.delete_url }}"><i class="mdi mdi-trash-can-outline"></i> Delete</a></li>
+                                <li><a class="dropdown-item" href="{{ row.changelog_url }}"><i class="mdi mdi-history"></i> Changelog</a></li>
+                              </ul>
+                            </span>
                           </td>
                         </tr>
                       {% empty %}

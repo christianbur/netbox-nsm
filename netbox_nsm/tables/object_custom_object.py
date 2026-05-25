@@ -22,6 +22,11 @@ class ObjectCustomObjectTable(NetBoxTable):
 
 
 class ObjectCustomObjectAssignmentTable(AssignedObjectParentMixin, NetBoxTable):
+    assigned_object_type_label = tables.Column(
+        accessor=tables.A("assigned_object_type"),
+        verbose_name=_("Assigned Object Type"),
+        orderable=False,
+    )
     assigned_object = tables.Column(
         linkify=True,
         orderable=False,
@@ -33,8 +38,16 @@ class ObjectCustomObjectAssignmentTable(AssignedObjectParentMixin, NetBoxTable):
         verbose_name=_("Type"),
         orderable=False,
     )
+    comment = tables.Column(verbose_name=_("Comment"), orderable=False)
+
+    def render_assigned_object_type_label(self, value):
+        if value:
+            model_class = value.model_class()
+            if model_class:
+                return model_class._meta.verbose_name.title()
+        return "—"
 
     class Meta(NetBoxTable.Meta):
         model = ObjectCustomObjectAssignment
-        fields = ("id", "assigned_object", "custom_type", "custom_object")
-        default_columns = ("assigned_object", "custom_type", "custom_object")
+        fields = ("id", "assigned_object_type_label", "assigned_object", "custom_type", "custom_object", "comment")
+        default_columns = ("assigned_object_type_label", "assigned_object", "comment")

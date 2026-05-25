@@ -33,7 +33,6 @@ from netbox_nsm.models import (
     ApplicationSet,
     ObjectAction,
     ObjectGroup,
-    ObjectUser,
     AddressList,
     RulebookTypeChoices,
     SecurityZone,
@@ -81,27 +80,20 @@ def _build_security_rule_object_catalog():
 
     addresses = _options_from_queryset(AddressList.objects.order_by("name"))
     zones = _options_from_queryset(SecurityZone.objects.order_by("name"))
-    users = _options_from_queryset(ObjectUser.objects.order_by("name"))
     groups = _options_from_queryset(groups_base.order_by("name"))
     actions = _options_from_queryset(ObjectAction.objects.order_by("name"))
 
     return {
         "source_addresses": addresses,
         "source_zones": zones,
-        "source_users": users,
         "source_groups": groups,
         "source_services": _group_options("services"),
         "source_applications": _group_options("applications"),
-        "source_labels": _group_options("labels"),
-        "source_sgts": _group_options("sgts"),
         "destination_addresses": addresses,
         "destination_zones": zones,
-        "destination_users": users,
         "destination_groups": groups,
         "destination_services": _group_options("services"),
         "destination_applications": _group_options("applications"),
-        "destination_labels": _group_options("labels"),
-        "destination_sgts": _group_options("sgts"),
         "action_objects": actions,
         "services": _options_from_queryset(ApplicationItem.objects.order_by("name")),
         "applications": _options_from_queryset(Application.objects.order_by("name")),

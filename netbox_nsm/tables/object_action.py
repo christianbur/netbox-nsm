@@ -15,5 +15,5 @@ class ObjectActionTable(NetBoxTable):
 
     class Meta(NetBoxTable.Meta):
         model = ObjectAction
-        fields = ("id", "name", "action", "description", "tags")
-        default_columns = ("name", "action", "description")
+        fields = ("id", "name", "action", "description", "tags", "actions")
+        default_columns = ("name", "action", "description", "actions")

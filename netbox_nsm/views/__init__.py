@@ -1,5 +1,3 @@
-from .security_zone_matrix import *
-from .security_zone_policy import *
 from .security_zone_policy_rulebook import *
 from .tabs import *
 from .object_custom_type import *

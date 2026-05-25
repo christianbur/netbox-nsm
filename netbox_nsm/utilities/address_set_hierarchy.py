@@ -5,7 +5,7 @@ from netaddr import IPAddress as NetaddrIPAddress, IPNetwork
 
 from ipam.models import IPAddress, IPRange, Prefix
 
-from netbox_nsm.models import Address, AddressList, AddressSet, SecurityZonePolicy
+from netbox_nsm.models import Address, AddressList, AddressSet
 
 
 def _object_bounds(obj):
@@ -212,118 +212,6 @@ def get_address_set_hierarchy(*, app_label, model, object_id):
         obj.pk: obj for obj in AddressList.objects.filter(id__in=address_list_ids)
     }
 
-    policy_rows = []
-    policy_object_map = {}
-    if address_list_ids:
-        source_policies = SecurityZonePolicy.objects.filter(
-            source_address__id__in=address_list_ids
-        ).distinct()
-        destination_policies = SecurityZonePolicy.objects.filter(
-            destination_address__id__in=address_list_ids
-        ).distinct()
-
-        source_policy_ids = set(source_policies.values_list("id", flat=True))
-        destination_policy_ids = set(destination_policies.values_list("id", flat=True))
-
-        for policy in source_policies:
-            policy_object_map[policy.pk] = policy
-        for policy in destination_policies:
-            policy_object_map[policy.pk] = policy
-
-        source_links = SecurityZonePolicy.source_address.through.objects.filter(
-            securityzonepolicy_id__in=source_policy_ids,
-            addresslist_id__in=address_list_ids,
-        ).values_list("securityzonepolicy_id", "addresslist_id")
-        destination_links = (
-            SecurityZonePolicy.destination_address.through.objects.filter(
-                securityzonepolicy_id__in=destination_policy_ids,
-                addresslist_id__in=address_list_ids,
-            ).values_list("securityzonepolicy_id", "addresslist_id")
-        )
-
-        for policy_id, address_list_id in source_links:
-            policy = policy_object_map.get(policy_id)
-            address_list = address_list_object_map.get(address_list_id)
-            if not policy:
-                continue
-            policy_rows.append(
-                {
-                    "policy_id": policy.pk,
-                    "policy_name": policy.name,
-                    "policy_index": policy.index,
-                    "policy_actions": list(policy.policy_actions or []),
-                    "direction": "source",
-                    "source_zone_id": policy.source_zone_id,
-                    "destination_zone_id": policy.destination_zone_id,
-                    "source_zone_name": policy.source_zone.name,
-                    "destination_zone_name": policy.destination_zone.name,
-                    "address_list_id": address_list_id,
-                    "address_list_name": address_list.name if address_list else "",
-                    "context_model": (
-                        address_list.assigned_object_type.model
-                        if address_list and address_list.assigned_object_type_id
-                        else ""
-                    ),
-                    "context_object_id": (
-                        address_list.assigned_object_id
-                        if address_list and address_list.assigned_object_id
-                        else 0
-                    ),
-                }
-            )
-
-        for policy_id, address_list_id in destination_links:
-            policy = policy_object_map.get(policy_id)
-            address_list = address_list_object_map.get(address_list_id)
-            if not policy:
-                continue
-            policy_rows.append(
-                {
-                    "policy_id": policy.pk,
-                    "policy_name": policy.name,
-                    "policy_index": policy.index,
-                    "policy_actions": list(policy.policy_actions or []),
-                    "direction": "destination",
-                    "source_zone_id": policy.source_zone_id,
-                    "destination_zone_id": policy.destination_zone_id,
-                    "source_zone_name": policy.source_zone.name,
-                    "destination_zone_name": policy.destination_zone.name,
-                    "address_list_id": address_list_id,
-                    "address_list_name": address_list.name if address_list else "",
-                    "context_model": (
-                        address_list.assigned_object_type.model
-                        if address_list and address_list.assigned_object_type_id
-                        else ""
-                    ),
-                    "context_object_id": (
-                        address_list.assigned_object_id
-                        if address_list and address_list.assigned_object_id
-                        else 0
-                    ),
-                }
-            )
-
-    unique_policy_rows = sorted(
-        {
-            (
-                row["policy_id"],
-                row["policy_name"],
-                row["policy_index"],
-                tuple(row["policy_actions"]),
-                row["direction"],
-                row["source_zone_id"],
-                row["destination_zone_id"],
-                row["source_zone_name"],
-                row["destination_zone_name"],
-                row["address_list_id"],
-                row["address_list_name"],
-                row["context_model"],
-                row["context_object_id"],
-            )
-            for row in policy_rows
-        }
-    )
-
     return {
         "assigned_object_id": object_id,
         "address_ids": sorted(address_ids),
@@ -373,39 +261,5 @@ def get_address_set_hierarchy(*, app_label, model, object_id):
             for address_list_id in sorted(address_list_ids)
             if address_list_id in address_list_object_map
         ],
-        "policy_paths": [
-            {
-                "policy_id": row[0],
-                "policy_name": row[1],
-                "policy_index": row[2],
-                "policy_actions": list(row[3]),
-                "direction": row[4],
-                "source_zone_id": row[5],
-                "destination_zone_id": row[6],
-                "source_zone_name": row[7],
-                "destination_zone_name": row[8],
-                "address_list_id": row[9],
-                "address_list_name": row[10],
-                "address_list": address_list_object_map.get(row[9]),
-                "context_model": row[11],
-                "context_object_id": row[12],
-                "context_object": (
-                    address_list_object_map.get(row[9]).assigned_object
-                    if address_list_object_map.get(row[9])
-                    else None
-                ),
-                "policy": policy_object_map.get(row[0]),
-                "source_zone": (
-                    policy_object_map.get(row[0]).source_zone
-                    if policy_object_map.get(row[0])
-                    else None
-                ),
-                "destination_zone": (
-                    policy_object_map.get(row[0]).destination_zone
-                    if policy_object_map.get(row[0])
-                    else None
-                ),
-            }
-            for row in unique_policy_rows
-        ],
+        "policy_paths": [],
     }

@@ -13,9 +13,6 @@ from utilities.api import get_serializer_for_model
 from netbox_nsm.api.serializers_.address import AddressSerializer
 from netbox_nsm.api.serializers_.application_item import ApplicationItemSerializer
 from netbox_nsm.api.serializers_.application import ApplicationSerializer
-from netbox_nsm.api.serializers_.object_label import ObjectLabelSerializer
-from netbox_nsm.api.serializers_.object_sgt import ObjectSGTSerializer
-from netbox_nsm.api.serializers_.object_user import ObjectUserSerializer
 from netbox_nsm.api.serializers_.securityzone import SecurityZoneSerializer
 from netbox_nsm.models import ObjectGroup, ObjectGroupAssignment
 from netbox_nsm.constants import OBJECT_ASSIGNMENT_MODELS
@@ -28,10 +25,7 @@ class ObjectGroupSerializer(PrimaryModelSerializer):
     addresses = AddressSerializer(nested=True, required=False, many=True)
     services = ApplicationItemSerializer(nested=True, required=False, many=True)
     applications = ApplicationSerializer(nested=True, required=False, many=True)
-    labels = ObjectLabelSerializer(nested=True, required=False, many=True)
     zones = SecurityZoneSerializer(nested=True, required=False, many=True)
-    sgts = ObjectSGTSerializer(nested=True, required=False, many=True)
-    users = ObjectUserSerializer(nested=True, required=False, many=True)
 
     class Meta:
         model = ObjectGroup
@@ -44,10 +38,7 @@ class ObjectGroupSerializer(PrimaryModelSerializer):
             "addresses",
             "services",
             "applications",
-            "labels",
             "zones",
-            "sgts",
-            "users",
             "description",
             "comments",
             "tags",
@@ -67,10 +58,7 @@ class ObjectGroupSerializer(PrimaryModelSerializer):
         addresses = validated_data.pop("addresses", None)
         services = validated_data.pop("services", None)
         applications = validated_data.pop("applications", None)
-        labels = validated_data.pop("labels", None)
         zones = validated_data.pop("zones", None)
-        sgts = validated_data.pop("sgts", None)
-        users = validated_data.pop("users", None)
 
         obj = super().create(validated_data)
         if addresses is not None:
@@ -79,24 +67,15 @@ class ObjectGroupSerializer(PrimaryModelSerializer):
             obj.services.set(services)
         if applications is not None:
             obj.applications.set(applications)
-        if labels is not None:
-            obj.labels.set(labels)
         if zones is not None:
             obj.zones.set(zones)
-        if sgts is not None:
-            obj.sgts.set(sgts)
-        if users is not None:
-            obj.users.set(users)
         return obj
 
     def update(self, instance, validated_data):
         addresses = validated_data.pop("addresses", None)
         services = validated_data.pop("services", None)
         applications = validated_data.pop("applications", None)
-        labels = validated_data.pop("labels", None)
         zones = validated_data.pop("zones", None)
-        sgts = validated_data.pop("sgts", None)
-        users = validated_data.pop("users", None)
 
         obj = super().update(instance, validated_data)
         if addresses is not None:
@@ -105,14 +84,8 @@ class ObjectGroupSerializer(PrimaryModelSerializer):
             obj.services.set(services)
         if applications is not None:
             obj.applications.set(applications)
-        if labels is not None:
-            obj.labels.set(labels)
         if zones is not None:
             obj.zones.set(zones)
-        if sgts is not None:
-            obj.sgts.set(sgts)
-        if users is not None:
-            obj.users.set(users)
         return obj
 
 

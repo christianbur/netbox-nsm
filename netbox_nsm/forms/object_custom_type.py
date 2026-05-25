@@ -37,19 +37,19 @@ class ObjectCustomTypeForm(PrimaryModelForm):
         widget=forms.Textarea(attrs={"rows": 10, "style": "font-family: monospace;", "placeholder": '[\n  {"name": "host", "label": "Hostname"},\n  {"name": "port", "label": "Port"}\n]'}),
         label=_("Field Definitions"),
         help_text=_(
-            'JSON-Liste von Felddefinitionen. Jedes Feld ist ein Objekt mit den folgenden Schlüsseln:<br>'
+            'JSON list of field definitions. Each field is an object with the following keys:<br>'
             '<ul style="margin-top:4px;margin-bottom:0">'
-            '<li><code>name</code> <b>(erforderlich)</b> – interner Feldname (Kleinbuchstaben, kein Leerzeichen), z.B. <code>"host"</code></li>'
-            '<li><code>label</code> <b>(erforderlich)</b> – Anzeigename, z.B. <code>"Hostname"</code></li>'
-            '<li><code>type</code> – Feldtyp: <code>"text"</code> (Standard), <code>"number"</code>, <code>"boolean"</code>, <code>"url"</code></li>'
-            '<li><code>required</code> – <code>true</code> / <code>false</code> (Standard: false)</li>'
-            '<li><code>placeholder</code> – Platzhaltertext im Eingabefeld</li>'
+            '<li><code>name</code> <b>(required)</b> – internal field name (lowercase, no spaces), e.g. <code>"host"</code></li>'
+            '<li><code>label</code> <b>(required)</b> – display name, e.g. <code>"Hostname"</code></li>'
+            '<li><code>type</code> – field type: <code>"text"</code> (default), <code>"number"</code>, <code>"boolean"</code>, <code>"url"</code>, <code>"date"</code> (date picker), <code>"markdown"</code>, <code>"object_ref"</code></li>'
+            '<li><code>required</code> – <code>true</code> / <code>false</code> (default: false)</li>'
+            '<li><code>placeholder</code> – placeholder text for the input field</li>'
             '</ul>'
-            '<br>Beispiel:<br>'
+            '<br>Example:<br>'
             '<pre style="font-size:0.85em;margin:0">[\n'
             '  {"name": "host", "label": "Hostname", "type": "text", "required": true},\n'
             '  {"name": "port", "label": "Port", "type": "number", "placeholder": "443"},\n'
-            '  {"name": "enabled", "label": "Aktiv", "type": "boolean"}\n'
+            '  {"name": "enabled", "label": "Active", "type": "boolean"}\n'
             ']</pre>'
         ),
     )
@@ -58,8 +58,8 @@ class ObjectCustomTypeForm(PrimaryModelForm):
         required=False,
         label=_("Icon"),
         help_text=_(
-            'MDI-Icon-Name von <a href="https://pictogrammers.com/library/mdi/" target="_blank">'
-            'pictogrammers.com</a> — immer mit <code>mdi-</code> Präfix, z.B. <code>mdi-server</code>, '
+            'MDI icon name from <a href="https://pictogrammers.com/library/mdi/" target="_blank">'
+            'pictogrammers.com</a> — always with <code>mdi-</code> prefix, e.g. <code>mdi-server</code>, '
             '<code>mdi-tag</code>, <code>mdi-puzzle-outline</code>.'
         ),
     )

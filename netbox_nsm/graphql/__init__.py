@@ -7,14 +7,6 @@ from .schema import (
     NetBoxSecurityApplicationQuery,
     NetBoxSecurityApplicationSetQuery,
     NetBoxSecuritySecurityZoneQuery,
-    NetBoxSecuritySecurityZonePolicyQuery,
-    NetBoxSecurityNatPoolQuery,
-    NetBoxSecurityNatPoolMemberQuery,
-    NetBoxSecurityNatRuleSetQuery,
-    NetBoxSecurityNatRuleQuery,
-    NetBoxSecurityFirewallFilterQuery,
-    NetBoxSecurityFirewallFilterRuleQuery,
-    NetBoxSecurityPolicerQuery,
 )
 
 schema = [
@@ -26,12 +18,4 @@ schema = [
     NetBoxSecurityApplicationQuery,
     NetBoxSecurityApplicationSetQuery,
     NetBoxSecuritySecurityZoneQuery,
-    NetBoxSecuritySecurityZonePolicyQuery,
-    NetBoxSecurityNatPoolQuery,
-    NetBoxSecurityNatPoolMemberQuery,
-    NetBoxSecurityNatRuleSetQuery,
-    NetBoxSecurityNatRuleQuery,
-    NetBoxSecurityFirewallFilterQuery,
-    NetBoxSecurityFirewallFilterRuleQuery,
-    NetBoxSecurityPolicerQuery,
 ]

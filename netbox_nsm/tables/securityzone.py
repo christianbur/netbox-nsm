@@ -16,7 +16,7 @@ __all__ = (
 
 class SecurityZoneTable(NetBoxTable):
     name = tables.LinkColumn()
-    color = tables.Column(verbose_name=_("Farbe"))
+    color = tables.Column(verbose_name=_("Color"))
     tags = TagColumn(url_name="plugins:netbox_nsm:securityzone_list")
 
     def render_color(self, value):

@@ -16,7 +16,6 @@ from virtualization.models import VirtualMachine
 from netbox_nsm.models import (
     SecurityZone,
     SecurityZoneAssignment,
-    NatRuleSet,
 )
 from netbox_nsm.mixins import (
     AssignmentFilterSet,
@@ -30,23 +29,6 @@ __all__ = (
 
 @register_filterset
 class SecurityZoneFilterSet(TenancyFilterSet, PrimaryModelFilterSet):
-    source_zone_id = django_filters.ModelMultipleChoiceFilter(
-        field_name="natruleset_source_zones",
-        queryset=SecurityZone.objects.all(),
-        to_field_name="id",
-        label=_("Source Zone NAT Rule Set (ID)"),
-    )
-    destination_zone_id = django_filters.ModelMultipleChoiceFilter(
-        field_name="natruleset_destination_zones",
-        queryset=SecurityZone.objects.all(),
-        to_field_name="id",
-        label=_("Destination Zone NAT Rule Set (ID)"),
-    )
-    nat_rule_set_id = django_filters.ModelMultipleChoiceFilter(
-        method="filter_natruleset",
-        queryset=NatRuleSet.objects.all(),
-        label=_("NAT Rule Set (ID)"),
-    )
     prefix_id = MultiValueNumberFilter(
         method="filter_prefix",
         label=_("Prefix (ID)"),
@@ -80,16 +62,6 @@ class SecurityZoneFilterSet(TenancyFilterSet, PrimaryModelFilterSet):
             Q(name__icontains=value)
             | Q(color__icontains=value)
             | Q(description__icontains=value)
-        )
-        return queryset.filter(qs_filter)
-
-    def filter_natruleset(self, queryset, name, value):
-        """Filter NAT Rule Set (ID)."""
-        if not value:
-            return queryset
-        rules = {rule.pk for rule in value}
-        qs_filter = Q(natruleset_destination_zones__id__in=rules) | Q(
-            natruleset_source_zones__id__in=rules
         )
         return queryset.filter(qs_filter)
 

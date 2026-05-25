@@ -19,11 +19,11 @@ class ObjectCustomObjectAssignmentForm(forms.ModelForm):
         queryset=ObjectCustomObject.objects.all(),
     )
 
-    fieldsets = (FieldSet(ObjectAttribute("assigned_object"), "custom_object"),)
+    fieldsets = (FieldSet(ObjectAttribute("assigned_object"), "custom_object", "comment"),)
 
     class Meta:
         model = ObjectCustomObjectAssignment
-        fields = ("custom_object",)
+        fields = ("custom_object", "comment")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

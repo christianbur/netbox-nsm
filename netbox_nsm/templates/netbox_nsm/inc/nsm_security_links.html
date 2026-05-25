@@ -40,38 +40,51 @@
 
         {# ── Custom Object Assignments (ObjectCustomObjectAssignment) ── #}
         {% for coa_group in nsm_custom_object_assignments %}{% if coa_group.items %}
+        {% for coa in coa_group.items %}
         <tr>
           <th class="ps-3" style="width:5.5rem;white-space:nowrap;">{{ coa_group.type_name }}</th>
           <td>
-            {% for coa in coa_group.items %}
             <a href="{{ coa.custom_object.get_absolute_url }}" class="badge text-bg-primary me-1">{{ coa.custom_object.name }}</a>
-            {% endfor %}
+            {% if coa.comment %}<small class="text-muted">{{ coa.comment }}</small>{% endif %}
           </td>
           <td class="text-end pe-3" style="white-space:nowrap;">
+            <span class="btn-group dropdown">
+              <a class="btn btn-sm btn-warning" href="/plugins/netbox-nsm/custom-object-assignments/{{ coa.pk }}/edit/?return_url={{ object.get_absolute_url }}" type="button" aria-label="Edit"><i class="mdi mdi-pencil"></i></a>
+              <a class="btn btn-sm btn-warning dropdown-toggle" type="button" data-bs-toggle="dropdown" style="padding-left:2px"><span class="visually-hidden">Toggle Dropdown</span></a>
+              <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="/plugins/netbox-nsm/custom-object-assignments/{{ coa.pk }}/delete/?return_url={{ object.get_absolute_url }}"><i class="mdi mdi-trash-can-outline"></i> Delete</a></li>
+                <li><a class="dropdown-item" href="/plugins/netbox-nsm/custom-object-assignments/{{ coa.pk }}/changelog/"><i class="mdi mdi-history"></i> Changelog</a></li>
+              </ul>
+            </span>
           </td>
         </tr>
+        {% endfor %}
         {% endif %}{% endfor %}
 
         {# ── Custom Objects referencing this object via field_data ── #}
-        {% for ref_group in nsm_custom_refs %}{% if ref_group.items %}
-        <tr>
-          <th class="ps-3" style="width:5.5rem;white-space:nowrap;">
-            <a href="{{ ref_group.type_url }}" class="text-body">{{ ref_group.type_name }}</a>
-          </th>
-          <td>
-            {% for item in ref_group.items %}
-            <a href="{{ item.obj.get_absolute_url }}" class="badge text-bg-info me-1"
-               title="{{ item.field_label }}">{{ item.obj.name }}</a>
-            {% endfor %}
-          </td>
-          <td class="text-end pe-3" style="white-space:nowrap;">
-            <a href="{{ ref_group.add_url }}" class="btn btn-ghost-primary btn-sm"
-               title="{% trans 'Add' %} {{ ref_group.type_name }}">
-              <i class="mdi mdi-plus-thick"></i>
-            </a>
-          </td>
-        </tr>
-        {% endif %}{% endfor %}
+        {% for ref_group in nsm_custom_refs %}
+          {% for item in ref_group.items %}
+          <tr>
+            <th class="ps-3" style="width:5.5rem;white-space:nowrap;">
+              <a href="{{ ref_group.type_url }}" class="text-body">{{ ref_group.type_name }}</a>
+            </th>
+            <td>
+              <a href="{{ item.obj.get_absolute_url }}" class="badge text-bg-info me-1"
+                 title="{{ item.field_label }}">{{ item.obj.name }}</a>
+            </td>
+            <td class="text-end pe-3" style="white-space:nowrap;">
+              <span class="btn-group dropdown">
+                <a class="btn btn-sm btn-warning" href="/plugins/netbox-nsm/custom-objects/{{ item.obj.pk }}/edit/" type="button" aria-label="Edit"><i class="mdi mdi-pencil"></i></a>
+                <a class="btn btn-sm btn-warning dropdown-toggle" type="button" data-bs-toggle="dropdown" style="padding-left:2px"><span class="visually-hidden">Toggle Dropdown</span></a>
+                <ul class="dropdown-menu">
+                  <li><a class="dropdown-item" href="/plugins/netbox-nsm/custom-objects/{{ item.obj.pk }}/delete/"><i class="mdi mdi-trash-can-outline"></i> Delete</a></li>
+                  <li><a class="dropdown-item" href="/plugins/netbox-nsm/custom-objects/{{ item.obj.pk }}/changelog/"><i class="mdi mdi-history"></i> Changelog</a></li>
+                </ul>
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        {% endfor %}
 
         {% if not nsm_total_count and not nsm_custom_count and not nsm_coa_count %}
         <tr><td class="ps-3 text-muted">None</td></tr>

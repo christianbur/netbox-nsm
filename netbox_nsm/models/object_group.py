@@ -60,10 +60,7 @@ class ObjectGroup(PrimaryModel):
     addresses = models.ManyToManyField(to="netbox_nsm.Address", blank=True)
     services = models.ManyToManyField(to="netbox_nsm.ApplicationItem", blank=True)
     applications = models.ManyToManyField(to="netbox_nsm.Application", blank=True)
-    labels = models.ManyToManyField(to="netbox_nsm.ObjectLabel", blank=True)
     zones = models.ManyToManyField(to="netbox_nsm.SecurityZone", blank=True)
-    sgts = models.ManyToManyField(to="netbox_nsm.ObjectSGT", blank=True)
-    users = models.ManyToManyField(to="netbox_nsm.ObjectUser", blank=True)
 
     class Meta:
         verbose_name = _("Group")

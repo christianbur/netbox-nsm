@@ -60,6 +60,12 @@
              href="{% url 'plugins:netbox_nsm:bundle_import' %}">
             <i class="mdi mdi-upload"></i> {% trans "Import (YAML)" %}
           </a>
+          {% if active_sub_tab == 'types' %}
+          <a class="btn btn-outline-secondary"
+             href="{% url 'plugins:netbox_nsm:builtin_type_install' %}">
+            <i class="mdi mdi-puzzle-outline"></i> {% trans "Install Defaults" %}
+          </a>
+          {% endif %}
         </div>
 
         {% render_table table %}

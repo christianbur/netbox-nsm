@@ -156,17 +156,20 @@ class ObjectsSrcDstTabsView(TemplateView):
         is_custom = ct is not None or bool(self._get_custom_type_by_slug(tab_slug))
         for obj in self._get_objects_for_tab(tab_slug, ct=ct):
             if is_custom:
-                url      = f"/plugins/netbox-nsm/object/custom/objects/{obj.pk}/"
-                edit_url = f"/plugins/netbox-nsm/object/custom/objects/{obj.pk}/edit/"
-                del_url  = f"/plugins/netbox-nsm/object/custom/objects/{obj.pk}/delete/"
+                url           = f"/plugins/netbox-nsm/object/custom/objects/{obj.pk}/"
+                edit_url      = f"/plugins/netbox-nsm/custom-objects/{obj.pk}/edit/"
+                del_url       = f"/plugins/netbox-nsm/custom-objects/{obj.pk}/delete/"
+                changelog_url = f"/plugins/netbox-nsm/custom-objects/{obj.pk}/changelog/"
             else:
-                url      = f"/plugins/netbox-nsm/object/{tab_slug}/{obj.pk}/"
-                edit_url = f"/plugins/netbox-nsm/object/{tab_slug}/{obj.pk}/edit/"
-                del_url  = f"/plugins/netbox-nsm/object/{tab_slug}/{obj.pk}/delete/"
+                url           = f"/plugins/netbox-nsm/object/{tab_slug}/{obj.pk}/"
+                edit_url      = f"/plugins/netbox-nsm/object/{tab_slug}/{obj.pk}/edit/"
+                del_url       = f"/plugins/netbox-nsm/object/{tab_slug}/{obj.pk}/delete/"
+                changelog_url = f"/plugins/netbox-nsm/object/{tab_slug}/{obj.pk}/changelog/"
             row = {
                 "url": url,
                 "edit_url": edit_url,
                 "delete_url": del_url,
+                "changelog_url": changelog_url,
                 "cells": [],
             }
             for column in columns:
@@ -284,6 +287,7 @@ class ObjectsCustomAreaView(TemplateView):
                 {"slug": "srcdst",   "label": "Source/Destination", "href": "/plugins/netbox-nsm/object/"},
                 {"slug": "services", "label": "Services",           "href": "/plugins/netbox-nsm/object/"},
                 {"slug": "action",   "label": "Action",             "href": "/plugins/netbox-nsm/object/"},
+                {"slug": "info",     "label": "Info",               "href": "/plugins/netbox-nsm/object/"},
                 {"slug": "custom",   "label": "Custom",             "href": "/plugins/netbox-nsm/object/custom/"},
             ),
             "active_main_tab": "custom",

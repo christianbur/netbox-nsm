@@ -24,7 +24,5 @@ class SecurityConfig(PluginConfig):
     def ready(self):
         super().ready()
 
-        import netbox_nsm.signals.nat_pool_member
-
 
 config = SecurityConfig  # noqa

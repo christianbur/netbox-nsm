@@ -27,6 +27,12 @@ class ObjectCustomObjectAssignment(NetBoxModel):
         related_name="assignments",
         verbose_name=_("Custom Object"),
     )
+    comment = models.CharField(
+        max_length=200,
+        blank=True,
+        default="",
+        verbose_name=_("Comment"),
+    )
     clone_fields = ("assigned_object_type", "assigned_object_id")
     prerequisite_models = ("netbox_nsm.ObjectCustomObject",)
 

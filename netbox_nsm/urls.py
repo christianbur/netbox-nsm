@@ -15,6 +15,7 @@ urlpatterns = [
     # Custom area — must come before generic object/<str:tab>/ to avoid conflict
     path("object/custom/", ObjectsCustomAreaView.as_view(), name="object_custom_root"),
     path("object/custom/<str:tab>/", ObjectsCustomAreaView.as_view(), name="object_custom_tab"),
+    path("object/custom/types/install-builtins/", BuiltinTypeInstallView.as_view(), name="builtin_type_install"),
     path("object/custom/types/add/", ObjectCustomTypeEditView.as_view(), name="objectcustomtype_add"),
     path("object/custom/types/<int:pk>/", ObjectCustomTypeView.as_view(), name="objectcustomtype"),
     path("object/custom/objects/add/", ObjectCustomEditView.as_view(), name="objectcustom_add"),
@@ -29,44 +30,6 @@ urlpatterns = [
     path("custom-object-assignments/", include(get_model_urls("netbox_nsm", "objectcustomobjectassignment", detail=False))),
     path("custom-object-assignments/<int:pk>/", include(get_model_urls("netbox_nsm", "objectcustomobjectassignment"))),
     path("object/<str:tab>/", ObjectsSrcDstTabsView.as_view(), name="object_tabs"),
-    # Security Zones Matrix
-    path(
-        "security-zone-matrix/",
-        include(get_model_urls("netbox_nsm", "securityzonematrix", detail=False)),
-    ),
-    path(
-        "security-zone-matrix/<int:pk>/",
-        include(get_model_urls("netbox_nsm", "securityzonematrix")),
-    ),
-    # Security Zones Matrix Policies
-    path(
-        "security-zone-matrix-policy/",
-        include(
-            get_model_urls("netbox_nsm", "securityzonematrixpolicy", detail=False)
-        ),
-    ),
-    path(
-        "security-zone-matrix-policy/<int:pk>/",
-        include(get_model_urls("netbox_nsm", "securityzonematrixpolicy")),
-    ),
-    # Security Zones Matrix Cells
-    path(
-        "security-zone-matrix-cell/",
-        include(get_model_urls("netbox_nsm", "securityzonematrixcell", detail=False)),
-    ),
-    path(
-        "security-zone-matrix-cell/<int:pk>/",
-        include(get_model_urls("netbox_nsm", "securityzonematrixcell")),
-    ),
-    # Security Zone Policies
-    path(
-        "security-zone-policy/",
-        include(get_model_urls("netbox_nsm", "securityzonepolicy", detail=False)),
-    ),
-    path(
-        "security-zone-policy/<int:pk>/",
-        include(get_model_urls("netbox_nsm", "securityzonepolicy")),
-    ),
     # Security Policy
     path(
         "security-policy/<int:pk>/visualization/",
@@ -108,3 +71,4 @@ urlpatterns = [
         include(get_model_urls("netbox_nsm", "securityzonepolicyrulebookassignment")),
     ),
 ]
+

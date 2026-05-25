@@ -27,8 +27,8 @@ class ObjectCustomType(PrimaryModel):
         blank=True,
         default="",
         help_text=_(
-            "MDI-Icon-Name von pictogrammers.com (z.B. \"mdi-server\", \"mdi-tag\"). "
-            "Immer mit \"mdi-\" Präfix angeben."
+            "MDI icon name from pictogrammers.com (e.g. \"mdi-server\", \"mdi-tag\"). "
+            "Always use the \"mdi-\" prefix."
         ),
     )
     field_definitions = models.JSONField(

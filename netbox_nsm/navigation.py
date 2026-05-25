@@ -122,65 +122,7 @@ application_menu_items = (
         ),
     ),
 )
-security_menu_items = (
-    PluginMenuItem(
-        link="plugins:netbox_nsm:securityzonematrix_list",
-        link_text=_("Security Zones Matrix"),
-        permissions=["netbox_nsm.view_securityzonematrix"],
-        buttons=(
-            PluginMenuButton(
-                "plugins:netbox_nsm:securityzonematrix_add",
-                _("Add"),
-                "mdi mdi-plus-thick",
-                permissions=["netbox_nsm.add_securityzonematrix"],
-            ),
-            PluginMenuButton(
-                "plugins:netbox_nsm:securityzonematrix_bulk_import",
-                _("Import"),
-                "mdi mdi-upload",
-                permissions=["netbox_nsm.add_securityzonematrix"],
-            ),
-        ),
-    ),
-    PluginMenuItem(
-        link="plugins:netbox_nsm:securityzonematrixpolicy_list",
-        link_text=_("Security Zones Matrix Policies"),
-        permissions=["netbox_nsm.view_securityzonematrixpolicy"],
-        buttons=(
-            PluginMenuButton(
-                "plugins:netbox_nsm:securityzonematrixpolicy_add",
-                _("Add"),
-                "mdi mdi-plus-thick",
-                permissions=["netbox_nsm.add_securityzonematrixpolicy"],
-            ),
-            PluginMenuButton(
-                "plugins:netbox_nsm:securityzonematrixpolicy_bulk_import",
-                _("Import"),
-                "mdi mdi-upload",
-                permissions=["netbox_nsm.add_securityzonematrixpolicy"],
-            ),
-        ),
-    ),
-    PluginMenuItem(
-        link="plugins:netbox_nsm:securityzonepolicy_list",
-        link_text=_("Security Zone Policies"),
-        permissions=["netbox_nsm.view_securityzonepolicy"],
-        buttons=(
-            PluginMenuButton(
-                "plugins:netbox_nsm:securityzonepolicy_add",
-                _("Add"),
-                "mdi mdi-plus-thick",
-                permissions=["netbox_nsm.add_securityzonepolicy"],
-            ),
-            PluginMenuButton(
-                "plugins:netbox_nsm:securityzonepolicy_bulk_import",
-                _("Import"),
-                "mdi mdi-upload",
-                permissions=["netbox_nsm.add_securityzonepolicy"],
-            ),
-        ),
-    ),
-)
+builder_menu_items = ()
 
 security_policy_menu_items = (
     PluginMenuItem(
@@ -198,7 +140,6 @@ security_policy_menu_items = (
     ),
 )
 
-
 assignments_menu_items = (
     PluginMenuItem(
         link="plugins:netbox_nsm:securityzonepolicyrulebookassignment_list",
@@ -206,8 +147,6 @@ assignments_menu_items = (
         permissions=["netbox_nsm.view_securityzonepolicyrulebookassignment"],
     ),
 )
-
-builder_menu_items = ()
 
 objects_menu_items = (
     PluginMenuItem(
@@ -223,8 +162,6 @@ if plugin_settings.get("top_level_menu"):
     groups = (
         (_("Builder"), builder_menu_items),
         (_("Objekts"), objects_menu_items),
-        # (_("Address Book"), address_menu_items),
-        (_("Security Zones"), security_menu_items),
         (_("Security Policy"), security_policy_menu_items),
     )
     if plugin_settings.get("assignments_menu"):
@@ -239,9 +176,8 @@ else:
     menu_items = (
         builder_menu_items
         + objects_menu_items
-        # + address_menu_items
-        + security_menu_items
         + security_policy_menu_items
     )
     if plugin_settings.get("assignments_menu"):
         menu_items = menu_items + assignments_menu_items
+

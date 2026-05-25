@@ -2,8 +2,6 @@ import strawberry
 
 from netbox_nsm.choices import (
     FamilyChoices,
-    FirewallRuleFromSettingChoices,
-    FirewallRuleThenSettingChoices,
     PoolTypeChoices,
     RuleDirectionChoices,
     NatTypeChoices,
@@ -18,8 +16,6 @@ from netbox_nsm.choices import (
 
 __all__ = (
     "NetBoxSecurityFamilyEnum",
-    "NetBoxSecurityFirewallRuleFromSettingEnum",
-    "NetBoxSecurityFirewallRuleThenSettingEnum",
     "NetBoxSecurityPoolTypeEnum",
     "NetBoxSecurityRuleDirectionEnum",
     "NetBoxSecurityNatTypeEnum",
@@ -34,12 +30,6 @@ __all__ = (
 
 
 NetBoxSecurityFamilyEnum = strawberry.enum(FamilyChoices.as_enum())
-NetBoxSecurityFirewallRuleFromSettingEnum = strawberry.enum(
-    FirewallRuleFromSettingChoices.as_enum()
-)
-NetBoxSecurityFirewallRuleThenSettingEnum = strawberry.enum(
-    FirewallRuleThenSettingChoices.as_enum()
-)
 NetBoxSecurityPoolTypeEnum = strawberry.enum(PoolTypeChoices.as_enum())
 NetBoxSecurityRuleDirectionEnum = strawberry.enum(RuleDirectionChoices.as_enum())
 NetBoxSecurityNatTypeEnum = strawberry.enum(NatTypeChoices.as_enum())

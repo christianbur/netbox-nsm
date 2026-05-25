@@ -23,9 +23,6 @@ from netbox_nsm.models import (
     ApplicationItem,
     ObjectGroup,
     ObjectGroupAssignment,
-    ObjectLabel,
-    ObjectSGT,
-    ObjectUser,
     SecurityZone,
 )
 
@@ -57,10 +54,7 @@ class ObjectGroupForm(PrimaryModelForm):
     addresses = DynamicModelMultipleChoiceField(queryset=Address.objects.all(), required=False)
     services = DynamicModelMultipleChoiceField(queryset=ApplicationItem.objects.all(), required=False)
     applications = DynamicModelMultipleChoiceField(queryset=Application.objects.all(), required=False)
-    labels = DynamicModelMultipleChoiceField(queryset=ObjectLabel.objects.all(), required=False)
     zones = DynamicModelMultipleChoiceField(queryset=SecurityZone.objects.all(), required=False)
-    sgts = DynamicModelMultipleChoiceField(queryset=ObjectSGT.objects.all(), required=False)
-    users = DynamicModelMultipleChoiceField(queryset=ObjectUser.objects.all(), required=False)
     description = forms.CharField(max_length=200, required=False)
 
     MEMBER_FIELDS = (
@@ -68,15 +62,12 @@ class ObjectGroupForm(PrimaryModelForm):
         "addresses",
         "services",
         "applications",
-        "labels",
         "zones",
-        "sgts",
-        "users",
     )
 
     fieldsets = (
         FieldSet("name", "group_type", "group_member_type", "description", name=_("Group")),
-        FieldSet("groups", "addresses", "services", "applications", "labels", "zones", "sgts", "users", name=_("Objekts (src/dst)")),
+        FieldSet("groups", "addresses", "services", "applications", "zones", name=_("Objekts (src/dst)")),
         FieldSet("tags", name=_("Tags")),
     )
 
@@ -90,10 +81,7 @@ class ObjectGroupForm(PrimaryModelForm):
             "addresses",
             "services",
             "applications",
-            "labels",
             "zones",
-            "sgts",
-            "users",
             "description",
             "comments",
             "tags",

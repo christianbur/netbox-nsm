@@ -7,14 +7,25 @@ from .nat_rule_choices import (
     RuleStatusChoices,
 )
 from .security_policy_choices import ActionChoices
-from .firewall_filter_choices import (
-    FamilyChoices,
-    FirewallRuleFromSettingChoices,
-    FirewallRuleThenSettingChoices,
-)
+from utilities.choices import ChoiceSet
+
+
+class FamilyChoices(ChoiceSet):
+    INET = "inet"
+    INET6 = "inet6"
+    ANY = "any"
+    MPLS = "mpls"
+    CCC = "ccc"
+
+    CHOICES = [
+        (INET, "INET", "green"),
+        (INET6, "INET6", "red"),
+        (ANY, "ANY", "blue"),
+        (MPLS, "MPLS", "cyan"),
+        (CCC, "CCC", "orange"),
+    ]
 from .policer_choices import ForwardingClassChoices, LossPriorityChoices
 from .application_choices import ProtocolChoices
-from .object_label_choices import ObjectLabelTypeChoices
 
 __all__ = [
     "AddressTypeChoices",
@@ -22,13 +33,10 @@ __all__ = [
     "NatTypeChoices",
     "RuleStatusChoices",
     "ActionChoices",
-    "FirewallRuleFromSettingChoices",
-    "FirewallRuleThenSettingChoices",
     "PoolTypeChoices",
     "RuleDirectionChoices",
     "FamilyChoices",
     "ForwardingClassChoices",
     "LossPriorityChoices",
     "ProtocolChoices",
-    "ObjectLabelTypeChoices",
 ]

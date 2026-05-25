@@ -19,7 +19,7 @@ class ObjectBuilderView(TemplateView):
             },
             {
                 "title": "Object Type Fields",
-                "description": "Felder pro Objekttyp verwalten",
+                "description": "Manage fields per object type",
                 "add_url": "plugins:netbox_nsm:nsmobjecttypefield_add",
                 "list_url": "plugins:netbox_nsm:nsmobjecttypefield_list",
                 "count": NsmObjectTypeField.objects.count(),

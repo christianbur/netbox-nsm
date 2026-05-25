@@ -18,7 +18,6 @@ from netbox_nsm.models import (
     ApplicationSet,
     ApplicationAssignment,
     ApplicationItem,
-    SecurityZonePolicy,
 )
 
 from netbox_nsm.mixins import AssignmentFilterSet
@@ -49,11 +48,6 @@ class ApplicationFilterSet(TenancyFilterSet, PrimaryModelFilterSet):
     )
     technology = MultiValueCharFilter(field_name="technology", label=_("Technology"))
     reference = MultiValueCharFilter(field_name="reference", label=_("Reference"))
-    security_zone_policy_id = django_filters.ModelMultipleChoiceFilter(
-        field_name="securityzonepolicy_applications",
-        queryset=SecurityZonePolicy.objects.all(),
-        to_field_name="id",
-    )
     application_item_id = django_filters.ModelMultipleChoiceFilter(
         field_name="application_items",
         queryset=ApplicationItem.objects.all(),

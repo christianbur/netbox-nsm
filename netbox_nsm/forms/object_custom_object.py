@@ -85,6 +85,13 @@ class ObjectCustomObjectForm(PrimaryModelForm):
                             label=field_def.get("label", field_def["name"]),
                             initial=self.instance.field_data.get(field_def["name"], "") if self.instance.pk else "",
                         )
+                elif ftype == "date":
+                    self.fields[fname] = forms.DateField(
+                        required=field_def.get("required", False),
+                        label=field_def.get("label", field_def["name"]),
+                        widget=forms.DateInput(attrs={"type": "date"}),
+                        initial=self.instance.field_data.get(field_def["name"], "") if self.instance.pk else "",
+                    )
                 else:
                     self.fields[fname] = forms.CharField(
                         required=False,
@@ -158,6 +165,8 @@ class ObjectCustomObjectForm(PrimaryModelForm):
                         "url": val.get_absolute_url(),
                         "str": str(val),
                     }
+                elif ftype == "date":
+                    field_data[field_def["name"]] = val.isoformat() if hasattr(val, "isoformat") else str(val)
                 else:
                     field_data[field_def["name"]] = val
             instance.field_data = field_data

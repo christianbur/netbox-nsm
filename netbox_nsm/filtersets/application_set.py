@@ -17,7 +17,6 @@ from netbox_nsm.models import (
     ApplicationSet,
     Application,
     ApplicationSetAssignment,
-    SecurityZonePolicy,
 )
 from netbox_nsm.mixins import (
     AssignmentFilterSet,
@@ -54,11 +53,6 @@ class ApplicationSetFilterSet(TenancyFilterSet, PrimaryModelFilterSet):
         queryset=ApplicationSet.objects.all(),
         to_field_name="name",
         label=_("Application Set (name)"),
-    )
-    security_zone_policy_id = django_filters.ModelMultipleChoiceFilter(
-        field_name="securityzonepolicy_application_sets",
-        queryset=SecurityZonePolicy.objects.all(),
-        to_field_name="id",
     )
     application_id = django_filters.ModelMultipleChoiceFilter(
         field_name="applications",

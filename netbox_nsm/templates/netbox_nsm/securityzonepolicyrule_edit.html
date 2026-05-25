@@ -169,8 +169,10 @@
         <tbody data-selection-table="action"></tbody>
       </table>
     </div>
+    <div class="row mb-3">
+      <div class="col-md-6">{% render_field form.policy_action %}</div>
+    </div>
     <div class="nsm-hidden-pickers">
-      {% render_field form.policy_action %}
       {% render_field form.custom_action_objects %}
       {% render_field form.action_groups %}
     </div>
@@ -197,5 +199,5 @@
 {% block javascript %}
   {{ block.super }}
   {{ nsm_object_catalog|json_script:"nsm-object-catalog" }}
-  <script src="{% static 'netbox_nsm/js/security_rule_form.js' %}?v=20260525a"></script>
+  <script src="{% static 'netbox_nsm/js/security_rule_form.js' %}?v=20260525b"></script>
 {% endblock javascript %}

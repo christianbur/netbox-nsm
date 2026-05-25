@@ -128,6 +128,17 @@ def _custom_objects_cards(custom_objs):
 
 # ── custom columns ────────────────────────────────────────────────────────────
 
+def _groups_cards(groups):
+    """Render ObjectGroup instances as a single 'Groups' card."""
+    items = [
+        {"url": g.get_absolute_url(), "name": g.name}
+        for g in groups
+    ]
+    if not items:
+        return []
+    return [_card("Groups", items)]
+
+
 class SourceColumn(tables.Column):
     def render(self, value, record):
         cards = _build_src_dst_cards(
@@ -135,6 +146,7 @@ class SourceColumn(tables.Column):
             users=record.source_users.all(),
         )
         cards += _custom_objects_cards(record.custom_srcdst_objects.all())
+        cards += _groups_cards(record.source_groups.all())
         return _rule_stack(cards)
 
 
@@ -144,7 +156,8 @@ class DestinationColumn(tables.Column):
             zones=record.destination_zones.all(),
             users=record.destination_users.all(),
         )
-        cards += _custom_objects_cards(record.custom_srcdst_objects.all())
+        cards += _custom_objects_cards(record.destination_custom_objects.all())
+        cards += _groups_cards(record.destination_groups.all())
         return _rule_stack(cards)
 
 
@@ -162,10 +175,18 @@ class ServiceColumn(tables.Column):
             type_map["App. Sets"] = [{"url": a.get_absolute_url(), "name": a.name} for a in appsets]
         cards = [_card(label, items) for label, items in type_map.items()]
         cards += _custom_objects_cards(record.custom_service_objects.all())
+        cards += _groups_cards(record.service_groups.all())
         return _rule_stack(cards)
 
 
 class ActionColumn(tables.Column):
+    def render(self, value, record):
+        cards = _custom_objects_cards(record.custom_action_objects.all())
+        cards += _groups_cards(record.action_groups.all())
+        return _rule_stack(cards)
+
+
+class InfoColumn(tables.Column):
     def render(self, value, record):
         action_display = record.get_policy_action_display()
         action_pill = (
@@ -173,27 +194,17 @@ class ActionColumn(tables.Column):
             f'{conditional_escape(action_display)}</span>'
         )
         log_pill = (
-            '<span class="nsm-rule-pill nsm-rule-pill-success">Enabled</span>'
+            '<span class="nsm-rule-pill nsm-rule-pill-success">Log: on</span>'
             if record.log_enabled
-            else '<span class="nsm-rule-pill nsm-rule-pill-muted">Disabled</span>'
+            else '<span class="nsm-rule-pill nsm-rule-pill-muted">Log: off</span>'
         )
-        cards = [
-            (f'<div class="nsm-rule-card">'
-             f'<div class="nsm-rule-label">Action</div>'
-             f'<div class="nsm-rule-pills">{action_pill}</div>'
-             f'</div>'),
-            (f'<div class="nsm-rule-card">'
-             f'<div class="nsm-rule-label">Log</div>'
-             f'<div class="nsm-rule-pills">{log_pill}</div>'
-             f'</div>'),
-        ]
-        cards += _custom_objects_cards(record.custom_action_objects.all())
-        return _rule_stack([mark_safe(c) for c in cards])
-
-
-class InfoColumn(tables.Column):
-    def render(self, value, record):
-        return _rule_stack([])
+        cards = mark_safe(
+            f'<div class="nsm-rule-card">'
+            f'<div class="nsm-rule-label">Action</div>'
+            f'<div class="nsm-rule-pills">{action_pill}{log_pill}</div>'
+            f'</div>'
+        )
+        return mark_safe(f'<div class="nsm-rule-stack">{cards}</div>')
 
 
 class SecurityZonePolicyRulebookTable(NetBoxTable):
@@ -280,8 +291,8 @@ class SecurityZonePolicyRuleTable(NetBoxTable):
             "destination",
             "service",
             "action",
-            "info",
             "description",
+            "info",
         )
 
 

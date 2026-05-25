@@ -53,8 +53,8 @@ SECURITY_RULES_COLUMNS = (
     ("destination", _("Destination")),
     ("service", _("Service")),
     ("action", _("Action")),
-    ("info", _("Info")),
     ("description", _("Description")),
+    ("info", _("Info")),
 )
 
 MAX_CUSTOM_COLUMNS = 10

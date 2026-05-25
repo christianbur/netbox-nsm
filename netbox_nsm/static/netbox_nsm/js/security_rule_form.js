@@ -2,12 +2,10 @@
   const SECTION_DEFS = {
     source: [
       { field: "source_zones", label: "Zone", sourceField: "source_zones" },
-      { field: "custom_srcdst_objects", label: "Object", sourceField: "custom_srcdst_objects" },
       { field: "source_groups", label: "Group", sourceField: "source_groups" },
     ],
     destination: [
       { field: "destination_zones", label: "Zone", sourceField: "destination_zones" },
-      { field: "destination_custom_objects", label: "Object", sourceField: "destination_custom_objects" },
       { field: "destination_groups", label: "Group", sourceField: "destination_groups" },
     ],
     service: [
@@ -18,7 +16,6 @@
       { field: "service_groups", label: "Group", sourceField: "service_groups" },
     ],
     action: [
-      { field: "policy_action", label: "Default Action", sourceField: "policy_action" },
       { field: "custom_action_objects", label: "Object", sourceField: "custom_action_objects" },
       { field: "action_groups", label: "Group", sourceField: "action_groups" },
     ],

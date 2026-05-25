@@ -5,22 +5,14 @@ from django.db.models import Count
 from .serializers import (
     CustomPrefixSerializer,
     AddressListSerializer,
-    AddressListAssignmentSerializer,
     AddressSetSerializer,
-    AddressSetAssignmentSerializer,
     AddressSerializer,
-    AddressAssignmentSerializer,
     ApplicationItemSerializer,
     ApplicationSerializer,
-    ApplicationAssignmentSerializer,
     ApplicationSetSerializer,
-    ApplicationSetAssignmentSerializer,
     ObjectActionSerializer,
     ObjectGroupSerializer,
-    ObjectGroupAssignmentSerializer,
-    SecurityZoneRoleSerializer,
     SecurityZoneSerializer,
-    SecurityZoneAssignmentSerializer,
     SecurityZonePolicyRulebookSerializer,
     SecurityZonePolicyRuleSerializer,
     SecurityZonePolicyRulebookAssignmentSerializer,
@@ -37,22 +29,14 @@ from .serializers import (
 from netbox_nsm.models import (
     CustomPrefix,
     AddressList,
-    AddressListAssignment,
     AddressSet,
-    AddressSetAssignment,
     Address,
-    AddressAssignment,
     ApplicationItem,
     Application,
-    ApplicationAssignment,
     ApplicationSet,
-    ApplicationSetAssignment,
     ObjectAction,
     ObjectGroup,
-    ObjectGroupAssignment,
-    SecurityZoneRole,
     SecurityZone,
-    SecurityZoneAssignment,
     SecurityZonePolicyRulebook,
     SecurityZonePolicyRule,
     SecurityZonePolicyRulebookAssignment,
@@ -69,22 +53,14 @@ from netbox_nsm.models import (
 from netbox_nsm.filtersets import (
     CustomPrefixFilterSet,
     AddressListFilterSet,
-    AddressListAssignmentFilterSet,
     AddressSetFilterSet,
-    AddressSetAssignmentFilterSet,
     AddressFilterSet,
-    AddressAssignmentFilterSet,
     ApplicationItemFilterSet,
     ApplicationFilterSet,
-    ApplicationAssignmentFilterSet,
     ApplicationSetFilterSet,
-    ApplicationSetAssignmentFilterSet,
     ObjectActionFilterSet,
     ObjectGroupFilterSet,
-    ObjectGroupAssignmentFilterSet,
-    SecurityZoneRoleFilterSet,
     SecurityZoneFilterSet,
-    SecurityZoneAssignmentFilterSet,
     SecurityZonePolicyRulebookFilterSet,
     SecurityZonePolicyRuleFilterSet,
     SecurityZonePolicyRulebookAssignmentFilterSet,
@@ -116,34 +92,16 @@ class AddressListViewSet(NetBoxModelViewSet):
     filterset_class = AddressListFilterSet
 
 
-class AddressListAssignmentViewSet(NetBoxModelViewSet):
-    queryset = AddressListAssignment.objects.all()
-    serializer_class = AddressListAssignmentSerializer
-    filterset_class = AddressListAssignmentFilterSet
-
-
 class AddressSetViewSet(NetBoxModelViewSet):
     queryset = AddressSet.objects.prefetch_related("tenant", "tags")
     serializer_class = AddressSetSerializer
     filterset_class = AddressSetFilterSet
 
 
-class AddressSetAssignmentViewSet(NetBoxModelViewSet):
-    queryset = AddressSetAssignment.objects.all()
-    serializer_class = AddressSetAssignmentSerializer
-    filterset_class = AddressSetAssignmentFilterSet
-
-
 class AddressViewSet(NetBoxModelViewSet):
     queryset = Address.objects.prefetch_related("tenant", "tags")
     serializer_class = AddressSerializer
     filterset_class = AddressFilterSet
-
-
-class AddressAssignmentViewSet(NetBoxModelViewSet):
-    queryset = AddressAssignment.objects.all()
-    serializer_class = AddressAssignmentSerializer
-    filterset_class = AddressAssignmentFilterSet
 
 
 class ApplicationItemViewSet(NetBoxModelViewSet):
@@ -158,22 +116,10 @@ class ApplicationViewSet(NetBoxModelViewSet):
     filterset_class = ApplicationFilterSet
 
 
-class ApplicationAssignmentViewSet(NetBoxModelViewSet):
-    queryset = ApplicationAssignment.objects.all()
-    serializer_class = ApplicationAssignmentSerializer
-    filterset_class = ApplicationAssignmentFilterSet
-
-
 class ApplicationSetViewSet(NetBoxModelViewSet):
     queryset = ApplicationSet.objects.prefetch_related("tenant", "tags")
     serializer_class = ApplicationSetSerializer
     filterset_class = ApplicationSetFilterSet
-
-
-class ApplicationSetAssignmentViewSet(NetBoxModelViewSet):
-    queryset = ApplicationSetAssignment.objects.all()
-    serializer_class = ApplicationSetAssignmentSerializer
-    filterset_class = ApplicationSetAssignmentFilterSet
 
 
 class ObjectActionViewSet(NetBoxModelViewSet):
@@ -194,28 +140,10 @@ class ObjectGroupViewSet(NetBoxModelViewSet):
     filterset_class = ObjectGroupFilterSet
 
 
-class ObjectGroupAssignmentViewSet(NetBoxModelViewSet):
-    queryset = ObjectGroupAssignment.objects.all()
-    serializer_class = ObjectGroupAssignmentSerializer
-    filterset_class = ObjectGroupAssignmentFilterSet
-
-
-class SecurityZoneRoleViewSet(NetBoxModelViewSet):
-    queryset = SecurityZoneRole.annotated_queryset().prefetch_related("tags")
-    serializer_class = SecurityZoneRoleSerializer
-    filterset_class = SecurityZoneRoleFilterSet
-
-
 class SecurityZoneViewSet(NetBoxModelViewSet):
-    queryset = SecurityZone.objects.prefetch_related("roles", "tenant", "tags")
+    queryset = SecurityZone.objects.prefetch_related("tenant", "tags")
     serializer_class = SecurityZoneSerializer
     filterset_class = SecurityZoneFilterSet
-
-
-class SecurityZoneAssignmentViewSet(NetBoxModelViewSet):
-    queryset = SecurityZoneAssignment.objects.all()
-    serializer_class = SecurityZoneAssignmentSerializer
-    filterset_class = SecurityZoneAssignmentFilterSet
 
 
 class SecurityZonePolicyRulebookViewSet(NetBoxModelViewSet):
@@ -228,10 +156,8 @@ class SecurityZonePolicyRuleViewSet(NetBoxModelViewSet):
     queryset = SecurityZonePolicyRule.objects.select_related("rulebook").prefetch_related(
         "source_zones",
         "source_addresses",
-        "source_users",
         "destination_zones",
         "destination_addresses",
-        "destination_users",
         "applications",
         "application_sets",
         "tags",

@@ -16,15 +16,11 @@ from virtualization.models import VirtualMachine
 from netbox_nsm.models import (
     ApplicationSet,
     Application,
-    ApplicationSetAssignment,
 )
-from netbox_nsm.mixins import (
-    AssignmentFilterSet,
-)
+
 
 __all__ = (
     "ApplicationSetFilterSet",
-    "ApplicationSetAssignmentFilterSet",
 )
 
 
@@ -84,83 +80,3 @@ class ApplicationSetFilterSet(TenancyFilterSet, PrimaryModelFilterSet):
 
 
 @register_filterset
-class ApplicationSetAssignmentFilterSet(AssignmentFilterSet):
-    application_set_id = django_filters.ModelMultipleChoiceFilter(
-        queryset=ApplicationSet.objects.all(),
-        label=_("Application Set (ID)"),
-    )
-    application_set = django_filters.ModelMultipleChoiceFilter(
-        field_name="application_set__name",
-        queryset=ApplicationSet.objects.all(),
-        to_field_name="name",
-        label=_("Application Set (Name)"),
-    )
-    device = MultiValueCharFilter(
-        method="filter_device",
-        field_name="name",
-        label=_("Device (name)"),
-    )
-    device_id = MultiValueNumberFilter(
-        method="filter_device",
-        field_name="pk",
-        label=_("Device (ID)"),
-    )
-    virtualdevicecontext = MultiValueCharFilter(
-        method="filter_virtualdevicecontext",
-        field_name="name",
-        label=_("Virtual Device Context (name)"),
-    )
-    virtualdevicecontext_id = MultiValueNumberFilter(
-        method="filter_virtualdevicecontext",
-        field_name="pk",
-        label=_("Virtual Device Context (ID)"),
-    )
-    virtualmachine = MultiValueCharFilter(
-        method="filter_virtual_machine",
-        field_name="name",
-        label=_("Virtual Machine (name)"),
-    )
-    virtualmachine_id = MultiValueNumberFilter(
-        method="filter_virtual_machine",
-        field_name="pk",
-        label=_("Virtual Machine (ID)"),
-    )
-
-    class Meta:
-        model = ApplicationSetAssignment
-        fields = (
-            "id",
-            "application_set_id",
-            "assigned_object_type",
-            "assigned_object_id",
-        )
-
-    def filter_device(self, queryset, name, value):
-        if not (devices := Device.objects.filter(**{f"{name}__in": value})).exists():
-            return queryset.none()
-        return queryset.filter(
-            assigned_object_type=ContentType.objects.get_for_model(Device),
-            assigned_object_id__in=devices.values_list("id", flat=True),
-        )
-
-    def filter_virtualdevicecontext(self, queryset, name, value):
-        if not (
-            devices := VirtualDeviceContext.objects.filter(**{f"{name}__in": value})
-        ).exists():
-            return queryset.none()
-        return queryset.filter(
-            assigned_object_type=ContentType.objects.get_for_model(
-                VirtualDeviceContext
-            ),
-            assigned_object_id__in=devices.values_list("id", flat=True),
-        )
-
-    def filter_virtual_machine(self, queryset, name, value):
-        if not (
-            devices := VirtualMachine.objects.filter(**{f"{name}__in": value})
-        ).exists():
-            return queryset.none()
-        return queryset.filter(
-            assigned_object_type=ContentType.objects.get_for_model(VirtualMachine),
-            assigned_object_id__in=devices.values_list("id", flat=True),
-        )

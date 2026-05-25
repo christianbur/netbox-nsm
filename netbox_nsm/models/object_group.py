@@ -1,17 +1,11 @@
-from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
-from django.contrib.contenttypes.models import ContentType
 from django.db import models
-from django.db.models import UniqueConstraint
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from dcim.models import Device, VirtualDeviceContext
 from netbox.models import NetBoxModel, PrimaryModel
 from netbox.search import SearchIndex, register_search
-from netbox_nsm.constants import OBJECT_ASSIGNMENT_MODELS
-from virtualization.models import VirtualMachine
 
-__all__ = ("ObjectGroup", "ObjectGroupIndex", "ObjectGroupAssignment")
+__all__ = ("ObjectGroup", "ObjectGroupIndex")
 
 
 class ObjectGroupTypeChoices(models.TextChoices):
@@ -98,64 +92,3 @@ class ObjectGroupIndex(SearchIndex):
         ("description", 500),
     )
 
-
-class ObjectGroupAssignment(NetBoxModel):
-    assigned_object_type = models.ForeignKey(
-        to=ContentType,
-        limit_choices_to=OBJECT_ASSIGNMENT_MODELS,
-        on_delete=models.CASCADE,
-        related_name="+",
-    )
-    assigned_object_id = models.PositiveBigIntegerField(blank=True, null=True)
-    assigned_object = GenericForeignKey(
-        ct_field="assigned_object_type", fk_field="assigned_object_id"
-    )
-    group = models.ForeignKey(
-        to="netbox_nsm.ObjectGroup",
-        on_delete=models.CASCADE,
-        related_name="assignments",
-    )
-    clone_fields = ("assigned_object_type", "assigned_object_id")
-    prerequisite_models = ("netbox_nsm.ObjectGroup",)
-
-    class Meta:
-        verbose_name = _("Group Assignment")
-        verbose_name_plural = _("Group Assignments")
-        indexes = (models.Index(fields=("assigned_object_type", "assigned_object_id")),)
-        constraints = (
-            UniqueConstraint(
-                fields=("assigned_object_type", "assigned_object_id", "group"),
-                name="netbox_nsm_objectgroupassignment_unique",
-            ),
-        )
-        ordering = ("group", "assigned_object_id")
-
-    def __str__(self):
-        return str(self.group)
-
-    def get_absolute_url(self):
-        if self.assigned_object:
-            return self.assigned_object.get_absolute_url()
-        return None
-
-
-GenericRelation(
-    to=ObjectGroupAssignment,
-    content_type_field="assigned_object_type",
-    object_id_field="assigned_object_id",
-    related_query_name="device",
-).contribute_to_class(Device, "nsmGroups")
-
-GenericRelation(
-    to=ObjectGroupAssignment,
-    content_type_field="assigned_object_type",
-    object_id_field="assigned_object_id",
-    related_query_name="virtualdevicecontext",
-).contribute_to_class(VirtualDeviceContext, "nsmGroups")
-
-GenericRelation(
-    to=ObjectGroupAssignment,
-    content_type_field="assigned_object_type",
-    object_id_field="assigned_object_id",
-    related_query_name="virtualmachine",
-).contribute_to_class(VirtualMachine, "nsmGroups")

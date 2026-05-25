@@ -4,13 +4,9 @@ from django.utils.translation import gettext_lazy as _
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from netbox.models import PrimaryModel, NetBoxModel
 from netbox.models.features import ContactsMixin
-from dcim.models import Device, VirtualDeviceContext
-from virtualization.models import VirtualMachine
 from netbox.search import SearchIndex, register_search
 
-from netbox_nsm.constants import APPLICATION_ASSIGNMENT_MODELS
-
-__all__ = ("ApplicationSet", "ApplicationSetAssignment", "ApplicationSetIndex")
+__all__ = ("ApplicationSet", "ApplicationSetIndex")
 
 
 class ApplicationSet(ContactsMixin, PrimaryModel):
@@ -55,49 +51,6 @@ class ApplicationSet(ContactsMixin, PrimaryModel):
         return reverse("plugins:netbox_nsm:applicationset", args=[self.pk])
 
 
-class ApplicationSetAssignment(NetBoxModel):
-    assigned_object_type = models.ForeignKey(
-        to="contenttypes.ContentType",
-        limit_choices_to=APPLICATION_ASSIGNMENT_MODELS,
-        on_delete=models.CASCADE,
-    )
-    assigned_object_id = models.PositiveBigIntegerField()
-    assigned_object = GenericForeignKey(
-        ct_field="assigned_object_type", fk_field="assigned_object_id"
-    )
-    application_set = models.ForeignKey(
-        to="netbox_nsm.ApplicationSet", on_delete=models.CASCADE
-    )
-
-    clone_fields = ("assigned_object_type", "assigned_object_id")
-
-    prerequisite_models = ("netbox_nsm.ApplicationSet",)
-
-    class Meta:
-        indexes = (models.Index(fields=("assigned_object_type", "assigned_object_id")),)
-        constraints = (
-            models.UniqueConstraint(
-                fields=(
-                    "assigned_object_type",
-                    "assigned_object_id",
-                    "application_set",
-                ),
-                name="%(app_label)s_%(class)s_unique_address",
-            ),
-        )
-        ordering = ("application_set", "assigned_object_id")
-        verbose_name = _("Application Set Assignment")
-        verbose_name_plural = _("Application Set Assignments")
-
-    def __str__(self):
-        return f"{self.assigned_object}: {self.application_set}"
-
-    def get_absolute_url(self):
-        if self.assigned_object:
-            return self.assigned_object.get_absolute_url()
-        return None
-
-
 @register_search
 class ApplicationSetIndex(SearchIndex):
     model = ApplicationSet
@@ -109,23 +62,3 @@ class ApplicationSetIndex(SearchIndex):
     )
 
 
-GenericRelation(
-    to=ApplicationSetAssignment,
-    content_type_field="assigned_object_type",
-    object_id_field="assigned_object_id",
-    related_query_name="device",
-).contribute_to_class(Device, "application_sets")
-
-GenericRelation(
-    to=ApplicationSetAssignment,
-    content_type_field="assigned_object_type",
-    object_id_field="assigned_object_id",
-    related_query_name="virtualdevicecontext",
-).contribute_to_class(VirtualDeviceContext, "application_sets")
-
-GenericRelation(
-    to=ApplicationSetAssignment,
-    content_type_field="assigned_object_type",
-    object_id_field="assigned_object_id",
-    related_query_name="virtualmachine",
-).contribute_to_class(VirtualMachine, "application_sets")

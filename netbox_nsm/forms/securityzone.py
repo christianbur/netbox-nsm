@@ -25,7 +25,6 @@ from virtualization.models import VirtualMachine
 
 from netbox_nsm.models import (
     SecurityZone,
-    SecurityZoneAssignment,
 )
 
 __all__ = (
@@ -33,8 +32,6 @@ __all__ = (
     "SecurityZoneFilterForm",
     "SecurityZoneImportForm",
     "SecurityZoneBulkEditForm",
-    "SecurityZoneAssignmentForm",
-    "SecurityZoneAssignmentFilterForm",
 )
 
 
@@ -122,82 +119,3 @@ class SecurityZoneBulkEditForm(PrimaryModelBulkEditForm):
     )
 
 
-class SecurityZoneAssignmentForm(forms.ModelForm):
-    zone = DynamicModelChoiceField(
-        label=_("Security Zone"), queryset=SecurityZone.objects.all()
-    )
-
-    fieldsets = (FieldSet(ObjectAttribute("assigned_object"), "zone"),)
-
-    class Meta:
-        model = SecurityZoneAssignment
-        fields = ("zone",)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def clean_zone(self):
-        zone = self.cleaned_data["zone"]
-
-        conflicting_assignments = SecurityZoneAssignment.objects.filter(
-            assigned_object_type=self.instance.assigned_object_type,
-            assigned_object_id=self.instance.assigned_object_id,
-            zone=zone,
-        )
-        if self.instance.id:
-            conflicting_assignments = conflicting_assignments.exclude(
-                id=self.instance.id
-            )
-
-        if conflicting_assignments.exists():
-            raise forms.ValidationError(_("Assignment already exists"))
-
-        return zone
-
-
-class SecurityZoneAssignmentFilterForm(NetBoxModelFilterSetForm):
-    model = SecurityZone
-    fieldsets = (
-        FieldSet("q", "filter_id", "tag"),
-        FieldSet(
-            "zone_id",
-            name=_("Security Zone"),
-        ),
-        FieldSet(
-            "device_id",
-            "virtualdevicecontext_id",
-            "virtualmachine_id",
-            "interface_id",
-            name="Assignments",
-        ),
-    )
-    zone_id = DynamicModelMultipleChoiceField(
-        queryset=SecurityZone.objects.all(),
-        required=False,
-        label=_("Security Zone"),
-    )
-    device_id = DynamicModelChoiceField(
-        queryset=Device.objects.all(),
-        required=False,
-        label=_("Device"),
-    )
-    virtualdevicecontext_id = DynamicModelChoiceField(
-        queryset=VirtualDeviceContext.objects.all(),
-        required=False,
-        query_params={"device_id": "$device_id"},
-        label=_("Virtual Device Context"),
-    )
-    virtualmachine_id = DynamicModelChoiceField(
-        queryset=VirtualMachine.objects.all(),
-        required=False,
-        label=_("Virtual Machine"),
-    )
-    interface_id = DynamicModelChoiceField(
-        queryset=Interface.objects.all(),
-        required=False,
-        label=_("Interface"),
-        query_params={
-            "device_id": "$device_id",
-            "vdc_id": "$virtualdevicecontext_id",
-        },
-    )

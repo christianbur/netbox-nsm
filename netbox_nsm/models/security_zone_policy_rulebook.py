@@ -35,11 +35,6 @@ class SecurityZonePolicyRulebook(ContactsMixin, PrimaryModel):
         choices=RulebookTypeChoices.choices,
         default=RulebookTypeChoices.POLICY,
     )
-    roles = models.ManyToManyField(
-        to="netbox_nsm.SecurityZoneRole",
-        related_name="policy_rulebooks",
-        blank=True,
-    )
 
     class Meta:
         verbose_name = _("Security Policy")

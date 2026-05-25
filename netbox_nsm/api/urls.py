@@ -4,22 +4,14 @@ from .views import (
     NetBoxSecurityRootView,
     CustomPrefixViewSet,
     AddressListViewSet,
-    AddressListAssignmentViewSet,
     AddressSetViewSet,
-    AddressSetAssignmentViewSet,
     AddressViewSet,
-    AddressAssignmentViewSet,
     ApplicationItemViewSet,
     ApplicationViewSet,
     ApplicationSetViewSet,
-    ApplicationAssignmentViewSet,
-    ApplicationSetAssignmentViewSet,
     ObjectActionViewSet,
     ObjectGroupViewSet,
-    ObjectGroupAssignmentViewSet,
-    SecurityZoneRoleViewSet,
     SecurityZoneViewSet,
-    SecurityZoneAssignmentViewSet,
     SecurityZonePolicyRulebookViewSet,
     SecurityZonePolicyRuleViewSet,
     SecurityZonePolicyRulebookAssignmentViewSet,
@@ -46,15 +38,7 @@ router.register("object-applications", ApplicationViewSet)
 router.register("application-sets", ApplicationSetViewSet)
 router.register("object-actions", ObjectActionViewSet)
 router.register("object-groups", ObjectGroupViewSet)
-router.register("object-group-assignments", ObjectGroupAssignmentViewSet)
-router.register("security-zone-roles", SecurityZoneRoleViewSet)
 router.register("object-zones", SecurityZoneViewSet)
-router.register("address-assignments", AddressAssignmentViewSet)
-router.register("address-set-assignments", AddressSetAssignmentViewSet)
-router.register("address-list-assignments", AddressListAssignmentViewSet)
-router.register("application-assignments", ApplicationAssignmentViewSet)
-router.register("application-set-assignments", ApplicationSetAssignmentViewSet)
-router.register("security-zone-assignments", SecurityZoneAssignmentViewSet)
 router.register("security-zone-policy-rulebooks", SecurityZonePolicyRulebookViewSet)
 router.register("security-zone-policy-rules", SecurityZonePolicyRuleViewSet)
 router.register(

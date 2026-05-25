@@ -22,7 +22,6 @@ from netbox_nsm.models import (
     Application,
     ApplicationItem,
     ObjectGroup,
-    ObjectGroupAssignment,
     SecurityZone,
 )
 
@@ -31,8 +30,6 @@ __all__ = (
     "ObjectGroupFilterForm",
     "ObjectGroupImportForm",
     "ObjectGroupBulkEditForm",
-    "ObjectGroupAssignmentForm",
-    "ObjectGroupAssignmentFilterForm",
 )
 
 
@@ -204,56 +201,3 @@ class ObjectGroupBulkEditForm(PrimaryModelBulkEditForm):
     )
 
 
-class ObjectGroupAssignmentForm(forms.ModelForm):
-    group = DynamicModelChoiceField(
-        label=_("Group"), queryset=ObjectGroup.objects.all()
-    )
-
-    fieldsets = (FieldSet(ObjectAttribute("assigned_object"), "group"),)
-
-    class Meta:
-        model = ObjectGroupAssignment
-        fields = ("group",)
-
-    def clean_group(self):
-        group = self.cleaned_data["group"]
-        conflicting = ObjectGroupAssignment.objects.filter(
-            assigned_object_type=self.instance.assigned_object_type,
-            assigned_object_id=self.instance.assigned_object_id,
-            group=group,
-        )
-        if self.instance.id:
-            conflicting = conflicting.exclude(id=self.instance.id)
-        if conflicting.exists():
-            raise forms.ValidationError(_("Assignment already exists"))
-        return group
-
-
-class ObjectGroupAssignmentFilterForm(NetBoxModelFilterSetForm):
-    model = ObjectGroupAssignment
-    fieldsets = (
-        FieldSet("q", "filter_id", "tag"),
-        FieldSet("group_id", name=_("Group")),
-        FieldSet("device_id", "virtualdevicecontext_id", "virtualmachine_id", name="Assignments"),
-    )
-    group_id = DynamicModelMultipleChoiceField(
-        queryset=ObjectGroup.objects.all(),
-        required=False,
-        label=_("Group"),
-    )
-    device_id = DynamicModelChoiceField(
-        queryset=Device.objects.all(),
-        required=False,
-        label=_("Device"),
-    )
-    virtualdevicecontext_id = DynamicModelChoiceField(
-        queryset=VirtualDeviceContext.objects.all(),
-        required=False,
-        query_params={"device_id": "$device_id"},
-        label=_("Virtual Device Context"),
-    )
-    virtualmachine_id = DynamicModelChoiceField(
-        queryset=VirtualMachine.objects.all(),
-        required=False,
-        label=_("Virtual Machine"),
-    )

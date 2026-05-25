@@ -4,14 +4,11 @@ from django.utils.translation import gettext_lazy as _
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from netbox.models import PrimaryModel, NetBoxModel
 from netbox.models.features import ContactsMixin
-from dcim.models import Device, VirtualDeviceContext
-from virtualization.models import VirtualMachine
 from netbox.search import SearchIndex, register_search
 
-from netbox_nsm.constants import ADDRESS_ASSIGNMENT_MODELS
 from netbox_nsm.models import SecurityZone
 
-__all__ = ("AddressSet", "AddressSetAssignment", "AddressSetIndex")
+__all__ = ("AddressSet", "AddressSetIndex")
 
 
 class AddressSet(ContactsMixin, PrimaryModel):
@@ -54,45 +51,6 @@ class AddressSet(ContactsMixin, PrimaryModel):
         return reverse("plugins:netbox_nsm:addressset", args=[self.pk])
 
 
-class AddressSetAssignment(NetBoxModel):
-    assigned_object_type = models.ForeignKey(
-        to="contenttypes.ContentType",
-        limit_choices_to=ADDRESS_ASSIGNMENT_MODELS,
-        on_delete=models.CASCADE,
-    )
-    assigned_object_id = models.PositiveBigIntegerField()
-    assigned_object = GenericForeignKey(
-        ct_field="assigned_object_type", fk_field="assigned_object_id"
-    )
-    address_set = models.ForeignKey(
-        to="netbox_nsm.AddressSet", on_delete=models.CASCADE
-    )
-
-    clone_fields = ("assigned_object_type", "assigned_object_id")
-
-    prerequisite_models = ("netbox_nsm.AddressSet",)
-
-    class Meta:
-        indexes = (models.Index(fields=("assigned_object_type", "assigned_object_id")),)
-        constraints = (
-            models.UniqueConstraint(
-                fields=("assigned_object_type", "assigned_object_id", "address_set"),
-                name="%(app_label)s_%(class)s_unique_address",
-            ),
-        )
-        ordering = ("address_set", "assigned_object_id")
-        verbose_name = _("Address Set Assignment")
-        verbose_name_plural = _("Address Set Assignments")
-
-    def __str__(self):
-        return f"{self.assigned_object}: {self.address_set}"
-
-    def get_absolute_url(self):
-        if self.assigned_object:
-            return self.assigned_object.get_absolute_url()
-        return None
-
-
 @register_search
 class AddressSetIndex(SearchIndex):
     model = AddressSet
@@ -105,30 +63,3 @@ class AddressSetIndex(SearchIndex):
     )
 
 
-GenericRelation(
-    to=AddressSetAssignment,
-    content_type_field="assigned_object_type",
-    object_id_field="assigned_object_id",
-    related_query_name="device",
-).contribute_to_class(Device, "address_sets")
-
-GenericRelation(
-    to=AddressSetAssignment,
-    content_type_field="assigned_object_type",
-    object_id_field="assigned_object_id",
-    related_query_name="security_zone",
-).contribute_to_class(SecurityZone, "address_sets")
-
-GenericRelation(
-    to=AddressSetAssignment,
-    content_type_field="assigned_object_type",
-    object_id_field="assigned_object_id",
-    related_query_name="virtualdevicecontext",
-).contribute_to_class(VirtualDeviceContext, "address_sets")
-
-GenericRelation(
-    to=AddressSetAssignment,
-    content_type_field="assigned_object_type",
-    object_id_field="assigned_object_id",
-    related_query_name="virtualmachine",
-).contribute_to_class(VirtualMachine, "address_sets")

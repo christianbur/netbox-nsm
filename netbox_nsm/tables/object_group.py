@@ -7,9 +7,9 @@ from netbox.tables import NetBoxTable
 from netbox.tables.columns import ActionsColumn, ManyToManyColumn, TagColumn
 from netbox_nsm.tables.mixins import AssignedObjectParentMixin
 
-from netbox_nsm.models import ObjectGroup, ObjectGroupAssignment
+from netbox_nsm.models import ObjectGroup
 
-__all__ = ("ObjectGroupTable", "ObjectGroupAssignmentTable")
+__all__ = ("ObjectGroupTable")
 
 
 class ObjectGroupTable(NetBoxTable):
@@ -71,32 +71,3 @@ class ObjectGroupTable(NetBoxTable):
         default_columns = ("name", "group_type", "members", "description")
 
 
-class ObjectGroupAssignmentTable(AssignedObjectParentMixin, NetBoxTable):
-    assigned_object_parent = tables.Column(
-        accessor=tables.A("assigned_object__device"),
-        orderable=False,
-        verbose_name=_("Parent"),
-        empty_values=(),
-    )
-    assigned_object = tables.Column(
-        linkify=True,
-        orderable=False,
-        verbose_name=_("Assigned Object"),
-    )
-    group = tables.Column(verbose_name=_("Group"), linkify=True)
-    group_type = tables.Column(
-        accessor=tables.A("group__group_type"),
-        verbose_name=_("Type"),
-        orderable=False,
-    )
-    group_description = tables.Column(
-        accessor=tables.A("group__description"),
-        verbose_name=_("Description"),
-        orderable=False,
-    )
-    actions = ActionsColumn(actions=("edit", "delete"))
-
-    class Meta(NetBoxTable.Meta):
-        model = ObjectGroupAssignment
-        fields = ("id", "assigned_object_parent", "assigned_object", "group", "group_type", "group_description")
-        default_columns = ("assigned_object_parent", "assigned_object", "group", "group_type")

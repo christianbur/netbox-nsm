@@ -9,11 +9,10 @@ from netbox.tables.columns import (
 )
 from tenancy.tables import TenancyColumnsMixin
 
-from netbox_nsm.models import Application, ApplicationAssignment
+from netbox_nsm.models import Application
 
 __all__ = (
     "ApplicationTable",
-    "ApplicationAssignmentTable",
 )
 
 
@@ -63,22 +62,3 @@ class ApplicationTable(TenancyColumnsMixin, NetBoxTable):
         )
 
 
-class ApplicationAssignmentTable(NetBoxTable):
-    assigned_object_parent = tables.Column(
-        accessor=tables.A("assigned_object__device"),
-        linkify=True,
-        orderable=False,
-        verbose_name=_("Parent"),
-    )
-    assigned_object = tables.Column(
-        linkify=True,
-        orderable=False,
-        verbose_name=_("Assigned Object"),
-    )
-    application = tables.Column(verbose_name=_("Application"), linkify=True)
-    actions = ActionsColumn(actions=("edit", "delete"))
-
-    class Meta(NetBoxTable.Meta):
-        model = ApplicationAssignment
-        fields = ("id", "application", "assigned_object", "assigned_object_parent")
-        default_columns = ("application", "assigned_object", "assigned_object_parent")

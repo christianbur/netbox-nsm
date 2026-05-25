@@ -1,32 +1,19 @@
-from django.contrib.contenttypes.models import ContentType
-from django.shortcuts import get_object_or_404
-
 from netbox.views import generic
 from utilities.views import register_model_view
 
-from dcim.models import Device, VirtualDeviceContext
-from dcim.tables import DeviceTable, VirtualDeviceContextTable
-from virtualization.models import VirtualMachine
-from virtualization.tables import VirtualMachineTable
-
 from netbox_nsm.tables import (
     AddressSetTable,
-    AddressSetAssignmentTable,
-    SecurityZoneTable,
 )
 from netbox_nsm.filtersets import (
     AddressSetFilterSet,
-    AddressSetAssignmentFilterSet,
 )
 
-from netbox_nsm.models import AddressSet, AddressSetAssignment, SecurityZone
+from netbox_nsm.models import AddressSet
 from netbox_nsm.forms import (
     AddressSetFilterForm,
     AddressSetForm,
     AddressSetBulkEditForm,
-    AddressSetAssignmentForm,
     AddressSetImportForm,
-    AddressSetAssignmentFilterForm,
 )
 
 __all__ = (
@@ -37,10 +24,6 @@ __all__ = (
     "AddressSetBulkEditView",
     "AddressSetBulkDeleteView",
     "AddressSetBulkImportView",
-    "AddressSetAssignmentEditView",
-    "AddressSetAssignmentDeleteView",
-    "AddressSetAssignmentListView",
-    "AddressSetAssignmentBulkDeleteView",
 )
 
 
@@ -48,34 +31,6 @@ __all__ = (
 class AddressSetView(generic.ObjectView):
     queryset = AddressSet.objects.all()
     template_name = "netbox_nsm/addressset.html"
-
-    def get_extra_context(self, request, instance):
-        device_assignments_table = DeviceTable(
-            Device.objects.filter(address_sets__address_set=instance),
-            orderable=False,
-        )
-        device_assignments_table.configure(request)
-        virtual_device_assignments_table = VirtualDeviceContextTable(
-            VirtualDeviceContext.objects.filter(address_sets__address_set=instance),
-            orderable=False,
-        )
-        virtual_device_assignments_table.configure(request)
-        virtual_machine_assignments_table = VirtualMachineTable(
-            VirtualMachine.objects.filter(address_sets__address_set=instance),
-            orderable=False,
-        )
-        virtual_machine_assignments_table.configure(request)
-        zone_assignments_table = SecurityZoneTable(
-            SecurityZone.objects.filter(address_sets__address_set=instance),
-            orderable=False,
-        )
-        zone_assignments_table.configure(request)
-        return {
-            "device_assignments_table": device_assignments_table,
-            "virtual_device_assignments_table": virtual_device_assignments_table,
-            "virtual_machine_assignments_table": virtual_machine_assignments_table,
-            "zone_assignments_table": zone_assignments_table,
-        }
 
 
 @register_model_view(AddressSet, "list", path="", detail=False)
@@ -116,48 +71,3 @@ class AddressSetBulkDeleteView(generic.BulkDeleteView):
 class AddressSetBulkImportView(generic.BulkImportView):
     queryset = AddressSet.objects.all()
     model_form = AddressSetImportForm
-
-
-@register_model_view(AddressSetAssignment, "list", path="", detail=False)
-class AddressSetAssignmentListView(generic.ObjectListView):
-    queryset = AddressSetAssignment.objects.all()
-    filterset = AddressSetAssignmentFilterSet
-    filterset_form = AddressSetAssignmentFilterForm
-    table = AddressSetAssignmentTable
-    actions = {
-        "export": {"view"},
-    }
-
-
-@register_model_view(AddressSetAssignment, "add", detail=False)
-@register_model_view(AddressSetAssignment, "edit")
-class AddressSetAssignmentEditView(generic.ObjectEditView):
-    queryset = AddressSetAssignment.objects.all()
-    form = AddressSetAssignmentForm
-
-    def alter_object(self, instance, request, args, kwargs):
-        if not instance.pk:
-            content_type = get_object_or_404(
-                ContentType, pk=request.GET.get("assigned_object_type")
-            )
-            instance.assigned_object = get_object_or_404(
-                content_type.model_class(), pk=request.GET.get("assigned_object_id")
-            )
-        return instance
-
-    def get_extra_addanother_params(self, request):
-        return {
-            "assigned_object_type": request.GET.get("assigned_object_type"),
-            "assigned_object_id": request.GET.get("assigned_object_id"),
-        }
-
-
-@register_model_view(AddressSetAssignment, "delete")
-class AddressSetAssignmentDeleteView(generic.ObjectDeleteView):
-    queryset = AddressSetAssignment.objects.all()
-
-
-@register_model_view(AddressSetAssignment, "bulk_delete", path="delete", detail=False)
-class AddressSetAssignmentBulkDeleteView(generic.BulkDeleteView):
-    queryset = AddressSetAssignment.objects.all()
-    table = AddressSetAssignmentTable

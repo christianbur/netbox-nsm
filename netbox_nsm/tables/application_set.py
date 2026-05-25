@@ -5,11 +5,10 @@ from netbox.tables import NetBoxTable
 from netbox.tables.columns import TagColumn, ActionsColumn, ManyToManyColumn
 from tenancy.tables import TenancyColumnsMixin
 
-from netbox_nsm.models import ApplicationSet, ApplicationSetAssignment
+from netbox_nsm.models import ApplicationSet
 
 __all__ = (
     "ApplicationSetTable",
-    "ApplicationSetAssignmentTable",
 )
 
 
@@ -51,26 +50,3 @@ class ApplicationSetTable(TenancyColumnsMixin, NetBoxTable):
         )
 
 
-class ApplicationSetAssignmentTable(NetBoxTable):
-    assigned_object_parent = tables.Column(
-        accessor=tables.A("assigned_object__device"),
-        linkify=True,
-        orderable=False,
-        verbose_name=_("Parent"),
-    )
-    assigned_object = tables.Column(
-        linkify=True,
-        orderable=False,
-        verbose_name=_("Assigned Object"),
-    )
-    application_set = tables.Column(verbose_name=_("Application Set"), linkify=True)
-    actions = ActionsColumn(actions=("edit", "delete"))
-
-    class Meta(NetBoxTable.Meta):
-        model = ApplicationSetAssignment
-        fields = ("id", "application_set", "assigned_object", "assigned_object_parent")
-        default_columns = (
-            "application_set",
-            "assigned_object",
-            "assigned_object_parent",
-        )

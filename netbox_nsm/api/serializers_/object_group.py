@@ -14,7 +14,7 @@ from netbox_nsm.api.serializers_.address import AddressSerializer
 from netbox_nsm.api.serializers_.application_item import ApplicationItemSerializer
 from netbox_nsm.api.serializers_.application import ApplicationSerializer
 from netbox_nsm.api.serializers_.securityzone import SecurityZoneSerializer
-from netbox_nsm.models import ObjectGroup, ObjectGroupAssignment
+from netbox_nsm.models import ObjectGroup
 from netbox_nsm.constants import OBJECT_ASSIGNMENT_MODELS
 
 
@@ -89,42 +89,3 @@ class ObjectGroupSerializer(PrimaryModelSerializer):
         return obj
 
 
-class ObjectGroupAssignmentSerializer(NetBoxModelSerializer):
-    url = HyperlinkedIdentityField(
-        view_name="plugins-api:netbox_nsm-api:objectgroupassignment-detail"
-    )
-    group = ObjectGroupSerializer(nested=True, required=True, allow_null=False)
-    assigned_object_type = ContentTypeField(
-        queryset=ContentType.objects.filter(OBJECT_ASSIGNMENT_MODELS)
-    )
-    assigned_object = SerializerMethodField(read_only=True)
-
-    class Meta:
-        model = ObjectGroupAssignment
-        fields = [
-            "id",
-            "url",
-            "display",
-            "group",
-            "assigned_object_type",
-            "assigned_object_id",
-            "assigned_object",
-            "created",
-            "last_updated",
-        ]
-        brief_fields = (
-            "id",
-            "url",
-            "display",
-            "group",
-            "assigned_object_type",
-            "assigned_object_id",
-        )
-
-    @extend_schema_field(JSONField(allow_null=True))
-    def get_assigned_object(self, obj):
-        if obj.assigned_object is None:
-            return None
-        serializer = get_serializer_for_model(obj.assigned_object)
-        context = {"request": self.context["request"]}
-        return serializer(obj.assigned_object, nested=True, context=context).data

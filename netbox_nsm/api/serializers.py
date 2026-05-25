@@ -7,7 +7,6 @@ from .serializers_.application import *
 from .serializers_.application_set import *
 from .serializers_.object_action import *
 from .serializers_.object_group import *
-from .serializers_.security_zone_role import *
 from .serializers_.securityzone import *
 from .serializers_.security_zone_policy_rulebook import *
 from .serializers_.object_custom_type import *

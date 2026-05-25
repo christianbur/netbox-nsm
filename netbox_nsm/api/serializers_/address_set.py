@@ -14,7 +14,7 @@ from netbox.api.serializers import (
 from utilities.api import get_serializer_for_model
 from tenancy.api.serializers import TenantSerializer
 
-from netbox_nsm.models import AddressSet, AddressSetAssignment
+from netbox_nsm.models import AddressSet
 from netbox_nsm.api.serializers import AddressSerializer
 from netbox_nsm.constants import ADDRESS_ASSIGNMENT_MODELS
 
@@ -116,39 +116,3 @@ class AddressSetSerializer(PrimaryModelSerializer):
         return obj
 
 
-class AddressSetAssignmentSerializer(NetBoxModelSerializer):
-    address_set = AddressSetSerializer(nested=True, required=True, allow_null=False)
-    assigned_object_type = ContentTypeField(
-        queryset=ContentType.objects.filter(ADDRESS_ASSIGNMENT_MODELS)
-    )
-    assigned_object = SerializerMethodField(read_only=True)
-
-    class Meta:
-        model = AddressSetAssignment
-        fields = [
-            "id",
-            "url",
-            "display",
-            "address_set",
-            "assigned_object_type",
-            "assigned_object_id",
-            "assigned_object",
-            "created",
-            "last_updated",
-        ]
-        brief_fields = (
-            "id",
-            "url",
-            "display",
-            "address_set",
-            "assigned_object_type",
-            "assigned_object_id",
-        )
-
-    @extend_schema_field(JSONField(allow_null=True))
-    def get_assigned_object(self, obj):
-        if obj.assigned_object is None:
-            return None
-        serializer = get_serializer_for_model(obj.assigned_object)
-        context = {"request": self.context["request"]}
-        return serializer(obj.assigned_object, nested=True, context=context).data

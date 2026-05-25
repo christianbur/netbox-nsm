@@ -49,22 +49,6 @@ class NetBoxSecurityAddressType(PrimaryObjectType):
     identifier: str | None
     dns_name: str | None
 
-    @strawberry_django.field(prefetch_related="assigned_object")
-    def assigned_object(self) -> (
-        Annotated[
-            Annotated["IPAddressType", strawberry.lazy("ipam.graphql.types")]
-            | Annotated["PrefixType", strawberry.lazy("ipam.graphql.types")]
-            | Annotated["IPRangeType", strawberry.lazy("ipam.graphql.types")]
-            | Annotated[
-                "NetBoxSecurityCustomPrefixType",
-                strawberry.lazy("netbox_nsm.graphql.types"),
-            ],
-            strawberry.union("AddressAssignmentType"),
-        ]
-        | None
-    ):
-        return self.assigned_object
-
 
 @strawberry_django.type(
     AddressSet, fields="__all__", filters=NetBoxSecurityAddressSetFilter

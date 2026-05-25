@@ -25,7 +25,6 @@ from tenancy.models import Tenant, TenantGroup
 
 from netbox_nsm.models import (
     Application,
-    ApplicationAssignment,
     ApplicationItem,
 )
 
@@ -34,8 +33,6 @@ __all__ = (
     "ApplicationFilterForm",
     "ApplicationImportForm",
     "ApplicationBulkEditForm",
-    "ApplicationAssignmentForm",
-    "ApplicationAssignmentFilterForm",
 )
 
 
@@ -204,62 +201,3 @@ class ApplicationBulkEditForm(PrimaryModelBulkEditForm):
     )
 
 
-class ApplicationAssignmentForm(forms.ModelForm):
-    application = DynamicModelChoiceField(
-        label=_("Application"), queryset=Application.objects.all()
-    )
-
-    fieldsets = (FieldSet(ObjectAttribute("assigned_object"), "application"),)
-
-    class Meta:
-        model = ApplicationAssignment
-        fields = ("application",)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def clean_application(self):
-        application = self.cleaned_data["application"]
-
-        conflicting_assignments = ApplicationAssignment.objects.filter(
-            assigned_object_type=self.instance.assigned_object_type,
-            assigned_object_id=self.instance.assigned_object_id,
-            application=application,
-        )
-        if self.instance.id:
-            conflicting_assignments = conflicting_assignments.exclude(
-                id=self.instance.id
-            )
-
-        if conflicting_assignments.exists():
-            raise forms.ValidationError(_("Assignment already exists"))
-
-        return application
-
-
-class ApplicationAssignmentFilterForm(NetBoxModelFilterSetForm):
-    model = ApplicationAssignment
-    fieldsets = (
-        FieldSet("q", "filter_id", "tag"),
-        FieldSet(
-            "application_id",
-            name=_("Application"),
-        ),
-        FieldSet("device_id", "virtualdevicecontext_id", name="Assignments"),
-    )
-    application_id = DynamicModelMultipleChoiceField(
-        queryset=Application.objects.all(),
-        required=False,
-        label=_("Application"),
-    )
-    device_id = DynamicModelChoiceField(
-        queryset=Device.objects.all(),
-        required=False,
-        label=_("Device"),
-    )
-    virtualdevicecontext_id = DynamicModelChoiceField(
-        queryset=VirtualDeviceContext.objects.all(),
-        required=False,
-        query_params={"device_id": "$device_id"},
-        label=_("Virtual Device Context"),
-    )

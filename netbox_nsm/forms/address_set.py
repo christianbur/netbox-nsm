@@ -24,7 +24,6 @@ from tenancy.models import Tenant, TenantGroup
 
 from netbox_nsm.models import (
     AddressSet,
-    AddressSetAssignment,
     Address,
     SecurityZone,
 )
@@ -34,8 +33,6 @@ __all__ = (
     "AddressSetFilterForm",
     "AddressSetImportForm",
     "AddressSetBulkEditForm",
-    "AddressSetAssignmentForm",
-    "AddressSetAssignmentFilterForm",
 )
 
 
@@ -168,72 +165,3 @@ class AddressSetBulkEditForm(PrimaryModelBulkEditForm):
     )
 
 
-class AddressSetAssignmentForm(forms.ModelForm):
-    address_set = DynamicModelChoiceField(
-        label=_("AddressSet"), queryset=AddressSet.objects.all()
-    )
-
-    fieldsets = (FieldSet(ObjectAttribute("assigned_object"), "address_set"),)
-
-    class Meta:
-        model = AddressSetAssignment
-        fields = ("address_set",)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def clean_address_set(self):
-        address_set = self.cleaned_data["address_set"]
-
-        conflicting_assignments = AddressSetAssignment.objects.filter(
-            assigned_object_type=self.instance.assigned_object_type,
-            assigned_object_id=self.instance.assigned_object_id,
-            address_set=address_set,
-        )
-        if self.instance.id:
-            conflicting_assignments = conflicting_assignments.exclude(
-                id=self.instance.id
-            )
-
-        if conflicting_assignments.exists():
-            raise forms.ValidationError(_("Assignment already exists"))
-
-        return address_set
-
-
-class AddressSetAssignmentFilterForm(NetBoxModelFilterSetForm):
-    model = AddressSetAssignment
-    fieldsets = (
-        FieldSet("q", "filter_id", "tag"),
-        FieldSet(
-            "address_set_id",
-            name=_("Address Set"),
-        ),
-        FieldSet(
-            "device_id",
-            "virtualdevicecontext_id",
-            "security_zone_id",
-            name="Assignments",
-        ),
-    )
-    address_set_id = DynamicModelMultipleChoiceField(
-        queryset=AddressSet.objects.all(),
-        required=False,
-        label=_("Address Set"),
-    )
-    device_id = DynamicModelChoiceField(
-        queryset=Device.objects.all(),
-        required=False,
-        label=_("Device"),
-    )
-    virtualdevicecontext_id = DynamicModelChoiceField(
-        queryset=VirtualDeviceContext.objects.all(),
-        required=False,
-        query_params={"device_id": "$device_id"},
-        label=_("Virtual Device Context"),
-    )
-    security_zone_id = DynamicModelChoiceField(
-        queryset=SecurityZone.objects.all(),
-        required=False,
-        label=_("Security Zone"),
-    )

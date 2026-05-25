@@ -9,7 +9,7 @@ from netbox.api.fields import ContentTypeField
 from netbox.api.serializers import NetBoxModelSerializer, PrimaryModelSerializer
 from utilities.api import get_serializer_for_model
 from tenancy.api.serializers import TenantSerializer
-from netbox_nsm.models import ApplicationSet, ApplicationSetAssignment
+from netbox_nsm.models import ApplicationSet
 from netbox_nsm.constants import APPLICATION_ASSIGNMENT_MODELS
 from netbox_nsm.api.serializers import ApplicationSerializer
 
@@ -111,41 +111,3 @@ class ApplicationSetSerializer(PrimaryModelSerializer):
         return obj
 
 
-class ApplicationSetAssignmentSerializer(NetBoxModelSerializer):
-    application_set = ApplicationSetSerializer(
-        nested=True, required=True, allow_null=False
-    )
-    assigned_object_type = ContentTypeField(
-        queryset=ContentType.objects.filter(APPLICATION_ASSIGNMENT_MODELS)
-    )
-    assigned_object = SerializerMethodField(read_only=True)
-
-    class Meta:
-        model = ApplicationSetAssignment
-        fields = [
-            "id",
-            "url",
-            "display",
-            "application_set",
-            "assigned_object_type",
-            "assigned_object_id",
-            "assigned_object",
-            "created",
-            "last_updated",
-        ]
-        brief_fields = (
-            "id",
-            "url",
-            "display",
-            "application_set",
-            "assigned_object_type",
-            "assigned_object_id",
-        )
-
-    @extend_schema_field(JSONField(allow_null=True))
-    def get_assigned_object(self, obj):
-        if obj.assigned_object is None:
-            return None
-        serializer = get_serializer_for_model(obj.assigned_object)
-        context = {"request": self.context["request"]}
-        return serializer(obj.assigned_object, nested=True, context=context).data

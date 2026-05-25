@@ -22,6 +22,16 @@ def _compute_chains(app_label, model_name, pk):
     return get_group_chains_for_object(app_label, model_name, pk)
 
 
+def _ip_badge(instance):
+    chains = _compute_chains("ipam", "ipaddress", instance.pk)
+    return len(chains) or None
+
+
+def _prefix_badge(instance):
+    chains = _compute_chains("ipam", "prefix", instance.pk)
+    return len(chains) or None
+
+
 @register_model_view(
     IPAddress,
     name="nsm_groups",
@@ -32,8 +42,10 @@ class IPAddressNsmGroupsView(generic.ObjectView):
     template_name = "netbox_nsm/ipaddress/security.html"
 
     tab = ViewTab(
-        label=_("NSM Groups"),
+        label=_("Security"),
         permission="netbox_nsm.view_objectgroup",
+        badge=_ip_badge,
+        hide_if_empty=False,
         weight=600,
     )
 
@@ -55,8 +67,10 @@ class PrefixNsmGroupsView(generic.ObjectView):
     template_name = "netbox_nsm/prefix/security.html"
 
     tab = ViewTab(
-        label=_("NSM Groups"),
+        label=_("Security"),
         permission="netbox_nsm.view_objectgroup",
+        badge=_prefix_badge,
+        hide_if_empty=False,
         weight=600,
     )
 

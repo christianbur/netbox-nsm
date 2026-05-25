@@ -26,7 +26,7 @@
                         </thead>
                         <tbody>
                             {% for entry in group_chains %}
-                            <tr{% if entry.inherited %} class="table-warning"{% endif %}>
+                            <tr{% if entry.inherited %} style="background-color:#fff3cd;color:#212529"{% endif %}>
                                 <td>
                                     <a href="{{ entry.oco_url }}">{{ entry.oco }}</a>
                                 </td>

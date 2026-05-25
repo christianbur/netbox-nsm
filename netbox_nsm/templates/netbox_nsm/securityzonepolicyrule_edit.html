@@ -57,11 +57,12 @@
       </table>
     </div>
     <div class="nsm-hidden-pickers">
-      {% render_field form.source_group_types %}
-      {% render_field form.source_groups %}
+      {% if form.source_group_types %}{% render_field form.source_group_types %}{% endif %}
+      {% if form.source_groups %}{% render_field form.source_groups %}{% endif %}
       {% render_field form.source_zones %}
-      {% render_field form.source_addresses %}
-      {% render_field form.source_users %}
+      {% render_field form.custom_srcdst_objects %}
+      {% if form.source_addresses %}{% render_field form.source_addresses %}{% endif %}
+      {% if form.source_users %}{% render_field form.source_users %}{% endif %}
     </div>
   </div>
 
@@ -94,11 +95,11 @@
       </table>
     </div>
     <div class="nsm-hidden-pickers">
-      {% render_field form.destination_group_types %}
-      {% render_field form.destination_groups %}
+      {% if form.destination_group_types %}{% render_field form.destination_group_types %}{% endif %}
+      {% if form.destination_groups %}{% render_field form.destination_groups %}{% endif %}
       {% render_field form.destination_zones %}
-      {% render_field form.destination_addresses %}
-      {% render_field form.destination_users %}
+      {% if form.destination_addresses %}{% render_field form.destination_addresses %}{% endif %}
+      {% if form.destination_users %}{% render_field form.destination_users %}{% endif %}
     </div>
   </div>
 
@@ -134,6 +135,7 @@
       {% render_field form.services %}
       {% render_field form.applications %}
       {% render_field form.application_sets %}
+      {% render_field form.custom_service_objects %}
     </div>
   </div>
 
@@ -167,7 +169,7 @@
     </div>
     <div class="nsm-hidden-pickers">
       {% render_field form.policy_action %}
-      {% render_field form.action_objects %}
+      {% render_field form.custom_action_objects %}
     </div>
     <div class="mt-3">{% render_field form.log_enabled %}</div>
   </div>

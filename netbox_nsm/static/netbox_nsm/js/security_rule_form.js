@@ -2,10 +2,12 @@
   const SECTION_DEFS = {
     source: [
       { field: "source_zones", label: "Zone", sourceField: "source_zones" },
+      { field: "custom_srcdst_objects", label: "Object", sourceField: "custom_srcdst_objects" },
       { field: "source_groups", label: "Group", sourceField: "source_groups" },
     ],
     destination: [
       { field: "destination_zones", label: "Zone", sourceField: "destination_zones" },
+      { field: "destination_custom_objects", label: "Object", sourceField: "destination_custom_objects" },
       { field: "destination_groups", label: "Group", sourceField: "destination_groups" },
     ],
     service: [

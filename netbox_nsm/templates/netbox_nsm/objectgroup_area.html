@@ -1,0 +1,43 @@
+{% extends 'base/layout.html' %}
+{% load i18n %}
+{% load render_table from django_tables2 %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-12">
+    <div class="card mb-3">
+      <div class="card-body pb-2">
+
+        {# Main tabs #}
+        <ul class="nav nav-tabs mb-3" role="tablist">
+          {% for tab in main_tabs %}
+            <li class="nav-item" role="presentation">
+              <a class="nav-link{% if tab.slug == active_main_tab %} active{% endif %}"
+                 href="{{ tab.href }}">{{ tab.label }}</a>
+            </li>
+          {% endfor %}
+        </ul>
+
+        {# Area sub-tabs #}
+        <ul class="nav nav-pills gap-2 mb-3" role="tablist">
+          {% for tab in area_tabs %}
+            <li class="nav-item" role="presentation">
+              <a class="nav-link{% if tab.slug == active_area %} active{% endif %}"
+                 href="{{ tab.href }}">{{ tab.label }}</a>
+            </li>
+          {% endfor %}
+        </ul>
+
+        <div class="d-flex flex-wrap gap-2 mb-3">
+          <a class="btn btn-primary" href="{{ add_url }}">{% trans "Add" %}</a>
+        </div>
+
+        {% render_table table %}
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

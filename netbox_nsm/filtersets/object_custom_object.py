@@ -11,6 +11,7 @@ __all__ = ("ObjectCustomObjectFilterSet",)
 @register_filterset
 class ObjectCustomObjectFilterSet(PrimaryModelFilterSet):
     custom_type_id = django_filters.NumberFilter(field_name="custom_type__id")
+    area = django_filters.CharFilter(field_name="custom_type__area")
 
     class Meta:
         model = ObjectCustomObject

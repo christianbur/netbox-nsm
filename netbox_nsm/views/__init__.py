@@ -3,4 +3,5 @@ from .tabs import *
 from .object_custom_type import *
 from .object_custom_object import *
 from .object_tabs import *
+from .object_group import *
 from .yaml_bundle import NSMExportYAMLView, NSMImportYAMLView

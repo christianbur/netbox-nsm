@@ -11,6 +11,7 @@ from .serializers import (
     SecurityZonePolicyRulebookAssignmentSerializer,
     ObjectCustomTypeSerializer,
     ObjectCustomObjectSerializer,
+    ObjectGroupSerializer,
 )
 
 from netbox_nsm.models import (
@@ -23,6 +24,7 @@ from netbox_nsm.models import (
     SecurityZonePolicyRulebookAssignment,
     ObjectCustomType,
     ObjectCustomObject,
+    ObjectGroup,
 )
 
 from netbox_nsm.filtersets import (
@@ -35,6 +37,7 @@ from netbox_nsm.filtersets import (
     SecurityZonePolicyRulebookAssignmentFilterSet,
     ObjectCustomTypeFilterSet,
     ObjectCustomObjectFilterSet,
+    ObjectGroupFilterSet,
 )
 
 
@@ -101,3 +104,9 @@ class ObjectCustomObjectViewSet(NetBoxModelViewSet):
     queryset = ObjectCustomObject.objects.prefetch_related("custom_type", "tags")
     serializer_class = ObjectCustomObjectSerializer
     filterset_class = ObjectCustomObjectFilterSet
+
+
+class ObjectGroupViewSet(NetBoxModelViewSet):
+    queryset = ObjectGroup.objects.prefetch_related("members", "sub_groups", "tags")
+    serializer_class = ObjectGroupSerializer
+    filterset_class = ObjectGroupFilterSet

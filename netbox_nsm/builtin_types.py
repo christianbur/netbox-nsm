@@ -140,22 +140,6 @@ BUILTIN_CUSTOM_TYPES = [
         ],
     },
     {
-        "name": "Groups",
-        "area": "srcdst",
-        "icon": "mdi-account-group-outline",
-        "description": "",
-        "field_definitions": [
-            {"name": "group_type", "type": "text", "label": "Group Type"},
-            {"name": "member_address", "type": "object_ref", "label": "Address", "model": "netbox_nsm.Address", "selector": True, "tab_group": "Member"},
-            {"name": "member_service", "type": "object_ref", "label": "Service", "model": "netbox_nsm.ApplicationItem", "selector": True, "tab_group": "Member"},
-            {"name": "member_application", "type": "object_ref", "label": "Application", "model": "netbox_nsm.Application", "selector": True, "tab_group": "Member"},
-            {"name": "member_label", "type": "object_ref", "label": "Label", "model": "netbox_nsm.ObjectLabel", "selector": True, "tab_group": "Member"},
-            {"name": "member_zone", "type": "object_ref", "label": "Zone", "model": "netbox_nsm.SecurityZone", "selector": True, "tab_group": "Member"},
-            {"name": "member_sgt", "type": "object_ref", "label": "SGT", "model": "netbox_nsm.ObjectSGT", "selector": True, "tab_group": "Member"},
-            {"name": "member_user", "type": "object_ref", "label": "User", "model": "netbox_nsm.ObjectUser", "selector": True, "tab_group": "Member"},
-        ],
-    },
-    {
         "name": "Interface",
         "area": "srcdst",
         "icon": "mdi-ethernet",

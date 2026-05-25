@@ -12,7 +12,9 @@ app_name = "netbox_nsm"
 
 urlpatterns = [
     path("object/", ObjectsSrcDstTabsView.as_view(), name="object_tabs_root"),
-    # Custom area — must come before generic object/<str:tab>/ to avoid conflict
+    # Groups area — must come before generic object/<str:tab>/ to avoid conflict
+    path("object/groups/", ObjectGroupAreaView.as_view(), name="objectgroup_area_root"),
+    path("object/groups/<str:area>/", ObjectGroupAreaView.as_view(), name="objectgroup_area"),
     path("object/custom/", ObjectsCustomAreaView.as_view(), name="object_custom_root"),
     path("object/custom/<str:tab>/", ObjectsCustomAreaView.as_view(), name="object_custom_tab"),
     path("object/custom/types/install-builtins/", BuiltinTypeInstallView.as_view(), name="builtin_type_install"),
@@ -29,6 +31,8 @@ urlpatterns = [
     path("custom-objects/<int:pk>/", include(get_model_urls("netbox_nsm", "objectcustomobject"))),
     path("custom-object-assignments/", include(get_model_urls("netbox_nsm", "objectcustomobjectassignment", detail=False))),
     path("custom-object-assignments/<int:pk>/", include(get_model_urls("netbox_nsm", "objectcustomobjectassignment"))),
+    path("object-groups/", include(get_model_urls("netbox_nsm", "objectgroup", detail=False))),
+    path("object-groups/<int:pk>/", include(get_model_urls("netbox_nsm", "objectgroup"))),
     path("object/<str:tab>/", ObjectsSrcDstTabsView.as_view(), name="object_tabs"),
     # Security Policy
     path(

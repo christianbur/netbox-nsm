@@ -11,6 +11,7 @@ from .views import (
     SecurityZonePolicyRulebookAssignmentViewSet,
     ObjectCustomTypeViewSet,
     ObjectCustomObjectViewSet,
+    ObjectGroupViewSet,
 )
 
 app_name = "netbox_nsm"
@@ -29,5 +30,6 @@ router.register(
 )
 router.register("object-custom-types", ObjectCustomTypeViewSet)
 router.register("object-custom-objects", ObjectCustomObjectViewSet)
+router.register("object-groups", ObjectGroupViewSet)
 
 urlpatterns = router.urls

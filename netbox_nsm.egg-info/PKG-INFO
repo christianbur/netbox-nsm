@@ -1,0 +1,9 @@
+Metadata-Version: 2.4
+Name: netbox-nsm
+Version: 0.0.1
+Summary: Initial minimal package to reserve the PyPI name.
+Author: Christian Bur
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+
+# netbox-nsm

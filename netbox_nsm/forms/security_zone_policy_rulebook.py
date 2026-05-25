@@ -124,6 +124,22 @@ class SecurityZonePolicyRuleForm(PrimaryModelForm):
     source_zones = forms.ModelMultipleChoiceField(
         queryset=SecurityZone.objects.all(), required=False
     )
+    destination_group_types = forms.MultipleChoiceField(
+        choices=GROUP_TYPE_CHOICES,
+        required=False,
+        label=_("Destination object types"),
+        widget=forms.CheckboxSelectMultiple,
+        help_text=_("Filter objects from 'Objekts (src/dst)' by type."),
+    )
+    destination_groups = forms.ModelMultipleChoiceField(
+        queryset=ObjectGroup.objects.exclude(group_type="mixed").all(),
+        required=False,
+        label=_("Destination objects"),
+        help_text=_("Select one or more objects from 'Objekts (src/dst)'."),
+    )
+    destination_zones = forms.ModelMultipleChoiceField(
+        queryset=SecurityZone.objects.all(), required=False
+    )
     services = forms.ModelMultipleChoiceField(
         queryset=ApplicationItem.objects.all(),
         required=False,

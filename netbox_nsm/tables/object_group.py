@@ -15,7 +15,6 @@ __all__ = ("ObjectGroupTable",)
 class ObjectGroupTable(NetBoxTable):
     name = tables.LinkColumn()
     groups = ManyToManyColumn(linkify_item=True, orderable=False)
-    addresses = ManyToManyColumn(linkify_item=True, orderable=False)
     services = ManyToManyColumn(linkify_item=True, orderable=False)
     applications = ManyToManyColumn(linkify_item=True, orderable=False)
     labels = ManyToManyColumn(linkify_item=True, orderable=False)
@@ -58,7 +57,6 @@ class ObjectGroupTable(NetBoxTable):
             "group_type",
             "members",
             "groups",
-            "addresses",
             "services",
             "applications",
             "labels",

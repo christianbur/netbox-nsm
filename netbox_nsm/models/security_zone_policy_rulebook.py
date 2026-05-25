@@ -67,11 +67,6 @@ class SecurityZonePolicyRule(ContactsMixin, PrimaryModel):
         blank=True,
         related_name="%(class)s_source_zones",
     )
-    source_addresses = models.ManyToManyField(
-        to="netbox_nsm.AddressList",
-        blank=True,
-        related_name="%(class)s_source_addresses",
-    )
     source_users = models.ManyToManyField(
         to=User,
         blank=True,
@@ -86,11 +81,6 @@ class SecurityZonePolicyRule(ContactsMixin, PrimaryModel):
         to="netbox_nsm.SecurityZone",
         blank=True,
         related_name="%(class)s_destination_zones",
-    )
-    destination_addresses = models.ManyToManyField(
-        to="netbox_nsm.AddressList",
-        blank=True,
-        related_name="%(class)s_destination_addresses",
     )
     destination_users = models.ManyToManyField(
         to=User,

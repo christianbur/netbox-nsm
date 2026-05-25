@@ -3,9 +3,6 @@ from netbox.api.routers import NetBoxRouter
 from .views import (
     NetBoxSecurityRootView,
     CustomPrefixViewSet,
-    AddressListViewSet,
-    AddressSetViewSet,
-    AddressViewSet,
     ApplicationItemViewSet,
     ApplicationViewSet,
     ApplicationSetViewSet,
@@ -30,9 +27,6 @@ app_name = "netbox_nsm"
 router = NetBoxRouter()
 router.APIRootView = NetBoxSecurityRootView
 router.register("custom-prefixes", CustomPrefixViewSet)
-router.register("object-addresses", AddressViewSet)
-router.register("address-sets", AddressSetViewSet)
-router.register("address-lists", AddressListViewSet)
 router.register("object-services", ApplicationItemViewSet)
 router.register("object-applications", ApplicationViewSet)
 router.register("application-sets", ApplicationSetViewSet)

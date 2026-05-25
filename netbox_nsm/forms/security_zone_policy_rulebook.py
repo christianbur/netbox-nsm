@@ -23,7 +23,6 @@ from netbox_nsm.models import (
     ApplicationItem,
     Application,
     ApplicationSet,
-    AddressList,
     ObjectAction,
     ObjectCustomObject,
     ObjectFilter,
@@ -124,15 +123,6 @@ class SecurityZonePolicyRuleForm(PrimaryModelForm):
     )
     source_zones = forms.ModelMultipleChoiceField(
         queryset=SecurityZone.objects.all(), required=False
-    )
-    source_addresses = forms.ModelMultipleChoiceField(
-        queryset=AddressList.objects.all(), required=False
-    )
-    source_zones = forms.ModelMultipleChoiceField(
-        queryset=SecurityZone.objects.all(), required=False
-    )
-    destination_addresses = forms.ModelMultipleChoiceField(
-        queryset=AddressList.objects.all(), required=False
     )
     services = forms.ModelMultipleChoiceField(
         queryset=ApplicationItem.objects.all(),
@@ -255,10 +245,8 @@ class SecurityZonePolicyRuleForm(PrimaryModelForm):
             "name",
             "source_groups",
             "source_zones",
-            "source_addresses",
             "destination_groups",
             "destination_zones",
-            "destination_addresses",
             "services",
             "applications",
             "application_sets",

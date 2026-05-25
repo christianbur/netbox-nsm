@@ -4,65 +4,8 @@ from netbox.plugins import PluginMenuButton, PluginMenuItem, PluginMenu
 
 plugin_settings = settings.PLUGINS_CONFIG.get("netbox_nsm", {})
 
-address_menu_items = (
-    PluginMenuItem(
-        link="plugins:netbox_nsm:addressset_list",
-        link_text=_("Address Sets"),
-        permissions=["netbox_nsm.view_addressset"],
-        buttons=(
-            PluginMenuButton(
-                "plugins:netbox_nsm:addressset_add",
-                _("Add"),
-                "mdi mdi-plus-thick",
-                permissions=["netbox_nsm.add_addressset"],
-            ),
-            PluginMenuButton(
-                "plugins:netbox_nsm:addressset_bulk_import",
-                _("Import"),
-                "mdi mdi-upload",
-                permissions=["netbox_nsm.add_addressset"],
-            ),
-        ),
-    ),
-    PluginMenuItem(
-        link="plugins:netbox_nsm:address_list",
-        link_text=_("Addresses"),
-        permissions=["netbox_nsm.view_address"],
-        buttons=(
-            PluginMenuButton(
-                "plugins:netbox_nsm:address_add",
-                _("Add"),
-                "mdi mdi-plus-thick",
-                permissions=["netbox_nsm.add_address"],
-            ),
-            PluginMenuButton(
-                "plugins:netbox_nsm:address_bulk_import",
-                _("Import"),
-                "mdi mdi-upload",
-                permissions=["netbox_nsm.add_address"],
-            ),
-        ),
-    ),
-    PluginMenuItem(
-        link="plugins:netbox_nsm:customprefix_list",
-        link_text=_("Custom Prefixes"),
-        permissions=["netbox_nsm.view_customprefix"],
-        buttons=(
-            PluginMenuButton(
-                "plugins:netbox_nsm:customprefix_add",
-                _("Add"),
-                "mdi mdi-plus-thick",
-                permissions=["netbox_nsm.add_customprefix"],
-            ),
-            PluginMenuButton(
-                "plugins:netbox_nsm:customprefix_bulk_import",
-                _("Import"),
-                "mdi mdi-upload",
-                permissions=["netbox_nsm.add_customprefix"],
-            ),
-        ),
-    ),
-)
+address_menu_items = ()
+
 application_menu_items = (
     PluginMenuItem(
         link="plugins:netbox_nsm:applicationitem_list",
@@ -152,7 +95,7 @@ objects_menu_items = (
     PluginMenuItem(
         link="plugins:netbox_nsm:object_tabs_root",
         link_text=_("Objekts"),
-        permissions=["netbox_nsm.view_address", "netbox_nsm.view_objectaction"],
+        permissions=["netbox_nsm.view_objectaction"],
     ),
 )
 

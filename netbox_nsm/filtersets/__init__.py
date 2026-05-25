@@ -4,9 +4,6 @@ from .application_set import *
 from .securityzone import *
 from .security_zone_policy_rulebook import *
 from .custom_prefix import *
-from .address_set import *
-from .address import *
-from .address_list import *
 from .object_action import *
 from .object_group import *
 from .object_custom_type import *

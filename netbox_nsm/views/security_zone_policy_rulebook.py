@@ -33,7 +33,6 @@ from netbox_nsm.models import (
     ApplicationSet,
     ObjectAction,
     ObjectGroup,
-    AddressList,
     RulebookTypeChoices,
     SecurityZone,
     SecurityZonePolicyRule,
@@ -78,7 +77,7 @@ def _build_security_rule_object_catalog():
         # Fallback: if there are no typed groups, show generic groups so ADD is never empty.
         return groups
 
-    addresses = _options_from_queryset(AddressList.objects.order_by("name"))
+    addresses = []
     zones = _options_from_queryset(SecurityZone.objects.order_by("name"))
     groups = _options_from_queryset(groups_base.order_by("name"))
     actions = _options_from_queryset(ObjectAction.objects.order_by("name"))
@@ -111,7 +110,6 @@ def _build_security_rule_add_options():
         }
 
     source_fields = [
-        ("source_addresses", "source_addresses", _("Addresses")),
         ("source_services", "source_groups", _("Services")),
         ("source_applications", "source_groups", _("Applications")),
         ("source_labels", "source_groups", _("Labels")),
@@ -121,7 +119,6 @@ def _build_security_rule_add_options():
         ("source_groups", "source_groups", _("Groups")),
     ]
     destination_fields = [
-        ("destination_addresses", "destination_addresses", _("Addresses")),
         ("destination_services", "destination_groups", _("Services")),
         ("destination_applications", "destination_groups", _("Applications")),
         ("destination_labels", "destination_groups", _("Labels")),
@@ -412,8 +409,6 @@ class SecurityZonePolicyRulebookRulesView(generic.ObjectView):
             "destination_groups__zones",
             "destination_groups__sgts",
             "destination_groups__users",
-            "source_addresses",
-            "destination_addresses",
             "source_users",
             "destination_users",
             "services",
@@ -666,8 +661,6 @@ class SecurityZonePolicyRuleView(generic.ObjectView):
         "destination_groups__zones",
         "destination_groups__sgts",
         "destination_groups__users",
-        "source_addresses",
-        "destination_addresses",
         "source_users",
         "destination_users",
         "services",

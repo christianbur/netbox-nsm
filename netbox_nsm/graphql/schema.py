@@ -5,9 +5,6 @@ import strawberry_django
 
 from .types import (
     NetBoxSecurityCustomPrefixType,
-    NetBoxSecurityAddressType,
-    NetBoxSecurityAddressSetType,
-    NetBoxSecurityAddressListType,
     NetBoxSecurityApplicationItemType,
     NetBoxSecurityApplicationType,
     NetBoxSecurityApplicationSetType,
@@ -21,32 +18,6 @@ class NetBoxSecurityCustomPrefixQuery:
         strawberry_django.field()
     )
     netbox_nsm_customprefix_list: List[NetBoxSecurityCustomPrefixType] = (
-        strawberry_django.field()
-    )
-
-
-@strawberry.type(name="Query")
-class NetBoxSecurityAddressQuery:
-    netbox_nsm_address: NetBoxSecurityAddressType = strawberry_django.field()
-    netbox_nsm_address_list: List[NetBoxSecurityAddressType] = (
-        strawberry_django.field()
-    )
-
-
-@strawberry.type(name="Query")
-class NetBoxSecurityAddressSetQuery:
-    netbox_nsm_addressset: NetBoxSecurityAddressSetType = strawberry_django.field()
-    netbox_nsm_addressset_list: List[NetBoxSecurityAddressSetType] = (
-        strawberry_django.field()
-    )
-
-
-@strawberry.type(name="Query")
-class NetBoxSecurityAddressListQuery:
-    netbox_nsm_addresslist: NetBoxSecurityAddressListType = (
-        strawberry_django.field()
-    )
-    netbox_nsm_addresslist_list: List[NetBoxSecurityAddressListType] = (
         strawberry_django.field()
     )
 

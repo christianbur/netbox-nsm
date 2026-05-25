@@ -18,7 +18,6 @@ from utilities.forms.rendering import FieldSet, ObjectAttribute
 from virtualization.models import VirtualMachine
 
 from netbox_nsm.models import (
-    Address,
     Application,
     ApplicationItem,
     ObjectGroup,
@@ -48,7 +47,6 @@ class ObjectGroupForm(PrimaryModelForm):
         label=_("Subgroups (same type)"),
         help_text=_("Use this to build group hierarchies. Subgroups must have the same group type."),
     )
-    addresses = DynamicModelMultipleChoiceField(queryset=Address.objects.all(), required=False)
     services = DynamicModelMultipleChoiceField(queryset=ApplicationItem.objects.all(), required=False)
     applications = DynamicModelMultipleChoiceField(queryset=Application.objects.all(), required=False)
     zones = DynamicModelMultipleChoiceField(queryset=SecurityZone.objects.all(), required=False)
@@ -56,7 +54,6 @@ class ObjectGroupForm(PrimaryModelForm):
 
     MEMBER_FIELDS = (
         "groups",
-        "addresses",
         "services",
         "applications",
         "zones",
@@ -64,7 +61,7 @@ class ObjectGroupForm(PrimaryModelForm):
 
     fieldsets = (
         FieldSet("name", "group_type", "group_member_type", "description", name=_("Group")),
-        FieldSet("groups", "addresses", "services", "applications", "zones", name=_("Objekts (src/dst)")),
+        FieldSet("groups", "services", "applications", "zones", name=_("Objekts (src/dst)")),
         FieldSet("tags", name=_("Tags")),
     )
 
@@ -75,7 +72,6 @@ class ObjectGroupForm(PrimaryModelForm):
             "group_type",
             "group_member_type",
             "groups",
-            "addresses",
             "services",
             "applications",
             "zones",

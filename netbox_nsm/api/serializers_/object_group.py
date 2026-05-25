@@ -10,7 +10,6 @@ from netbox.api.fields import ContentTypeField
 from netbox.api.serializers import NetBoxModelSerializer, PrimaryModelSerializer
 from utilities.api import get_serializer_for_model
 
-from netbox_nsm.api.serializers_.address import AddressSerializer
 from netbox_nsm.api.serializers_.application_item import ApplicationItemSerializer
 from netbox_nsm.api.serializers_.application import ApplicationSerializer
 from netbox_nsm.api.serializers_.securityzone import SecurityZoneSerializer
@@ -22,7 +21,6 @@ class ObjectGroupSerializer(PrimaryModelSerializer):
     url = HyperlinkedIdentityField(
         view_name="plugins-api:netbox_nsm-api:objectgroup-detail"
     )
-    addresses = AddressSerializer(nested=True, required=False, many=True)
     services = ApplicationItemSerializer(nested=True, required=False, many=True)
     applications = ApplicationSerializer(nested=True, required=False, many=True)
     zones = SecurityZoneSerializer(nested=True, required=False, many=True)
@@ -35,7 +33,6 @@ class ObjectGroupSerializer(PrimaryModelSerializer):
             "display",
             "name",
             "group_type",
-            "addresses",
             "services",
             "applications",
             "zones",
@@ -55,14 +52,11 @@ class ObjectGroupSerializer(PrimaryModelSerializer):
         )
 
     def create(self, validated_data):
-        addresses = validated_data.pop("addresses", None)
         services = validated_data.pop("services", None)
         applications = validated_data.pop("applications", None)
         zones = validated_data.pop("zones", None)
 
         obj = super().create(validated_data)
-        if addresses is not None:
-            obj.addresses.set(addresses)
         if services is not None:
             obj.services.set(services)
         if applications is not None:
@@ -72,14 +66,11 @@ class ObjectGroupSerializer(PrimaryModelSerializer):
         return obj
 
     def update(self, instance, validated_data):
-        addresses = validated_data.pop("addresses", None)
         services = validated_data.pop("services", None)
         applications = validated_data.pop("applications", None)
         zones = validated_data.pop("zones", None)
 
         obj = super().update(instance, validated_data)
-        if addresses is not None:
-            obj.addresses.set(addresses)
         if services is not None:
             obj.services.set(services)
         if applications is not None:

@@ -4,9 +4,6 @@ from django.db.models import Count
 
 from .serializers import (
     CustomPrefixSerializer,
-    AddressListSerializer,
-    AddressSetSerializer,
-    AddressSerializer,
     ApplicationItemSerializer,
     ApplicationSerializer,
     ApplicationSetSerializer,
@@ -28,9 +25,6 @@ from .serializers import (
 
 from netbox_nsm.models import (
     CustomPrefix,
-    AddressList,
-    AddressSet,
-    Address,
     ApplicationItem,
     Application,
     ApplicationSet,
@@ -52,9 +46,6 @@ from netbox_nsm.models import (
 
 from netbox_nsm.filtersets import (
     CustomPrefixFilterSet,
-    AddressListFilterSet,
-    AddressSetFilterSet,
-    AddressFilterSet,
     ApplicationItemFilterSet,
     ApplicationFilterSet,
     ApplicationSetFilterSet,
@@ -84,24 +75,6 @@ class CustomPrefixViewSet(NetBoxModelViewSet):
     queryset = CustomPrefix.objects.all()
     serializer_class = CustomPrefixSerializer
     filterset_class = CustomPrefixFilterSet
-
-
-class AddressListViewSet(NetBoxModelViewSet):
-    queryset = AddressList.objects.all()
-    serializer_class = AddressListSerializer
-    filterset_class = AddressListFilterSet
-
-
-class AddressSetViewSet(NetBoxModelViewSet):
-    queryset = AddressSet.objects.prefetch_related("tenant", "tags")
-    serializer_class = AddressSetSerializer
-    filterset_class = AddressSetFilterSet
-
-
-class AddressViewSet(NetBoxModelViewSet):
-    queryset = Address.objects.prefetch_related("tenant", "tags")
-    serializer_class = AddressSerializer
-    filterset_class = AddressFilterSet
 
 
 class ApplicationItemViewSet(NetBoxModelViewSet):

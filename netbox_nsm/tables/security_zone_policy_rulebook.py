@@ -80,10 +80,10 @@ def _rule_stack(cards):
     return mark_safe(f'<div class="nsm-rule-stack">{"".join(cards)}</div>')
 
 
-def _build_src_dst_cards(groups, zones=(), addresses=(), users=()):
+def _build_src_dst_cards(groups, zones=(), users=()):
     """
     Clusters ObjectGroups by their type label into one card per type.
-    Direct addresses/zones/users are merged into the same label bucket.
+    Direct zones/users are merged into the same label bucket.
     Returns a list of card HTML strings.
     """
     type_map = OrderedDict()
@@ -93,13 +93,6 @@ def _build_src_dst_cards(groups, zones=(), addresses=(), users=()):
         label = grp.get_display_member_type_label()
         type_map.setdefault(label, []).append(
             {"url": grp.get_absolute_url(), "name": grp.name}
-        )
-
-    # direct addresses → merge into "Addresses" bucket (or create it)
-    if addresses:
-        type_map.setdefault("Addresses", []).extend(
-            {"url": addr.get_absolute_url(), "name": addr.name}
-            for addr in addresses
         )
 
     # direct zones (coloured pills)
@@ -122,9 +115,9 @@ def _build_src_dst_cards(groups, zones=(), addresses=(), users=()):
     return [_card(label, items) for label, items in type_map.items()]
 
 
-def _build_src_dst_html(groups, zones=(), addresses=(), users=()):
+def _build_src_dst_html(groups, zones=(), users=()):
     """Backward-compatible wrapper returning full rule-stack HTML."""
-    return _rule_stack(_build_src_dst_cards(groups, zones, addresses, users))
+    return _rule_stack(_build_src_dst_cards(groups, zones, users))
 
 
 def _custom_objects_cards(custom_objs):
@@ -149,7 +142,6 @@ class SourceColumn(tables.Column):
         cards = _build_src_dst_cards(
             groups=record.source_groups.all(),
             zones=record.source_zones.all(),
-            addresses=record.source_addresses.all(),
             users=record.source_users.all(),
         )
         cards += _custom_objects_cards(record.custom_srcdst_objects.all())
@@ -161,7 +153,6 @@ class DestinationColumn(tables.Column):
         cards = _build_src_dst_cards(
             groups=record.destination_groups.all(),
             zones=record.destination_zones.all(),
-            addresses=record.destination_addresses.all(),
             users=record.destination_users.all(),
         )
         cards += _custom_objects_cards(record.custom_srcdst_objects.all())

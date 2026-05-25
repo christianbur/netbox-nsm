@@ -11,7 +11,6 @@ __all__ = ("ObjectGroup", "ObjectGroupIndex")
 class ObjectGroupTypeChoices(models.TextChoices):
     MIXED = "mixed", _("Mixed")
     GROUPS = "groups", _("Groups")
-    ADDRESSES = "addresses", _("Addresses")
     SERVICES = "services", _("Services")
     APPLICATIONS = "applications", _("Applications")
     LABELS = "labels", _("Labels")
@@ -29,7 +28,6 @@ class ObjectGroup(PrimaryModel):
 
     MEMBER_FIELD_MAP = {
         "groups": "groups",
-        "addresses": "addresses",
         "services": "services",
         "applications": "applications",
         "labels": "labels",
@@ -51,7 +49,6 @@ class ObjectGroup(PrimaryModel):
         default="",
     )
     groups = models.ManyToManyField(to="self", blank=True, symmetrical=False)
-    addresses = models.ManyToManyField(to="netbox_nsm.Address", blank=True)
     services = models.ManyToManyField(to="netbox_nsm.ApplicationItem", blank=True)
     applications = models.ManyToManyField(to="netbox_nsm.Application", blank=True)
     zones = models.ManyToManyField(to="netbox_nsm.SecurityZone", blank=True)

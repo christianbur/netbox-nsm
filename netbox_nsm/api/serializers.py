@@ -1,7 +1,4 @@
 from .serializers_.custom_prefix import *
-from .serializers_.address import *
-from .serializers_.address_set import *
-from .serializers_.address_list import *
 from .serializers_.application_item import *
 from .serializers_.application import *
 from .serializers_.application_set import *

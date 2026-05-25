@@ -9,9 +9,6 @@ from tenancy.graphql.types import TenantType
 
 from netbox_nsm.models import (
     CustomPrefix,
-    Address,
-    AddressSet,
-    AddressList,
     ApplicationItem,
     Application,
     ApplicationSet,
@@ -20,9 +17,6 @@ from netbox_nsm.models import (
 
 from .filters import (
     NetBoxSecurityCustomPrefixFilter,
-    NetBoxSecurityAddressFilter,
-    NetBoxSecurityAddressSetFilter,
-    NetBoxSecurityAddressListFilter,
     NetBoxSecurityApplicationItemFilter,
     NetBoxSecurityApplicationFilter,
     NetBoxSecurityApplicationSetFilter,
@@ -36,48 +30,6 @@ from .filters import (
 class NetBoxSecurityCustomPrefixType(PrimaryObjectType):
     tenant: Annotated["TenantType", strawberry.lazy("tenancy.graphql.types")] | None
     prefix: str | None
-
-
-@strawberry_django.type(
-    Address,
-    exclude=["assigned_object_type", "assigned_object_id"],
-    filters=NetBoxSecurityAddressFilter,
-)
-class NetBoxSecurityAddressType(PrimaryObjectType):
-    tenant: Annotated["TenantType", strawberry.lazy("tenancy.graphql.types")] | None
-    name: str
-    identifier: str | None
-    dns_name: str | None
-
-
-@strawberry_django.type(
-    AddressSet, fields="__all__", filters=NetBoxSecurityAddressSetFilter
-)
-class NetBoxSecurityAddressSetType(PrimaryObjectType):
-    tenant: Annotated["TenantType", strawberry.lazy("tenancy.graphql.types")] | None
-    name: str
-    identifier: str | None
-    addresses: List[
-        Annotated[
-            "NetBoxSecurityAddressType",
-            strawberry.lazy("netbox_nsm.graphql.types"),
-        ]
-    ]
-    address_sets: List[
-        Annotated[
-            "NetBoxSecurityAddressSetType",
-            strawberry.lazy("netbox_nsm.graphql.types"),
-        ]
-    ]
-
-
-@strawberry_django.type(
-    AddressList, fields="__all__", filters=NetBoxSecurityAddressListFilter
-)
-class NetBoxSecurityAddressListType(NetBoxObjectType):
-    tenant: Annotated["TenantType", strawberry.lazy("tenancy.graphql.types")] | None
-    name: str
-    value: str
 
 
 @strawberry_django.type(

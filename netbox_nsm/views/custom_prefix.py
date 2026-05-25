@@ -1,20 +1,15 @@
 from netbox.views import generic
 from utilities.views import register_model_view
 
-from netbox_nsm.tables import (
-    CustomPrefixTable,
-    AddressTable,
-)
 from netbox_nsm.filtersets import CustomPrefixFilterSet
-
-from netbox_nsm.models import CustomPrefix, Address
-from netbox_nsm.utilities import get_address_set_hierarchy
+from netbox_nsm.models import CustomPrefix
 from netbox_nsm.forms import (
     CustomPrefixFilterForm,
     CustomPrefixForm,
     CustomPrefixBulkEditForm,
     CustomPrefixImportForm,
 )
+from netbox_nsm.tables import CustomPrefixTable
 
 __all__ = (
     "CustomPrefixView",
@@ -33,18 +28,7 @@ class CustomPrefixView(generic.ObjectView):
     template_name = "netbox_nsm/customprefix.html"
 
     def get_extra_context(self, request, instance):
-        address_assignments_table = AddressTable(
-            Address.objects.filter(custom_prefixes__prefix=instance.prefix),
-            orderable=False,
-        )
-        return {
-            "address_assignments_table": address_assignments_table,
-            "policy_context": get_address_set_hierarchy(
-                app_label="netbox_nsm",
-                model="customprefix",
-                object_id=instance.pk,
-            ),
-        }
+        return {}
 
 
 @register_model_view(CustomPrefix, "list", path="", detail=False)

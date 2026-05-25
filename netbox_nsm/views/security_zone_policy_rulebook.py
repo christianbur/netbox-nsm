@@ -4,7 +4,7 @@ from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.utils.html import escape
-from django.db.models import Q
+from django.db.models import Max, Q
 import json
 
 import markdown
@@ -53,8 +53,8 @@ SECURITY_RULES_COLUMNS = (
     ("destination", _("Destination")),
     ("service", _("Service")),
     ("action", _("Action")),
-    ("description", _("Description")),
     ("info", _("Info")),
+    ("description", _("Description")),
 )
 
 MAX_CUSTOM_COLUMNS = 10
@@ -620,6 +620,17 @@ class SecurityZonePolicyRuleEditView(generic.ObjectEditView):
     queryset = SecurityZonePolicyRule.objects.all()
     form = SecurityZonePolicyRuleForm
     template_name = "netbox_nsm/securityzonepolicyrule_edit.html"
+
+    def alter_object(self, instance, request, args, kwargs):
+        """Pre-fill index with last_index + 1 when creating a new rule."""
+        if not instance.pk:
+            rulebook_pk = request.GET.get("rulebook")
+            if rulebook_pk and str(rulebook_pk).isdigit():
+                result = SecurityZonePolicyRule.objects.filter(
+                    rulebook_id=int(rulebook_pk)
+                ).aggregate(max_index=Max("index"))
+                instance.index = (result.get("max_index") or 0) + 1
+        return instance
 
     def get_extra_context(self, request, instance):
         return {

@@ -34,6 +34,9 @@
 
       {% if is_security_rules %}
         <style>
+          .nsm-policy-table {
+            overflow-x: auto;
+          }
           .nsm-policy-table .table {
             --bs-table-bg: transparent;
             margin-bottom: 0;
@@ -52,6 +55,7 @@
             padding-top: .55rem;
             padding-bottom: .55rem;
             vertical-align: top;
+            white-space: nowrap;
           }
           .nsm-policy-table .table tbody tr:hover {
             --bs-table-accent-bg: rgba(140, 94, 47, .05);
@@ -65,8 +69,7 @@
           }
           .nsm-rule-stack {
             display: flex;
-            flex-direction: row;
-            flex-wrap: wrap;
+            flex-direction: column;
             align-items: flex-start;
             gap: .3rem;
           }
@@ -74,7 +77,6 @@
             background: #fcfaf6;
             border: 1px solid #ece2d3;
             border-radius: .7rem;
-            max-width: 100%;
             min-width: 0;
             padding: .28rem .4rem;
             box-shadow: inset 0 1px 0 rgba(255,255,255,.5);
@@ -90,20 +92,25 @@
           }
           .nsm-rule-pills {
             display: flex;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             gap: .24rem;
+            align-items: center;
           }
           .nsm-rule-pill {
             background: #efe6da;
             border: 1px solid #e2d3bf;
             border-radius: 999px;
             color: #4b3d2f;
-            display: inline-flex;
-            align-items: center;
+            display: inline-block;
             font-size: .7rem;
             font-weight: 600;
-            line-height: 1.15;
+            line-height: 1.6;
             padding: .2rem .45rem;
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            vertical-align: middle;
           }
           .nsm-rule-pill:hover {
             background: #e7dac7;

@@ -52,6 +52,10 @@
         </tr>
         <tr>
           <th scope="row">{% trans "Objekte" %}</th>
+          <td>{% for item in object.custom_srcdst_objects.all %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "Gruppen" %}</th>
           <td>{% for item in object.source_groups.all %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>
         </tr>
       </table>
@@ -65,6 +69,10 @@
         </tr>
         <tr>
           <th scope="row">{% trans "Objekte" %}</th>
+          <td>{% for item in object.destination_custom_objects.all %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "Gruppen" %}</th>
           <td>{% for item in object.destination_groups.all %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>
         </tr>
       </table>
@@ -76,10 +84,26 @@
           <th scope="row">{% trans "Services" %}</th>
           <td>{% for item in object.services.all %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>
         </tr>
+        <tr>
+          <th scope="row">{% trans "Applications" %}</th>
+          <td>{% for item in object.applications.all %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "App. Sets" %}</th>
+          <td>{% for item in object.application_sets.all %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "Objekte" %}</th>
+          <td>{% for item in object.custom_service_objects.all %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "Gruppen" %}</th>
+          <td>{% for item in object.service_groups.all %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>
+        </tr>
       </table>
     </div>
     <div class="card">
-      <h5 class="card-header">{% trans "Objekte (action)" %}</h5>
+      <h5 class="card-header">{% trans "Action" %}</h5>
       <table class="table table-hover attr-table">
         <tr>
           <th scope="row">{% trans "Action" %}</th>
@@ -88,6 +112,14 @@
         <tr>
           <th scope="row">{% trans "Log" %}</th>
           <td>{% if object.log_enabled %}{% trans "Enabled" %}{% else %}{% trans "Disabled" %}{% endif %}</td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "Objekte" %}</th>
+          <td>{% for item in object.custom_action_objects.all %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "Gruppen" %}</th>
+          <td>{% for item in object.action_groups.all %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>
         </tr>
       </table>
     </div>

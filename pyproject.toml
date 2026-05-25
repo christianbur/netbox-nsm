@@ -4,13 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "netbox-nsm"
-dynamic = ["version"]
-description = "Initial minimal package to reserve the PyPI name."
+version = "0.0.3"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
-  { name = "Christian Bur" }
+  { name = "Christian Burmeister" }
 ]
-
-[tool.setuptools.dynamic]
-version = { attr = "netbox_nsm.__version__" }

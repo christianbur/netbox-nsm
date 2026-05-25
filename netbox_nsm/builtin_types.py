@@ -153,7 +153,6 @@ BUILTIN_CUSTOM_TYPES = [
             {"name": "member_zone", "type": "object_ref", "label": "Zone", "model": "netbox_nsm.SecurityZone", "selector": True, "tab_group": "Member"},
             {"name": "member_sgt", "type": "object_ref", "label": "SGT", "model": "netbox_nsm.ObjectSGT", "selector": True, "tab_group": "Member"},
             {"name": "member_user", "type": "object_ref", "label": "User", "model": "netbox_nsm.ObjectUser", "selector": True, "tab_group": "Member"},
-            {"name": "member_group", "type": "object_ref", "label": "Sub-Group", "model": "netbox_nsm.ObjectGroup", "selector": True, "tab_group": "Member"},
         ],
     },
     {

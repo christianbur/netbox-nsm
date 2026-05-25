@@ -1,6 +1,5 @@
 from django import template
 from ipam.models import Prefix, IPAddress, IPRange
-from netbox_nsm.models import CustomPrefix
 
 register = template.Library()
 
@@ -13,8 +12,6 @@ def get_related_object_type(obj):
         obj_type = "IP Address"
     elif type(obj) is IPRange:
         obj_type = "IP Range"
-    elif type(obj) is CustomPrefix:
-        obj_type = "Custom Prefix"
     else:
         return None
     return obj_type

@@ -1,80 +1,46 @@
 from rest_framework.routers import APIRootView
 from netbox.api.viewsets import NetBoxModelViewSet
-from django.db.models import Count
 
 from .serializers import (
-    CustomPrefixSerializer,
     ApplicationItemSerializer,
     ApplicationSerializer,
     ApplicationSetSerializer,
-    ObjectActionSerializer,
-    ObjectGroupSerializer,
     SecurityZoneSerializer,
     SecurityZonePolicyRulebookSerializer,
     SecurityZonePolicyRuleSerializer,
     SecurityZonePolicyRulebookAssignmentSerializer,
     ObjectCustomTypeSerializer,
     ObjectCustomObjectSerializer,
-    ObjectNATSerializer,
-    ObjectInterfaceSerializer,
-    ObjectCommentSerializer,
-    ObjectInstalledOnSerializer,
-    ObjectFilterSerializer,
-    ObjectPolicerSerializer,
 )
 
 from netbox_nsm.models import (
-    CustomPrefix,
     ApplicationItem,
     Application,
     ApplicationSet,
-    ObjectAction,
-    ObjectGroup,
     SecurityZone,
     SecurityZonePolicyRulebook,
     SecurityZonePolicyRule,
     SecurityZonePolicyRulebookAssignment,
     ObjectCustomType,
     ObjectCustomObject,
-    ObjectNAT,
-    ObjectInterface,
-    ObjectComment,
-    ObjectInstalledOn,
-    ObjectFilter,
-    ObjectPolicer,
 )
 
 from netbox_nsm.filtersets import (
-    CustomPrefixFilterSet,
     ApplicationItemFilterSet,
     ApplicationFilterSet,
     ApplicationSetFilterSet,
-    ObjectActionFilterSet,
-    ObjectGroupFilterSet,
     SecurityZoneFilterSet,
     SecurityZonePolicyRulebookFilterSet,
     SecurityZonePolicyRuleFilterSet,
     SecurityZonePolicyRulebookAssignmentFilterSet,
     ObjectCustomTypeFilterSet,
     ObjectCustomObjectFilterSet,
-    ObjectNATFilterSet,
-    ObjectInterfaceFilterSet,
-    ObjectCommentFilterSet,
-    ObjectInstalledOnFilterSet,
-    ObjectFilterFilterSet,
-    ObjectPolicerFilterSet,
 )
 
 
 class NetBoxSecurityRootView(APIRootView):
     def get_view_name(self):
         return "NetBoxSecurity"
-
-
-class CustomPrefixViewSet(NetBoxModelViewSet):
-    queryset = CustomPrefix.objects.all()
-    serializer_class = CustomPrefixSerializer
-    filterset_class = CustomPrefixFilterSet
 
 
 class ApplicationItemViewSet(NetBoxModelViewSet):
@@ -95,24 +61,6 @@ class ApplicationSetViewSet(NetBoxModelViewSet):
     filterset_class = ApplicationSetFilterSet
 
 
-class ObjectActionViewSet(NetBoxModelViewSet):
-    queryset = ObjectAction.objects.prefetch_related("tags")
-    serializer_class = ObjectActionSerializer
-    filterset_class = ObjectActionFilterSet
-
-
-class ObjectGroupViewSet(NetBoxModelViewSet):
-    queryset = ObjectGroup.objects.prefetch_related(
-        "addresses",
-        "services",
-        "applications",
-        "zones",
-        "tags",
-    )
-    serializer_class = ObjectGroupSerializer
-    filterset_class = ObjectGroupFilterSet
-
-
 class SecurityZoneViewSet(NetBoxModelViewSet):
     queryset = SecurityZone.objects.prefetch_related("tenant", "tags")
     serializer_class = SecurityZoneSerializer
@@ -128,9 +76,7 @@ class SecurityZonePolicyRulebookViewSet(NetBoxModelViewSet):
 class SecurityZonePolicyRuleViewSet(NetBoxModelViewSet):
     queryset = SecurityZonePolicyRule.objects.select_related("rulebook").prefetch_related(
         "source_zones",
-        "source_addresses",
         "destination_zones",
-        "destination_addresses",
         "applications",
         "application_sets",
         "tags",
@@ -149,42 +95,6 @@ class ObjectCustomTypeViewSet(NetBoxModelViewSet):
     queryset = ObjectCustomType.objects.all()
     serializer_class = ObjectCustomTypeSerializer
     filterset_class = ObjectCustomTypeFilterSet
-
-
-class ObjectNATViewSet(NetBoxModelViewSet):
-    queryset = ObjectNAT.objects.all()
-    serializer_class = ObjectNATSerializer
-    filterset_class = ObjectNATFilterSet
-
-
-class ObjectInterfaceViewSet(NetBoxModelViewSet):
-    queryset = ObjectInterface.objects.all()
-    serializer_class = ObjectInterfaceSerializer
-    filterset_class = ObjectInterfaceFilterSet
-
-
-class ObjectCommentViewSet(NetBoxModelViewSet):
-    queryset = ObjectComment.objects.all()
-    serializer_class = ObjectCommentSerializer
-    filterset_class = ObjectCommentFilterSet
-
-
-class ObjectInstalledOnViewSet(NetBoxModelViewSet):
-    queryset = ObjectInstalledOn.objects.all()
-    serializer_class = ObjectInstalledOnSerializer
-    filterset_class = ObjectInstalledOnFilterSet
-
-
-class ObjectFilterViewSet(NetBoxModelViewSet):
-    queryset = ObjectFilter.objects.all()
-    serializer_class = ObjectFilterSerializer
-    filterset_class = ObjectFilterFilterSet
-
-
-class ObjectPolicerViewSet(NetBoxModelViewSet):
-    queryset = ObjectPolicer.objects.all()
-    serializer_class = ObjectPolicerSerializer
-    filterset_class = ObjectPolicerFilterSet
 
 
 class ObjectCustomObjectViewSet(NetBoxModelViewSet):

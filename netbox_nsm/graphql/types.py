@@ -8,7 +8,6 @@ from ipam.graphql.types import IPAddressType, PrefixType, IPRangeType
 from tenancy.graphql.types import TenantType
 
 from netbox_nsm.models import (
-    CustomPrefix,
     ApplicationItem,
     Application,
     ApplicationSet,
@@ -16,20 +15,11 @@ from netbox_nsm.models import (
 )
 
 from .filters import (
-    NetBoxSecurityCustomPrefixFilter,
     NetBoxSecurityApplicationItemFilter,
     NetBoxSecurityApplicationFilter,
     NetBoxSecurityApplicationSetFilter,
     NetBoxSecuritySecurityZoneFilter,
 )
-
-
-@strawberry_django.type(
-    CustomPrefix, fields="__all__", filters=NetBoxSecurityCustomPrefixFilter
-)
-class NetBoxSecurityCustomPrefixType(PrimaryObjectType):
-    tenant: Annotated["TenantType", strawberry.lazy("tenancy.graphql.types")] | None
-    prefix: str | None
 
 
 @strawberry_django.type(

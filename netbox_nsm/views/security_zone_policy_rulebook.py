@@ -31,8 +31,6 @@ from netbox_nsm.models import (
     ApplicationItem,
     Application,
     ApplicationSet,
-    ObjectAction,
-    ObjectGroup,
     RulebookTypeChoices,
     SecurityZone,
     SecurityZonePolicyRule,
@@ -65,35 +63,11 @@ def _options_from_queryset(queryset):
 
 
 def _build_security_rule_object_catalog():
-    groups_base = ObjectGroup.objects.exclude(group_type="mixed")
-
-    def _group_options(group_type):
-        qs = groups_base.filter(
-            Q(group_type=group_type) | Q(group_member_type=group_type)
-        ).order_by("name")
-        options = _options_from_queryset(qs)
-        if options:
-            return options
-        # Fallback: if there are no typed groups, show generic groups so ADD is never empty.
-        return groups
-
-    addresses = []
     zones = _options_from_queryset(SecurityZone.objects.order_by("name"))
-    groups = _options_from_queryset(groups_base.order_by("name"))
-    actions = _options_from_queryset(ObjectAction.objects.order_by("name"))
 
     return {
-        "source_addresses": addresses,
         "source_zones": zones,
-        "source_groups": groups,
-        "source_services": _group_options("services"),
-        "source_applications": _group_options("applications"),
-        "destination_addresses": addresses,
         "destination_zones": zones,
-        "destination_groups": groups,
-        "destination_services": _group_options("services"),
-        "destination_applications": _group_options("applications"),
-        "action_objects": actions,
         "services": _options_from_queryset(ApplicationItem.objects.order_by("name")),
         "applications": _options_from_queryset(Application.objects.order_by("name")),
         "application_sets": _options_from_queryset(ApplicationSet.objects.order_by("name")),
@@ -110,22 +84,12 @@ def _build_security_rule_add_options():
         }
 
     source_fields = [
-        ("source_services", "source_groups", _("Services")),
-        ("source_applications", "source_groups", _("Applications")),
-        ("source_labels", "source_groups", _("Labels")),
         ("source_zones", "source_zones", _("Zone")),
-        ("source_sgts", "source_groups", _("SGTs")),
         ("source_users", "source_users", _("User")),
-        ("source_groups", "source_groups", _("Groups")),
     ]
     destination_fields = [
-        ("destination_services", "destination_groups", _("Services")),
-        ("destination_applications", "destination_groups", _("Applications")),
-        ("destination_labels", "destination_groups", _("Labels")),
         ("destination_zones", "destination_zones", _("Zone")),
-        ("destination_sgts", "destination_groups", _("SGTs")),
         ("destination_users", "destination_users", _("User")),
-        ("destination_groups", "destination_groups", _("Groups")),
     ]
 
     source_options = []
@@ -146,9 +110,6 @@ def _build_security_rule_add_options():
                 "text": str(choice_label),
             }
         )
-    for item in catalog.get("action_objects", []):
-        action_options.append(_option("action_objects", item["value"], _("Action Object"), item["text"]))
-
     service_fields = [
         ("services", "services", _("Service")),
         ("applications", "applications", _("Application")),
@@ -389,38 +350,13 @@ class SecurityZonePolicyRulebookRulesView(generic.ObjectView):
 
     def get_extra_context(self, request, instance):
         rules_qs = SecurityZonePolicyRule.objects.filter(rulebook=instance).prefetch_related(
-            "source_groups",
-            "source_groups__groups",
-            "source_groups__addresses",
-            "source_groups__services",
-            "source_groups__applications",
-            "source_groups__labels",
-            "source_groups__zones",
-            "source_groups__sgts",
-            "source_groups__users",
             "source_zones",
             "destination_zones",
-            "destination_groups",
-            "destination_groups__groups",
-            "destination_groups__addresses",
-            "destination_groups__services",
-            "destination_groups__applications",
-            "destination_groups__labels",
-            "destination_groups__zones",
-            "destination_groups__sgts",
-            "destination_groups__users",
             "source_users",
             "destination_users",
             "services",
             "applications",
             "application_sets",
-            "action_objects",
-            "object_nat",
-            "object_interface",
-            "object_filter",
-            "object_policer",
-            "object_comment",
-            "object_installed_on",
             "custom_srcdst_objects__custom_type",
             "custom_service_objects__custom_type",
             "custom_action_objects__custom_type",
@@ -641,38 +577,13 @@ class SecurityZonePolicyRulebookBulkDeleteView(generic.BulkDeleteView):
 @register_model_view(SecurityZonePolicyRule)
 class SecurityZonePolicyRuleView(generic.ObjectView):
     queryset = SecurityZonePolicyRule.objects.prefetch_related(
-        "source_groups",
-        "source_groups__groups",
-        "source_groups__addresses",
-        "source_groups__services",
-        "source_groups__applications",
-        "source_groups__labels",
-        "source_groups__zones",
-        "source_groups__sgts",
-        "source_groups__users",
         "source_zones",
         "destination_zones",
-        "destination_groups",
-        "destination_groups__groups",
-        "destination_groups__addresses",
-        "destination_groups__services",
-        "destination_groups__applications",
-        "destination_groups__labels",
-        "destination_groups__zones",
-        "destination_groups__sgts",
-        "destination_groups__users",
         "source_users",
         "destination_users",
         "services",
         "applications",
         "application_sets",
-        "action_objects",
-        "object_nat",
-        "object_interface",
-        "object_filter",
-        "object_policer",
-        "object_comment",
-        "object_installed_on",
         "custom_srcdst_objects__custom_type",
         "custom_service_objects__custom_type",
         "custom_action_objects__custom_type",

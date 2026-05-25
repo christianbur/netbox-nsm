@@ -3,15 +3,6 @@ from .application import *
 from .application_set import *
 from .securityzone import *
 from .security_zone_policy_rulebook import *
-from .custom_prefix import *
-from .object_action import *
-from .object_group import *
 from .object_custom_type import *
 from .object_custom_object import *
-from .object_nat import *
-from .object_interface import *
-from .object_comment import *
-from .object_installed_on import *
-from .object_filter import *
-from .object_policer import *
 from .nsm_object_builder import *

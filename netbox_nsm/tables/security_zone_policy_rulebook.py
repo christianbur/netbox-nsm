@@ -80,20 +80,11 @@ def _rule_stack(cards):
     return mark_safe(f'<div class="nsm-rule-stack">{"".join(cards)}</div>')
 
 
-def _build_src_dst_cards(groups, zones=(), users=()):
+def _build_src_dst_cards(zones=(), users=()):
     """
-    Clusters ObjectGroups by their type label into one card per type.
-    Direct zones/users are merged into the same label bucket.
-    Returns a list of card HTML strings.
+    Returns a list of card HTML strings for zones and users.
     """
     type_map = OrderedDict()
-
-    # source_groups / destination_groups → cluster by type label
-    for grp in groups:
-        label = grp.get_display_member_type_label()
-        type_map.setdefault(label, []).append(
-            {"url": grp.get_absolute_url(), "name": grp.name}
-        )
 
     # direct zones (coloured pills)
     if zones:
@@ -115,9 +106,9 @@ def _build_src_dst_cards(groups, zones=(), users=()):
     return [_card(label, items) for label, items in type_map.items()]
 
 
-def _build_src_dst_html(groups, zones=(), users=()):
+def _build_src_dst_html(zones=(), users=()):
     """Backward-compatible wrapper returning full rule-stack HTML."""
-    return _rule_stack(_build_src_dst_cards(groups, zones, users))
+    return _rule_stack(_build_src_dst_cards(zones, users))
 
 
 def _custom_objects_cards(custom_objs):
@@ -140,7 +131,6 @@ def _custom_objects_cards(custom_objs):
 class SourceColumn(tables.Column):
     def render(self, value, record):
         cards = _build_src_dst_cards(
-            groups=record.source_groups.all(),
             zones=record.source_zones.all(),
             users=record.source_users.all(),
         )
@@ -151,7 +141,6 @@ class SourceColumn(tables.Column):
 class DestinationColumn(tables.Column):
     def render(self, value, record):
         cards = _build_src_dst_cards(
-            groups=record.destination_groups.all(),
             zones=record.destination_zones.all(),
             users=record.destination_users.all(),
         )
@@ -204,20 +193,7 @@ class ActionColumn(tables.Column):
 
 class InfoColumn(tables.Column):
     def render(self, value, record):
-        cards = []
-        comments = list(record.object_comment.all())
-        if comments:
-            cards.append(_card(
-                "Comment",
-                [{"url": c.get_absolute_url(), "name": c.name} for c in comments],
-            ))
-        installed = list(record.object_installed_on.all())
-        if installed:
-            cards.append(_card(
-                "Installed On",
-                [{"url": i.get_absolute_url(), "name": i.name} for i in installed],
-            ))
-        return _rule_stack(cards)
+        return _rule_stack([])
 
 
 class SecurityZonePolicyRulebookTable(NetBoxTable):

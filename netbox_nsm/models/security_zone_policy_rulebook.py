@@ -57,11 +57,6 @@ class SecurityZonePolicyRule(ContactsMixin, PrimaryModel):
     index = models.PositiveIntegerField(default=100)
     enabled = models.BooleanField(default=True)
     name = models.CharField(max_length=100)
-    source_groups = models.ManyToManyField(
-        to="netbox_nsm.ObjectGroup",
-        blank=True,
-        related_name="%(class)s_source_groups",
-    )
     source_zones = models.ManyToManyField(
         to="netbox_nsm.SecurityZone",
         blank=True,
@@ -71,11 +66,6 @@ class SecurityZonePolicyRule(ContactsMixin, PrimaryModel):
         to=User,
         blank=True,
         related_name="%(class)s_source_users",
-    )
-    destination_groups = models.ManyToManyField(
-        to="netbox_nsm.ObjectGroup",
-        blank=True,
-        related_name="%(class)s_destination_groups",
     )
     destination_zones = models.ManyToManyField(
         to="netbox_nsm.SecurityZone",
@@ -102,52 +92,11 @@ class SecurityZonePolicyRule(ContactsMixin, PrimaryModel):
         blank=True,
         related_name="%(class)s_application_sets",
     )
-    object_nat = models.ManyToManyField(
-        to="netbox_nsm.ObjectNAT",
-        blank=True,
-        related_name="%(class)s_object_nat",
-        verbose_name="NAT Objects",
-    )
-    object_interface = models.ManyToManyField(
-        to="netbox_nsm.ObjectInterface",
-        blank=True,
-        related_name="%(class)s_object_interface",
-        verbose_name="Interface Objects",
-    )
-    object_filter = models.ManyToManyField(
-        to="netbox_nsm.ObjectFilter",
-        blank=True,
-        related_name="%(class)s_object_filter",
-        verbose_name="Filter Objects",
-    )
-    object_policer = models.ManyToManyField(
-        to="netbox_nsm.ObjectPolicer",
-        blank=True,
-        related_name="%(class)s_object_policer",
-        verbose_name="Policer Objects",
-    )
-    object_comment = models.ManyToManyField(
-        to="netbox_nsm.ObjectComment",
-        blank=True,
-        related_name="%(class)s_object_comment",
-        verbose_name="Comment Objects",
-    )
-    object_installed_on = models.ManyToManyField(
-        to="netbox_nsm.ObjectInstalledOn",
-        blank=True,
-        related_name="%(class)s_object_installed_on",
-        verbose_name="Installed On Objects",
-    )
     log_enabled = models.BooleanField(default=False)
     policy_action = models.CharField(
         max_length=20,
         choices=ActionChoices,
         default=ActionChoices.PERMIT,
-    )
-    action_objects = models.ManyToManyField(
-        to="netbox_nsm.ObjectAction",
-        blank=True,
-        related_name="%(class)s_action_objects",
     )
     custom_srcdst_objects = models.ManyToManyField(
         to="netbox_nsm.ObjectCustomObject",

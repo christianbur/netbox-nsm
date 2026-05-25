@@ -1,6 +1,5 @@
 from django import forms
 from django.contrib.contenttypes.models import ContentType
-from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from dcim.models import Device, VirtualDeviceContext
@@ -23,15 +22,7 @@ from netbox_nsm.models import (
     ApplicationItem,
     Application,
     ApplicationSet,
-    ObjectAction,
     ObjectCustomObject,
-    ObjectFilter,
-    ObjectGroup,
-    ObjectInstalledOn,
-    ObjectComment,
-    ObjectInterface,
-    ObjectNAT,
-    ObjectPolicer,
     SecurityZone,
     SecurityZonePolicyRule,
     SecurityZonePolicyRulebook,
@@ -95,12 +86,6 @@ class SecurityZonePolicyRulebookBulkEditForm(PrimaryModelBulkEditForm):
 
 
 class SecurityZonePolicyRuleForm(PrimaryModelForm):
-    GROUP_TYPE_CHOICES = [
-        choice
-        for choice in ObjectGroup._meta.get_field("group_type").choices
-        if choice[0] != "mixed"
-    ]
-
     index = forms.IntegerField(min_value=1, required=True, initial=100)
     enabled = forms.BooleanField(required=False, initial=True, label=_("Status (on/off)"))
     name = forms.CharField(max_length=100, required=True)
@@ -108,34 +93,8 @@ class SecurityZonePolicyRuleForm(PrimaryModelForm):
         queryset=SecurityZonePolicyRulebook.objects.all(), required=True
     )
 
-    source_group_types = forms.MultipleChoiceField(
-        choices=GROUP_TYPE_CHOICES,
-        required=False,
-        label=_("Source object types"),
-        widget=forms.CheckboxSelectMultiple,
-        help_text=_("Filter objects from 'Objekts (src/dst)' by type."),
-    )
-    source_groups = forms.ModelMultipleChoiceField(
-        queryset=ObjectGroup.objects.exclude(group_type="mixed").all(),
-        required=False,
-        label=_("Source objects"),
-        help_text=_("Select one or more objects from 'Objekts (src/dst)'."),
-    )
     source_zones = forms.ModelMultipleChoiceField(
         queryset=SecurityZone.objects.all(), required=False
-    )
-    destination_group_types = forms.MultipleChoiceField(
-        choices=GROUP_TYPE_CHOICES,
-        required=False,
-        label=_("Destination object types"),
-        widget=forms.CheckboxSelectMultiple,
-        help_text=_("Filter objects from 'Objekts (src/dst)' by type."),
-    )
-    destination_groups = forms.ModelMultipleChoiceField(
-        queryset=ObjectGroup.objects.exclude(group_type="mixed").all(),
-        required=False,
-        label=_("Destination objects"),
-        help_text=_("Select one or more objects from 'Objekts (src/dst)'."),
     )
     destination_zones = forms.ModelMultipleChoiceField(
         queryset=SecurityZone.objects.all(), required=False
@@ -151,49 +110,12 @@ class SecurityZonePolicyRuleForm(PrimaryModelForm):
     application_sets = forms.ModelMultipleChoiceField(
         queryset=ApplicationSet.objects.all(), required=False
     )
-
-    object_nat = DynamicModelMultipleChoiceField(
-        queryset=ObjectNAT.objects.all(),
-        required=False,
-        label=_("NAT Objects"),
-    )
-    object_interface = DynamicModelMultipleChoiceField(
-        queryset=ObjectInterface.objects.all(),
-        required=False,
-        label=_("Interface Objects"),
-    )
-    object_filter = DynamicModelMultipleChoiceField(
-        queryset=ObjectFilter.objects.all(),
-        required=False,
-        label=_("Filter Objects"),
-    )
-    object_policer = DynamicModelMultipleChoiceField(
-        queryset=ObjectPolicer.objects.all(),
-        required=False,
-        label=_("Policer Objects"),
-    )
-    object_comment = DynamicModelMultipleChoiceField(
-        queryset=ObjectComment.objects.all(),
-        required=False,
-        label=_("Comment Objects"),
-    )
-    object_installed_on = DynamicModelMultipleChoiceField(
-        queryset=ObjectInstalledOn.objects.all(),
-        required=False,
-        label=_("Installed On Objects"),
-    )
     log_enabled = forms.BooleanField(required=False, label=_("Log Rules"))
 
     policy_action = forms.ChoiceField(
         choices=SecurityZonePolicyRule._meta.get_field("policy_action").choices,
         required=True,
         label=_("Action"),
-    )
-    action_objects = forms.ModelMultipleChoiceField(
-        queryset=ObjectAction.objects.all(),
-        required=False,
-        label=_("Action objects"),
-        help_text=_("Select one or more objects from 'Objekte (action)'."),
     )
     custom_srcdst_objects = forms.ModelMultipleChoiceField(
         queryset=ObjectCustomObject.objects.filter(custom_type__area="srcdst"),
@@ -221,32 +143,20 @@ class SecurityZonePolicyRuleForm(PrimaryModelForm):
             name=_("Policy Rule"),
         ),
         FieldSet(
-            "source_group_types",
-            "source_groups",
+            "source_zones",
             "custom_srcdst_objects",
-            "object_nat",
-            "object_interface",
             name=_("Source"),
         ),
         FieldSet(
-            "destination_group_types",
-            "destination_groups",
+            "destination_zones",
             name=_("Destination"),
         ),
         FieldSet("services", "applications", "application_sets", "custom_service_objects", name=_("Service")),
         FieldSet(
             "policy_action",
-            "action_objects",
             "custom_action_objects",
-            "object_filter",
-            "object_policer",
             "log_enabled",
-            name=_("Objekte (action)"),
-        ),
-        FieldSet(
-            "object_comment",
-            "object_installed_on",
-            name=_("Info"),
+            name=_("Action"),
         ),
         FieldSet("tags", name=_("Tags")),
     )
@@ -259,24 +169,15 @@ class SecurityZonePolicyRuleForm(PrimaryModelForm):
             "index",
             "enabled",
             "name",
-            "source_groups",
             "source_zones",
-            "destination_groups",
             "destination_zones",
             "services",
             "applications",
             "application_sets",
             "policy_action",
-            "action_objects",
             "custom_srcdst_objects",
             "custom_service_objects",
             "custom_action_objects",
-            "object_nat",
-            "object_interface",
-            "object_filter",
-            "object_policer",
-            "object_comment",
-            "object_installed_on",
             "log_enabled",
             "description",
             "comments",
@@ -285,37 +186,6 @@ class SecurityZonePolicyRuleForm(PrimaryModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-        counts = {
-            row["group_type"]: row["count"]
-            for row in (
-                ObjectGroup.objects.exclude(group_type="mixed")
-                .values("group_type")
-                .annotate(count=models.Count("id"))
-            )
-        }
-        counted_choices = [
-            (value, f"{label} ({counts.get(value, 0)})")
-            for value, label in self.GROUP_TYPE_CHOICES
-        ]
-        self.fields["source_group_types"].choices = counted_choices
-        self.fields["destination_group_types"].choices = counted_choices
-
-        if self.is_bound or not (self.instance and self.instance.pk):
-            return
-
-        source_types = list(
-            self.instance.source_groups.exclude(group_type="mixed")
-            .values_list("group_type", flat=True)
-            .distinct()
-        )
-        destination_types = list(
-            self.instance.destination_groups.exclude(group_type="mixed")
-            .values_list("group_type", flat=True)
-            .distinct()
-        )
-        self.initial.setdefault("source_group_types", source_types)
-        self.initial.setdefault("destination_group_types", destination_types)
 
 
 class SecurityZonePolicyRuleFilterForm(PrimaryModelFilterSetForm):

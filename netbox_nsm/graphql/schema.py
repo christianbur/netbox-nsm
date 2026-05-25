@@ -4,23 +4,11 @@ import strawberry
 import strawberry_django
 
 from .types import (
-    NetBoxSecurityCustomPrefixType,
     NetBoxSecurityApplicationItemType,
     NetBoxSecurityApplicationType,
     NetBoxSecurityApplicationSetType,
     NetBoxSecuritySecurityZoneType,
 )
-
-
-@strawberry.type(name="Query")
-class NetBoxSecurityCustomPrefixQuery:
-    netbox_nsm_customprefix: NetBoxSecurityCustomPrefixType = (
-        strawberry_django.field()
-    )
-    netbox_nsm_customprefix_list: List[NetBoxSecurityCustomPrefixType] = (
-        strawberry_django.field()
-    )
-
 
 @strawberry.type(name="Query")
 class NetBoxSecurityApplicationItemQuery:

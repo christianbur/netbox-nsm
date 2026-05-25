@@ -1,33 +1,26 @@
 (function () {
   const SECTION_DEFS = {
     source: [
-      { field: "source_addresses", label: "Addresses", sourceField: "source_addresses" },
-      { field: "source_services", label: "Services", sourceField: "source_groups" },
-      { field: "source_applications", label: "Applications", sourceField: "source_groups" },
-      { field: "source_labels", label: "Labels", sourceField: "source_groups" },
       { field: "source_zones", label: "Zone", sourceField: "source_zones" },
-      { field: "source_sgts", label: "SGTs", sourceField: "source_groups" },
-      { field: "source_users", label: "User", sourceField: "source_users" },
-      { field: "source_groups", label: "Groups", sourceField: "source_groups" },
+      { field: "custom_srcdst_objects", label: "Object", sourceField: "custom_srcdst_objects" },
+      { field: "source_groups", label: "Group", sourceField: "source_groups" },
     ],
     destination: [
-      { field: "destination_addresses", label: "Addresses", sourceField: "destination_addresses" },
-      { field: "destination_services", label: "Services", sourceField: "destination_groups" },
-      { field: "destination_applications", label: "Applications", sourceField: "destination_groups" },
-      { field: "destination_labels", label: "Labels", sourceField: "destination_groups" },
       { field: "destination_zones", label: "Zone", sourceField: "destination_zones" },
-      { field: "destination_sgts", label: "SGTs", sourceField: "destination_groups" },
-      { field: "destination_users", label: "User", sourceField: "destination_users" },
-      { field: "destination_groups", label: "Groups", sourceField: "destination_groups" },
+      { field: "destination_custom_objects", label: "Object", sourceField: "destination_custom_objects" },
+      { field: "destination_groups", label: "Group", sourceField: "destination_groups" },
     ],
     service: [
       { field: "services", label: "Service", sourceField: "services" },
       { field: "applications", label: "Application", sourceField: "applications" },
       { field: "application_sets", label: "Application Set", sourceField: "application_sets" },
+      { field: "custom_service_objects", label: "Object", sourceField: "custom_service_objects" },
+      { field: "service_groups", label: "Group", sourceField: "service_groups" },
     ],
     action: [
       { field: "policy_action", label: "Default Action", sourceField: "policy_action" },
-      { field: "action_objects", label: "Action Object", sourceField: "action_objects" },
+      { field: "custom_action_objects", label: "Object", sourceField: "custom_action_objects" },
+      { field: "action_groups", label: "Group", sourceField: "action_groups" },
     ],
   };
 

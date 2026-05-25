@@ -23,6 +23,7 @@ from netbox_nsm.models import (
     Application,
     ApplicationSet,
     ObjectCustomObject,
+    ObjectGroup,
     SecurityZone,
     SecurityZonePolicyRule,
     SecurityZonePolicyRulebook,
@@ -120,17 +121,42 @@ class SecurityZonePolicyRuleForm(PrimaryModelForm):
     custom_srcdst_objects = forms.ModelMultipleChoiceField(
         queryset=ObjectCustomObject.objects.filter(custom_type__area="srcdst"),
         required=False,
-        label=_("Custom Src/Dst Objects"),
+        label=_("Source Objects"),
+    )
+    source_groups = forms.ModelMultipleChoiceField(
+        queryset=ObjectGroup.objects.filter(area="srcdst"),
+        required=False,
+        label=_("Source Groups"),
+    )
+    destination_custom_objects = forms.ModelMultipleChoiceField(
+        queryset=ObjectCustomObject.objects.filter(custom_type__area="srcdst"),
+        required=False,
+        label=_("Destination Objects"),
+    )
+    destination_groups = forms.ModelMultipleChoiceField(
+        queryset=ObjectGroup.objects.filter(area="srcdst"),
+        required=False,
+        label=_("Destination Groups"),
     )
     custom_service_objects = forms.ModelMultipleChoiceField(
         queryset=ObjectCustomObject.objects.filter(custom_type__area="services"),
         required=False,
-        label=_("Custom Service Objects"),
+        label=_("Service Objects"),
+    )
+    service_groups = forms.ModelMultipleChoiceField(
+        queryset=ObjectGroup.objects.filter(area="services"),
+        required=False,
+        label=_("Service Groups"),
     )
     custom_action_objects = forms.ModelMultipleChoiceField(
         queryset=ObjectCustomObject.objects.filter(custom_type__area="action"),
         required=False,
-        label=_("Custom Action Objects"),
+        label=_("Action Objects"),
+    )
+    action_groups = forms.ModelMultipleChoiceField(
+        queryset=ObjectGroup.objects.filter(area="action"),
+        required=False,
+        label=_("Action Groups"),
     )
 
     fieldsets = (
@@ -145,16 +171,27 @@ class SecurityZonePolicyRuleForm(PrimaryModelForm):
         FieldSet(
             "source_zones",
             "custom_srcdst_objects",
+            "source_groups",
             name=_("Source"),
         ),
         FieldSet(
             "destination_zones",
+            "destination_custom_objects",
+            "destination_groups",
             name=_("Destination"),
         ),
-        FieldSet("services", "applications", "application_sets", "custom_service_objects", name=_("Service")),
+        FieldSet(
+            "services",
+            "applications",
+            "application_sets",
+            "custom_service_objects",
+            "service_groups",
+            name=_("Service"),
+        ),
         FieldSet(
             "policy_action",
             "custom_action_objects",
+            "action_groups",
             "log_enabled",
             name=_("Action"),
         ),
@@ -170,14 +207,19 @@ class SecurityZonePolicyRuleForm(PrimaryModelForm):
             "enabled",
             "name",
             "source_zones",
+            "custom_srcdst_objects",
+            "source_groups",
             "destination_zones",
+            "destination_custom_objects",
+            "destination_groups",
             "services",
             "applications",
             "application_sets",
-            "policy_action",
-            "custom_srcdst_objects",
             "custom_service_objects",
+            "service_groups",
+            "policy_action",
             "custom_action_objects",
+            "action_groups",
             "log_enabled",
             "description",
             "comments",

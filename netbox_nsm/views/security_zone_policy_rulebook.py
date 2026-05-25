@@ -31,6 +31,8 @@ from netbox_nsm.models import (
     ApplicationItem,
     Application,
     ApplicationSet,
+    ObjectCustomObject,
+    ObjectGroup,
     RulebookTypeChoices,
     SecurityZone,
     SecurityZonePolicyRule,
@@ -83,24 +85,35 @@ def _build_security_rule_add_options():
             "text": f"{label}: {text}",
         }
 
-    source_fields = [
-        ("source_zones", "source_zones", _("Zone")),
-        ("source_users", "source_users", _("User")),
-    ]
-    destination_fields = [
-        ("destination_zones", "destination_zones", _("Zone")),
-        ("destination_users", "destination_users", _("User")),
-    ]
+    srcdst_objects = _options_from_queryset(
+        ObjectCustomObject.objects.filter(custom_type__area="srcdst").select_related("custom_type").order_by("name")
+    )
+    srcdst_groups = _options_from_queryset(
+        ObjectGroup.objects.filter(area="srcdst").order_by("name")
+    )
+    service_objects = _options_from_queryset(
+        ObjectCustomObject.objects.filter(custom_type__area="services").select_related("custom_type").order_by("name")
+    )
+    service_groups = _options_from_queryset(
+        ObjectGroup.objects.filter(area="services").order_by("name")
+    )
+    action_objects = _options_from_queryset(
+        ObjectCustomObject.objects.filter(custom_type__area="action").select_related("custom_type").order_by("name")
+    )
+    action_groups = _options_from_queryset(
+        ObjectGroup.objects.filter(area="action").order_by("name")
+    )
 
-    source_options = []
-    for field_name, catalog_key, label in source_fields:
-        for item in catalog.get(catalog_key, []):
-            source_options.append(_option(field_name, item["value"], label, item["text"]))
-
-    destination_options = []
-    for field_name, catalog_key, label in destination_fields:
-        for item in catalog.get(catalog_key, []):
-            destination_options.append(_option(field_name, item["value"], label, item["text"]))
+    source_options = [
+        *[_option("source_zones", i["value"], _("Zone"), i["text"]) for i in catalog.get("source_zones", [])],
+        *[_option("custom_srcdst_objects", i["value"], _("Object"), i["text"]) for i in srcdst_objects],
+        *[_option("source_groups", i["value"], _("Group"), i["text"]) for i in srcdst_groups],
+    ]
+    destination_options = [
+        *[_option("destination_zones", i["value"], _("Zone"), i["text"]) for i in catalog.get("destination_zones", [])],
+        *[_option("destination_custom_objects", i["value"], _("Object"), i["text"]) for i in srcdst_objects],
+        *[_option("destination_groups", i["value"], _("Group"), i["text"]) for i in srcdst_groups],
+    ]
 
     action_options = []
     for choice_value, choice_label in SecurityZonePolicyRule._meta.get_field("policy_action").choices:
@@ -110,15 +123,18 @@ def _build_security_rule_add_options():
                 "text": str(choice_label),
             }
         )
-    service_fields = [
-        ("services", "services", _("Service")),
-        ("applications", "applications", _("Application")),
-        ("application_sets", "application_sets", _("Application Set")),
+    action_options += [
+        *[_option("custom_action_objects", i["value"], _("Object"), i["text"]) for i in action_objects],
+        *[_option("action_groups", i["value"], _("Group"), i["text"]) for i in action_groups],
     ]
-    service_options = []
-    for field_name, catalog_key, label in service_fields:
-        for item in catalog.get(catalog_key, []):
-            service_options.append(_option(field_name, item["value"], label, item["text"]))
+
+    service_options = [
+        *[_option("services", i["value"], _("Service"), i["text"]) for i in catalog.get("services", [])],
+        *[_option("applications", i["value"], _("Application"), i["text"]) for i in catalog.get("applications", [])],
+        *[_option("application_sets", i["value"], _("Application Set"), i["text"]) for i in catalog.get("application_sets", [])],
+        *[_option("custom_service_objects", i["value"], _("Object"), i["text"]) for i in service_objects],
+        *[_option("service_groups", i["value"], _("Group"), i["text"]) for i in service_groups],
+    ]
 
     return {
         "source": source_options,

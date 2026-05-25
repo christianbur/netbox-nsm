@@ -98,6 +98,7 @@
       {% if form.destination_group_types %}{% render_field form.destination_group_types %}{% endif %}
       {% if form.destination_groups %}{% render_field form.destination_groups %}{% endif %}
       {% render_field form.destination_zones %}
+      {% render_field form.destination_custom_objects %}
       {% if form.destination_addresses %}{% render_field form.destination_addresses %}{% endif %}
       {% if form.destination_users %}{% render_field form.destination_users %}{% endif %}
     </div>
@@ -136,6 +137,7 @@
       {% render_field form.applications %}
       {% render_field form.application_sets %}
       {% render_field form.custom_service_objects %}
+      {% render_field form.service_groups %}
     </div>
   </div>
 
@@ -170,6 +172,7 @@
     <div class="nsm-hidden-pickers">
       {% render_field form.policy_action %}
       {% render_field form.custom_action_objects %}
+      {% render_field form.action_groups %}
     </div>
     <div class="mt-3">{% render_field form.log_enabled %}</div>
   </div>
@@ -194,5 +197,5 @@
 {% block javascript %}
   {{ block.super }}
   {{ nsm_object_catalog|json_script:"nsm-object-catalog" }}
-  <script src="{% static 'netbox_nsm/js/security_rule_form.js' %}?v=20260524d"></script>
+  <script src="{% static 'netbox_nsm/js/security_rule_form.js' %}?v=20260525a"></script>
 {% endblock javascript %}

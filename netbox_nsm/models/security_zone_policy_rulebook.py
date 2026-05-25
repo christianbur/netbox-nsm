@@ -104,17 +104,47 @@ class SecurityZonePolicyRule(ContactsMixin, PrimaryModel):
         related_name="%(class)s_custom_srcdst",
         limit_choices_to={"custom_type__area": "srcdst"},
     )
+    destination_custom_objects = models.ManyToManyField(
+        to="netbox_nsm.ObjectCustomObject",
+        blank=True,
+        related_name="%(class)s_destination_custom",
+        limit_choices_to={"custom_type__area": "srcdst"},
+    )
+    source_groups = models.ManyToManyField(
+        to="netbox_nsm.ObjectGroup",
+        blank=True,
+        related_name="%(class)s_source_groups",
+        limit_choices_to={"area": "srcdst"},
+    )
+    destination_groups = models.ManyToManyField(
+        to="netbox_nsm.ObjectGroup",
+        blank=True,
+        related_name="%(class)s_destination_groups",
+        limit_choices_to={"area": "srcdst"},
+    )
     custom_service_objects = models.ManyToManyField(
         to="netbox_nsm.ObjectCustomObject",
         blank=True,
         related_name="%(class)s_custom_services",
         limit_choices_to={"custom_type__area": "services"},
     )
+    service_groups = models.ManyToManyField(
+        to="netbox_nsm.ObjectGroup",
+        blank=True,
+        related_name="%(class)s_service_groups",
+        limit_choices_to={"area": "services"},
+    )
     custom_action_objects = models.ManyToManyField(
         to="netbox_nsm.ObjectCustomObject",
         blank=True,
         related_name="%(class)s_custom_action",
         limit_choices_to={"custom_type__area": "action"},
+    )
+    action_groups = models.ManyToManyField(
+        to="netbox_nsm.ObjectGroup",
+        blank=True,
+        related_name="%(class)s_action_groups",
+        limit_choices_to={"area": "action"},
     )
 
     class Meta:

@@ -34,6 +34,3 @@ class ObjectGroupFilterSet(PrimaryModelFilterSet):
         if not value:
             return queryset
         return queryset.filter(group_type__in=value)
-
-
-@register_filterset

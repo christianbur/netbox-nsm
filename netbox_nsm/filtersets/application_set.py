@@ -77,6 +77,3 @@ class ApplicationSetFilterSet(TenancyFilterSet, PrimaryModelFilterSet):
             | Q(identifier__icontains=value)
         )
         return queryset.filter(qs_filter)
-
-
-@register_filterset

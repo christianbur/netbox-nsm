@@ -78,6 +78,3 @@ class SecurityZoneFilterSet(TenancyFilterSet, PrimaryModelFilterSet):
 
     def filter_ip_range(self, queryset, name, value):
         return self._filter_by_assigned_object(queryset, value, "ipam", "iprange")
-
-
-@register_filterset

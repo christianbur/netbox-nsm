@@ -131,6 +131,3 @@ class AddressFilterSet(TenancyFilterSet, PrimaryModelFilterSet):
             | Q(dns_name=value)
         )
         return queryset.filter(qs_filter)
-
-
-@register_filterset

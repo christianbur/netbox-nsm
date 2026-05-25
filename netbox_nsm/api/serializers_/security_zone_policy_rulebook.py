@@ -16,11 +16,9 @@ from netbox_nsm.api.serializers import (
     ApplicationSerializer,
     ApplicationSetSerializer,
     SecurityZoneSerializer,
-    SecurityZoneRoleSerializer,
 )
 from netbox_nsm.constants import RULESET_ASSIGNMENT_MODELS
 from netbox_nsm.models import (
-    RulebookTypeChoices,
     SecurityZonePolicyRule,
     SecurityZonePolicyRulebook,
     SecurityZonePolicyRulebookAssignment,
@@ -40,8 +38,6 @@ class SecurityZonePolicyRulebookSerializer(PrimaryModelSerializer):
         view_name="plugins-api:netbox_nsm-api:securityzonepolicyrulebook-detail"
     )
 
-    roles = SecurityZoneRoleSerializer(many=True, nested=True, required=False)
-
     class Meta:
         model = SecurityZonePolicyRulebook
         fields = (
@@ -50,7 +46,6 @@ class SecurityZonePolicyRulebookSerializer(PrimaryModelSerializer):
             "display",
             "name",
             "rulebook_type",
-            "roles",
             "description",
             "comments",
             "tags",
@@ -58,39 +53,7 @@ class SecurityZonePolicyRulebookSerializer(PrimaryModelSerializer):
             "created",
             "last_updated",
         )
-        brief_fields = ("id", "url", "display", "name", "rulebook_type", "roles")
-
-    def create(self, validated_data):
-        roles = validated_data.pop("roles", None)
-        if roles is not None and len(roles) > 1:
-            raise ValidationError(
-                {"roles": ["Exactly one Security Zone Role may be set."]}
-            )
-        obj = super().create(validated_data)
-        if roles is not None:
-            obj.roles.set(roles)
-        return obj
-
-    def update(self, instance, validated_data):
-        roles = validated_data.pop("roles", None)
-        effective_type = validated_data.get("rulebook_type", instance.rulebook_type)
-        effective_roles = roles if roles is not None else instance.roles.all()
-        if effective_type == RulebookTypeChoices.MATRIX and not effective_roles:
-            raise ValidationError(
-                {"roles": ["Security Zone Roles are required when Rulebook Type is Security Matrix."]}
-            )
-        if effective_type == RulebookTypeChoices.MATRIX and len(effective_roles) != 1:
-            raise ValidationError(
-                {"roles": ["Exactly one Security Zone Role must be set for Security Matrix."]}
-            )
-        if roles is not None and len(roles) > 1:
-            raise ValidationError(
-                {"roles": ["Exactly one Security Zone Role may be set."]}
-            )
-        obj = super().update(instance, validated_data)
-        if roles is not None:
-            obj.roles.set(roles)
-        return obj
+        brief_fields = ("id", "url", "display", "name", "rulebook_type")
 
 
 class SecurityZonePolicyRuleSerializer(PrimaryModelSerializer):

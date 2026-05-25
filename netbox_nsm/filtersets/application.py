@@ -1,6 +1,5 @@
 import django_filters
 from django.utils.translation import gettext_lazy as _
-from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
 from netbox.filtersets import PrimaryModelFilterSet
 from tenancy.filtersets import TenancyFilterSet
@@ -9,9 +8,6 @@ from utilities.filters import (
     MultiValueCharFilter,
     MultiValueNumberFilter,
 )
-
-from dcim.models import Device, VirtualDeviceContext
-from virtualization.models import VirtualMachine
 
 from netbox_nsm.models import (
     Application,
@@ -87,6 +83,3 @@ class ApplicationFilterSet(TenancyFilterSet, PrimaryModelFilterSet):
             | Q(reference__icontains=value)
         )
         return queryset.filter(qs_filter)
-
-
-@register_filterset

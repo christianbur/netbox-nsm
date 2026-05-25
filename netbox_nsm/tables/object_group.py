@@ -9,7 +9,7 @@ from netbox_nsm.tables.mixins import AssignedObjectParentMixin
 
 from netbox_nsm.models import ObjectGroup
 
-__all__ = ("ObjectGroupTable")
+__all__ = ("ObjectGroupTable",)
 
 
 class ObjectGroupTable(NetBoxTable):

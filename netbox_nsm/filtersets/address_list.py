@@ -76,6 +76,3 @@ class AddressListFilterSet(NetBoxModelFilterSet):
             assigned_object_type=ContentType.objects.get_for_model(AddressSet),
             assigned_object_id__in=addresses.values_list("id", flat=True),
         )
-
-
-@register_filterset

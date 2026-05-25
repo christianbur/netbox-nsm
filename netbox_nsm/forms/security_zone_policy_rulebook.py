@@ -33,9 +33,7 @@ from netbox_nsm.models import (
     ObjectInterface,
     ObjectNAT,
     ObjectPolicer,
-    RulebookTypeChoices,
     SecurityZone,
-    SecurityZoneRole,
     SecurityZonePolicyRule,
     SecurityZonePolicyRulebook,
     SecurityZonePolicyRulebookAssignment,
@@ -54,14 +52,9 @@ __all__ = (
 
 class SecurityZonePolicyRulebookForm(PrimaryModelForm):
     name = forms.CharField(max_length=100, required=True)
-    role = DynamicModelChoiceField(
-        queryset=SecurityZoneRole.objects.all(),
-        required=False,
-        label=_("Security Zone Role"),
-    )
 
     fieldsets = (
-        FieldSet("name", "rulebook_type", "role", "description", name=_("Rulebook")),
+        FieldSet("name", "rulebook_type", "description", name=_("Rulebook")),
         FieldSet("tags", name=_("Tags")),
     )
     comments = CommentField()
@@ -76,65 +69,6 @@ class SecurityZonePolicyRulebookForm(PrimaryModelForm):
             "tags",
         )
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        is_create = not (self.instance and self.instance.pk)
-        initial_data = self.initial or {}
-        if self.instance and self.instance.pk and not self.is_bound:
-            initial_data["role"] = self.instance.roles.first()
-            self.initial = initial_data
-
-        selected_type = None
-        if self.is_bound:
-            selected_type = self.data.get("rulebook_type")
-        elif self.instance and self.instance.pk:
-            selected_type = self.instance.rulebook_type
-        else:
-            selected_type = initial_data.get("rulebook_type", RulebookTypeChoices.POLICY)
-
-        # Roles are configured after creation (general tab/edit), not on add form.
-        if is_create:
-            self.fields.pop("role", None)
-            return
-
-        if selected_type == RulebookTypeChoices.POLICY:
-            self.fields["role"].widget.attrs["disabled"] = "disabled"
-            self.fields["role"].help_text = _(
-                "Only used for Security Matrix."
-            )
-        else:
-            self.fields["role"].help_text = _(
-                "Select the Security Zone Role used for this Security Matrix."
-            )
-
-    def clean(self):
-        cleaned_data = super().clean()
-        if cleaned_data is None:
-            cleaned_data = self.cleaned_data
-        if not (self.instance and self.instance.pk):
-            return cleaned_data
-
-        rulebook_type = cleaned_data.get("rulebook_type")
-        role = cleaned_data.get("role")
-
-        if rulebook_type == RulebookTypeChoices.MATRIX and not role:
-            self.add_error(
-                "role",
-                _("Security Zone Role is required when Rulebook Type is Security Matrix."),
-            )
-
-        return cleaned_data
-
-    def save(self, commit=True):
-        instance = super().save(commit=commit)
-        if commit and "role" in self.fields:
-            role = self.cleaned_data.get("role")
-            if role:
-                instance.roles.set([role])
-            else:
-                instance.roles.clear()
-        return instance
 
 
 class SecurityZonePolicyRulebookFilterForm(PrimaryModelFilterSetForm):
@@ -153,15 +87,10 @@ class SecurityZonePolicyRulebookBulkEditForm(PrimaryModelBulkEditForm):
         required=False,
     )
     description = forms.CharField(max_length=200, required=False)
-    roles = DynamicModelMultipleChoiceField(
-        queryset=SecurityZoneRole.objects.all(),
-        required=False,
-        label=_("Security Zone Roles"),
-    )
     tags = TagFilterField(model)
     nullable_fields = ["description"]
     fieldsets = (
-        FieldSet("rulebook_type", "roles", "description"),
+        FieldSet("rulebook_type", "description"),
         FieldSet("tags", name=_("Tags")),
     )
 

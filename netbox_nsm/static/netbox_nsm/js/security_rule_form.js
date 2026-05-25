@@ -137,14 +137,20 @@
         return;
       }
 
-      Array.from(field.options)
-        .filter((opt) => !!opt.value)
-        .forEach((opt) => {
-          const option = document.createElement("option");
-          option.value = encodeOption(def.field, opt.value, def.label);
-          option.textContent = def.label + " · " + opt.textContent.trim();
-          objectSelect.appendChild(option);
-        });
+      const opts = Array.from(field.options).filter((opt) => !!opt.value);
+      if (opts.length === 0) {
+        return;
+      }
+
+      const group = document.createElement("optgroup");
+      group.label = def.label;
+      opts.forEach((opt) => {
+        const option = document.createElement("option");
+        option.value = encodeOption(def.field, opt.value, def.label);
+        option.textContent = opt.textContent.trim();
+        group.appendChild(option);
+      });
+      objectSelect.appendChild(group);
     });
 
     objectSelect.disabled = objectSelect.options.length <= 1;

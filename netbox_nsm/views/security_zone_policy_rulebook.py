@@ -388,6 +388,44 @@ class SecurityZonePolicyRulebookRulesView(generic.ObjectView):
         if src_filter or dst_filter:
             rules_qs = rules_qs.distinct()
 
+        # ── optional text / column search ──────────────────────────────────────
+        search_q   = request.GET.get("q",   "").strip()
+        search_col = request.GET.get("col", "").strip()
+        search_val = request.GET.get("val", "").strip()
+
+        if search_q:
+            _q = (
+                Q(name__icontains=search_q)
+                | Q(description__icontains=search_q)
+                | Q(source_zones__name__icontains=search_q)
+                | Q(destination_zones__name__icontains=search_q)
+                | Q(services__name__icontains=search_q)
+                | Q(applications__name__icontains=search_q)
+                | Q(custom_srcdst_objects__name__icontains=search_q)
+                | Q(custom_service_objects__name__icontains=search_q)
+                | Q(custom_action_objects__name__icontains=search_q)
+                | Q(source_groups__name__icontains=search_q)
+                | Q(destination_groups__name__icontains=search_q)
+                | Q(service_groups__name__icontains=search_q)
+                | Q(action_groups__name__icontains=search_q)
+            )
+            if search_q.isdigit():
+                _q |= Q(index=int(search_q))
+            rules_qs = rules_qs.filter(_q).distinct()
+
+        _COLUMN_LOOKUPS = {
+            "name":        "name__icontains",
+            "description": "description__icontains",
+            "source":      "source_zones__name__icontains",
+            "destination": "destination_zones__name__icontains",
+            "service":     "services__name__icontains",
+        }
+        if search_col and search_val:
+            if search_col == "index" and search_val.isdigit():
+                rules_qs = rules_qs.filter(index=int(search_val)).distinct()
+            elif search_col in _COLUMN_LOOKUPS:
+                rules_qs = rules_qs.filter(**{_COLUMN_LOOKUPS[search_col]: search_val}).distinct()
+
         # resolve zone names for active-filter badge
         active_src_zones = (
             list(SecurityZone.objects.filter(pk__in=src_filter).order_by("name"))
@@ -422,6 +460,11 @@ class SecurityZonePolicyRulebookRulesView(generic.ObjectView):
             "selected_security_rules_columns": selected_columns,
             "active_src_zones": active_src_zones,
             "active_dst_zones": active_dst_zones,
+            "search_q": search_q,
+            "search_col": search_col,
+            "search_val": search_val,
+            "src_filter": src_filter,
+            "dst_filter": dst_filter,
         }
 
 

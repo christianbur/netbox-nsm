@@ -156,6 +156,17 @@
             background: #f3e0df;
             color: #a63a32;
           }
+          .nsm-search-toggle {
+            cursor: pointer;
+            list-style: none;
+            user-select: none;
+            background: #f8f4ed;
+            border: 1px solid #e8ddd0;
+            border-radius: .5rem;
+            padding: .35rem .75rem;
+          }
+          .nsm-search-toggle::-webkit-details-marker { display: none; }
+          .nsm-search-toggle::marker { display: none; }
         </style>
         <div class="mb-3 d-flex align-items-center justify-content-between gap-2">
           <strong>Security Rules</strong>
@@ -165,12 +176,57 @@
             </a>
           {% endif %}
         </div>
-      {% endif %}
-
-      <div class="nsm-policy-table">
-        {% include 'htmx/table.html' %}
-      </div>
-    </div>
-  </div>
-</div>
+        <details class="mb-3" {% if search_q or search_col %}open{% endif %}>
+          <summary class="nsm-search-toggle d-flex align-items-center gap-2">
+            <i class="mdi mdi-magnify"></i>
+            <span class="fw-semibold small">Suche / Filter</span>
+            {% if search_q or search_col %}
+              <span class="badge text-bg-warning ms-1">aktiv</span>
+            {% endif %}
+            <i class="mdi mdi-chevron-down ms-auto"></i>
+          </summary>
+          <form method="get" class="mt-2 p-3 border rounded" style="background:#f8f4ed;">
+            <div class="row g-2 align-items-end">
+              <div class="col-sm-4">
+                <label class="form-label small mb-1">
+                  <i class="mdi mdi-text-search"></i> Gesamtsuche
+                </label>
+                <input type="text" name="q" value="{{ search_q|default:'' }}"
+                       class="form-control form-control-sm"
+                       placeholder="Name, Beschreibung, Zonen, Objekte …">
+              </div>
+              <div class="col-sm-2">
+                <label class="form-label small mb-1">Spalte</label>
+                <select name="col" class="form-select form-select-sm">
+                  <option value="">—</option>
+                  <option value="name" {% if search_col == "name" %}selected{% endif %}>Name</option>
+                  <option value="description" {% if search_col == "description" %}selected{% endif %}>Beschreibung</option>
+                  <option value="index" {% if search_col == "index" %}selected{% endif %}>Index</option>
+                  <option value="source" {% if search_col == "source" %}selected{% endif %}>Source</option>
+                  <option value="destination" {% if search_col == "destination" %}selected{% endif %}>Destination</option>
+                  <option value="service" {% if search_col == "service" %}selected{% endif %}>Service</option>
+                </select>
+              </div>
+              <div class="col-sm-4">
+                <label class="form-label small mb-1">Wert</label>
+                <input type="text" name="val" value="{{ search_val|default:'' }}"
+                       class="form-control form-control-sm" placeholder="Wert …">
+              </div>
+              <div class="col-auto d-flex gap-1">
+                <button type="submit" class="btn btn-sm btn-primary">
+                  <i class="mdi mdi-magnify"></i> Suchen
+                </button>
+                <a href="{{ request.path }}" class="btn btn-sm btn-outline-secondary">
+                  <i class="mdi mdi-close"></i>
+                </a>
+              </div>
+            </div>
+            {% for v in src_filter %}
+              <input type="hidden" name="source_zones_id" value="{{ v }}">
+            {% endfor %}
+            {% for v in dst_filter %}
+              <input type="hidden" name="destination_zones_id" value="{{ v }}">
+            {% endfor %}
+          </form>
+        </details>
 {% endblock %}

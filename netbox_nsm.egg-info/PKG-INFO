@@ -1,0 +1,10 @@
+Metadata-Version: 2.4
+Name: netbox-nsm
+Version: 0.0.3
+Author: Christian Burmeister
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+
+# netbox-nsm
+
+NSM steht für **Network Security Manager**.

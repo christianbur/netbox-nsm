@@ -38,7 +38,7 @@ _AREA_TABS = (
 
 @register_model_view(ObjectGroup)
 class ObjectGroupView(generic.ObjectView):
-    queryset = ObjectGroup.objects.prefetch_related("members__custom_type", "sub_groups", "tags")
+    queryset = ObjectGroup.objects.prefetch_related("members__custom_type", "sub_groups", "parent_groups", "tags")
     template_name = "netbox_nsm/objectgroup.html"
 
     def get_extra_context(self, request, instance):
@@ -47,6 +47,7 @@ class ObjectGroupView(generic.ObjectView):
                 "custom_type__name", "name"
             ),
             "sub_groups": instance.sub_groups.order_by("name"),
+            "parent_groups": instance.parent_groups.order_by("name"),
         }
 
 

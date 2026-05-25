@@ -1,4 +1,5 @@
 from .security_zone_policy_rulebook import *
+from .securityzone import *
 from .tabs import *
 from .object_custom_type import *
 from .object_custom_object import *

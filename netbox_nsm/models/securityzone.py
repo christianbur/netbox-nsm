@@ -48,14 +48,17 @@ class SecurityZone(ContactsMixin, PrimaryModel):
         """Construct an efficient queryset for this model and related data."""
         return (
             cls.objects.defer("id")
-            .prefetch_related("source_zone_policies", "destination_zone_policies")
+            .prefetch_related(
+                "securityzonepolicyrule_source_zones",
+                "securityzonepolicyrule_destination_zones",
+            )
             .annotate(
                 source_policy_count=models.Count(
-                    "source_zone_policies",
+                    "securityzonepolicyrule_source_zones",
                     distinct=True,
                 ),
                 destination_policy_count=models.Count(
-                    "destination_zone_policies",
+                    "securityzonepolicyrule_destination_zones",
                     distinct=True,
                 ),
             )

@@ -34,6 +34,15 @@ urlpatterns = [
     path("object-groups/", include(get_model_urls("netbox_nsm", "objectgroup", detail=False))),
     path("object-groups/<int:pk>/", include(get_model_urls("netbox_nsm", "objectgroup"))),
     path("object/<str:tab>/", ObjectsSrcDstTabsView.as_view(), name="object_tabs"),
+    # Security Zones
+    path(
+        "security-zones/",
+        include(get_model_urls("netbox_nsm", "securityzone", detail=False)),
+    ),
+    path(
+        "security-zones/<int:pk>/",
+        include(get_model_urls("netbox_nsm", "securityzone")),
+    ),
     # Security Policy
     path(
         "security-policy/<int:pk>/visualization/",

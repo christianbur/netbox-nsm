@@ -1,0 +1,32 @@
+[project]
+name = "netbox-nsm"
+version = "0.0.1"
+description = "A Netbox plugin for tracking Security and NAT related objects"
+authors = [
+    {name="Christian Burmeister"},
+]
+license-files = ["LICENSE"]
+readme = "README.md"
+keywords = ["netbox", "netbox-plugin", "security"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable"
+]
+dependencies = [
+]
+requires-python = ">=3.12"
+
+[project.urls]
+Homepage = "https://github.com/andy-shady-org/netbox-nsm"
+Documentation = "https://github.com/andy-shady-org/netbox-nsm/blob/main/README.md"
+Repository = "https://github.com/andy-shady-org/netbox-nsm"
+Issues = "https://github.com/andy-shady-org/netbox-nsm/issues"
+
+[build-system]
+requires = ['setuptools >= 64']
+build-backend = 'setuptools.build_meta'
+
+[tool.setuptools.packages.find]
+exclude = ["examples*", "media*", "*.tests*"]
+
+[tool.setuptools.package-data]
+"netbox_nsm" = ["templates/**/*.html", "static/**/*"]

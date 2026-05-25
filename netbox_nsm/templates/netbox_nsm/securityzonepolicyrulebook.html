@@ -1,0 +1,158 @@
+{% extends 'generic/object.html' %}
+{% load i18n %}
+{% load helpers %}
+{% load plugins %}
+
+{% block content %}
+<div class="row">
+  <div class="col col-md-6">
+    <div class="card">
+      <h5 class="card-header">{% trans "Security Policy" %}</h5>
+      <table class="table table-hover attr-table">
+        <tr>
+          <th scope="row">{% trans "Name" %}</th>
+          <td>{{ object.name }}</td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "Type" %}</th>
+          <td>{{ object.get_rulebook_type_display }}</td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "Security Zone Roles" %}</th>
+          <td>
+            {% for role in object.roles.all %}
+              {{ role|linkify }}{% if not forloop.last %}, {% endif %}
+            {% empty %}
+              <span class="text-muted">-</span>
+            {% endfor %}
+          </td>
+        </tr>
+        {% if object.description %}
+        <tr>
+          <th scope="row">{% trans "Description" %}</th>
+          <td>{{ object.description|placeholder }}</td>
+        </tr>
+        {% endif %}
+      </table>
+    </div>
+    {% include 'inc/panels/custom_fields.html' %}
+    {% include 'inc/panels/tags.html' %}
+    {% include 'inc/panels/comments.html' %}
+    {% plugin_left_page object %}
+  </div>
+  <div class="col-md-6">
+    {% if object.rulebook_type == 'policy' %}
+    <div class="card mb-3">
+      <h5 class="card-header">{% trans "Rules Table Columns" %}</h5>
+      <div class="card-body">
+        <form method="post" action="{% url 'plugins:netbox_nsm:securityzonepolicyrulebook_policy_columns' pk=object.pk %}">
+          {% csrf_token %}
+          <input type="hidden" name="column_order" id="column_order">
+
+          <label class="form-label mb-2">{% trans "Visible columns and order" %}</label>
+          <ul class="list-group mb-3" id="column-order-list">
+            {% for column_name, column_label in security_rules_columns %}
+            <li class="list-group-item d-flex align-items-center gap-2" data-column="{{ column_name }}" draggable="true">
+              <span class="text-muted" style="cursor:grab">&#x2630;</span>
+              <label class="form-check-label mb-0">
+                <input class="form-check-input me-1" type="checkbox" name="columns" value="{{ column_name }}"{% if column_name in selected_security_rules_columns_set %} checked{% endif %}>
+                {{ column_label }}
+              </label>
+            </li>
+            {% endfor %}
+          </ul>
+
+          <hr>
+          <label class="form-label">
+            {% trans "Custom Columns (0-n, Title + Markdown)" %}
+          </label>
+          <div id="custom-columns-list" class="d-flex flex-column gap-2 mb-2">
+            {% for custom in custom_columns %}
+            <div class="border rounded p-2 custom-column-item">
+              <div class="mb-2">
+                <input type="text" name="custom_column_title" class="form-control form-control-sm" placeholder="{% trans 'Column title' %}" value="{{ custom.title }}">
+              </div>
+              <div>
+                <textarea name="custom_column_body" class="form-control form-control-sm" rows="3" placeholder="{% trans 'Markdown text' %}">{{ custom.body }}</textarea>
+              </div>
+              <button type="button" class="btn btn-outline-danger btn-sm mt-2 remove-custom-column">{% trans "Remove" %}</button>
+            </div>
+            {% endfor %}
+          </div>
+          <button type="button" class="btn btn-outline-secondary btn-sm" id="add-custom-column">{% trans "Add Custom Column" %}</button>
+
+          <button type="submit" class="btn btn-primary btn-sm mt-2">{% trans "Apply to Rules Tab" %}</button>
+        </form>
+      </div>
+    </div>
+    <template id="custom-column-template">
+      <div class="border rounded p-2 custom-column-item">
+        <div class="mb-2">
+          <input type="text" name="custom_column_title" class="form-control form-control-sm" placeholder="{% trans 'Column title' %}">
+        </div>
+        <div>
+          <textarea name="custom_column_body" class="form-control form-control-sm" rows="3" placeholder="{% trans 'Markdown text' %}"></textarea>
+        </div>
+        <button type="button" class="btn btn-outline-danger btn-sm mt-2 remove-custom-column">{% trans "Remove" %}</button>
+      </div>
+    </template>
+    <script>
+      (function() {
+        const list = document.getElementById('column-order-list');
+        const orderField = document.getElementById('column_order');
+        const form = list?.closest('form');
+        let dragged = null;
+
+        if (list && form) {
+          list.querySelectorAll('li[draggable="true"]').forEach((item) => {
+            item.addEventListener('dragstart', () => { dragged = item; });
+            item.addEventListener('dragover', (event) => { event.preventDefault(); });
+            item.addEventListener('drop', (event) => {
+              event.preventDefault();
+              if (!dragged || dragged === item) return;
+              const rect = item.getBoundingClientRect();
+              const after = (event.clientY - rect.top) > (rect.height / 2);
+              if (after) {
+                item.after(dragged);
+              } else {
+                item.before(dragged);
+              }
+            });
+          });
+
+          form.addEventListener('submit', () => {
+            const ordered = Array.from(list.querySelectorAll('li[data-column]'))
+              .map((item) => item.getAttribute('data-column'));
+            orderField.value = ordered.join(',');
+          });
+        }
+
+        const customList = document.getElementById('custom-columns-list');
+        const addButton = document.getElementById('add-custom-column');
+        const template = document.getElementById('custom-column-template');
+
+        const bindRemove = (root) => {
+          root.querySelectorAll('.remove-custom-column').forEach((button) => {
+            button.addEventListener('click', () => {
+              const item = button.closest('.custom-column-item');
+              if (item) item.remove();
+            });
+          });
+        };
+
+        if (customList && addButton && template) {
+          bindRemove(customList);
+          addButton.addEventListener('click', () => {
+            const clone = template.content.firstElementChild.cloneNode(true);
+            customList.appendChild(clone);
+            bindRemove(clone);
+          });
+        }
+      })();
+    </script>
+    {% endif %}
+    {% plugin_right_page object %}
+  </div>
+</div>
+{% plugin_full_width_page object %}
+{% endblock %}

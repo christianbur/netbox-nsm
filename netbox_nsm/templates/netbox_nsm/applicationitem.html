@@ -1,0 +1,67 @@
+{% extends 'generic/object.html' %}
+{% load i18n %}
+{% load plugins %}
+
+{% block content %}
+<div class="row">
+    <div class="col col-md-6">
+        <div class="card">
+            <h5 class="card-header">{% trans "Application Items" %}</h5>
+            <table class="table table-hover attr-table">
+                <tr>
+                    <th scope="row">{% trans "Name" %}</th>
+                    <td>{{ object.name }}</td>
+                </tr>
+                <tr>
+                    <th scope="row">{% trans "Index" %}</th>
+                    <td>{{ object.index }}</td>
+                </tr>
+                <tr>
+                    <th scope="row">{% trans "Protocols" %}</th>
+                    <td>
+                        {{ object.protocol_list|placeholder }}
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">Source Ports</th>
+                    {% if object.source_ports %}
+                    <td>{{ object.source_port_list|placeholder }}</td>
+                    {% else %}
+                    <td>{{ object.source_ports|placeholder }}</td>
+                    {% endif %}
+                </tr>
+                <tr>
+                    <th scope="row">Destination Ports</th>
+                    {% if object.source_ports %}
+                    <td>{{ object.destination_port_list|placeholder }}</td>
+                    {% else %}
+                    <td>{{ object.destination_ports|placeholder }}</td>
+                    {% endif %}
+                </tr>
+                {% if object.description %}
+                <tr>
+                    <th scope="row">{% trans "Description" %}</th>
+                    <td>{{ object.description|placeholder }}</td>
+                </tr>
+                {% endif %}
+                <tr>
+                    <th scope="row">{% trans "Parent Applications" %}</th>
+                    <td>
+                        {% for item in object.application_application_items.all %}
+                        {{ item|linkify|placeholder }}<br />
+                        {% endfor %}
+                    </td>
+                </tr>
+            </table>
+        </div>
+        {% include 'inc/panels/custom_fields.html' %}
+        {% plugin_left_page object %}
+    </div>
+    <div class="col col-md-6">
+        {% include 'inc/panels/comments.html' %}
+        {% include 'inc/panels/tags.html' %}
+        {% plugin_right_page object %}
+    </div>
+    {% plugin_full_width_page object %}
+</div>
+{% endblock %}

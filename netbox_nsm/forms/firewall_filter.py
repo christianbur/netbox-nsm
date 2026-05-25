@@ -1,0 +1,196 @@
+from django import forms
+from django.utils.translation import gettext_lazy as _
+
+from netbox.forms import (
+    PrimaryModelBulkEditForm,
+    PrimaryModelFilterSetForm,
+    PrimaryModelImportForm,
+    PrimaryModelForm,
+    NetBoxModelFilterSetForm,
+)
+
+from tenancy.forms import TenancyForm, TenancyFilterForm
+from utilities.forms.rendering import FieldSet, ObjectAttribute
+from utilities.forms.fields import (
+    DynamicModelChoiceField,
+    DynamicModelMultipleChoiceField,
+    TagFilterField,
+    CommentField,
+    CSVChoiceField,
+    CSVModelChoiceField,
+)
+
+from dcim.models import Device, VirtualDeviceContext
+from tenancy.models import Tenant, TenantGroup
+
+from netbox_nsm.models import (
+    FirewallFilter,
+    FirewallFilterAssignment,
+)
+
+from netbox_nsm.choices import FamilyChoices
+
+__all__ = (
+    "FirewallFilterForm",
+    "FirewallFilterFilterForm",
+    "FirewallFilterImportForm",
+    "FirewallFilterBulkEditForm",
+    "FirewallFilterAssignmentForm",
+    "FirewallFilterAssignmentFilterForm",
+)
+
+
+class FirewallFilterForm(TenancyForm, PrimaryModelForm):
+    name = forms.CharField(max_length=64, required=True)
+    family = forms.ChoiceField(
+        required=False,
+        choices=FamilyChoices,
+    )
+    description = forms.CharField(max_length=200, required=False)
+    fieldsets = (
+        FieldSet("name", "family", "description", name=_("Firewall Filter Parameters")),
+        FieldSet("tenant_group", "tenant", name=_("Tenancy")),
+        FieldSet("tags", name=_("Tags")),
+    )
+    comments = CommentField()
+
+    class Meta:
+        model = FirewallFilter
+        fields = [
+            "name",
+            "owner",
+            "family",
+            "tenant_group",
+            "tenant",
+            "description",
+            "comments",
+            "tags",
+        ]
+
+
+class FirewallFilterFilterForm(TenancyFilterForm, PrimaryModelFilterSetForm):
+    model = FirewallFilter
+    fieldsets = (
+        FieldSet("q", "filter_id", "tag", "owner_id"),
+        FieldSet("name", "family", name=_("Firewall Filter")),
+        FieldSet("tenant_group_id", "tenant_id", name=_("Tenancy")),
+    )
+    family = forms.MultipleChoiceField(
+        choices=FamilyChoices,
+        required=False,
+    )
+    tags = TagFilterField(model)
+
+
+class FirewallFilterImportForm(PrimaryModelImportForm):
+    name = forms.CharField(max_length=200, required=True)
+    description = forms.CharField(max_length=200, required=False)
+    family = CSVChoiceField(
+        choices=FamilyChoices,
+        help_text=_("Family"),
+        required=False,
+    )
+    tenant = CSVModelChoiceField(
+        queryset=Tenant.objects.all(),
+        required=False,
+        to_field_name="name",
+        label=_("Tenant"),
+    )
+
+    class Meta:
+        model = FirewallFilter
+        fields = (
+            "name",
+            "owner",
+            "family",
+            "description",
+            "tenant",
+            "tags",
+        )
+
+
+class FirewallFilterBulkEditForm(PrimaryModelBulkEditForm):
+    model = FirewallFilter
+    description = forms.CharField(max_length=200, required=False)
+    family = forms.ChoiceField(
+        required=False,
+        choices=FamilyChoices,
+    )
+    tenant_group = DynamicModelChoiceField(
+        queryset=TenantGroup.objects.all(),
+        required=False,
+        label=_("Tenant Group"),
+    )
+    tenant = DynamicModelChoiceField(
+        queryset=Tenant.objects.all(),
+        required=False,
+        label=_("Tenant"),
+    )
+    tags = TagFilterField(model)
+    nullable_fields = ["description", "tenant"]
+    fieldsets = (
+        FieldSet("family", "description"),
+        FieldSet("tenant_group", "tenant", name=_("Tenancy")),
+        FieldSet("tags", name=_("Tags")),
+    )
+
+
+class FirewallFilterAssignmentForm(forms.ModelForm):
+    firewall_filter = DynamicModelChoiceField(
+        label=_("Firewall Filter"), queryset=FirewallFilter.objects.all()
+    )
+
+    fieldsets = (FieldSet(ObjectAttribute("assigned_object"), "firewall_filter"),)
+
+    class Meta:
+        model = FirewallFilterAssignment
+        fields = ("firewall_filter",)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def clean_firewall_filter(self):
+        firewall_filter = self.cleaned_data["firewall_filter"]
+
+        conflicting_assignments = FirewallFilterAssignment.objects.filter(
+            assigned_object_type=self.instance.assigned_object_type,
+            assigned_object_id=self.instance.assigned_object_id,
+            firewall_filter=firewall_filter,
+        )
+        if self.instance.id:
+            conflicting_assignments = conflicting_assignments.exclude(
+                id=self.instance.id
+            )
+
+        if conflicting_assignments.exists():
+            raise forms.ValidationError(_("Assignment already exists"))
+
+        return firewall_filter
+
+
+class FirewallFilterAssignmentFilterForm(NetBoxModelFilterSetForm):
+    model = FirewallFilterAssignment
+    fieldsets = (
+        FieldSet("q", "filter_id", "tag"),
+        FieldSet(
+            "firewall_filter_id",
+            name=_("Firewall Filter"),
+        ),
+        FieldSet("device_id", "virtualdevicecontext_id", name="Assignments"),
+    )
+    firewall_filter_id = DynamicModelMultipleChoiceField(
+        queryset=FirewallFilter.objects.all(),
+        required=False,
+        label=_("Firewall Filter"),
+    )
+    device_id = DynamicModelChoiceField(
+        queryset=Device.objects.all(),
+        required=False,
+        label=_("Device"),
+    )
+    virtualdevicecontext_id = DynamicModelChoiceField(
+        queryset=VirtualDeviceContext.objects.all(),
+        required=False,
+        query_params={"device_id": "$device_id"},
+        label=_("Virtual Device Context"),
+    )

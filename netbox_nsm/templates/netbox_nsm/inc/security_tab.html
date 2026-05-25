@@ -1,0 +1,80 @@
+{% load i18n %}
+
+{# Always-visible assign dropdown #}
+<div class="d-flex justify-content-end mb-3">
+    <div class="dropdown">
+        <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <span class="mdi mdi-plus-thick" aria-hidden="true"></span> {% trans "Assign Security Object" %}
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+            {% for tab in nsm_tabs %}
+            {% if tab.can_assign %}
+            <li><a class="dropdown-item" href="{{ tab.add_url }}">{{ tab.assign_label }}</a></li>
+            {% endif %}
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+{% if first_nsm_tab %}
+
+{# Tab navigation #}
+<ul class="nav nav-tabs mb-3" role="tablist">
+    {% for tab in nsm_tabs %}
+    {% if tab.count %}
+    <li class="nav-item" role="presentation">
+        <a class="nav-link {% if first_nsm_tab == tab.tab_id %}active{% endif %}"
+           id="nsm-sec-tab-{{ tab.tab_id }}"
+           data-bs-toggle="tab"
+           href="#nsm-sec-pane-{{ tab.tab_id }}"
+           role="tab"
+           aria-selected="{% if first_nsm_tab == tab.tab_id %}true{% else %}false{% endif %}">
+            {{ tab.tab_label }} <span class="badge bg-secondary">{{ tab.count }}</span>
+        </a>
+    </li>
+    {% endif %}
+    {% endfor %}
+</ul>
+
+{# Tab panes #}
+<div class="tab-content">
+    {% for tab in nsm_tabs %}
+    {% if tab.count %}
+    <div class="tab-pane {% if first_nsm_tab == tab.tab_id %}show active{% endif %}"
+         id="nsm-sec-pane-{{ tab.tab_id }}"
+         role="tabpanel"
+         aria-labelledby="nsm-sec-tab-{{ tab.tab_id }}">
+        <div class="card">
+            <h5 class="card-header">
+                {{ tab.tab_label }}
+                <div class="card-actions">
+                    {% if tab.can_assign %}
+                    <a href="{{ tab.add_url }}" class="btn btn-ghost-primary btn-sm">
+                        <span class="mdi mdi-plus-thick" aria-hidden="true"></span> {{ tab.assign_label }}
+                    </a>
+                    {% endif %}
+                </div>
+            </h5>
+            {# Replicate what {% htmx_table %} renders, with a dynamic URL #}
+            <div class="htmx-container table-responsive"
+                 hx-get="{{ tab.list_url }}"
+                 hx-target="this"
+                 hx-trigger="load"
+                 hx-select=".htmx-container"
+                 hx-swap="outerHTML">
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+</div>
+
+{% else %}
+
+<div class="card">
+    <div class="card-body text-muted">
+        {% trans "No security objects assigned yet." %}
+    </div>
+</div>
+
+{% endif %}

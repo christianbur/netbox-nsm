@@ -1,0 +1,97 @@
+{% extends 'generic/object.html' %}
+{% load i18n %}
+{% load helpers %}
+{% load plugins %}
+{% load render_table from django_tables2 %}
+
+{% block extra_controls %}
+    {% if perms.netbox_nsm.change_firewallfilterrule %}
+    <a href="{% url 'plugins:netbox_nsm:firewallfilterrule_add' %}?filter={{ object.pk }}" class="btn btn-success">
+        <span class="mdi mdi-plus-thick" aria-hidden="true"></span> Add Rule
+    </a>
+    {% endif %}
+{% endblock extra_controls %}
+
+{% block content %}
+<div class="row">
+    <div class="col col-md-6">
+        <div class="card">
+            <h5 class="card-header">{% trans "Firewall Filters" %}</h5>
+            <table class="table table-hover attr-table">
+                <tr>
+                    <th scope="row">{% trans "Name" %}</th>
+                    <td>{{ object.name }}</td>
+                </tr>
+                <tr>
+                    <td>{% trans "Rule Count" %}</td>
+                    <td>{{ object.rule_count|placeholder }}</td>
+                </tr>
+                {% if object.description %}
+                <tr>
+                    <th scope="row">{% trans "Description" %}</th>
+                    <td>{{ object.description|placeholder }}</td>
+                </tr>
+                {% endif %}
+                {% if object.family %}
+                <tr>
+                    <th scope="row">{% trans "Family" %}</th>
+                    <td>{% badge object.get_family_display bg_color=object.get_family_color %}</td>
+                </tr>
+                {% endif %}
+                {% if object.tenant %}
+                <tr>
+                    <th scope="row">{% trans "Tenant" %}</th>
+                    <td>
+                        {% if object.tenant.group %}
+                            {{ object.tenant.group|linkify }} /
+                        {% endif %}
+                        {{ object.tenant|linkify|placeholder }}
+                    </td>
+                </tr>
+                {% endif %}
+            </table>
+        </div>
+        <div class="card">
+            {% if device_assignments_table.rows|length == 1 %}
+                <h2 class="card-header">{% trans "Device Assignment" %}</h2>
+            {% else %}
+                <h2 class="card-header">{% trans "Device Assignments" %}</h2>
+            {% endif %}
+            <div class="table-responsive">
+                {% render_table device_assignments_table 'inc/table.html' %}
+            </div>
+        </div>
+        <div class="card">
+            {% if virtual_device_assignments_table.rows|length == 1 %}
+                <h2 class="card-header">{% trans "Virtual Device Context Assignment" %}</h2>
+            {% else %}
+                <h2 class="card-header">{% trans "Virtual Device Context Assignments" %}</h2>
+            {% endif %}
+            <div class="table-responsive">
+                {% render_table virtual_device_assignments_table 'inc/table.html' %}
+            </div>
+        </div>
+        <div class="card">
+            {% if virtual_machine_assignments_table.rows|length == 1 %}
+                <h2 class="card-header">{% trans "Virtual Machine Assignment" %}</h2>
+            {% else %}
+                <h2 class="card-header">{% trans "Virtual Machine Assignments" %}</h2>
+            {% endif %}
+            <div class="table-responsive">
+                {% render_table virtual_machine_assignments_table 'inc/table.html' %}
+            </div>
+        </div>
+        {% include 'inc/panels/custom_fields.html' %}
+        {% include 'inc/panels/tags.html' %}
+        {% include 'inc/panels/comments.html' %}
+    </div>
+    <div class="col col-md-6">
+        <div class="card">
+            <h5 class="card-header">
+                Filter Rules
+            </h5>
+            {% htmx_table 'plugins:netbox_nsm:firewallfilterrule_list' firewall_filter_id=object.pk %}
+        </div>
+    </div>
+</div>
+{% endblock %}

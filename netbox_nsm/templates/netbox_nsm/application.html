@@ -1,0 +1,115 @@
+{% extends 'generic/object.html' %}
+{% load i18n %}
+{% load plugins %}
+{% load helpers %}
+{% load render_table from django_tables2 %}
+
+{% block content %}
+<div class="row">
+    <div class="col col-md-6">
+        <div class="card">
+            <h5 class="card-header">{% trans "Applications" %}</h5>
+            <table class="table table-hover attr-table">
+                <tr>
+                    <th scope="row">{% trans "Application Name" %}</th>
+                    <td>{{ object.name }}</td>
+                </tr>
+                <tr>
+                    <th scope="row">{% trans "App-ID Name" %}</th>
+                    <td>{{ object.identifier }}</td>
+                </tr>
+                <tr>
+                    <th scope="row">{% trans "Category" %}</th>
+                    <td>{{ object.category|placeholder }}</td>
+                </tr>
+                <tr>
+                    <th scope="row">{% trans "Subcategory" %}</th>
+                    <td>{{ object.subcategory|placeholder }}</td>
+                </tr>
+                <tr>
+                    <th scope="row">{% trans "Standard Ports" %}</th>
+                    <td>
+                        {% for item in object.application_items.all %}
+                        {{ item|linkify|placeholder }}<br />
+                        {% endfor %}
+                        {% if object.standard_ports_text %}
+                        {{ object.standard_ports_text|placeholder }}
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">{% trans "Technology" %}</th>
+                    <td>{{ object.technology|placeholder }}</td>
+                </tr>
+                <tr>
+                    <th scope="row">{% trans "Reference" %}</th>
+                    <td>{{ object.reference|placeholder }}</td>
+                </tr>
+                {% if object.description %}
+                <tr>
+                    <th scope="row">{% trans "Description" %}</th>
+                    <td>{{ object.description|placeholder }}</td>
+                </tr>
+                {% endif %}
+                <tr>
+                    <th scope="row">{% trans "Parent Policies" %}</th>
+                    <td>
+                        {% for item in object.securityzonepolicy_applications.all %}
+                        {{ item|linkify|placeholder }}<br />
+                        {% endfor %}
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">{% trans "Parent Application Sets" %}</th>
+                    <td>
+                        {% for item in object.applicationset_applications.all %}
+                        {{ item|linkify|placeholder }}<br />
+                        {% endfor %}
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <div class="card">
+            {% if device_assignments_table.rows|length == 1 %}
+                <h2 class="card-header">{% trans "Device Assignment" %}</h2>
+            {% else %}
+                <h2 class="card-header">{% trans "Device Assignments" %}</h2>
+            {% endif %}
+            <div class="table-responsive">
+                {% render_table device_assignments_table 'inc/table.html' %}
+            </div>
+        </div>
+        <div class="card">
+            {% if virtual_device_assignments_table.rows|length == 1 %}
+                <h2 class="card-header">{% trans "Virtual Device Context Assignment" %}</h2>
+            {% else %}
+                <h2 class="card-header">{% trans "Virtual Device Context Assignments" %}</h2>
+            {% endif %}
+            <div class="table-responsive">
+                {% render_table virtual_device_assignments_table 'inc/table.html' %}
+            </div>
+        </div>
+        <div class="card">
+            {% if virtual_machine_assignments_table.rows|length == 1 %}
+                <h2 class="card-header">{% trans "Virtual Machine Assignment" %}</h2>
+            {% else %}
+                <h2 class="card-header">{% trans "Virtual Machine Assignments" %}</h2>
+            {% endif %}
+            <div class="table-responsive">
+                {% render_table virtual_machine_assignments_table 'inc/table.html' %}
+            </div>
+        </div>
+      {% include 'inc/panels/custom_fields.html' %}
+      {% include 'inc/panels/tags.html' %}
+      {% include 'inc/panels/comments.html' %}
+    </div>
+    <div class="col col-md-6">
+        <div class="card">
+            <h5 class="card-header">
+                {% trans "Standard Port Services" %}
+            </h5>
+            {% htmx_table 'plugins:netbox_nsm:applicationitem_list' application_id=object.pk %}
+        </div>
+    </div>
+</div>
+{% endblock %}

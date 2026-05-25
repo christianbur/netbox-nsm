@@ -1,0 +1,410 @@
+{% extends 'generic/object.html' %}
+
+{% block content %}
+<style>
+  /* ── internal tab bar ── */
+  .nsm-viz-tabs {
+    border-bottom: 2px solid #1e2a38;
+    margin-bottom: 0;
+  }
+  .nsm-viz-tabs .nav-link {
+    border: none;
+    border-radius: 0;
+    color: var(--bs-secondary-color);
+    font-size: .8rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+    padding: .55rem 1.1rem;
+    text-transform: uppercase;
+  }
+  .nsm-viz-tabs .nav-link:hover {
+    color: var(--bs-body-color);
+  }
+  .nsm-viz-tabs .nav-link.active {
+    background: #1e2a38;
+    color: #c8d8e8;
+  }
+
+  /* ── zone filter ── */
+  .nsm-viz-filter-header {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .4rem 1rem;
+    border-bottom: 1px solid var(--bs-border-color);
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+    user-select: none;
+  }
+  .nsm-filter-chevron {
+    display: inline-block;
+    transition: transform .2s;
+  }
+  [aria-expanded="false"] .nsm-filter-chevron {
+    transform: rotate(180deg);
+  }
+  .nsm-viz-filter {
+    padding: .6rem 1rem;
+    border-bottom: 1px solid var(--bs-border-color);
+    display: flex;
+    align-items: flex-start;
+    gap: .75rem;
+    flex-wrap: wrap;
+  }
+  .nsm-viz-filter select {
+    min-width: 14rem;
+    max-width: 32rem;
+    max-height: calc(15 * 1.625rem);
+    overflow-y: auto;
+  }
+
+  /* ── wrapper ── */
+  .nsm-viz-wrapper {
+    overflow: auto;
+    max-height: 78vh;
+    position: relative;
+  }
+
+  /* ── table base ── */
+  .nsm-viz-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: .72rem;
+    white-space: nowrap;
+  }
+
+  /* ── sticky top-left corner ── */
+  .nsm-viz-table .nsm-corner {
+    position: sticky;
+    top: 0;
+    left: 0;
+    z-index: 22;
+    background: #1e2a38;
+    min-width: 9rem;
+    padding: 0;
+    border-right: 2px solid #374a5f;
+    border-bottom: 2px solid #374a5f;
+    overflow: hidden;
+  }
+  .nsm-corner-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 3.5rem;
+  }
+  .nsm-corner-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .nsm-corner-dst {
+    position: absolute;
+    top: .3rem;
+    right: .45rem;
+    font-size: .58rem;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: #a0b8cc;
+  }
+  .nsm-corner-src {
+    position: absolute;
+    bottom: .3rem;
+    left: .45rem;
+    font-size: .58rem;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: #a0b8cc;
+  }
+
+  /* ── destination column headers ── */
+  .nsm-viz-table thead th.nsm-col-label {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: #1e2a38;
+    border-bottom: 2px solid #374a5f;
+    border-right: 1px solid #2d3e52;
+    vertical-align: bottom;
+    padding: .3rem .2rem .25rem .2rem;
+    min-width: 2.8rem;
+  }
+  .nsm-viz-table thead th.nsm-col-label > .nsm-col-text {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    display: block;
+    max-height: 9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 700;
+    color: #c8d8e8;
+    font-size: .7rem;
+    letter-spacing: .03em;
+    line-height: 1.35;
+    padding-bottom: .1rem;
+  }
+  .nsm-viz-table thead th.nsm-col-label:hover .nsm-col-text {
+    color: #fff;
+  }
+
+  /* ── source row headers ── */
+  .nsm-viz-table tbody th.nsm-row-label {
+    position: sticky;
+    left: 0;
+    z-index: 21;
+    background: #1e2a38;
+    border-right: 2px solid #374a5f;
+    border-bottom: 1px solid #2d3e52;
+    text-align: right;
+    font-weight: 700;
+    color: #c8d8e8;
+    font-size: .7rem;
+    letter-spacing: .03em;
+    padding: .35rem .6rem .35rem .4rem;
+    white-space: nowrap;
+    max-width: 11rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .nsm-viz-table tbody th.nsm-row-label:hover {
+    color: #fff;
+    background: #263444;
+  }
+
+  /* ── data cells ── */
+  .nsm-viz-table td {
+    border-right: 1px solid var(--bs-border-color-translucent);
+    border-bottom: 1px solid var(--bs-border-color-translucent);
+    padding: .18rem .15rem;
+    text-align: center;
+    vertical-align: middle;
+    min-width: 3rem;
+    height: 2.2rem;
+  }
+
+  /* diagonal (self-zone) cells – amber hatch above badge, still clickable */
+  td.nsm-viz-cell-self {
+    position: relative;
+    isolation: isolate;   /* contains z-index so hatch never bleeds over sticky headers */
+    background: rgba(255, 255, 255, .18);
+  }
+  td.nsm-viz-cell-self::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      -45deg,
+      rgba(255, 255, 255, .40),
+      rgba(255, 255, 255, .40) 5px,
+      transparent 5px,
+      transparent 8px
+    );
+    pointer-events: none;
+    z-index: 2;
+  }
+  td.nsm-viz-cell-self > * {
+    position: relative;
+    z-index: 3;
+  }
+
+  /* empty cells */
+  .nsm-viz-cell-empty a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 1.7rem;
+    color: var(--bs-border-color);
+    border: 1px dashed var(--bs-border-color-translucent);
+    border-radius: .3rem;
+    font-size: 1rem;
+    font-weight: 300;
+    text-decoration: none;
+    transition: background .12s, color .12s, border-color .12s;
+  }
+  .nsm-viz-cell-empty a:hover {
+    color: var(--bs-primary);
+    border-color: var(--bs-primary);
+    background: var(--bs-primary-bg-subtle);
+    font-weight: 600;
+  }
+
+  /* single-rule action cells */
+  .nsm-viz-cell-action a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 1.7rem;
+    border-radius: .4rem;
+    font-weight: 800;
+    font-size: .6rem;
+    text-decoration: none;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    box-shadow: 0 1px 3px rgba(0,0,0,.15);
+    transition: filter .12s, box-shadow .12s;
+  }
+  .nsm-viz-cell-action a:hover {
+    filter: brightness(1.1);
+    box-shadow: 0 2px 6px rgba(0,0,0,.25);
+  }
+
+  /* multi-rule cells */
+  .nsm-viz-cell-multi a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.7rem;
+    height: 1.7rem;
+    padding: 0 .4rem;
+    border-radius: 999px;
+    font-weight: 800;
+    font-size: .7rem;
+    text-decoration: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,.15);
+    transition: filter .12s, box-shadow .12s;
+  }
+  .nsm-viz-cell-multi a:hover {
+    filter: brightness(1.1);
+    box-shadow: 0 2px 6px rgba(0,0,0,.25);
+  }
+</style>
+
+<!-- internal visualisation tab bar -->
+<ul class="nav nsm-viz-tabs mb-0">
+  <li class="nav-item">
+    <a class="nav-link active" href="#">Zone Matrix</a>
+  </li>
+</ul>
+
+<div class="card rounded-0 border-top-0">
+  <div class="card-header d-flex align-items-center gap-2 flex-wrap">
+    <i class="mdi mdi-grid text-primary"></i>
+    <strong>Zone Matrix</strong>
+    <span class="text-muted ms-1 small">Rows&nbsp;=&nbsp;Source &middot; Columns&nbsp;=&nbsp;Destination &middot; Click a cell to open Security Rules</span>
+    <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
+      <span class="badge text-bg-success">Permit</span>
+      <span class="badge text-bg-danger">Deny</span>
+      <span class="badge text-bg-warning text-dark">Log</span>
+      <span class="badge text-bg-info text-dark">Count</span>
+      <span class="badge rounded-pill bg-secondary">N</span>
+      <span class="text-muted small">= multiple rules</span>
+    </div>
+  </div>
+
+  {% if all_zones %}
+    <div class="nsm-viz-filter-header">
+      <i class="mdi mdi-filter-outline"></i>
+      <span>Filter Zones</span>
+      {% if selected_src_pks or selected_dst_pks %}
+        <span class="badge text-bg-primary fw-normal ms-1">active</span>
+      {% endif %}
+      <button class="btn btn-sm btn-link ms-auto p-0 text-secondary"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#nsm-filter-collapse"
+              aria-expanded="true"
+              aria-controls="nsm-filter-collapse">
+        <i class="mdi mdi-chevron-up nsm-filter-chevron"></i>
+      </button>
+    </div>
+    <div class="collapse show" id="nsm-filter-collapse">
+      <form method="get" class="nsm-viz-filter">
+        <div class="d-flex flex-column gap-1">
+          <label class="form-label mb-0 small fw-bold">Source (Rows)</label>
+          <select name="src_zone_id" multiple class="form-select form-select-sm">
+            {% for zone in all_zones %}
+              <option value="{{ zone.pk }}"
+                      {% if zone.pk in selected_src_pks %}selected{% endif %}>
+                {{ zone.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="d-flex flex-column gap-1">
+          <label class="form-label mb-0 small fw-bold">Destination (Columns)</label>
+          <select name="dst_zone_id" multiple class="form-select form-select-sm">
+            {% for zone in all_zones %}
+              <option value="{{ zone.pk }}"
+                      {% if zone.pk in selected_dst_pks %}selected{% endif %}>
+                {{ zone.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="d-flex flex-column gap-1 align-self-end">
+          <button type="submit" class="btn btn-sm btn-primary">Apply</button>
+          {% if selected_src_pks or selected_dst_pks %}
+            <a href="{{ viz_url_base }}" class="btn btn-sm btn-outline-secondary">Reset</a>
+          {% endif %}
+          <span class="text-muted small">Ctrl/Cmd&nbsp;+&nbsp;click</span>
+        </div>
+      </form>
+    </div>
+  {% endif %}
+
+  <div class="card-body p-0">
+    {% if matrix_rows %}
+      <div class="nsm-viz-wrapper">
+        <table class="nsm-viz-table">
+          <thead>
+            <tr>
+              <th class="nsm-corner">
+                <div class="nsm-corner-inner">
+                  <svg class="nsm-corner-svg" preserveAspectRatio="none" viewBox="0 0 100 100">
+                    <line x1="0" y1="0" x2="100" y2="100" stroke="#374a5f" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
+                  </svg>
+                  <span class="nsm-corner-dst">Destination &rarr;</span>
+                  <span class="nsm-corner-src">&darr; Source</span>
+                </div>
+              </th>
+              {% for zone in dst_zones %}
+                <th class="nsm-col-label">
+                  <span class="nsm-col-text" title="{{ zone.name }}">{{ zone.name }}</span>
+                </th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in matrix_rows %}
+              <tr>
+                <th class="nsm-row-label" title="{{ row.source_zone.name }}">{{ row.source_zone.name }}</th>
+                {% for cell in row.cells %}
+                  {% if cell.type == "empty" %}
+                    <td class="nsm-viz-cell-empty{% if cell.is_self %} nsm-viz-cell-self{% endif %}">
+                      <a href="{{ cell.href }}" title="Add rule">+</a>
+                    </td>
+                  {% elif cell.type == "single" %}
+                    <td class="nsm-viz-cell-action{% if cell.is_self %} nsm-viz-cell-self{% endif %}">
+                      <a href="{{ cell.href }}"
+                         class="text-bg-{{ cell.color }}"
+                         title="{{ cell.label }}">{{ cell.label }}</a>
+                    </td>
+                  {% else %}
+                    <td class="nsm-viz-cell-multi{% if cell.is_self %} nsm-viz-cell-self{% endif %}">
+                      <a href="{{ cell.href }}"
+                         class="bg-secondary text-white"
+                         title="{{ cell.count }} rules">{{ cell.count }}</a>
+                    </td>
+                  {% endif %}
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="text-center text-muted p-5">
+        <i class="mdi mdi-grid-off mdi-48px"></i>
+        <p class="mt-2">No zones match the current filter.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

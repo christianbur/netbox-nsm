@@ -1,0 +1,7 @@
+{% extends 'generic/object_edit.html' %}
+{% load static %}
+
+{% block javascript %}
+  {{ block.super }}
+  <script src="{% static 'netbox_nsm/js/object_label_form.js' %}"></script>
+{% endblock javascript %}

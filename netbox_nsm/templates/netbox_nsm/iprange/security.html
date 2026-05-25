@@ -1,0 +1,164 @@
+{% extends 'generic/object.html' %}
+{% load buttons %}
+{% load custom_links %}
+{% load helpers %}
+{% load i18n %}
+{% load plugins %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <h5 class="card-header">
+                {% trans "NAT Pool Members" %}
+                <div class="card-actions">
+                    {% if perms.netbox_nsm.add_natpoolmember %}
+                        <a href="{% url 'plugins:netbox_nsm:natpoolmember_add' %}?return_url={{ object.get_absolute_url }}&address_range={{ object.pk }}" class="btn btn-ghost-primary btn-sm">
+                          <span class="mdi mdi-plus-thick" aria-hidden="true"></span> {% trans "Create NAT Pool Member" %}
+                        </a>
+                    {% endif %}
+                </div>
+            </h5>
+            {% htmx_table 'plugins:netbox_nsm:natpoolmember_list' address_range_id=object.pk %}
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <h5 class="card-header">
+                {% trans "NAT Rules" %}
+                <div class="card-actions">
+                    {% if perms.netbox_nsm.add_natrule %}
+                        <a href="{% url 'plugins:netbox_nsm:natrule_add' %}?return_url={{ object.get_absolute_url }}&source_ranges={{ object.pk }}" class="btn btn-ghost-primary btn-sm">
+                          <span class="mdi mdi-plus-thick" aria-hidden="true"></span> {% trans "Create NAT Rule (Source)" %}
+                        </a>
+                        <a href="{% url 'plugins:netbox_nsm:natrule_add' %}?return_url={{ object.get_absolute_url }}&destination_ranges={{ object.pk }}" class="btn btn-ghost-primary btn-sm">
+                          <span class="mdi mdi-plus-thick" aria-hidden="true"></span> {% trans "Create NAT Rule (Destination)" %}
+                        </a>
+                    {% endif %}
+                </div>
+            </h5>
+            {% htmx_table 'plugins:netbox_nsm:natrule_list' ip_range_id=object.pk %}
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <h5 class="card-header">
+                {% trans "Addresses" %}
+                <div class="card-actions">
+                    {% if perms.netbox_nsm.add_address %}
+                        <a href="{% url 'plugins:netbox_nsm:address_add' %}?ipam_iprange={{ object.pk }}&return_url={{ object.get_absolute_url }}" class="btn btn-ghost-primary btn-sm">
+                          <span class="mdi mdi-plus-thick" aria-hidden="true"></span> {% trans "Create Address" %}
+                        </a>
+                    {% endif %}
+                </div>
+            </h5>
+            {% htmx_table 'plugins:netbox_nsm:address_list' ip_range_id=object.pk %}
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <h5 class="card-header">
+                {% trans "Security Zones" %}
+                <div class="card-actions">
+                    {% if perms.netbox_nsm.add_securityzone %}
+                        <a href="{% url 'plugins:netbox_nsm:securityzone_add' %}?return_url={{ object.get_absolute_url }}" class="btn btn-ghost-primary btn-sm">
+                          <span class="mdi mdi-plus-thick" aria-hidden="true"></span> {% trans "Create Security Zone" %}
+                        </a>
+                    {% endif %}
+                </div>
+            </h5>
+            {% htmx_table 'plugins:netbox_nsm:securityzone_list' ip_range_id=object.pk %}
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <h5 class="card-header">{% trans "Security Policy Context" %}</h5>
+            <div class="card-body">
+                {% if policy_context.policy_paths %}
+                    <table class="table table-hover attr-table">
+                        <thead>
+                            <tr>
+                                <th>{% trans "Address/Set" %}</th>
+                                <th>{% trans "Security Policy" %}</th>
+                                <th>{% trans "Policy Actions" %}</th>
+                                <th>{% trans "Direction" %}</th>
+                                <th>{% trans "Security Zones" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in policy_context.policy_paths %}
+                                <tr>
+                                    <td>
+                                        {% if row.context_object %}
+                                            {{ row.context_object|linkify }}
+                                        {% elif row.address_list %}
+                                            {{ row.address_list|linkify }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ row.policy|linkify }}</td>
+                                    <td>
+                                        {% for action in row.policy_actions %}
+                                            <span class="badge text-bg-{% if action == 'permit' %}green
+                                            {% elif action == 'deny' %}red
+                                            {% elif action == 'log' %}orange
+                                            {% elif action == 'count' %}orange
+                                            {% elif action == 'reject' %}red
+                                            {% endif %}"
+                                            >{{ action }}</span>
+                                        {% endfor %}
+                                    </td>
+                                    <td>{{ row.direction }}</td>
+                                    <td>{{ row.source_zone|linkify }} &rarr; {{ row.destination_zone|linkify }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% elif policy_context.address_set_hierarchy_rows %}
+                    <span class="text-muted">{% trans "No policy context found yet; showing Address Set hierarchy." %}</span>
+                {% elif policy_context.address_objects or policy_context.inherited_address_objects %}
+                    <span class="text-muted">{% trans "No policy context found yet; showing Addresses." %}</span>
+                {% else %}
+                    <span class="text-muted">{% trans "No policy context found for this object." %}</span>
+                {% endif %}
+                {% if policy_context.address_set_hierarchy_rows %}
+                    <p class="text-muted mb-1 mt-2">{% trans "Address Set Hierarchy" %}</p>
+                    <ul class="mb-0 ps-3">
+                        {% for row in policy_context.address_set_hierarchy_rows %}
+                            <li class="mb-1">
+                                {% for address_set in row.path %}
+                                    {% if not forloop.first %} &rarr; {% endif %}
+                                    {{ address_set|linkify }}
+                                {% endfor %}
+                                {% if row.address %}
+                                    {% if row.path %} &rarr; {% endif %}[{{ row.address|linkify }}]
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% elif policy_context.address_objects %}
+                    <p class="text-muted mb-1 mt-2">{% trans "Direct Addresses" %}</p>
+                    <ul class="mb-0 ps-3">
+                        {% for address in policy_context.address_objects %}
+                            <li class="mb-1">{{ address|linkify }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                {% if policy_context.inherited_address_objects %}
+                    <p class="text-muted mb-1 mt-2">{% trans "Inherited Addresses" %}</p>
+                    <ul class="mb-0 ps-3">
+                        {% for address in policy_context.inherited_address_objects %}
+                            <li class="mb-1">{{ address|linkify }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

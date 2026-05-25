@@ -1,0 +1,254 @@
+{% extends 'generic/object.html' %}
+{% load i18n %}
+{% load helpers %}
+{% load plugins %}
+
+{% block content %}
+
+{# ── Meta-Karte ─────────────────────────────────────────────────────────── #}
+<div class="row mb-3">
+  <div class="col col-md-6">
+    <div class="card">
+      <h5 class="card-header">{% trans "Security Zone Matrix" %}</h5>
+      <table class="table table-hover attr-table">
+        <tr>
+          <th scope="row">{% trans "Name" %}</th>
+          <td>{{ object.name }}</td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "Roles" %}</th>
+          <td>{{ object.role_count|placeholder }}</td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "Security Zones" %}</th>
+          <td>{{ object.zone_count|placeholder }}</td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "Policies set" %}</th>
+          <td>{{ object.cell_count|placeholder }}</td>
+        </tr>
+        {% if object.description %}
+        <tr>
+          <th scope="row">{% trans "Description" %}</th>
+          <td>{{ object.description }}</td>
+        </tr>
+        {% endif %}
+      </table>
+    </div>
+    {% include 'inc/panels/custom_fields.html' %}
+    {% plugin_left_page object %}
+  </div>
+  <div class="col-md-6">
+    {% include 'inc/panels/tags.html' %}
+    {% include 'inc/panels/comments.html' %}
+    {% plugin_right_page object %}
+  </div>
+</div>
+
+{# ── Filterleiste ────────────────────────────────────────────────────────── #}
+<div class="card mb-3">
+  <div class="card-header d-flex align-items-center gap-2">
+    <i class="mdi mdi-filter-outline"></i>
+    <strong>{% trans "Filter" %}</strong>
+  </div>
+  <div class="card-body">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label mb-1">{% trans "Source Zone" %}</label>
+        <select name="source_zone_id" class="form-select" multiple size="8">
+          {% for zone in filter_zone_options %}
+            <option value="{{ zone.pk }}"{% if zone.pk|stringformat:"s" in source_zone_ids %} selected{% endif %}>{{ zone.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label mb-1">{% trans "Destination Zone" %}</label>
+        <select name="destination_zone_id" class="form-select" multiple size="8">
+          {% for zone in filter_zone_options %}
+            <option value="{{ zone.pk }}"{% if zone.pk|stringformat:"s" in destination_zone_ids %} selected{% endif %}>{{ zone.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label mb-1">{% trans "Policy" %}</label>
+        <select name="policy_id" class="form-select" multiple size="8">
+          {% for pol in filter_policy_options %}
+            <option value="{{ pol.pk }}"{% if pol.pk|stringformat:"s" in policy_ids %} selected{% endif %}>{{ pol.name }} ({{ pol.action }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12 d-flex gap-2">
+        <button type="submit" class="btn btn-sm btn-primary">
+          <i class="mdi mdi-magnify"></i> {% trans "Apply" %}
+        </button>
+        <a href="." class="btn btn-sm btn-outline-secondary">
+          <i class="mdi mdi-close"></i> {% trans "Reset" %}
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ── Matrix ──────────────────────────────────────────────────────────────── #}
+<div class="card">
+  <div class="card-header d-flex align-items-center gap-2">
+    <i class="mdi mdi-table-large"></i>
+    <strong>{% trans "Zone Policy Matrix" %}</strong>
+    <span class="text-muted ms-2 small">
+      {% trans "Rows = Source &nbsp;·&nbsp; Columns = Destination &nbsp;·&nbsp; Click a cell to set or change the policy" %}
+    </span>
+  </div>
+
+  <div class="card-body p-0">
+    {% if not source_zones %}
+      <div class="alert alert-info m-3">
+        <i class="mdi mdi-information-outline me-1"></i>
+        {% blocktrans %}
+          No security zones found for this matrix.
+          Make sure the roles assigned to this matrix have <strong>Use Matrix</strong> enabled
+          and at least one security zone assigned.
+        {% endblocktrans %}
+      </div>
+    {% else %}
+    <style>
+      .nbs-matrix th.nbs-zone-label {
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
+        white-space: nowrap;
+        text-align: left;
+        vertical-align: bottom;
+        padding: 6px 8px;
+        font-weight: 600;
+        font-size: .8rem;
+        max-width: 36px;
+        min-width: 36px;
+      }
+      .nbs-matrix th.nbs-row-label {
+        white-space: nowrap;
+        font-weight: 600;
+        font-size: .8rem;
+        padding: 4px 10px;
+        vertical-align: middle;
+        text-align: right;
+      }
+      .nbs-matrix td.nbs-cell {
+        padding: 3px;
+        text-align: center;
+        vertical-align: middle;
+        min-width: 72px;
+        max-width: 110px;
+      }
+      .nbs-matrix td.nbs-cell a.nbs-policy-btn {
+        display: block;
+        border-radius: 4px;
+        padding: 4px 6px;
+        font-size: .78rem;
+        font-weight: 700;
+        text-decoration: none;
+        line-height: 1.3;
+        word-break: break-word;
+      }
+      .nbs-matrix td.nbs-cell a.nbs-add-btn {
+        display: block;
+        border-radius: 4px;
+        padding: 4px 3px;
+        color: #adb5bd;
+        font-size: 1rem;
+        text-decoration: none;
+        border: 1px dashed #dee2e6;
+        line-height: 1;
+        transition: all .15s;
+      }
+      .nbs-matrix td.nbs-cell a.nbs-add-btn:hover {
+        color: #0d6efd;
+        border-color: #0d6efd;
+        background: rgba(13,110,253,.06);
+      }
+      .nbs-matrix td.nbs-cell a.nbs-policy-btn:hover {
+        opacity: .82;
+        filter: brightness(1.08);
+      }
+      .nbs-matrix td.nbs-self {
+        background: repeating-linear-gradient(
+          45deg, #f8f9fa, #f8f9fa 4px, #e9ecef 4px, #e9ecef 8px
+        );
+      }
+    </style>
+
+    <div class="table-responsive">
+      <table class="table table-bordered table-sm mb-0 nbs-matrix">
+        <thead>
+          <tr>
+            <th class="nbs-row-label" style="text-align:left">
+              <span class="text-muted" style="font-size:.68rem;line-height:1.1">
+                Source ↓<br>Destination →
+              </span>
+            </th>
+            {% for dz in destination_zones %}
+              <th class="nbs-zone-label" title="{{ dz.name }}">
+                <a href="?destination_zone_id={{ dz.pk }}" style="color:inherit;text-decoration:underline dotted;">
+                  {{ dz.name }}
+                </a>
+              </th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in matrix_rows %}
+          <tr>
+            <th class="nbs-row-label">
+              <a href="?source_zone_id={{ row.source_zone.pk }}" style="color:inherit;text-decoration:underline dotted;">
+                {{ row.source_zone.name }}
+              </a>
+            </th>
+            {% for item in row.cells %}
+            <td class="nbs-cell{% if row.source_zone.pk == item.destination_zone.pk %} nbs-self{% endif %}">
+              {% if item.cell %}
+                <a href="{% url 'plugins:netbox_nsm:securityzonematrixcell' item.cell.pk %}"
+                   class="nbs-policy-btn text-bg-{{ item.cell.policy.color }}"
+                   title="{{ row.source_zone.name }} → {{ item.destination_zone.name }}: {{ item.cell.policy.name }} ({{ item.cell.policy.action }}) – click to edit">
+                  {{ item.cell.policy.name }}
+                </a>
+              {% elif row.source_zone.pk == item.destination_zone.pk %}
+                <span class="text-muted">—</span>
+              {% else %}
+                <a href="{% url 'plugins:netbox_nsm:securityzonematrixcell_add' %}?matrix_id={{ object.pk }}&source_zone_id={{ row.source_zone.pk }}&destination_zone_id={{ item.destination_zone.pk }}"
+                   class="nbs-add-btn"
+                   title="{{ row.source_zone.name }} → {{ item.destination_zone.name }}: set policy">
+                  <i class="mdi mdi-plus"></i>
+                </a>
+              {% endif %}
+            </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {# ── Legende ──────────────────────────────────────────────────────────── #}
+    {% if policy_legend %}
+    <div class="d-flex flex-wrap gap-2 p-3 border-top align-items-center">
+      <span class="text-muted me-1 small fw-semibold">{% trans "Legend:" %}</span>
+      {% for pol in policy_legend %}
+        <a href="{{ pol.get_absolute_url }}"
+           class="badge text-bg-{{ pol.color }} text-decoration-none">
+          {{ pol.name }} ({{ pol.action }})
+        </a>
+      {% endfor %}
+      <span class="ms-3 text-muted small">
+        <span class="border border-dashed rounded px-1 text-muted" style="border-style:dashed!important">+</span>
+        {% trans "= not set — click to assign a policy" %}
+        &nbsp;·&nbsp;
+        <span class="text-muted fst-italic">—</span>
+        {% trans "= same zone (ignored)" %}
+      </span>
+    </div>
+    {% endif %}
+
+    {% endif %}{# endif source_zones #}
+  </div>
+</div>
+
+{% plugin_full_width_page object %}
+{% endblock %}

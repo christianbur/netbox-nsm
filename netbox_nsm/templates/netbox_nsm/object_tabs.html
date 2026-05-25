@@ -1,0 +1,87 @@
+{% extends 'base/layout.html' %}
+{% load i18n %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-12">
+    <div class="card mb-3">
+      <div class="card-body pb-2">
+        <ul class="nav nav-tabs mb-3" role="tablist">
+          {% for tab in main_tabs %}
+            <li class="nav-item" role="presentation">
+              <a class="nav-link{% if tab.slug == active_main_tab %} active{% endif %}" href="{{ tab.href }}">
+                {{ tab.label }}
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+
+        {% for group in tab_groups %}
+          {% if group.slug == active_main_tab %}
+            <div class="card border-0 bg-body-tertiary mb-3">
+              <div class="card-body py-3">
+                <div class="fw-semibold text-uppercase text-muted mb-2">{{ group.label }}</div>
+                <ul class="nav nav-pills gap-2 mb-3" role="tablist">
+                  {% for tab_slug in group.tabs %}
+                    {% for tab in tabs %}
+                      {% if tab.slug == tab_slug %}
+                        <li class="nav-item" role="presentation">
+                          <a class="nav-link{% if tab.slug == active_tab.slug %} active{% endif %}" href="{% url tab_url_name tab=tab.slug %}">
+                            {{ tab.label }}
+                          </a>
+                        </li>
+                      {% endif %}
+                    {% endfor %}
+                  {% endfor %}
+                </ul>
+
+                <div class="d-flex flex-wrap gap-2">
+                  <a class="btn btn-primary" href="{{ active_tab_add_url }}">Add</a>
+                </div>
+
+                <div class="table-responsive mt-3">
+                  <table class="table table-hover align-middle mb-0">
+                    <thead>
+                      <tr>
+                        {% for column in table_columns %}
+                          <th>{{ column.label }}</th>
+                        {% endfor %}
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for row in table_rows %}
+                        <tr>
+                          {% for cell in row.cells %}
+                            <td>
+                              {% if forloop.first and row.url %}
+                                <a href="{{ row.url }}">{{ cell }}</a>
+                              {% else %}
+                                {{ cell }}
+                              {% endif %}
+                            </td>
+                          {% endfor %}
+                          <td class="text-end text-nowrap">
+                            <a class="btn btn-sm btn-outline-warning" href="{{ row.edit_url }}"><i class="mdi mdi-pencil"></i></a>
+                            <a class="btn btn-sm btn-outline-danger" href="{{ row.delete_url }}"><i class="mdi mdi-trash-can-outline"></i></a>
+                          </td>
+                        </tr>
+                      {% empty %}
+                        <tr>
+                          <td colspan="{{ table_columns|length|add:1 }}" class="text-muted">No objects found.</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

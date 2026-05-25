@@ -1,0 +1,124 @@
+{% extends 'base/layout.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Import YAML Bundle" %}{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col col-md-8 offset-md-2">
+
+    {# ---- Messages ---- #}
+    {% if messages %}
+    <div class="mb-3">
+      {% for message in messages %}
+      <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {# ---- Import form ---- #}
+    <div class="card">
+      <h5 class="card-header">{% trans "Import NSM Bundle (YAML)" %}</h5>
+      <div class="card-body">
+        <p class="text-muted mb-3">
+          {% blocktrans %}
+          Paste the YAML bundle below or upload a <code>.yaml</code> file.
+          The bundle must use <strong>apiVersion: nsm/v1</strong> and <strong>kind: Bundle</strong>.
+          No code is executed — only safe YAML parsing.
+          {% endblocktrans %}
+        </p>
+
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+
+          <div class="mb-3">
+            <label for="yaml_file" class="form-label fw-semibold">{% trans "Upload file (.yaml)" %}</label>
+            <input type="file" class="form-control" id="yaml_file" name="yaml_file" accept=".yaml,.yml">
+          </div>
+
+          <div class="mb-3">
+            <label for="yaml_text" class="form-label fw-semibold">{% trans "— or paste YAML —" %}</label>
+            <textarea
+              class="form-control font-monospace"
+              id="yaml_text"
+              name="yaml_text"
+              rows="20"
+              placeholder="apiVersion: nsm/v1&#10;kind: Bundle&#10;metadata:&#10;  description: &quot;&quot;&#10;items: []"
+            >{{ yaml_text|default:'' }}</textarea>
+          </div>
+
+          <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input" id="update_existing" name="update_existing" value="1">
+            <label class="form-check-label" for="update_existing">
+              {% trans "Update existing objects (overwrite)" %}
+            </label>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+              <i class="mdi mdi-upload"></i> {% trans "Import" %}
+            </button>
+            <a href="{% url 'plugins:netbox_nsm:object_custom_root' %}" class="btn btn-outline-secondary">
+              {% trans "Cancel" %}
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    {# ---- Format reference ---- #}
+    <div class="card mt-4">
+      <h5 class="card-header">{% trans "Format Reference" %}</h5>
+      <div class="card-body">
+        <p class="mb-1 fw-semibold">{% trans "CustomType item" %}</p>
+        <pre class="bg-light border rounded p-3 small">apiVersion: nsm/v1
+kind: CustomType
+spec:
+  name: my-type          # unique name
+  area: srcdst           # srcdst | services | action
+  description: ""
+  fields:
+    - name: dns_name
+      label: DNS Name
+      type: text         # text | object_ref
+      tab_group: Address Parameters
+    - name: ipam_prefix
+      label: Prefix
+      type: object_ref
+      model: ipam.Prefix
+      selector: true
+      tab_group: Address Parameters</pre>
+
+        <p class="mb-1 fw-semibold mt-3">{% trans "CustomObject item" %}</p>
+        <pre class="bg-light border rounded p-3 small">apiVersion: nsm/v1
+kind: CustomObject
+spec:
+  custom_type: my-type   # must match an existing or bundled CustomType name
+  name: my-object
+  description: ""
+  fields:
+    dns_name: "server.example.com"
+    ipam_prefix:
+      __model: ipam.Prefix
+      __str: "10.0.0.0/24"   # resolved by natural key during import
+  table_data:
+    - key: Owner
+      value: John</pre>
+
+        <p class="mb-1 fw-semibold mt-3">{% trans "Supported object_ref models" %}</p>
+        <ul class="small mb-0">
+          <li>ipam.Prefix, ipam.IPAddress, ipam.IPRange</li>
+          <li>dcim.Device, dcim.Interface</li>
+          <li>virtualization.VirtualMachine</li>
+          <li>ipam.VLAN, tenancy.Tenant</li>
+          <li>netbox_nsm.SecurityZone, netbox_nsm.CustomPrefix</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

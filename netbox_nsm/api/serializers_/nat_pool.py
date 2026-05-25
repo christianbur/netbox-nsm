@@ -1,0 +1,91 @@
+from django.contrib.contenttypes.models import ContentType
+from rest_framework.serializers import (
+    HyperlinkedIdentityField,
+    SerializerMethodField,
+    JSONField,
+    IntegerField,
+)
+from drf_spectacular.utils import extend_schema_field
+
+from netbox.api.fields import ContentTypeField
+from netbox.api.serializers import NetBoxModelSerializer, PrimaryModelSerializer
+from utilities.api import get_serializer_for_model
+
+from netbox_nsm.models import NatPool, NatPoolAssignment
+
+from netbox_nsm.constants import (
+    POOL_ASSIGNMENT_MODELS,
+)
+
+
+class NatPoolSerializer(PrimaryModelSerializer):
+    url = HyperlinkedIdentityField(
+        view_name="plugins-api:netbox_nsm-api:natpool-detail"
+    )
+    member_count = IntegerField(read_only=True)
+
+    class Meta:
+        model = NatPool
+        fields = (
+            "id",
+            "url",
+            "display",
+            "name",
+            "pool_type",
+            "status",
+            "description",
+            "member_count",
+            "comments",
+            "tags",
+            "custom_fields",
+            "created",
+            "last_updated",
+        )
+        brief_fields = (
+            "id",
+            "url",
+            "display",
+            "name",
+            "status",
+            "pool_type",
+            "description",
+            "member_count",
+        )
+
+
+class NatPoolAssignmentSerializer(NetBoxModelSerializer):
+    pool = NatPoolSerializer(nested=True, required=True, allow_null=False)
+    assigned_object_type = ContentTypeField(
+        queryset=ContentType.objects.filter(POOL_ASSIGNMENT_MODELS)
+    )
+    assigned_object = SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = NatPoolAssignment
+        fields = [
+            "id",
+            "url",
+            "display",
+            "pool",
+            "assigned_object_type",
+            "assigned_object_id",
+            "assigned_object",
+            "created",
+            "last_updated",
+        ]
+        brief_fields = (
+            "id",
+            "url",
+            "display",
+            "pool",
+            "assigned_object_type",
+            "assigned_object_id",
+        )
+
+    @extend_schema_field(JSONField(allow_null=True))
+    def get_assigned_object(self, obj):
+        if obj.assigned_object is None:
+            return None
+        serializer = get_serializer_for_model(obj.assigned_object)
+        context = {"request": self.context["request"]}
+        return serializer(obj.assigned_object, nested=True, context=context).data

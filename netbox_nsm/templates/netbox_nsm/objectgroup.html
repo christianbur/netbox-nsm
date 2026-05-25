@@ -1,0 +1,57 @@
+{% extends 'generic/object.html' %}
+{% load i18n %}
+{% load helpers %}
+{% load plugins %}
+
+{% block content %}
+<div class="row">
+  <div class="col col-md-6">
+    <div class="card">
+      <h5 class="card-header">{% trans "Group" %}</h5>
+      <table class="table table-hover attr-table">
+        <tr><th scope="row">{% trans "Name" %}</th><td>{{ object.name }}</td></tr>
+        <tr><th scope="row">{% trans "Type" %}</th><td>{{ object.get_group_type_display }}</td></tr>
+        {% if object.group_type == "groups" %}
+        <tr><th scope="row">{% trans "Child Group Object Type" %}</th><td>{{ object.get_group_member_type_display|placeholder }}</td></tr>
+        {% endif %}
+        <tr><th scope="row">{% trans "Description" %}</th><td>{{ object.description|placeholder }}</td></tr>
+      </table>
+    </div>
+    {% include 'inc/panels/custom_fields.html' %}
+  </div>
+  <div class="col-md-6">
+    {% include 'inc/panels/tags.html' %}
+    {% include 'inc/panels/comments.html' %}
+  </div>
+</div>
+<div class="row">
+  <div class="col col-md-12">
+    <div class="card">
+      <h5 class="card-header">{% trans "Objekts (src/dst)" %}</h5>
+      <table class="table table-hover">
+        <tr><th>{% trans "Groups" %}</th><td>{% for item in object.groups.all %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}{{ ''|placeholder }}{% endfor %}</td></tr>
+        {% if object.group_type == "groups" %}
+        <tr><th>{% trans "Members" %}</th><td>{% for item in object.groups.all %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}{{ ''|placeholder }}{% endfor %}</td></tr>
+        {% elif object.group_type == "addresses" %}
+        <tr><th>{% trans "Addresses" %}</th><td>{% for item in object.addresses.all %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}{{ ''|placeholder }}{% endfor %}</td></tr>
+        {% elif object.group_type == "services" %}
+        <tr><th>{% trans "Services" %}</th><td>{% for item in object.services.all %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}{{ ''|placeholder }}{% endfor %}</td></tr>
+        {% elif object.group_type == "applications" %}
+        <tr><th>{% trans "Applications" %}</th><td>{% for item in object.applications.all %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}{{ ''|placeholder }}{% endfor %}</td></tr>
+        {% elif object.group_type == "labels" %}
+        <tr><th>{% trans "Labels" %}</th><td>{% for item in object.labels.all %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}{{ ''|placeholder }}{% endfor %}</td></tr>
+        {% elif object.group_type == "zones" %}
+        <tr><th>{% trans "Zones" %}</th><td>{% for item in object.zones.all %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}{{ ''|placeholder }}{% endfor %}</td></tr>
+        {% elif object.group_type == "sgts" %}
+        <tr><th>{% trans "SGTs" %}</th><td>{% for item in object.sgts.all %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}{{ ''|placeholder }}{% endfor %}</td></tr>
+        {% elif object.group_type == "users" %}
+        <tr><th>{% trans "Users" %}</th><td>{% for item in object.users.all %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}{{ ''|placeholder }}{% endfor %}</td></tr>
+        {% else %}
+        <tr><th>{% trans "Members" %}</th><td>{{ ''|placeholder }}</td></tr>
+        {% endif %}
+      </table>
+    </div>
+  </div>
+</div>
+{% plugin_full_width_page object %}
+{% endblock %}

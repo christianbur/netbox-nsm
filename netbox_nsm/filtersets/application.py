@@ -1,0 +1,176 @@
+import django_filters
+from django.utils.translation import gettext_lazy as _
+from django.contrib.contenttypes.models import ContentType
+from django.db.models import Q
+from netbox.filtersets import PrimaryModelFilterSet
+from tenancy.filtersets import TenancyFilterSet
+from utilities.filtersets import register_filterset
+from utilities.filters import (
+    MultiValueCharFilter,
+    MultiValueNumberFilter,
+)
+
+from dcim.models import Device, VirtualDeviceContext
+from virtualization.models import VirtualMachine
+
+from netbox_nsm.models import (
+    Application,
+    ApplicationSet,
+    ApplicationAssignment,
+    ApplicationItem,
+    SecurityZonePolicy,
+)
+
+from netbox_nsm.mixins import AssignmentFilterSet
+
+__all__ = (
+    "ApplicationFilterSet",
+    "ApplicationAssignmentFilterSet",
+)
+
+
+@register_filterset
+class ApplicationFilterSet(TenancyFilterSet, PrimaryModelFilterSet):
+    application_items_id = django_filters.ModelMultipleChoiceFilter(
+        field_name="application_items",
+        queryset=ApplicationItem.objects.all(),
+        to_field_name="id",
+        label=_("Application Item (ID)"),
+    )
+    application_items = django_filters.ModelMultipleChoiceFilter(
+        field_name="application_items__name",
+        queryset=ApplicationItem.objects.all(),
+        to_field_name="name",
+        label=_("Application Item (name)"),
+    )
+    category = MultiValueCharFilter(field_name="category", label=_("Category"))
+    subcategory = MultiValueCharFilter(
+        field_name="subcategory", label=_("Subcategory")
+    )
+    technology = MultiValueCharFilter(field_name="technology", label=_("Technology"))
+    reference = MultiValueCharFilter(field_name="reference", label=_("Reference"))
+    security_zone_policy_id = django_filters.ModelMultipleChoiceFilter(
+        field_name="securityzonepolicy_applications",
+        queryset=SecurityZonePolicy.objects.all(),
+        to_field_name="id",
+    )
+    application_item_id = django_filters.ModelMultipleChoiceFilter(
+        field_name="application_items",
+        queryset=ApplicationItem.objects.all(),
+        to_field_name="id",
+        label=_("Application (ID)"),
+    )
+    application_set_id = django_filters.ModelMultipleChoiceFilter(
+        queryset=ApplicationSet.objects.all(),
+        field_name="applicationset_applications",
+        to_field_name="id",
+        label=_("Application Set (ID)"),
+    )
+
+    class Meta:
+        model = Application
+        fields = [
+            "id",
+            "name",
+            "description",
+            "identifier",
+            "category",
+            "subcategory",
+            "standard_ports_text",
+            "technology",
+            "reference",
+        ]
+
+    def search(self, queryset, name, value):
+        """Perform the filtered search."""
+        if not value.strip():
+            return queryset
+        qs_filter = (
+            Q(name__icontains=value)
+            | Q(description__icontains=value)
+            | Q(identifier__icontains=value)
+            | Q(category__icontains=value)
+            | Q(subcategory__icontains=value)
+            | Q(standard_ports_text__icontains=value)
+            | Q(technology__icontains=value)
+            | Q(reference__icontains=value)
+        )
+        return queryset.filter(qs_filter)
+
+
+@register_filterset
+class ApplicationAssignmentFilterSet(AssignmentFilterSet):
+    application_id = django_filters.ModelMultipleChoiceFilter(
+        queryset=Application.objects.all(),
+        label=_("Application (ID)"),
+    )
+    application = django_filters.ModelMultipleChoiceFilter(
+        field_name="application__name",
+        queryset=Application.objects.all(),
+        to_field_name="name",
+        label=_("Application (Name)"),
+    )
+    device = MultiValueCharFilter(
+        method="filter_device",
+        field_name="name",
+        label=_("Device (name)"),
+    )
+    device_id = MultiValueNumberFilter(
+        method="filter_device",
+        field_name="pk",
+        label=_("Device (ID)"),
+    )
+    virtualdevicecontext = MultiValueCharFilter(
+        method="filter_virtualdevicecontext",
+        field_name="name",
+        label=_("Virtual Device Context (name)"),
+    )
+    virtualdevicecontext_id = MultiValueNumberFilter(
+        method="filter_virtualdevicecontext",
+        field_name="pk",
+        label=_("Virtual Device Context (ID)"),
+    )
+    virtualmachine = MultiValueCharFilter(
+        method="filter_virtual_machine",
+        field_name="name",
+        label=_("Virtual Machine (name)"),
+    )
+    virtualmachine_id = MultiValueNumberFilter(
+        method="filter_virtual_machine",
+        field_name="pk",
+        label=_("Virtual Machine (ID)"),
+    )
+
+    class Meta:
+        model = ApplicationAssignment
+        fields = ("id", "application_id", "assigned_object_type", "assigned_object_id")
+
+    def filter_device(self, queryset, name, value):
+        if not (devices := Device.objects.filter(**{f"{name}__in": value})).exists():
+            return queryset.none()
+        return queryset.filter(
+            assigned_object_type=ContentType.objects.get_for_model(Device),
+            assigned_object_id__in=devices.values_list("id", flat=True),
+        )
+
+    def filter_virtualdevicecontext(self, queryset, name, value):
+        if not (
+            devices := VirtualDeviceContext.objects.filter(**{f"{name}__in": value})
+        ).exists():
+            return queryset.none()
+        return queryset.filter(
+            assigned_object_type=ContentType.objects.get_for_model(
+                VirtualDeviceContext
+            ),
+            assigned_object_id__in=devices.values_list("id", flat=True),
+        )
+
+    def filter_virtual_machine(self, queryset, name, value):
+        if not (
+            devices := VirtualMachine.objects.filter(**{f"{name}__in": value})
+        ).exists():
+            return queryset.none()
+        return queryset.filter(
+            assigned_object_type=ContentType.objects.get_for_model(VirtualMachine),
+            assigned_object_id__in=devices.values_list("id", flat=True),
+        )

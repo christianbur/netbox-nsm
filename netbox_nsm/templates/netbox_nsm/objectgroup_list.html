@@ -1,0 +1,22 @@
+{% extends 'generic/object_list.html' %}
+{% load i18n %}
+
+{% block content %}
+  <div class="card mb-3">
+    <h5 class="card-header">{% trans "Group Type Overview" %}</h5>
+    <div class="card-body">
+      <ul class="nav nav-pills gap-2">
+        {% for tab in group_type_tabs %}
+          <li class="nav-item">
+            <a class="nav-link{% if tab.active %} active{% endif %}" href="{{ tab.url }}">
+              {{ tab.label }}
+              <span class="badge {% if tab.active %}text-bg-light{% else %}text-bg-secondary{% endif %} ms-1">{{ tab.count }}</span>
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  {{ block.super }}
+{% endblock content %}

@@ -1,0 +1,179 @@
+from netbox.views import generic
+from django.utils.translation import gettext_lazy as _
+from django.db.models import Count
+from django.contrib.contenttypes.models import ContentType
+from django.shortcuts import get_object_or_404
+
+from utilities.views import register_model_view, ViewTab
+
+from dcim.models import Device, VirtualDeviceContext
+from virtualization.models import VirtualMachine
+
+from dcim.tables import DeviceTable, VirtualDeviceContextTable
+from virtualization.tables import VirtualMachineTable
+
+from netbox_nsm.models import NatRuleSet, NatRuleSetAssignment, NatRule
+from netbox_nsm.tables import (
+    NatRuleSetTable,
+    NatRuleTable,
+    NatRuleSetAssignmentTable,
+)
+from netbox_nsm.filtersets import (
+    NatRuleSetFilterSet,
+    NatRuleFilterSet,
+    NatRuleSetAssignmentFilterSet,
+)
+from netbox_nsm.forms import (
+    NatRuleSetFilterForm,
+    NatRuleSetForm,
+    NatRuleSetBulkEditForm,
+    NatRuleSetImportForm,
+    NatRuleSetAssignmentForm,
+    NatRuleSetAssignmentFilterForm,
+)
+
+__all__ = (
+    "NatRuleSetView",
+    "NatRuleSetListView",
+    "NatRuleSetEditView",
+    "NatRuleSetDeleteView",
+    "NatRuleSetBulkEditView",
+    "NatRuleSetBulkImportView",
+    "NatRuleSetBulkDeleteView",
+    "NatRuleSetRulesView",
+    "NatRuleSetAssignmentEditView",
+    "NatRuleSetAssignmentDeleteView",
+    "NatRuleSetAssignmentListView",
+    "NatRuleSetAssignmentBulkDeleteView",
+)
+
+
+@register_model_view(NatRuleSet)
+class NatRuleSetView(generic.ObjectView):
+    queryset = NatRuleSet.objects.annotate(rule_count=Count("natrule_rules"))
+    template_name = "netbox_nsm/natruleset.html"
+
+    def get_extra_context(self, request, instance):
+        device_assignments_table = DeviceTable(
+            Device.objects.filter(natrulesets__ruleset=instance),
+            orderable=False,
+        )
+        device_assignments_table.configure(request)
+        virtual_device_assignments_table = VirtualDeviceContextTable(
+            VirtualDeviceContext.objects.filter(natrulesets__ruleset=instance),
+            orderable=False,
+        )
+        virtual_device_assignments_table.configure(request)
+        virtual_machine_assignments_table = VirtualMachineTable(
+            VirtualMachine.objects.filter(natrulesets__ruleset=instance),
+            orderable=False,
+        )
+        virtual_machine_assignments_table.configure(request)
+        return {
+            "device_assignments_table": device_assignments_table,
+            "virtual_device_assignments_table": virtual_device_assignments_table,
+            "virtual_machine_assignments_table": virtual_machine_assignments_table,
+        }
+
+
+@register_model_view(NatRuleSet, "list", path="", detail=False)
+class NatRuleSetListView(generic.ObjectListView):
+    queryset = NatRuleSet.objects.annotate(rule_count=Count("natrule_rules"))
+    filterset = NatRuleSetFilterSet
+    filterset_form = NatRuleSetFilterForm
+    table = NatRuleSetTable
+
+
+@register_model_view(NatRuleSet, "add", detail=False)
+@register_model_view(NatRuleSet, "edit")
+class NatRuleSetEditView(generic.ObjectEditView):
+    queryset = NatRuleSet.objects.all()
+    form = NatRuleSetForm
+
+
+@register_model_view(NatRuleSet, "bulk_delete", path="delete", detail=False)
+class NatRuleSetBulkDeleteView(generic.BulkDeleteView):
+    queryset = NatRuleSet.objects.all()
+    table = NatRuleSetTable
+
+
+@register_model_view(NatRuleSet, "bulk_edit", path="edit", detail=False)
+class NatRuleSetBulkEditView(generic.BulkEditView):
+    queryset = NatRuleSet.objects.all()
+    filterset = NatRuleSetFilterSet
+    table = NatRuleSetTable
+    form = NatRuleSetBulkEditForm
+
+
+@register_model_view(NatRuleSet, "bulk_import", detail=False)
+class NatRuleSetBulkImportView(generic.BulkImportView):
+    queryset = NatRuleSet.objects.all()
+    model_form = NatRuleSetImportForm
+
+
+@register_model_view(NatRuleSet, "delete")
+class NatRuleSetDeleteView(generic.ObjectDeleteView):
+    queryset = NatRuleSet.objects.all()
+
+
+@register_model_view(NatRuleSet, name="rules")
+class NatRuleSetRulesView(generic.ObjectChildrenView):
+    template_name = "netbox_nsm/natruleset_rules.html"
+    queryset = NatRuleSet.objects.all().prefetch_related("natrule_rules")
+    child_model = NatRule
+    table = NatRuleTable
+    filterset = NatRuleFilterSet
+    tab = ViewTab(
+        label=_("NAT Rules"),
+        permission="netbox_nsm.view_natrule",
+        badge=lambda obj: obj.natrule_rules.count(),
+        hide_if_empty=True,
+    )
+
+    def get_children(self, request, parent):
+        return parent.natrule_rules
+
+
+@register_model_view(NatRuleSetAssignment, "list", path="", detail=False)
+class NatRuleSetAssignmentListView(generic.ObjectListView):
+    queryset = NatRuleSetAssignment.objects.all()
+    filterset = NatRuleSetAssignmentFilterSet
+    filterset_form = NatRuleSetAssignmentFilterForm
+    table = NatRuleSetAssignmentTable
+    actions = {
+        "export": {"view"},
+    }
+
+
+@register_model_view(NatRuleSetAssignment, "add", detail=False)
+@register_model_view(NatRuleSetAssignment, "edit")
+class NatRuleSetAssignmentEditView(generic.ObjectEditView):
+    queryset = NatRuleSetAssignment.objects.all()
+    form = NatRuleSetAssignmentForm
+
+    def alter_object(self, instance, request, args, kwargs):
+        if not instance.pk:
+            content_type = get_object_or_404(
+                ContentType, pk=request.GET.get("assigned_object_type")
+            )
+            instance.assigned_object = get_object_or_404(
+                content_type.model_class(), pk=request.GET.get("assigned_object_id")
+            )
+        return instance
+
+    def get_extra_addanother_params(self, request):
+        return {
+            "assigned_object_type": request.GET.get("assigned_object_type"),
+            "assigned_object_id": request.GET.get("assigned_object_id"),
+        }
+
+
+@register_model_view(NatRuleSetAssignment, "delete")
+class NatRuleSetAssignmentDeleteView(generic.ObjectDeleteView):
+    queryset = NatRuleSetAssignment.objects.all()
+
+
+@register_model_view(NatRuleSetAssignment, "bulk_delete", path="delete", detail=False)
+class NatRuleSetAssignmentBulkDeleteView(generic.BulkDeleteView):
+    queryset = NatRuleSetAssignment.objects.all()
+    table = NatRuleSetAssignmentTable

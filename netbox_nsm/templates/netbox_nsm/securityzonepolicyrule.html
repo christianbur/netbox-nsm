@@ -1,0 +1,98 @@
+{% extends 'generic/object.html' %}
+{% load i18n %}
+{% load helpers %}
+{% load plugins %}
+
+{% block content %}
+<div class="row">
+  <div class="col col-md-6">
+    <div class="card">
+      <h5 class="card-header">{% trans "Security Rule" %}</h5>
+      <table class="table table-hover attr-table">
+        <tr>
+          <th scope="row">{% trans "Rulebook" %}</th>
+          <td>{{ object.rulebook|linkify|placeholder }}</td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "Index" %}</th>
+          <td>{{ object.index }}</td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "Status" %}</th>
+          <td>{% if object.enabled %}{% trans "Ein" %}{% else %}{% trans "Aus" %}{% endif %}</td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "Name" %}</th>
+          <td>{{ object.name }}</td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "Action" %}</th>
+          <td>{{ object.get_policy_action_display }}</td>
+        </tr>
+        {% if object.description %}
+        <tr>
+          <th scope="row">{% trans "Description" %}</th>
+          <td>{{ object.description|placeholder }}</td>
+        </tr>
+        {% endif %}
+      </table>
+    </div>
+    {% include 'inc/panels/custom_fields.html' %}
+    {% include 'inc/panels/tags.html' %}
+    {% include 'inc/panels/comments.html' %}
+    {% plugin_left_page object %}
+  </div>
+  <div class="col-md-6">
+    <div class="card">
+      <h5 class="card-header">{% trans "Source" %}</h5>
+      <table class="table table-hover attr-table">
+        <tr>
+          <th scope="row">{% trans "Zonen" %}</th>
+          <td>{% for item in object.source_zones.all %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "Objekte" %}</th>
+          <td>{% for item in object.source_groups.all %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>
+        </tr>
+      </table>
+    </div>
+    <div class="card">
+      <h5 class="card-header">{% trans "Destination" %}</h5>
+      <table class="table table-hover attr-table">
+        <tr>
+          <th scope="row">{% trans "Zonen" %}</th>
+          <td>{% for item in object.destination_zones.all %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "Objekte" %}</th>
+          <td>{% for item in object.destination_groups.all %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>
+        </tr>
+      </table>
+    </div>
+    <div class="card">
+      <h5 class="card-header">{% trans "Service" %}</h5>
+      <table class="table table-hover attr-table">
+        <tr>
+          <th scope="row">{% trans "Services" %}</th>
+          <td>{% for item in object.services.all %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>
+        </tr>
+      </table>
+    </div>
+    <div class="card">
+      <h5 class="card-header">{% trans "Objekte (action)" %}</h5>
+      <table class="table table-hover attr-table">
+        <tr>
+          <th scope="row">{% trans "Action" %}</th>
+          <td>{{ object.get_policy_action_display }}</td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "Log" %}</th>
+          <td>{% if object.log_enabled %}{% trans "Enabled" %}{% else %}{% trans "Disabled" %}{% endif %}</td>
+        </tr>
+      </table>
+    </div>
+    {% plugin_right_page object %}
+  </div>
+</div>
+{% plugin_full_width_page object %}
+{% endblock %}

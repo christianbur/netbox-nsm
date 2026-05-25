@@ -1,0 +1,180 @@
+from django.utils.translation import gettext_lazy as _
+from django.db.models import Count
+from django.contrib.contenttypes.models import ContentType
+from django.shortcuts import get_object_or_404
+
+from netbox.views import generic
+from utilities.views import register_model_view, ViewTab
+
+from dcim.models import Device, VirtualDeviceContext
+from virtualization.models import VirtualMachine
+
+from dcim.tables import DeviceTable, VirtualDeviceContextTable
+from virtualization.tables import VirtualMachineTable
+
+from netbox_nsm.models import NatPool, NatPoolMember, NatPoolAssignment
+
+from netbox_nsm.forms import (
+    NatPoolForm,
+    NatPoolFilterForm,
+    NatPoolBulkEditForm,
+    NatPoolImportForm,
+    NatPoolAssignmentForm,
+    NatPoolAssignmentFilterForm,
+)
+from netbox_nsm.filtersets import (
+    NatPoolFilterSet,
+    NatPoolMemberFilterSet,
+    NatPoolAssignmentFilterSet,
+)
+from netbox_nsm.tables import (
+    NatPoolTable,
+    NatPoolMemberTable,
+    NatPoolAssignmentTable,
+)
+
+__all__ = (
+    "NatPoolView",
+    "NatPoolListView",
+    "NatPoolEditView",
+    "NatPoolDeleteView",
+    "NatPoolBulkEditView",
+    "NatPoolBulkDeleteView",
+    "NatPoolBulkImportView",
+    "NatPoolNatPoolMembersView",
+    "NatPoolAssignmentEditView",
+    "NatPoolAssignmentDeleteView",
+    "NatPoolAssignmentListView",
+    "NatPoolAssignmentBulkDeleteView",
+)
+
+
+@register_model_view(NatPool)
+class NatPoolView(generic.ObjectView):
+    queryset = NatPool.objects.annotate(member_count=Count("natpoolmember_pools"))
+    template_name = "netbox_nsm/natpool.html"
+
+    def get_extra_context(self, request, instance):
+        device_assignments_table = DeviceTable(
+            Device.objects.filter(nat_pools__pool=instance),
+            orderable=False,
+        )
+        device_assignments_table.configure(request)
+        virtual_device_assignments_table = VirtualDeviceContextTable(
+            VirtualDeviceContext.objects.filter(nat_pools__pool=instance),
+            orderable=False,
+        )
+        virtual_device_assignments_table.configure(request)
+        virtual_machine_assignments_table = VirtualMachineTable(
+            VirtualMachine.objects.filter(nat_pools__pool=instance),
+            orderable=False,
+        )
+        virtual_machine_assignments_table.configure(request)
+        return {
+            "device_assignments_table": device_assignments_table,
+            "virtual_device_assignments_table": virtual_device_assignments_table,
+            "virtual_machine_assignments_table": virtual_machine_assignments_table,
+        }
+
+
+@register_model_view(NatPool, "list", path="", detail=False)
+class NatPoolListView(generic.ObjectListView):
+    queryset = NatPool.objects.annotate(member_count=Count("natpoolmember_pools"))
+    filterset = NatPoolFilterSet
+    filterset_form = NatPoolFilterForm
+    table = NatPoolTable
+
+
+@register_model_view(NatPool, "add", detail=False)
+@register_model_view(NatPool, "edit")
+class NatPoolEditView(generic.ObjectEditView):
+    queryset = NatPool.objects.all()
+    form = NatPoolForm
+
+
+@register_model_view(NatPool, "delete")
+class NatPoolDeleteView(generic.ObjectDeleteView):
+    queryset = NatPool.objects.all()
+
+
+@register_model_view(NatPool, "bulk_edit", path="edit", detail=False)
+class NatPoolBulkEditView(generic.BulkEditView):
+    queryset = NatPool.objects.all()
+    filterset = NatPoolFilterSet
+    table = NatPoolTable
+    form = NatPoolBulkEditForm
+
+
+@register_model_view(NatPool, "bulk_import", detail=False)
+class NatPoolBulkImportView(generic.BulkImportView):
+    queryset = NatPool.objects.all()
+    model_form = NatPoolImportForm
+
+
+@register_model_view(NatPool, "bulk_delete", path="delete", detail=False)
+class NatPoolBulkDeleteView(generic.BulkDeleteView):
+    queryset = NatPool.objects.all()
+    table = NatPoolTable
+
+
+@register_model_view(NatPool, name="members")
+class NatPoolNatPoolMembersView(generic.ObjectChildrenView):
+    template_name = "netbox_nsm/natpool_members.html"
+    queryset = NatPool.objects.all().prefetch_related("natpoolmember_pools")
+    child_model = NatPoolMember
+    table = NatPoolMemberTable
+    filterset = NatPoolMemberFilterSet
+    tab = ViewTab(
+        label=_("NAT Pool Members"),
+        permission="netbox_nsm.view_natpoolmember",
+        badge=lambda obj: obj.natpoolmember_pools.count(),
+        hide_if_empty=True,
+    )
+
+    def get_children(self, request, parent):
+        return parent.natpoolmember_pools
+
+
+@register_model_view(NatPoolAssignment, "list", path="", detail=False)
+class NatPoolAssignmentListView(generic.ObjectListView):
+    queryset = NatPoolAssignment.objects.all()
+    filterset = NatPoolAssignmentFilterSet
+    filterset_form = NatPoolAssignmentFilterForm
+    table = NatPoolAssignmentTable
+    actions = {
+        "export": {"view"},
+    }
+
+
+@register_model_view(NatPoolAssignment, "add", detail=False)
+@register_model_view(NatPoolAssignment, "edit")
+class NatPoolAssignmentEditView(generic.ObjectEditView):
+    queryset = NatPoolAssignment.objects.all()
+    form = NatPoolAssignmentForm
+
+    def alter_object(self, instance, request, args, kwargs):
+        if not instance.pk:
+            content_type = get_object_or_404(
+                ContentType, pk=request.GET.get("assigned_object_type")
+            )
+            instance.assigned_object = get_object_or_404(
+                content_type.model_class(), pk=request.GET.get("assigned_object_id")
+            )
+        return instance
+
+    def get_extra_addanother_params(self, request):
+        return {
+            "assigned_object_type": request.GET.get("assigned_object_type"),
+            "assigned_object_id": request.GET.get("assigned_object_id"),
+        }
+
+
+@register_model_view(NatPoolAssignment, "delete")
+class NatPoolAssignmentDeleteView(generic.ObjectDeleteView):
+    queryset = NatPoolAssignment.objects.all()
+
+
+@register_model_view(NatPoolAssignment, "bulk_delete", path="delete", detail=False)
+class NatPoolAssignmentBulkDeleteView(generic.BulkDeleteView):
+    queryset = NatPoolAssignment.objects.all()
+    table = NatPoolAssignmentTable

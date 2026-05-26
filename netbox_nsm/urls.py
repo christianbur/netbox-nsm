@@ -1,4 +1,5 @@
 from django.urls import include, path
+from django.views.generic import RedirectView
 from utilities.urls import get_model_urls
 
 # +
@@ -43,6 +44,11 @@ urlpatterns = [
     path(
         "security-policy/<int:pk>/",
         include(get_model_urls("netbox_nsm", "securityzonepolicyrulebook")),
+    ),
+    path(
+        "security-policy/<int:pk>/visualization/",
+        RedirectView.as_view(pattern_name="plugins:netbox_nsm:securityzonepolicyrulebook_visualization", query_string=True),
+        name="securityzonepolicyrulebook_visualization_redirect",
     ),
     path(
         "security-policy/<int:pk>/bulk-assign/",

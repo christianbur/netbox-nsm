@@ -61,6 +61,11 @@
     return document.querySelector("[data-add-row='" + cssEscape(section) + "']");
   }
 
+  function extractTypeFromText(text, fallback) {
+    const idx = text.indexOf(": ");
+    return idx > 0 ? text.slice(0, idx) : fallback;
+  }
+
   function encodeOption(field, value, label) {
     return JSON.stringify({ field: field, value: String(value), label: String(label) });
   }
@@ -146,8 +151,9 @@
       group.label = def.label;
       opts.forEach((opt) => {
         const option = document.createElement("option");
-        option.value = encodeOption(def.field, opt.value, def.label);
-        option.textContent = opt.textContent.trim();
+        const optText = opt.textContent.trim();
+        option.value = encodeOption(def.field, opt.value, extractTypeFromText(optText, def.label));
+        option.textContent = optText;
         group.appendChild(option);
       });
       objectSelect.appendChild(group);
@@ -224,7 +230,7 @@
           field: def.sourceField,
           value: String(opt.value),
           text: opt.textContent.trim(),
-          typeLabel: getSelectionLabel(section, def.sourceField, String(opt.value), def.label),
+          typeLabel: getSelectionLabel(section, def.sourceField, String(opt.value), extractTypeFromText(opt.textContent.trim(), def.label)),
         });
       });
     });
@@ -257,10 +263,12 @@
     }
 
     rows.forEach((row) => {
+      const prefix = row.typeLabel + ": ";
+      const displayText = row.text.startsWith(prefix) ? row.text.slice(prefix.length) : row.text;
       const tr = document.createElement("tr");
       tr.innerHTML =
         "<td>" + row.typeLabel + "</td>" +
-        "<td>" + row.text + "</td>" +
+        "<td>" + displayText + "</td>" +
         "<td class='text-end'><button type='button' class='nsm-delete-icon' data-remove-section='" + section + "' data-remove-field='" + row.field + "' data-remove-value='" + row.value + "' title='Delete' aria-label='Delete'>x</button></td>";
       body.appendChild(tr);
     });
@@ -324,6 +332,27 @@
     });
   }
 
+  function loadInitialLabels() {
+    const el = document.getElementById("nsm-initial-labels");
+    if (!el) return;
+    let data;
+    try { data = JSON.parse(el.textContent); } catch (_) { return; }
+    // data = { source: { "<pk>": "Addresses", ... }, destination: {...}, ... }
+    const fieldMap = {
+      source: "custom_srcdst_objects",
+      destination: "destination_custom_objects",
+      service: "custom_service_objects",
+      action: "custom_action_objects",
+    };
+    Object.entries(data).forEach(([section, pkLabels]) => {
+      const fieldName = fieldMap[section];
+      if (!fieldName) return;
+      Object.entries(pkLabels).forEach(([pk, label]) => {
+        setSelectionLabel(section, fieldName, pk, label);
+      });
+    });
+  }
+
   function init() {
     const sourceRoot = getSectionRoot("source");
     if (!sourceRoot || sourceRoot.dataset.nsmAddReady === "1") {
@@ -331,6 +360,7 @@
     }
 
     ensureStyles();
+    loadInitialLabels();
     Object.keys(SECTION_DEFS).forEach(bindSection);
     bindDelete();
     bindHiddenSync();

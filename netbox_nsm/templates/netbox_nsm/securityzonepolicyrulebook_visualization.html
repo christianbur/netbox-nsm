@@ -281,55 +281,71 @@
 <!-- internal visualisation tab bar -->
 <ul class="nav nsm-viz-tabs mb-0" id="nsm-viz-tab-nav" role="tablist">
   <li class="nav-item" role="presentation">
-    <a class="nav-link active" id="nsm-tab-analysis" data-bs-toggle="tab" href="#nsm-panel-analysis" role="tab">Object Analysis</a>
+    <a class="nav-link active" id="nsm-tab-analysis" data-bs-toggle="tab" href="#nsm-panel-analysis" role="tab">Policy Analysis</a>
   </li>
   <li class="nav-item" role="presentation">
     <a class="nav-link" id="nsm-tab-matrix" data-bs-toggle="tab" href="#nsm-panel-matrix" role="tab">Zone Matrix</a>
   </li>
 </ul>
+<script>
+(function () {
+  const TABS = ['nsm-panel-analysis', 'nsm-panel-matrix'];
+  // Activate tab from hash on load
+  const hash = window.location.hash.replace('#', '');
+  if (TABS.includes(hash)) {
+    const trigger = document.querySelector('[href="#' + hash + '"]');
+    if (trigger) bootstrap.Tab.getOrCreateInstance(trigger).show();
+  }
+  // Update hash when tab changes
+  document.getElementById('nsm-viz-tab-nav').addEventListener('shown.bs.tab', function (e) {
+    const target = e.target.getAttribute('href');
+    if (target) history.replaceState(null, '', target);
+  });
+})();
+</script>
 
 <div class="tab-content">
 
-<!-- ── TAB 1: Object Analysis ───────────────────────────────── -->
+<!-- ── TAB 1: Policy Analysis ───────────────────────────────── -->
 <div class="tab-pane fade show active" id="nsm-panel-analysis" role="tabpanel">
 <div class="card rounded-0 border-top-0">
   <div class="card-header d-flex align-items-center gap-2">
     <i class="mdi mdi-chart-bar text-primary"></i>
-    <strong>Object Analysis</strong>
+    <strong>Policy Analysis</strong>
     <span class="badge text-bg-secondary ms-2">{{ object_analysis.total_rules }} rules</span>
   </div>
   <div class="card-body p-0">
     {% if object_analysis %}
 
-    <!-- per-area tables -->
+    <!-- per-area cards -->
     <div class="row g-0">
       {% for area in object_analysis.areas %}
       <div class="col-12 border-bottom px-3 py-3">
         <h6 class="text-muted small fw-bold text-uppercase mb-2">
           <i class="mdi mdi-tag-multiple-outline me-1"></i>{{ area.label }}
+          <span class="fw-normal text-muted ms-1">— Top 10 von {{ area.total_objects }}</span>
         </h6>
-        <div class="row g-3">
 
-          <!-- individual objects -->
-          <div class="col-12">
-            <p class="small text-muted mb-1 fw-semibold">Individual</p>
-            <table class="table table-sm table-hover mb-0">
-              <thead><tr><th>Object</th><th>Type</th><th class="text-end"># Rules</th></tr></thead>
-              <tbody>
-                {% for obj in area.objects %}
-                <tr>
-                  <td>{{ obj.name }}</td>
-                  <td class="text-muted small">{{ obj.type_name }}</td>
-                  <td class="text-end fw-bold">{{ obj.count }}</td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="3" class="text-muted text-center small">—</td></tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-
+        <!-- individual objects with scroll cap -->
+        <div style="max-height: calc(15 * 2.1rem); overflow-y: auto;">
+          <table class="table table-sm table-hover mb-0">
+            <thead class="sticky-top" style="top:0;z-index:1;">
+              <tr><th>Object</th><th>Type</th><th class="text-end"># Rules</th></tr>
+            </thead>
+            <tbody>
+              {% for obj in area.objects %}
+              <tr>
+                <td>{{ obj.name }}</td>
+                <td class="text-muted small">{{ obj.type_name }}</td>
+                <td class="text-end fw-bold">{{ obj.count }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="3" class="text-muted text-center small">—</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
+
       </div>
       {% endfor %}
     </div>
@@ -425,7 +441,7 @@
               </th>
               {% for zone in dst_zones %}
                 <th class="nsm-col-label">
-                  <a href="{% url 'plugins:netbox_nsm:securityzone' zone.pk %}" class="nsm-col-text text-decoration-none" title="{{ zone.name }}">{{ zone.name }}</a>
+                  {% if zone.pk %}<a href="{% url 'plugins:netbox_nsm:objectcustom' zone.pk %}" class="nsm-col-text text-decoration-none" title="{{ zone.name }}">{{ zone.name }}</a>{% else %}<span class="nsm-col-text text-muted" title="{{ zone.name }}">{{ zone.name }}</span>{% endif %}
                 </th>
               {% endfor %}
             </tr>
@@ -433,7 +449,7 @@
           <tbody>
             {% for row in matrix_rows %}
               <tr>
-                <th class="nsm-row-label" title="{{ row.source_zone.name }}"><a href="{% url 'plugins:netbox_nsm:securityzone' row.source_zone.pk %}" class="text-decoration-none" style="color:inherit">{{ row.source_zone.name }}</a></th>
+                <th class="nsm-row-label" title="{{ row.source_zone.name }}">{% if row.source_zone.pk %}<a href="{% url 'plugins:netbox_nsm:objectcustom' row.source_zone.pk %}" class="text-decoration-none" style="color:inherit">{{ row.source_zone.name }}</a>{% else %}<span class="text-muted">{{ row.source_zone.name }}</span>{% endif %}</th>
                 {% for cell in row.cells %}
                   {% if cell.type == "empty" %}
                     <td class="nsm-viz-cell-empty{% if cell.is_self %} nsm-viz-cell-self{% endif %}">
@@ -467,81 +483,7 @@
   </div>
 </div>
 
-{% if object_usage_stats %}
-<div class="card mt-3">
-  <h5 class="card-header">
-    <i class="mdi mdi-chart-bar me-1"></i>
-    Object Usage Statistics
-    <span class="badge text-bg-secondary ms-2">{{ object_usage_stats.total_rules }} rules</span>
-  </h5>
-  <div class="card-body p-0">
-    <div class="row g-0">
-      {% if object_usage_stats.top_zones %}
-      <div class="col-md-4 border-end">
-        <div class="px-3 py-2">
-          <h6 class="text-muted small fw-bold text-uppercase mb-2">Top Zones</h6>
-          <table class="table table-sm table-hover mb-0">
-            <thead><tr><th>Zone</th><th class="text-center">Dir.</th><th class="text-end">#</th></tr></thead>
-            <tbody>
-              {% for z in object_usage_stats.top_zones %}
-              <tr>
-                <td><a href="{% url 'plugins:netbox_nsm:securityzone' z.pk %}">{{ z.name }}</a></td>
-                <td class="text-center">
-                  {% if z.direction == "src" %}
-                    <i class="mdi mdi-arrow-right text-success" title="Source"></i>
-                  {% else %}
-                    <i class="mdi mdi-flag-outline text-danger" title="Destination"></i>
-                  {% endif %}
-                </td>
-                <td class="text-end fw-bold">{{ z.count }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      {% endif %}
-      {% if object_usage_stats.top_objects %}
-      <div class="col-md-4 border-end">
-        <div class="px-3 py-2">
-          <h6 class="text-muted small fw-bold text-uppercase mb-2">Top Custom Objects</h6>
-          <table class="table table-sm table-hover mb-0">
-            <thead><tr><th>Object</th><th>Type</th><th class="text-end">#</th></tr></thead>
-            <tbody>
-              {% for obj in object_usage_stats.top_objects %}
-              <tr>
-                <td><a href="{% url 'plugins:netbox_nsm:objectcustom' obj.pk %}">{{ obj.name }}</a></td>
-                <td class="text-muted small">{{ obj.type }}</td>
-                <td class="text-end fw-bold">{{ obj.count }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      {% endif %}
-      {% if object_usage_stats.top_groups %}
-      <div class="col-md-4">
-        <div class="px-3 py-2">
-          <h6 class="text-muted small fw-bold text-uppercase mb-2">Top Groups</h6>
-          <table class="table table-sm table-hover mb-0">
-            <thead><tr><th>Group</th><th class="text-end">#</th></tr></thead>
-            <tbody>
-              {% for grp in object_usage_stats.top_groups %}
-              <tr>
-                <td><a href="{% url 'plugins:netbox_nsm:objectgroup' grp.pk %}">{{ grp.name }}</a></td>
-                <td class="text-end fw-bold">{{ grp.count }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      {% endif %}
-    </div>
-  </div>
-</div>
-{% endif %}
+
 
 </div>{# end tab-pane matrix #}
 </div>{# end tab-content #}

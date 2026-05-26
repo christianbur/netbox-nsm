@@ -1,97 +1,198 @@
-# NetBox NSM Plugin
-[Netbox](https://github.com/netbox-community/netbox) plugin for Security and NAT related objects documentation.
+# netbox-nsm — Network Security Management Plugin for NetBox
 
-<div align="center">
-<a href="https://pypi.org/project/netbox-nsm/"><img src="https://img.shields.io/pypi/v/netbox-nsm" alt="PyPi"/></a>
-<a href="https://github.com/andy-shady-org/netbox-nsm/stargazers"><img src="https://img.shields.io/github/stars/andy-shady-org/netbox-nsm?style=flat" alt="Stars Badge"/></a>
-<a href="https://github.com/andy-shady-org/netbox-nsm/network/members"><img src="https://img.shields.io/github/forks/andy-shady-org/netbox-nsm?style=flat" alt="Forks Badge"/></a>
-<a href="https://github.com/andy-shady-org/netbox-nsm/issues"><img src="https://img.shields.io/github/issues/andy-shady-org/netbox-nsm" alt="Issues Badge"/></a>
-<a href="https://github.com/andy-shady-org/netbox-nsm/pulls"><img src="https://img.shields.io/github/issues-pr/andy-shady-org/netbox-nsm" alt="Pull Requests Badge"/></a>
-<a href="https://github.com/andy-shady-org/netbox-nsm/graphs/contributors"><img alt="GitHub contributors" src="https://img.shields.io/github/contributors/andy-shady-org/netbox-nsm?color=2b9348"></a>
-<a href="https://github.com/andy-shady-org/netbox-nsm/blob/master/LICENSE"><img src="https://img.shields.io/github/license/andy-shady-org/netbox-nsm?color=2b9348" alt="License Badge"/></a>
-<a href="https://github.com/psf/black"><img src="https://img.shields.io/badge/code%20style-black-000000.svg" alt="Code Style Black"/></a>
-<a href="https://pepy.tech/project/netbox-nsm"><img alt="Downloads" src="https://static.pepy.tech/badge/netbox-nsm"></a>
-<a href="https://pepy.tech/project/netbox-nsm"><img alt="Downloads/Week" src="https://static.pepy.tech/badge/netbox-nsm/month"></a>
-<a href="https://pepy.tech/project/netbox-nsm"><img alt="Downloads/Month" src="https://static.pepy.tech/badge/netbox-nsm/week"></a>
-</div>
+> **⚠️ Work in Progress — do not use in production.**
 
+A [NetBox](https://github.com/netbox-community/netbox) plugin for managing network security objects, security policies, and object groups.
+
+This plugin was inspired by [netbox-security](https://github.com/andy-shady-org/netbox-security) by andy-shady-org. After working with it, I decided to write a new plugin from scratch that better fits my workflow and requirements.
+
+The goal is a **modular, vendor-agnostic plugin** that can be used with any kind of firewall or policy system — including traditional firewalls, Cisco TrustSec, and label-based micro-segmentation platforms such as Illumio. Instead of hard-coding object types, the plugin lets you define your own types and fields to match whatever your environment requires.
+
+This plugin was developed using my own hands-on experience in network security, combined with ideas and concepts shaped with the help of AI.
+
+---
 
 ## Features
 
-This plugin provides following Models:
+### Custom Object Types
+Define your own object types with configurable fields — for example **Addresses**, **Networks**, **Services**, **NAT-Pools**, or anything your network requires.
 
-* CustomPrefix
-* Addresses
-* Address Sets
-* Address Lists
-* Security Zones
-* Security Zone Policies
-* NAT Pools
-* NAT Pool Members
-* NAT Rule-sets
-* NAT Rules
-* Firewall Filters
-* Firewall Filter Rules
-* Firewall Policers
+- **Area-based classification**: each type belongs to one of four areas:
+  - `Source/Destination` — objects used as traffic sources or destinations
+  - `Services` — port/protocol definitions and similar
+  - `Action` — actions applied to matching traffic (permit, deny, log, policer …)
+  - `Info` — informational objects attached to rules (install dates, comments …)
+- **Configurable field definitions**: JSON list of typed fields per type (`text`, `number`, `boolean`, `url`, `date`, `markdown`, `object_ref`, `multi_object_ref`)
+- **Display template**: format string (`{name} ({port}/{protocol})`) that controls how instances are displayed throughout the UI
+- **MDI icon**: assign an icon from [pictogrammers.com](https://pictogrammers.com/library/mdi/)
+- **Built-in type catalog**: a set of ready-made types (Action, Filter, Log, Policer, Comment, InstalledOn, InstallDate, …) that can be installed with one click
+
+### Custom Objects
+Instances of a Custom Type — the actual objects referenced in security rules.
+
+- Dynamic form fields generated from the type's field definitions
+- Optional `object_ref` fields that link to any NetBox model (IP prefix, device, …)
+- Optional key/value table (`table_data`) for arbitrary extra metadata
+- Comments field with template variable substitution (`{name}`, field data keys)
+- Full CRUD, bulk-edit, bulk-delete, bulk-import via CSV
+- REST API with filterable endpoint (`/api/plugins/netbox-nsm/object-custom-objects/`)
+
+### Custom Object Assignments
+Assign any Custom Object to any NetBox object (Device, VM, Interface, IP Address, Prefix, …).
+
+- Generic foreign key — no model restrictions
+- Comment field per assignment
+- Assignment list tab on every Custom Object detail page
+
+### Object Groups
+Named groups that aggregate Custom Objects and/or other groups of the same area.
+
+- Supports nested sub-groups (arbitrary depth)
+- Area validation: only objects/groups of the same area can be combined
+- Parent-group back-reference shown in group detail view
+- Used directly in security rules as `source_groups`, `destination_groups`, etc.
+
+### Security Policies (Rulebooks)
+Named policy containers holding an ordered list of security rules.
+
+- `rulebook_type` choice field (currently: *Security Rules*)
+- **Rule comment template**: Markdown template pre-filled when adding new rules (`{rule_name}`, `{index}`, `{rulebook}`)
+- Assign policies to **Devices**, **Virtual Machines**, and **Virtual Device Contexts** via Rulebook Assignments
+- Bulk-assign a policy to multiple devices at once
+- Policy visualization view (rule table with source / destination / service / action columns rendered as linked pill badges)
+
+### Security Rules
+Individual firewall/security rules inside a policy.
+
+| Field | Description |
+|---|---|
+| `index` | Rule order (numeric) |
+| `enabled` | Enable / disable the rule |
+| `name` | Unique name within the rulebook |
+| `policy_action` | `permit` / `deny` / `log` / `count` / `reject` |
+| `custom_srcdst_objects` | Source custom objects (area: srcdst) |
+| `source_groups` | Source object groups (area: srcdst) |
+| `destination_custom_objects` | Destination custom objects (area: srcdst) |
+| `destination_groups` | Destination object groups (area: srcdst) |
+| `custom_service_objects` | Service custom objects (area: services) |
+| `service_groups` | Service object groups (area: services) |
+| `custom_action_objects` | Action custom objects (area: action) |
+| `action_groups` | Action object groups (area: action) |
+| `source_users` / `destination_users` | NetBox user references |
+| `log_enabled` | Enable logging |
+
+Rule edit form groups fields into **Source / Destination / Service / Action** sections with a live type/value table showing currently selected objects.
+
+### YAML Bundle Export / Import
+Transfer Custom Types and their objects between NetBox instances.
+
+- **Export**: select one or more Custom Types → download a `.yaml` bundle file
+- **Import**: paste YAML or upload a file, with optional update-existing mode
+- `object_ref` fields are serialized as `{__model: …, __str: …}` and resolved on import via natural keys
+- Bundle format: `apiVersion: nsm/v1`, `kind: Bundle/CustomType/CustomObject`
+
+### Device / VM Matching Rules
+Find all security rules that reference the labels (Custom Object Assignments) of a specific device or VM.
+
+- Accessible from the device/VM detail page
+- Separate result tables for rules where the device appears as source vs. destination
+
+### Security Tab on IPAM Objects
+A **Security** tab is added to IP Address, Prefix, and IP Range detail pages showing every Object Group chain that references the object — including inherited matches via containing prefixes for IP addresses.
+
+### NSM Object Builder *(advanced)*
+A second, more flexible object type system (`NsmObjectType` / `NsmObjectTypeField` / `NsmObject`) for scenarios that require strongly-typed, validated fields with weights and grouping.
+
+### REST API
+All models are fully accessible via NetBox's REST API framework:
+
+| Endpoint | Model |
+|---|---|
+| `/api/plugins/netbox-nsm/object-custom-types/` | ObjectCustomType |
+| `/api/plugins/netbox-nsm/object-custom-objects/` | ObjectCustomObject |
+| `/api/plugins/netbox-nsm/object-custom-object-assignments/` | ObjectCustomObjectAssignment |
+| `/api/plugins/netbox-nsm/object-groups/` | ObjectGroup |
+| `/api/plugins/netbox-nsm/security-zone-policy-rulebooks/` | SecurityZonePolicyRulebook |
+| `/api/plugins/netbox-nsm/security-zone-policy-rules/` | SecurityZonePolicyRule |
+| `/api/plugins/netbox-nsm/security-zone-policy-rulebook-assignments/` | SecurityZonePolicyRulebookAssignment |
+
+All endpoints support filtering, searching, and pagination.
+
+---
 
 ## Compatibility
 
-| NetBox Version | NetBox NSM Version |
-|----------------|-------------------------|
-| NetBox 4.2     | \>= 1.0.2               |
-| NetBox 4.3     | \>= 1.1.0               |
-| NetBox 4.4     | \>= 1.3.0               |
-| NetBox 4.5     | \>= 1.4.0               |
-| NetBox 4.6     | \>= 1.5.0               |
+| NetBox Version | Plugin Version |
+|---|---|
+| 4.5.x | 0.0.1 |
+| 4.6.x | 0.0.1 |
+
+---
 
 ## Installation
 
-The plugin is available as a Python package in pypi and can be installed with pip  
-
-```
+```bash
 pip install netbox-nsm
 ```
-Enable the plugin in /opt/netbox/netbox/netbox/configuration.py:
-```
-PLUGINS = ['netbox_nsm']
-```
-Restart NetBox and add `netbox-nsm` to your local_requirements.txt
 
-Perform database migrations:
+Enable the plugin in your NetBox `configuration.py`:
+
+```python
+PLUGINS = ["netbox_nsm"]
+```
+
+Run database migrations:
+
 ```bash
 cd /opt/netbox
 source venv/bin/activate
-python ./netbox/manage.py migrate netbox_nsm
-python ./netbox/manage.py reindex netbox_nsm
+python netbox/manage.py migrate netbox_nsm
+python netbox/manage.py reindex netbox_nsm
 ```
 
-Full documentation on using plugins with NetBox: [Using Plugins - NetBox Documentation](https://netbox.readthedocs.io/en/stable/plugins/)
+Restart NetBox (gunicorn / uwsgi).
 
+---
 
 ## Configuration
 
-The following options are available:
-* `virtual_ext_page`: String (default left) Virtual Machine related objects table position. The following values are available:  
-left, right, full_width. Set empty value for disable.
-* `interface_ext_page`: String (default full_width) Interface related objects table position. The following values are available:  
-left, right, full_width. Set empty value for disable.
-* `address_ext_page`: String (default right) Address/Address Set related objects table position. The following values are available:  
-left, right, full_width. Set empty value for disable.
-* `top_level_menu`: Boolean (default True) Display plugin menu at the top level. The following values are available: True, False.
-* `assignments_menu`: Boolean (default False) Display assignments within the plugin menu. The following values are available: True, False.
+Add plugin settings in `configuration.py` (all optional):
 
-## Contribute
+```python
+PLUGINS_CONFIG = {
+    "netbox_nsm": {
+        # Show plugin menu as top-level entry (default: True)
+        "top_level_menu": True,
 
-Contributions are always welcome! Please see the [Contribution Guidelines](CONTRIBUTING.md)
+        # Show assignments sub-menu item (default: False)
+        "assignments_menu": False,
 
+        # Position of the NSM panel on Virtual Machine detail pages
+        # Options: "left", "right", "full_width", "" (disabled)
+        "virtual_ext_page": "left",
 
-## Documentation
+        # Position of the NSM panel on Interface detail pages
+        "interface_ext_page": "full_width",
 
-For further information, please refer to the full documentation: [Using NetBox NSM](docs/using_netbox_nsm.md)
+        # Position of the NSM panel on IP Address/Prefix detail pages
+        "address_ext_page": "right",
+    }
+}
+```
 
+---
 
-## Credits
+## Quick Start
 
-- Thanks to Peter Eckel for providing some lovely examples which I've happily borrowed, and for providing excellent guidance.
-- Thanks to Dan Sheppard for the abstracted field generation stuff which I also used.
-- Thanks to Kris Beevers and Mark Coleman at Netbox Labs for encouragement and engagement.
+1. **Install built-in types** — go to *Security → Objects → Object-Builder → Install Defaults* and select the types you need (Addresses, Networks, Ports, …).
+2. **Create custom objects** — navigate to the matching area tab (Source/Destination, Services, Action) and add objects.
+3. **Create object groups** *(optional)* — group related objects under *Security → Objects → Groups*.
+4. **Create a Security Policy** — under *Security → Security Policy*.
+5. **Add rules** — open the policy and add rules, selecting objects and groups for each column.
+6. **Assign the policy to a device** — open a Device and use the *Assign Rulebook* action, or use the bulk-assign view on the policy.
+
+---
+
+## License
+
+[Apache 2.0](LICENSE)

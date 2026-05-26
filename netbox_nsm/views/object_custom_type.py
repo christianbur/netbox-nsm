@@ -68,9 +68,22 @@ class BuiltinTypeInstallView(LoginRequiredMixin, View):
     """Show all built-in type definitions and let the admin install selected ones."""
 
     def get(self, request):
+        import json
         from django.shortcuts import render
+
+        installed_names = set(ObjectCustomType.objects.values_list("name", flat=True))
+
+        enriched = []
+        for t in BUILTIN_CUSTOM_TYPES:
+            fds_display = [fd for fd in t.get("field_definitions", []) if not fd.get("__meta__")]
+            enriched.append({
+                **t,
+                "already_installed": t["name"] in installed_names,
+                "field_definitions_json": json.dumps(fds_display, ensure_ascii=False, indent=2),
+            })
+
         return render(request, "netbox_nsm/builtin_type_install.html", {
-            "builtin_types": BUILTIN_CUSTOM_TYPES,
+            "builtin_types": enriched,
         })
 
     def post(self, request):

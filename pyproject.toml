@@ -1,7 +1,7 @@
 [project]
 name = "netbox-nsm"
 version = "0.0.1"
-description = "A Netbox plugin for tracking Security and NAT related objects"
+description = "A NetBox plugin for network security management, including object groups and security policies"
 authors = [
     {name="Christian Burmeister"},
 ]
@@ -9,17 +9,17 @@ license-files = ["LICENSE"]
 readme = "README.md"
 keywords = ["netbox", "netbox-plugin", "security"]
 classifiers = [
-    "Development Status :: 5 - Production/Stable"
+    "Development Status :: 3 - Alpha"
 ]
 dependencies = [
 ]
 requires-python = ">=3.12"
 
 [project.urls]
-Homepage = "https://github.com/andy-shady-org/netbox-nsm"
-Documentation = "https://github.com/andy-shady-org/netbox-nsm/blob/main/README.md"
-Repository = "https://github.com/andy-shady-org/netbox-nsm"
-Issues = "https://github.com/andy-shady-org/netbox-nsm/issues"
+Homepage = "https://github.com/christianbur/netbox-nsm"
+Documentation = "https://github.com/christianbur/netbox-nsm/blob/main/README.md"
+Repository = "https://github.com/christianbur/netbox-nsm"
+Issues = "https://github.com/christianbur/netbox-nsm/issues"
 
 [build-system]
 requires = ['setuptools >= 64']

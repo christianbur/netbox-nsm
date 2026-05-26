@@ -24,7 +24,6 @@ __all__ = (
 
 
 class RulebookTypeChoices(models.TextChoices):
-    MATRIX = "matrix", _("Security Matrix")
     POLICY = "policy", _("Security Rules")
 
 

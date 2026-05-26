@@ -314,9 +314,10 @@ def _build_object_analysis(rulebook):
         areas.append({
             "key": area_key,
             "label": area_label,
+            "total_objects": len(individual),
             "objects": [
                 {"name": name, "type_name": type_name, "count": count}
-                for (name, type_name), count in individual.most_common()
+                for (name, type_name), count in individual.most_common(10)
             ],
             "combos": [
                 {"label": label, "count": count}
@@ -381,6 +382,7 @@ __all__ = (
     "SecurityZonePolicyRulebookBulkDeleteView",
     "SecurityZonePolicyRulebookPolicyColumnsView",
     "SecurityZonePolicyRulebookRulesView",
+    "SecurityZonePolicyRulebookVisualizationView",
     "SecurityZonePolicyRulebookBulkAssignView",
     "SecurityZonePolicyRuleView",
     "SecurityZonePolicyRuleListView",
@@ -391,6 +393,156 @@ __all__ = (
     "SecurityZonePolicyRulebookAssignmentDeleteView",
     "SecurityZonePolicyRulebookAssignmentBulkDeleteView",
 )
+
+
+ZONE_TYPE_NAME = "Zones"
+_NONE_ZONE_PK = 0
+
+
+def _make_none_zone():
+    from types import SimpleNamespace
+    return SimpleNamespace(pk=_NONE_ZONE_PK, name="(none)")
+
+
+@register_model_view(SecurityZonePolicyRulebook, name="visualization", path="visualization/zonematrix")
+class SecurityZonePolicyRulebookVisualizationView(generic.ObjectView):
+    queryset = SecurityZonePolicyRulebook.objects.all()
+    template_name = "netbox_nsm/securityzonepolicyrulebook_visualization.html"
+    tab = ViewTab(
+        label=_("Visualisation"),
+        permission="netbox_nsm.view_securityzonepolicyrulebook",
+    )
+
+    def get_extra_context(self, request, instance):
+        from collections import defaultdict
+
+        ACTION_COLOR = {
+            "permit": "success",
+            "deny": "danger",
+            "reject": "danger",
+            "log": "warning",
+            "count": "info",
+        }
+
+        rules_qs = list(
+            SecurityZonePolicyRule.objects
+            .filter(rulebook=instance)
+            .prefetch_related(
+                "custom_srcdst_objects__custom_type",
+                "destination_custom_objects__custom_type",
+                "custom_action_objects",
+            )
+            .order_by("index")
+        )
+
+        # Collect all unique zone objects from source and destination
+        zones_by_pk = {}
+        has_none_src = False
+        has_none_dst = False
+        for rule in rules_qs:
+            src_zones = [o for o in rule.custom_srcdst_objects.all() if o.custom_type.name == ZONE_TYPE_NAME]
+            dst_zones = [o for o in rule.destination_custom_objects.all() if o.custom_type.name == ZONE_TYPE_NAME]
+            if not src_zones:
+                has_none_src = True
+            if not dst_zones:
+                has_none_dst = True
+            for z in src_zones + dst_zones:
+                zones_by_pk[z.pk] = z
+
+        all_zones = sorted(zones_by_pk.values(), key=lambda z: z.name)
+        if has_none_src or has_none_dst:
+            all_zones = [_make_none_zone()] + all_zones
+
+        # Zone filter from query string
+        src_filter = [v for v in request.GET.getlist("src_zone_id") if v.isdigit()]
+        dst_filter = [v for v in request.GET.getlist("dst_zone_id") if v.isdigit()]
+        selected_src_pks = {int(v) for v in src_filter}
+        selected_dst_pks = {int(v) for v in dst_filter}
+        src_zones = [z for z in all_zones if z.pk in selected_src_pks] if src_filter else all_zones
+        dst_zones = [z for z in all_zones if z.pk in selected_dst_pks] if dst_filter else all_zones
+
+        def _action_color_label(rule):
+            for obj in rule.custom_action_objects.all():
+                name_lower = obj.name.lower()
+                for key, color in ACTION_COLOR.items():
+                    if key in name_lower:
+                        return color, obj.name
+            return "secondary", "?"
+
+        # Build cell_map: (src_pk, dst_pk) → list of rules
+        cell_map = defaultdict(list)
+        for rule in rules_qs:
+            rule._color, rule._action_label = _action_color_label(rule)
+            src_pks = [o.pk for o in rule.custom_srcdst_objects.all() if o.custom_type.name == ZONE_TYPE_NAME]
+            dst_pks = [o.pk for o in rule.destination_custom_objects.all() if o.custom_type.name == ZONE_TYPE_NAME]
+            if not src_pks:
+                src_pks = [_NONE_ZONE_PK]
+            if not dst_pks:
+                dst_pks = [_NONE_ZONE_PK]
+            for sp in src_pks:
+                for dp in dst_pks:
+                    cell_map[(sp, dp)].append(rule)
+
+        policy_url_base = reverse(
+            "plugins:netbox_nsm:securityzonepolicyrulebook_policy",
+            args=[instance.pk],
+        )
+        add_url_base = reverse("plugins:netbox_nsm:securityzonepolicyrule_add")
+        viz_url_base = reverse(
+            "plugins:netbox_nsm:securityzonepolicyrulebook_visualization",
+            args=[instance.pk],
+        )
+
+        matrix_rows = []
+        for src in src_zones:
+            cells = []
+            for dst in dst_zones:
+                rules = cell_map.get((src.pk, dst.pk), [])
+                count = len(rules)
+                sp_q = f"src_obj_id={src.pk}" if src.pk != _NONE_ZONE_PK else ""
+                dp_q = f"dst_obj_id={dst.pk}" if dst.pk != _NONE_ZONE_PK else ""
+                filter_qs = "?" + "&".join(p for p in [sp_q, dp_q] if p) if (sp_q or dp_q) else ""
+                if count == 0:
+                    src_add = f"&custom_srcdst_objects={src.pk}" if src.pk != _NONE_ZONE_PK else ""
+                    dst_add = f"&destination_custom_objects={dst.pk}" if dst.pk != _NONE_ZONE_PK else ""
+                    cell = {
+                        "type": "empty",
+                        "is_self": src.pk == dst.pk,
+                        "href": (
+                            f"{add_url_base}?rulebook={instance.pk}"
+                            f"{src_add}{dst_add}"
+                            f"&return_url={policy_url_base}"
+                        ),
+                    }
+                elif count == 1:
+                    r = rules[0]
+                    cell = {
+                        "type": "single",
+                        "color": r._color,
+                        "label": r._action_label,
+                        "is_self": src.pk == dst.pk,
+                        "href": f"{policy_url_base}{filter_qs}",
+                    }
+                else:
+                    cell = {
+                        "type": "multi",
+                        "count": count,
+                        "is_self": src.pk == dst.pk,
+                        "href": f"{policy_url_base}{filter_qs}",
+                    }
+                cells.append(cell)
+            matrix_rows.append({"source_zone": src, "cells": cells})
+
+        return {
+            "all_zones": all_zones,
+            "src_zones": src_zones,
+            "dst_zones": dst_zones,
+            "selected_src_pks": selected_src_pks,
+            "selected_dst_pks": selected_dst_pks,
+            "viz_url_base": viz_url_base,
+            "matrix_rows": matrix_rows,
+            "object_analysis": _build_object_analysis(instance),
+        }
 
 
 @register_model_view(SecurityZonePolicyRulebook)
@@ -719,8 +871,19 @@ class SecurityZonePolicyRuleEditView(generic.ObjectEditView):
         return instance
 
     def get_extra_context(self, request, instance):
+        initial_labels: dict = {"source": {}, "destination": {}, "service": {}, "action": {}}
+        if instance.pk:
+            for obj in instance.custom_srcdst_objects.select_related("custom_type").all():
+                initial_labels["source"][str(obj.pk)] = obj.custom_type.name
+            for obj in instance.destination_custom_objects.select_related("custom_type").all():
+                initial_labels["destination"][str(obj.pk)] = obj.custom_type.name
+            for obj in instance.custom_service_objects.select_related("custom_type").all():
+                initial_labels["service"][str(obj.pk)] = obj.custom_type.name
+            for obj in instance.custom_action_objects.select_related("custom_type").all():
+                initial_labels["action"][str(obj.pk)] = obj.custom_type.name
         return {
             "nsm_add_options": _build_security_rule_add_options(),
+            "nsm_initial_labels": json.dumps(initial_labels),
         }
 
 

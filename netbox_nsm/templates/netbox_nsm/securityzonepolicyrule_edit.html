@@ -5,11 +5,6 @@
 
 {% block head %}
   {{ block.super }}
-  <style>
-    .nsm-hidden-pickers {
-      display: none !important;
-    }
-  </style>
 {% endblock head %}
 
 {% block form %}
@@ -28,8 +23,12 @@
     {% render_field form.description %}
   </div>
 
-  <div class="field-group mb-5 nsm-table-section" data-section="source">
-    <div class="row mb-3"><div class="col-12"><h2>{% trans "Source" %}</h2></div></div>
+  <div class="card mb-4 nsm-table-section" data-section="source">
+    <div class="card-header d-flex align-items-center gap-2">
+      <i class="mdi mdi-arrow-right-circle-outline"></i>
+      <strong>{% trans "Source" %}</strong>
+    </div>
+    <div class="card-body">
     <div class="row g-2 align-items-end mb-3">
       <div class="col-md-10">
         <label class="form-label">{% trans "Object" %}</label>
@@ -63,10 +62,15 @@
       {% if form.source_addresses %}{% render_field form.source_addresses %}{% endif %}
       {% if form.source_users %}{% render_field form.source_users %}{% endif %}
     </div>
-  </div>
+    </div>{# /card-body #}
+  </div>{# /source card #}
 
-  <div class="field-group mb-5 nsm-table-section" data-section="destination">
-    <div class="row mb-3"><div class="col-12"><h2>{% trans "Destination" %}</h2></div></div>
+  <div class="card mb-4 nsm-table-section" data-section="destination">
+    <div class="card-header d-flex align-items-center gap-2">
+      <i class="mdi mdi-arrow-left-circle-outline"></i>
+      <strong>{% trans "Destination" %}</strong>
+    </div>
+    <div class="card-body">
     <div class="row g-2 align-items-end mb-3">
       <div class="col-md-10">
         <label class="form-label">{% trans "Object" %}</label>
@@ -100,10 +104,15 @@
       {% if form.destination_addresses %}{% render_field form.destination_addresses %}{% endif %}
       {% if form.destination_users %}{% render_field form.destination_users %}{% endif %}
     </div>
-  </div>
+    </div>{# /card-body #}
+  </div>{# /destination card #}
 
-  <div class="field-group mb-5 nsm-table-section" data-section="service">
-    <div class="row mb-3"><div class="col-12"><h2>{% trans "Service" %}</h2></div></div>
+  <div class="card mb-4 nsm-table-section" data-section="service">
+    <div class="card-header d-flex align-items-center gap-2">
+      <i class="mdi mdi-server-network"></i>
+      <strong>{% trans "Service" %}</strong>
+    </div>
+    <div class="card-body">
     <div class="row g-2 align-items-end mb-3">
       <div class="col-md-10">
         <label class="form-label">{% trans "Object" %}</label>
@@ -134,10 +143,15 @@
       {% render_field form.custom_service_objects %}
       {% render_field form.service_groups %}
     </div>
-  </div>
+    </div>{# /card-body #}
+  </div>{# /service card #}
 
-  <div class="field-group mb-5 nsm-table-section" data-section="action">
-    <div class="row mb-3"><div class="col-12"><h2>{% trans "Action" %}</h2></div></div>
+  <div class="card mb-4 nsm-table-section" data-section="action">
+    <div class="card-header d-flex align-items-center gap-2">
+      <i class="mdi mdi-lightning-bolt"></i>
+      <strong>{% trans "Action" %}</strong>
+    </div>
+    <div class="card-body">
     <div class="row g-2 align-items-end mb-3">
       <div class="col-md-10">
         <label class="form-label">{% trans "Object" %}</label>
@@ -168,7 +182,8 @@
       {% render_field form.custom_action_objects %}
       {% render_field form.action_groups %}
     </div>
-  </div>
+    </div>{# /card-body #}
+  </div>{# /action card #}
 
   <div class="field-group mb-5">
     {% render_field form.tags %}
@@ -189,5 +204,8 @@
 
 {% block javascript %}
   {{ block.super }}
-  <script src="{% static 'netbox_nsm/js/security_rule_form.js' %}?v=20260526b"></script>
+  {% if nsm_initial_labels %}
+  <script id="nsm-initial-labels" type="application/json">{{ nsm_initial_labels }}</script>
+  {% endif %}
+  <script src="{% static 'netbox_nsm/js/security_rule_form.js' %}?v=20260526d"></script>
 {% endblock javascript %}

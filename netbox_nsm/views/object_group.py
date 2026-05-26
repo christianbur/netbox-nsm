@@ -1,13 +1,14 @@
+from django.db.models import Q
 from django.shortcuts import redirect
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import TemplateView
 
 from netbox.views import generic
-from utilities.views import register_model_view
+from utilities.views import register_model_view, ViewTab
 
 from netbox_nsm.filtersets import ObjectGroupFilterSet
 from netbox_nsm.forms import ObjectGroupForm, ObjectGroupFilterForm, ObjectGroupBulkEditForm
-from netbox_nsm.models import ObjectGroup
+from netbox_nsm.models import ObjectGroup, SecurityZonePolicyRule
 from netbox_nsm.tables import ObjectGroupTable
 
 __all__ = (
@@ -83,6 +84,35 @@ class ObjectGroupBulkEditView(generic.BulkEditView):
 class ObjectGroupBulkDeleteView(generic.BulkDeleteView):
     queryset = ObjectGroup.objects.all()
     table = ObjectGroupTable
+
+
+def _rules_for_group(obj):
+    return SecurityZonePolicyRule.objects.filter(
+        Q(source_groups=obj)
+        | Q(destination_groups=obj)
+        | Q(service_groups=obj)
+        | Q(action_groups=obj)
+    ).distinct()
+
+
+@register_model_view(ObjectGroup, "assignments")
+class ObjectGroupAssignmentsView(generic.ObjectView):
+    queryset = ObjectGroup.objects.all()
+    template_name = "netbox_nsm/objectgroup_assignments.html"
+    tab = ViewTab(
+        label=_("Assignments"),
+        badge=lambda obj: _rules_for_group(obj).count(),
+        weight=200,
+        hide_if_empty=False,
+    )
+
+    def get_extra_context(self, request, instance):
+        rules = (
+            _rules_for_group(instance)
+            .select_related("rulebook")
+            .order_by("rulebook__name", "index", "name")
+        )
+        return {"firewall_rules": rules}
 
 
 class ObjectGroupAreaView(TemplateView):

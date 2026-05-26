@@ -58,9 +58,9 @@
             </td>
             <td class="align-middle">
               <small class="text-secondary">
-                {% for fd in t.field_definitions %}
+                {% for fd in t.field_definitions %}{% if not fd.__meta__ %}
                   <code>{{ fd.name }}</code>{% if not forloop.last %}, {% endif %}
-                {% empty %}—{% endfor %}
+                {% endif %}{% empty %}—{% endfor %}
               </small>
             </td>
           </tr>

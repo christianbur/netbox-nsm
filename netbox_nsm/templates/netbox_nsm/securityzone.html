@@ -5,14 +5,6 @@
 {% load render_table from django_tables2 %}
 
 {% block extra_controls %}
-    {% if perms.netbox_nsm.change_securityzonepolicy %}
-    <a href="{% url 'plugins:netbox_nsm:securityzonepolicy_add' %}?source_zone={{ object.pk }}" class="btn btn-success">
-        <span class="mdi mdi-plus-thick" aria-hidden="true"></span> Add Source Policy
-    </a>
-    <a href="{% url 'plugins:netbox_nsm:securityzonepolicy_add' %}?destination_zone={{ object.pk }}" class="btn btn-success">
-        <span class="mdi mdi-plus-thick" aria-hidden="true"></span> Add Destination Policy
-    </a>
-    {% endif %}
 {% endblock extra_controls %}
 
 
@@ -60,46 +52,6 @@
                 {% endif %}
             </table>
         </div>
-        <div class="card">
-            {% if virtual_machine_assignments_table.rows|length == 1 %}
-                <h2 class="card-header">{% trans "Virtual Machine Assignment" %}</h2>
-            {% else %}
-                <h2 class="card-header">{% trans "Virtual Machine Assignments" %}</h2>
-            {% endif %}
-            <div class="table-responsive">
-                {% render_table virtual_machine_assignments_table 'inc/table.html' %}
-            </div>
-        </div>
-        <div class="card">
-            {% if device_assignments_table.rows|length == 1 %}
-                <h2 class="card-header">{% trans "Device Assignment" %}</h2>
-            {% else %}
-                <h2 class="card-header">{% trans "Device Assignments" %}</h2>
-            {% endif %}
-            <div class="table-responsive">
-                {% render_table device_assignments_table 'inc/table.html' %}
-            </div>
-        </div>
-        <div class="card">
-            {% if virtual_device_assignments_table.rows|length == 1 %}
-                <h2 class="card-header">{% trans "Virtual Device Context Assignment" %}</h2>
-            {% else %}
-                <h2 class="card-header">{% trans "Virtual Device Context Assignments" %}</h2>
-            {% endif %}
-            <div class="table-responsive">
-                {% render_table virtual_device_assignments_table 'inc/table.html' %}
-            </div>
-        </div>
-        <div class="card">
-            {% if interface_assignments_table.rows|length == 1 %}
-                <h2 class="card-header">{% trans "Interface Assignment" %}</h2>
-            {% else %}
-                <h2 class="card-header">{% trans "Interface Assignments" %}</h2>
-            {% endif %}
-            <div class="table-responsive">
-                {% render_table interface_assignments_table 'inc/table.html' %}
-            </div>
-        </div>
         {% include 'inc/panels/custom_fields.html' %}
         {% plugin_left_page object %}
     </div>
@@ -110,20 +62,6 @@
     </div>
 </div>
 <div class="row">
-    <div class="col col-md-12">
-        <div class="card">
-            <h5 class="card-header">
-                Source Policies
-            </h5>
-            {% htmx_table 'plugins:netbox_nsm:securityzonepolicy_list' source_zone_id=object.pk %}
-        </div>
-        <div class="card">
-            <h5 class="card-header">
-                Destination Policies
-            </h5>
-            {% htmx_table 'plugins:netbox_nsm:securityzonepolicy_list' destination_zone_id=object.pk %}
-        </div>
-    </div>
     {% plugin_full_width_page object %}
 </div>
 {% endblock %}

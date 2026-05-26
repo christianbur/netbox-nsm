@@ -103,23 +103,25 @@
   }
   .nsm-corner-dst {
     position: absolute;
-    top: .3rem;
-    right: .45rem;
+    top: .25rem;
+    right: .4rem;
     font-size: .58rem;
     font-weight: 700;
     letter-spacing: .05em;
     text-transform: uppercase;
     color: #a0b8cc;
+    line-height: 1;
   }
   .nsm-corner-src {
     position: absolute;
-    bottom: .3rem;
-    left: .45rem;
+    bottom: .25rem;
+    left: .4rem;
     font-size: .58rem;
     font-weight: 700;
     letter-spacing: .05em;
     text-transform: uppercase;
     color: #a0b8cc;
+    line-height: 1;
   }
 
   /* ── destination column headers ── */
@@ -277,13 +279,70 @@
 </style>
 
 <!-- internal visualisation tab bar -->
-<ul class="nav nsm-viz-tabs mb-0">
-  <li class="nav-item">
-    <a class="nav-link active" href="#">Zone Matrix</a>
+<ul class="nav nsm-viz-tabs mb-0" id="nsm-viz-tab-nav" role="tablist">
+  <li class="nav-item" role="presentation">
+    <a class="nav-link active" id="nsm-tab-analysis" data-bs-toggle="tab" href="#nsm-panel-analysis" role="tab">Object Analysis</a>
+  </li>
+  <li class="nav-item" role="presentation">
+    <a class="nav-link" id="nsm-tab-matrix" data-bs-toggle="tab" href="#nsm-panel-matrix" role="tab">Zone Matrix</a>
   </li>
 </ul>
 
+<div class="tab-content">
+
+<!-- ── TAB 1: Object Analysis ───────────────────────────────── -->
+<div class="tab-pane fade show active" id="nsm-panel-analysis" role="tabpanel">
 <div class="card rounded-0 border-top-0">
+  <div class="card-header d-flex align-items-center gap-2">
+    <i class="mdi mdi-chart-bar text-primary"></i>
+    <strong>Object Analysis</strong>
+    <span class="badge text-bg-secondary ms-2">{{ object_analysis.total_rules }} rules</span>
+  </div>
+  <div class="card-body p-0">
+    {% if object_analysis %}
+
+    <!-- per-area tables -->
+    <div class="row g-0">
+      {% for area in object_analysis.areas %}
+      <div class="col-12 border-bottom px-3 py-3">
+        <h6 class="text-muted small fw-bold text-uppercase mb-2">
+          <i class="mdi mdi-tag-multiple-outline me-1"></i>{{ area.label }}
+        </h6>
+        <div class="row g-3">
+
+          <!-- individual objects -->
+          <div class="col-12">
+            <p class="small text-muted mb-1 fw-semibold">Individual</p>
+            <table class="table table-sm table-hover mb-0">
+              <thead><tr><th>Object</th><th>Type</th><th class="text-end"># Rules</th></tr></thead>
+              <tbody>
+                {% for obj in area.objects %}
+                <tr>
+                  <td>{{ obj.name }}</td>
+                  <td class="text-muted small">{{ obj.type_name }}</td>
+                  <td class="text-end fw-bold">{{ obj.count }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="text-muted text-center small">—</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    {% else %}
+    <div class="text-center text-muted p-5">No rules found.</div>
+    {% endif %}
+  </div>
+</div>
+</div>
+
+<!-- ── TAB 2: Zone Matrix ────────────────────────────────────── -->
+<div class="tab-pane fade" id="nsm-panel-matrix" role="tabpanel">
   <div class="card-header d-flex align-items-center gap-2 flex-wrap">
     <i class="mdi mdi-grid text-primary"></i>
     <strong>Zone Matrix</strong>
@@ -357,8 +416,8 @@
             <tr>
               <th class="nsm-corner">
                 <div class="nsm-corner-inner">
-                  <svg class="nsm-corner-svg" preserveAspectRatio="none" viewBox="0 0 100 100">
-                    <line x1="0" y1="0" x2="100" y2="100" stroke="#374a5f" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
+                  <svg class="nsm-corner-svg">
+                    <line x1="0" y1="0" x2="100%" y2="100%" stroke="#374a5f" stroke-width="1.5"/>
                   </svg>
                   <span class="nsm-corner-dst">Destination &rarr;</span>
                   <span class="nsm-corner-src">&darr; Source</span>
@@ -366,7 +425,7 @@
               </th>
               {% for zone in dst_zones %}
                 <th class="nsm-col-label">
-                  <span class="nsm-col-text" title="{{ zone.name }}">{{ zone.name }}</span>
+                  <a href="{% url 'plugins:netbox_nsm:securityzone' zone.pk %}" class="nsm-col-text text-decoration-none" title="{{ zone.name }}">{{ zone.name }}</a>
                 </th>
               {% endfor %}
             </tr>
@@ -374,7 +433,7 @@
           <tbody>
             {% for row in matrix_rows %}
               <tr>
-                <th class="nsm-row-label" title="{{ row.source_zone.name }}">{{ row.source_zone.name }}</th>
+                <th class="nsm-row-label" title="{{ row.source_zone.name }}"><a href="{% url 'plugins:netbox_nsm:securityzone' row.source_zone.pk %}" class="text-decoration-none" style="color:inherit">{{ row.source_zone.name }}</a></th>
                 {% for cell in row.cells %}
                   {% if cell.type == "empty" %}
                     <td class="nsm-viz-cell-empty{% if cell.is_self %} nsm-viz-cell-self{% endif %}">
@@ -407,4 +466,84 @@
     {% endif %}
   </div>
 </div>
+
+{% if object_usage_stats %}
+<div class="card mt-3">
+  <h5 class="card-header">
+    <i class="mdi mdi-chart-bar me-1"></i>
+    Object Usage Statistics
+    <span class="badge text-bg-secondary ms-2">{{ object_usage_stats.total_rules }} rules</span>
+  </h5>
+  <div class="card-body p-0">
+    <div class="row g-0">
+      {% if object_usage_stats.top_zones %}
+      <div class="col-md-4 border-end">
+        <div class="px-3 py-2">
+          <h6 class="text-muted small fw-bold text-uppercase mb-2">Top Zones</h6>
+          <table class="table table-sm table-hover mb-0">
+            <thead><tr><th>Zone</th><th class="text-center">Dir.</th><th class="text-end">#</th></tr></thead>
+            <tbody>
+              {% for z in object_usage_stats.top_zones %}
+              <tr>
+                <td><a href="{% url 'plugins:netbox_nsm:securityzone' z.pk %}">{{ z.name }}</a></td>
+                <td class="text-center">
+                  {% if z.direction == "src" %}
+                    <i class="mdi mdi-arrow-right text-success" title="Source"></i>
+                  {% else %}
+                    <i class="mdi mdi-flag-outline text-danger" title="Destination"></i>
+                  {% endif %}
+                </td>
+                <td class="text-end fw-bold">{{ z.count }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+      {% if object_usage_stats.top_objects %}
+      <div class="col-md-4 border-end">
+        <div class="px-3 py-2">
+          <h6 class="text-muted small fw-bold text-uppercase mb-2">Top Custom Objects</h6>
+          <table class="table table-sm table-hover mb-0">
+            <thead><tr><th>Object</th><th>Type</th><th class="text-end">#</th></tr></thead>
+            <tbody>
+              {% for obj in object_usage_stats.top_objects %}
+              <tr>
+                <td><a href="{% url 'plugins:netbox_nsm:objectcustom' obj.pk %}">{{ obj.name }}</a></td>
+                <td class="text-muted small">{{ obj.type }}</td>
+                <td class="text-end fw-bold">{{ obj.count }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+      {% if object_usage_stats.top_groups %}
+      <div class="col-md-4">
+        <div class="px-3 py-2">
+          <h6 class="text-muted small fw-bold text-uppercase mb-2">Top Groups</h6>
+          <table class="table table-sm table-hover mb-0">
+            <thead><tr><th>Group</th><th class="text-end">#</th></tr></thead>
+            <tbody>
+              {% for grp in object_usage_stats.top_groups %}
+              <tr>
+                <td><a href="{% url 'plugins:netbox_nsm:objectgroup' grp.pk %}">{{ grp.name }}</a></td>
+                <td class="text-end fw-bold">{{ grp.count }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+</div>{# end tab-pane matrix #}
+</div>{# end tab-content #}
+
 {% endblock %}

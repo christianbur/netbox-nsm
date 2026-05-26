@@ -15,14 +15,48 @@
               &nbsp;&mdash;&nbsp;
               <span class="text-muted small">Source:</span>
               {% for z in active_src_zones %}
-                <span class="badge text-bg-secondary">{{ z.name }}</span>
+                <a href="{% url 'plugins:netbox_nsm:securityzone' z.pk %}" class="badge text-bg-secondary text-decoration-none">{{ z.name }}</a>
               {% endfor %}
             {% endif %}
             {% if active_dst_zones %}
               &nbsp;&rarr;&nbsp;
               <span class="text-muted small">Destination:</span>
               {% for z in active_dst_zones %}
-                <span class="badge text-bg-secondary">{{ z.name }}</span>
+                <a href="{% url 'plugins:netbox_nsm:securityzone' z.pk %}" class="badge text-bg-secondary text-decoration-none">{{ z.name }}</a>
+              {% endfor %}
+            {% endif %}
+          </div>
+          <a href="{{ request.path }}" class="btn btn-sm btn-outline-secondary ms-2">
+            <i class="mdi mdi-close"></i> Reset filter
+          </a>
+        </div>
+      {% endif %}
+
+      {% if active_src_objs or active_dst_objs %}
+        <div class="alert alert-info d-flex align-items-start gap-2 mb-3 py-2">
+          <i class="mdi mdi-tag-multiple-outline mt-1"></i>
+          <div class="flex-grow-1">
+            <strong>Active object filter</strong>
+            {% if active_src_objs %}
+              &nbsp;&mdash;&nbsp;
+              <span class="text-muted small">Source:</span>
+              {% for obj in active_src_objs %}
+                <a href="{{ obj.get_absolute_url }}"
+                   class="badge text-decoration-none"
+                   style="background:{{ obj.custom_type.color|default:'#6c757d' }};color:#fff;">
+                  {{ obj.name }}
+                </a>
+              {% endfor %}
+            {% endif %}
+            {% if active_dst_objs %}
+              &nbsp;&rarr;&nbsp;
+              <span class="text-muted small">Destination:</span>
+              {% for obj in active_dst_objs %}
+                <a href="{{ obj.get_absolute_url }}"
+                   class="badge text-decoration-none"
+                   style="background:{{ obj.custom_type.color|default:'#6c757d' }};color:#fff;">
+                  {{ obj.name }}
+                </a>
               {% endfor %}
             {% endif %}
           </div>
@@ -42,14 +76,15 @@
             margin-bottom: 0;
           }
           .nsm-policy-table .table thead th {
-            background: linear-gradient(180deg, #f8f4ed 0%, #f1ebe1 100%);
             border-bottom-width: 1px;
-            color: #4c3f2f;
             font-size: .78rem;
             font-weight: 700;
             letter-spacing: .04em;
             text-transform: uppercase;
             white-space: nowrap;
+          }
+          .nsm-policy-table .table thead th a {
+            color: inherit;
           }
           .nsm-policy-table .table tbody td {
             padding-top: .55rem;
@@ -69,7 +104,8 @@
           }
           .nsm-rule-stack {
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
+            flex-wrap: nowrap;
             align-items: flex-start;
             gap: .3rem;
           }
@@ -88,6 +124,7 @@
             letter-spacing: .08em;
             line-height: 1.1;
             margin-bottom: .18rem;
+            text-align: left;
             text-transform: uppercase;
           }
           .nsm-rule-pills {
@@ -160,8 +197,6 @@
             cursor: pointer;
             list-style: none;
             user-select: none;
-            background: #f8f4ed;
-            border: 1px solid #e8ddd0;
             border-radius: .5rem;
             padding: .35rem .75rem;
           }
@@ -176,45 +211,25 @@
             </a>
           {% endif %}
         </div>
-        <details class="mb-3" {% if search_q or search_col %}open{% endif %}>
+        <details class="mb-3" {% if search_q %}open{% endif %}>
           <summary class="nsm-search-toggle d-flex align-items-center gap-2">
             <i class="mdi mdi-magnify"></i>
-            <span class="fw-semibold small">Suche / Filter</span>
-            {% if search_q or search_col %}
-              <span class="badge text-bg-warning ms-1">aktiv</span>
+            <span class="fw-semibold small">Search</span>
+            {% if search_q %}
+              <span class="badge text-bg-warning ms-1">active</span>
             {% endif %}
             <i class="mdi mdi-chevron-down ms-auto"></i>
           </summary>
-          <form method="get" class="mt-2 p-3 border rounded" style="background:#f8f4ed;">
+          <form method="get" class="mt-2 p-3 border rounded">
             <div class="row g-2 align-items-end">
-              <div class="col-sm-4">
-                <label class="form-label small mb-1">
-                  <i class="mdi mdi-text-search"></i> Gesamtsuche
-                </label>
+              <div class="col-sm-6">
                 <input type="text" name="q" value="{{ search_q|default:'' }}"
                        class="form-control form-control-sm"
-                       placeholder="Name, Beschreibung, Zonen, Objekte …">
-              </div>
-              <div class="col-sm-2">
-                <label class="form-label small mb-1">Spalte</label>
-                <select name="col" class="form-select form-select-sm">
-                  <option value="">—</option>
-                  <option value="name" {% if search_col == "name" %}selected{% endif %}>Name</option>
-                  <option value="description" {% if search_col == "description" %}selected{% endif %}>Beschreibung</option>
-                  <option value="index" {% if search_col == "index" %}selected{% endif %}>Index</option>
-                  <option value="source" {% if search_col == "source" %}selected{% endif %}>Source</option>
-                  <option value="destination" {% if search_col == "destination" %}selected{% endif %}>Destination</option>
-                  <option value="service" {% if search_col == "service" %}selected{% endif %}>Service</option>
-                </select>
-              </div>
-              <div class="col-sm-4">
-                <label class="form-label small mb-1">Wert</label>
-                <input type="text" name="val" value="{{ search_val|default:'' }}"
-                       class="form-control form-control-sm" placeholder="Wert …">
+                       placeholder="Name, description, zones, objects …">
               </div>
               <div class="col-auto d-flex gap-1">
                 <button type="submit" class="btn btn-sm btn-primary">
-                  <i class="mdi mdi-magnify"></i> Suchen
+                  <i class="mdi mdi-magnify"></i>
                 </button>
                 <a href="{{ request.path }}" class="btn btn-sm btn-outline-secondary">
                   <i class="mdi mdi-close"></i>
@@ -231,9 +246,40 @@
         </details>
       {% endif %}
 
-      <div class="nsm-policy-table">
-        {% include 'htmx/table.html' %}
-      </div>
+      <form method="post" id="nsm-bulk-delete-form">
+        {% csrf_token %}
+        <div id="nsm-bulk-toolbar" class="mb-2 d-none">
+          <button type="submit" class="btn btn-sm btn-danger"
+                  onclick="return confirm('Delete selected rules?')">
+            <i class="mdi mdi-delete-outline me-1"></i>
+            <span id="nsm-selected-count">0</span> rule(s) delete
+          </button>
+        </div>
+        <div class="nsm-policy-table">
+          {% include 'htmx/table.html' %}
+        </div>
+      </form>
+      <script>
+      (function () {
+        var form = document.getElementById('nsm-bulk-delete-form');
+        var toolbar = document.getElementById('nsm-bulk-toolbar');
+        var countEl = document.getElementById('nsm-selected-count');
+        function update() {
+          var checked = form.querySelectorAll('input[name="pk"]:checked');
+          if (checked.length > 0) {
+            toolbar.classList.remove('d-none');
+            countEl.textContent = checked.length;
+          } else {
+            toolbar.classList.add('d-none');
+          }
+        }
+        document.addEventListener('change', function (e) {
+          if (e.target && (e.target.name === 'pk' || e.target.id === 'select-all')) {
+            update();
+          }
+        });
+      })();
+      </script>
     </div>
   </div>
 </div>

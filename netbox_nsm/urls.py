@@ -61,6 +61,11 @@ urlpatterns = [
         include(get_model_urls("netbox_nsm", "securityzonepolicyrulebook")),
     ),
     path(
+        "security-policy/<int:pk>/bulk-assign/",
+        SecurityZonePolicyRulebookBulkAssignView.as_view(),
+        name="securityzonepolicyrulebook_bulk_assign",
+    ),
+    path(
         "security-rule/",
         include(
             get_model_urls("netbox_nsm", "securityzonepolicyrule", detail=False)
@@ -70,7 +75,15 @@ urlpatterns = [
         "security-rule/<int:pk>/",
         include(get_model_urls("netbox_nsm", "securityzonepolicyrule")),
     ),
-    # Security Zone Policy Rulebook Assignments
+    # Application Items
+    path(
+        "application-items/",
+        include(get_model_urls("netbox_nsm", "applicationitem", detail=False)),
+    ),
+    path(
+        "application-items/<int:pk>/",
+        include(get_model_urls("netbox_nsm", "applicationitem")),
+    ),
     path(
         "security-zone-policy-rulebook-assignments/",
         include(
@@ -82,6 +95,24 @@ urlpatterns = [
     path(
         "security-zone-policy-rulebook-assignments/<int:pk>/",
         include(get_model_urls("netbox_nsm", "securityzonepolicyrulebookassignment")),
+    ),
+    # Device / VM — Matching Rules (virtual combined label)
+    path(
+        "device-security/device/<int:pk>/matching-rules/",
+        DeviceMatchingRulesView.as_view(),
+        name="device_matching_rules",
+    ),
+    path(
+        "device-security/vm/<int:pk>/matching-rules/",
+        DeviceMatchingRulesView.as_view(),
+        {"type": "vm"},
+        name="vm_matching_rules",
+    ),
+    # Global rules search (across all rulebooks)
+    path(
+        "rules/search/",
+        GlobalRulesSearchView.as_view(),
+        name="global_rules_search",
     ),
 ]
 

@@ -40,6 +40,32 @@ class ObjectCustomObject(PrimaryModel):
     def __str__(self):
         return f"{self.custom_type}: {self.name}"
 
+    def render_display(self):
+        """Return display string using custom_type.display_template if set."""
+        tmpl = getattr(self.custom_type, "display_template", "") or ""
+        if tmpl:
+            try:
+                ctx = {"name": self.name, **(self.field_data or {})}
+                return tmpl.format_map(ctx)
+            except (KeyError, ValueError):
+                pass
+        return self.name
+
+    def render_comments(self):
+        """Render comments with {name} / field_data key substitution."""
+        raw = getattr(self, "comments", "") or ""
+        if not raw:
+            return ""
+        try:
+            ctx = {
+                "name": self.name,
+                "description": getattr(self, "description", ""),
+                **(self.field_data or {}),
+            }
+            return raw.format_map(ctx)
+        except (KeyError, ValueError):
+            return raw
+
     def get_absolute_url(self):
         return reverse("plugins:netbox_nsm:objectcustom", args=[self.pk])
 

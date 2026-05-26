@@ -1,0 +1,39 @@
+{% extends 'netbox_nsm/objectgroup.html' %}
+{% load i18n %}
+
+{% block content %}
+<div class="card">
+  <h5 class="card-header">
+    {% trans "Firewall Rules" %}
+    {% if firewall_rules %}
+    <span class="badge bg-secondary ms-2">{{ firewall_rules|length }}</span>
+    {% endif %}
+  </h5>
+  {% if firewall_rules %}
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>{% trans "Rulebook" %}</th>
+          <th>{% trans "Rule Name" %}</th>
+          <th>{% trans "Action" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for rule in firewall_rules %}
+        <tr>
+          <td><a href="{{ rule.rulebook.get_absolute_url }}">{{ rule.rulebook.name }}</a></td>
+          <td><a href="{{ rule.get_absolute_url }}">{{ rule.name }}</a></td>
+          <td>{{ rule.get_policy_action_display }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body text-muted">
+    {% trans "This group is not used in any firewall rules." %}
+  </div>
+  {% endif %}
+</div>
+{% endblock content %}

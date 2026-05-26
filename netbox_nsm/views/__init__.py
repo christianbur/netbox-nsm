@@ -6,4 +6,6 @@ from .object_custom_object import *
 from .object_tabs import *
 from .object_group import *
 from .ipam_security_tabs import *
+from .application_item import *
 from .yaml_bundle import NSMExportYAMLView, NSMImportYAMLView
+from .device_security import DeviceMatchingRulesView, GlobalRulesSearchView

@@ -1,12 +1,12 @@
 """
-NSM Security (Groups) tabs for ipam.IPAddress and ipam.Prefix.
+NSM Security (Groups) tabs for ipam.IPAddress, ipam.Prefix and ipam.IPRange.
 
-Adds a "NSM Groups" tab to the NetBox IP address and prefix detail views,
+Adds a "Security" tab to the NetBox IP address, prefix and IP range detail views,
 showing every ObjectGroup chain that references the object — including
-inherited matches via containing prefixes for IP addresses.
+inherited matches via containing prefixes for IP addresses and IP ranges.
 """
 
-from ipam.models import IPAddress, Prefix
+from ipam.models import IPAddress, IPRange, Prefix
 from netbox.views import generic
 from utilities.views import ViewTab, register_model_view
 from django.utils.translation import gettext_lazy as _
@@ -14,6 +14,7 @@ from django.utils.translation import gettext_lazy as _
 __all__ = (
     "IPAddressNsmGroupsView",
     "PrefixNsmGroupsView",
+    "IPRangeNsmGroupsView",
 )
 
 
@@ -29,6 +30,11 @@ def _ip_badge(instance):
 
 def _prefix_badge(instance):
     chains = _compute_chains("ipam", "prefix", instance.pk)
+    return len(chains) or None
+
+
+def _iprange_badge(instance):
+    chains = _compute_chains("ipam", "iprange", instance.pk)
     return len(chains) or None
 
 
@@ -76,6 +82,31 @@ class PrefixNsmGroupsView(generic.ObjectView):
 
     def get_extra_context(self, request, instance):
         chains = _compute_chains("ipam", "prefix", instance.pk)
+        return {
+            "group_chains": chains,
+            "policy_context": {},
+        }
+
+
+@register_model_view(
+    IPRange,
+    name="nsm_groups",
+    path="nsm-groups",
+)
+class IPRangeNsmGroupsView(generic.ObjectView):
+    queryset = IPRange.objects.all()
+    template_name = "netbox_nsm/iprange/nsm_groups.html"
+
+    tab = ViewTab(
+        label=_("Security"),
+        permission="netbox_nsm.view_objectgroup",
+        badge=_iprange_badge,
+        hide_if_empty=False,
+        weight=600,
+    )
+
+    def get_extra_context(self, request, instance):
+        chains = _compute_chains("ipam", "iprange", instance.pk)
         return {
             "group_chains": chains,
             "policy_context": {},

@@ -20,8 +20,8 @@ class ObjectGroupTable(NetBoxTable):
 
     class Meta(NetBoxTable.Meta):
         model = ObjectGroup
-        fields = ("id", "name", "area", "parent_groups_col", "member_count", "description", "tags")
-        default_columns = ("name", "area", "parent_groups_col", "member_count", "description")
+        fields = ("pk", "id", "name", "area", "parent_groups_col", "member_count", "description", "tags")
+        default_columns = ("pk", "name", "area", "parent_groups_col", "member_count", "description")
 
     def render_member_count(self, record):
         parts = []

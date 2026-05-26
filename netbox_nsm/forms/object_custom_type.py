@@ -63,15 +63,26 @@ class ObjectCustomTypeForm(PrimaryModelForm):
             '<code>mdi-tag</code>, <code>mdi-puzzle-outline</code>.'
         ),
     )
+    display_template = forms.CharField(
+        max_length=500,
+        required=False,
+        label=_("Display Template"),
+        help_text=_(
+            'Template string for rendering objects of this type. '
+            'Use <code>{name}</code> and field data keys such as <code>{port}</code>, '
+            '<code>{protocol}</code>. Example: <code>{name} ({port}/{protocol})</code>. '
+            'Leave empty to use the object name only.'
+        ),
+    )
     fieldsets = (
-        FieldSet("name", "area", "icon", "description", name=_("Custom Type")),
+        FieldSet("name", "area", "icon", "display_template", "description", name=_("Custom Type")),
         FieldSet("field_definitions", name=_("Field Definitions")),
         FieldSet("tags", name=_("Tags")),
     )
 
     class Meta:
         model = ObjectCustomType
-        fields = ("name", "area", "icon", "field_definitions", "description", "comments", "tags")
+        fields = ("name", "area", "icon", "display_template", "field_definitions", "description", "comments", "tags")
 
     def clean_field_definitions(self):
         import json

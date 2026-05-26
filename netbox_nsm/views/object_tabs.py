@@ -129,6 +129,8 @@ class ObjectsSrcDstTabsView(TemplateView):
         if ct:
             cols = [{"label": "Name", "accessor": "name", "link": True}]
             for fd in (ct.field_definitions or []):
+                if fd.get("__meta__"):
+                    continue
                 cols.append({
                     "label": fd.get("label", fd["name"]),
                     "accessor": f"field:{fd['name']}",
@@ -167,6 +169,7 @@ class ObjectsSrcDstTabsView(TemplateView):
                 del_url       = f"/plugins/netbox-nsm/object/{tab_slug}/{obj.pk}/delete/"
                 changelog_url = f"/plugins/netbox-nsm/object/{tab_slug}/{obj.pk}/changelog/"
             row = {
+                "pk": obj.pk,
                 "url": url,
                 "edit_url": edit_url,
                 "delete_url": del_url,

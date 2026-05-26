@@ -35,6 +35,14 @@ class SecurityZonePolicyRulebook(ContactsMixin, PrimaryModel):
         choices=RulebookTypeChoices.choices,
         default=RulebookTypeChoices.POLICY,
     )
+    rule_comment_template = models.TextField(
+        blank=True,
+        default="",
+        help_text=_(
+            "Markdown comment template pre-filled when adding new rules. "
+            "Supports {rule_name}, {index}, {rulebook}."
+        ),
+    )
 
     class Meta:
         verbose_name = _("Security Policy")
@@ -81,16 +89,6 @@ class SecurityZonePolicyRule(ContactsMixin, PrimaryModel):
         to="netbox_nsm.ApplicationItem",
         blank=True,
         related_name="%(class)s_services",
-    )
-    applications = models.ManyToManyField(
-        to="netbox_nsm.Application",
-        blank=True,
-        related_name="%(class)s_applications",
-    )
-    application_sets = models.ManyToManyField(
-        to="netbox_nsm.ApplicationSet",
-        blank=True,
-        related_name="%(class)s_application_sets",
     )
     log_enabled = models.BooleanField(default=False)
     policy_action = models.CharField(

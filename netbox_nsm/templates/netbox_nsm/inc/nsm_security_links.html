@@ -89,6 +89,32 @@
         {% if not nsm_total_count and not nsm_custom_count and not nsm_coa_count %}
         <tr><td class="ps-3 text-muted">None</td></tr>
         {% endif %}
+
+        {# ── Virtual Combined Label ── #}
+        {% if nsm_virtual_labels|length > 1 %}
+        <tr style="border-top:2px solid #dee2e6;">
+          <th class="ps-3" style="width:5.5rem;white-space:nowrap;vertical-align:middle;">
+            <span class="text-muted small">vLabel</span>
+          </th>
+          <td style="vertical-align:middle;">
+            <span class="d-inline-flex flex-wrap gap-1 align-items-center">
+              {% for lbl in nsm_virtual_labels %}
+                <span class="badge"
+                      style="background:{{ lbl.custom_type.color|default:'#6c757d' }};color:#fff;">
+                  {{ lbl.name }}
+                </span>
+              {% endfor %}
+              {% if nsm_matching_url %}
+                <a href="{{ nsm_matching_url }}"
+                   class="text-muted ms-1"
+                   title="Globale Regelsuche mit diesem Filter">
+                  <i class="mdi mdi-shield-search"></i>
+                </a>
+              {% endif %}
+            </span>
+          </td>
+        </tr>
+        {% endif %}
       </tbody>
     </table>
   </div>

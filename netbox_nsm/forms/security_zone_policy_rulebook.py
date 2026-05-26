@@ -20,8 +20,6 @@ from virtualization.models import VirtualMachine
 
 from netbox_nsm.models import (
     ApplicationItem,
-    Application,
-    ApplicationSet,
     ObjectCustomObject,
     ObjectGroup,
     SecurityZone,
@@ -34,6 +32,7 @@ __all__ = (
     "SecurityZonePolicyRulebookForm",
     "SecurityZonePolicyRulebookFilterForm",
     "SecurityZonePolicyRulebookBulkEditForm",
+    "SecurityZonePolicyRulebookBulkAssignForm",
     "SecurityZonePolicyRuleForm",
     "SecurityZonePolicyRuleFilterForm",
     "SecurityZonePolicyRulebookAssignmentForm",
@@ -43,9 +42,16 @@ __all__ = (
 
 class SecurityZonePolicyRulebookForm(PrimaryModelForm):
     name = forms.CharField(max_length=100, required=True)
+    rule_comment_template = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 5, "placeholder": "## Notes\n\n{rulebook} – Rule #{index}\n"}),
+        label=_("Rule Comment Template"),
+        help_text=_("Markdown template pre-filled when adding new rules. Supports {rule_name}, {index}, {rulebook}."),
+    )
 
     fieldsets = (
         FieldSet("name", "rulebook_type", "description", name=_("Rulebook")),
+        FieldSet("rule_comment_template", name=_("Rule Defaults")),
         FieldSet("tags", name=_("Tags")),
     )
     comments = CommentField()
@@ -55,6 +61,7 @@ class SecurityZonePolicyRulebookForm(PrimaryModelForm):
         fields = (
             "name",
             "rulebook_type",
+            "rule_comment_template",
             "description",
             "comments",
             "tags",
@@ -105,19 +112,7 @@ class SecurityZonePolicyRuleForm(PrimaryModelForm):
         required=False,
         label=_("Service"),
     )
-    applications = forms.ModelMultipleChoiceField(
-        queryset=Application.objects.all(), required=False
-    )
-    application_sets = forms.ModelMultipleChoiceField(
-        queryset=ApplicationSet.objects.all(), required=False
-    )
-    log_enabled = forms.BooleanField(required=False, label=_("Log Rules"))
 
-    policy_action = forms.ChoiceField(
-        choices=SecurityZonePolicyRule._meta.get_field("policy_action").choices,
-        required=True,
-        label=_("Action"),
-    )
     custom_srcdst_objects = forms.ModelMultipleChoiceField(
         queryset=ObjectCustomObject.objects.filter(custom_type__area="srcdst"),
         required=False,
@@ -182,17 +177,13 @@ class SecurityZonePolicyRuleForm(PrimaryModelForm):
         ),
         FieldSet(
             "services",
-            "applications",
-            "application_sets",
             "custom_service_objects",
             "service_groups",
             name=_("Service"),
         ),
         FieldSet(
-            "policy_action",
             "custom_action_objects",
             "action_groups",
-            "log_enabled",
             name=_("Action"),
         ),
         FieldSet("tags", name=_("Tags")),
@@ -213,14 +204,10 @@ class SecurityZonePolicyRuleForm(PrimaryModelForm):
             "destination_custom_objects",
             "destination_groups",
             "services",
-            "applications",
-            "application_sets",
             "custom_service_objects",
             "service_groups",
-            "policy_action",
             "custom_action_objects",
             "action_groups",
-            "log_enabled",
             "description",
             "comments",
             "tags",
@@ -314,3 +301,33 @@ class SecurityZonePolicyRulebookAssignmentFilterForm(NetBoxModelFilterSetForm):
         required=False,
         label=_("Virtual Machine"),
     )
+
+
+class SecurityZonePolicyRulebookBulkAssignForm(forms.Form):
+    """Assign a rulebook to multiple devices/VMs/VDCs in one form submission."""
+
+    devices = DynamicModelMultipleChoiceField(
+        queryset=Device.objects.all(),
+        required=False,
+        label=_("Devices"),
+    )
+    virtual_machines = DynamicModelMultipleChoiceField(
+        queryset=VirtualMachine.objects.all(),
+        required=False,
+        label=_("Virtual Machines"),
+    )
+    virtual_device_contexts = DynamicModelMultipleChoiceField(
+        queryset=VirtualDeviceContext.objects.all(),
+        required=False,
+        label=_("Virtual Device Contexts"),
+    )
+
+    def clean(self):
+        data = super().clean()
+        if (
+            not data.get("devices")
+            and not data.get("virtual_machines")
+            and not data.get("virtual_device_contexts")
+        ):
+            raise forms.ValidationError(_("Select at least one device, VM, or VDC."))
+        return data

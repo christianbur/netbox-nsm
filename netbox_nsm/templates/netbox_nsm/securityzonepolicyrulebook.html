@@ -33,6 +33,12 @@
           <td>{{ object.description|placeholder }}</td>
         </tr>
         {% endif %}
+        {% if object.rule_comment_template %}
+        <tr>
+          <th scope="row">{% trans "Rule Comment Template" %}</th>
+          <td><pre class="mb-0 small" style="white-space:pre-wrap">{{ object.rule_comment_template }}</pre></td>
+        </tr>
+        {% endif %}
       </table>
     </div>
     {% include 'inc/panels/custom_fields.html' %}
@@ -43,7 +49,9 @@
   <div class="col-md-6">
     {% if object.rulebook_type == 'policy' %}
     <div class="card mb-3">
-      <h5 class="card-header">{% trans "Rules Table Columns" %}</h5>
+      <h5 class="card-header d-flex align-items-center justify-content-between">
+        {% trans "Rules Table Columns" %}
+      </h5>
       <div class="card-body">
         <form method="post" action="{% url 'plugins:netbox_nsm:securityzonepolicyrulebook_policy_columns' pk=object.pk %}">
           {% csrf_token %}

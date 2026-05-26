@@ -156,9 +156,21 @@ BUILTIN_CUSTOM_TYPES = [
         "icon": "mdi-label-outline",
         "description": "",
         "field_definitions": [
-            {"name": "label_type", "type": "text", "label": "Label Type"},
+            {"__meta__": True, "hide_table_data": True},
+            {
+                "name": "label_type",
+                "type": "choice",
+                "label": "Label Type",
+                "choices": ["Role", "Application", "Environment", "Location", "Flexible labels"],
+                "required": True,
+            },
+            {
+                "name": "flexible_text",
+                "type": "text",
+                "label": "Label Text",
+                "visible_when": {"field": "label_type", "value": "Flexible labels"},
+            },
             {"name": "color", "type": "text", "label": "Color"},
-            {"name": "zone", "type": "object_ref", "label": "Security Zone", "model": "netbox_nsm.SecurityZone", "selector": True},
         ],
     },
     {

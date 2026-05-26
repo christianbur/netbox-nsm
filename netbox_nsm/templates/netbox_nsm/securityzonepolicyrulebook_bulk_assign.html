@@ -1,0 +1,35 @@
+{% extends 'generic/object.html' %}
+{% load form_helpers %}
+{% load i18n %}
+
+{% block content %}
+<div class="row">
+  <div class="col col-md-8 offset-md-2">
+    <div class="card">
+      <h5 class="card-header">
+        {% trans "Assign Policy to Multiple Devices / VMs" %} &mdash; {{ object }}
+      </h5>
+      <div class="card-body">
+        <p class="text-muted small mb-3">
+          {% trans "Select one or more devices, virtual machines, and/or virtual device contexts to assign to this policy. Existing assignments are silently skipped." %}
+        </p>
+        <form method="post">
+          {% csrf_token %}
+          {{ form.non_field_errors }}
+          {% render_field form.devices %}
+          {% render_field form.virtual_machines %}
+          {% render_field form.virtual_device_contexts %}
+          <div class="mt-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+              <i class="mdi mdi-check-bold me-1"></i>{% trans "Assign" %}
+            </button>
+            <a href="{{ object.get_absolute_url }}" class="btn btn-outline-secondary">
+              {% trans "Cancel" %}
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

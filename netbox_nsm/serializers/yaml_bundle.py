@@ -94,7 +94,7 @@ def export_custom_object(obj) -> dict:
     object_ref values are stored as ``{__model: ..., __str: ...}`` so the
     importer can resolve them without touching arbitrary data.
     """
-    field_defs = {fd["name"]: fd for fd in (obj.custom_type.field_definitions or [])}
+    field_defs = {fd["name"]: fd for fd in (obj.custom_type.field_definitions or []) if not fd.get("__meta__")}
     serialized_fields: dict = {}
 
     for key, value in obj.field_data.items():
@@ -296,7 +296,7 @@ def import_bundle(
             continue
 
         # Resolve fields
-        field_defs = {fd["name"]: fd for fd in (ct.field_definitions or [])}
+        field_defs = {fd["name"]: fd for fd in (ct.field_definitions or []) if not fd.get("__meta__")}
         raw_fields = spec.get("fields") or {}
         field_data: dict = {}
         field_errors: list[str] = []

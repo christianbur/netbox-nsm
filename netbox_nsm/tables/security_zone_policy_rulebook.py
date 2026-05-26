@@ -44,12 +44,22 @@ def _card(label, items, max_pills=MAX_PILLS):
         )
 
     if hidden:
-        hidden_title = conditional_escape(", ".join(str(item["name"]) for item in hidden))
+        for item in hidden:
+            item_style = ("display:none;" + item["style"]) if item.get("style") else "display:none"
+            pills += (
+                f'<a href="{conditional_escape(str(item["url"]))}"'
+                f' class="nsm-rule-pill nsm-pill-hidden text-decoration-none"'
+                f' style="{conditional_escape(item_style)}"'
+                f' title="{conditional_escape(str(item["name"]))}">'
+                f'{conditional_escape(str(item["name"]))}</a>'
+            )
         pills += (
             f'<button type="button"'
             f' class="nsm-rule-pill nsm-rule-pill-muted nsm-pill-more"'
             f' style="border:none;cursor:pointer;flex-shrink:0;max-width:none;overflow:visible;"'
-            f' title="{hidden_title}"'
+            f' onclick="var c=this.closest(\'.nsm-rule-pills\');'
+            f'c.querySelectorAll(\'.nsm-pill-hidden\').forEach(function(e){{e.style.display=\'\';}});'
+            f'this.remove();"'
             f'>+{len(hidden)}</button>'
         )
 
@@ -99,13 +109,15 @@ def _build_src_dst_html(zones=(), users=()):
 
 
 def _custom_objects_cards(custom_objs):
-    """Group ObjectCustomObjects by custom_type and render as labelled cards with icons."""
+    """Group ObjectCustomObjects by custom_type and render as labelled cards with icons.
+    Uses display_template from the custom type if set."""
     type_map = OrderedDict()
     for obj in custom_objs:
         ct = obj.custom_type
         key = ct.name
+        display_name = obj.render_display() if hasattr(obj, "render_display") else obj.name
         type_map.setdefault(key, []).append(
-            {"url": obj.get_absolute_url(), "name": obj.name}
+            {"url": obj.get_absolute_url(), "name": display_name}
         )
     return [
         _card(label, items)
@@ -128,10 +140,7 @@ def _groups_cards(groups):
 
 class SourceColumn(tables.Column):
     def render(self, value, record):
-        cards = _build_src_dst_cards(
-            zones=record.source_zones.all(),
-            users=record.source_users.all(),
-        )
+        cards = _build_src_dst_cards(zones=record.source_zones.all())
         cards += _custom_objects_cards(record.custom_srcdst_objects.all())
         cards += _groups_cards(record.source_groups.all())
         return _rule_stack(cards)
@@ -139,10 +148,7 @@ class SourceColumn(tables.Column):
 
 class DestinationColumn(tables.Column):
     def render(self, value, record):
-        cards = _build_src_dst_cards(
-            zones=record.destination_zones.all(),
-            users=record.destination_users.all(),
-        )
+        cards = _build_src_dst_cards(zones=record.destination_zones.all())
         cards += _custom_objects_cards(record.destination_custom_objects.all())
         cards += _groups_cards(record.destination_groups.all())
         return _rule_stack(cards)
@@ -150,46 +156,14 @@ class DestinationColumn(tables.Column):
 
 class ServiceColumn(tables.Column):
     def render(self, value, record):
-        type_map = OrderedDict()
-        svcs = list(record.services.all())
-        if svcs:
-            type_map["Services"] = [{"url": s.get_absolute_url(), "name": s.name} for s in svcs]
-        apps = list(record.applications.all())
-        if apps:
-            type_map["Applications"] = [{"url": a.get_absolute_url(), "name": a.name} for a in apps]
-        appsets = list(record.application_sets.all())
-        if appsets:
-            type_map["App. Sets"] = [{"url": a.get_absolute_url(), "name": a.name} for a in appsets]
-        cards = [_card(label, items) for label, items in type_map.items()]
-        cards += _custom_objects_cards(record.custom_service_objects.all())
+        cards = _custom_objects_cards(record.custom_service_objects.all())
         cards += _groups_cards(record.service_groups.all())
         return _rule_stack(cards)
 
 
 class ActionColumn(tables.Column):
     def render(self, value, record):
-        action_display = record.get_policy_action_display()
-        action_card = mark_safe(
-            f'<div class="nsm-rule-card">'
-            f'<div class="nsm-rule-label">Action</div>'
-            f'<div class="nsm-rule-pills">'
-            f'<span class="nsm-rule-pill nsm-rule-pill-accent">{conditional_escape(action_display)}</span>'
-            f'</div>'
-            f'</div>'
-        )
-        log_pill = (
-            '<span class="nsm-rule-pill nsm-rule-pill-success">Log: on</span>'
-            if record.log_enabled
-            else '<span class="nsm-rule-pill nsm-rule-pill-muted">Log: off</span>'
-        )
-        log_card = mark_safe(
-            f'<div class="nsm-rule-card">'
-            f'<div class="nsm-rule-label">Log</div>'
-            f'<div class="nsm-rule-pills">{log_pill}</div>'
-            f'</div>'
-        )
-        cards = [action_card, log_card]
-        cards += _custom_objects_cards(record.custom_action_objects.all())
+        cards = _custom_objects_cards(record.custom_action_objects.all())
         cards += _groups_cards(record.action_groups.all())
         return _rule_stack(cards)
 
@@ -200,17 +174,17 @@ class InfoColumn(tables.Column):
 
 
 class NameColumn(tables.Column):
-    """Renders the rule name as a note icon; full name visible on hover."""
+    """Renders the rule name as a link; full name visible as tooltip."""
 
     def render(self, value, record):
         url = record.get_absolute_url()
+        full = str(value)
+        display = (full[:49] + "…") if len(full) > 50 else full
         return mark_safe(
             f'<a href="{conditional_escape(url)}"'
-            f' title="{conditional_escape(str(value))}"'
-            f' class="text-body"'
-            f' data-bs-toggle="tooltip"'
-            f' data-bs-placement="right">'
-            f'<i class="mdi mdi-note-text-outline"></i>'
+            f' title="{conditional_escape(full)}"'
+            f' class="text-body">'
+            f'{conditional_escape(display)}'
             f'</a>'
         )
 
@@ -229,7 +203,7 @@ class SecurityZonePolicyRulebookTable(NetBoxTable):
 
 class SecurityZonePolicyRuleTable(NetBoxTable):
     index = tables.Column(
-        verbose_name=mark_safe('<i class="mdi mdi-pound" title="Index" aria-label="Index"></i>'),
+        verbose_name=mark_safe('<i class="mdi mdi-pound" title="Index" aria-label="Index" style="color:inherit"></i>'),
     )
     status = tables.TemplateColumn(
         template_code="""
@@ -244,36 +218,36 @@ class SecurityZonePolicyRuleTable(NetBoxTable):
             {% endif %}
         """,
         orderable=False,
-        verbose_name=mark_safe('<i class="mdi mdi-check-circle-outline" title="Status" aria-label="Status"></i>'),
+        verbose_name=_("Status"),
     )
     name = NameColumn(
-        verbose_name=mark_safe('<i class="mdi mdi-tag-outline" title="Name" aria-label="Name"></i>'),
+        verbose_name=_("Name"),
         orderable=True,
     )
     rulebook = tables.Column(linkify=True)
     source = SourceColumn(
         orderable=False,
-        verbose_name=mark_safe('<i class="mdi mdi-arrow-collapse-right" title="Source" aria-label="Source"></i>'),
+        verbose_name=_("Source"),
         accessor=tables.A("pk"),
     )
     destination = DestinationColumn(
         orderable=False,
-        verbose_name=mark_safe('<i class="mdi mdi-flag-outline" title="Destination" aria-label="Destination"></i>'),
+        verbose_name=_("Destination"),
         accessor=tables.A("pk"),
     )
     service = ServiceColumn(
         orderable=False,
-        verbose_name=mark_safe('<i class="mdi mdi-cog-outline" title="Service" aria-label="Service"></i>'),
+        verbose_name=_("Service"),
         accessor=tables.A("pk"),
     )
     action = ActionColumn(
         orderable=False,
-        verbose_name=mark_safe('<i class="mdi mdi-lightning-bolt" title="Action" aria-label="Action"></i>'),
+        verbose_name=_("Action"),
         accessor=tables.A("pk"),
     )
     info = InfoColumn(
         orderable=False,
-        verbose_name=mark_safe('<i class="mdi mdi-information-outline" title="Info" aria-label="Info"></i>'),
+        verbose_name=_("Info"),
         accessor=tables.A("pk"),
     )
     tags = TagColumn(url_name="plugins:netbox_nsm:securityzonepolicyrule_list")
@@ -282,6 +256,7 @@ class SecurityZonePolicyRuleTable(NetBoxTable):
     class Meta(NetBoxTable.Meta):
         model = SecurityZonePolicyRule
         fields = (
+            "pk",
             "id",
             "rulebook",
             "index",
@@ -296,6 +271,7 @@ class SecurityZonePolicyRuleTable(NetBoxTable):
             "tags",
         )
         default_columns = (
+            "pk",
             "rulebook",
             "index",
             "status",

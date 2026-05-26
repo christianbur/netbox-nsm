@@ -9,7 +9,6 @@ from utilities.filters import (
 )
 from netbox_nsm.models import (
     ApplicationItem,
-    Application,
 )
 
 from netbox_nsm.mixins import PortsFilterSet
@@ -22,12 +21,6 @@ class ApplicationItemFilterSet(PortsFilterSet, PrimaryModelFilterSet):
     protocol = MultiValueCharFilter(
         method="filter_protocol",
         label=_("Protocols"),
-    )
-    application_id = django_filters.ModelMultipleChoiceFilter(
-        queryset=Application.objects.all(),
-        field_name="application_application_items",
-        to_field_name="id",
-        label=_("Application (ID)"),
     )
 
     class Meta:

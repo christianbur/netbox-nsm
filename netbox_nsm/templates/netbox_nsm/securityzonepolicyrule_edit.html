@@ -134,8 +134,7 @@
     </div>
     <div class="nsm-hidden-pickers">
       {% render_field form.services %}
-      {% render_field form.applications %}
-      {% render_field form.application_sets %}
+
       {% render_field form.custom_service_objects %}
       {% render_field form.service_groups %}
     </div>
@@ -169,14 +168,10 @@
         <tbody data-selection-table="action"></tbody>
       </table>
     </div>
-    <div class="row mb-3">
-      <div class="col-md-6">{% render_field form.policy_action %}</div>
-    </div>
     <div class="nsm-hidden-pickers">
       {% render_field form.custom_action_objects %}
       {% render_field form.action_groups %}
     </div>
-    <div class="mt-3">{% render_field form.log_enabled %}</div>
   </div>
 
   <div class="field-group mb-5">

@@ -88,4 +88,34 @@ def get_group_chains_for_object(app_label, model_name, pk):
         except Exception:
             pass
 
+    # For IPRange: also check containing prefixes via start_address
+    if model_name == "iprange":
+        try:
+            from ipam.models import IPRange, Prefix
+            iprange = IPRange.objects.get(pk=pk)
+            containing = Prefix.objects.filter(prefix__net_contains_or_equals=str(iprange.start_address.ip))
+            for prefix in containing:
+                p_pks = _ocos_for("ipam.prefix", prefix.pk)
+                p_pks -= direct_pks
+                if p_pks:
+                    result.extend(_build_chains(p_pks, inherited=True, via=prefix))
+        except Exception:
+            pass
+
+    # For Prefix: also check containing (parent) prefixes
+    if model_name == "prefix":
+        try:
+            from ipam.models import Prefix
+            prefix_obj = Prefix.objects.get(pk=pk)
+            containing = Prefix.objects.filter(
+                prefix__net_contains=str(prefix_obj.prefix)
+            ).exclude(pk=pk)
+            for parent in containing:
+                p_pks = _ocos_for("ipam.prefix", parent.pk)
+                p_pks -= direct_pks
+                if p_pks:
+                    result.extend(_build_chains(p_pks, inherited=True, via=parent))
+        except Exception:
+            pass
+
     return result

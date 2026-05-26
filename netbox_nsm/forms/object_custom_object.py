@@ -38,6 +38,9 @@ class ObjectCustomObjectForm(PrimaryModelForm):
         FieldSet("tags", name=_("Tags")),
     )
 
+    class Media:
+        js = ("netbox_nsm/js/nsm_visible_when.js",)
+
     class Meta:
         model = ObjectCustomObject
         fields = ("custom_type", "name", "description", "comments", "table_data", "tags")
@@ -63,6 +66,8 @@ class ObjectCustomObjectForm(PrimaryModelForm):
                 pass
         if ct:
             for field_def in (ct.field_definitions or []):
+                if field_def.get("__meta__"):
+                    continue
                 fname = f"dyn_{field_def['name']}"
                 ftype = field_def.get("type", "text")
                 if ftype == "object_ref":
@@ -121,18 +126,49 @@ class ObjectCustomObjectForm(PrimaryModelForm):
                         widget=forms.DateInput(attrs={"type": "date"}),
                         initial=self.instance.field_data.get(field_def["name"], "") if self.instance.pk else "",
                     )
+                elif ftype == "choice":
+                    raw_choices = field_def.get("choices", [])
+                    choice_list = [(c, c) for c in raw_choices]
+                    if not field_def.get("required", False):
+                        choice_list = [("", "---------")] + choice_list
+                    vw = field_def.get("visible_when", {})
+                    widget_attrs = {}
+                    if vw:
+                        widget_attrs["data-visible-when-field"] = f"dyn_{vw['field']}"
+                        widget_attrs["data-visible-when-value"] = vw["value"]
+                    self.fields[fname] = forms.ChoiceField(
+                        choices=choice_list,
+                        required=field_def.get("required", False),
+                        label=field_def.get("label", field_def["name"]),
+                        initial=self.instance.field_data.get(field_def["name"], "") if self.instance.pk else "",
+                        widget=forms.Select(attrs=widget_attrs) if widget_attrs else forms.Select(),
+                    )
                 else:
+                    vw = field_def.get("visible_when", {})
+                    widget_attrs = {"rows": 2}
+                    if vw:
+                        widget_attrs["data-visible-when-field"] = f"dyn_{vw['field']}"
+                        widget_attrs["data-visible-when-value"] = vw["value"]
                     self.fields[fname] = forms.CharField(
                         required=False,
                         label=field_def.get("label", field_def["name"]),
-                        widget=forms.Textarea(attrs={"rows": 2}),
+                        widget=forms.Textarea(attrs=widget_attrs),
                         initial=self.instance.field_data.get(field_def["name"], "") if self.instance.pk else "",
                     )
+
+            # Check for __meta__ options (e.g. hide_table_data)
+            meta = next(
+                (fd for fd in (ct.field_definitions or []) if fd.get("__meta__")),
+                {},
+            )
+            hide_table_data = meta.get("hide_table_data", False)
 
             # Build fieldsets — fields with the same tab_group become a TabbedGroups block
             grouped = OrderedDict()   # group_name -> [(fname, label)]
             ungrouped = []
             for field_def in (ct.field_definitions or []):
+                if field_def.get("__meta__"):
+                    continue
                 fname = f"dyn_{field_def['name']}"
                 tab_group = field_def.get("tab_group")
                 if tab_group:
@@ -157,10 +193,11 @@ class ObjectCustomObjectForm(PrimaryModelForm):
                 dynamic_parts.append(FieldSet(*ungrouped, name=_("Custom Fields")))
 
             if dynamic_parts:
+                table_fieldset = () if hide_table_data else (FieldSet("table_data", name=_("Key/Value Table")),)
                 self.fieldsets = (
                     FieldSet("custom_type", "name", "description", name=_("Custom Object")),
                     *dynamic_parts,
-                    FieldSet("table_data", name=_("Key/Value Table")),
+                    *table_fieldset,
                     FieldSet("tags", name=_("Tags")),
                 )
 

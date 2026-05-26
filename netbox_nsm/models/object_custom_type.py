@@ -36,6 +36,16 @@ class ObjectCustomType(PrimaryModel):
         default=list,
         help_text=_('List of field definitions: [{"name": "slug", "label": "Label"}, ...]'),
     )
+    display_template = models.CharField(
+        max_length=500,
+        blank=True,
+        default="",
+        help_text=_(
+            'Display template for objects of this type. '
+            'Use {name} and field data keys, e.g. "{name} ({port}/{protocol})". '
+            'If empty, the object name is used.'
+        ),
+    )
 
     class Meta:
         verbose_name = _("Custom Type")

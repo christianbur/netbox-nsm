@@ -37,7 +37,7 @@
     <div class="card mt-3">
       <h5 class="card-header">{% trans "Custom Fields" %}</h5>
       <table class="table table-hover attr-table">
-        {% for field_def in object.custom_type.field_definitions %}
+        {% for field_def in field_defs %}
         <tr>
           <th scope="row">{{ field_def.label }}</th>
           <td>
@@ -75,7 +75,14 @@
   </div>
   <div class="col-md-6">
     {% include 'inc/panels/tags.html' %}
+    {% if rendered_comments %}
+    <div class="card mt-3">
+      <h5 class="card-header">{% trans "Comments" %}</h5>
+      <div class="card-body rendered-markdown">{{ rendered_comments|markdown }}</div>
+    </div>
+    {% else %}
     {% include 'inc/panels/comments.html' %}
+    {% endif %}
   </div>
 </div>
 {% endblock %}

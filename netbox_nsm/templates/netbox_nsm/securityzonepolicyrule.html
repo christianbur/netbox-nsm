@@ -43,6 +43,39 @@
     {% plugin_left_page object %}
   </div>
   <div class="col-md-6">
+    {% if src_ips or dst_ips %}
+    <div class="card">
+      <h5 class="card-header">{% trans "IP Addresses" %}</h5>
+      <div class="row g-0">
+        <div class="col-6 border-end">
+          <div class="px-3 py-2 fw-semibold text-muted small border-bottom">
+            {% trans "Source" %}
+            {% if src_ips %}<span class="badge text-bg-secondary ms-1">{{ src_ips|length }}</span>{% endif %}
+          </div>
+          <ul class="list-unstyled mb-0 px-3 py-2" style="max-height:200px;overflow-y:auto;">
+            {% for ref in src_ips %}
+              <li><a href="{{ ref.url }}">{{ ref.str }}</a></li>
+            {% empty %}
+              <li class="text-muted">—</li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div class="col-6">
+          <div class="px-3 py-2 fw-semibold text-muted small border-bottom">
+            {% trans "Destination" %}
+            {% if dst_ips %}<span class="badge text-bg-secondary ms-1">{{ dst_ips|length }}</span>{% endif %}
+          </div>
+          <ul class="list-unstyled mb-0 px-3 py-2" style="max-height:200px;overflow-y:auto;">
+            {% for ref in dst_ips %}
+              <li><a href="{{ ref.url }}">{{ ref.str }}</a></li>
+            {% empty %}
+              <li class="text-muted">—</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+    {% endif %}
     <div class="card">
       <h5 class="card-header">{% trans "Source" %}</h5>
       <table class="table table-hover attr-table">
@@ -83,14 +116,6 @@
         <tr>
           <th scope="row">{% trans "Services" %}</th>
           <td>{% for item in object.services.all %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>
-        </tr>
-        <tr>
-          <th scope="row">{% trans "Applications" %}</th>
-          <td>{% for item in object.applications.all %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>
-        </tr>
-        <tr>
-          <th scope="row">{% trans "App. Sets" %}</th>
-          <td>{% for item in object.application_sets.all %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>
         </tr>
         <tr>
           <th scope="row">{% trans "Objekte" %}</th>

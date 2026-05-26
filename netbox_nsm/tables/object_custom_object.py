@@ -2,7 +2,7 @@ import django_tables2 as tables
 from django.utils.translation import gettext_lazy as _
 
 from netbox.tables import NetBoxTable
-from netbox.tables.columns import TagColumn
+from netbox.tables.columns import ActionsColumn, TagColumn
 
 from netbox_nsm.models import ObjectCustomObject, ObjectCustomObjectAssignment
 from netbox_nsm.tables.mixins import AssignedObjectParentMixin
@@ -14,11 +14,12 @@ class ObjectCustomObjectTable(NetBoxTable):
     name = tables.LinkColumn(verbose_name="Object")
     custom_type = tables.Column(verbose_name="Type", linkify=True)
     tags = TagColumn(url_name="plugins:netbox_nsm:object_custom_root")
+    actions = ActionsColumn(actions=("edit", "delete"))
 
     class Meta(NetBoxTable.Meta):
         model = ObjectCustomObject
-        fields = ("id", "name", "custom_type", "description", "tags")
-        default_columns = ("name", "custom_type", "description")
+        fields = ("pk", "id", "name", "custom_type", "description", "tags", "actions")
+        default_columns = ("pk", "name", "custom_type", "description", "actions")
 
 
 class ObjectCustomObjectAssignmentTable(AssignedObjectParentMixin, NetBoxTable):

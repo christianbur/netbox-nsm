@@ -281,6 +281,17 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
             for ctype in ObjectCustomType.objects.all().order_by("name")
         ]
 
+        # Virtual combined label — sorted labels + global search URL
+        virtual_labels = sorted(
+            [coa.custom_object for coa_group in custom_object_assignments for coa in coa_group["items"]],
+            key=lambda o: o.name,
+        )
+        virtual_label_pks = [lbl.pk for lbl in virtual_labels]
+        nsm_matching_url = ""
+        if len(virtual_label_pks) > 1:
+            params = "&".join(f"src_obj_id={lpk}" for lpk in virtual_label_pks)
+            nsm_matching_url = reverse("plugins:netbox_nsm:global_rules_search") + "?" + params
+
         return self.render(
             "netbox_nsm/inc/nsm_security_links.html",
             {
@@ -291,6 +302,8 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
                 "nsm_custom_object_assignments": custom_object_assignments,
                 "nsm_coa_count": coa_count,
                 "nsm_all_custom_types": all_custom_types,
+                "nsm_virtual_labels": virtual_labels,
+                "nsm_matching_url": nsm_matching_url,
             },
         )
 

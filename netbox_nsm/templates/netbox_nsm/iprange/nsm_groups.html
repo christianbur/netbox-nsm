@@ -13,8 +13,8 @@
             <div class="card-body">
                 {% if group_chains %}
                     <p class="text-muted small mb-2">
-                        {% trans "Every path from this prefix through its address-objects up to the root group." %}
-                        {% trans "Rows marked 'Inherited' are matched via a containing parent prefix." %}
+                        {% trans "Every path from this IP range through its address-objects up to the root group." %}
+                        {% trans "Rows highlighted in yellow are matched via a containing prefix (inherited)." %}
                     </p>
                     <table class="table table-hover table-sm">
                         <thead>
@@ -40,7 +40,7 @@
                                 </td>
                                 <td>
                                     {% if entry.inherited and entry.via %}
-                                        <span class="badge bg-secondary">{% trans "Inherited" %}</span>
+                                        <span class="badge bg-warning text-dark">{% trans "Subnet" %}</span>
                                         <a href="{{ entry.via.get_absolute_url }}">{{ entry.via }}</a>
                                     {% else %}
                                         <span class="text-muted">—</span>
@@ -51,7 +51,7 @@
                         </tbody>
                     </table>
                 {% else %}
-                    <span class="text-muted">{% trans "This prefix is not referenced in any Object Group." %}</span>
+                    <span class="text-muted">{% trans "This IP range is not referenced in any Object Group." %}</span>
                 {% endif %}
             </div>
         </div>

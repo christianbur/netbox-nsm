@@ -13,7 +13,9 @@ from netbox_nsm.forms import (
     ObjectCustomObjectAssignmentForm,
     ObjectCustomObjectAssignmentFilterForm,
 )
-from netbox_nsm.models import ObjectCustomObject, ObjectCustomObjectAssignment
+from django.db.models import Q
+
+from netbox_nsm.models import ObjectCustomObject, ObjectCustomObjectAssignment, SecurityZonePolicyRule
 from netbox_nsm.tables import ObjectCustomObjectTable, ObjectCustomObjectAssignmentTable
 
 
@@ -23,11 +25,17 @@ class ObjectCustomView(generic.ObjectView):
     template_name = "netbox_nsm/objectcustom.html"
 
     def get_extra_context(self, request, instance):
-        # Build a normalized dict that always contains every key from field_definitions
-        # so the template's get_item filter never raises a KeyError for missing fields.
-        field_defs = (instance.custom_type.field_definitions or []) if instance.custom_type else []
+        # Filter out meta entries (e.g. {'__meta__': True, 'hide_table_data': True})
+        # that don't have a 'name' key, so the template never crashes on them.
+        raw_defs = (instance.custom_type.field_definitions or []) if instance.custom_type else []
+        field_defs = [fd for fd in raw_defs if fd.get("name")]
         normalized = {fd["name"]: instance.field_data.get(fd["name"], "") for fd in field_defs}
-        return {"normalized_field_data": normalized}
+        rendered_comments = instance.render_comments() if hasattr(instance, "render_comments") else (instance.comments or "")
+        return {
+            "field_defs": field_defs,
+            "normalized_field_data": normalized,
+            "rendered_comments": rendered_comments,
+        }
 
 
 @register_model_view(ObjectCustomObject, "list", path="", detail=False)
@@ -66,15 +74,25 @@ class ObjectCustomBulkDeleteView(generic.BulkDeleteView):
 
 # ── ObjectCustomObjectAssignment ──────────────────────────────────────────────
 
+def _rules_for_object(obj):
+    return SecurityZonePolicyRule.objects.filter(
+        Q(custom_srcdst_objects=obj)
+        | Q(destination_custom_objects=obj)
+        | Q(custom_service_objects=obj)
+        | Q(custom_action_objects=obj)
+    ).distinct()
+
+
 @register_model_view(ObjectCustomObject, "assignments")
 class ObjectCustomAssignmentsView(generic.ObjectChildrenView):
     queryset = ObjectCustomObject.objects.all()
     child_model = ObjectCustomObjectAssignment
     table = ObjectCustomObjectAssignmentTable
     filterset = ObjectCustomObjectAssignmentFilterSet
+    template_name = "netbox_nsm/objectcustom_assignments.html"
     tab = ViewTab(
         label=_("Assignments"),
-        badge=lambda obj: obj.assignments.count(),
+        badge=lambda obj: _rules_for_object(obj).count(),
         weight=200,
         hide_if_empty=False,
     )
@@ -83,6 +101,14 @@ class ObjectCustomAssignmentsView(generic.ObjectChildrenView):
         return ObjectCustomObjectAssignment.objects.filter(custom_object=parent).select_related(
             "assigned_object_type"
         )
+
+    def get_extra_context(self, request, instance):
+        rules = (
+            _rules_for_object(instance)
+            .select_related("rulebook")
+            .order_by("rulebook__name", "index", "name")
+        )
+        return {"firewall_rules": rules}
 
 
 @register_model_view(ObjectCustomObjectAssignment, "list", path="", detail=False)
@@ -128,3 +154,6 @@ class ObjectCustomObjectAssignmentDeleteView(generic.ObjectDeleteView):
 class ObjectCustomObjectAssignmentBulkDeleteView(generic.BulkDeleteView):
     queryset = ObjectCustomObjectAssignment.objects.all()
     table = ObjectCustomObjectAssignmentTable
+
+
+

@@ -12,8 +12,6 @@ from netbox.api.serializers import NetBoxModelSerializer, PrimaryModelSerializer
 from utilities.api import get_serializer_for_model
 
 from netbox_nsm.api.serializers import (
-    ApplicationSerializer,
-    ApplicationSetSerializer,
     SecurityZoneSerializer,
 )
 from netbox_nsm.constants import RULESET_ASSIGNMENT_MODELS
@@ -64,8 +62,6 @@ class SecurityZonePolicyRuleSerializer(PrimaryModelSerializer):
     source_users = NestedUserSerializer(nested=True, required=False, many=True)
     destination_zones = SecurityZoneSerializer(nested=True, required=False, many=True)
     destination_users = NestedUserSerializer(nested=True, required=False, many=True)
-    applications = ApplicationSerializer(nested=True, required=False, many=True)
-    application_sets = ApplicationSetSerializer(nested=True, required=False, many=True)
 
     class Meta:
         model = SecurityZonePolicyRule
@@ -83,8 +79,6 @@ class SecurityZonePolicyRuleSerializer(PrimaryModelSerializer):
             "destination_zones",
             "destination_users",
             "services",
-            "applications",
-            "application_sets",
             "log_enabled",
             "description",
             "comments",
@@ -109,8 +103,6 @@ class SecurityZonePolicyRuleSerializer(PrimaryModelSerializer):
         source_users = validated_data.pop("source_users", None)
         destination_zones = validated_data.pop("destination_zones", None)
         destination_users = validated_data.pop("destination_users", None)
-        applications = validated_data.pop("applications", None)
-        application_sets = validated_data.pop("application_sets", None)
 
         obj = super().create(validated_data)
         if source_zones is not None:
@@ -121,10 +113,6 @@ class SecurityZonePolicyRuleSerializer(PrimaryModelSerializer):
             obj.destination_zones.set(destination_zones)
         if destination_users is not None:
             obj.destination_users.set(destination_users)
-        if applications is not None:
-            obj.applications.set(applications)
-        if application_sets is not None:
-            obj.application_sets.set(application_sets)
         return obj
 
     def update(self, instance, validated_data):
@@ -132,8 +120,6 @@ class SecurityZonePolicyRuleSerializer(PrimaryModelSerializer):
         source_users = validated_data.pop("source_users", None)
         destination_zones = validated_data.pop("destination_zones", None)
         destination_users = validated_data.pop("destination_users", None)
-        applications = validated_data.pop("applications", None)
-        application_sets = validated_data.pop("application_sets", None)
 
         obj = super().update(instance, validated_data)
         if source_zones is not None:
@@ -144,10 +130,6 @@ class SecurityZonePolicyRuleSerializer(PrimaryModelSerializer):
             obj.destination_zones.set(destination_zones)
         if destination_users is not None:
             obj.destination_users.set(destination_users)
-        if applications is not None:
-            obj.applications.set(applications)
-        if application_sets is not None:
-            obj.application_sets.set(application_sets)
         return obj
 
 

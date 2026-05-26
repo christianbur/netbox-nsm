@@ -34,6 +34,12 @@
           </td>
         </tr>
         <tr><th scope="row">{% trans "Description" %}</th><td>{{ object.description|placeholder }}</td></tr>
+        {% if object.display_template %}
+        <tr>
+          <th scope="row">{% trans "Display Template" %}</th>
+          <td><code>{{ object.display_template }}</code></td>
+        </tr>
+        {% endif %}
       </table>
     </div>
     {% if object.field_definitions %}

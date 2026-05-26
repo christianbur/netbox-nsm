@@ -5,8 +5,6 @@ import strawberry_django
 
 from .types import (
     NetBoxSecurityApplicationItemType,
-    NetBoxSecurityApplicationType,
-    NetBoxSecurityApplicationSetType,
     NetBoxSecuritySecurityZoneType,
 )
 
@@ -16,26 +14,6 @@ class NetBoxSecurityApplicationItemQuery:
         strawberry_django.field()
     )
     netbox_nsm_applicationitem_list: List[NetBoxSecurityApplicationItemType] = (
-        strawberry_django.field()
-    )
-
-
-@strawberry.type(name="Query")
-class NetBoxSecurityApplicationQuery:
-    netbox_nsm_application: NetBoxSecurityApplicationType = (
-        strawberry_django.field()
-    )
-    netbox_nsm_application_list: List[NetBoxSecurityApplicationType] = (
-        strawberry_django.field()
-    )
-
-
-@strawberry.type(name="Query")
-class NetBoxSecurityApplicationSetQuery:
-    netbox_nsm_applicationset: NetBoxSecurityApplicationSetType = (
-        strawberry_django.field()
-    )
-    netbox_nsm_applicationset_list: List[NetBoxSecurityApplicationSetType] = (
         strawberry_django.field()
     )
 

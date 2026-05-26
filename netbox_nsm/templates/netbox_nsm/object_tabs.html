@@ -37,14 +37,25 @@
                   {% endfor %}
                 </ul>
 
-                <div class="d-flex flex-wrap gap-2">
+                <div class="d-flex flex-wrap gap-2 align-items-center">
                   <a class="btn btn-primary" href="{{ active_tab_add_url }}">Add</a>
+                  <button type="submit" form="nsm-bulk-delete-form" class="btn btn-danger btn-sm ms-auto"
+                          onclick="return confirm('Delete selected objects?');">
+                    <i class="mdi mdi-trash-can-outline"></i> Delete selected
+                  </button>
                 </div>
 
+                <form id="nsm-bulk-delete-form" method="post"
+                      action="/plugins/netbox-nsm/custom-objects/delete/">
+                  {% csrf_token %}
                 <div class="table-responsive mt-3">
                   <table class="table table-hover align-middle mb-0">
                     <thead>
                       <tr>
+                        <th style="width:1rem">
+                          <input type="checkbox" id="nsm-select-all"
+                                 onclick="document.querySelectorAll('.nsm-obj-cb').forEach(cb=>cb.checked=this.checked)">
+                        </th>
                         {% for column in table_columns %}
                           <th>{{ column.label }}</th>
                         {% endfor %}
@@ -54,6 +65,9 @@
                     <tbody>
                       {% for row in table_rows %}
                         <tr>
+                          <td>
+                            <input type="checkbox" class="nsm-obj-cb" name="pk" value="{{ row.pk }}">
+                          </td>
                           {% for cell in row.cells %}
                             <td>
                               {% if forloop.first and row.url %}
@@ -76,12 +90,13 @@
                         </tr>
                       {% empty %}
                         <tr>
-                          <td colspan="{{ table_columns|length|add:1 }}" class="text-muted">No objects found.</td>
+                          <td colspan="{{ table_columns|length|add:2 }}" class="text-muted">No objects found.</td>
                         </tr>
                       {% endfor %}
                     </tbody>
                   </table>
                 </div>
+                </form>
               </div>
             </div>
           {% endif %}

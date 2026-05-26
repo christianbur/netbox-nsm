@@ -6,65 +6,6 @@ plugin_settings = settings.PLUGINS_CONFIG.get("netbox_nsm", {})
 
 address_menu_items = ()
 
-application_menu_items = (
-    PluginMenuItem(
-        link="plugins:netbox_nsm:applicationitem_list",
-        link_text=_("Application Items"),
-        permissions=["netbox_nsm.view_applicationitem"],
-        buttons=(
-            PluginMenuButton(
-                "plugins:netbox_nsm:applicationitem_add",
-                _("Add"),
-                "mdi mdi-plus-thick",
-                permissions=["netbox_nsm.add_applicationitem"],
-            ),
-            PluginMenuButton(
-                "plugins:netbox_nsm:applicationitem_bulk_import",
-                _("Import"),
-                "mdi mdi-upload",
-                permissions=["netbox_nsm.add_applicationitem"],
-            ),
-        ),
-    ),
-    PluginMenuItem(
-        link="plugins:netbox_nsm:application_list",
-        link_text=_("Applications"),
-        permissions=["netbox_nsm.view_application"],
-        buttons=(
-            PluginMenuButton(
-                "plugins:netbox_nsm:application_add",
-                _("Add"),
-                "mdi mdi-plus-thick",
-                permissions=["netbox_nsm.add_application"],
-            ),
-            PluginMenuButton(
-                "plugins:netbox_nsm:application_bulk_import",
-                _("Import"),
-                "mdi mdi-upload",
-                permissions=["netbox_nsm.add_application"],
-            ),
-        ),
-    ),
-    PluginMenuItem(
-        link="plugins:netbox_nsm:applicationset_list",
-        link_text=_("Application Sets"),
-        permissions=["netbox_nsm.view_applicationset"],
-        buttons=(
-            PluginMenuButton(
-                "plugins:netbox_nsm:applicationset_add",
-                _("Add"),
-                "mdi mdi-plus-thick",
-                permissions=["netbox_nsm.add_applicationset"],
-            ),
-            PluginMenuButton(
-                "plugins:netbox_nsm:applicationset_bulk_import",
-                _("Import"),
-                "mdi mdi-upload",
-                permissions=["netbox_nsm.add_applicationset"],
-            ),
-        ),
-    ),
-)
 builder_menu_items = ()
 
 security_policy_menu_items = (

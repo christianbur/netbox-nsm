@@ -129,7 +129,7 @@ def _groups_cards(groups):
 
 class SourceColumn(tables.Column):
     def render(self, value, record):
-        cards = _build_src_dst_cards()
+        cards = _build_src_dst_cards(users=record.source_users.all())
         cards += _custom_objects_cards(record.custom_srcdst_objects.all())
         cards += _groups_cards(record.source_groups.all())
         return _rule_stack(cards)
@@ -137,7 +137,7 @@ class SourceColumn(tables.Column):
 
 class DestinationColumn(tables.Column):
     def render(self, value, record):
-        cards = _build_src_dst_cards()
+        cards = _build_src_dst_cards(users=record.destination_users.all())
         cards += _custom_objects_cards(record.destination_custom_objects.all())
         cards += _groups_cards(record.destination_groups.all())
         return _rule_stack(cards)

@@ -486,8 +486,13 @@ class SecurityZonePolicyRulebookRulesView(generic.ObjectView):
             "source_users",
             "destination_users",
             "custom_srcdst_objects__custom_type",
+            "destination_custom_objects__custom_type",
             "custom_service_objects__custom_type",
             "custom_action_objects__custom_type",
+            "source_groups",
+            "destination_groups",
+            "service_groups",
+            "action_groups",
         )
 
         # ── optional custom-object filter (src_obj_id / dst_obj_id) ─────────────────

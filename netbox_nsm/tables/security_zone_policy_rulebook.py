@@ -77,22 +77,11 @@ def _rule_stack(cards):
     return mark_safe(f'<div class="nsm-rule-stack">{"".join(cards)}</div>')
 
 
-def _build_src_dst_cards(zones=(), users=()):
+def _build_src_dst_cards(users=()):
     """
-    Returns a list of card HTML strings for zones and users.
+    Returns a list of card HTML strings for users.
     """
     type_map = OrderedDict()
-
-    # direct zones (coloured pills)
-    if zones:
-        type_map.setdefault("Zones", []).extend(
-            {
-                "url": z.get_absolute_url(),
-                "name": z.name,
-                "style": f"background-color: {z.color}; color: #fff;",
-            }
-            for z in zones
-        )
 
     # direct users
     if users:
@@ -140,7 +129,7 @@ def _groups_cards(groups):
 
 class SourceColumn(tables.Column):
     def render(self, value, record):
-        cards = _build_src_dst_cards(zones=record.source_zones.all())
+        cards = _build_src_dst_cards()
         cards += _custom_objects_cards(record.custom_srcdst_objects.all())
         cards += _groups_cards(record.source_groups.all())
         return _rule_stack(cards)
@@ -148,7 +137,7 @@ class SourceColumn(tables.Column):
 
 class DestinationColumn(tables.Column):
     def render(self, value, record):
-        cards = _build_src_dst_cards(zones=record.destination_zones.all())
+        cards = _build_src_dst_cards()
         cards += _custom_objects_cards(record.destination_custom_objects.all())
         cards += _groups_cards(record.destination_groups.all())
         return _rule_stack(cards)

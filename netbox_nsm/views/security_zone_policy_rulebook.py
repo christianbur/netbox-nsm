@@ -29,11 +29,9 @@ from netbox_nsm.forms import (
     SecurityZonePolicyRuleForm,
 )
 from netbox_nsm.models import (
-    ApplicationItem,
     ObjectCustomObject,
     ObjectGroup,
     RulebookTypeChoices,
-    SecurityZone,
     SecurityZonePolicyRule,
     SecurityZonePolicyRulebook,
     SecurityZonePolicyRulebookAssignment,
@@ -63,19 +61,7 @@ def _options_from_queryset(queryset):
     return [{"value": str(obj.pk), "text": str(obj)} for obj in queryset]
 
 
-def _build_security_rule_object_catalog():
-    zones = _options_from_queryset(SecurityZone.objects.order_by("name"))
-
-    return {
-        "source_zones": zones,
-        "destination_zones": zones,
-        "services": _options_from_queryset(ApplicationItem.objects.order_by("name")),
-    }
-
-
 def _build_security_rule_add_options():
-    catalog = _build_security_rule_object_catalog()
-
     def _opt(value_field, value, group_label, text):
         return {
             "value": json.dumps({"field": value_field, "value": str(value), "label": str(group_label)}),
@@ -120,17 +106,14 @@ def _build_security_rule_add_options():
         ]
 
     source_options = [
-        *_opts("source_zones", _("Zone"), catalog.get("source_zones", [])),
         *_typed_opts("custom_srcdst_objects", srcdst_objects_qs),
         *_opts("source_groups", _("Group"), srcdst_groups),
     ]
     destination_options = [
-        *_opts("destination_zones", _("Zone"), catalog.get("destination_zones", [])),
         *_typed_opts("destination_custom_objects", srcdst_objects_qs),
         *_opts("destination_groups", _("Group"), srcdst_groups),
     ]
     service_options = [
-        *_opts("services", _("Service"), catalog.get("services", [])),
         *_typed_opts("custom_service_objects", service_objects_qs),
         *_opts("service_groups", _("Group"), service_groups),
     ]
@@ -283,7 +266,6 @@ def _build_object_analysis(rulebook):
     from collections import Counter, defaultdict
 
     AREA_DEFS = [
-        ("zones",    "Zones"),
         ("srcdst",   "Objects (Source / Destination)"),
         ("services", "Services"),
         ("action",   "Action"),
@@ -293,8 +275,6 @@ def _build_object_analysis(rulebook):
         SecurityZonePolicyRule.objects
         .filter(rulebook=rulebook)
         .prefetch_related(
-            "source_zones",
-            "destination_zones",
             "custom_srcdst_objects__custom_type",
             "destination_custom_objects__custom_type",
             "custom_service_objects__custom_type",
@@ -306,10 +286,6 @@ def _build_object_analysis(rulebook):
 
     def _names_for_area(rule, area):
         """Return list of (name, type_label) tuples for the given area."""
-        if area == "zones":
-            src = [(z.name, "Source Zone") for z in rule.source_zones.all()]
-            dst = [(z.name, "Destination Zone") for z in rule.destination_zones.all()]
-            return src + dst
         if area == "srcdst":
             src = [(o.name, o.custom_type.name) for o in rule.custom_srcdst_objects.all()]
             dst = [(o.name, o.custom_type.name) for o in rule.destination_custom_objects.all()]
@@ -361,7 +337,6 @@ def _build_object_usage_stats(rulebook):
         SecurityZonePolicyRule.objects
         .filter(rulebook=rulebook)
         .prefetch_related(
-            "source_zones", "destination_zones",
             "custom_srcdst_objects__custom_type",
             "destination_custom_objects__custom_type",
             "custom_service_objects__custom_type",
@@ -371,15 +346,10 @@ def _build_object_usage_stats(rulebook):
         )
     )
 
-    zone_counter = Counter()
     object_counter = Counter()
     group_counter = Counter()
 
     for rule in rules:
-        for z in rule.source_zones.all():
-            zone_counter[(z.pk, z.name, "src")] += 1
-        for z in rule.destination_zones.all():
-            zone_counter[(z.pk, z.name, "dst")] += 1
         for obj in list(rule.custom_srcdst_objects.all()) + list(rule.destination_custom_objects.all()) + \
                    list(rule.custom_service_objects.all()) + list(rule.custom_action_objects.all()):
             object_counter[(obj.pk, obj.name, obj.custom_type.name)] += 1
@@ -387,10 +357,6 @@ def _build_object_usage_stats(rulebook):
                    list(rule.service_groups.all()) + list(rule.action_groups.all()):
             group_counter[(grp.pk, grp.name)] += 1
 
-    top_zones = [
-        {"pk": pk, "name": name, "direction": direction, "count": count}
-        for (pk, name, direction), count in zone_counter.most_common(10)
-    ]
     top_objects = [
         {"pk": pk, "name": name, "type": type_name, "count": count}
         for (pk, name, type_name), count in object_counter.most_common(10)
@@ -400,7 +366,6 @@ def _build_object_usage_stats(rulebook):
         for (pk, name), count in group_counter.most_common(10)
     ]
     return {
-        "top_zones": top_zones,
         "top_objects": top_objects,
         "top_groups": top_groups,
         "total_rules": len(rules),
@@ -518,25 +483,12 @@ class SecurityZonePolicyRulebookRulesView(generic.ObjectView):
 
     def get_extra_context(self, request, instance):
         rules_qs = SecurityZonePolicyRule.objects.filter(rulebook=instance).prefetch_related(
-            "source_zones",
-            "destination_zones",
             "source_users",
             "destination_users",
-            "services",
             "custom_srcdst_objects__custom_type",
             "custom_service_objects__custom_type",
             "custom_action_objects__custom_type",
         )
-
-        # ── optional zone filter (set by clicking a visualization matrix cell) ──
-        src_filter  = [v for v in request.GET.getlist("source_zones_id")  if v.isdigit()]
-        dst_filter  = [v for v in request.GET.getlist("destination_zones_id") if v.isdigit()]
-        if src_filter:
-            rules_qs = rules_qs.filter(source_zones__id__in=src_filter)
-        if dst_filter:
-            rules_qs = rules_qs.filter(destination_zones__id__in=dst_filter)
-        if src_filter or dst_filter:
-            rules_qs = rules_qs.distinct()
 
         # ── optional custom-object filter (src_obj_id / dst_obj_id) ─────────────────
         # Works for ALL ObjectCustomObject types: labels, addresses, services, etc.
@@ -571,9 +523,6 @@ class SecurityZonePolicyRulebookRulesView(generic.ObjectView):
             _q = (
                 Q(name__icontains=search_q)
                 | Q(description__icontains=search_q)
-                | Q(source_zones__name__icontains=search_q)
-                | Q(destination_zones__name__icontains=search_q)
-                | Q(services__name__icontains=search_q)
                 | Q(custom_srcdst_objects__name__icontains=search_q)
                 | Q(custom_service_objects__name__icontains=search_q)
                 | Q(custom_action_objects__name__icontains=search_q)
@@ -589,25 +538,12 @@ class SecurityZonePolicyRulebookRulesView(generic.ObjectView):
         _COLUMN_LOOKUPS = {
             "name":        "name__icontains",
             "description": "description__icontains",
-            "source":      "source_zones__name__icontains",
-            "destination": "destination_zones__name__icontains",
-            "service":     "services__name__icontains",
         }
         if search_col and search_val:
             if search_col == "index" and search_val.isdigit():
                 rules_qs = rules_qs.filter(index=int(search_val)).distinct()
             elif search_col in _COLUMN_LOOKUPS:
                 rules_qs = rules_qs.filter(**{_COLUMN_LOOKUPS[search_col]: search_val}).distinct()
-
-        # resolve zone names for active-filter badge
-        active_src_zones = (
-            list(SecurityZone.objects.filter(pk__in=src_filter).order_by("name"))
-            if src_filter else []
-        )
-        active_dst_zones = (
-            list(SecurityZone.objects.filter(pk__in=dst_filter).order_by("name"))
-            if dst_filter else []
-        )
 
         # resolve custom-object names for active-filter badge
         active_src_objs = (
@@ -641,162 +577,11 @@ class SecurityZonePolicyRulebookRulesView(generic.ObjectView):
             "is_security_rules": True,
             "security_rules_columns": SECURITY_RULES_COLUMNS,
             "selected_security_rules_columns": selected_columns,
-            "active_src_zones": active_src_zones,
-            "active_dst_zones": active_dst_zones,
             "active_src_objs": active_src_objs,
             "active_dst_objs": active_dst_objs,
             "search_q": search_q,
             "search_col": search_col,
             "search_val": search_val,
-            "src_filter": src_filter,
-            "dst_filter": dst_filter,
-        }
-
-
-@register_model_view(SecurityZonePolicyRulebook, name="visualization", path="visualization/zonematrix")
-class SecurityZonePolicyRulebookVisualizationView(generic.ObjectView):
-    queryset = SecurityZonePolicyRulebook.objects.all()
-    template_name = "netbox_nsm/securityzonepolicyrulebook_visualization.html"
-    tab = ViewTab(
-        label=_("Visualisation"),
-        permission="netbox_nsm.view_securityzonepolicyrulebook",
-    )
-
-    def get_extra_context(self, request, instance):
-        from collections import defaultdict
-
-        ACTION_COLOR = {
-            "permit": "success",
-            "deny": "danger",
-            "log": "warning",
-            "count": "info",
-            "reject": "danger",
-        }
-
-        rules_qs = (
-            SecurityZonePolicyRule.objects
-            .filter(rulebook=instance)
-            .prefetch_related("source_zones", "destination_zones", "custom_action_objects")
-            .order_by("index")
-        )
-
-        # collect all unique zones (src ∪ dst), sorted alphabetically
-        # rules with no source/destination zones get a sentinel "(none)" zone
-        NONE_ZONE_PK = 0
-        zones_by_pk = {}
-        has_none_src = False
-        has_none_dst = False
-        for rule in rules_qs:
-            src_list = list(rule.source_zones.all())
-            dst_list = list(rule.destination_zones.all())
-            if not src_list:
-                has_none_src = True
-            if not dst_list:
-                has_none_dst = True
-            for z in src_list:
-                zones_by_pk[z.pk] = z
-            for z in dst_list:
-                zones_by_pk[z.pk] = z
-        all_zones = sorted(zones_by_pk.values(), key=lambda z: z.name)
-        if has_none_src or has_none_dst:
-            from types import SimpleNamespace
-            all_zones = [SimpleNamespace(pk=NONE_ZONE_PK, name="(none)")] + all_zones
-
-        # optional zone filter from GET params – separate src/dst selectors
-        # empty selection = show all zones
-        src_filter = [v for v in request.GET.getlist("src_zone_id") if v.isdigit()]
-        dst_filter = [v for v in request.GET.getlist("dst_zone_id") if v.isdigit()]
-        selected_src_pks = set(int(v) for v in src_filter)
-        selected_dst_pks = set(int(v) for v in dst_filter)
-        src_zones = [z for z in all_zones if z.pk in selected_src_pks] if src_filter else all_zones
-        dst_zones = [z for z in all_zones if z.pk in selected_dst_pks] if dst_filter else all_zones
-
-        # build cell_map: (src_pk, dst_pk) → list[rule]
-        # rules without zones are mapped to NONE_ZONE_PK (0)
-        def _rule_action_color_label(rule):
-            """Derive color and label from custom_action_objects; fall back to policy_action."""
-            names = [o.name.lower() for o in rule.custom_action_objects.all()]
-            for name in names:
-                for key, color in ACTION_COLOR.items():
-                    if key in name:
-                        display = next(
-                            (o.name for o in rule.custom_action_objects.all() if key in o.name.lower()),
-                            name,
-                        )
-                        return color, display
-            # fallback
-            return "secondary", "Unknown"
-
-        cell_map = defaultdict(list)
-        for rule in rules_qs:
-            rule._color, rule._action_label = _rule_action_color_label(rule)
-            src_list = list(rule.source_zones.all())
-            dst_list = list(rule.destination_zones.all())
-            for sp in ([z.pk for z in src_list] if src_list else [NONE_ZONE_PK]):
-                for dp in ([z.pk for z in dst_list] if dst_list else [NONE_ZONE_PK]):
-                    cell_map[(sp, dp)].append(rule)
-
-        policy_url_base = reverse(
-            "plugins:netbox_nsm:securityzonepolicyrulebook_policy",
-            args=[instance.pk],
-        )
-        add_url_base = reverse("plugins:netbox_nsm:securityzonepolicyrule_add")
-        viz_url_base = reverse(
-            "plugins:netbox_nsm:securityzonepolicyrulebook_visualization",
-            args=[instance.pk],
-        )
-
-        # build matrix_rows for template
-        matrix_rows = []
-        for src in src_zones:
-            cells = []
-            for dst in dst_zones:
-                rules = cell_map.get((src.pk, dst.pk), [])
-                count = len(rules)
-                # build zone-aware href query strings (skip pk=0 sentinel)
-                sp_q = f"source_zones_id={src.pk}" if src.pk != NONE_ZONE_PK else ""
-                dp_q = f"destination_zones_id={dst.pk}" if dst.pk != NONE_ZONE_PK else ""
-                filter_qs = "?" + "&".join(p for p in [sp_q, dp_q] if p)
-                if count == 0:
-                    src_add = f"&source_zones={src.pk}" if src.pk != NONE_ZONE_PK else ""
-                    dst_add = f"&destination_zones={dst.pk}" if dst.pk != NONE_ZONE_PK else ""
-                    cell = {
-                        "type": "empty",
-                        "href": (
-                            f"{add_url_base}?rulebook={instance.pk}"
-                            f"{src_add}{dst_add}"
-                            f"&return_url={policy_url_base}"
-                        ),
-                    }
-                elif count == 1:
-                    r = rules[0]
-                    cell = {
-                        "type": "single",
-                        "rule": r,
-                        "color": r._color,
-                        "label": r._action_label,
-                        "href": f"{policy_url_base}{filter_qs}",
-                    }
-                else:
-                    cell = {
-                        "type": "multi",
-                        "count": count,
-                        "href": f"{policy_url_base}{filter_qs}",
-                    }
-                cell["is_self"] = src.pk == dst.pk
-                cells.append(cell)
-            matrix_rows.append({"source_zone": src, "cells": cells})
-
-        return {
-            "all_zones": all_zones,
-            "src_zones": src_zones,
-            "dst_zones": dst_zones,
-            "selected_src_pks": selected_src_pks,
-            "selected_dst_pks": selected_dst_pks,
-            "viz_url_base": viz_url_base,
-            "matrix_rows": matrix_rows,
-            "object_usage_stats": _build_object_usage_stats(instance),
-            "object_analysis": _build_object_analysis(instance),
         }
 
 
@@ -861,11 +646,8 @@ def _collect_ips_from_group(group, visited=None):
 @register_model_view(SecurityZonePolicyRule)
 class SecurityZonePolicyRuleView(generic.ObjectView):
     queryset = SecurityZonePolicyRule.objects.prefetch_related(
-        "source_zones",
-        "destination_zones",
         "source_users",
         "destination_users",
-        "services",
         "custom_srcdst_objects__custom_type",
         "destination_custom_objects__custom_type",
         "source_groups__members__custom_type",
@@ -933,7 +715,6 @@ class SecurityZonePolicyRuleEditView(generic.ObjectEditView):
 
     def get_extra_context(self, request, instance):
         return {
-            "nsm_object_catalog": _build_security_rule_object_catalog(),
             "nsm_add_options": _build_security_rule_add_options(),
         }
 

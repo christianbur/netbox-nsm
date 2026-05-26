@@ -11,7 +11,6 @@ from virtualization.models import VirtualMachine
 
 from netbox_nsm.mixins import AssignmentFilterSet
 from netbox_nsm.models import (
-    SecurityZone,
     SecurityZonePolicyRule,
     SecurityZonePolicyRulebook,
     SecurityZonePolicyRulebookAssignment,
@@ -43,18 +42,6 @@ class SecurityZonePolicyRuleFilterSet(PrimaryModelFilterSet):
         field_name="rulebook",
         to_field_name="id",
         label=_("Rulebook (ID)"),
-    )
-    source_zones_id = django_filters.ModelMultipleChoiceFilter(
-        queryset=SecurityZone.objects.all(),
-        field_name="source_zones",
-        to_field_name="id",
-        label=_("Source Zone (ID)"),
-    )
-    destination_zones_id = django_filters.ModelMultipleChoiceFilter(
-        queryset=SecurityZone.objects.all(),
-        field_name="destination_zones",
-        to_field_name="id",
-        label=_("Destination Zone (ID)"),
     )
 
     class Meta:

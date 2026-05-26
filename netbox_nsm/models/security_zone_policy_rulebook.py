@@ -65,30 +65,15 @@ class SecurityZonePolicyRule(ContactsMixin, PrimaryModel):
     index = models.PositiveIntegerField(default=100)
     enabled = models.BooleanField(default=True)
     name = models.CharField(max_length=100)
-    source_zones = models.ManyToManyField(
-        to="netbox_nsm.SecurityZone",
-        blank=True,
-        related_name="%(class)s_source_zones",
-    )
     source_users = models.ManyToManyField(
         to=User,
         blank=True,
         related_name="%(class)s_source_users",
     )
-    destination_zones = models.ManyToManyField(
-        to="netbox_nsm.SecurityZone",
-        blank=True,
-        related_name="%(class)s_destination_zones",
-    )
     destination_users = models.ManyToManyField(
         to=User,
         blank=True,
         related_name="%(class)s_destination_users",
-    )
-    services = models.ManyToManyField(
-        to="netbox_nsm.ApplicationItem",
-        blank=True,
-        related_name="%(class)s_services",
     )
     log_enabled = models.BooleanField(default=False)
     policy_action = models.CharField(

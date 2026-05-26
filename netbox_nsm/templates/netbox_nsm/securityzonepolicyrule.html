@@ -80,10 +80,6 @@
       <h5 class="card-header">{% trans "Source" %}</h5>
       <table class="table table-hover attr-table">
         <tr>
-          <th scope="row">{% trans "Zonen" %}</th>
-          <td>{% for item in object.source_zones.all %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>
-        </tr>
-        <tr>
           <th scope="row">{% trans "Objekte" %}</th>
           <td>{% for item in object.custom_srcdst_objects.all %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>
         </tr>
@@ -97,10 +93,6 @@
       <h5 class="card-header">{% trans "Destination" %}</h5>
       <table class="table table-hover attr-table">
         <tr>
-          <th scope="row">{% trans "Zonen" %}</th>
-          <td>{% for item in object.destination_zones.all %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>
-        </tr>
-        <tr>
           <th scope="row">{% trans "Objekte" %}</th>
           <td>{% for item in object.destination_custom_objects.all %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>
         </tr>
@@ -113,10 +105,6 @@
     <div class="card">
       <h5 class="card-header">{% trans "Service" %}</h5>
       <table class="table table-hover attr-table">
-        <tr>
-          <th scope="row">{% trans "Services" %}</th>
-          <td>{% for item in object.services.all %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>
-        </tr>
         <tr>
           <th scope="row">{% trans "Objekte" %}</th>
           <td>{% for item in object.custom_service_objects.all %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>

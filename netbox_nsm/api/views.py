@@ -2,8 +2,6 @@ from rest_framework.routers import APIRootView
 from netbox.api.viewsets import NetBoxModelViewSet
 
 from .serializers import (
-    ApplicationItemSerializer,
-    SecurityZoneSerializer,
     SecurityZonePolicyRulebookSerializer,
     SecurityZonePolicyRuleSerializer,
     SecurityZonePolicyRulebookAssignmentSerializer,
@@ -14,8 +12,6 @@ from .serializers import (
 )
 
 from netbox_nsm.models import (
-    ApplicationItem,
-    SecurityZone,
     SecurityZonePolicyRulebook,
     SecurityZonePolicyRule,
     SecurityZonePolicyRulebookAssignment,
@@ -26,8 +22,6 @@ from netbox_nsm.models import (
 )
 
 from netbox_nsm.filtersets import (
-    ApplicationItemFilterSet,
-    SecurityZoneFilterSet,
     SecurityZonePolicyRulebookFilterSet,
     SecurityZonePolicyRuleFilterSet,
     SecurityZonePolicyRulebookAssignmentFilterSet,
@@ -41,18 +35,6 @@ from netbox_nsm.filtersets import (
 class NetBoxSecurityRootView(APIRootView):
     def get_view_name(self):
         return "NetBoxSecurity"
-
-
-class ApplicationItemViewSet(NetBoxModelViewSet):
-    queryset = ApplicationItem.objects.prefetch_related("tags")
-    serializer_class = ApplicationItemSerializer
-    filterset_class = ApplicationItemFilterSet
-
-
-class SecurityZoneViewSet(NetBoxModelViewSet):
-    queryset = SecurityZone.objects.prefetch_related("tenant", "tags")
-    serializer_class = SecurityZoneSerializer
-    filterset_class = SecurityZoneFilterSet
 
 
 class SecurityZonePolicyRulebookViewSet(NetBoxModelViewSet):

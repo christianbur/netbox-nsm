@@ -1,5 +1,4 @@
 from django.urls import include, path
-from django.views.generic import RedirectView
 from utilities.urls import get_model_urls
 
 # +
@@ -34,22 +33,7 @@ urlpatterns = [
     path("object-groups/", include(get_model_urls("netbox_nsm", "objectgroup", detail=False))),
     path("object-groups/<int:pk>/", include(get_model_urls("netbox_nsm", "objectgroup"))),
     path("object/<str:tab>/", ObjectsSrcDstTabsView.as_view(), name="object_tabs"),
-    # Security Zones
-    path(
-        "security-zones/",
-        include(get_model_urls("netbox_nsm", "securityzone", detail=False)),
-    ),
-    path(
-        "security-zones/<int:pk>/",
-        include(get_model_urls("netbox_nsm", "securityzone")),
-    ),
     # Security Policy
-    path(
-        "security-policy/<int:pk>/visualization/",
-        RedirectView.as_view(
-            url="/plugins/netbox-nsm/security-policy/%(pk)s/visualization/zonematrix/"
-        ),
-    ),
     path(
         "security-policy/",
         include(
@@ -74,15 +58,6 @@ urlpatterns = [
     path(
         "security-rule/<int:pk>/",
         include(get_model_urls("netbox_nsm", "securityzonepolicyrule")),
-    ),
-    # Application Items
-    path(
-        "application-items/",
-        include(get_model_urls("netbox_nsm", "applicationitem", detail=False)),
-    ),
-    path(
-        "application-items/<int:pk>/",
-        include(get_model_urls("netbox_nsm", "applicationitem")),
     ),
     path(
         "security-zone-policy-rulebook-assignments/",

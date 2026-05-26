@@ -6,7 +6,7 @@ from .version import __version__
 class SecurityConfig(PluginConfig):
     name = "netbox_nsm"
     verbose_name = _("NetBox NSM - Network Security Management")
-    description = _("A NetBox plugin for network security and NAT management")
+    description = _("A NetBox plugin for network security management, including object groups and security policies.")
     version = __version__
     author = "Christian Burmeister"
     author_email = ""

@@ -2,8 +2,6 @@ from netbox.api.routers import NetBoxRouter
 
 from .views import (
     NetBoxSecurityRootView,
-    ApplicationItemViewSet,
-    SecurityZoneViewSet,
     SecurityZonePolicyRulebookViewSet,
     SecurityZonePolicyRuleViewSet,
     SecurityZonePolicyRulebookAssignmentViewSet,
@@ -17,8 +15,6 @@ app_name = "netbox_nsm"
 
 router = NetBoxRouter()
 router.APIRootView = NetBoxSecurityRootView
-router.register("object-services", ApplicationItemViewSet)
-router.register("object-zones", SecurityZoneViewSet)
 router.register("security-zone-policy-rulebooks", SecurityZonePolicyRulebookViewSet)
 router.register("security-zone-policy-rules", SecurityZonePolicyRuleViewSet)
 router.register(

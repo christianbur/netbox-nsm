@@ -11,9 +11,6 @@ from netbox.api.fields import ContentTypeField
 from netbox.api.serializers import NetBoxModelSerializer, PrimaryModelSerializer
 from utilities.api import get_serializer_for_model
 
-from netbox_nsm.api.serializers import (
-    SecurityZoneSerializer,
-)
 from netbox_nsm.constants import RULESET_ASSIGNMENT_MODELS
 from netbox_nsm.models import (
     SecurityZonePolicyRule,
@@ -58,9 +55,7 @@ class SecurityZonePolicyRuleSerializer(PrimaryModelSerializer):
         view_name="plugins-api:netbox_nsm-api:securityzonepolicyrule-detail"
     )
     rulebook = SecurityZonePolicyRulebookSerializer(nested=True, required=True)
-    source_zones = SecurityZoneSerializer(nested=True, required=False, many=True)
     source_users = NestedUserSerializer(nested=True, required=False, many=True)
-    destination_zones = SecurityZoneSerializer(nested=True, required=False, many=True)
     destination_users = NestedUserSerializer(nested=True, required=False, many=True)
 
     class Meta:
@@ -74,11 +69,8 @@ class SecurityZonePolicyRuleSerializer(PrimaryModelSerializer):
             "enabled",
             "name",
             "policy_action",
-            "source_zones",
             "source_users",
-            "destination_zones",
             "destination_users",
-            "services",
             "log_enabled",
             "description",
             "comments",

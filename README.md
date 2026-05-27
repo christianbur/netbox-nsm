@@ -388,6 +388,38 @@ PLUGINS_CONFIG = {
 
 ---
 
+## Screenshots
+
+### Navigation & Object Management
+![Navigation](docs/img/01-navigation.png)
+![Custom Object Types](docs/img/02-object-types.png)
+![Object Type Detail](docs/img/03-object-type-detail.png)
+![Object List](docs/img/04-object-list.png)
+![Object Detail](docs/img/05-object-detail.png)
+
+### Object Groups
+![Object Groups](docs/img/06-object-groups.png)
+![Object Group Detail](docs/img/07-object-group-detail.png)
+
+### Built-in Types & YAML Bundle
+![Built-in Type Installer](docs/img/08-builtin-types.png)
+![YAML Bundle Export/Import](docs/img/09-yaml-bundle.png)
+
+### Security Policies
+![Security Policy — Address-based Rules](docs/img/10-security-policy-address.png)
+![Security Rule Detail](docs/img/11-security-rule-detail.png)
+![Security Policy — Label-based Rules (Illumio-style)](docs/img/12-security-policy-labels.png)
+
+### Object Assignments & Device Integration
+![Custom Object Assignments](docs/img/13-custom-object-assignments.png)
+![Device Security Panel](docs/img/14-device-security-panel.png)
+
+### Security on IPAM Objects
+![Prefix Security Tab](docs/img/15-prefix-security-tab.png)
+![IP Address Security Tab (inherited via subnet)](docs/img/16-ipaddress-security-tab.png)
+
+---
+
 ## License
 
 See [LICENSE](LICENSE).

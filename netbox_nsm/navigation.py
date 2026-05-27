@@ -6,7 +6,34 @@ plugin_settings = settings.PLUGINS_CONFIG.get("netbox_nsm", {})
 
 address_menu_items = ()
 
-builder_menu_items = ()
+builder_menu_items = (
+    PluginMenuItem(
+        link="plugins:netbox_nsm:securityobjecttype_list",
+        link_text=_("Types"),
+        permissions=["netbox_nsm.view_securityobjecttype"],
+        buttons=(
+            PluginMenuButton(
+                "plugins:netbox_nsm:securityobjecttype_add",
+                _("Add"),
+                "mdi mdi-plus-thick",
+                permissions=["netbox_nsm.add_securityobjecttype"],
+            ),
+        ),
+    ),
+    PluginMenuItem(
+        link="plugins:netbox_nsm:securityarea_list",
+        link_text=_("Areas"),
+        permissions=["netbox_nsm.view_securityarea"],
+        buttons=(
+            PluginMenuButton(
+                "plugins:netbox_nsm:securityarea_add",
+                _("Add"),
+                "mdi mdi-plus-thick",
+                permissions=["netbox_nsm.add_securityarea"],
+            ),
+        ),
+    ),
+)
 
 security_policy_menu_items = (
     PluginMenuItem(
@@ -35,13 +62,8 @@ assignments_menu_items = (
 objects_menu_items = (
     PluginMenuItem(
         link="plugins:netbox_nsm:object_tabs_root",
-        link_text=_("Objekts"),
+        link_text=_("Objects"),
         permissions=["netbox_nsm.view_objectaction"],
-    ),
-    PluginMenuItem(
-        link="plugins:netbox_nsm:securityarea_list",
-        link_text=_("Areas"),
-        permissions=["netbox_nsm.view_securityarea"],
     ),
 )
 
@@ -49,8 +71,8 @@ objects_menu_items = (
 if plugin_settings.get("top_level_menu"):
     # Build groups tuple conditionally
     groups = (
-        (_("Builder"), builder_menu_items),
-        (_("Objekts"), objects_menu_items),
+        (_("Object-Builder"), builder_menu_items),
+        (_("Objects"), objects_menu_items),
         (_("Security Policy"), security_policy_menu_items),
     )
     if plugin_settings.get("assignments_menu"):

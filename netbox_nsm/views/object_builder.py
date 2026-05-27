@@ -76,7 +76,11 @@ class ObjectBuilderView(LoginRequiredMixin, View):
             messages.error(request, "Permission denied.")
             return redirect(reverse("plugins:netbox_nsm:object_builder", args=["builtin"]))
 
-        selected_indices = request.POST.getlist("selected")
+        install_one = request.POST.get("install_one")
+        if install_one is not None:
+            selected_indices = [install_one]
+        else:
+            selected_indices = request.POST.getlist("selected")
         created = 0
         for idx_str in selected_indices:
             try:
@@ -84,6 +88,10 @@ class ObjectBuilderView(LoginRequiredMixin, View):
             except (ValueError, IndexError):
                 continue
             custom_name = request.POST.get(f"name_{idx_str}", t["name"]).strip()
+            custom_template = request.POST.get(
+                f"display_template_{idx_str}",
+                t.get("display_template", ""),
+            ).strip()
             if not custom_name:
                 continue
             if SecurityObjectType.objects.filter(name=custom_name).exists():
@@ -98,7 +106,7 @@ class ObjectBuilderView(LoginRequiredMixin, View):
                 area=area_obj,
                 description=t.get("description", ""),
                 field_definitions=t.get("field_definitions", []),
-                display_template=t.get("display_template", ""),
+                display_template=custom_template,
             )
             for default_obj in t.get("default_objects", []):
                 SecurityObject.objects.get_or_create(

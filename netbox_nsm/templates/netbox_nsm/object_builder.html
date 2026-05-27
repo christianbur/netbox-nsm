@@ -53,8 +53,8 @@
             <thead>
               <tr>
                 <th style="width:2rem"></th>
-                <th>{% trans "Built-in" %}</th>
-                <th>{% trans "Name (editable)" %}</th>
+                <th>{% trans "Name" %}</th>
+                <th>{% trans "Display Template" %}</th>
                 <th>{% trans "Area" %}</th>
                 <th>{% trans "Fields" %}</th>
                 <th style="width:3rem"></th>
@@ -69,17 +69,24 @@
                   {% endif %}
                 </td>
                 <td class="align-middle">
-                  {{ t.name }}
-                  {% if t.already_installed %}
-                    <span class="badge text-bg-success ms-1">{% trans "installed" %}</span>
-                  {% endif %}
-                </td>
-                <td>
                   {% if not t.already_installed %}
                   <input type="text" name="name_{{ forloop.counter0 }}" value="{{ t.name }}"
                     class="form-control form-control-sm" style="min-width:160px">
                   {% else %}
                   <span class="text-muted">{{ t.name }}</span>
+                  <span class="badge text-bg-success ms-1">{% trans "installed" %}</span>
+                  {% endif %}
+                </td>
+                <td class="align-middle">
+                  {% if not t.already_installed %}
+                  <input type="text"
+                         name="display_template_{{ forloop.counter0 }}"
+                         value="{{ t.display_template }}"
+                         class="form-control form-control-sm"
+                         style="min-width:220px"
+                         placeholder="{name}">
+                  {% else %}
+                  <code>{{ t.display_template|default:"{name}" }}</code>
                   {% endif %}
                 </td>
                 <td class="align-middle">
@@ -93,13 +100,23 @@
                   </small>
                 </td>
                 <td class="align-middle text-end">
-                  <button type="button"
-                          class="btn btn-sm btn-outline-secondary py-0"
-                          data-bs-toggle="collapse"
-                          data-bs-target="#src-{{ forloop.counter0 }}"
-                          title="JSON">
-                    <i class="mdi mdi-code-json"></i>
-                  </button>
+                  <div class="d-flex justify-content-end gap-1">
+                    {% if not t.already_installed %}
+                    <button type="submit"
+                            class="btn btn-sm btn-primary py-0"
+                            name="install_one"
+                            value="{{ forloop.counter0 }}">
+                      {% trans "Install" %}
+                    </button>
+                    {% endif %}
+                    <button type="button"
+                            class="btn btn-sm btn-outline-secondary py-0"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#src-{{ forloop.counter0 }}"
+                            title="JSON">
+                      <i class="mdi mdi-code-json"></i>
+                    </button>
+                  </div>
                 </td>
               </tr>
               <tr class="collapse" id="src-{{ forloop.counter0 }}">

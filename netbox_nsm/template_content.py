@@ -4,7 +4,7 @@ from django.utils.translation import gettext_lazy as _
 
 def _get_custom_refs_for(obj):
     """
-    Return all ObjectCustomObjects that reference *obj* via an object_ref field,
+    Return all SecurityObjects that reference *obj* via an object_ref field,
     grouped by CustomType.
 
     Returns a list of dicts::
@@ -15,14 +15,14 @@ def _get_custom_refs_for(obj):
                 "type_url":  "/plugins/netbox-nsm/object/custom/types/3/",
                 "add_url":   "/plugins/netbox-nsm/object/custom/objects/add/?custom_type=3",
                 "items": [
-                    {"obj": <ObjectCustomObject>, "field_label": "Source Address"},
+                    {"obj": <SecurityObject>, "field_label": "Source Address"},
                     ...
                 ],
             },
             ...
         ]
     """
-    from netbox_nsm.models import ObjectCustomType
+    from netbox_nsm.models import SecurityObjectType
 
     # Build canonical model string, e.g. "dcim.Device"
     app_label = obj._meta.app_label
@@ -32,7 +32,7 @@ def _get_custom_refs_for(obj):
     groups = []
     return_url = obj.get_absolute_url()
 
-    for ct in ObjectCustomType.objects.all().order_by("name"):
+    for ct in SecurityObjectType.objects.all().order_by("name"):
         matching_fields = [
             fd for fd in (ct.field_definitions or [])
             if fd.get("type") == "object_ref"
@@ -241,10 +241,10 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
         custom_refs = _get_custom_refs_for(obj)
         custom_count = sum(len(rg["items"]) for rg in custom_refs)
 
-        # Custom Object Assignments (ObjectCustomObjectAssignment)
-        from netbox_nsm.models import ObjectCustomObjectAssignment, ObjectCustomType
+        # Custom Object Assignments (SecurityObjectAssignment)
+        from netbox_nsm.models import SecurityObjectAssignment, SecurityObjectType
         coa_qs = (
-            ObjectCustomObjectAssignment.objects
+            SecurityObjectAssignment.objects
             .filter(assigned_object_type=ct, assigned_object_id=pk)
             .select_related("custom_object__custom_type")
         )
@@ -267,18 +267,18 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
         ]
         coa_count = sum(len(g["items"]) for g in custom_object_assignments)
 
-        # All custom types for the Assign dropdown (via ObjectCustomObjectAssignment)
+        # All custom types for the Assign dropdown (via SecurityObjectAssignment)
         all_custom_types = [
             {
                 "type_name": ctype.name,
                 "type_icon": ctype.icon,
                 "add_url": (
-                    reverse("plugins:netbox_nsm:objectcustomobjectassignment_add")
+                    reverse("plugins:netbox_nsm:securityobjectassignment_add")
                     + f"?assigned_object_type={ct.pk}&assigned_object_id={pk}"
                     + f"&custom_type_pk={ctype.pk}&return_url={return_url}"
                 ),
             }
-            for ctype in ObjectCustomType.objects.all().order_by("name")
+            for ctype in SecurityObjectType.objects.all().order_by("name")
         ]
 
         # Virtual combined label — sorted labels + global search URL

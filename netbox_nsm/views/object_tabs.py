@@ -2,8 +2,8 @@ from django.shortcuts import redirect
 from django.views.generic import RedirectView, TemplateView
 
 from netbox_nsm.models import (
-    ObjectCustomObject,
-    ObjectCustomType,
+    SecurityObject,
+    SecurityObjectType,
 )
 
 
@@ -26,7 +26,7 @@ class ObjectsSrcDstTabsView(TemplateView):
     default_slug = None
 
     def _get_custom_type_by_slug(self, slug, all_custom_types=None):
-        """Return ObjectCustomType for a name-based slug or legacy ct_{pk} slug."""
+        """Return SecurityObjectType for a name-based slug or legacy ct_{pk} slug."""
         if slug.startswith("ct_"):
             try:
                 pk = int(slug[3:])
@@ -34,15 +34,15 @@ class ObjectsSrcDstTabsView(TemplateView):
                 return None
             if all_custom_types is not None:
                 return next((ct for ct in all_custom_types if ct.pk == pk), None)
-            return ObjectCustomType.objects.filter(pk=pk).first()
+            return SecurityObjectType.objects.filter(pk=pk).first()
         # Name-based slug — just query DB
         if all_custom_types is not None:
             return next((ct for ct in all_custom_types if ct.name == slug), None)
-        return ObjectCustomType.objects.filter(name=slug).first()
+        return SecurityObjectType.objects.filter(name=slug).first()
 
     def get(self, request, *args, **kwargs):
         if kwargs.get("tab") is None:
-            ct = ObjectCustomType.objects.order_by("area", "name").first()
+            ct = SecurityObjectType.objects.order_by("area", "name").first()
             if ct:
                 return redirect("plugins:netbox_nsm:object_tabs", tab=ct.name)
             return redirect("plugins:netbox_nsm:object_custom_root")
@@ -53,8 +53,8 @@ class ObjectsSrcDstTabsView(TemplateView):
         tab_slug = kwargs.get("tab", self.default_slug)
         tab_map = {tab["slug"]: tab for tab in self.TABS}
 
-        # Build dynamic custom tabs from ObjectCustomType instances (slug = type name)
-        all_custom_types = list(ObjectCustomType.objects.order_by("area", "name"))
+        # Build dynamic custom tabs from SecurityObjectType instances (slug = type name)
+        all_custom_types = list(SecurityObjectType.objects.order_by("area", "name"))
         custom_tabs_by_area = {"srcdst": [], "services": [], "action": [], "info": []}
         for ct in all_custom_types:
             custom_tabs_by_area.get(ct.area, custom_tabs_by_area["srcdst"]).append({
@@ -62,7 +62,7 @@ class ObjectsSrcDstTabsView(TemplateView):
                 "label": ct.name,
                 "list_url_name": None,
                 "add_url_name": "plugins:netbox_nsm:objectcustom_add",
-                "permission": "netbox_nsm.view_objectcustomobject",
+                "permission": "netbox_nsm.view_securityobject",
             })
 
         all_dynamic_tabs = (
@@ -143,7 +143,7 @@ class ObjectsSrcDstTabsView(TemplateView):
         if ct is None:
             ct = self._get_custom_type_by_slug(tab_slug)
         if ct:
-            objects = list(ObjectCustomObject.objects.filter(custom_type=ct))
+            objects = list(SecurityObject.objects.filter(custom_type=ct))
             objects.sort(key=lambda obj: str(obj).lower())
             return objects
         model = self.MODEL_BY_TAB.get(tab_slug)
@@ -237,7 +237,7 @@ class ObjectsActionTabsView(RedirectView):
 class ObjectsCustomAreaView(TemplateView):
     """Dedicated area view for /object/custom/ with Types and Objects sub-tabs."""
 
-    template_name = "netbox_nsm/object_custom_area.html"
+    template_name = "netbox_nsm/security_object_area.html"
 
     def get(self, request, *args, **kwargs):
         tab = kwargs.get("tab")
@@ -246,8 +246,8 @@ class ObjectsCustomAreaView(TemplateView):
         return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
-        from netbox_nsm.filtersets import ObjectCustomObjectFilterSet, ObjectCustomTypeFilterSet
-        from netbox_nsm.tables import ObjectCustomObjectTable, ObjectCustomTypeTable
+        from netbox_nsm.filtersets import SecurityObjectFilterSet, SecurityObjectTypeFilterSet
+        from netbox_nsm.tables import SecurityObjectTable, SecurityObjectTypeTable
 
         context = super().get_context_data(**kwargs)
         tab_slug = kwargs.get("tab", "types")
@@ -259,14 +259,14 @@ class ObjectsCustomAreaView(TemplateView):
 
         type_pills = []
         if tab_slug == "types":
-            qs = ObjectCustomType.objects.all()
-            table = ObjectCustomTypeTable(qs)
+            qs = SecurityObjectType.objects.all()
+            table = SecurityObjectTypeTable(qs)
             add_url = "/plugins/netbox-nsm/object/custom/types/add/"
         else:
             # Per-type filter via GET param
             request = self.request
             type_pk = request.GET.get("type_pk")
-            all_types = ObjectCustomType.objects.all().order_by("name")
+            all_types = SecurityObjectType.objects.all().order_by("name")
             type_pills = [
                 {
                     "pk": ct.pk,
@@ -277,10 +277,10 @@ class ObjectsCustomAreaView(TemplateView):
                 }
                 for ct in all_types
             ]
-            qs = ObjectCustomObject.objects.select_related("custom_type").all()
+            qs = SecurityObject.objects.select_related("custom_type").all()
             if type_pk:
                 qs = qs.filter(custom_type_id=type_pk)
-            table = ObjectCustomObjectTable(qs)
+            table = SecurityObjectTable(qs)
             add_url = "/plugins/netbox-nsm/object/custom/objects/add/"
             if type_pk:
                 add_url += f"?custom_type={type_pk}"

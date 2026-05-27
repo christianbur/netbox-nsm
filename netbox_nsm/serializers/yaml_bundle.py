@@ -75,7 +75,7 @@ _NATURAL_KEY_FIELDS: dict[str, str] = {
 
 
 def export_custom_type(ct) -> dict:
-    """Serialize an ObjectCustomType instance to a bundle item dict."""
+    """Serialize an SecurityObjectType instance to a bundle item dict."""
     return {
         "apiVersion": BUNDLE_API_VERSION,
         "kind": "CustomType",
@@ -89,7 +89,7 @@ def export_custom_type(ct) -> dict:
 
 
 def export_custom_object(obj) -> dict:
-    """Serialize an ObjectCustomObject instance to a bundle item dict.
+    """Serialize an SecurityObject instance to a bundle item dict.
 
     object_ref values are stored as ``{__model: ..., __str: ...}`` so the
     importer can resolve them without touching arbitrary data.
@@ -219,12 +219,12 @@ def import_bundle(
 
     Pass ``update_existing=True`` to overwrite objects that already exist.
     """
-    from netbox_nsm.models import ObjectCustomType, ObjectCustomObject  # local import avoids circular refs
+    from netbox_nsm.models import SecurityObjectType, SecurityObject  # local import avoids circular refs
 
     created: list[str] = []
     updated: list[str] = []
     errors: list[str] = []
-    type_cache: dict[str, ObjectCustomType] = {}
+    type_cache: dict[str, SecurityObjectType] = {}
 
     # ---- Pass 1: CustomTypes ----
     for item in items:
@@ -244,7 +244,7 @@ def import_bundle(
             continue
 
         try:
-            ct, was_created = ObjectCustomType.objects.get_or_create(
+            ct, was_created = SecurityObjectType.objects.get_or_create(
                 name=name,
                 defaults={
                     "area": area,
@@ -270,7 +270,7 @@ def import_bundle(
             errors.append(f"CustomType {name!r}: {exc}")
 
     # Populate cache with DB types not in this bundle
-    for ct in ObjectCustomType.objects.all():
+    for ct in SecurityObjectType.objects.all():
         type_cache.setdefault(ct.name, ct)
 
     # ---- Pass 2: CustomObjects ----
@@ -330,7 +330,7 @@ def import_bundle(
         table_data = spec.get("table_data") or []
 
         try:
-            obj, was_created = ObjectCustomObject.objects.get_or_create(
+            obj, was_created = SecurityObject.objects.get_or_create(
                 custom_type=ct,
                 name=name,
                 defaults={

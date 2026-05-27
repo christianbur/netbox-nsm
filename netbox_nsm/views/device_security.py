@@ -4,16 +4,16 @@ from django.shortcuts import get_object_or_404
 from django.views import View
 from django.shortcuts import render
 
-from netbox_nsm.models import ObjectCustomObjectAssignment, SecurityZonePolicyRule, ObjectCustomObject
+from netbox_nsm.models import SecurityObjectAssignment, SecurityPolicyRule, SecurityObject
 
 __all__ = ("DeviceMatchingRulesView", "GlobalRulesSearchView")
 
 
 def _get_label_pks(obj):
-    """Return sorted list of ObjectCustomObject PKs assigned to obj."""
+    """Return sorted list of SecurityObject PKs assigned to obj."""
     ct = ContentType.objects.get_for_model(obj)
     return list(
-        ObjectCustomObjectAssignment.objects
+        SecurityObjectAssignment.objects
         .filter(assigned_object_type=ct, assigned_object_id=obj.pk)
         .select_related("custom_object")
         .order_by("custom_object__name")
@@ -22,10 +22,10 @@ def _get_label_pks(obj):
 
 
 def _get_label_objects(obj):
-    """Return sorted list of ObjectCustomObject instances assigned to obj."""
+    """Return sorted list of SecurityObject instances assigned to obj."""
     ct = ContentType.objects.get_for_model(obj)
     return list(
-        ObjectCustomObjectAssignment.objects
+        SecurityObjectAssignment.objects
         .filter(assigned_object_type=ct, assigned_object_id=obj.pk)
         .select_related("custom_object__custom_type")
         .order_by("custom_object__name")
@@ -40,11 +40,11 @@ def get_matching_rules(label_pks):
     """
     n = len(label_pks)
     if n == 0:
-        empty = SecurityZonePolicyRule.objects.none()
+        empty = SecurityPolicyRule.objects.none()
         return empty, empty
 
     src_rules = (
-        SecurityZonePolicyRule.objects
+        SecurityPolicyRule.objects
         .annotate(
             src_matched=Count(
                 "custom_srcdst_objects",
@@ -59,7 +59,7 @@ def get_matching_rules(label_pks):
     )
 
     dst_rules = (
-        SecurityZonePolicyRule.objects
+        SecurityPolicyRule.objects
         .annotate(
             dst_matched=Count(
                 "destination_custom_objects",
@@ -94,7 +94,7 @@ class DeviceMatchingRulesView(View):
         # Sorted labels assigned to this object
         ct = ContentType.objects.get_for_model(obj)
         assignments = (
-            ObjectCustomObjectAssignment.objects
+            SecurityObjectAssignment.objects
             .filter(assigned_object_type=ct, assigned_object_id=obj.pk)
             .select_related("custom_object__custom_type")
             .order_by("custom_object__name")
@@ -117,7 +117,7 @@ class GlobalRulesSearchView(View):
     """
     Global rule search across ALL rulebooks, grouped by rulebook.
     Accepts src_obj_id / dst_obj_id GET params (subset matching).
-    add_q GET param: search ObjectCustomObject by name to add to filter.
+    add_q GET param: search SecurityObject by name to add to filter.
     URL: /plugins/netbox-nsm/rules/search/?src_obj_id=3&src_obj_id=7
     """
     template_name = "netbox_nsm/global_rules_search.html"
@@ -131,12 +131,12 @@ class GlobalRulesSearchView(View):
         dst_obj_ids_int = [int(v) for v in dst_obj_ids]
 
         src_objects = (
-            list(ObjectCustomObject.objects.filter(pk__in=src_obj_ids_int)
+            list(SecurityObject.objects.filter(pk__in=src_obj_ids_int)
                  .select_related("custom_type").order_by("name"))
             if src_obj_ids_int else []
         )
         dst_objects = (
-            list(ObjectCustomObject.objects.filter(pk__in=dst_obj_ids_int)
+            list(SecurityObject.objects.filter(pk__in=dst_obj_ids_int)
                  .select_related("custom_type").order_by("name"))
             if dst_obj_ids_int else []
         )
@@ -145,7 +145,7 @@ class GlobalRulesSearchView(View):
         add_suggestions = []
         if add_q:
             add_suggestions = list(
-                ObjectCustomObject.objects.filter(name__icontains=add_q)
+                SecurityObject.objects.filter(name__icontains=add_q)
                 .select_related("custom_type")
                 .exclude(pk__in=src_obj_ids_int + dst_obj_ids_int)
                 .order_by("custom_type__name", "name")[:20]
@@ -190,7 +190,7 @@ class GlobalRulesSearchView(View):
         # Query and group by rulebook
         rulebook_groups = []
         if src_obj_ids_int or dst_obj_ids_int:
-            rules_qs = SecurityZonePolicyRule.objects.select_related("rulebook").prefetch_related(
+            rules_qs = SecurityPolicyRule.objects.select_related("rulebook").prefetch_related(
                 "custom_srcdst_objects__custom_type",
                 "destination_custom_objects__custom_type",
                 "custom_action_objects__custom_type",
@@ -229,7 +229,7 @@ class GlobalRulesSearchView(View):
             from django.urls import reverse as _reverse
             for rulebook, rules in sorted(groups.items(), key=lambda x: x[0].name if x[0] else ""):
                 policy_url = (
-                    _reverse("plugins:netbox_nsm:securityzonepolicyrulebook_policy",
+                    _reverse("plugins:netbox_nsm:securitypolicyrulebook_policy",
                               args=[rulebook.pk]) + "?" + params
                 ) if rulebook else ""
                 rulebook_groups.append({

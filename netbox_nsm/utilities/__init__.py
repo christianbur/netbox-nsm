@@ -3,31 +3,31 @@ __all__ = ("get_group_chains_for_object",)
 
 def get_group_chains_for_object(app_label, model_name, pk):
     """
-    Return all ObjectGroup chains that reference an object (IPAddress, Prefix, etc.)
-    via ObjectCustomObjects.
+    Return all SecurityObjectGroup chains that reference an object (IPAddress, Prefix, etc.)
+    via SecurityObjects.
 
     For IPAddress objects, also finds chains via containing prefixes (inherited membership).
 
     Returns a list of dicts::
         [
             {
-                "oco": <ObjectCustomObject>,
+                "oco": <SecurityObject>,
                 "oco_url": "...",
                 "inherited": False,
                 "via": None,          # or <Prefix> if inherited
-                "chain": [<ObjectGroup>, <ObjectGroup>, ...],  # leaf → root
+                "chain": [<SecurityObjectGroup>, <SecurityObjectGroup>, ...],  # leaf → root
             },
             ...
         ]
     """
-    from netbox_nsm.models import ObjectCustomType, ObjectCustomObject, ObjectGroup
+    from netbox_nsm.models import SecurityObjectType, SecurityObject, SecurityObjectGroup
 
     canonical = f"{app_label}.{model_name}".lower()
 
     def _ocos_for(ct_model, obj_pk):
         """Return PKs of OCOs belonging to any custom type with an object_ref field for ct_model."""
         pks = set()
-        for ct in ObjectCustomType.objects.prefetch_related("custom_objects"):
+        for ct in SecurityObjectType.objects.prefetch_related("custom_objects"):
             for fd in (ct.field_definitions or []):
                 if fd.get("type") == "object_ref" and fd.get("model", "").lower() == ct_model:
                     filter_key = f"field_data__{fd['name']}__pk"
@@ -53,7 +53,7 @@ def get_group_chains_for_object(app_label, model_name, pk):
     def _build_chains(oco_pks, inherited=False, via=None):
         chains = []
         ocos = (
-            ObjectCustomObject.objects
+            SecurityObject.objects
             .filter(pk__in=oco_pks)
             .prefetch_related("object_groups__parent_groups")
         )

@@ -76,10 +76,7 @@ class ObjectCustomBulkDeleteView(generic.BulkDeleteView):
 
 def _rules_for_object(obj):
     return SecurityPolicyRule.objects.filter(
-        Q(custom_srcdst_objects=obj)
-        | Q(destination_custom_objects=obj)
-        | Q(custom_service_objects=obj)
-        | Q(custom_action_objects=obj)
+        Q(object_items__security_object=obj)
     ).distinct()
 
 

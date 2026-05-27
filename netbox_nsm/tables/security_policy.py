@@ -127,33 +127,57 @@ def _groups_cards(groups):
     return [_card("Groups", items)]
 
 
+def _rule_objects(record, placement, area_slugs=None):
+    allowed = set(area_slugs or [])
+    out = []
+    for item in record.object_items.all():
+        if item.placement != placement:
+            continue
+        if allowed and item.area.slug not in allowed:
+            continue
+        out.append(item.security_object)
+    return out
+
+
+def _rule_groups(record, placement, area_slugs=None):
+    allowed = set(area_slugs or [])
+    out = []
+    for item in record.group_items.all():
+        if item.placement != placement:
+            continue
+        if allowed and item.area.slug not in allowed:
+            continue
+        out.append(item.security_group)
+    return out
+
+
 class SourceColumn(tables.Column):
     def render(self, value, record):
         cards = _build_src_dst_cards(users=record.source_users.all())
-        cards += _custom_objects_cards(record.custom_srcdst_objects.all())
-        cards += _groups_cards(record.source_groups.all())
+        cards += _custom_objects_cards(_rule_objects(record, "source"))
+        cards += _groups_cards(_rule_groups(record, "source"))
         return _rule_stack(cards)
 
 
 class DestinationColumn(tables.Column):
     def render(self, value, record):
         cards = _build_src_dst_cards(users=record.destination_users.all())
-        cards += _custom_objects_cards(record.destination_custom_objects.all())
-        cards += _groups_cards(record.destination_groups.all())
+        cards += _custom_objects_cards(_rule_objects(record, "destination"))
+        cards += _groups_cards(_rule_groups(record, "destination"))
         return _rule_stack(cards)
 
 
 class ServiceColumn(tables.Column):
     def render(self, value, record):
-        cards = _custom_objects_cards(record.custom_service_objects.all())
-        cards += _groups_cards(record.service_groups.all())
+        cards = _custom_objects_cards(_rule_objects(record, "fixed", area_slugs=("services", "service")))
+        cards += _groups_cards(_rule_groups(record, "fixed", area_slugs=("services", "service")))
         return _rule_stack(cards)
 
 
 class ActionColumn(tables.Column):
     def render(self, value, record):
-        cards = _custom_objects_cards(record.custom_action_objects.all())
-        cards += _groups_cards(record.action_groups.all())
+        cards = _custom_objects_cards(_rule_objects(record, "fixed", area_slugs=("action",)))
+        cards += _groups_cards(_rule_groups(record, "fixed", area_slugs=("action",)))
         return _rule_stack(cards)
 
 
@@ -261,7 +285,6 @@ class SecurityPolicyRuleTable(NetBoxTable):
         )
         default_columns = (
             "pk",
-            "rulebook",
             "index",
             "status",
             "name",

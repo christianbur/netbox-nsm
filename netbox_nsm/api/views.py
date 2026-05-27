@@ -5,6 +5,7 @@ from .serializers import (
     SecurityPolicyRulebookSerializer,
     SecurityPolicyRuleSerializer,
     SecurityPolicyAssignmentSerializer,
+    SecurityAreaSerializer,
     SecurityObjectTypeSerializer,
     SecurityObjectSerializer,
     SecurityObjectAssignmentSerializer,
@@ -15,6 +16,7 @@ from netbox_nsm.models import (
     SecurityPolicyRulebook,
     SecurityPolicyRule,
     SecurityPolicyAssignment,
+    SecurityArea,
     SecurityObjectType,
     SecurityObject,
     SecurityObjectAssignment,
@@ -25,6 +27,7 @@ from netbox_nsm.filtersets import (
     SecurityPolicyRulebookFilterSet,
     SecurityPolicyRuleFilterSet,
     SecurityPolicyAssignmentFilterSet,
+    SecurityAreaFilterSet,
     SecurityObjectTypeFilterSet,
     SecurityObjectFilterSet,
     SecurityObjectAssignmentFilterSet,
@@ -57,6 +60,12 @@ class SecurityPolicyAssignmentViewSet(NetBoxModelViewSet):
     queryset = SecurityPolicyAssignment.objects.all()
     serializer_class = SecurityPolicyAssignmentSerializer
     filterset_class = SecurityPolicyAssignmentFilterSet
+
+
+class SecurityAreaViewSet(NetBoxModelViewSet):
+    queryset = SecurityArea.objects.all()
+    serializer_class = SecurityAreaSerializer
+    filterset_class = SecurityAreaFilterSet
 
 
 class SecurityObjectTypeViewSet(NetBoxModelViewSet):

@@ -15,26 +15,13 @@ BUILTIN_CUSTOM_TYPES = [
         "name": "Action",
         "area": "action",
         "description": "",
-        "display_template": "{action}",
-        "field_definitions": [
-            {"name": "action", "type": "text", "label": "Action (permit/deny/reject)", "required": True},
-        ],
+        "display_template": "{name}",
+        "field_definitions": [],
         "default_objects": [
-            {"name": "Permit", "field_data": {"action": "permit"}},
-            {"name": "Deny",   "field_data": {"action": "deny"}},
-            {"name": "Drop",   "field_data": {"action": "drop"}},
+            {"name": "Permit", "field_data": {}},
+            {"name": "Deny",   "field_data": {}},
+            {"name": "Reject", "field_data": {}},
         ],
-    },
-    {
-        "name": "Filter",
-        "area": "action",
-        "description": "",
-        "display_template": "{family}/{rules}",
-        "field_definitions": [
-            {"name": "family", "type": "text", "label": "Family (inet/inet6)"},
-            {"name": "rules", "type": "text", "label": "Rules"},
-        ],
-        "default_objects": [],
     },
     {
         "name": "Log",
@@ -42,26 +29,11 @@ BUILTIN_CUSTOM_TYPES = [
         "description": "",
         "display_template": "Log:{enabled}",
         "field_definitions": [
-            {"name": "enabled", "type": "text", "label": "Enabled (yes/no)"},
+            {"name": "enabled", "type": "choice", "label": "Enabled", "choices": ["on", "off"]},
         ],
         "default_objects": [
-            {"name": "Log-On",  "field_data": {"enabled": "yes"}},
-            {"name": "Log-Off", "field_data": {"enabled": "no"}},
-        ],
-    },
-    {
-        "name": "Policer",
-        "area": "action",
-        "description": "",
-        "display_template": "{bandwidth_limit} kbps",
-        "field_definitions": [
-            {"name": "bandwidth_limit",   "type": "text", "label": "Bandwidth Limit (kbps)"},
-            {"name": "bandwidth_percent", "type": "text", "label": "Bandwidth (%)"},
-        ],
-        "default_objects": [
-            {"name": "1Mbps",   "field_data": {"bandwidth_limit": "1000"}},
-            {"name": "10Mbps",  "field_data": {"bandwidth_limit": "10000"}},
-            {"name": "100Mbps", "field_data": {"bandwidth_limit": "100000"}},
+            {"name": "Log-ON",  "field_data": {"enabled": "on"}},
+            {"name": "Log-Off", "field_data": {"enabled": "off"}},
         ],
     },
     # ── Info ──────────────────────────────────────────────────────────────────
@@ -114,9 +86,25 @@ BUILTIN_CUSTOM_TYPES = [
         "name": "Services",
         "area": "services",
         "description": "",
-        "display_template": "{protocol}/{destination_ports}",
+        "display_template": "{name} ({protocol}/{destination_ports})",
         "field_definitions": [
-            {"name": "protocol",          "type": "text", "label": "Protocol",          "required": True},
+            {
+                "name": "protocol",
+                "type": "choice",
+                "label": "Protocol",
+                "choices": [
+                    "tcp",
+                    "udp",
+                    "icmp",
+                    "icmpv6",
+                    "sctp",
+                    "gre",
+                    "esp",
+                    "ah",
+                    "ipip",
+                ],
+                "required": True,
+            },
             {"name": "destination_ports", "type": "text", "label": "Destination Ports"},
             {"name": "source_ports",      "type": "text", "label": "Source Ports"},
         ],
@@ -158,7 +146,7 @@ BUILTIN_CUSTOM_TYPES = [
         "name": "Labels",
         "area": "srcdst",
         "description": "",
-        "display_template": "[{label_type}] {flexible_text}",
+        "display_template": "{label_type_initial}:{name}",
         "field_definitions": [
             {"__meta__": True, "hide_table_data": True},
             {
@@ -176,15 +164,19 @@ BUILTIN_CUSTOM_TYPES = [
             },
             {"name": "color", "type": "text", "label": "Color"},
         ],
-        "default_objects": [],
+        "default_objects": [
+            {"name": "dev", "field_data": {"label_type": "Environment"}},
+            {"name": "test", "field_data": {"label_type": "Environment"}},
+            {"name": "prod", "field_data": {"label_type": "Environment"}},
+        ],
     },
     {
         "name": "NAT",
         "area": "srcdst",
         "description": "",
-        "display_template": "{nat_type}",
+        "display_template": "{nat_type}: {source_prefix}{source_address} -> {destination_prefix}{destination_address}",
         "field_definitions": [
-            {"name": "nat_type",            "type": "text",       "label": "NAT Type"},
+            {"name": "nat_type",            "type": "choice",     "label": "NAT Type", "choices": ["snat", "dnat", "masquerade", "nat64"]},
             {"name": "source_address",      "type": "object_ref", "label": "Source Address",      "model": "ipam.IPAddress", "selector": True, "tab_group": "Source"},
             {"name": "source_prefix",       "type": "object_ref", "label": "Source Prefix",       "model": "ipam.Prefix",    "selector": True, "tab_group": "Source"},
             {"name": "destination_address", "type": "object_ref", "label": "Destination Address", "model": "ipam.IPAddress", "selector": True, "tab_group": "Destination"},
@@ -198,7 +190,7 @@ BUILTIN_CUSTOM_TYPES = [
         "description": "",
         "display_template": "SGT-{tag_id}",
         "field_definitions": [
-            {"name": "tag_id", "type": "text", "label": "SGT-ID (number)"},
+            {"name": "tag_id", "type": "number", "label": "SGT-ID"},
             {"name": "color",  "type": "text", "label": "Color"},
         ],
         "default_objects": [],
@@ -209,7 +201,7 @@ BUILTIN_CUSTOM_TYPES = [
         "description": "",
         "display_template": "{user_type}: {dn}",
         "field_definitions": [
-            {"name": "user_type", "type": "text", "label": "User Type (local/ldap/radius/saml)"},
+            {"name": "user_type", "type": "choice", "label": "User Type", "choices": ["local", "ldap", "radius", "saml"]},
             {"name": "dn",        "type": "text", "label": "DN / Username"},
         ],
         "default_objects": [],

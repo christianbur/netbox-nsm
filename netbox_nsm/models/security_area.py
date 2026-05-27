@@ -9,13 +9,28 @@ from netbox.search import SearchIndex, register_search
 __all__ = ("SecurityArea", "SecurityAreaIndex")
 
 
+class PlacementModeChoices(models.TextChoices):
+    FIXED = "fixed", _("Fixed (single list, no source/destination split)")
+    DIRECTIONAL = "directional", _("Directional (separate Source and Destination)")
+
+
 class SecurityArea(PrimaryModel):
+    sort_order = models.PositiveIntegerField(
+        default=100,
+        help_text=_("Order for displaying areas in UI tabs/lists (lower comes first)."),
+    )
     slug = models.CharField(
         max_length=50,
         unique=True,
         help_text=_("Unique identifier used internally (e.g. 'srcdst', 'services')."),
     )
     name = models.CharField(max_length=100)
+    placement_mode = models.CharField(
+        max_length=20,
+        choices=PlacementModeChoices.choices,
+        default=PlacementModeChoices.FIXED,
+        help_text=_("Whether objects in this area are assigned with source/destination (directional) or as a single list (fixed)."),
+    )
     is_system = models.BooleanField(
         default=False,
         help_text=_("System areas are built-in and cannot be deleted."),
@@ -24,7 +39,7 @@ class SecurityArea(PrimaryModel):
     class Meta:
         verbose_name = _("Area")
         verbose_name_plural = _("Areas")
-        ordering = ("slug",)
+        ordering = ("sort_order", "slug")
 
     def __str__(self):
         return self.name

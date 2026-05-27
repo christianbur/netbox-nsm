@@ -12,6 +12,8 @@ app_name = "netbox_nsm"
 
 urlpatterns = [
     # SecurityArea CRUD
+    path("areas/", SecurityAreaListView.as_view(), name="securityarea-list"),
+    path("areas/<int:pk>/", SecurityAreaView.as_view(), name="securityarea-detail"),
     path("areas/", include(get_model_urls("netbox_nsm", "securityarea", detail=False))),
     path("areas/<int:pk>/", include(get_model_urls("netbox_nsm", "securityarea"))),
     # Object-Builder (Areas / Types / Built-in tabs)

@@ -21,13 +21,13 @@ class SecurityAreaForm(PrimaryModelForm):
     )
 
     fieldsets = (
-        FieldSet("name", "slug", "description", name=_("Area")),
+        FieldSet("name", "slug", "sort_order", "description", name=_("Area")),
         FieldSet("tags", name=_("Tags")),
     )
 
     class Meta:
         model = SecurityArea
-        fields = ("name", "slug", "description", "tags")
+        fields = ("name", "slug", "sort_order", "description", "tags")
 
 
 class SecurityAreaFilterForm(PrimaryModelFilterSetForm):

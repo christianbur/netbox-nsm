@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.http import Http404
 from django.shortcuts import redirect
 
 from netbox.views import generic
@@ -50,7 +51,13 @@ class SecurityAreaDeleteView(generic.ObjectDeleteView):
 
     def post(self, request, *args, **kwargs):
         from django.core.exceptions import ValidationError
-        obj = self.get_object()
+        obj_id = kwargs.get("pk") or kwargs.get("id")
+        if obj_id is None:
+            raise Http404("Missing object identifier")
+        try:
+            obj = SecurityArea.objects.get(pk=obj_id)
+        except SecurityArea.DoesNotExist:
+            raise Http404("Area not found")
         try:
             obj.delete()
         except ValidationError as e:

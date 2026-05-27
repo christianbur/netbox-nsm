@@ -5,13 +5,7 @@
 {% block title %}{% trans "Object-Builder" %}{% endblock %}
 
 {% block controls %}
-  {% if active_tab == "builtin" %}
-  <div class="btn-list">
-    <button type="submit" form="builtin-install-form" class="btn btn-primary">
-      <i class="mdi mdi-download me-1"></i>{% trans "Install Selected" %}
-    </button>
-  </div>
-  {% elif add_url %}
+  {% if add_url and active_tab != "import" %}
   <div class="btn-list">
     <a href="{{ add_url }}" class="btn btn-primary">
       <i class="mdi mdi-plus-thick me-1"></i>{% trans "Add" %}
@@ -37,102 +31,122 @@
         </ul>
 
         {# ── Types tab ──────────────────────────────────────────────────────── #}
-        {% if active_tab == "types" or active_tab == "areas" %}
+        {% if active_tab == "types" %}
           {% render_table table %}
         {% endif %}
 
+        {% if active_tab == "areas" %}
+          <div class="alert alert-info" role="alert">
+            <div class="fw-semibold mb-1">{% trans "System vs. custom areas" %}</div>
+            <div>{% trans "System areas are built-in and define the canonical structure used by the rule editor. Custom areas are your own extensions." %}</div>
+          </div>
+
+          <div class="card mb-3 border-0 bg-body-tertiary">
+            <div class="card-body">
+              <div class="fw-semibold text-uppercase text-muted mb-2">{% trans "System areas" %}</div>
+              {% render_table system_table %}
+            </div>
+          </div>
+
+          <div class="card border-0 bg-body-tertiary">
+            <div class="card-body">
+              <div class="fw-semibold text-uppercase text-muted mb-2">{% trans "Custom areas" %}</div>
+              {% render_table custom_table %}
+            </div>
+          </div>
+        {% endif %}
+
         {# ── Built-in tab ───────────────────────────────────────────────────── #}
-        {% if active_tab == "builtin" %}
+        {% if active_tab == "import" %}
         <form method="post" id="builtin-install-form">
           {% csrf_token %}
-          <input type="hidden" name="tab" value="builtin">
+          <input type="hidden" name="tab" value="import">
           <p class="text-secondary">
-            {% trans "Customize the name to install a type multiple times under different names. Existing names will be skipped." %}
+            {% trans "All built-in types are shown as one editable JSON text definition. You can change it freely; nothing is saved until you click Install." %}
           </p>
-          <table class="table table-hover mb-0">
-            <thead>
-              <tr>
-                <th style="width:2rem"></th>
-                <th>{% trans "Name" %}</th>
-                <th>{% trans "Display Template" %}</th>
-                <th>{% trans "Area" %}</th>
-                <th>{% trans "Fields" %}</th>
-                <th style="width:3rem"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for t in builtin_types %}
-              <tr>
-                <td class="align-middle">
-                  {% if not t.already_installed %}
-                  <input type="checkbox" name="selected" value="{{ forloop.counter0 }}" class="form-check-input">
-                  {% endif %}
-                </td>
-                <td class="align-middle">
-                  {% if not t.already_installed %}
-                  <input type="text" name="name_{{ forloop.counter0 }}" value="{{ t.name }}"
-                    class="form-control form-control-sm" style="min-width:160px">
-                  {% else %}
-                  <span class="text-muted">{{ t.name }}</span>
-                  <span class="badge text-bg-success ms-1">{% trans "installed" %}</span>
-                  {% endif %}
-                </td>
-                <td class="align-middle">
-                  {% if not t.already_installed %}
-                  <input type="text"
-                         name="display_template_{{ forloop.counter0 }}"
-                         value="{{ t.display_template }}"
-                         class="form-control form-control-sm"
-                         style="min-width:220px"
-                         placeholder="{name}">
-                  {% else %}
-                  <code>{{ t.display_template|default:"{name}" }}</code>
-                  {% endif %}
-                </td>
-                <td class="align-middle">
-                  <span class="badge text-bg-secondary">{{ t.area }}</span>
-                </td>
-                <td class="align-middle">
-                  <small class="text-secondary">
-                    {% for fd in t.field_definitions %}{% if fd.name %}
-                      <code>{{ fd.name }}</code>{% if not forloop.last %}, {% endif %}
-                    {% endif %}{% empty %}—{% endfor %}
-                  </small>
-                </td>
-                <td class="align-middle text-end">
-                  <div class="d-flex justify-content-end gap-1">
-                    {% if not t.already_installed %}
-                    <button type="submit"
-                            class="btn btn-sm btn-primary py-0"
-                            name="install_one"
-                            value="{{ forloop.counter0 }}">
-                      {% trans "Install" %}
-                    </button>
-                    {% endif %}
-                    <button type="button"
-                            class="btn btn-sm btn-outline-secondary py-0"
-                            data-bs-toggle="collapse"
-                            data-bs-target="#src-{{ forloop.counter0 }}"
-                            title="JSON">
-                      <i class="mdi mdi-code-json"></i>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-              <tr class="collapse" id="src-{{ forloop.counter0 }}">
-                <td colspan="6" class="p-0 border-0">
-                  <pre class="mb-0 px-3 py-2 bg-body-tertiary"
-                    style="font-size:.72rem;max-height:18rem;overflow-y:auto;white-space:pre-wrap;border-bottom:1px solid var(--bs-border-color)">{{ t.field_definitions_json }}</pre>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+          <div class="alert alert-info" role="alert">
+            <div class="fw-semibold mb-1">{% trans "Expected structure (NetBox-style data, no source code)" %}</div>
+            <ul class="mb-0">
+              <li><code>name</code>, <code>area</code>, <code>display_template</code></li>
+              <li><code>field_definitions</code>: list of field objects (e.g. <code>name</code>, <code>type</code>, <code>label</code>, <code>choices</code>)</li>
+              <li><code>default_objects</code>: list of elements to create (e.g. <code>{"name":"Permit"}</code>)</li>
+            </ul>
+          </div>
+          <div class="border rounded p-3">
+            <div class="small text-secondary mb-1">{% trans "Built-in type definitions (JSON list)" %}</div>
+            <div class="d-flex justify-content-end gap-2 mb-2">
+              <button type="button" class="btn btn-outline-primary" id="copy-builtin-normal">
+                <i class="mdi mdi-content-copy me-1"></i>{% trans "Import built-in Objects" %}
+              </button>
+              <button type="button" class="btn btn-outline-primary" id="copy-builtin-demo">
+                <i class="mdi mdi-database-plus me-1"></i>{% trans "Import built-in Objects with demo data" %}
+              </button>
+              <button type="submit" class="btn btn-primary" name="import_mode" value="normal">
+                <i class="mdi mdi-download me-1"></i>{% trans "Import" %}
+              </button>
+            </div>
+            <textarea
+              id="builtin-types-json"
+              name="builtin_types_json"
+              class="form-control form-control-sm"
+              rows="36"
+              style="font-family: monospace;"
+            ></textarea>
+            <div class="d-flex justify-content-end gap-2 mt-3">
+              <button type="button" class="btn btn-outline-primary" id="copy-builtin-normal-bottom">
+                <i class="mdi mdi-content-copy me-1"></i>{% trans "Import built-in Objects" %}
+              </button>
+              <button type="button" class="btn btn-outline-primary" id="copy-builtin-demo-bottom">
+                <i class="mdi mdi-database-plus me-1"></i>{% trans "Import built-in Objects with demo data" %}
+              </button>
+              <button type="submit" class="btn btn-primary" name="import_mode" value="normal">
+                <i class="mdi mdi-download me-1"></i>{% trans "Import" %}
+              </button>
+            </div>
+          </div>
         </form>
+        {{ builtin_types_data|json_script:"builtin-types-normal" }}
+        {{ builtin_types_demo_data|json_script:"builtin-types-demo" }}
         {% endif %}
 
       </div>
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block javascript %}
+  {{ block.super }}
+  {% if active_tab == "import" %}
+  <script>
+  (function () {
+    const textarea = document.getElementById('builtin-types-json');
+    const normalSrc = document.getElementById('builtin-types-normal');
+    const demoSrc   = document.getElementById('builtin-types-demo');
+    if (!textarea) return;
+
+    function load(srcEl) {
+      if (!srcEl) return;
+      try {
+        const data = JSON.parse(srcEl.textContent || '[]');
+        textarea.value = JSON.stringify(data, null, 2);
+      } catch (_) {
+        textarea.value = srcEl.textContent || '[]';
+      }
+    }
+
+    ['copy-builtin-normal', 'copy-builtin-normal-bottom'].forEach(function (id) {
+      const btn = document.getElementById(id);
+      if (btn) btn.addEventListener('click', function () { load(normalSrc); });
+    });
+    ['copy-builtin-demo', 'copy-builtin-demo-bottom'].forEach(function (id) {
+      const btn = document.getElementById(id);
+      if (btn) btn.addEventListener('click', function () { load(demoSrc); });
+    });
+
+    // Fill textarea with normal built-ins initially.
+    load(normalSrc);
+  })();
+  </script>
+  {% endif %}
 {% endblock %}

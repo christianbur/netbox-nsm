@@ -28,13 +28,22 @@ class SecurityObjectForm(PrimaryModelForm):
         label=_("Type"),
     )
     description = forms.CharField(max_length=200, required=False)
+    display_template_override = forms.CharField(
+        max_length=500,
+        required=False,
+        label=_("Display Template Override"),
+        help_text=_(
+            "Optional: Overrides the type display template for this object only. "
+            "Use variables like {name}, {protocol}, {destination_ports}."
+        ),
+    )
     table_data = forms.CharField(
         required=False,
         widget=forms.HiddenInput(),
         label=_("Key/Value Table"),
     )
     fieldsets = (
-        FieldSet("custom_type", "name", "description", name=_("Custom Object")),
+        FieldSet("custom_type", "name", "display_template_override", "description", name=_("Custom Object")),
         FieldSet("tags", name=_("Tags")),
     )
 
@@ -43,7 +52,7 @@ class SecurityObjectForm(PrimaryModelForm):
 
     class Meta:
         model = SecurityObject
-        fields = ("custom_type", "name", "description", "comments", "table_data", "tags")
+        fields = ("custom_type", "name", "display_template_override", "description", "comments", "table_data", "tags")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -195,7 +204,7 @@ class SecurityObjectForm(PrimaryModelForm):
             if dynamic_parts:
                 table_fieldset = () if hide_table_data else (FieldSet("table_data", name=_("Key/Value Table")),)
                 self.fieldsets = (
-                    FieldSet("custom_type", "name", "description", name=_("Custom Object")),
+                    FieldSet("custom_type", "name", "display_template_override", "description", name=_("Custom Object")),
                     *dynamic_parts,
                     *table_fieldset,
                     FieldSet("tags", name=_("Tags")),

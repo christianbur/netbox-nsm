@@ -29,8 +29,11 @@ from netbox_nsm.forms import (
     SecurityPolicyRuleForm,
 )
 from netbox_nsm.models import (
+    SecurityArea,
     SecurityObject,
     SecurityObjectGroup,
+    SecurityPolicyRuleObjectItem,
+    SecurityPolicyRuleGroupItem,
     RulebookTypeChoices,
     SecurityPolicyRule,
     SecurityPolicyRulebook,
@@ -57,77 +60,103 @@ SECURITY_RULES_COLUMNS = (
 MAX_CUSTOM_COLUMNS = 10
 
 
-def _options_from_queryset(queryset):
-    return [{"value": str(obj.pk), "text": str(obj)} for obj in queryset]
+def _build_security_rule_picker_data():
+    """Build dynamic area/type/object/group data for the rule editor."""
+    areas = {}
 
-
-def _build_security_rule_add_options():
-    def _opt(value_field, value, group_label, text):
-        return {
-            "value": json.dumps({"field": value_field, "value": str(value), "label": str(group_label)}),
-            "text": f"{group_label}: {text}",
+    for area in SecurityArea.objects.all().order_by("sort_order", "slug"):
+        areas[area.slug] = {
+            "slug": str(area.slug),
+            "name": str(area.name),
+            "display_name": str(area.name),
+            "sort_order": int(area.sort_order),
+            "placement_mode": str(area.placement_mode),
+            "types": {},
         }
 
-    def _opts(value_field, group_label, items):
-        return [_opt(value_field, i["value"], group_label, i["text"]) for i in items]
-
-    service_objects_qs = (
+    for obj in (
         SecurityObject.objects
-        .filter(custom_type__area="services")
-        .select_related("custom_type")
-        .order_by("custom_type__name", "name")
-    )
-    service_groups = _options_from_queryset(
-        SecurityObjectGroup.objects.filter(area="services").order_by("name")
-    )
-    action_objects_qs = (
-        SecurityObject.objects
-        .filter(custom_type__area="action")
-        .select_related("custom_type")
-        .order_by("custom_type__name", "name")
-    )
-    action_groups = _options_from_queryset(
-        SecurityObjectGroup.objects.filter(area="action").order_by("name")
-    )
-    srcdst_objects_qs = (
-        SecurityObject.objects
-        .filter(custom_type__area="srcdst")
-        .select_related("custom_type")
-        .order_by("custom_type__name", "name")
-    )
-    srcdst_groups = _options_from_queryset(
-        SecurityObjectGroup.objects.filter(area="srcdst").order_by("name")
+        .select_related("custom_type", "custom_type__area")
+        .order_by("custom_type__area__sort_order", "custom_type__area__slug", "custom_type__name", "name")
+    ):
+        area_slug = str(obj.custom_type.area.slug)
+        area_data = areas.get(area_slug)
+        if not area_data:
+            continue
+
+        type_name = str(obj.custom_type.name)
+        if type_name not in area_data["types"]:
+            area_data["types"][type_name] = []
+
+        area_data["types"][type_name].append({
+            "kind": "object",
+            "id": str(obj.pk),
+            "name": str(obj.render_display() if hasattr(obj, "render_display") else obj.name),
+        })
+
+    for group in (
+        SecurityObjectGroup.objects
+        .select_related("area")
+        .order_by("area__sort_order", "area__slug", "name")
+    ):
+        area_slug = str(group.area.slug)
+        area_data = areas.get(area_slug)
+        if not area_data:
+            continue
+
+        if "Groups" not in area_data["types"]:
+            area_data["types"]["Groups"] = []
+
+        area_data["types"]["Groups"].append({
+            "kind": "group",
+            "id": str(group.pk),
+            "name": str(group.name),
+        })
+
+    ordered_areas = []
+    for area_slug, area_data in sorted(areas.items(), key=lambda pair: (pair[1]["sort_order"], pair[1]["name"].lower(), pair[0])):
+        ordered_types = []
+        for type_name, entries in sorted(area_data["types"].items(), key=lambda pair: pair[0].lower()):
+            if not entries:
+                continue
+            ordered_types.append({"name": type_name, "entries": entries})
+        ordered_areas.append({
+            "slug": area_data["slug"],
+            "name": area_data["name"],
+            "display_name": area_data["display_name"],
+            "sort_order": area_data["sort_order"],
+            "placement_mode": area_data["placement_mode"],
+            "types": ordered_types,
+        })
+
+    return {"areas": ordered_areas}
+
+
+def _policy_area_has_content(area_slug):
+    area_slugs = area_slug if isinstance(area_slug, (list, tuple, set)) else [area_slug]
+    return (
+        SecurityObject.objects.filter(custom_type__area__slug__in=area_slugs).exists()
+        or SecurityObjectGroup.objects.filter(area__slug__in=area_slugs).exists()
     )
 
-    def _typed_opts(value_field, qs):
-        return [
-            _opt(value_field, obj.pk, obj.custom_type.name, obj.name)
-            for obj in qs
-        ]
 
-    source_options = [
-        *_typed_opts("custom_srcdst_objects", srcdst_objects_qs),
-        *_opts("source_groups", _("Group"), srcdst_groups),
-    ]
-    destination_options = [
-        *_typed_opts("destination_custom_objects", srcdst_objects_qs),
-        *_opts("destination_groups", _("Group"), srcdst_groups),
-    ]
-    service_options = [
-        *_typed_opts("custom_service_objects", service_objects_qs),
-        *_opts("service_groups", _("Group"), service_groups),
-    ]
-    action_options = [
-        *_typed_opts("custom_action_objects", action_objects_qs),
-        *_opts("action_groups", _("Group"), action_groups),
-    ]
-
+def _available_policy_columns():
     return {
-        "source": source_options,
-        "destination": destination_options,
-        "service": service_options,
-        "action": action_options,
+        "source": _policy_area_has_content(("srcdst", "source", "destination")),
+        "destination": _policy_area_has_content(("srcdst", "source", "destination")),
+        "service": _policy_area_has_content(("services", "application", "applications")),
+        "action": _policy_area_has_content("action"),
+        "info": _policy_area_has_content("info"),
     }
+
+
+def _filter_policy_columns(columns, availability):
+    filtered = []
+    for column in columns:
+        if column in ("source", "destination", "service", "action", "info") and not availability.get(column, False):
+            continue
+        filtered.append(column)
+    return filtered
 
 
 def _policy_columns_session_key(rulebook_pk):
@@ -257,63 +286,52 @@ def _build_policy_table_class(custom_columns, selected_columns):
     )
     return type("ConfiguredSecurityPolicyRuleTable", (SecurityPolicyRuleTable,), attrs)
 
+
 def _build_object_analysis(rulebook):
-    """
-    For each area (srcdst, services, action), count:
-    - individual object usage across all rules
-    - label combinations: per-rule sorted-and-joined object names
-    """
-    from collections import Counter, defaultdict
+    """Count per-area object usage across all rules in a rulebook."""
+    from collections import Counter
+    from netbox_nsm.models import SecurityPolicyRuleObjectItem, SecurityPolicyRuleGroupItem
 
-    AREA_DEFS = [
-        ("srcdst",   "Objects (Source / Destination)"),
-        ("services", "Services"),
-        ("action",   "Action"),
-    ]
+    rule_pks = list(SecurityPolicyRule.objects.filter(rulebook=rulebook).values_list("pk", flat=True))
+    total_rules = len(rule_pks)
 
-    rules = list(
-        SecurityPolicyRule.objects
-        .filter(rulebook=rulebook)
-        .prefetch_related(
-            "custom_srcdst_objects__custom_type",
-            "destination_custom_objects__custom_type",
-            "custom_service_objects__custom_type",
-            "custom_action_objects__custom_type",
-            "source_groups", "destination_groups",
-            "service_groups", "action_groups",
-        )
-    )
-
-    def _names_for_area(rule, area):
-        """Return list of (name, type_label) tuples for the given area."""
-        if area == "srcdst":
-            src = [(o.name, o.custom_type.name) for o in rule.custom_srcdst_objects.all()]
-            dst = [(o.name, o.custom_type.name) for o in rule.destination_custom_objects.all()]
-            return src + dst
-        if area == "services":
-            return [(o.name, o.custom_type.name) for o in rule.custom_service_objects.all()]
-        if area == "action":
-            return [(o.name, o.custom_type.name) for o in rule.custom_action_objects.all()]
-        return []
-
-    total_rules = len(rules)
+    areas_qs = SecurityArea.objects.order_by("sort_order", "slug")
     areas = []
 
-    for area_key, area_label in AREA_DEFS:
-        individual = Counter()   # (name, type_label) → count
-        combos = Counter()       # sorted-joined name string → count
+    for area in areas_qs:
+        individual = Counter()
+        combos = Counter()
 
-        for rule in rules:
-            items = _names_for_area(rule, area_key)
-            names = sorted(set(name for name, _ in items))
-            for name, type_label in items:
-                individual[(name, type_label)] += 1
-            if names:
-                combos[" | ".join(names)] += 1
+        obj_items = (
+            SecurityPolicyRuleObjectItem.objects
+            .filter(rule__in=rule_pks, area=area)
+            .select_related("security_object__custom_type", "rule")
+            .order_by("rule_id")
+        )
+        grp_items = (
+            SecurityPolicyRuleGroupItem.objects
+            .filter(rule__in=rule_pks, area=area)
+            .select_related("security_group", "rule")
+            .order_by("rule_id")
+        )
+
+        by_rule: dict = {}
+        for item in obj_items:
+            by_rule.setdefault(item.rule_id, []).append(item.security_object.name)
+            individual[(item.security_object.name, item.security_object.custom_type.name)] += 1
+        for item in grp_items:
+            by_rule.setdefault(item.rule_id, []).append(item.security_group.name)
+            individual[(item.security_group.name, "Group")] += 1
+
+        for names in by_rule.values():
+            combos[" | ".join(sorted(set(names)))] += 1
+
+        if not individual:
+            continue
 
         areas.append({
-            "key": area_key,
-            "label": area_label,
+            "key": area.slug,
+            "label": area.name,
             "total_objects": len(individual),
             "objects": [
                 {"name": name, "type_name": type_name, "count": count}
@@ -325,51 +343,42 @@ def _build_object_analysis(rulebook):
             ],
         })
 
-    return {
-        "total_rules": total_rules,
-        "areas": areas,
-    }
+    return {"total_rules": total_rules, "areas": areas}
 
 
 def _build_object_usage_stats(rulebook):
-    """Count how often each custom object, zone, and group appears in the rulebook's rules."""
+    """Count how often each object/group appears across all rules in a rulebook."""
     from collections import Counter
-    rules = list(
-        SecurityPolicyRule.objects
-        .filter(rulebook=rulebook)
-        .prefetch_related(
-            "custom_srcdst_objects__custom_type",
-            "destination_custom_objects__custom_type",
-            "custom_service_objects__custom_type",
-            "custom_action_objects__custom_type",
-            "source_groups", "destination_groups",
-            "service_groups", "action_groups",
-        )
-    )
+    from netbox_nsm.models import SecurityPolicyRuleObjectItem, SecurityPolicyRuleGroupItem
+
+    rule_pks = list(SecurityPolicyRule.objects.filter(rulebook=rulebook).values_list("pk", flat=True))
 
     object_counter = Counter()
+    for item in (
+        SecurityPolicyRuleObjectItem.objects
+        .filter(rule__in=rule_pks)
+        .select_related("security_object__custom_type")
+    ):
+        object_counter[(item.security_object.pk, item.security_object.name, item.security_object.custom_type.name)] += 1
+
     group_counter = Counter()
+    for item in (
+        SecurityPolicyRuleGroupItem.objects
+        .filter(rule__in=rule_pks)
+        .select_related("security_group")
+    ):
+        group_counter[(item.security_group.pk, item.security_group.name)] += 1
 
-    for rule in rules:
-        for obj in list(rule.custom_srcdst_objects.all()) + list(rule.destination_custom_objects.all()) + \
-                   list(rule.custom_service_objects.all()) + list(rule.custom_action_objects.all()):
-            object_counter[(obj.pk, obj.name, obj.custom_type.name)] += 1
-        for grp in list(rule.source_groups.all()) + list(rule.destination_groups.all()) + \
-                   list(rule.service_groups.all()) + list(rule.action_groups.all()):
-            group_counter[(grp.pk, grp.name)] += 1
-
-    top_objects = [
-        {"pk": pk, "name": name, "type": type_name, "count": count}
-        for (pk, name, type_name), count in object_counter.most_common(10)
-    ]
-    top_groups = [
-        {"pk": pk, "name": name, "count": count}
-        for (pk, name), count in group_counter.most_common(10)
-    ]
     return {
-        "top_objects": top_objects,
-        "top_groups": top_groups,
-        "total_rules": len(rules),
+        "top_objects": [
+            {"pk": pk, "name": name, "type": type_name, "count": count}
+            for (pk, name, type_name), count in object_counter.most_common(10)
+        ],
+        "top_groups": [
+            {"pk": pk, "name": name, "count": count}
+            for (pk, name), count in group_counter.most_common(10)
+        ],
+        "total_rules": len(rule_pks),
     }
 
 
@@ -428,9 +437,9 @@ class SecurityPolicyRulebookVisualizationView(generic.ObjectView):
             SecurityPolicyRule.objects
             .filter(rulebook=instance)
             .prefetch_related(
-                "custom_srcdst_objects__custom_type",
-                "destination_custom_objects__custom_type",
-                "custom_action_objects",
+                "object_items__area",
+                "object_items__security_object__custom_type",
+                "group_items__area",
             )
             .order_by("index")
         )
@@ -440,8 +449,14 @@ class SecurityPolicyRulebookVisualizationView(generic.ObjectView):
         has_none_src = False
         has_none_dst = False
         for rule in rules_qs:
-            src_zones = [o for o in rule.custom_srcdst_objects.all() if o.custom_type.name == ZONE_TYPE_NAME]
-            dst_zones = [o for o in rule.destination_custom_objects.all() if o.custom_type.name == ZONE_TYPE_NAME]
+            src_zones = [
+                item.security_object for item in rule.object_items.all()
+                if item.placement == "source" and item.security_object.custom_type.name == ZONE_TYPE_NAME
+            ]
+            dst_zones = [
+                item.security_object for item in rule.object_items.all()
+                if item.placement == "destination" and item.security_object.custom_type.name == ZONE_TYPE_NAME
+            ]
             if not src_zones:
                 has_none_src = True
             if not dst_zones:
@@ -462,19 +477,29 @@ class SecurityPolicyRulebookVisualizationView(generic.ObjectView):
         dst_zones = [z for z in all_zones if z.pk in selected_dst_pks] if dst_filter else all_zones
 
         def _action_color_label(rule):
-            for obj in rule.custom_action_objects.all():
-                name_lower = obj.name.lower()
+            action_area_items = [
+                item for item in rule.object_items.all()
+                if item.area.slug == "action"
+            ]
+            for item in action_area_items:
+                name_lower = item.security_object.name.lower()
                 for key, color in ACTION_COLOR.items():
                     if key in name_lower:
-                        return color, obj.name
+                        return color, item.security_object.name
             return "secondary", "?"
 
         # Build cell_map: (src_pk, dst_pk) → list of rules
         cell_map = defaultdict(list)
         for rule in rules_qs:
             rule._color, rule._action_label = _action_color_label(rule)
-            src_pks = [o.pk for o in rule.custom_srcdst_objects.all() if o.custom_type.name == ZONE_TYPE_NAME]
-            dst_pks = [o.pk for o in rule.destination_custom_objects.all() if o.custom_type.name == ZONE_TYPE_NAME]
+            src_pks = [
+                item.security_object.pk for item in rule.object_items.all()
+                if item.placement == "source" and item.security_object.custom_type.name == ZONE_TYPE_NAME
+            ]
+            dst_pks = [
+                item.security_object.pk for item in rule.object_items.all()
+                if item.placement == "destination" and item.security_object.custom_type.name == ZONE_TYPE_NAME
+            ]
             if not src_pks:
                 src_pks = [_NONE_ZONE_PK]
             if not dst_pks:
@@ -503,14 +528,11 @@ class SecurityPolicyRulebookVisualizationView(generic.ObjectView):
                 dp_q = f"dst_obj_id={dst.pk}" if dst.pk != _NONE_ZONE_PK else ""
                 filter_qs = "?" + "&".join(p for p in [sp_q, dp_q] if p) if (sp_q or dp_q) else ""
                 if count == 0:
-                    src_add = f"&custom_srcdst_objects={src.pk}" if src.pk != _NONE_ZONE_PK else ""
-                    dst_add = f"&destination_custom_objects={dst.pk}" if dst.pk != _NONE_ZONE_PK else ""
                     cell = {
                         "type": "empty",
                         "is_self": src.pk == dst.pk,
                         "href": (
                             f"{add_url_base}?rulebook={instance.pk}"
-                            f"{src_add}{dst_add}"
                             f"&return_url={policy_url_base}"
                         ),
                     }
@@ -553,17 +575,20 @@ class SecurityPolicyRulebookView(generic.ObjectView):
         if instance.rulebook_type != RulebookTypeChoices.POLICY:
             return {}
 
+        availability = _available_policy_columns()
         config = _get_policy_table_config(request, instance.pk)
-        selected_set = set(config["selected_columns"])
-        order_map = {name: idx + 1 for idx, name in enumerate(config["selected_columns"])}
+        selected_columns = _filter_policy_columns(config["selected_columns"], availability)
+        selected_set = set(selected_columns)
+        order_map = {name: idx + 1 for idx, name in enumerate(selected_columns)}
 
         return {
             "security_rules_columns": SECURITY_RULES_COLUMNS,
-            "selected_security_rules_columns": config["selected_columns"],
+            "selected_security_rules_columns": selected_columns,
             "selected_security_rules_columns_set": selected_set,
             "security_rules_column_order": order_map,
-            "security_rules_column_order_list": config["selected_columns"],
+            "security_rules_column_order_list": selected_columns,
             "custom_columns": config["custom_columns"],
+            "nsm_available_policy_areas": availability,
         }
 
 
@@ -576,13 +601,15 @@ class SecurityPolicyRulebookPolicyColumnsView(generic.ObjectView):
         if instance.rulebook_type != RulebookTypeChoices.POLICY:
             return redirect(reverse("plugins:netbox_nsm:securitypolicyrulebook", args=[instance.pk]))
 
+        availability = _available_policy_columns()
         allowed_columns = {name for name, _ in SECURITY_RULES_COLUMNS}
         selected_columns = [
             column for column in request.POST.getlist("columns") if column in allowed_columns
         ]
+        selected_columns = _filter_policy_columns(selected_columns, availability)
 
         if not selected_columns:
-            selected_columns = _default_security_rules_columns()
+            selected_columns = _filter_policy_columns(_default_security_rules_columns(), availability)
 
         ordered_columns = []
         raw_order = request.POST.get("column_order", "")
@@ -634,30 +661,25 @@ class SecurityPolicyRulebookRulesView(generic.ObjectView):
         )
 
     def get_extra_context(self, request, instance):
+        availability = _available_policy_columns()
         rules_qs = SecurityPolicyRule.objects.filter(rulebook=instance).prefetch_related(
             "source_users",
             "destination_users",
-            "custom_srcdst_objects__custom_type",
-            "destination_custom_objects__custom_type",
-            "custom_service_objects__custom_type",
-            "custom_action_objects__custom_type",
-            "source_groups",
-            "destination_groups",
-            "service_groups",
-            "action_groups",
+            "object_items__area",
+            "object_items__security_object__custom_type",
+            "group_items__area",
+            "group_items__security_group",
         )
 
-        # ── optional custom-object filter (src_obj_id / dst_obj_id) ─────────────────
-        # Works for ALL SecurityObject types: labels, addresses, services, etc.
-        # Subset matching: ALL supplied PKs must be present in the respective field.
+        # ── optional object filter (src_obj_id / dst_obj_id) ─────────────────
         src_obj_filter = [v for v in request.GET.getlist("src_obj_id") if v.isdigit()]
         dst_obj_filter = [v for v in request.GET.getlist("dst_obj_id") if v.isdigit()]
         if src_obj_filter:
             n = len(src_obj_filter)
             rules_qs = rules_qs.annotate(
                 _src_obj_matched=Count(
-                    "custom_srcdst_objects",
-                    filter=Q(custom_srcdst_objects__id__in=src_obj_filter),
+                    "object_items",
+                    filter=Q(object_items__placement="source") & Q(object_items__security_object__id__in=src_obj_filter),
                     distinct=True,
                 )
             ).filter(_src_obj_matched=n)
@@ -665,8 +687,8 @@ class SecurityPolicyRulebookRulesView(generic.ObjectView):
             n = len(dst_obj_filter)
             rules_qs = rules_qs.annotate(
                 _dst_obj_matched=Count(
-                    "destination_custom_objects",
-                    filter=Q(destination_custom_objects__id__in=dst_obj_filter),
+                    "object_items",
+                    filter=Q(object_items__placement="destination") & Q(object_items__security_object__id__in=dst_obj_filter),
                     distinct=True,
                 )
             ).filter(_dst_obj_matched=n)
@@ -680,13 +702,8 @@ class SecurityPolicyRulebookRulesView(generic.ObjectView):
             _q = (
                 Q(name__icontains=search_q)
                 | Q(description__icontains=search_q)
-                | Q(custom_srcdst_objects__name__icontains=search_q)
-                | Q(custom_service_objects__name__icontains=search_q)
-                | Q(custom_action_objects__name__icontains=search_q)
-                | Q(source_groups__name__icontains=search_q)
-                | Q(destination_groups__name__icontains=search_q)
-                | Q(service_groups__name__icontains=search_q)
-                | Q(action_groups__name__icontains=search_q)
+                | Q(object_items__security_object__name__icontains=search_q)
+                | Q(group_items__security_group__name__icontains=search_q)
             )
             if search_q.isdigit():
                 _q |= Q(index=int(search_q))
@@ -713,7 +730,7 @@ class SecurityPolicyRulebookRulesView(generic.ObjectView):
         )
 
         config = _get_policy_table_config(request, instance.pk)
-        selected_columns = config["selected_columns"]
+        selected_columns = _filter_policy_columns(config["selected_columns"], availability)
         custom_columns = config["custom_columns"]
 
         all_columns = [name for name, _ in SECURITY_RULES_COLUMNS]
@@ -734,6 +751,7 @@ class SecurityPolicyRulebookRulesView(generic.ObjectView):
             "is_security_rules": True,
             "security_rules_columns": SECURITY_RULES_COLUMNS,
             "selected_security_rules_columns": selected_columns,
+            "nsm_available_policy_areas": availability,
             "active_src_objs": active_src_objs,
             "active_dst_objs": active_dst_objs,
             "search_q": search_q,
@@ -805,30 +823,54 @@ class SecurityPolicyRuleView(generic.ObjectView):
     queryset = SecurityPolicyRule.objects.prefetch_related(
         "source_users",
         "destination_users",
-        "custom_srcdst_objects__custom_type",
-        "destination_custom_objects__custom_type",
-        "source_groups__members__custom_type",
-        "source_groups__sub_groups",
-        "destination_groups__members__custom_type",
-        "destination_groups__sub_groups",
-        "custom_service_objects__custom_type",
-        "custom_action_objects__custom_type",
+        "object_items__area",
+        "object_items__security_object__custom_type",
+        "group_items__area",
+        "group_items__security_group",
     ).select_related("rulebook")
 
     def get_extra_context(self, request, instance):
+        src_items = instance.object_items.filter(placement="source").select_related("security_object__custom_type")
+        dst_items = instance.object_items.filter(placement="destination").select_related("security_object__custom_type")
+
+        src_group_items = instance.group_items.filter(placement="source").select_related("security_group")
+        dst_group_items = instance.group_items.filter(placement="destination").select_related("security_group")
+
+        fixed_object_items = instance.object_items.filter(placement="fixed").select_related(
+            "area", "security_object__custom_type"
+        )
+        fixed_group_items = instance.group_items.filter(placement="fixed").select_related("area", "security_group")
+
+        fixed_objects_by_area = {}
+        for item in fixed_object_items:
+            fixed_objects_by_area.setdefault(item.area.slug, []).append(item.security_object)
+
+        fixed_groups_by_area = {}
+        for item in fixed_group_items:
+            fixed_groups_by_area.setdefault(item.area.slug, []).append(item.security_group)
+
         src_ips = []
-        for o in instance.custom_srcdst_objects.all():
-            src_ips.extend(_extract_ip_refs(o))
-        for g in instance.source_groups.all():
-            src_ips.extend(_collect_ips_from_group(g))
+        for item in src_items:
+            src_ips.extend(_extract_ip_refs(item.security_object))
 
         dst_ips = []
-        for o in instance.destination_custom_objects.all():
-            dst_ips.extend(_extract_ip_refs(o))
-        for g in instance.destination_groups.all():
-            dst_ips.extend(_collect_ips_from_group(g))
+        for item in dst_items:
+            dst_ips.extend(_extract_ip_refs(item.security_object))
 
-        return {"src_ips": src_ips, "dst_ips": dst_ips}
+        return {
+            "src_ips": src_ips,
+            "dst_ips": dst_ips,
+            "source_objects": [item.security_object for item in src_items],
+            "destination_objects": [item.security_object for item in dst_items],
+            "source_groups": [item.security_group for item in src_group_items],
+            "destination_groups": [item.security_group for item in dst_group_items],
+            "service_objects": fixed_objects_by_area.get("services", []),
+            "service_groups": fixed_groups_by_area.get("services", []),
+            "action_objects": fixed_objects_by_area.get("action", []),
+            "action_groups": fixed_groups_by_area.get("action", []),
+            "info_objects": fixed_objects_by_area.get("info", []),
+            "info_groups": fixed_groups_by_area.get("info", []),
+        }
 
 
 @register_model_view(SecurityPolicyRule, "list", path="", detail=False)
@@ -871,20 +913,30 @@ class SecurityPolicyRuleEditView(generic.ObjectEditView):
         return instance
 
     def get_extra_context(self, request, instance):
-        initial_labels: dict = {"source": {}, "destination": {}, "service": {}, "action": {}}
+        # Build current selections JSON for pre-populating the picker on edit
+        selections = []
         if instance.pk:
-            for obj in instance.custom_srcdst_objects.select_related("custom_type").all():
-                initial_labels["source"][str(obj.pk)] = obj.custom_type.name
-            for obj in instance.destination_custom_objects.select_related("custom_type").all():
-                initial_labels["destination"][str(obj.pk)] = obj.custom_type.name
-            for obj in instance.custom_service_objects.select_related("custom_type").all():
-                initial_labels["service"][str(obj.pk)] = obj.custom_type.name
-            for obj in instance.custom_action_objects.select_related("custom_type").all():
-                initial_labels["action"][str(obj.pk)] = obj.custom_type.name
+            for item in instance.object_items.select_related("area", "security_object__custom_type").all():
+                selections.append({
+                    "area": str(item.area.slug),
+                    "placement": str(item.placement),
+                    "kind": "object",
+                    "id": str(item.security_object.pk),
+                    "name": str(item.security_object.name),
+                })
+            for item in instance.group_items.select_related("area", "security_group").all():
+                selections.append({
+                    "area": str(item.area.slug),
+                    "placement": str(item.placement),
+                    "kind": "group",
+                    "id": str(item.security_group.pk),
+                    "name": str(item.security_group.name),
+                })
         return {
-            "nsm_add_options": _build_security_rule_add_options(),
-            "nsm_initial_labels": json.dumps(initial_labels),
+            "nsm_rule_picker_data": _build_security_rule_picker_data(),
+            "nsm_rule_selections": selections,
         }
+
 
 
 @register_model_view(SecurityPolicyRule, "delete")

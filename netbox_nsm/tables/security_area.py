@@ -9,6 +9,7 @@ __all__ = ("SecurityAreaTable",)
 
 
 class SecurityAreaTable(NetBoxTable):
+    sort_order = tables.Column(verbose_name="Order")
     name = tables.LinkColumn(verbose_name="Name")
     slug = tables.Column(verbose_name="Slug")
     is_system = tables.BooleanColumn(verbose_name="System")
@@ -16,5 +17,5 @@ class SecurityAreaTable(NetBoxTable):
 
     class Meta(NetBoxTable.Meta):
         model = SecurityArea
-        fields = ("id", "name", "slug", "is_system", "description", "tags")
-        default_columns = ("name", "slug", "is_system", "description")
+        fields = ("id", "sort_order", "name", "slug", "is_system", "description", "tags")
+        default_columns = ("sort_order", "name", "slug", "is_system", "description")

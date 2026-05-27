@@ -12,9 +12,9 @@ class ActionChoices(ChoiceSet):
     REJECT = "reject"
 
     CHOICES = [
-        (PERMIT, "Allow", "green"),
-        (DENY, "Deny", "red"),
+        (PERMIT, "Erlauben", "green"),
+        (DENY, "Verwerfen", "red"),
         (LOG, "Log", "orange"),
-        (COUNT, "Count", "orange"),
-        (REJECT, "Reject", "red"),
+        (COUNT, "Zählen", "orange"),
+        (REJECT, "Ablehnen", "red"),
     ]

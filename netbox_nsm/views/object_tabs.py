@@ -34,22 +34,34 @@ class ObjectsSrcDstTabsView(TemplateView):
             return next((ct for ct in all_custom_types if ct.name == slug), None)
         return SecurityObjectType.objects.filter(name=slug).first()
 
+    def _get_area_by_slug(self, slug, all_areas=None):
+        if all_areas is not None:
+            return next((area for area in all_areas if area.slug == slug), None)
+        return SecurityArea.objects.filter(slug=slug).first()
+
     def get(self, request, *args, **kwargs):
         if kwargs.get("tab") is None:
-            ct = SecurityObjectType.objects.order_by("area", "name").first()
+            ct = SecurityObjectType.objects.select_related("area").order_by(
+                "area__sort_order", "area__name", "name"
+            ).first()
             if ct:
                 return redirect("plugins:netbox_nsm:object_tabs", tab=ct.name)
-            return redirect("plugins:netbox_nsm:object_custom_root")
+            first_area = SecurityArea.objects.order_by("sort_order", "name", "slug").first()
+            if first_area:
+                return redirect("plugins:netbox_nsm:object_tabs", tab=first_area.slug)
+            return redirect("plugins:netbox_nsm:object_builder_root")
         return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         tab_slug = kwargs.get("tab", self.default_slug)
-        tab_map = {tab["slug"]: tab for tab in self.TABS}
-
         # Build dynamic custom tabs from SecurityObjectType instances (slug = type name)
-        all_areas = list(SecurityArea.objects.order_by("slug"))
-        all_custom_types = list(SecurityObjectType.objects.select_related("area").order_by("area__slug", "name"))
+        all_areas = list(SecurityArea.objects.order_by("sort_order", "name", "slug"))
+        all_custom_types = list(
+            SecurityObjectType.objects.select_related("area").order_by(
+                "area__sort_order", "area__name", "name"
+            )
+        )
         custom_tabs_by_area = {a.slug: [] for a in all_areas}
         for ct in all_custom_types:
             area_slug = ct.area.slug
@@ -68,17 +80,22 @@ class ObjectsSrcDstTabsView(TemplateView):
         tab_map_full = {tab["slug"]: tab for tab in all_tabs}
 
         active_ct = self._get_custom_type_by_slug(tab_slug, all_custom_types)
-        if not active_ct and all_custom_types:
+        active_area = self._get_area_by_slug(tab_slug, all_areas)
+        if not active_ct and not active_area and all_custom_types:
             # Unknown slug — fall back to first custom type
             active_ct = all_custom_types[0]
         if active_ct:
             active_tab = tab_map_full.get(active_ct.name)
             active_main_tab = active_ct.area.slug
             add_url = f"/plugins/netbox-nsm/object/custom/objects/add/?custom_type={active_ct.pk}"
+        elif active_area:
+            active_tab = None
+            active_main_tab = active_area.slug
+            add_url = "/plugins/netbox-nsm/object-builder/types/"
         else:
             active_tab = None
             active_main_tab = all_areas[0].slug if all_areas else "srcdst"
-            add_url = "/plugins/netbox-nsm/object/custom/objects/add/"
+            add_url = "/plugins/netbox-nsm/object-builder/types/"
 
         # Build dynamic tab_groups from SecurityArea
         tab_groups_with_custom = [
@@ -102,7 +119,7 @@ class ObjectsSrcDstTabsView(TemplateView):
                 "href": (
                     f"/plugins/netbox-nsm/object/{first_type_by_area[a.slug]}/"
                     if a.slug in first_type_by_area
-                    else "/plugins/netbox-nsm/object/custom/"
+                    else f"/plugins/netbox-nsm/object/{a.slug}/"
                 ),
             }
             for a in all_areas
@@ -122,6 +139,7 @@ class ObjectsSrcDstTabsView(TemplateView):
                 "active_tab": active_tab,
                 "tab_url_name": "plugins:netbox_nsm:object_tabs",
                 "active_tab_add_url": add_url,
+                "active_area": active_area,
                 "table_columns": self._get_table_columns_for_tab(tab_slug, ct=active_ct),
                 "table_rows": self._get_table_rows_for_tab(tab_slug, ct=active_ct),
             }

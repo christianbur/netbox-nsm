@@ -12,7 +12,7 @@ __all__ = ("SecurityAreaFilterSet",)
 class SecurityAreaFilterSet(PrimaryModelFilterSet):
     class Meta:
         model = SecurityArea
-        fields = ("id", "slug", "name", "is_system")
+        fields = ("id", "slug", "name", "sort_order", "is_system")
 
     def search(self, queryset, name, value):
         if not value.strip():

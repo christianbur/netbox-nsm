@@ -18,6 +18,8 @@ __all__ = (
     "RulebookTypeChoices",
     "SecurityPolicyRulebook",
     "SecurityPolicyRule",
+    "SecurityPolicyRuleObjectItem",
+    "SecurityPolicyRuleGroupItem",
     "SecurityPolicyAssignment",
     "SecurityPolicyRulebookIndex",
 )
@@ -80,54 +82,6 @@ class SecurityPolicyRule(ContactsMixin, PrimaryModel):
         choices=ActionChoices,
         default=ActionChoices.PERMIT,
     )
-    custom_srcdst_objects = models.ManyToManyField(
-        to="netbox_nsm.SecurityObject",
-        blank=True,
-        related_name="%(class)s_custom_srcdst",
-        limit_choices_to={"custom_type__area__slug": "srcdst"},
-    )
-    destination_custom_objects = models.ManyToManyField(
-        to="netbox_nsm.SecurityObject",
-        blank=True,
-        related_name="%(class)s_destination_custom",
-        limit_choices_to={"custom_type__area__slug": "srcdst"},
-    )
-    source_groups = models.ManyToManyField(
-        to="netbox_nsm.SecurityObjectGroup",
-        blank=True,
-        related_name="%(class)s_source_groups",
-        limit_choices_to={"area__slug": "srcdst"},
-    )
-    destination_groups = models.ManyToManyField(
-        to="netbox_nsm.SecurityObjectGroup",
-        blank=True,
-        related_name="%(class)s_destination_groups",
-        limit_choices_to={"area__slug": "srcdst"},
-    )
-    custom_service_objects = models.ManyToManyField(
-        to="netbox_nsm.SecurityObject",
-        blank=True,
-        related_name="%(class)s_custom_services",
-        limit_choices_to={"custom_type__area__slug": "services"},
-    )
-    service_groups = models.ManyToManyField(
-        to="netbox_nsm.SecurityObjectGroup",
-        blank=True,
-        related_name="%(class)s_service_groups",
-        limit_choices_to={"area__slug": "services"},
-    )
-    custom_action_objects = models.ManyToManyField(
-        to="netbox_nsm.SecurityObject",
-        blank=True,
-        related_name="%(class)s_custom_action",
-        limit_choices_to={"custom_type__area__slug": "action"},
-    )
-    action_groups = models.ManyToManyField(
-        to="netbox_nsm.SecurityObjectGroup",
-        blank=True,
-        related_name="%(class)s_action_groups",
-        limit_choices_to={"area__slug": "action"},
-    )
 
     class Meta:
         verbose_name = _("Security Rule")
@@ -145,6 +99,72 @@ class SecurityPolicyRule(ContactsMixin, PrimaryModel):
 
     def get_absolute_url(self):
         return reverse("plugins:netbox_nsm:securitypolicyrule", args=[self.pk])
+
+
+class _PlacementChoices(models.TextChoices):
+    SOURCE = "source", _("Source")
+    DESTINATION = "destination", _("Destination")
+    FIXED = "fixed", _("Fixed")
+
+
+class SecurityPolicyRuleObjectItem(models.Model):
+    """Assigns a SecurityObject to a rule within a specific area and placement."""
+
+    rule = models.ForeignKey(
+        to="netbox_nsm.SecurityPolicyRule",
+        on_delete=models.CASCADE,
+        related_name="object_items",
+    )
+    area = models.ForeignKey(
+        to="netbox_nsm.SecurityArea",
+        on_delete=models.PROTECT,
+        related_name="rule_object_items",
+    )
+    placement = models.CharField(max_length=20, choices=_PlacementChoices.choices)
+    security_object = models.ForeignKey(
+        to="netbox_nsm.SecurityObject",
+        on_delete=models.CASCADE,
+        related_name="rule_object_items",
+    )
+
+    class Meta:
+        unique_together = (("rule", "area", "placement", "security_object"),)
+        ordering = ("area__sort_order", "area__slug", "placement", "security_object__name")
+        verbose_name = _("Rule Object Item")
+        verbose_name_plural = _("Rule Object Items")
+
+    def __str__(self):
+        return f"{self.rule} / {self.area} / {self.placement} / {self.security_object}"
+
+
+class SecurityPolicyRuleGroupItem(models.Model):
+    """Assigns a SecurityObjectGroup to a rule within a specific area and placement."""
+
+    rule = models.ForeignKey(
+        to="netbox_nsm.SecurityPolicyRule",
+        on_delete=models.CASCADE,
+        related_name="group_items",
+    )
+    area = models.ForeignKey(
+        to="netbox_nsm.SecurityArea",
+        on_delete=models.PROTECT,
+        related_name="rule_group_items",
+    )
+    placement = models.CharField(max_length=20, choices=_PlacementChoices.choices)
+    security_group = models.ForeignKey(
+        to="netbox_nsm.SecurityObjectGroup",
+        on_delete=models.CASCADE,
+        related_name="rule_group_items",
+    )
+
+    class Meta:
+        unique_together = (("rule", "area", "placement", "security_group"),)
+        ordering = ("area__sort_order", "area__slug", "placement", "security_group__name")
+        verbose_name = _("Rule Group Item")
+        verbose_name_plural = _("Rule Group Items")
+
+    def __str__(self):
+        return f"{self.rule} / {self.area} / {self.placement} / {self.security_group}"
 
 
 class SecurityPolicyAssignment(NetBoxModel):

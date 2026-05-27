@@ -1,3 +1,4 @@
+from .object_builder import *
 from .security_area import *
 from .security_policy import *
 from .security_object_type import *

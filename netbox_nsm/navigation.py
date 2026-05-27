@@ -11,7 +11,7 @@ objects_menu_items = (
         permissions=["netbox_nsm.view_securityobject"],
     ),
     PluginMenuItem(
-        link="plugins:netbox_nsm:securityobjecttype_list",
+        link="plugins:netbox_nsm:object_builder_root",
         link_text=_("Object-Builder"),
         permissions=["netbox_nsm.view_securityobjecttype"],
     ),

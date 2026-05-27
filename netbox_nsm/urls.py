@@ -11,6 +11,9 @@ from .views import *  # noqa: F401
 app_name = "netbox_nsm"
 
 urlpatterns = [
+    # SecurityArea CRUD
+    path("areas/", include(get_model_urls("netbox_nsm", "securityarea", detail=False))),
+    path("areas/<int:pk>/", include(get_model_urls("netbox_nsm", "securityarea"))),
     path("object/", ObjectsSrcDstTabsView.as_view(), name="object_tabs_root"),
     # Groups area — must come before generic object/<str:tab>/ to avoid conflict
     path("object/groups/", SecurityObjectGroupAreaView.as_view(), name="securityobjectgroup_area_root"),

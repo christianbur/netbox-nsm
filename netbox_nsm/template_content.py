@@ -63,7 +63,6 @@ def _get_custom_refs_for(obj):
 
         groups.append({
             "type_name": ct.name,
-            "type_icon": ct.icon,
             "type_url": ct.get_absolute_url(),
             "add_url": add_url,
             "items": items,
@@ -252,15 +251,13 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
         for coa in coa_qs:
             type_name = coa.custom_object.custom_type.name
             type_pk = coa.custom_object.custom_type.pk
-            type_icon = coa.custom_object.custom_type.icon
             if type_name not in coa_by_type:
-                coa_by_type[type_name] = {"type_pk": type_pk, "type_icon": type_icon, "items": []}
+                coa_by_type[type_name] = {"type_pk": type_pk, "items": []}
             coa_by_type[type_name]["items"].append(coa)
         custom_object_assignments = [
             {
                 "type_name": type_name,
                 "type_pk": v["type_pk"],
-                "type_icon": v["type_icon"],
                 "items": v["items"],
             }
             for type_name, v in sorted(coa_by_type.items())
@@ -271,7 +268,6 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
         all_custom_types = [
             {
                 "type_name": ctype.name,
-                "type_icon": ctype.icon,
                 "add_url": (
                     reverse("plugins:netbox_nsm:securityobjectassignment_add")
                     + f"?assigned_object_type={ct.pk}&assigned_object_id={pk}"

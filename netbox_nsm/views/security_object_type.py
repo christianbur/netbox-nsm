@@ -14,7 +14,7 @@ from netbox_nsm.forms import (
     SecurityObjectTypeForm,
     SecurityObjectTypeImportForm,
 )
-from netbox_nsm.models import SecurityObjectType
+from netbox_nsm.models import SecurityObjectType, SecurityArea, SecurityObject
 from netbox_nsm.tables import SecurityObjectTypeTable
 
 
@@ -104,13 +104,24 @@ class BuiltinTypeInstallView(LoginRequiredMixin, View):
             if SecurityObjectType.objects.filter(name=custom_name).exists():
                 messages.warning(request, f"'{custom_name}' already exists — skipped.")
                 continue
-            SecurityObjectType.objects.create(
+            area_slug = t["area"]
+            area_obj = SecurityArea.objects.filter(slug=area_slug).first()
+            if not area_obj:
+                messages.warning(request, f"Area '{area_slug}' not found — skipped '{custom_name}'.")
+                continue
+            obj_type = SecurityObjectType.objects.create(
                 name=custom_name,
-                area=t["area"],
-                icon=t.get("icon", ""),
+                area=area_obj,
                 description=t.get("description", ""),
                 field_definitions=t.get("field_definitions", []),
+                display_template=t.get("display_template", ""),
             )
+            for default_obj in t.get("default_objects", []):
+                SecurityObject.objects.get_or_create(
+                    name=default_obj["name"],
+                    custom_type=obj_type,
+                    defaults={"field_data": default_obj.get("field_data", {})},
+                )
             created += 1
 
         if created:

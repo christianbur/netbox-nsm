@@ -5,31 +5,16 @@ from django.utils.translation import gettext_lazy as _
 from netbox.models import PrimaryModel
 from netbox.search import SearchIndex, register_search
 
-__all__ = ("SecurityObjectType", "SecurityObjectTypeIndex", "AreaChoices")
-
-
-class AreaChoices(models.TextChoices):
-    SRCDST = "srcdst", _("Source/Destination")
-    SERVICES = "services", _("Services")
-    ACTION = "action", _("Action")
-    INFO = "info", _("Info")
+__all__ = ("SecurityObjectType", "SecurityObjectTypeIndex")
 
 
 class SecurityObjectType(PrimaryModel):
     name = models.CharField(max_length=100, unique=True)
-    area = models.CharField(
-        max_length=20,
-        choices=AreaChoices.choices,
-        default=AreaChoices.SRCDST,
-    )
-    icon = models.CharField(
-        max_length=100,
-        blank=True,
-        default="",
-        help_text=_(
-            "MDI icon name from pictogrammers.com (e.g. \"mdi-server\", \"mdi-tag\"). "
-            "Always use the \"mdi-\" prefix."
-        ),
+    area = models.ForeignKey(
+        "netbox_nsm.SecurityArea",
+        on_delete=models.PROTECT,
+        related_name="object_types",
+        verbose_name=_("Area"),
     )
     field_definitions = models.JSONField(
         blank=True,

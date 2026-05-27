@@ -10,7 +10,7 @@
       <div class="card-body pb-2">
         <ul class="nav nav-tabs mb-3" role="tablist">
           {% for tab in main_tabs %}
-            <li class="nav-item" role="presentation">
+            <li class="nav-item{% if tab.slug == 'custom' %} ms-auto{% endif %}" role="presentation">
               <a class="nav-link{% if tab.slug == active_main_tab %} active{% endif %}" href="{{ tab.href }}">
                 {{ tab.label }}
               </a>

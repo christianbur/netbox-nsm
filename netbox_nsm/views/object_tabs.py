@@ -2,6 +2,7 @@ from django.shortcuts import redirect
 from django.views.generic import RedirectView, TemplateView
 
 from netbox_nsm.models import (
+    SecurityArea,
     SecurityObject,
     SecurityObjectType,
 )
@@ -15,13 +16,6 @@ class ObjectsSrcDstTabsView(TemplateView):
     TABLE_COLUMNS_BY_TAB = {}
 
     TABS = ()
-
-    TAB_GROUPS = (
-        {"slug": "srcdst",    "label": "Source/Destination", "tabs": ()},
-        {"slug": "services",  "label": "Services",           "tabs": ()},
-        {"slug": "action",    "label": "Action",             "tabs": ()},
-        {"slug": "info",      "label": "Info",               "tabs": ()},
-    )
 
     default_slug = None
 
@@ -54,10 +48,14 @@ class ObjectsSrcDstTabsView(TemplateView):
         tab_map = {tab["slug"]: tab for tab in self.TABS}
 
         # Build dynamic custom tabs from SecurityObjectType instances (slug = type name)
-        all_custom_types = list(SecurityObjectType.objects.order_by("area", "name"))
-        custom_tabs_by_area = {"srcdst": [], "services": [], "action": [], "info": []}
+        all_areas = list(SecurityArea.objects.order_by("slug"))
+        all_custom_types = list(SecurityObjectType.objects.select_related("area").order_by("area__slug", "name"))
+        custom_tabs_by_area = {a.slug: [] for a in all_areas}
         for ct in all_custom_types:
-            custom_tabs_by_area.get(ct.area, custom_tabs_by_area["srcdst"]).append({
+            area_slug = ct.area.slug
+            if area_slug not in custom_tabs_by_area:
+                custom_tabs_by_area[area_slug] = []
+            custom_tabs_by_area[area_slug].append({
                 "slug": ct.name,
                 "label": ct.name,
                 "list_url_name": None,
@@ -65,12 +63,7 @@ class ObjectsSrcDstTabsView(TemplateView):
                 "permission": "netbox_nsm.view_securityobject",
             })
 
-        all_dynamic_tabs = (
-            custom_tabs_by_area["srcdst"]
-            + custom_tabs_by_area["services"]
-            + custom_tabs_by_area["action"]
-            + custom_tabs_by_area["info"]
-        )
+        all_dynamic_tabs = [t for slug_tabs in custom_tabs_by_area.values() for t in slug_tabs]
         all_tabs = self.TABS + tuple(all_dynamic_tabs)
         tab_map_full = {tab["slug"]: tab for tab in all_tabs}
 
@@ -80,37 +73,49 @@ class ObjectsSrcDstTabsView(TemplateView):
             active_ct = all_custom_types[0]
         if active_ct:
             active_tab = tab_map_full.get(active_ct.name)
-            active_main_tab = active_ct.area
+            active_main_tab = active_ct.area.slug
             add_url = f"/plugins/netbox-nsm/object/custom/objects/add/?custom_type={active_ct.pk}"
         else:
             active_tab = None
-            active_main_tab = "srcdst"
+            active_main_tab = all_areas[0].slug if all_areas else "srcdst"
             add_url = "/plugins/netbox-nsm/object/custom/objects/add/"
 
-        # Merge dynamic custom tabs into tab_groups
-        tab_groups_with_custom = []
-        area_mapping = {"srcdst": "srcdst", "services": "services", "action": "action", "info": "info"}
-        for group in self.TAB_GROUPS:
-            group_area = area_mapping.get(group["slug"], group["slug"])
-            extra_tabs = custom_tabs_by_area.get(group_area, [])
-            merged_tabs = list(group["tabs"]) + [t["slug"] for t in extra_tabs]
-            tab_groups_with_custom.append({**group, "tabs": tuple(merged_tabs)})
+        # Build dynamic tab_groups from SecurityArea
+        tab_groups_with_custom = [
+            {
+                "slug": a.slug,
+                "label": a.name,
+                "tabs": tuple(t["slug"] for t in custom_tabs_by_area.get(a.slug, [])),
+            }
+            for a in all_areas
+        ]
 
-        def _area_href(tabs):
-            return f"/plugins/netbox-nsm/object/{tabs[0]['slug']}/" if tabs else "/plugins/netbox-nsm/object/custom/"
+        # Build main_tabs dynamically
+        first_type_by_area = {}
+        for ct in all_custom_types:
+            if ct.area.slug not in first_type_by_area:
+                first_type_by_area[ct.area.slug] = ct.name
+        main_tabs = [
+            {
+                "slug": a.slug,
+                "label": a.name,
+                "href": (
+                    f"/plugins/netbox-nsm/object/{first_type_by_area[a.slug]}/"
+                    if a.slug in first_type_by_area
+                    else "/plugins/netbox-nsm/object/custom/"
+                ),
+            }
+            for a in all_areas
+        ] + [
+            {"slug": "groups",   "label": "Groups",          "href": "/plugins/netbox-nsm/object/groups/"},
+            {"slug": "custom",   "label": "Object-Builder",  "href": "/plugins/netbox-nsm/object/custom/"},
+        ]
 
         context.update(
             {
                 "title": "Objects",
                 "active_ct": active_ct,
-                "main_tabs": (
-                    {"slug": "srcdst",   "label": "Source/Destination", "href": _area_href(custom_tabs_by_area["srcdst"])},
-                    {"slug": "services", "label": "Services",           "href": _area_href(custom_tabs_by_area["services"])},
-                    {"slug": "action",   "label": "Action",             "href": _area_href(custom_tabs_by_area["action"])},
-                    {"slug": "info",     "label": "Info",               "href": _area_href(custom_tabs_by_area["info"])},
-                    {"slug": "groups",   "label": "Groups",             "href": "/plugins/netbox-nsm/object/groups/"},
-                    {"slug": "custom",   "label": "Object-Builder",     "href": "/plugins/netbox-nsm/object/custom/"},
-                ),
+                "main_tabs": main_tabs,
                 "active_main_tab": active_main_tab,
                 "tab_groups": tab_groups_with_custom,
                 "tabs": all_tabs,
@@ -246,7 +251,6 @@ class ObjectsCustomAreaView(TemplateView):
         return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
-        from netbox_nsm.filtersets import SecurityObjectFilterSet, SecurityObjectTypeFilterSet
         from netbox_nsm.tables import SecurityObjectTable, SecurityObjectTypeTable
 
         context = super().get_context_data(**kwargs)
@@ -271,7 +275,6 @@ class ObjectsCustomAreaView(TemplateView):
                 {
                     "pk": ct.pk,
                     "name": ct.name,
-                    "icon": ct.icon,
                     "href": f"/plugins/netbox-nsm/object/custom/objects/?type_pk={ct.pk}",
                     "active": str(ct.pk) == str(type_pk),
                 }
@@ -285,16 +288,19 @@ class ObjectsCustomAreaView(TemplateView):
             if type_pk:
                 add_url += f"?custom_type={type_pk}"
 
+        # Build main_tabs dynamically from SecurityArea
+        all_areas = SecurityArea.objects.order_by("slug")
+        main_tabs = [
+            {"slug": a.slug, "label": a.name, "href": "/plugins/netbox-nsm/object/"}
+            for a in all_areas
+        ] + [
+            {"slug": "groups", "label": "Groups", "href": "/plugins/netbox-nsm/object/groups/"},
+            {"slug": "custom", "label": "Object-Builder", "href": "/plugins/netbox-nsm/object/custom/"},
+        ]
+
         context.update({
             "title": "Custom Objects",
-            "main_tabs": (
-                {"slug": "srcdst",   "label": "Source/Destination", "href": "/plugins/netbox-nsm/object/"},
-                {"slug": "services", "label": "Services",           "href": "/plugins/netbox-nsm/object/"},
-                {"slug": "action",   "label": "Action",             "href": "/plugins/netbox-nsm/object/"},
-                {"slug": "info",     "label": "Info",               "href": "/plugins/netbox-nsm/object/"},
-                {"slug": "groups",   "label": "Groups",             "href": "/plugins/netbox-nsm/object/groups/"},
-                {"slug": "custom",   "label": "Object-Builder",     "href": "/plugins/netbox-nsm/object/custom/"},
-            ),
+            "main_tabs": main_tabs,
             "active_main_tab": "custom",
             "sub_tabs": sub_tabs,
             "active_sub_tab": tab_slug,

@@ -5,8 +5,6 @@ from django.utils.translation import gettext_lazy as _
 from netbox.models import PrimaryModel
 from netbox.search import SearchIndex, register_search
 
-from netbox_nsm.models.security_object_type import AreaChoices
-
 __all__ = ("SecurityObjectGroup", "SecurityObjectGroupIndex")
 
 
@@ -17,10 +15,10 @@ class SecurityObjectGroup(PrimaryModel):
     """
 
     name = models.CharField(max_length=100, unique=True, verbose_name=_("Name"))
-    area = models.CharField(
-        max_length=20,
-        choices=AreaChoices.choices,
-        default=AreaChoices.SRCDST,
+    area = models.ForeignKey(
+        "netbox_nsm.SecurityArea",
+        on_delete=models.PROTECT,
+        related_name="object_groups",
         verbose_name=_("Area"),
     )
     members = models.ManyToManyField(

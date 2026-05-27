@@ -100,42 +100,42 @@ class SecurityPolicyRuleForm(PrimaryModelForm):
     )
 
     custom_srcdst_objects = forms.ModelMultipleChoiceField(
-        queryset=SecurityObject.objects.filter(custom_type__area="srcdst"),
+        queryset=SecurityObject.objects.filter(custom_type__area__slug="srcdst"),
         required=False,
         label=_("Source Objects"),
     )
     source_groups = forms.ModelMultipleChoiceField(
-        queryset=SecurityObjectGroup.objects.filter(area="srcdst"),
+        queryset=SecurityObjectGroup.objects.filter(area__slug="srcdst"),
         required=False,
         label=_("Source Groups"),
     )
     destination_custom_objects = forms.ModelMultipleChoiceField(
-        queryset=SecurityObject.objects.filter(custom_type__area="srcdst"),
+        queryset=SecurityObject.objects.filter(custom_type__area__slug="srcdst"),
         required=False,
         label=_("Destination Objects"),
     )
     destination_groups = forms.ModelMultipleChoiceField(
-        queryset=SecurityObjectGroup.objects.filter(area="srcdst"),
+        queryset=SecurityObjectGroup.objects.filter(area__slug="srcdst"),
         required=False,
         label=_("Destination Groups"),
     )
     custom_service_objects = forms.ModelMultipleChoiceField(
-        queryset=SecurityObject.objects.filter(custom_type__area="services"),
+        queryset=SecurityObject.objects.filter(custom_type__area__slug="services"),
         required=False,
         label=_("Service Objects"),
     )
     service_groups = forms.ModelMultipleChoiceField(
-        queryset=SecurityObjectGroup.objects.filter(area="services"),
+        queryset=SecurityObjectGroup.objects.filter(area__slug="services"),
         required=False,
         label=_("Service Groups"),
     )
     custom_action_objects = forms.ModelMultipleChoiceField(
-        queryset=SecurityObject.objects.filter(custom_type__area="action"),
+        queryset=SecurityObject.objects.filter(custom_type__area__slug="action"),
         required=False,
         label=_("Action Objects"),
     )
     action_groups = forms.ModelMultipleChoiceField(
-        queryset=SecurityObjectGroup.objects.filter(area="action"),
+        queryset=SecurityObjectGroup.objects.filter(area__slug="action"),
         required=False,
         label=_("Action Groups"),
     )

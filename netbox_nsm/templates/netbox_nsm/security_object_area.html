@@ -12,7 +12,7 @@
         {# Main tabs (same as object_tabs.html) #}
         <ul class="nav nav-tabs mb-3" role="tablist">
           {% for tab in main_tabs %}
-            <li class="nav-item" role="presentation">
+            <li class="nav-item{% if tab.slug == 'custom' %} ms-auto{% endif %}" role="presentation">
               <a class="nav-link{% if tab.slug == active_main_tab %} active{% endif %}" href="{{ tab.href }}">
                 {{ tab.label }}
               </a>
@@ -42,9 +42,7 @@
           </li>
           {% for pill in type_pills %}
           <li class="nav-item" role="presentation">
-            <a class="nav-link{% if pill.active %} active{% endif %}" href="{{ pill.href }}">
-              {% if pill.icon %}<i class="mdi {{ pill.icon }} me-1"></i>{% endif %}{{ pill.name }}
-            </a>
+            <a class="nav-link{% if pill.active %} active{% endif %}" href="{{ pill.href }}">{{ pill.name }}</a>
           </li>
           {% endfor %}
         </ul>

@@ -6,11 +6,10 @@ from netbox.forms import (
     PrimaryModelFilterSetForm,
     PrimaryModelForm,
 )
-from utilities.forms.fields import TagFilterField, DynamicModelMultipleChoiceField
+from utilities.forms.fields import TagFilterField, DynamicModelChoiceField, DynamicModelMultipleChoiceField
 from utilities.forms.rendering import FieldSet
 
-from netbox_nsm.models import SecurityObjectGroup, SecurityObject
-from netbox_nsm.models.security_object_type import AreaChoices
+from netbox_nsm.models import SecurityObjectGroup, SecurityObject, SecurityArea
 
 __all__ = (
     "SecurityObjectGroupForm",
@@ -20,17 +19,19 @@ __all__ = (
 
 
 class SecurityObjectGroupForm(PrimaryModelForm):
+    area = DynamicModelChoiceField(
+        queryset=SecurityArea.objects.all(),
+        label=_("Area"),
+    )
     members = DynamicModelMultipleChoiceField(
         queryset=SecurityObject.objects.all(),
         required=False,
         label=_("Members"),
-        query_params={"area": "$area"},
     )
     sub_groups = DynamicModelMultipleChoiceField(
         queryset=SecurityObjectGroup.objects.all(),
         required=False,
         label=_("Sub-Groups"),
-        query_params={"area": "$area"},
     )
 
     fieldsets = (
@@ -55,13 +56,13 @@ class SecurityObjectGroupForm(PrimaryModelForm):
         members = self.cleaned_data.get("members")
         sub_groups = self.cleaned_data.get("sub_groups")
         if area and members:
-            bad = [m.name for m in members if m.custom_type.area != area]
+            bad = [m.name for m in members if m.custom_type.area_id != area.pk]
             if bad:
                 raise forms.ValidationError(
                     _("These members do not match group area '%s': %s") % (area, ", ".join(bad))
                 )
         if area and sub_groups:
-            bad = [g.name for g in sub_groups if g.area != area]
+            bad = [g.name for g in sub_groups if g.area_id != area.pk]
             if bad:
                 raise forms.ValidationError(
                     _("These sub-groups do not match group area '%s': %s") % (area, ", ".join(bad))
@@ -73,11 +74,12 @@ class SecurityObjectGroupFilterForm(PrimaryModelFilterSetForm):
     model = SecurityObjectGroup
     fieldsets = (
         FieldSet("q", "filter_id", "tag"),
-        FieldSet("area", name=_("Group")),
+        FieldSet("area_id", name=_("Group")),
     )
-    area = forms.ChoiceField(
-        choices=[("", _("— All —"))] + list(AreaChoices.choices),
+    area_id = DynamicModelChoiceField(
+        queryset=SecurityArea.objects.all(),
         required=False,
+        label=_("Area"),
     )
     tags = TagFilterField(model)
 

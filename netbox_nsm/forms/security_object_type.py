@@ -7,10 +7,10 @@ from netbox.forms import (
     PrimaryModelImportForm,
     PrimaryModelForm,
 )
-from utilities.forms.fields import TagFilterField
+from utilities.forms.fields import TagFilterField, DynamicModelChoiceField
 from utilities.forms.rendering import FieldSet
 
-from netbox_nsm.models import SecurityObjectType
+from netbox_nsm.models import SecurityObjectType, SecurityArea
 
 __all__ = (
     "SecurityObjectTypeForm",
@@ -23,13 +23,8 @@ __all__ = (
 class SecurityObjectTypeForm(PrimaryModelForm):
     name = forms.CharField(max_length=100, required=True, label=_("Type"))
     description = forms.CharField(max_length=200, required=False)
-    area = forms.ChoiceField(
-        choices=[
-            ("srcdst", _("Source/Destination")),
-            ("services", _("Services")),
-            ("action", _("Action")),
-        ],
-        initial="srcdst",
+    area = DynamicModelChoiceField(
+        queryset=SecurityArea.objects.all(),
         label=_("Area"),
     )
     field_definitions = forms.CharField(
@@ -53,16 +48,6 @@ class SecurityObjectTypeForm(PrimaryModelForm):
             ']</pre>'
         ),
     )
-    icon = forms.CharField(
-        max_length=100,
-        required=False,
-        label=_("Icon"),
-        help_text=_(
-            'MDI icon name from <a href="https://pictogrammers.com/library/mdi/" target="_blank">'
-            'pictogrammers.com</a> — always with <code>mdi-</code> prefix, e.g. <code>mdi-server</code>, '
-            '<code>mdi-tag</code>, <code>mdi-puzzle-outline</code>.'
-        ),
-    )
     display_template = forms.CharField(
         max_length=500,
         required=False,
@@ -75,14 +60,14 @@ class SecurityObjectTypeForm(PrimaryModelForm):
         ),
     )
     fieldsets = (
-        FieldSet("name", "area", "icon", "display_template", "description", name=_("Custom Type")),
+        FieldSet("name", "area", "display_template", "description", name=_("Custom Type")),
         FieldSet("field_definitions", name=_("Field Definitions")),
         FieldSet("tags", name=_("Tags")),
     )
 
     class Meta:
         model = SecurityObjectType
-        fields = ("name", "area", "icon", "display_template", "field_definitions", "description", "comments", "tags")
+        fields = ("name", "area", "display_template", "field_definitions", "description", "comments", "tags")
 
     def clean_field_definitions(self):
         import json

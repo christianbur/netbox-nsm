@@ -8,7 +8,7 @@ from utilities.views import register_model_view, ViewTab
 
 from netbox_nsm.filtersets import SecurityObjectGroupFilterSet
 from netbox_nsm.forms import SecurityObjectGroupForm, SecurityObjectGroupFilterForm, SecurityObjectGroupBulkEditForm
-from netbox_nsm.models import SecurityObjectGroup, SecurityPolicyRule
+from netbox_nsm.models import SecurityObjectGroup, SecurityPolicyRule, SecurityArea
 from netbox_nsm.tables import SecurityObjectGroupTable
 
 __all__ = (
@@ -21,21 +21,25 @@ __all__ = (
     "SecurityObjectGroupAreaView",
 )
 
-_MAIN_TABS = (
-    {"slug": "srcdst",   "label": "Source/Destination", "href": "/plugins/netbox-nsm/object/"},
-    {"slug": "services", "label": "Services",           "href": "/plugins/netbox-nsm/object/"},
-    {"slug": "action",   "label": "Action",             "href": "/plugins/netbox-nsm/object/"},
-    {"slug": "info",     "label": "Info",               "href": "/plugins/netbox-nsm/object/"},
-    {"slug": "groups",   "label": "Groups",             "href": "/plugins/netbox-nsm/object/groups/"},
-    {"slug": "custom",   "label": "Object-Builder",     "href": "/plugins/netbox-nsm/object/custom/"},
-)
 
-_AREA_TABS = (
-    {"slug": "srcdst",   "label": _("Source/Destination"), "href": "/plugins/netbox-nsm/object/groups/srcdst/"},
-    {"slug": "services", "label": _("Services"),           "href": "/plugins/netbox-nsm/object/groups/services/"},
-    {"slug": "action",   "label": _("Action"),             "href": "/plugins/netbox-nsm/object/groups/action/"},
-    {"slug": "info",     "label": _("Info"),               "href": "/plugins/netbox-nsm/object/groups/info/"},
-)
+def _build_main_tabs():
+    areas = SecurityArea.objects.order_by("slug")
+    tabs = [
+        {"slug": a.slug, "label": a.name, "href": "/plugins/netbox-nsm/object/"}
+        for a in areas
+    ]
+    tabs += [
+        {"slug": "groups", "label": "Groups", "href": "/plugins/netbox-nsm/object/groups/"},
+        {"slug": "custom", "label": "Object-Builder", "href": "/plugins/netbox-nsm/object/custom/"},
+    ]
+    return tabs
+
+
+def _build_area_tabs():
+    return [
+        {"slug": a.slug, "label": a.name, "href": f"/plugins/netbox-nsm/object/groups/{a.slug}/"}
+        for a in SecurityArea.objects.order_by("slug")
+    ]
 
 
 @register_model_view(SecurityObjectGroup)
@@ -125,22 +129,25 @@ class SecurityObjectGroupAreaView(TemplateView):
 
     def get(self, request, *args, **kwargs):
         if kwargs.get("area") is None:
-            return redirect("/plugins/netbox-nsm/object/groups/srcdst/")
+            first = SecurityArea.objects.order_by("slug").first()
+            slug = first.slug if first else "srcdst"
+            return redirect(f"/plugins/netbox-nsm/object/groups/{slug}/")
         return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        area = kwargs.get("area", "srcdst")
-        qs = SecurityObjectGroup.objects.filter(area=area).prefetch_related(
+        area_slug = kwargs.get("area", "srcdst")
+        area_obj = SecurityArea.objects.filter(slug=area_slug).first()
+        qs = SecurityObjectGroup.objects.filter(area__slug=area_slug).prefetch_related(
             "members", "sub_groups", "tags"
         )
         table = SecurityObjectGroupTable(qs)
         context.update({
             "title": _("Groups"),
-            "main_tabs": _MAIN_TABS,
+            "main_tabs": _build_main_tabs(),
             "active_main_tab": "groups",
-            "area_tabs": _AREA_TABS,
-            "active_area": area,
+            "area_tabs": _build_area_tabs(),
+            "active_area": area_slug,
             "table": table,
             "add_url": f"/plugins/netbox-nsm/object-groups/add/",
         })

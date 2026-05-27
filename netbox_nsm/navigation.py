@@ -38,6 +38,11 @@ objects_menu_items = (
         link_text=_("Objekts"),
         permissions=["netbox_nsm.view_objectaction"],
     ),
+    PluginMenuItem(
+        link="plugins:netbox_nsm:securityarea_list",
+        link_text=_("Areas"),
+        permissions=["netbox_nsm.view_securityarea"],
+    ),
 )
 
 

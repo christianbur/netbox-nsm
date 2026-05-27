@@ -220,6 +220,8 @@ class SecurityObjectForm(PrimaryModelForm):
         if ct:
             field_data = {}
             for field_def in (ct.field_definitions or []):
+                if field_def.get("__meta__"):
+                    continue
                 fname = f"dyn_{field_def['name']}"
                 ftype = field_def.get("type", "text")
                 val = self.cleaned_data.get(fname)

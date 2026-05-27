@@ -34,6 +34,7 @@ _AREA_TABS = (
     {"slug": "srcdst",   "label": _("Source/Destination"), "href": "/plugins/netbox-nsm/object/groups/srcdst/"},
     {"slug": "services", "label": _("Services"),           "href": "/plugins/netbox-nsm/object/groups/services/"},
     {"slug": "action",   "label": _("Action"),             "href": "/plugins/netbox-nsm/object/groups/action/"},
+    {"slug": "info",     "label": _("Info"),               "href": "/plugins/netbox-nsm/object/groups/info/"},
 )
 
 

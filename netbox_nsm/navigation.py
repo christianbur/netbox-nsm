@@ -10,15 +10,15 @@ builder_menu_items = ()
 
 security_policy_menu_items = (
     PluginMenuItem(
-        link="plugins:netbox_nsm:securityzonepolicyrulebook_list",
+        link="plugins:netbox_nsm:securitypolicyrulebook_list",
         link_text=_("Security Policy"),
-        permissions=["netbox_nsm.view_securityzonepolicyrulebook"],
+        permissions=["netbox_nsm.view_securitypolicyrulebook"],
         buttons=(
             PluginMenuButton(
-                "plugins:netbox_nsm:securityzonepolicyrulebook_add",
+                "plugins:netbox_nsm:securitypolicyrulebook_add",
                 _("Add"),
                 "mdi mdi-plus-thick",
-                permissions=["netbox_nsm.add_securityzonepolicyrulebook"],
+                permissions=["netbox_nsm.add_securitypolicyrulebook"],
             ),
         ),
     ),
@@ -26,9 +26,9 @@ security_policy_menu_items = (
 
 assignments_menu_items = (
     PluginMenuItem(
-        link="plugins:netbox_nsm:securityzonepolicyrulebookassignment_list",
+        link="plugins:netbox_nsm:securitypolicyassignment_list",
         link_text=_("Security Rulebook Assignments"),
-        permissions=["netbox_nsm.view_securityzonepolicyrulebookassignment"],
+        permissions=["netbox_nsm.view_securitypolicyassignment"],
     ),
 )
 

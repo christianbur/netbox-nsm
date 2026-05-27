@@ -16,7 +16,7 @@ from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.views import View
 
-from netbox_nsm.models import ObjectCustomObject, ObjectCustomType
+from netbox_nsm.models import SecurityObject, SecurityObjectType
 from netbox_nsm.serializers.yaml_bundle import (
     build_bundle_yaml,
     export_custom_object,
@@ -33,9 +33,9 @@ class NSMExportYAMLView(LoginRequiredMixin, View):
         pk_list = request.GET.getlist("type")
 
         if pk_list:
-            types = ObjectCustomType.objects.filter(pk__in=pk_list)
+            types = SecurityObjectType.objects.filter(pk__in=pk_list)
         else:
-            types = ObjectCustomType.objects.all().order_by("area", "name")
+            types = SecurityObjectType.objects.all().order_by("area", "name")
 
         items = []
         for ct in types:

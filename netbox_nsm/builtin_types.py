@@ -5,7 +5,7 @@ These types are NOT automatically created in the database.
 An administrator can install selected types via the
 "Install Defaults" UI at /plugins/netbox-nsm/object/custom/types/install-builtins/.
 
-Once installed, a type is a regular ObjectCustomType record and can be freely
+Once installed, a type is a regular SecurityObjectType record and can be freely
 edited or deleted — there is no ongoing link back to this file.
 """
 

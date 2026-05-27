@@ -2,33 +2,33 @@ from rest_framework.routers import APIRootView
 from netbox.api.viewsets import NetBoxModelViewSet
 
 from .serializers import (
-    SecurityZonePolicyRulebookSerializer,
-    SecurityZonePolicyRuleSerializer,
-    SecurityZonePolicyRulebookAssignmentSerializer,
-    ObjectCustomTypeSerializer,
-    ObjectCustomObjectSerializer,
-    ObjectCustomObjectAssignmentSerializer,
-    ObjectGroupSerializer,
+    SecurityPolicyRulebookSerializer,
+    SecurityPolicyRuleSerializer,
+    SecurityPolicyAssignmentSerializer,
+    SecurityObjectTypeSerializer,
+    SecurityObjectSerializer,
+    SecurityObjectAssignmentSerializer,
+    SecurityObjectGroupSerializer,
 )
 
 from netbox_nsm.models import (
-    SecurityZonePolicyRulebook,
-    SecurityZonePolicyRule,
-    SecurityZonePolicyRulebookAssignment,
-    ObjectCustomType,
-    ObjectCustomObject,
-    ObjectCustomObjectAssignment,
-    ObjectGroup,
+    SecurityPolicyRulebook,
+    SecurityPolicyRule,
+    SecurityPolicyAssignment,
+    SecurityObjectType,
+    SecurityObject,
+    SecurityObjectAssignment,
+    SecurityObjectGroup,
 )
 
 from netbox_nsm.filtersets import (
-    SecurityZonePolicyRulebookFilterSet,
-    SecurityZonePolicyRuleFilterSet,
-    SecurityZonePolicyRulebookAssignmentFilterSet,
-    ObjectCustomTypeFilterSet,
-    ObjectCustomObjectFilterSet,
-    ObjectCustomObjectAssignmentFilterSet,
-    ObjectGroupFilterSet,
+    SecurityPolicyRulebookFilterSet,
+    SecurityPolicyRuleFilterSet,
+    SecurityPolicyAssignmentFilterSet,
+    SecurityObjectTypeFilterSet,
+    SecurityObjectFilterSet,
+    SecurityObjectAssignmentFilterSet,
+    SecurityObjectGroupFilterSet,
 )
 
 
@@ -37,49 +37,49 @@ class NetBoxSecurityRootView(APIRootView):
         return "NetBoxSecurity"
 
 
-class SecurityZonePolicyRulebookViewSet(NetBoxModelViewSet):
-    queryset = SecurityZonePolicyRulebook.objects.prefetch_related("tags")
-    serializer_class = SecurityZonePolicyRulebookSerializer
-    filterset_class = SecurityZonePolicyRulebookFilterSet
+class SecurityPolicyRulebookViewSet(NetBoxModelViewSet):
+    queryset = SecurityPolicyRulebook.objects.prefetch_related("tags")
+    serializer_class = SecurityPolicyRulebookSerializer
+    filterset_class = SecurityPolicyRulebookFilterSet
 
 
-class SecurityZonePolicyRuleViewSet(NetBoxModelViewSet):
-    queryset = SecurityZonePolicyRule.objects.select_related("rulebook").prefetch_related(
+class SecurityPolicyRuleViewSet(NetBoxModelViewSet):
+    queryset = SecurityPolicyRule.objects.select_related("rulebook").prefetch_related(
         "source_zones",
         "destination_zones",
         "tags",
     )
-    serializer_class = SecurityZonePolicyRuleSerializer
-    filterset_class = SecurityZonePolicyRuleFilterSet
+    serializer_class = SecurityPolicyRuleSerializer
+    filterset_class = SecurityPolicyRuleFilterSet
 
 
-class SecurityZonePolicyRulebookAssignmentViewSet(NetBoxModelViewSet):
-    queryset = SecurityZonePolicyRulebookAssignment.objects.all()
-    serializer_class = SecurityZonePolicyRulebookAssignmentSerializer
-    filterset_class = SecurityZonePolicyRulebookAssignmentFilterSet
+class SecurityPolicyAssignmentViewSet(NetBoxModelViewSet):
+    queryset = SecurityPolicyAssignment.objects.all()
+    serializer_class = SecurityPolicyAssignmentSerializer
+    filterset_class = SecurityPolicyAssignmentFilterSet
 
 
-class ObjectCustomTypeViewSet(NetBoxModelViewSet):
-    queryset = ObjectCustomType.objects.all()
-    serializer_class = ObjectCustomTypeSerializer
-    filterset_class = ObjectCustomTypeFilterSet
+class SecurityObjectTypeViewSet(NetBoxModelViewSet):
+    queryset = SecurityObjectType.objects.all()
+    serializer_class = SecurityObjectTypeSerializer
+    filterset_class = SecurityObjectTypeFilterSet
 
 
-class ObjectCustomObjectViewSet(NetBoxModelViewSet):
-    queryset = ObjectCustomObject.objects.prefetch_related("custom_type", "tags")
-    serializer_class = ObjectCustomObjectSerializer
-    filterset_class = ObjectCustomObjectFilterSet
+class SecurityObjectViewSet(NetBoxModelViewSet):
+    queryset = SecurityObject.objects.prefetch_related("custom_type", "tags")
+    serializer_class = SecurityObjectSerializer
+    filterset_class = SecurityObjectFilterSet
 
 
-class ObjectCustomObjectAssignmentViewSet(NetBoxModelViewSet):
-    queryset = ObjectCustomObjectAssignment.objects.select_related(
+class SecurityObjectAssignmentViewSet(NetBoxModelViewSet):
+    queryset = SecurityObjectAssignment.objects.select_related(
         "custom_object", "assigned_object_type"
     )
-    serializer_class = ObjectCustomObjectAssignmentSerializer
-    filterset_class = ObjectCustomObjectAssignmentFilterSet
+    serializer_class = SecurityObjectAssignmentSerializer
+    filterset_class = SecurityObjectAssignmentFilterSet
 
 
-class ObjectGroupViewSet(NetBoxModelViewSet):
-    queryset = ObjectGroup.objects.prefetch_related("members", "sub_groups", "tags")
-    serializer_class = ObjectGroupSerializer
-    filterset_class = ObjectGroupFilterSet
+class SecurityObjectGroupViewSet(NetBoxModelViewSet):
+    queryset = SecurityObjectGroup.objects.prefetch_related("members", "sub_groups", "tags")
+    serializer_class = SecurityObjectGroupSerializer
+    filterset_class = SecurityObjectGroupFilterSet

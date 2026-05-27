@@ -2,7 +2,7 @@
 NSM Security (Groups) tabs for ipam.IPAddress, ipam.Prefix and ipam.IPRange.
 
 Adds a "Security" tab to the NetBox IP address, prefix and IP range detail views,
-showing every ObjectGroup chain that references the object — including
+showing every SecurityObjectGroup chain that references the object — including
 inherited matches via containing prefixes for IP addresses and IP ranges.
 """
 
@@ -49,7 +49,7 @@ class IPAddressNsmGroupsView(generic.ObjectView):
 
     tab = ViewTab(
         label=_("Security"),
-        permission="netbox_nsm.view_objectgroup",
+        permission="netbox_nsm.view_securityobjectgroup",
         badge=_ip_badge,
         hide_if_empty=False,
         weight=600,
@@ -74,7 +74,7 @@ class PrefixNsmGroupsView(generic.ObjectView):
 
     tab = ViewTab(
         label=_("Security"),
-        permission="netbox_nsm.view_objectgroup",
+        permission="netbox_nsm.view_securityobjectgroup",
         badge=_prefix_badge,
         hide_if_empty=False,
         weight=600,
@@ -99,7 +99,7 @@ class IPRangeNsmGroupsView(generic.ObjectView):
 
     tab = ViewTab(
         label=_("Security"),
-        permission="netbox_nsm.view_objectgroup",
+        permission="netbox_nsm.view_securityobjectgroup",
         badge=_iprange_badge,
         hide_if_empty=False,
         weight=600,

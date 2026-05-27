@@ -2,28 +2,28 @@ from netbox.api.routers import NetBoxRouter
 
 from .views import (
     NetBoxSecurityRootView,
-    SecurityZonePolicyRulebookViewSet,
-    SecurityZonePolicyRuleViewSet,
-    SecurityZonePolicyRulebookAssignmentViewSet,
-    ObjectCustomTypeViewSet,
-    ObjectCustomObjectViewSet,
-    ObjectCustomObjectAssignmentViewSet,
-    ObjectGroupViewSet,
+    SecurityPolicyRulebookViewSet,
+    SecurityPolicyRuleViewSet,
+    SecurityPolicyAssignmentViewSet,
+    SecurityObjectTypeViewSet,
+    SecurityObjectViewSet,
+    SecurityObjectAssignmentViewSet,
+    SecurityObjectGroupViewSet,
 )
 
 app_name = "netbox_nsm"
 
 router = NetBoxRouter()
 router.APIRootView = NetBoxSecurityRootView
-router.register("security-zone-policy-rulebooks", SecurityZonePolicyRulebookViewSet)
-router.register("security-zone-policy-rules", SecurityZonePolicyRuleViewSet)
+router.register("security-zone-policy-rulebooks", SecurityPolicyRulebookViewSet)
+router.register("security-zone-policy-rules", SecurityPolicyRuleViewSet)
 router.register(
     "security-zone-policy-rulebook-assignments",
-    SecurityZonePolicyRulebookAssignmentViewSet,
+    SecurityPolicyAssignmentViewSet,
 )
-router.register("object-custom-types", ObjectCustomTypeViewSet)
-router.register("object-custom-objects", ObjectCustomObjectViewSet)
-router.register("object-custom-object-assignments", ObjectCustomObjectAssignmentViewSet)
-router.register("object-groups", ObjectGroupViewSet)
+router.register("object-custom-types", SecurityObjectTypeViewSet)
+router.register("object-custom-objects", SecurityObjectViewSet)
+router.register("object-custom-object-assignments", SecurityObjectAssignmentViewSet)
+router.register("object-groups", SecurityObjectGroupViewSet)
 
 urlpatterns = router.urls

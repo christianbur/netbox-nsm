@@ -13,8 +13,8 @@ app_name = "netbox_nsm"
 urlpatterns = [
     path("object/", ObjectsSrcDstTabsView.as_view(), name="object_tabs_root"),
     # Groups area — must come before generic object/<str:tab>/ to avoid conflict
-    path("object/groups/", SecurityObjectGroupAreaView.as_view(), name="securitysecurityobjectgroup_area_root"),
-    path("object/groups/<str:area>/", SecurityObjectGroupAreaView.as_view(), name="securitysecurityobjectgroup_area"),
+    path("object/groups/", SecurityObjectGroupAreaView.as_view(), name="securityobjectgroup_area_root"),
+    path("object/groups/<str:area>/", SecurityObjectGroupAreaView.as_view(), name="securityobjectgroup_area"),
     path("object/custom/", ObjectsCustomAreaView.as_view(), name="object_custom_root"),
     path("object/custom/<str:tab>/", ObjectsCustomAreaView.as_view(), name="object_custom_tab"),
     path("object/custom/types/install-builtins/", BuiltinTypeInstallView.as_view(), name="builtin_type_install"),

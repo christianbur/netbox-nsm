@@ -98,7 +98,7 @@ def _rules_for_group(obj):
 @register_model_view(SecurityObjectGroup, "assignments")
 class SecurityObjectGroupAssignmentsView(generic.ObjectView):
     queryset = SecurityObjectGroup.objects.all()
-    template_name = "netbox_nsm/securitysecurityobjectgroup_assignments.html"
+    template_name = "netbox_nsm/securityobjectgroup_assignments.html"
     tab = ViewTab(
         label=_("Assignments"),
         badge=lambda obj: _rules_for_group(obj).count(),
@@ -120,7 +120,7 @@ class SecurityObjectGroupAreaView(TemplateView):
     Area overview view for /object/groups/<area>/.
     Shows groups filtered by area with main-tabs and area sub-tabs.
     """
-    template_name = "netbox_nsm/securitysecurityobjectgroup_area.html"
+    template_name = "netbox_nsm/securityobjectgroup_area.html"
 
     def get(self, request, *args, **kwargs):
         if kwargs.get("area") is None:

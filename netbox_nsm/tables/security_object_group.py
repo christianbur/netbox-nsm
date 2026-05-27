@@ -16,7 +16,7 @@ class SecurityObjectGroupTable(NetBoxTable):
     area = tables.Column(verbose_name=_("Area"))
     member_count = tables.Column(verbose_name=_("Members"), orderable=False, accessor=tables.A("pk"))
     parent_groups_col = tables.Column(verbose_name=_("Parent Groups"), orderable=False, accessor=tables.A("pk"))
-    tags = TagColumn(url_name="plugins:netbox_nsm:securitysecurityobjectgroup_list")
+    tags = TagColumn(url_name="plugins:netbox_nsm:securityobjectgroup_list")
 
     class Meta(NetBoxTable.Meta):
         model = SecurityObjectGroup

@@ -225,6 +225,4 @@ PLUGINS_CONFIG = {
 
 ---
 
-## License
 
-[Apache 2.0](LICENSE)

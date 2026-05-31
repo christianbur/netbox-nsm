@@ -1,0 +1,147 @@
+{% extends 'generic/_base.html' %}
+{% load i18n %}
+{% load render_table from django_tables2 %}
+
+{% block title %}{% trans "Object-Builder" %}{% endblock %}
+
+{% block controls %}
+  {% if add_url and active_tab != "import" %}
+  <div class="btn-list">
+    <a href="{{ add_url }}" class="btn btn-primary">
+      <i class="mdi mdi-plus-thick me-1"></i>{% trans "Add" %}
+    </a>
+  </div>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-12">
+    <div class="card mb-3">
+      <div class="card-body pb-2">
+
+        <ul class="nav nav-tabs mb-3" role="tablist">
+          {% for tab in tabs %}
+          <li class="nav-item" role="presentation">
+            <a class="nav-link{% if tab.active %} active{% endif %}" href="{{ tab.href }}">
+              {{ tab.label }}
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+
+        {# ── Types / Areas / Config tab ─────────────────────────────────────────── #}
+        {% if active_tab == "types" or active_tab == "areas" or active_tab == "config" %}
+          {% if active_tab == "types" %}
+            <div class="d-flex flex-wrap gap-2 mb-3">
+              <form method="post" action="{% url 'plugins:netbox_nsm:custom_objects_sync' %}" class="m-0">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary">
+                  <i class="mdi mdi-sync me-1"></i>{% trans "Sync built-in types to Custom Objects" %}
+                </button>
+              </form>
+              <form method="post" action="{% url 'plugins:netbox_nsm:custom_objects_demo' %}" class="m-0">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-primary">
+                  <i class="mdi mdi-flask me-1"></i>{% trans "Demo: create Custom Objects" %}
+                </button>
+              </form>
+            </div>
+          {% endif %}
+          {% render_table table %}
+        {% endif %}
+
+        {# ── Built-in tab ───────────────────────────────────────────────────── #}
+        {% if active_tab == "import" %}
+        <form method="post" id="builtin-install-form">
+          {% csrf_token %}
+          <input type="hidden" name="tab" value="import">
+          <p class="text-secondary">
+            {% trans "All built-in types are shown as one editable JSON text definition. You can change it freely; nothing is saved until you click Install." %}
+          </p>
+          <div class="alert alert-info" role="alert">
+            <div class="fw-semibold mb-1">{% trans "Expected structure (NetBox-style data, no source code)" %}</div>
+            <ul class="mb-0">
+              <li><code>name</code>, <code>area</code>, <code>display_template</code></li>
+              <li><code>field_definitions</code>: list of field objects (e.g. <code>name</code>, <code>type</code>, <code>label</code>, <code>choices</code>)</li>
+              <li><code>default_objects</code>: list of elements to create (e.g. <code>{"name":"Permit"}</code>)</li>
+            </ul>
+          </div>
+          <div class="border rounded p-3">
+            <div class="small text-secondary mb-1">{% trans "Built-in type definitions (JSON list)" %}</div>
+            <div class="d-flex justify-content-end gap-2 mb-2">
+              <button type="button" class="btn btn-outline-primary" id="copy-builtin-normal">
+                <i class="mdi mdi-content-copy me-1"></i>{% trans "Import built-in Objects" %}
+              </button>
+              <button type="button" class="btn btn-outline-primary" id="copy-builtin-demo">
+                <i class="mdi mdi-database-plus me-1"></i>{% trans "Import built-in Objects with demo data" %}
+              </button>
+              <button type="submit" class="btn btn-primary" name="import_mode" value="normal">
+                <i class="mdi mdi-download me-1"></i>{% trans "Import" %}
+              </button>
+            </div>
+            <textarea
+              id="builtin-types-json"
+              name="builtin_types_json"
+              class="form-control form-control-sm"
+              rows="36"
+              style="font-family: monospace;"
+            ></textarea>
+            <div class="d-flex justify-content-end gap-2 mt-3">
+              <button type="button" class="btn btn-outline-primary" id="copy-builtin-normal-bottom">
+                <i class="mdi mdi-content-copy me-1"></i>{% trans "Import built-in Objects" %}
+              </button>
+              <button type="button" class="btn btn-outline-primary" id="copy-builtin-demo-bottom">
+                <i class="mdi mdi-database-plus me-1"></i>{% trans "Import built-in Objects with demo data" %}
+              </button>
+              <button type="submit" class="btn btn-primary" name="import_mode" value="normal">
+                <i class="mdi mdi-download me-1"></i>{% trans "Import" %}
+              </button>
+            </div>
+          </div>
+        </form>
+        {{ builtin_types_data|json_script:"builtin-types-normal" }}
+        {{ builtin_types_demo_data|json_script:"builtin-types-demo" }}
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block javascript %}
+  {{ block.super }}
+  {% if active_tab == "import" %}
+  <script>
+  (function () {
+    const textarea = document.getElementById('builtin-types-json');
+    const normalSrc = document.getElementById('builtin-types-normal');
+    const demoSrc   = document.getElementById('builtin-types-demo');
+    if (!textarea) return;
+
+    function load(srcEl) {
+      if (!srcEl) return;
+      try {
+        const data = JSON.parse(srcEl.textContent || '[]');
+        textarea.value = JSON.stringify(data, null, 2);
+      } catch (_) {
+        textarea.value = srcEl.textContent || '[]';
+      }
+    }
+
+    ['copy-builtin-normal', 'copy-builtin-normal-bottom'].forEach(function (id) {
+      const btn = document.getElementById(id);
+      if (btn) btn.addEventListener('click', function () { load(normalSrc); });
+    });
+    ['copy-builtin-demo', 'copy-builtin-demo-bottom'].forEach(function (id) {
+      const btn = document.getElementById(id);
+      if (btn) btn.addEventListener('click', function () { load(demoSrc); });
+    });
+
+    // Fill textarea with normal built-ins initially.
+    load(normalSrc);
+  })();
+  </script>
+  {% endif %}
+{% endblock %}

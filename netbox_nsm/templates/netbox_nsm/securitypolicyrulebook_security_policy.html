@@ -68,182 +68,335 @@
 
       {% if is_security_rules %}
         <style>
+          /* ============================================================
+             NSM Policy Table - modern, klare Linien, gute Lesbarkeit
+             - 1 sichtbare Grid-Linie pro Spalte/Zeile
+             - neutrale Flächen
+             - dunkle, gut lesbare Schrift
+             - automatisch tauglich für NetBox Dark Mode
+             ============================================================ */
           .nsm-policy-table {
+            --nsm-line: #b8c2cf;
+            --nsm-line-strong: #8a97a7;
+            --nsm-text: #1f2937;
+            --nsm-text-muted: #5b6776;
+            --nsm-surface: #ffffff;
+            --nsm-surface-alt: #f3f5f8;
+            --nsm-head-bg: #2c3e50;
+            --nsm-head-text: #ffffff;
+            --nsm-subhead-bg: #e6eaef;
+            --nsm-pill-bg: #eef2f7;
+            --nsm-pill-border: #b8c2cf;
+            --nsm-pill-text: #1f2937;
+            --nsm-pill-hover-bg: #dde4ec;
             overflow-x: auto;
+            background: var(--nsm-surface);
+            border: 1px solid var(--nsm-line-strong);
+            border-radius: 10px;
           }
+          [data-bs-theme="dark"] .nsm-policy-table {
+            --nsm-line: #3a4554;
+            --nsm-line-strong: #5b6776;
+            --nsm-text: #e7ebf1;
+            --nsm-text-muted: #9aa6b4;
+            --nsm-surface: #1b2230;
+            --nsm-surface-alt: #232a39;
+            --nsm-head-bg: #0f1722;
+            --nsm-head-text: #ffffff;
+            --nsm-subhead-bg: #2a3344;
+            --nsm-pill-bg: #2a3344;
+            --nsm-pill-border: #5b6776;
+            --nsm-pill-text: #e7ebf1;
+            --nsm-pill-hover-bg: #34405a;
+          }
+
           .nsm-policy-table .table {
             --bs-table-bg: transparent;
             margin-bottom: 0;
+            border-collapse: separate;
+            border-spacing: 0;
+            color: var(--nsm-text);
           }
+
+          /* THEAD */
           .nsm-policy-table .table thead th {
-            border-bottom-width: 1px;
-            font-size: .78rem;
+            background: var(--nsm-surface-alt);
+            color: var(--nsm-text);
+            font-size: .74rem;
             font-weight: 700;
-            letter-spacing: .04em;
+            letter-spacing: .03em;
             text-transform: uppercase;
             white-space: nowrap;
+            padding: .55rem .6rem;
+            border-bottom: 1px solid var(--nsm-line-strong);
+            border-right: 1px solid var(--nsm-line);
           }
-          .nsm-policy-table .table thead th a {
-            color: inherit;
-          }
-          .nsm-policy-table .table tbody td {
-            padding-top: .55rem;
-            padding-bottom: .55rem;
-            vertical-align: top;
-            white-space: nowrap;
-          }
-          .nsm-policy-table .table tbody tr:hover {
-            --bs-table-accent-bg: rgba(140, 94, 47, .05);
-          }
-          .nsm-policy-table .table tbody td:nth-child(2),
-          .nsm-policy-table .table tbody td:nth-child(3) {
-            white-space: nowrap;
-          }
-          .nsm-policy-table .table tbody td:nth-child(3) {
+          .nsm-policy-table .table thead tr:first-child th { border-top: 0; }
+          .nsm-policy-table .table thead tr:first-child th:last-child { border-right: 0; }
+          .nsm-policy-table .table thead th a { color: inherit; }
+
+          .nsm-policy-table .nsm-area-group-head {
+            background: var(--nsm-head-bg);
+            color: var(--nsm-head-text);
+            border-bottom: 1px solid var(--nsm-line-strong);
+            font-size: .72rem;
+            letter-spacing: .06em;
             text-align: center;
           }
+          .nsm-policy-table .nsm-area-col-head {
+            background: var(--nsm-subhead-bg);
+            color: var(--nsm-text);
+            text-transform: none;
+            font-size: .74rem;
+            font-weight: 700;
+            letter-spacing: 0;
+            text-align: center;
+          }
+          .nsm-policy-table .nsm-sort-btn {
+            background: transparent;
+            border: 0;
+            color: inherit;
+            font: inherit;
+            padding: 0;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: .25rem;
+            width: 100%;
+            justify-content: center;
+          }
+          .nsm-policy-table .nsm-sort-btn:hover { color: var(--nsm-accent, #0d6efd); }
+          .nsm-policy-table .nsm-sort-btn .mdi { font-size: .9rem; opacity: .55; }
+          .nsm-policy-table .nsm-sort-btn.nsm-sort-active .mdi { opacity: 1; }
+
+          .nsm-policy-table .nsm-filter-row th {
+            background: var(--nsm-subhead-bg);
+            border-bottom: 1px solid var(--nsm-line-strong);
+            border-right: 1px solid var(--nsm-line);
+            padding: .25rem .35rem;
+            text-align: left;
+            font-weight: 400;
+          }
+          .nsm-policy-table .nsm-filter-row th:last-child { border-right: 0; }
+          .nsm-policy-table .nsm-filter-input {
+            width: 100%;
+            min-width: 0;
+            padding: .15rem .35rem;
+            font-size: .72rem;
+            line-height: 1.3;
+            border: 1px solid var(--nsm-line-strong);
+            border-radius: 4px;
+            background: var(--nsm-surface);
+            color: var(--nsm-text);
+          }
+          .nsm-policy-table .nsm-filter-input:focus {
+            outline: 0;
+            border-color: var(--nsm-accent, #0d6efd);
+            box-shadow: 0 0 0 .15rem rgba(13, 110, 253, .15);
+          }
+          .nsm-policy-table .nsm-filter-input::placeholder { color: var(--nsm-text-muted); opacity: .7; }
+
+          /* TBODY */
+          .nsm-policy-table .table tbody td {
+            padding: .55rem .6rem;
+            vertical-align: middle;
+            white-space: nowrap;
+            font-size: .85rem;
+            color: var(--nsm-text);
+            background: var(--nsm-surface);
+            border-bottom: 1px solid var(--nsm-line);
+            border-right: 1px solid var(--nsm-line);
+          }
+          .nsm-policy-table .table tbody td:last-child { border-right: 0; }
+          .nsm-policy-table .table tbody tr:last-child td { border-bottom: 0; }
+
+          .nsm-policy-table .nsm-area-band-odd { background: var(--nsm-surface-alt); }
+          .nsm-policy-table .nsm-area-band-even { background: var(--nsm-surface); }
+
+          .nsm-policy-table .table tbody tr:hover td { background: rgba(44, 62, 80, .06); }
+          [data-bs-theme="dark"] .nsm-policy-table .table tbody tr:hover td { background: rgba(255, 255, 255, .04); }
+
+          /* Status spalte zentriert */
+          .nsm-policy-table .table thead th:nth-child(3),
+          .nsm-policy-table .table tbody td:nth-child(3) { text-align: center; }
+
+          .nsm-policy-table .nsm-main-col { white-space: nowrap; }
+          .nsm-policy-table .nsm-cell-empty {
+            color: var(--nsm-text-muted);
+            font-size: .8rem;
+          }
+
+          /* Inhalte: Pills statt Karten */
           .nsm-rule-stack {
             display: flex;
-            flex-direction: row;
-            flex-wrap: nowrap;
-            align-items: flex-start;
-            gap: .3rem;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: .25rem;
           }
           .nsm-rule-card {
-            background: #fcfaf6;
-            border: 1px solid #ece2d3;
-            border-radius: .7rem;
-            min-width: 0;
-            padding: .28rem .4rem;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,.5);
+            background: transparent;
+            border: 0;
+            padding: 0;
+            box-shadow: none;
           }
-          .nsm-rule-label {
-            color: #7c6a55;
-            font-size: .58rem;
-            font-weight: 700;
-            letter-spacing: .08em;
-            line-height: 1.1;
-            margin-bottom: .18rem;
-            text-align: left;
-            text-transform: uppercase;
-          }
+          .nsm-rule-label { display: none; }
           .nsm-rule-pills {
             display: flex;
-            flex-wrap: nowrap;
-            gap: .24rem;
+            flex-wrap: wrap;
+            gap: .25rem;
             align-items: center;
           }
           .nsm-rule-pill {
-            background: #efe6da;
-            border: 1px solid #e2d3bf;
+            background: var(--nsm-pill-bg);
+            border: 1px solid var(--nsm-pill-border);
             border-radius: 999px;
-            color: #4b3d2f;
+            color: var(--nsm-pill-text);
             display: inline-block;
-            font-size: .7rem;
+            font-size: .76rem;
             font-weight: 600;
-            line-height: 1.6;
-            padding: .2rem .45rem;
-            max-width: 120px;
+            line-height: 1.4;
+            padding: .15rem .55rem;
+            max-width: 200px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            vertical-align: middle;
+            text-decoration: none;
           }
           .nsm-rule-pill:hover {
-            background: #e7dac7;
-            color: #3e3227;
+            background: var(--nsm-pill-hover-bg);
+            color: var(--nsm-pill-text);
+            text-decoration: none;
           }
-          .nsm-rule-pill-zone {
-            border-color: rgba(255,255,255,.24);
-            box-shadow: inset 0 1px 0 rgba(255,255,255,.18);
+          .nsm-rule-pill-colored:hover {
+            background: inherit;
+            filter: brightness(0.92);
+            text-decoration: none;
+          }
+          .nsm-rule-pill-muted { opacity: .85; }
+
+          /* Excluded (EXCEPT) pills */
+          .nsm-pill-excluded {
+            background: var(--bs-danger-bg-subtle, #f8d7da) !important;
+            border-color: var(--bs-danger-border-subtle, #f5c2c7) !important;
+            color: var(--bs-danger-text-emphasis, #842029) !important;
+            text-decoration: line-through;
+            opacity: .85;
+          }
+          .nsm-pill-not-badge {
+            display: inline-block;
+            font-weight: 900;
+            margin-right: .2rem;
+            font-size: .7rem;
+            color: var(--bs-danger, #dc3545);
+            vertical-align: middle;
+          }
+
+          /* Virtual AND-group bubble */
+          .nsm-vgroup-bubble {
+            display: inline-flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: .15rem;
+            background: var(--bs-primary-bg-subtle, #cfe2ff);
+            border: 1.5px solid var(--bs-primary-border-subtle, #9ec5fe);
+            border-radius: .45rem;
+            padding: .15rem .5rem;
+            font-size: .76rem;
+            font-weight: 600;
+          }
+          .nsm-vgroup-item {
+            color: var(--bs-primary, #0d6efd);
+            text-decoration: none;
+          }
+          .nsm-vgroup-item:hover { text-decoration: underline; }
+          .nsm-vgroup-sep {
+            color: var(--bs-primary, #0d6efd);
             font-weight: 700;
+            padding: 0 .1rem;
           }
-          .nsm-rule-pill-accent {
-            background: #d7eadc;
-            border-color: #bdd5c3;
-            color: #204e2d;
+          [data-bs-theme="dark"] .nsm-vgroup-bubble {
+            background: rgba(13,110,253,.18);
+            border-color: rgba(13,110,253,.45);
           }
-          .nsm-rule-pill-success {
-            background: #d9f1df;
-            border-color: #b6debf;
-            color: #215a2f;
-          }
-          .nsm-rule-pill-muted {
-            background: #ece9e4;
-            border-color: #ddd7cf;
-            color: #6b6257;
-          }
+
+          /* Status icon */
           .nsm-status-icon {
             align-items: center;
             border-radius: 999px;
             display: inline-flex;
-            height: 1.6rem;
+            height: 1.45rem;
             justify-content: center;
-            width: 1.6rem;
+            width: 1.45rem;
+            border: 1px solid transparent;
           }
-          .nsm-status-icon i {
-            font-size: 1rem;
-            line-height: 1;
+          .nsm-status-icon i { font-size: .95rem; line-height: 1; }
+          .nsm-status-icon-on { background: #e6f5ea; color: #1f7a33; border-color: #b7dec3; }
+          .nsm-status-icon-off { background: #fbeae9; color: #a63a32; border-color: #e5b9b6; }
+          [data-bs-theme="dark"] .nsm-status-icon-on { background: rgba(31,122,51,.22); color: #6dd485; border-color: rgba(31,122,51,.45); }
+          [data-bs-theme="dark"] .nsm-status-icon-off { background: rgba(166,58,50,.22); color: #ec8a83; border-color: rgba(166,58,50,.45); }
+
+          @media (max-width: 992px) {
+            .nsm-policy-table .table thead th { font-size: .7rem; padding: .45rem .5rem; }
+            .nsm-policy-table .table tbody td { font-size: .78rem; padding: .45rem .5rem; }
+            .nsm-rule-pill { max-width: 140px; font-size: .72rem; }
           }
-          .nsm-status-icon-on {
-            background: #d9f1df;
-            color: #1f7a33;
-          }
-          .nsm-status-icon-off {
-            background: #f3e0df;
-            color: #a63a32;
-          }
-          .nsm-search-toggle {
-            cursor: pointer;
-            list-style: none;
-            user-select: none;
-            border-radius: .5rem;
-            padding: .35rem .75rem;
-          }
-          .nsm-search-toggle::-webkit-details-marker { display: none; }
-          .nsm-search-toggle::marker { display: none; }
         </style>
-        <div class="mb-3 d-flex align-items-center justify-content-between gap-2">
-          <strong>Security Rules</strong>
-          {% if perms.netbox_nsm.add_securitypolicyrule %}
-            <a href="{% url 'plugins:netbox_nsm:securitypolicyrule_add' %}?rulebook={{ object.pk }}&return_url={{ request.path|urlencode }}" class="btn btn-sm btn-primary">
-              <span class="mdi mdi-plus-thick" aria-hidden="true"></span> Add Rule
-            </a>
-          {% endif %}
-        </div>
-        <details class="mb-3" {% if search_q %}open{% endif %}>
-          <summary class="nsm-search-toggle d-flex align-items-center gap-2">
-            <i class="mdi mdi-magnify"></i>
-            <span class="fw-semibold small">Search</span>
-            {% if search_q %}
-              <span class="badge text-bg-warning ms-1">active</span>
+        <div class="mb-2 d-flex align-items-center justify-content-between gap-2 flex-wrap">
+          <div class="d-flex align-items-center gap-2">
+            <strong>Security Rules</strong>
+            <span class="badge text-bg-secondary">{{ total_count }}</span>
+          </div>
+          <div class="d-flex align-items-center gap-2 ms-auto">
+            <form method="get" class="d-flex align-items-center gap-1" id="nsm-per-page-form">
+              {% for key, val in request.GET.items %}
+                {% if key != "per_page" and key != "page" %}
+                  <input type="hidden" name="{{ key }}" value="{{ val }}">
+                {% endif %}
+              {% endfor %}
+              <label class="small text-muted mb-0">Rows:</label>
+              <select name="per_page" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+                {% for n in valid_per_page %}
+                  <option value="{{ n }}" {% if n == per_page %}selected{% endif %}>{{ n }}</option>
+                {% endfor %}
+              </select>
+            </form>
+            {% if perms.netbox_nsm.add_securitypolicyrule %}
+              <a href="{% url 'plugins:netbox_nsm:securitypolicyrule_add' %}?rulebook={{ object.pk }}&return_url={{ request.path|urlencode }}" class="btn btn-sm btn-primary">
+                <span class="mdi mdi-plus-thick" aria-hidden="true"></span> Add Rule
+              </a>
             {% endif %}
-            <i class="mdi mdi-chevron-down ms-auto"></i>
-          </summary>
-          <form method="get" class="mt-2 p-3 border rounded">
-            <div class="row g-2 align-items-end">
-              <div class="col-sm-6">
-                <input type="text" name="q" value="{{ search_q|default:'' }}"
-                       class="form-control form-control-sm"
-                       placeholder="Name, description, zones, objects …">
-              </div>
-              <div class="col-auto d-flex gap-1">
-                <button type="submit" class="btn btn-sm btn-primary">
-                  <i class="mdi mdi-magnify"></i>
-                </button>
-                <a href="{{ request.path }}" class="btn btn-sm btn-outline-secondary">
-                  <i class="mdi mdi-close"></i>
-                </a>
-              </div>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <form method="get" action="{% url 'plugins:netbox_nsm:global_rules_search' %}">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text"><i class="mdi mdi-shield-search"></i></span>
+              <input type="text" name="q" value="{{ object.name }}"
+                     class="form-control"
+                     placeholder="{% trans 'Rule name or rulebook …' %}">
+              <button type="submit" class="btn btn-primary">
+                <i class="mdi mdi-magnify"></i> {% trans "Search" %}
+              </button>
             </div>
-            {% for v in src_filter %}
-              <input type="hidden" name="source_zones_id" value="{{ v }}">
-            {% endfor %}
-            {% for v in dst_filter %}
-              <input type="hidden" name="destination_zones_id" value="{{ v }}">
-            {% endfor %}
           </form>
-        </details>
+          <details class="mt-1">
+            <summary style="list-style:none;cursor:pointer;user-select:none;font-size:11px;" class="text-muted d-inline-flex align-items-center gap-1">
+              <i class="mdi mdi-help-circle-outline"></i>
+              <span>{% trans "Search help" %}</span>
+              <i class="mdi mdi-chevron-down"></i>
+            </summary>
+            <div class="mt-1 ps-1 border-start border-secondary text-muted" style="font-size:11px;">
+              <p class="mb-1">{% trans "Searches across <strong>all rulebooks</strong>. The field is pre-filled with this rulebook's name as a starting filter." %}</p>
+              <p class="mb-1"><strong>{% trans "Examples:" %}</strong></p>
+              <ul class="mb-0 ps-3">
+                <li><code>Demo</code> – {% trans "all rules whose name or rulebook contains \"Demo\"" %}</li>
+                <li><code>Zone Matrix</code> – {% trans "filter by rulebook name" %}</li>
+                <li><code>allow</code> – {% trans "find rules with \"allow\" in the name" %}</li>
+              </ul>
+            </div>
+          </details>
+        </div>
       {% endif %}
 
       <form method="post" id="nsm-bulk-delete-form">
@@ -256,9 +409,131 @@
           </button>
         </div>
         <div class="nsm-policy-table">
-          {% include 'htmx/table.html' %}
+          {% if policy_header_groups and policy_grouped_rows %}
+            <table class="table table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th rowspan="2" style="width:1rem">
+                    <input type="checkbox" id="select-all"
+                           onclick="document.querySelectorAll('input[name=pk]').forEach(cb=>cb.checked=this.checked);document.dispatchEvent(new Event('change'))">
+                  </th>
+                  <th rowspan="2" class="nsm-main-col"><button type="button" class="nsm-sort-btn" data-nsm-sort data-nsm-col-index="1"><span>Index</span><i class="mdi mdi-unfold-more-horizontal"></i></button></th>
+                  <th rowspan="2" class="nsm-main-col"><button type="button" class="nsm-sort-btn" data-nsm-sort data-nsm-col-index="2"><span>Status</span><i class="mdi mdi-unfold-more-horizontal"></i></button></th>
+                  <th rowspan="2" class="nsm-main-col"><button type="button" class="nsm-sort-btn" data-nsm-sort data-nsm-col-index="3"><span>Name</span><i class="mdi mdi-unfold-more-horizontal"></i></button></th>
+                  {% for group in policy_header_groups %}
+                    <th colspan="{{ group.columns|length }}" class="text-center nsm-area-group-head">{{ group.label|upper }}</th>
+                  {% endfor %}
+                  <th rowspan="2"><button type="button" class="nsm-sort-btn" data-nsm-sort data-nsm-col-index="{{ policy_grouped_column_count|add:4 }}"><span>Description</span><i class="mdi mdi-unfold-more-horizontal"></i></button></th>
+                  <th rowspan="2"></th>
+                </tr>
+                <tr>
+                  {% for group in policy_header_groups %}
+                    {% for col in group.columns %}
+                      <th class="nsm-area-col-head nsm-area-band-{{ col.group_band }}{% if col.is_group_start %} nsm-area-start{% endif %}{% if col.is_group_end %} nsm-area-end{% endif %}"><button type="button" class="nsm-sort-btn" data-nsm-sort><span>{{ col.label }}</span><i class="mdi mdi-unfold-more-horizontal"></i></button></th>
+                    {% endfor %}
+                  {% endfor %}
+                </tr>
+                <tr class="nsm-filter-row">
+                  <th></th>
+                  <th><input type="text" class="nsm-filter-input" data-nsm-filter-col="1" placeholder="…"></th>
+                  <th><input type="text" class="nsm-filter-input" data-nsm-filter-col="2" placeholder="…"></th>
+                  <th><input type="text" class="nsm-filter-input" data-nsm-filter-col="3" placeholder="…"></th>
+                  {% for group in policy_header_groups %}
+                    {% for col in group.columns %}
+                      <th class="nsm-area-band-{{ col.group_band }}{% if col.is_group_start %} nsm-area-start{% endif %}{% if col.is_group_end %} nsm-area-end{% endif %}"><input type="text" class="nsm-filter-input" data-nsm-filter placeholder="…"></th>
+                    {% endfor %}
+                  {% endfor %}
+                  <th><input type="text" class="nsm-filter-input" data-nsm-filter-col="{{ policy_grouped_column_count|add:4 }}" placeholder="…"></th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in policy_grouped_rows %}
+                  <tr>
+                    <td><input type="checkbox" name="pk" value="{{ row.pk }}"></td>
+                    <td class="nsm-main-col">{{ row.index }}</td>
+                    <td class="nsm-main-col" data-sort-value="{% if row.enabled %}1{% else %}0{% endif %}" data-filter-value="{% if row.enabled %}ein on enabled aktiv 1{% else %}aus off disabled inaktiv 0{% endif %}">
+                      {% if row.enabled %}
+                        <span class="nsm-status-icon nsm-status-icon-on" title="Ein" aria-label="Ein"><i class="mdi mdi-check"></i></span>
+                      {% else %}
+                        <span class="nsm-status-icon nsm-status-icon-off" title="Aus" aria-label="Aus"><i class="mdi mdi-close"></i></span>
+                      {% endif %}
+                    </td>
+                    <td class="nsm-main-col"><a href="{{ row.url }}" class="text-body">{{ row.name }}</a></td>
+                    {% for group in policy_header_groups %}
+                      {% for col in group.columns %}
+                        {% with cell=row.cells|get_item:col.key %}
+                          <td class="nsm-area-band-{{ col.group_band }} {% if col.is_group_start %}nsm-area-start {% endif %}{% if col.is_group_end %}nsm-area-end{% endif %}">{% if cell %}{{ cell|safe }}{% else %}<span class="nsm-cell-empty">-</span>{% endif %}</td>
+                        {% endwith %}
+                      {% endfor %}
+                    {% endfor %}
+                    <td data-sort-value="{{ row.description|default:''|lower }}" title="{{ row.description|default:'' }}">{{ row.description|truncatechars:21 }}</td>
+                    <td class="text-end text-nowrap noprint p-1">
+                      <span class="btn-group dropdown">
+                        <a class="btn btn-sm btn-warning" href="{{ row.edit_url }}" type="button" aria-label="Edit"><i class="mdi mdi-pencil"></i></a>
+                        <a class="btn btn-sm btn-warning dropdown-toggle" type="button" data-bs-toggle="dropdown" style="padding-left:2px"><span class="visually-hidden">Toggle Dropdown</span></a>
+                        <ul class="dropdown-menu">
+                          <li><a class="dropdown-item" href="{{ row.delete_url }}"><i class="mdi mdi-trash-can-outline"></i> Delete</a></li>
+                        </ul>
+                      </span>
+                    </td>
+                  </tr>
+                {% empty %}
+                  <tr>
+                    <td colspan="{{ policy_grouped_column_count|add:7 }}" class="text-muted">No rules found.</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            {% include 'htmx/table.html' %}
+          {% endif %}
         </div>
       </form>
+
+      {# ── Pagination controls ───────────────────────────────────────── #}
+      {% if paginator.num_pages > 1 %}
+      <nav class="d-flex align-items-center justify-content-between mt-3 flex-wrap gap-2" aria-label="Rule pagination">
+        <div class="small text-muted">
+          Rules {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ total_count }}
+        </div>
+        <ul class="pagination pagination-sm mb-0">
+          {% if page_obj.has_previous %}
+            <li class="page-item">
+              <a class="page-link" href="?{{ base_qs_str }}&per_page={{ per_page }}&page=1" aria-label="First">&laquo;&laquo;</a>
+            </li>
+            <li class="page-item">
+              <a class="page-link" href="?{{ base_qs_str }}&per_page={{ per_page }}&page={{ page_obj.previous_page_number }}" aria-label="Previous">&laquo;</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">&laquo;&laquo;</span></li>
+            <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+          {% endif %}
+
+          {% for p in paginator.page_range %}
+            {% if p == page_obj.number %}
+              <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+            {% elif p == 1 or p == paginator.num_pages or p >= page_obj.number|add:"-3" and p <= page_obj.number|add:"3" %}
+              <li class="page-item"><a class="page-link" href="?{{ base_qs_str }}&per_page={{ per_page }}&page={{ p }}">{{ p }}</a></li>
+            {% elif p == page_obj.number|add:"-4" or p == page_obj.number|add:"4" %}
+              <li class="page-item disabled"><span class="page-link">…</span></li>
+            {% endif %}
+          {% endfor %}
+
+          {% if page_obj.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="?{{ base_qs_str }}&per_page={{ per_page }}&page={{ page_obj.next_page_number }}" aria-label="Next">&raquo;</a>
+            </li>
+            <li class="page-item">
+              <a class="page-link" href="?{{ base_qs_str }}&per_page={{ per_page }}&page={{ paginator.num_pages }}" aria-label="Last">&raquo;&raquo;</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+            <li class="page-item disabled"><span class="page-link">&raquo;&raquo;</span></li>
+          {% endif %}
+        </ul>
+      </nav>
+      {% endif %}
       <script>
       (function () {
         var form = document.getElementById('nsm-bulk-delete-form');
@@ -277,6 +552,143 @@
           if (e.target && (e.target.name === 'pk' || e.target.id === 'select-all')) {
             update();
           }
+        });
+      })();
+
+      (function () {
+        var table = document.querySelector('.nsm-policy-table table');
+        if (!table) return;
+        var headerRows = table.tHead ? table.tHead.rows : [];
+        if (headerRows.length < 2) return;
+        var subRow = headerRows[1];
+        var subButtons = Array.prototype.slice.call(subRow.querySelectorAll('[data-nsm-sort]'));
+        var leadingMain = 4; // checkbox, #, Status, Name
+        var tbody = table.tBodies[0];
+        if (!tbody) return;
+
+        // Build a flat list of all sortable buttons with their body column index
+        var sortables = [];
+        var allButtons = Array.prototype.slice.call(table.tHead.querySelectorAll('[data-nsm-sort]'));
+        allButtons.forEach(function (btn) {
+          var explicit = btn.getAttribute('data-nsm-col-index');
+          var col;
+          if (explicit !== null) {
+            col = parseInt(explicit, 10);
+          } else {
+            col = leadingMain + subButtons.indexOf(btn);
+          }
+          sortables.push({ btn: btn, th: btn.closest('th'), col: col });
+        });
+
+        function valueOf(td) {
+          if (!td) return '';
+          var dv = td.getAttribute('data-sort-value');
+          if (dv !== null) return dv.trim().toLowerCase();
+          return (td.innerText || td.textContent || '').trim().toLowerCase();
+        }
+
+        sortables.forEach(function (entry) {
+          entry.btn.addEventListener('click', function () {
+            var current = entry.th.getAttribute('data-sort-dir');
+            var dir = current === 'asc' ? 'desc' : 'asc';
+            // reset others
+            sortables.forEach(function (other) {
+              if (other === entry) return;
+              other.th.removeAttribute('data-sort-dir');
+              other.btn.classList.remove('nsm-sort-active');
+              var i = other.btn.querySelector('.mdi');
+              if (i) i.className = 'mdi mdi-unfold-more-horizontal';
+            });
+            entry.th.setAttribute('data-sort-dir', dir);
+            entry.btn.classList.add('nsm-sort-active');
+            var icon = entry.btn.querySelector('.mdi');
+            if (icon) icon.className = 'mdi ' + (dir === 'asc' ? 'mdi-arrow-up' : 'mdi-arrow-down');
+
+            var bodyCol = entry.col;
+            var rows = Array.prototype.slice.call(tbody.rows).filter(function (r) {
+              return r.cells.length > bodyCol;
+            });
+            var numeric = rows.every(function (r) {
+              var v = valueOf(r.cells[bodyCol]);
+              return v === '' || v === '-' || !isNaN(parseFloat(v));
+            });
+            rows.sort(function (a, b) {
+              var av = valueOf(a.cells[bodyCol]);
+              var bv = valueOf(b.cells[bodyCol]);
+              var aEmpty = av === '' || av === '-';
+              var bEmpty = bv === '' || bv === '-';
+              if (aEmpty && !bEmpty) return 1;
+              if (!aEmpty && bEmpty) return -1;
+              if (numeric) {
+                var an = parseFloat(av), bn = parseFloat(bv);
+                if (an < bn) return dir === 'asc' ? -1 : 1;
+                if (an > bn) return dir === 'asc' ? 1 : -1;
+                return 0;
+              }
+              if (av < bv) return dir === 'asc' ? -1 : 1;
+              if (av > bv) return dir === 'asc' ? 1 : -1;
+              return 0;
+            });
+            rows.forEach(function (r) { tbody.appendChild(r); });
+          });
+        });
+      })();
+
+      (function () {
+        var table = document.querySelector('.nsm-policy-table table');
+        if (!table) return;
+        var tbody = table.tBodies[0];
+        if (!tbody) return;
+        var filterRow = table.querySelector('thead tr.nsm-filter-row');
+        if (!filterRow) return;
+        var leadingMain = 4; // checkbox, #, Status, Name
+
+        // Assign col index to area-col filter inputs in document order
+        var areaInputs = Array.prototype.slice.call(
+          filterRow.querySelectorAll('input[data-nsm-filter]')
+        );
+        areaInputs.forEach(function (input, idx) {
+          input.setAttribute('data-nsm-filter-col', String(leadingMain + idx));
+        });
+
+        var allInputs = Array.prototype.slice.call(
+          filterRow.querySelectorAll('input.nsm-filter-input')
+        );
+
+        function filterValueOf(td) {
+          if (!td) return '';
+          var fv = td.getAttribute('data-filter-value');
+          if (fv !== null) return fv.toLowerCase();
+          var sv = td.getAttribute('data-sort-value');
+          if (sv !== null) return sv.toLowerCase();
+          return (td.innerText || td.textContent || '').toLowerCase();
+        }
+
+        function applyFilters() {
+          var filters = [];
+          allInputs.forEach(function (inp) {
+            var v = (inp.value || '').trim().toLowerCase();
+            if (!v) return;
+            var col = parseInt(inp.getAttribute('data-nsm-filter-col'), 10);
+            if (isNaN(col)) return;
+            filters.push({ col: col, value: v });
+          });
+          Array.prototype.forEach.call(tbody.rows, function (row) {
+            var visible = true;
+            for (var i = 0; i < filters.length; i++) {
+              var f = filters[i];
+              var td = row.cells[f.col];
+              if (!td || filterValueOf(td).indexOf(f.value) === -1) {
+                visible = false;
+                break;
+              }
+            }
+            row.style.display = visible ? '' : 'none';
+          });
+        }
+
+        allInputs.forEach(function (inp) {
+          inp.addEventListener('input', applyFilters);
         });
       })();
       </script>

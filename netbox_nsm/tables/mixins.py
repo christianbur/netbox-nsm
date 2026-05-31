@@ -1,4 +1,5 @@
 from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 
 
 class AssignedObjectParentMixin:
@@ -26,9 +27,24 @@ class AssignedObjectParentMixin:
 
         if value:
             return format_html(
-                "{} / <a href=\"{}\">{}</a>",
+                '{} / <a href="{}">{}</a>',
                 type_label,
                 value.get_absolute_url(),
                 str(value),
             )
         return type_label
+
+
+def render_html_color(value):
+    value = (value or "").strip()
+    if not value:
+        return mark_safe('<span class="text-muted">—</span>')
+    return format_html(
+        '<span class="d-inline-flex align-items-center gap-2">'
+        '<span class="d-inline-block rounded-circle border" '
+        'style="width: 1rem; height: 1rem; background: {}; border-color: var(--bs-border-color) !important;"></span>'
+        '<span>{}</span>'
+        '</span>',
+        value,
+        value,
+    )

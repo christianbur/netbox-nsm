@@ -14,7 +14,7 @@
 
   {{ form.non_field_errors }}
 
-  <div class="field-group mb-5">
+  <div class="field-group mb-4">
     <div class="row mb-3"><div class="col-12"><h2>{% trans "Security Rule" %}</h2></div></div>
     {% render_field form.rulebook %}
     {% render_field form.index %}
@@ -23,169 +23,16 @@
     {% render_field form.description %}
   </div>
 
-  <div class="card mb-4 nsm-table-section" data-section="source">
-    <div class="card-header d-flex align-items-center gap-2">
-      <i class="mdi mdi-arrow-right-circle-outline"></i>
-      <strong>{% trans "Source" %}</strong>
-    </div>
-    <div class="card-body">
-    <div class="row g-2 align-items-end mb-3">
-      <div class="col-md-10">
-        <label class="form-label">{% trans "Object" %}</label>
-        <select class="form-select" data-add-object="source">
-          <option value="">{% trans "Please select" %}</option>
-          {% for option in nsm_add_options.source %}
-            <option value="{{ option.value }}">{{ option.text }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-2">
-        <button type="button" class="btn btn-primary w-100" data-add-row="source">Add</button>
-      </div>
-    </div>
-    <div class="table-responsive mb-3">
-      <table class="table table-hover align-middle mb-0">
-        <thead>
-          <tr>
-            <th>{% trans "Type" %}</th>
-            <th>{% trans "Value" %}</th>
-            <th class="text-end"></th>
-          </tr>
-        </thead>
-        <tbody data-selection-table="source"></tbody>
-      </table>
-    </div>
-    <div class="nsm-hidden-pickers">
-      {% if form.source_group_types %}{% render_field form.source_group_types %}{% endif %}
-      {% if form.source_groups %}{% render_field form.source_groups %}{% endif %}
-      {% render_field form.custom_srcdst_objects %}
-      {% if form.source_addresses %}{% render_field form.source_addresses %}{% endif %}
-      {% if form.source_users %}{% render_field form.source_users %}{% endif %}
-    </div>
-    </div>{# /card-body #}
-  </div>{# /source card #}
+  <div id="nsm-rule-picker" data-nsm-rule-picker>
+    {# Sections are rendered here by security_rule_form.js, one per area #}
+  </div>
 
-  <div class="card mb-4 nsm-table-section" data-section="destination">
-    <div class="card-header d-flex align-items-center gap-2">
-      <i class="mdi mdi-arrow-left-circle-outline"></i>
-      <strong>{% trans "Destination" %}</strong>
-    </div>
-    <div class="card-body">
-    <div class="row g-2 align-items-end mb-3">
-      <div class="col-md-10">
-        <label class="form-label">{% trans "Object" %}</label>
-        <select class="form-select" data-add-object="destination">
-          <option value="">{% trans "Please select" %}</option>
-          {% for option in nsm_add_options.destination %}
-            <option value="{{ option.value }}">{{ option.text }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-2">
-        <button type="button" class="btn btn-primary w-100" data-add-row="destination">Add</button>
-      </div>
-    </div>
-    <div class="table-responsive mb-3">
-      <table class="table table-hover align-middle mb-0">
-        <thead>
-          <tr>
-            <th>{% trans "Type" %}</th>
-            <th>{% trans "Value" %}</th>
-            <th class="text-end"></th>
-          </tr>
-        </thead>
-        <tbody data-selection-table="destination"></tbody>
-      </table>
-    </div>
-    <div class="nsm-hidden-pickers">
-      {% if form.destination_group_types %}{% render_field form.destination_group_types %}{% endif %}
-      {% if form.destination_groups %}{% render_field form.destination_groups %}{% endif %}
-      {% render_field form.destination_custom_objects %}
-      {% if form.destination_addresses %}{% render_field form.destination_addresses %}{% endif %}
-      {% if form.destination_users %}{% render_field form.destination_users %}{% endif %}
-    </div>
-    </div>{# /card-body #}
-  </div>{# /destination card #}
+  <div class="nsm-hidden-pickers">
+    <input type="hidden" name="area_selections" id="nsm-area-selections" value="[]">
+    <input type="hidden" name="virtual_group_config" id="nsm-virtual-group-config" value="{}">
+  </div>
 
-  <div class="card mb-4 nsm-table-section" data-section="service">
-    <div class="card-header d-flex align-items-center gap-2">
-      <i class="mdi mdi-server-network"></i>
-      <strong>{% trans "Service" %}</strong>
-    </div>
-    <div class="card-body">
-    <div class="row g-2 align-items-end mb-3">
-      <div class="col-md-10">
-        <label class="form-label">{% trans "Object" %}</label>
-        <select class="form-select" data-add-object="service">
-          <option value="">{% trans "Please select" %}</option>
-          {% for option in nsm_add_options.service %}
-            <option value="{{ option.value }}">{{ option.text }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-2">
-        <button type="button" class="btn btn-primary w-100" data-add-row="service">Add</button>
-      </div>
-    </div>
-    <div class="table-responsive mb-3">
-      <table class="table table-hover align-middle mb-0">
-        <thead>
-          <tr>
-            <th>{% trans "Type" %}</th>
-            <th>{% trans "Value" %}</th>
-            <th class="text-end"></th>
-          </tr>
-        </thead>
-        <tbody data-selection-table="service"></tbody>
-      </table>
-    </div>
-    <div class="nsm-hidden-pickers">
-      {% render_field form.custom_service_objects %}
-      {% render_field form.service_groups %}
-    </div>
-    </div>{# /card-body #}
-  </div>{# /service card #}
-
-  <div class="card mb-4 nsm-table-section" data-section="action">
-    <div class="card-header d-flex align-items-center gap-2">
-      <i class="mdi mdi-lightning-bolt"></i>
-      <strong>{% trans "Action" %}</strong>
-    </div>
-    <div class="card-body">
-    <div class="row g-2 align-items-end mb-3">
-      <div class="col-md-10">
-        <label class="form-label">{% trans "Object" %}</label>
-        <select class="form-select" data-add-object="action">
-          <option value="">{% trans "Please select" %}</option>
-          {% for option in nsm_add_options.action %}
-            <option value="{{ option.value }}">{{ option.text }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-2">
-        <button type="button" class="btn btn-primary w-100" data-add-row="action">Add</button>
-      </div>
-    </div>
-    <div class="table-responsive mb-3">
-      <table class="table table-hover align-middle mb-0">
-        <thead>
-          <tr>
-            <th>{% trans "Type" %}</th>
-            <th>{% trans "Value" %}</th>
-            <th class="text-end"></th>
-          </tr>
-        </thead>
-        <tbody data-selection-table="action"></tbody>
-      </table>
-    </div>
-    <div class="nsm-hidden-pickers">
-      {% render_field form.custom_action_objects %}
-      {% render_field form.action_groups %}
-    </div>
-    </div>{# /card-body #}
-  </div>{# /action card #}
-
-  <div class="field-group mb-5">
+  <div class="field-group mb-4">
     {% render_field form.tags %}
   </div>
 
@@ -204,8 +51,24 @@
 
 {% block javascript %}
   {{ block.super }}
-  {% if nsm_initial_labels %}
-  <script id="nsm-initial-labels" type="application/json">{{ nsm_initial_labels }}</script>
+  {% if nsm_rule_picker_data %}
+  {{ nsm_rule_picker_data|json_script:"nsm-rule-picker-data" }}
   {% endif %}
-  <script src="{% static 'netbox_nsm/js/security_rule_form.js' %}?v=20260526d"></script>
+  {% if nsm_rule_selections %}
+  {{ nsm_rule_selections|json_script:"nsm-rule-selections" }}
+  {% endif %}
+  {% if nsm_rule_virtual_groups %}
+  {{ nsm_rule_virtual_groups|json_script:"nsm-rule-virtual-groups" }}
+  {% endif %}
+  <script>
+  window.NSM_I18N = {
+    "remove_selected": "{% trans 'Remove selected' %}",
+    "search_in": "{% trans 'Search in' %}",
+    "types": "{% trans 'Types' %}",
+    "groups": "{% trans 'Groups' %}",
+    "search": "{% trans 'Search' %}",
+    "remove": "{% trans 'Remove' %}"
+  };
+  </script>
+  <script src="{% static 'netbox_nsm/js/security_rule_form.js' %}?v=20260531b"></script>
 {% endblock javascript %}

@@ -39,8 +39,8 @@ class SecurityPropertyType(PrimaryModel):
     schema_document = models.JSONField(blank=True, null=True)
 
     class Meta:
-        verbose_name = _("NSM Object Type")
-        verbose_name_plural = _("NSM Object Types")
+        verbose_name = _("Security Property Type")
+        verbose_name_plural = _("Security Property Types")
         ordering = ("name",)
         constraints = [
             models.UniqueConstraint(
@@ -96,8 +96,8 @@ class SecurityPropertyField(PrimaryModel):
     weight = models.PositiveSmallIntegerField(default=100)
 
     class Meta:
-        verbose_name = _("NSM Object Type Field")
-        verbose_name_plural = _("NSM Object Type Fields")
+        verbose_name = _("Security Property Field")
+        verbose_name_plural = _("Security Property Fields")
         ordering = ("group_name", "weight", "name")
         constraints = [
             models.UniqueConstraint(
@@ -124,9 +124,16 @@ class SecurityProperty(PrimaryModel):
     source_model = models.CharField(max_length=64, blank=True)
     source_pk = models.PositiveBigIntegerField(blank=True, null=True)
 
+    color = models.CharField(
+        max_length=7,
+        blank=True,
+        default="",
+        help_text=_('Optional HTML color code (e.g. #aabbcc) used for this object in the policy view.'),
+    )
+
     class Meta:
-        verbose_name = _("NSM Object")
-        verbose_name_plural = _("NSM Objects")
+        verbose_name = _("Security Property")
+        verbose_name_plural = _("Security Properties")
         ordering = ("security_property_type", "name")
         constraints = [
             models.UniqueConstraint(
@@ -156,7 +163,11 @@ class SecurityProperty(PrimaryModel):
         if self._is_empty_value(value):
             return
 
-        if field_type in (CustomFieldTypeChoices.TYPE_TEXT, CustomFieldTypeChoices.TYPE_LONGTEXT, CustomFieldTypeChoices.TYPE_URL):
+        if field_type in (
+            CustomFieldTypeChoices.TYPE_TEXT,
+            CustomFieldTypeChoices.TYPE_LONGTEXT,
+            CustomFieldTypeChoices.TYPE_URL,
+        ):
             if not isinstance(value, str):
                 errors[field_name] = _("Expected text value.")
             return
@@ -176,12 +187,18 @@ class SecurityProperty(PrimaryModel):
                 errors[field_name] = _("Expected boolean value.")
             return
 
-        if field_type in (CustomFieldTypeChoices.TYPE_SELECT, CustomFieldTypeChoices.TYPE_OBJECT):
+        if field_type in (
+            CustomFieldTypeChoices.TYPE_SELECT,
+            CustomFieldTypeChoices.TYPE_OBJECT,
+        ):
             if not isinstance(value, str):
                 errors[field_name] = _("Expected single value.")
             return
 
-        if field_type in (CustomFieldTypeChoices.TYPE_MULTISELECT, CustomFieldTypeChoices.TYPE_MULTIOBJECT):
+        if field_type in (
+            CustomFieldTypeChoices.TYPE_MULTISELECT,
+            CustomFieldTypeChoices.TYPE_MULTIOBJECT,
+        ):
             if not isinstance(value, list):
                 errors[field_name] = _("Expected list value.")
             return
@@ -190,7 +207,10 @@ class SecurityProperty(PrimaryModel):
             # JSON accepts any serializable value.
             return
 
-        if field_type in (CustomFieldTypeChoices.TYPE_DATE, CustomFieldTypeChoices.TYPE_DATETIME):
+        if field_type in (
+            CustomFieldTypeChoices.TYPE_DATE,
+            CustomFieldTypeChoices.TYPE_DATETIME,
+        ):
             if not isinstance(value, str):
                 errors[field_name] = _("Expected ISO date/datetime string value.")
 
@@ -201,7 +221,9 @@ class SecurityProperty(PrimaryModel):
             self.object_data = {}
 
         if not isinstance(self.object_data, dict):
-            raise ValidationError({"object_data": _("Object data must be a JSON object.")})
+            raise ValidationError(
+                {"object_data": _("Object data must be a JSON object.")}
+            )
 
         field_defs = list(self.security_property_type.fields.all())
         known_fields = {f.name: f for f in field_defs}
@@ -232,7 +254,9 @@ class SecurityProperty(PrimaryModel):
                 if self.pk:
                     qs = qs.exclude(pk=self.pk)
                 if qs.exists():
-                    errors[field_def.name] = _("Value must be unique within this object type.")
+                    errors[field_def.name] = _(
+                        "Value must be unique within this object type."
+                    )
 
         if errors:
             details = "; ".join(f"{key}: {value}" for key, value in errors.items())

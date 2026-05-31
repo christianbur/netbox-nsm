@@ -10,6 +10,19 @@
       <table class="table table-hover attr-table">
         <tr><th scope="row">{% trans "Name" %}</th><td>{{ object.name }}</td></tr>
         <tr><th scope="row">{% trans "Object Type" %}</th><td><a href="{{ object.security_property_type.get_absolute_url }}">{{ object.security_property_type.display_name }}</a></td></tr>
+        <tr>
+          <th scope="row">{% trans "Color" %}</th>
+          <td>
+            {% if object.color %}
+              <span class="d-inline-flex align-items-center gap-2">
+                <span class="d-inline-block rounded-circle border" style="width: 1rem; height: 1rem; background: {{ object.color }}; border-color: var(--bs-border-color) !important;"></span>
+                <span>{{ object.color }}</span>
+              </span>
+            {% else %}
+              {{ object.color|placeholder }}
+            {% endif %}
+          </td>
+        </tr>
         <tr><th scope="row">{% trans "Source Model" %}</th><td>{{ object.source_model|placeholder }}</td></tr>
         <tr><th scope="row">{% trans "Source PK" %}</th><td>{{ object.source_pk|placeholder }}</td></tr>
         <tr><th scope="row">{% trans "Description" %}</th><td>{{ object.description|placeholder }}</td></tr>

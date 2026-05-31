@@ -1,0 +1,221 @@
+{% extends 'base/layout.html' %}
+{% load i18n %}
+{% load helpers %}
+
+{% block title %}{% trans "Assign Link" %}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">
+    <i class="mdi mdi-link-variant-plus me-2"></i>{% trans "Assign Link" %}
+  </h1>
+  <a href="{{ return_url }}" class="btn btn-outline-secondary btn-sm">
+    <i class="mdi mdi-arrow-left me-1"></i>{% trans "Back" %}
+  </a>
+</div>
+
+<div class="row">
+
+  {# ── Left: assign form ──────────────────────────────────────────────── #}
+  <div class="col-md-6">
+    <div class="card mb-4">
+      <h5 class="card-header">{% trans "New Link" %}</h5>
+      <div class="card-body">
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold">{% trans "Objekt A (dieses Objekt)" %}</label>
+          <div class="form-control-plaintext">
+            {% if object_a.get_absolute_url %}
+              <a href="{{ object_a.get_absolute_url }}">{{ object_a }}</a>
+            {% else %}
+              {{ object_a }}
+            {% endif %}
+            <span class="text-muted small ms-2">({{ object_a|meta:"verbose_name" }})</span>
+          </div>
+        </div>
+
+        <form method="post" id="assign-form">
+          {% csrf_token %}
+          <input type="hidden" name="object_a_type_id" value="{{ form.object_a_type_id.value }}">
+          <input type="hidden" name="object_a_id" value="{{ form.object_a_id.value }}">
+          <input type="hidden" name="return_url" value="{{ return_url }}">
+          <input type="hidden" name="object_b_id" id="id_object_b_id" value="">
+
+          {# Type selector #}
+          <div class="mb-3">
+            <label for="id_object_b_type" class="form-label fw-semibold">
+              {% trans "Type (Object B)" %} <span class="text-danger">*</span>
+            </label>
+            <select name="object_b_type" id="id_object_b_type" class="form-select">
+              {% for val, label in form.fields.object_b_type.choices %}
+              <option value="{{ val }}"
+                {% if form.object_b_type.value == val|stringformat:"s" %}selected{% endif %}>
+                {{ label }}
+              </option>
+              {% endfor %}
+            </select>
+            {% if form.object_b_type.errors %}
+              <div class="invalid-feedback d-block">{{ form.object_b_type.errors|join:", " }}</div>
+            {% endif %}
+          </div>
+
+          {# Element search box #}
+          <div class="mb-3" id="element-picker-wrap" style="display:none;">
+            <label class="form-label fw-semibold">
+              {% trans "Element (Objekt B)" %} <span class="text-danger">*</span>
+            </label>
+            <input type="text" id="element-search"
+                   class="form-control mb-1" placeholder="{% trans 'Suchen…' %}"
+                   autocomplete="off">
+            <select id="element-select" class="form-select" size="6" style="height:auto;">
+            </select>
+            <div id="element-error" class="invalid-feedback d-block" style="display:none!important;"></div>
+          </div>
+
+          {# Comment #}
+          <div class="mb-3">
+            <label for="id_comment" class="form-label fw-semibold">{% trans "Comment" %}</label>
+            <textarea name="comment" id="id_comment" class="form-control" rows="3"
+                      placeholder="{% trans 'Optional…' %}">{{ form.comment.value|default:"" }}</textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary" id="submit-btn" disabled>
+            <i class="mdi mdi-link-variant-plus me-1"></i>{% trans "Link" %}
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  {# ── Right: existing links ──────────────────────────────────────────── #}
+  <div class="col-md-6">
+    <div class="card">
+      <h5 class="card-header">{% trans "Existing Links" %}</h5>
+      <div class="card-body p-0">
+        {% if existing_links %}
+        <table class="table table-hover table-sm mb-0">
+          <thead>
+            <tr>
+              <th class="ps-3">{% trans "Typ" %}</th>
+              <th>{% trans "Element" %}</th>
+              <th>{% trans "Comment" %}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for link in existing_links %}
+            <tr>
+              <td class="ps-3 text-muted small">{{ link.object_b_type }}</td>
+              <td>
+                {% if link.object_b %}
+                  {% if link.object_b.get_absolute_url %}
+                  <a href="{{ link.object_b.get_absolute_url }}">{{ link.object_b }}</a>
+                  {% else %}
+                  {{ link.object_b }}
+                  {% endif %}
+                {% else %}
+                  <span class="text-muted">–</span>
+                {% endif %}
+              </td>
+              <td class="text-muted small">{{ link.comment|default:"–" }}</td>
+              <td class="text-end pe-3">
+                <form method="post"
+                      action="{% url 'plugins:netbox_nsm:nsm_object_link_delete' pk=link.pk %}"
+                      style="display:inline;"
+                      onsubmit="return confirm('{% trans "Delete Link?" %}')">
+                  {% csrf_token %}
+                  <input type="hidden" name="return_url"
+                         value="{% url 'plugins:netbox_nsm:nsm_object_link_assign' %}?ct_id={{ form.object_a_type_id.value }}&obj_id={{ form.object_a_id.value }}&return_url={{ return_url|urlencode }}">
+                  <button type="submit" class="btn btn-sm btn-ghost-danger" title="{% trans 'Delete' %}">
+                    <i class="mdi mdi-delete"></i>
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="ps-3 py-3 text-muted">{% trans "No links found." %}</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  var typeSelect = document.getElementById('id_object_b_type');
+  var pickerWrap = document.getElementById('element-picker-wrap');
+  var searchInput = document.getElementById('element-search');
+  var elementSelect = document.getElementById('element-select');
+  var hiddenId = document.getElementById('id_object_b_id');
+  var submitBtn = document.getElementById('submit-btn');
+  var elementError = document.getElementById('element-error');
+
+  var apiBase = '{% url "plugins:netbox_nsm:object_type_elements_api" %}';
+  var currentCtId = null;
+  var debounceTimer = null;
+
+  function loadElements(ctId, q) {
+    elementSelect.innerHTML = '<option disabled>{% trans "Lade…" %}</option>';
+    hiddenId.value = '';
+    submitBtn.disabled = true;
+    fetch(apiBase + '?ct_id=' + ctId + '&q=' + encodeURIComponent(q || ''),
+          {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        elementSelect.innerHTML = '';
+        if (!data.results.length) {
+          elementSelect.innerHTML = '<option disabled>{% trans "Keine Ergebnisse" %}</option>';
+          return;
+        }
+        data.results.forEach(function (item) {
+          var opt = document.createElement('option');
+          opt.value = item.id;
+          opt.textContent = item.display;
+          elementSelect.appendChild(opt);
+        });
+      })
+      .catch(function () {
+        elementSelect.innerHTML = '<option disabled>{% trans "Fehler beim Laden" %}</option>';
+      });
+  }
+
+  typeSelect.addEventListener('change', function () {
+    currentCtId = this.value;
+    if (!currentCtId) {
+      pickerWrap.style.display = 'none';
+      hiddenId.value = '';
+      submitBtn.disabled = true;
+      return;
+    }
+    pickerWrap.style.display = '';
+    searchInput.value = '';
+    loadElements(currentCtId, '');
+  });
+
+  searchInput.addEventListener('input', function () {
+    clearTimeout(debounceTimer);
+    var q = this.value;
+    debounceTimer = setTimeout(function () {
+      if (currentCtId) loadElements(currentCtId, q);
+    }, 250);
+  });
+
+  elementSelect.addEventListener('change', function () {
+    hiddenId.value = this.value;
+    submitBtn.disabled = !this.value;
+    elementError.style.display = 'none';
+  });
+
+  // Restore state after POST error
+  if (typeSelect.value) {
+    currentCtId = typeSelect.value;
+    pickerWrap.style.display = '';
+    loadElements(currentCtId, '');
+  }
+})();
+</script>
+{% endblock %}

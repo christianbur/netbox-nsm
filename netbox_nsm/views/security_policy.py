@@ -1,10 +1,12 @@
 from django.contrib.contenttypes.models import ContentType
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
-from django.urls import reverse
+from django.urls import reverse, NoReverseMatch
 from django.utils.translation import gettext_lazy as _
-from django.utils.html import escape
+from django.utils.html import escape, conditional_escape
 from django.db.models import Count, Max, Q
+from django.views import View
+from netbox.object_actions import AddObject, BulkDelete
 import json
 
 import markdown
@@ -29,18 +31,227 @@ from netbox_nsm.forms import (
     SecurityPolicyRuleForm,
 )
 from netbox_nsm.models import (
-    SecurityObject,
+    SecurityArea,
     SecurityObjectGroup,
+    NSMTypeConfig,
+    SecurityPolicyRuleObjectItem,
+    SecurityPolicyRuleGroupItem,
     RulebookTypeChoices,
     SecurityPolicyRule,
     SecurityPolicyRulebook,
     SecurityPolicyAssignment,
+    RulebookField,
+    RulebookFieldType,
+    TypeConfig,
 )
 from netbox_nsm.tables import (
     SecurityPolicyAssignmentTable,
     SecurityPolicyRulebookTable,
     SecurityPolicyRuleTable,
 )
+
+
+def _policy_placement_for_area(area_slug):
+    if area_slug == "source":
+        return "source"
+    if area_slug == "destination":
+        return "destination"
+    return "fixed"
+
+
+def _render_vgroup_cell(items):
+    """Render items as a single AND-group bubble: ⟨item1 | item2 | item3⟩."""
+    if not items:
+        return '<span class="text-muted small">-</span>'
+    sorted_items = sorted(items, key=lambda x: x["name"].lower())
+    parts = []
+    for item in sorted_items:
+        parts.append(
+            f'<a href="{conditional_escape(item["url"])}" '
+            f'class="nsm-vgroup-item" '
+            f'title="{conditional_escape(item["name"])}" >'
+            f'{conditional_escape(item["name"])}</a>'
+        )
+    inner = '<span class="nsm-vgroup-sep">|</span>'.join(parts)
+    return f'<div class="nsm-vgroup-bubble">{inner}</div>'
+
+
+def _render_policy_cell(items):
+    if not items:
+        return '<span class="text-muted small">-</span>'
+    out = []
+    for item in items:
+        color = (item.get("color") or "").strip()
+        style_attr = ""
+        extra_class = ""
+        if color:
+            # contrast text color (luminance based)
+            try:
+                hex_val = color.lstrip("#")
+                r = int(hex_val[0:2], 16)
+                g = int(hex_val[2:4], 16)
+                b = int(hex_val[4:6], 16)
+                luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+                text_color = "#111111" if luminance > 0.6 else "#ffffff"
+            except (ValueError, IndexError):
+                text_color = "#ffffff"
+            style_attr = (
+                f' style="background-color: {conditional_escape(color)};'
+                f' border-color: {conditional_escape(color)};'
+                f' color: {text_color};"'
+            )
+            extra_class = " nsm-rule-pill-colored"
+        out.append(
+            (
+                f'<a href="{conditional_escape(item["url"])}" '
+                f'class="nsm-rule-pill{extra_class} text-decoration-none"'
+                f'{style_attr} '
+                f'title="{conditional_escape(item["name"])}">'
+                f'{conditional_escape(item["name"])}'
+                "</a>"
+            )
+        )
+    return f'<div class="nsm-rule-pills">{"".join(out)}</div>'
+
+
+def _build_grouped_policy_table_data(rules, selected_columns, rulebook=None):
+    from netbox_nsm.display_utils import get_display_template_map, render_object_display
+    rules = list(rules)
+    ct_display_template_map = get_display_template_map()
+
+    # Build ct_id → label map from TypeConfig
+    ct_label_map = {}
+    for tc in TypeConfig.objects.select_related("content_type"):
+        mc = tc.content_type.model_class()
+        if mc:
+            vc = getattr(mc._meta, "verbose_name", tc.content_type.model)
+            ct_label_map[tc.content_type.pk] = str(vc).capitalize()
+
+    # Build field metadata from rulebook
+    fields_by_slug = {}
+    field_ct_ids_map = {}   # slug → [ct_id, ...]
+    if rulebook:
+        for field in rulebook.fields.prefetch_related("type_configs__type_config__content_type").all():
+            fields_by_slug[field.slug] = field
+            field_ct_ids_map[field.slug] = [
+                ft.type_config.content_type_id
+                for ft in field.type_configs.all()
+                if ft.type_config and ft.type_config.content_type_id
+            ]
+
+    def _slugs_for_col(col):
+        if col == "source":
+            return [s for s, f in fields_by_slug.items() if f.placement == "source"]
+        if col == "destination":
+            return [s for s, f in fields_by_slug.items() if f.placement == "destination"]
+        if col in ("service", "action", "info"):
+            return [s for s in fields_by_slug if s == col]
+        return []
+
+    # Collect used keys from items
+    used_keys = set()
+    for rule in rules:
+        for item in rule.object_items.all():
+            if item.field is None:
+                continue
+            used_keys.add(f"{item.field.slug}::ct_{item.content_type_id}")
+        for item in rule.group_items.all():
+            if item.field is None:
+                continue
+            used_keys.add(f"{item.field.slug}::Groups")
+
+    header_groups = []
+    grouped_columns = []
+    for col in selected_columns:
+        for field_slug in _slugs_for_col(col):
+            field = fields_by_slug.get(field_slug)
+            ct_ids = field_ct_ids_map.get(field_slug, [])
+            types = [
+                (f"ct_{ct_id}", ct_label_map.get(ct_id, f"Type {ct_id}"))
+                for ct_id in ct_ids
+                if f"{field_slug}::ct_{ct_id}" in used_keys
+            ]
+            if f"{field_slug}::Groups" in used_keys:
+                types.append(("Groups", "Groups"))
+            if not types:
+                continue
+
+            cols = []
+            for type_key, type_label in types:
+                key = f"{field_slug}::{type_key}"
+                col_def = {
+                    "key": key,
+                    "label": type_label,
+                    "area_slug": field_slug,
+                    "type_name": type_key,
+                }
+                cols.append(col_def)
+                grouped_columns.append(col_def)
+
+            header_groups.append({
+                "label": field.name if field else field_slug.capitalize(),
+                "columns": cols,
+            })
+
+    for group_idx, group in enumerate(header_groups):
+        for idx, col in enumerate(group["columns"]):
+            col["is_group_start"] = idx == 0
+            col["is_group_end"] = idx == len(group["columns"]) - 1
+            col["group_band"] = "odd" if (group_idx % 2) else "even"
+
+    rows = []
+    for rule in rules:
+        per_key = {col["key"]: [] for col in grouped_columns}
+
+        for item in rule.object_items.all():
+            if item.field is None:
+                continue
+            key = f"{item.field.slug}::ct_{item.content_type_id}"
+            if key not in per_key:
+                continue
+            assigned = item.assigned_object
+            if assigned is None:
+                continue
+            display_name = render_object_display(assigned, item.content_type_id, ct_display_template_map)
+            per_key[key].append({
+                "url": assigned.get_absolute_url() if hasattr(assigned, "get_absolute_url") else "#",
+                "name": str(display_name),
+                "color": getattr(assigned, "color", "") or "",
+            })
+
+        for item in rule.group_items.all():
+            if item.field is None:
+                continue
+            key = f"{item.field.slug}::Groups"
+            if key not in per_key:
+                continue
+            per_key[key].append({
+                "url": item.security_group.get_absolute_url(),
+                "name": item.security_group.name,
+                "color": "",
+            })
+
+        cells = {}
+        for k, v in per_key.items():
+            cells[k] = _render_policy_cell(v)
+
+        rows.append({
+            "pk": rule.pk,
+            "index": rule.index,
+            "enabled": rule.enabled,
+            "name": rule.name,
+            "url": rule.get_absolute_url(),
+            "description": rule.description or "-",
+            "edit_url": f"/plugins/netbox-nsm/security-rule/{rule.pk}/edit/",
+            "delete_url": f"/plugins/netbox-nsm/security-rule/{rule.pk}/delete/",
+            "cells": cells,
+        })
+
+    return {
+        "header_groups": header_groups,
+        "column_count": len(grouped_columns),
+        "rows": rows,
+    }
 
 SECURITY_RULES_COLUMNS = (
     ("index", _("Index")),
@@ -57,77 +268,149 @@ SECURITY_RULES_COLUMNS = (
 MAX_CUSTOM_COLUMNS = 10
 
 
-def _options_from_queryset(queryset):
-    return [{"value": str(obj.pk), "text": str(obj)} for obj in queryset]
+def _get_api_url_for_content_type(ct):
+    """Resolve the REST API list URL for a ContentType, or return None."""
+    import re as _re
+    app = ct.app_label
+    model = ct.model
+
+    # netbox_custom_objects uses dynamic table models named "table{pk}model"
+    # The API URL is /api/plugins/custom-objects/{slug}/
+    if app == "netbox_custom_objects":
+        m = _re.match(r"^table(\d+)model$", model)
+        if m:
+            try:
+                from netbox_custom_objects.models import CustomObjectType
+                cot = CustomObjectType.objects.get(pk=int(m.group(1)))
+                return f"/api/plugins/custom-objects/{cot.slug}/"
+            except Exception:
+                pass
+        return None
+
+    # Built-in NetBox apps (dcim, ipam, virtualization, …)
+    try:
+        return reverse(f"{app}-api:{model}-list")
+    except NoReverseMatch:
+        pass
+    # Plugin apps nested under plugins-api
+    try:
+        return reverse(f"plugins-api:{app}-api:{model}-list")
+    except NoReverseMatch:
+        pass
+    return None
 
 
-def _build_security_rule_add_options():
-    def _opt(value_field, value, group_label, text):
-        return {
-            "value": json.dumps({"field": value_field, "value": str(value), "label": str(group_label)}),
-            "text": f"{group_label}: {text}",
+def _build_security_rule_picker_data(rulebook=None):
+    """
+    Build minimal picker metadata for the rule editor.
+    Uses RulebookField/RulebookFieldType/TypeConfig instead of the legacy SecurityArea model.
+    """
+    fields = {}
+
+    fields_qs = (
+        RulebookField.objects.filter(rulebook=rulebook)
+        if rulebook
+        else RulebookField.objects.none()
+    ).order_by("sort_order", "slug")
+
+    for field in fields_qs:
+        fields[field.slug] = {
+            "slug": str(field.slug),
+            "name": str(field.name),
+            "display_name": str(field.name),
+            "placement": str(field.placement),
+            "sort_order": int(field.sort_order),
+            "types": [],
         }
 
-    def _opts(value_field, group_label, items):
-        return [_opt(value_field, i["value"], group_label, i["text"]) for i in items]
+    if rulebook:
+        for ftype in (
+            RulebookFieldType.objects
+            .filter(field__rulebook=rulebook)
+            .select_related("field", "type_config__content_type")
+            .order_by("sort_order", "type_config__content_type__model")
+        ):
+            field_data = fields.get(ftype.field.slug)
+            if not field_data:
+                continue
+            tc = ftype.type_config
+            model_class = tc.content_type.model_class()
+            if not model_class:
+                continue
+            api_url = _get_api_url_for_content_type(tc.content_type)
+            if not api_url:
+                continue
+            label = str(model_class._meta.verbose_name_plural).title()
+            field_data["types"].append({
+                "name": label,
+                "ct_id": tc.content_type.pk,
+                "api_url": api_url,
+                "kind": "object",
+                "allow_virtual_groups": False,
+                "matching_class": tc.matching_class or "",
+            })
 
-    service_objects_qs = (
-        SecurityObject.objects
-        .filter(custom_type__area="services")
-        .select_related("custom_type")
-        .order_by("custom_type__name", "name")
-    )
-    service_groups = _options_from_queryset(
-        SecurityObjectGroup.objects.filter(area="services").order_by("name")
-    )
-    action_objects_qs = (
-        SecurityObject.objects
-        .filter(custom_type__area="action")
-        .select_related("custom_type")
-        .order_by("custom_type__name", "name")
-    )
-    action_groups = _options_from_queryset(
-        SecurityObjectGroup.objects.filter(area="action").order_by("name")
-    )
-    srcdst_objects_qs = (
-        SecurityObject.objects
-        .filter(custom_type__area="srcdst")
-        .select_related("custom_type")
-        .order_by("custom_type__name", "name")
-    )
-    srcdst_groups = _options_from_queryset(
-        SecurityObjectGroup.objects.filter(area="srcdst").order_by("name")
-    )
+    # Groups: static list per field slug (keyed by SecurityArea slug for legacy compat)
+    groups_by_slug = {}
+    for group in SecurityObjectGroup.objects.prefetch_related("areas").order_by("name"):
+        for area in group.areas.all():
+            groups_by_slug.setdefault(str(area.slug), []).append(
+                {"id": str(group.pk), "name": str(group.name)}
+            )
+    for field_slug, group_entries in groups_by_slug.items():
+        field_data = fields.get(field_slug)
+        if field_data:
+            field_data["types"].append({
+                "name": "Groups",
+                "kind": "group",
+                "entries": group_entries,
+            })
 
-    def _typed_opts(value_field, qs):
-        return [
-            _opt(value_field, obj.pk, obj.custom_type.name, obj.name)
-            for obj in qs
-        ]
+    ordered_areas = [
+        {
+            "slug": d["slug"],
+            "name": d["name"],
+            "display_name": d["display_name"],
+            "placement": d["placement"],
+            "sort_order": d["sort_order"],
+            "types": d["types"],
+        }
+        for _, d in sorted(
+            fields.items(),
+            key=lambda pair: (pair[1]["sort_order"], pair[1]["name"].lower(), pair[0]),
+        )
+        if d["types"]
+    ]
+    return {"areas": ordered_areas}
 
-    source_options = [
-        *_typed_opts("custom_srcdst_objects", srcdst_objects_qs),
-        *_opts("source_groups", _("Group"), srcdst_groups),
-    ]
-    destination_options = [
-        *_typed_opts("destination_custom_objects", srcdst_objects_qs),
-        *_opts("destination_groups", _("Group"), srcdst_groups),
-    ]
-    service_options = [
-        *_typed_opts("custom_service_objects", service_objects_qs),
-        *_opts("service_groups", _("Group"), service_groups),
-    ]
-    action_options = [
-        *_typed_opts("custom_action_objects", action_objects_qs),
-        *_opts("action_groups", _("Group"), action_groups),
-    ]
 
+def _available_policy_columns():
+    has_src = RulebookField.objects.filter(placement="source").exists()
+    has_dst = RulebookField.objects.filter(placement="destination").exists()
+    has_svc = RulebookField.objects.filter(slug="service").exists()
+    has_act = RulebookField.objects.filter(slug="action").exists()
     return {
-        "source": source_options,
-        "destination": destination_options,
-        "service": service_options,
-        "action": action_options,
+        "source": has_src,
+        "destination": has_dst,
+        "service": has_svc,
+        "action": has_act,
+        "info": False,
     }
+
+
+def _filter_policy_columns(columns, availability):
+    filtered = []
+    for column in columns:
+        if column in (
+            "source",
+            "destination",
+            "service",
+            "action",
+            "info",
+        ) and not availability.get(column, False):
+            continue
+        filtered.append(column)
+    return filtered
 
 
 def _policy_columns_session_key(rulebook_pk):
@@ -257,119 +540,140 @@ def _build_policy_table_class(custom_columns, selected_columns):
     )
     return type("ConfiguredSecurityPolicyRuleTable", (SecurityPolicyRuleTable,), attrs)
 
+
 def _build_object_analysis(rulebook):
-    """
-    For each area (srcdst, services, action), count:
-    - individual object usage across all rules
-    - label combinations: per-rule sorted-and-joined object names
-    """
-    from collections import Counter, defaultdict
-
-    AREA_DEFS = [
-        ("srcdst",   "Objects (Source / Destination)"),
-        ("services", "Services"),
-        ("action",   "Action"),
-    ]
-
-    rules = list(
-        SecurityPolicyRule.objects
-        .filter(rulebook=rulebook)
-        .prefetch_related(
-            "custom_srcdst_objects__custom_type",
-            "destination_custom_objects__custom_type",
-            "custom_service_objects__custom_type",
-            "custom_action_objects__custom_type",
-            "source_groups", "destination_groups",
-            "service_groups", "action_groups",
-        )
+    """Count per-area object usage across all rules in a rulebook."""
+    from collections import Counter
+    from netbox_nsm.models import (
+        SecurityPolicyRuleObjectItem,
+        SecurityPolicyRuleGroupItem,
     )
 
-    def _names_for_area(rule, area):
-        """Return list of (name, type_label) tuples for the given area."""
-        if area == "srcdst":
-            src = [(o.name, o.custom_type.name) for o in rule.custom_srcdst_objects.all()]
-            dst = [(o.name, o.custom_type.name) for o in rule.destination_custom_objects.all()]
-            return src + dst
-        if area == "services":
-            return [(o.name, o.custom_type.name) for o in rule.custom_service_objects.all()]
-        if area == "action":
-            return [(o.name, o.custom_type.name) for o in rule.custom_action_objects.all()]
-        return []
+    rule_pks = list(
+        SecurityPolicyRule.objects.filter(rulebook=rulebook).values_list(
+            "pk", flat=True
+        )
+    )
+    total_rules = len(rule_pks)
 
-    total_rules = len(rules)
+    # Build a cache: content_type_id → human-readable verbose_name_plural
+    _ct_label_cache: dict[int, str] = {}
+
+    def _ct_label(ct):
+        if ct is None:
+            return "object"
+        if ct.pk not in _ct_label_cache:
+            try:
+                from django.apps import apps as django_apps
+                mc = ct.model_class()
+                if mc is not None:
+                    model_name = str(getattr(mc._meta, "verbose_name", ct.model)).capitalize()
+                    try:
+                        app_cfg = django_apps.get_app_config(ct.app_label)
+                        app_name = str(app_cfg.verbose_name)
+                    except LookupError:
+                        app_name = ct.app_label.replace("_", " ").capitalize()
+                    label = f"{app_name} \u203a {model_name}"
+                else:
+                    label = ct.model.capitalize()
+            except Exception:
+                label = ct.model.capitalize()
+            _ct_label_cache[ct.pk] = label
+        return _ct_label_cache[ct.pk]
+
+    areas_qs = RulebookField.objects.filter(rulebook=rulebook).order_by("sort_order", "slug")
     areas = []
 
-    for area_key, area_label in AREA_DEFS:
-        individual = Counter()   # (name, type_label) → count
-        combos = Counter()       # sorted-joined name string → count
+    for area in areas_qs:
+        individual = Counter()
+        combos = Counter()
 
-        for rule in rules:
-            items = _names_for_area(rule, area_key)
-            names = sorted(set(name for name, _ in items))
-            for name, type_label in items:
-                individual[(name, type_label)] += 1
-            if names:
-                combos[" | ".join(names)] += 1
+        obj_items = (
+            SecurityPolicyRuleObjectItem.objects.filter(rule__in=rule_pks, field=area)
+            .select_related("content_type", "rule")
+            .order_by("rule_id")
+        )
+        grp_items = (
+            SecurityPolicyRuleGroupItem.objects.filter(rule__in=rule_pks, field=area)
+            .select_related("security_group", "rule")
+            .order_by("rule_id")
+        )
 
-        areas.append({
-            "key": area_key,
-            "label": area_label,
-            "total_objects": len(individual),
-            "objects": [
-                {"name": name, "type_name": type_name, "count": count}
-                for (name, type_name), count in individual.most_common(10)
-            ],
-            "combos": [
-                {"label": label, "count": count}
-                for label, count in combos.most_common()
-            ],
-        })
+        by_rule: dict = {}
+        for item in obj_items:
+            assigned = item.assigned_object
+            name = str(getattr(assigned, "name", None) or item.object_id if assigned else item.object_id)
+            type_label = _ct_label(item.content_type if item.content_type_id else None)
+            by_rule.setdefault(item.rule_id, []).append(name)
+            individual[(name, type_label)] += 1
+        for item in grp_items:
+            by_rule.setdefault(item.rule_id, []).append(item.security_group.name)
+            individual[(item.security_group.name, "Group")] += 1
 
-    return {
-        "total_rules": total_rules,
-        "areas": areas,
-    }
+        for names in by_rule.values():
+            combos[" | ".join(sorted(set(names)))] += 1
+
+        if not individual:
+            continue
+
+        areas.append(
+            {
+                "key": area.slug,
+                "label": area.name,
+                "total_objects": len(individual),
+                "objects": [
+                    {"name": name, "type_name": type_name, "count": count}
+                    for (name, type_name), count in individual.most_common(10)
+                ],
+                "combos": [
+                    {"label": label, "count": count}
+                    for label, count in combos.most_common()
+                ],
+            }
+        )
+
+    return {"total_rules": total_rules, "areas": areas}
 
 
 def _build_object_usage_stats(rulebook):
-    """Count how often each custom object, zone, and group appears in the rulebook's rules."""
+    """Count how often each object/group appears across all rules in a rulebook."""
     from collections import Counter
-    rules = list(
-        SecurityPolicyRule.objects
-        .filter(rulebook=rulebook)
-        .prefetch_related(
-            "custom_srcdst_objects__custom_type",
-            "destination_custom_objects__custom_type",
-            "custom_service_objects__custom_type",
-            "custom_action_objects__custom_type",
-            "source_groups", "destination_groups",
-            "service_groups", "action_groups",
+    from netbox_nsm.models import (
+        SecurityPolicyRuleObjectItem,
+        SecurityPolicyRuleGroupItem,
+    )
+
+    rule_pks = list(
+        SecurityPolicyRule.objects.filter(rulebook=rulebook).values_list(
+            "pk", flat=True
         )
     )
 
     object_counter = Counter()
+    for item in SecurityPolicyRuleObjectItem.objects.filter(
+        rule__in=rule_pks
+    ).select_related("content_type"):
+        assigned = item.assigned_object
+        name = str(getattr(assigned, "name", None) or item.object_id if assigned else item.object_id)
+        type_label = str(item.content_type.model) if item.content_type_id else "object"
+        object_counter[(item.object_id, name, type_label)] += 1
+
     group_counter = Counter()
+    for item in SecurityPolicyRuleGroupItem.objects.filter(
+        rule__in=rule_pks
+    ).select_related("security_group"):
+        group_counter[(item.security_group.pk, item.security_group.name)] += 1
 
-    for rule in rules:
-        for obj in list(rule.custom_srcdst_objects.all()) + list(rule.destination_custom_objects.all()) + \
-                   list(rule.custom_service_objects.all()) + list(rule.custom_action_objects.all()):
-            object_counter[(obj.pk, obj.name, obj.custom_type.name)] += 1
-        for grp in list(rule.source_groups.all()) + list(rule.destination_groups.all()) + \
-                   list(rule.service_groups.all()) + list(rule.action_groups.all()):
-            group_counter[(grp.pk, grp.name)] += 1
-
-    top_objects = [
-        {"pk": pk, "name": name, "type": type_name, "count": count}
-        for (pk, name, type_name), count in object_counter.most_common(10)
-    ]
-    top_groups = [
-        {"pk": pk, "name": name, "count": count}
-        for (pk, name), count in group_counter.most_common(10)
-    ]
     return {
-        "top_objects": top_objects,
-        "top_groups": top_groups,
-        "total_rules": len(rules),
+        "top_objects": [
+            {"pk": pk, "name": name, "type": type_name, "count": count}
+            for (pk, name, type_name), count in object_counter.most_common(10)
+        ],
+        "top_groups": [
+            {"pk": pk, "name": name, "count": count}
+            for (pk, name), count in group_counter.most_common(10)
+        ],
+        "total_rules": len(rule_pks),
     }
 
 
@@ -392,6 +696,7 @@ __all__ = (
     "SecurityPolicyAssignmentEditView",
     "SecurityPolicyAssignmentDeleteView",
     "SecurityPolicyAssignmentBulkDeleteView",
+    "GlobalRulesSearchView",
 )
 
 
@@ -401,169 +706,417 @@ _NONE_ZONE_PK = 0
 
 def _make_none_zone():
     from types import SimpleNamespace
+
     return SimpleNamespace(pk=_NONE_ZONE_PK, name="(none)")
 
 
-@register_model_view(SecurityPolicyRulebook, name="visualization", path="visualization/zonematrix")
+@register_model_view(
+    SecurityPolicyRulebook, name="analysis", path="analysis"
+)
+class SecurityPolicyRulebookAnalysisView(generic.ObjectView):
+    queryset = SecurityPolicyRulebook.objects.all()
+    template_name = "netbox_nsm/securitypolicyrulebook_analysis.html"
+    tab = ViewTab(
+        label=_("Policy Analysis"),
+        permission="netbox_nsm.view_securitypolicyrulebook",
+        weight=200,
+    )
+
+    def get_extra_context(self, request, instance):
+        return {
+            "object_analysis": _build_object_analysis(instance),
+        }
+
+
+def _load_rules_qs(instance):
+    """Shared helper: load all rules with needed prefetches."""
+    return list(
+        SecurityPolicyRule.objects.filter(rulebook=instance)
+        .prefetch_related(
+            "object_items__field",
+            "object_items__content_type",
+            "group_items__field",
+        )
+        .order_by("index")
+    )
+
+
+@register_model_view(
+    SecurityPolicyRulebook, name="visualization", path="zonematrix"
+)
 class SecurityPolicyRulebookVisualizationView(generic.ObjectView):
     queryset = SecurityPolicyRulebook.objects.all()
-    template_name = "netbox_nsm/securitypolicyrulebook_visualization.html"
+    template_name = "netbox_nsm/securitypolicyrulebook_matrix.html"
     tab = ViewTab(
-        label=_("Visualisation"),
+        label=_("Zone Matrix"),
         permission="netbox_nsm.view_securitypolicyrulebook",
+        weight=300,
     )
 
     def get_extra_context(self, request, instance):
         from collections import defaultdict
+        from django.contrib.contenttypes.models import ContentType
 
-        ACTION_COLOR = {
-            "permit": "success",
-            "deny": "danger",
-            "reject": "danger",
-            "log": "warning",
-            "count": "info",
-        }
-
-        rules_qs = list(
-            SecurityPolicyRule.objects
-            .filter(rulebook=instance)
-            .prefetch_related(
-                "custom_srcdst_objects__custom_type",
-                "destination_custom_objects__custom_type",
-                "custom_action_objects",
+        # Load all action objects once for color lookup & legend
+        try:
+            _action_area = SecurityArea.objects.get(slug="action")
+            _action_ct_ids = list(
+                NSMTypeConfig.objects.filter(areas=_action_area)
+                .values_list("content_type_id", flat=True)
             )
-            .order_by("index")
+            _action_objs = {}
+            for _ct_id in _action_ct_ids:
+                try:
+                    _ct = ContentType.objects.get(pk=_ct_id)
+                    _mc = _ct.model_class()
+                    if _mc:
+                        for _obj in _mc.objects.all():
+                            _action_objs[_obj.pk] = _obj
+                except Exception:
+                    pass
+        except Exception:
+            _action_objs = {}
+
+        action_legend = sorted(
+            [{"name": o.name, "color": getattr(o, "color", "#888888")}
+             for o in _action_objs.values()],
+            key=lambda x: x["name"],
         )
 
-        # Collect all unique zone objects from source and destination
-        zones_by_pk = {}
-        has_none_src = False
-        has_none_dst = False
-        for rule in rules_qs:
-            src_zones = [o for o in rule.custom_srcdst_objects.all() if o.custom_type.name == ZONE_TYPE_NAME]
-            dst_zones = [o for o in rule.destination_custom_objects.all() if o.custom_type.name == ZONE_TYPE_NAME]
-            if not src_zones:
-                has_none_src = True
-            if not dst_zones:
-                has_none_dst = True
-            for z in src_zones + dst_zones:
-                zones_by_pk[z.pk] = z
-
-        all_zones = sorted(zones_by_pk.values(), key=lambda z: z.name)
-        if has_none_src or has_none_dst:
-            all_zones = [_make_none_zone()] + all_zones
-
-        # Zone filter from query string
-        src_filter = [v for v in request.GET.getlist("src_zone_id") if v.isdigit()]
-        dst_filter = [v for v in request.GET.getlist("dst_zone_id") if v.isdigit()]
-        selected_src_pks = {int(v) for v in src_filter}
-        selected_dst_pks = {int(v) for v in dst_filter}
-        src_zones = [z for z in all_zones if z.pk in selected_src_pks] if src_filter else all_zones
-        dst_zones = [z for z in all_zones if z.pk in selected_dst_pks] if dst_filter else all_zones
-
-        def _action_color_label(rule):
-            for obj in rule.custom_action_objects.all():
-                name_lower = obj.name.lower()
-                for key, color in ACTION_COLOR.items():
-                    if key in name_lower:
-                        return color, obj.name
-            return "secondary", "?"
-
-        # Build cell_map: (src_pk, dst_pk) → list of rules
-        cell_map = defaultdict(list)
-        for rule in rules_qs:
-            rule._color, rule._action_label = _action_color_label(rule)
-            src_pks = [o.pk for o in rule.custom_srcdst_objects.all() if o.custom_type.name == ZONE_TYPE_NAME]
-            dst_pks = [o.pk for o in rule.destination_custom_objects.all() if o.custom_type.name == ZONE_TYPE_NAME]
-            if not src_pks:
-                src_pks = [_NONE_ZONE_PK]
-            if not dst_pks:
-                dst_pks = [_NONE_ZONE_PK]
-            for sp in src_pks:
-                for dp in dst_pks:
-                    cell_map[(sp, dp)].append(rule)
+        rules_qs = _load_rules_qs(instance)
 
         policy_url_base = reverse(
             "plugins:netbox_nsm:securitypolicyrulebook_policy",
             args=[instance.pk],
         )
         add_url_base = reverse("plugins:netbox_nsm:securitypolicyrule_add")
-        viz_url_base = reverse(
-            "plugins:netbox_nsm:securitypolicyrulebook_visualization",
-            args=[instance.pk],
+
+        # ── Collect available object types ──
+        # Only types from source/destination fields of THIS rulebook
+        available_ct_ids = list(
+            RulebookFieldType.objects.filter(
+                field__rulebook=instance,
+                field__placement__in=["source", "destination"],
+            )
+            .values_list("type_config__content_type_id", flat=True)
+            .distinct()
         )
+        available_types = []
+        for ct_id in available_ct_ids:
+            try:
+                ct = ContentType.objects.get(pk=ct_id)
+                mc = ct.model_class()
+                if mc is None:
+                    continue
+                label = str(getattr(mc._meta, "verbose_name_plural", ct.model)).capitalize()
+                available_types.append({"ct_id": ct_id, "label": label})
+            except ContentType.DoesNotExist:
+                continue
+        available_types.sort(key=lambda x: x["label"])
+
+        sel_ct_id_str = request.GET.get("obj_type", "")
+        selected_ct_id = int(sel_ct_id_str) if sel_ct_id_str.isdigit() else None
+        if selected_ct_id is None and available_types:
+            selected_ct_id = available_types[0]["ct_id"]
+
+        used_zones_by_pk = {}
+        if selected_ct_id is not None:
+            try:
+                selected_ct = ContentType.objects.get(pk=selected_ct_id)
+            except ContentType.DoesNotExist:
+                selected_ct = None
+            if selected_ct:
+                for rule in rules_qs:
+                    for item in rule.object_items.all():
+                        if item.content_type_id != selected_ct_id:
+                            continue
+                        obj = item.assigned_object
+                        if obj is None:
+                            continue
+                        used_zones_by_pk[obj.pk] = obj
+
+        all_zones = sorted(used_zones_by_pk.values(), key=lambda z: getattr(z, "name", str(z)).lower())
+        all_src_zones = all_zones
+        all_dst_zones = all_zones
+
+        src_filter_pks = {int(v) for v in request.GET.getlist("src_id") if v.isdigit()}
+        dst_filter_pks = {int(v) for v in request.GET.getlist("dst_id") if v.isdigit()}
+        src_zones = [z for z in all_src_zones if z.pk in src_filter_pks] if src_filter_pks else all_src_zones
+        dst_zones = [z for z in all_dst_zones if z.pk in dst_filter_pks] if dst_filter_pks else all_dst_zones
+
+        def _action_color_label(rule):
+            for item in rule.object_items.all():
+                if not item.field or item.field.slug != "action":
+                    continue
+                assigned = item.assigned_object
+                if assigned is None:
+                    continue
+                return getattr(assigned, "color", None) or "#888888", getattr(assigned, "name", str(assigned))
+            return "#888888", "?"
+
+        cell_map = defaultdict(list)
+        if selected_ct_id is not None:
+            for rule in rules_qs:
+                rule._color, rule._action_label = _action_color_label(rule)
+                rule_src_pks = set()
+                rule_dst_pks = set()
+                for item in rule.object_items.all():
+                    if item.content_type_id != selected_ct_id:
+                        continue
+                    obj = item.assigned_object
+                    if obj is None:
+                        continue
+                    if item.field and item.field.placement == "source":
+                        rule_src_pks.add(obj.pk)
+                    elif item.field and item.field.placement == "destination":
+                        rule_dst_pks.add(obj.pk)
+                for sp in (rule_src_pks or {None}):
+                    for dp in (rule_dst_pks or {None}):
+                        if sp is not None and dp is not None:
+                            cell_map[(sp, dp)].append(rule)
+
+        def _badge(rules_list):
+            if not rules_list:
+                return {"count": 0, "color": None, "label": None}
+            if len(rules_list) == 1:
+                r = rules_list[0]
+                return {"count": 1, "color": r._color, "label": r._action_label}
+            return {"count": len(rules_list), "color": None, "label": None}
+
+        def _combined_badge(fwd_rules, rev_rules):
+            """Merge fwd + rev (dedup by pk) into a single badge for undirected mode."""
+            seen = set()
+            merged = []
+            for r in fwd_rules + rev_rules:
+                if r.pk not in seen:
+                    seen.add(r.pk)
+                    merged.append(r)
+            return _badge(merged)
+
+        matrix_mode = request.GET.get("mode", "directed")
+        if matrix_mode not in ("undirected", "directed"):
+            matrix_mode = "directed"
 
         matrix_rows = []
         for src in src_zones:
             cells = []
             for dst in dst_zones:
-                rules = cell_map.get((src.pk, dst.pk), [])
-                count = len(rules)
-                sp_q = f"src_obj_id={src.pk}" if src.pk != _NONE_ZONE_PK else ""
-                dp_q = f"dst_obj_id={dst.pk}" if dst.pk != _NONE_ZONE_PK else ""
-                filter_qs = "?" + "&".join(p for p in [sp_q, dp_q] if p) if (sp_q or dp_q) else ""
-                if count == 0:
-                    src_add = f"&custom_srcdst_objects={src.pk}" if src.pk != _NONE_ZONE_PK else ""
-                    dst_add = f"&destination_custom_objects={dst.pk}" if dst.pk != _NONE_ZONE_PK else ""
-                    cell = {
-                        "type": "empty",
-                        "is_self": src.pk == dst.pk,
-                        "href": (
-                            f"{add_url_base}?rulebook={instance.pk}"
-                            f"{src_add}{dst_add}"
-                            f"&return_url={policy_url_base}"
-                        ),
-                    }
-                elif count == 1:
-                    r = rules[0]
-                    cell = {
-                        "type": "single",
-                        "color": r._color,
-                        "label": r._action_label,
-                        "is_self": src.pk == dst.pk,
-                        "href": f"{policy_url_base}{filter_qs}",
-                    }
-                else:
-                    cell = {
-                        "type": "multi",
-                        "count": count,
-                        "is_self": src.pk == dst.pk,
-                        "href": f"{policy_url_base}{filter_qs}",
-                    }
-                cells.append(cell)
+                fwd_rules = cell_map.get((src.pk, dst.pk), [])
+                rev_rules = cell_map.get((dst.pk, src.pk), [])
+                cells.append({
+                    "fwd": _badge(fwd_rules),
+                    "rev": _badge(rev_rules),
+                    "combined": _combined_badge(fwd_rules, rev_rules),
+                    "fwd_href": f"{policy_url_base}?src_obj_id={src.pk}&dst_obj_id={dst.pk}",
+                    "rev_href": f"{policy_url_base}?src_obj_id={dst.pk}&dst_obj_id={src.pk}",
+                    "both_href": f"{policy_url_base}?src_obj_id={src.pk}&dst_obj_id={dst.pk}&bidir=1",
+                    "add_href": (
+                        f"{add_url_base}?rulebook={instance.pk}"
+                        f"&prefill_src_ct={selected_ct_id}&prefill_src_obj={src.pk}"
+                        f"&prefill_dst_ct={selected_ct_id}&prefill_dst_obj={dst.pk}"
+                        f"&return_url={policy_url_base}"
+                    ),
+                    "is_self": src.pk == dst.pk,
+                })
             matrix_rows.append({"source_zone": src, "cells": cells})
 
         return {
-            "all_zones": all_zones,
+            "available_types": available_types,
+            "selected_ct_id": selected_ct_id,
+            "all_src_zones": all_src_zones,
+            "all_dst_zones": all_dst_zones,
             "src_zones": src_zones,
             "dst_zones": dst_zones,
-            "selected_src_pks": selected_src_pks,
-            "selected_dst_pks": selected_dst_pks,
-            "viz_url_base": viz_url_base,
+            "src_filter_pks": src_filter_pks,
+            "dst_filter_pks": dst_filter_pks,
             "matrix_rows": matrix_rows,
-            "object_analysis": _build_object_analysis(instance),
+            "action_legend": action_legend,
+            "matrix_mode": matrix_mode,
         }
+
+
+def _build_ip_analysis_groups(rules_qs):
+    """Collect all unique src/dst objects across all types, grouped by type label."""
+    from django.apps import apps as django_apps
+    _ip_all_objs: dict = {}
+    for rule in rules_qs:
+        for item in rule.object_items.all():
+            if not item.field or item.field.placement not in ("source", "destination"):
+                continue
+            obj = item.assigned_object
+            if obj is None:
+                continue
+            key = (item.content_type_id, obj.pk)
+            if key not in _ip_all_objs:
+                ct = item.content_type
+                try:
+                    mc = ct.model_class() if ct else None
+                    if mc:
+                        type_label = str(getattr(mc._meta, "verbose_name", ct.model)).capitalize()
+                        try:
+                            app_cfg = django_apps.get_app_config(ct.app_label)
+                            type_label = f"{app_cfg.verbose_name} \u203a {type_label}"
+                        except LookupError:
+                            pass
+                    else:
+                        type_label = ct.model if ct else "object"
+                except Exception:
+                    type_label = ct.model if ct else "object"
+                _ip_all_objs[key] = {
+                    "ct_id": item.content_type_id,
+                    "pk": obj.pk,
+                    "name": getattr(obj, "name", str(obj)),
+                    "type_label": type_label,
+                    "obj": obj,
+                }
+    _by_type: dict = {}
+    for entry in sorted(_ip_all_objs.values(), key=lambda x: (x["type_label"], x["name"])):
+        _by_type.setdefault(entry["type_label"], []).append(entry)
+    groups = [{"type_label": tl, "objects": objs} for tl, objs in sorted(_by_type.items())]
+    return groups, _ip_all_objs
+
+
+@register_model_view(
+    SecurityPolicyRulebook, name="ipanalysis", path="ipanalysis"
+)
+class SecurityPolicyRulebookIPAnalysisView(generic.ObjectView):
+    queryset = SecurityPolicyRulebook.objects.all()
+    template_name = "netbox_nsm/securitypolicyrulebook_ipanalysis.html"
+    tab = ViewTab(
+        label=_("IP Analysis"),
+        permission="netbox_nsm.view_securitypolicyrulebook",
+        weight=400,
+    )
+
+    def get_extra_context(self, request, instance):
+        from django.contrib.contenttypes.models import ContentType as _CT
+
+        # Build searchable types from ALL NSMTypeConfig entries (deduplicated by ct_id)
+        seen_ct_ids = set()
+        ip_api_types = []
+        for tc in (
+            NSMTypeConfig.objects.select_related("content_type").order_by(
+                "order_id", "content_type__app_label", "content_type__model"
+            )
+        ):
+            if tc.content_type_id in seen_ct_ids:
+                continue
+            mc = tc.content_type.model_class()
+            if not mc:
+                continue
+            api_url = _get_api_url_for_content_type(tc.content_type)
+            if not api_url:
+                continue
+            seen_ct_ids.add(tc.content_type_id)
+            ip_api_types.append({
+                "ct_id": tc.content_type.pk,
+                "api_url": api_url,
+                "name": str(mc._meta.verbose_name_plural).title(),
+            })
+
+        def _resolve(ct_str, pk_str, name_hint):
+            if not (ct_str.isdigit() and pk_str.isdigit()):
+                return name_hint, [], None
+            try:
+                ct = _CT.objects.get(pk=int(ct_str))
+                mc = ct.model_class()
+                if mc:
+                    obj = mc.objects.filter(pk=int(pk_str)).first()
+                    if obj:
+                        name = getattr(obj, "name", None) or name_hint or str(obj)
+                        seen_keys = set()
+                        refs = []
+                        for r in _extract_ip_refs(obj):
+                            key = r.get("display", "") or r.get("str", "")
+                            if key and key not in seen_keys:
+                                seen_keys.add(key)
+                                refs.append(r)
+                        tree = _build_addr_tree_node(obj)
+                        return name, refs, tree
+            except Exception:
+                pass
+            return name_hint, [], None
+
+        # Left column
+        ip_sel_ct  = request.GET.get("ip_ct", "")
+        ip_sel_pk  = request.GET.get("ip_pk", "")
+        ip_sel_name = request.GET.get("ip_name", "")
+        ip_selected_name, ip_refs, ip_tree_node = _resolve(ip_sel_ct, ip_sel_pk, ip_sel_name)
+
+        # Right column
+        ip2_sel_ct  = request.GET.get("ip2_ct", "")
+        ip2_sel_pk  = request.GET.get("ip2_pk", "")
+        ip2_sel_name = request.GET.get("ip2_name", "")
+        ip2_selected_name, ip2_refs, ip2_tree_node = _resolve(ip2_sel_ct, ip2_sel_pk, ip2_sel_name)
+
+        return {
+            "ip_api_types": ip_api_types,
+            # left
+            "ip_sel_ct": ip_sel_ct,
+            "ip_sel_pk": ip_sel_pk,
+            "ip_sel_name": ip_sel_name,
+            "ip_selected_name": ip_selected_name,
+            "ip_refs": ip_refs,
+            "ip_tree_node": ip_tree_node,
+            # right
+            "ip2_sel_ct": ip2_sel_ct,
+            "ip2_sel_pk": ip2_sel_pk,
+            "ip2_sel_name": ip2_sel_name,
+            "ip2_selected_name": ip2_selected_name,
+            "ip2_refs": ip2_refs,
+            "ip2_tree_node": ip2_tree_node,
+        }
+
+    # ─── end of SecurityPolicyRulebookIPAnalysisView ───────────────────────
 
 
 @register_model_view(SecurityPolicyRulebook)
 class SecurityPolicyRulebookView(generic.ObjectView):
-    queryset = SecurityPolicyRulebook.objects.all()
+    queryset = SecurityPolicyRulebook.objects.prefetch_related(
+        "assignments__assigned_object_type",
+    ).all()
 
     def get_extra_context(self, request, instance):
-        if instance.rulebook_type != RulebookTypeChoices.POLICY:
-            return {}
+        # Assigned objects
+        assignments = list(
+            instance.assignments.select_related("assigned_object_type").all()
+        )
 
+        # Fields + Matching Strategy (always available)
+        from netbox_nsm.models import RulebookField
+        rulebook_fields = list(
+            RulebookField.objects.filter(rulebook=instance)
+            .prefetch_related("type_configs__type_config")
+            .order_by("sort_order", "slug")
+        )
+        matching_classes = sorted(instance.matching_classes)
+
+        if instance.rulebook_type != RulebookTypeChoices.POLICY:
+            return {
+                "assignments": assignments,
+                "rulebook_fields": rulebook_fields,
+                "matching_classes": matching_classes,
+            }
+
+        availability = _available_policy_columns()
         config = _get_policy_table_config(request, instance.pk)
-        selected_set = set(config["selected_columns"])
-        order_map = {name: idx + 1 for idx, name in enumerate(config["selected_columns"])}
+        selected_columns = _filter_policy_columns(
+            config["selected_columns"], availability
+        )
+        selected_set = set(selected_columns)
+        order_map = {name: idx + 1 for idx, name in enumerate(selected_columns)}
 
         return {
+            "assignments": assignments,
             "security_rules_columns": SECURITY_RULES_COLUMNS,
-            "selected_security_rules_columns": config["selected_columns"],
+            "selected_security_rules_columns": selected_columns,
             "selected_security_rules_columns_set": selected_set,
             "security_rules_column_order": order_map,
-            "security_rules_column_order_list": config["selected_columns"],
+            "security_rules_column_order_list": selected_columns,
             "custom_columns": config["custom_columns"],
+            "nsm_available_policy_areas": availability,
+            "rulebook_fields": rulebook_fields,
+            "matching_classes": matching_classes,
         }
 
 
@@ -574,15 +1127,23 @@ class SecurityPolicyRulebookPolicyColumnsView(generic.ObjectView):
     def post(self, request, *args, **kwargs):
         instance = self.get_object(**kwargs)
         if instance.rulebook_type != RulebookTypeChoices.POLICY:
-            return redirect(reverse("plugins:netbox_nsm:securitypolicyrulebook", args=[instance.pk]))
+            return redirect(
+                reverse("plugins:netbox_nsm:securitypolicyrulebook", args=[instance.pk])
+            )
 
+        availability = _available_policy_columns()
         allowed_columns = {name for name, _ in SECURITY_RULES_COLUMNS}
         selected_columns = [
-            column for column in request.POST.getlist("columns") if column in allowed_columns
+            column
+            for column in request.POST.getlist("columns")
+            if column in allowed_columns
         ]
+        selected_columns = _filter_policy_columns(selected_columns, availability)
 
         if not selected_columns:
-            selected_columns = _default_security_rules_columns()
+            selected_columns = _filter_policy_columns(
+                _default_security_rules_columns(), availability
+            )
 
         ordered_columns = []
         raw_order = request.POST.get("column_order", "")
@@ -606,7 +1167,11 @@ class SecurityPolicyRulebookPolicyColumnsView(generic.ObjectView):
         }
         request.session.modified = True
 
-        return redirect(reverse("plugins:netbox_nsm:securitypolicyrulebook_policy", args=[instance.pk]))
+        return redirect(
+            reverse(
+                "plugins:netbox_nsm:securitypolicyrulebook_policy", args=[instance.pk]
+            )
+        )
 
 
 @register_model_view(SecurityPolicyRulebook, name="policy")
@@ -616,6 +1181,7 @@ class SecurityPolicyRulebookRulesView(generic.ObjectView):
     tab = ViewTab(
         label=_("Policy"),
         permission="netbox_nsm.view_securitypolicyrulebook",
+        weight=100,
     )
 
     def post(self, request, *args, **kwargs):
@@ -623,6 +1189,7 @@ class SecurityPolicyRulebookRulesView(generic.ObjectView):
         instance = self.get_object(**kwargs)
         if not request.user.has_perm("netbox_nsm.delete_securitypolicyrule"):
             from django.http import HttpResponseForbidden
+
             return HttpResponseForbidden()
         pk_list = [int(pk) for pk in request.POST.getlist("pk") if pk.isdigit()]
         if pk_list:
@@ -630,49 +1197,63 @@ class SecurityPolicyRulebookRulesView(generic.ObjectView):
                 pk__in=pk_list, rulebook=instance
             ).delete()
         return redirect(
-            reverse("plugins:netbox_nsm:securitypolicyrulebook_policy", args=[instance.pk])
+            reverse(
+                "plugins:netbox_nsm:securitypolicyrulebook_policy", args=[instance.pk]
+            )
         )
 
     def get_extra_context(self, request, instance):
-        rules_qs = SecurityPolicyRule.objects.filter(rulebook=instance).prefetch_related(
+        availability = _available_policy_columns()
+        rules_qs = SecurityPolicyRule.objects.filter(
+            rulebook=instance
+        ).prefetch_related(
             "source_users",
             "destination_users",
-            "custom_srcdst_objects__custom_type",
-            "destination_custom_objects__custom_type",
-            "custom_service_objects__custom_type",
-            "custom_action_objects__custom_type",
-            "source_groups",
-            "destination_groups",
-            "service_groups",
-            "action_groups",
+            "object_items__field",
+            "object_items__content_type",
+            "group_items__field",
+            "group_items__security_group",
         )
 
-        # ── optional custom-object filter (src_obj_id / dst_obj_id) ─────────────────
-        # Works for ALL SecurityObject types: labels, addresses, services, etc.
-        # Subset matching: ALL supplied PKs must be present in the respective field.
+        # ── optional object filter (src_obj_id / dst_obj_id) ─────────────────
         src_obj_filter = [v for v in request.GET.getlist("src_obj_id") if v.isdigit()]
         dst_obj_filter = [v for v in request.GET.getlist("dst_obj_id") if v.isdigit()]
-        if src_obj_filter:
-            n = len(src_obj_filter)
-            rules_qs = rules_qs.annotate(
-                _src_obj_matched=Count(
-                    "custom_srcdst_objects",
-                    filter=Q(custom_srcdst_objects__id__in=src_obj_filter),
-                    distinct=True,
-                )
-            ).filter(_src_obj_matched=n)
-        if dst_obj_filter:
-            n = len(dst_obj_filter)
-            rules_qs = rules_qs.annotate(
-                _dst_obj_matched=Count(
-                    "destination_custom_objects",
-                    filter=Q(destination_custom_objects__id__in=dst_obj_filter),
-                    distinct=True,
-                )
-            ).filter(_dst_obj_matched=n)
+        bidir = request.GET.get("bidir") == "1"
+        if bidir and len(src_obj_filter) == 1 and len(dst_obj_filter) == 1:
+            spk, dpk = src_obj_filter[0], dst_obj_filter[0]
+            fwd = rules_qs.annotate(
+                _sf=Count("object_items", filter=Q(object_items__field__placement="source") & Q(object_items__object_id=spk), distinct=True),
+                _df=Count("object_items", filter=Q(object_items__field__placement="destination") & Q(object_items__object_id=dpk), distinct=True),
+            ).filter(_sf__gte=1, _df__gte=1)
+            rev = rules_qs.annotate(
+                _sr=Count("object_items", filter=Q(object_items__field__placement="source") & Q(object_items__object_id=dpk), distinct=True),
+                _dr=Count("object_items", filter=Q(object_items__field__placement="destination") & Q(object_items__object_id=spk), distinct=True),
+            ).filter(_sr__gte=1, _dr__gte=1)
+            rules_qs = (fwd | rev).distinct()
+        else:
+            if src_obj_filter:
+                n = len(src_obj_filter)
+                rules_qs = rules_qs.annotate(
+                    _src_obj_matched=Count(
+                        "object_items",
+                        filter=Q(object_items__field__placement="source")
+                        & Q(object_items__object_id__in=src_obj_filter),
+                        distinct=True,
+                    )
+                ).filter(_src_obj_matched=n)
+            if dst_obj_filter:
+                n = len(dst_obj_filter)
+                rules_qs = rules_qs.annotate(
+                    _dst_obj_matched=Count(
+                        "object_items",
+                        filter=Q(object_items__field__placement="destination")
+                        & Q(object_items__object_id__in=dst_obj_filter),
+                        distinct=True,
+                    )
+                ).filter(_dst_obj_matched=n)
 
         # ── optional text / column search ──────────────────────────────────────
-        search_q   = request.GET.get("q",   "").strip()
+        search_q = request.GET.get("q", "").strip()
         search_col = request.GET.get("col", "").strip()
         search_val = request.GET.get("val", "").strip()
 
@@ -680,74 +1261,132 @@ class SecurityPolicyRulebookRulesView(generic.ObjectView):
             _q = (
                 Q(name__icontains=search_q)
                 | Q(description__icontains=search_q)
-                | Q(custom_srcdst_objects__name__icontains=search_q)
-                | Q(custom_service_objects__name__icontains=search_q)
-                | Q(custom_action_objects__name__icontains=search_q)
-                | Q(source_groups__name__icontains=search_q)
-                | Q(destination_groups__name__icontains=search_q)
-                | Q(service_groups__name__icontains=search_q)
-                | Q(action_groups__name__icontains=search_q)
+                | Q(group_items__security_group__name__icontains=search_q)
             )
             if search_q.isdigit():
                 _q |= Q(index=int(search_q))
             rules_qs = rules_qs.filter(_q).distinct()
 
         _COLUMN_LOOKUPS = {
-            "name":        "name__icontains",
+            "name": "name__icontains",
             "description": "description__icontains",
         }
         if search_col and search_val:
             if search_col == "index" and search_val.isdigit():
                 rules_qs = rules_qs.filter(index=int(search_val)).distinct()
             elif search_col in _COLUMN_LOOKUPS:
-                rules_qs = rules_qs.filter(**{_COLUMN_LOOKUPS[search_col]: search_val}).distinct()
+                rules_qs = rules_qs.filter(
+                    **{_COLUMN_LOOKUPS[search_col]: search_val}
+                ).distinct()
 
-        # resolve custom-object names for active-filter badge
-        active_src_objs = (
-            list(SecurityObject.objects.filter(pk__in=src_obj_filter).select_related("custom_type").order_by("name"))
-            if src_obj_filter else []
-        )
-        active_dst_objs = (
-            list(SecurityObject.objects.filter(pk__in=dst_obj_filter).select_related("custom_type").order_by("name"))
-            if dst_obj_filter else []
-        )
+        # resolve active filter badge objects (compound IDs: ct_pk.obj_pk)
+        active_src_objs = []
+        active_dst_objs = []
+        if src_obj_filter or dst_obj_filter:
+            src_pks = [int(v) for v in src_obj_filter]
+            dst_pks = [int(v) for v in dst_obj_filter]
+            def _resolve_objs(pks, placement):
+                seen = set()
+                result = []
+                for item in (
+                    SecurityPolicyRuleObjectItem.objects
+                    .filter(rule__rulebook=instance, field__placement=placement, object_id__in=pks)
+                    .select_related("content_type", "field")
+                    .distinct()
+                ):
+                    if item.object_id in seen:
+                        continue
+                    seen.add(item.object_id)
+                    obj = item.assigned_object
+                    if obj is not None:
+                        result.append(obj)
+                return result
+            if src_pks:
+                active_src_objs = _resolve_objs(src_pks, "source")
+            if dst_pks:
+                active_dst_objs = _resolve_objs(dst_pks, "destination")
 
         config = _get_policy_table_config(request, instance.pk)
-        selected_columns = config["selected_columns"]
+        selected_columns = _filter_policy_columns(
+            config["selected_columns"], availability
+        )
         custom_columns = config["custom_columns"]
 
         all_columns = [name for name, _ in SECURITY_RULES_COLUMNS]
-        excluded_columns = [name for name in all_columns if name not in selected_columns]
-        custom_keys = [f"custom_column_{idx}" for idx in range(1, len(custom_columns) + 1)]
+        excluded_columns = [
+            name for name in all_columns if name not in selected_columns
+        ]
+        custom_keys = [
+            f"custom_column_{idx}" for idx in range(1, len(custom_columns) + 1)
+        ]
+
+        # ── Pagination ────────────────────────────────────────────────────────
+        VALID_PER_PAGE = [25, 50, 100, 250, 500, 1000]
+        try:
+            per_page = int(request.GET.get("per_page", 100))
+            if per_page not in VALID_PER_PAGE:
+                per_page = 100
+        except (ValueError, TypeError):
+            per_page = 100
+
+        from django.core.paginator import Paginator, InvalidPage
+        paginator = Paginator(rules_qs.order_by("index"), per_page)
+        total_count = paginator.count
+        try:
+            page_num = int(request.GET.get("page", 1))
+        except (ValueError, TypeError):
+            page_num = 1
+        page_num = max(1, min(page_num, paginator.num_pages))
+        page_obj = paginator.get_page(page_num)
+        paged_rules_qs = page_obj.object_list
+
+        # Build query string without 'page' for use in pagination links
+        get_params = request.GET.copy()
+        get_params.pop("page", None)
+        base_qs_str = get_params.urlencode()
 
         policy_table_class = _build_policy_table_class(custom_columns, selected_columns)
-
         policy_table = policy_table_class(
-            rules_qs,
+            paged_rules_qs,
             orderable=False,
             exclude=excluded_columns,
             sequence=("pk",) + tuple(selected_columns + custom_keys + ["..."]),
         )
         policy_table.configure(request)
+
+        grouped = _build_grouped_policy_table_data(paged_rules_qs, selected_columns, rulebook=instance)
         return {
             "table": policy_table,
             "is_security_rules": True,
             "security_rules_columns": SECURITY_RULES_COLUMNS,
             "selected_security_rules_columns": selected_columns,
+            "nsm_available_policy_areas": availability,
             "active_src_objs": active_src_objs,
             "active_dst_objs": active_dst_objs,
             "search_q": search_q,
             "search_col": search_col,
             "search_val": search_val,
+            "policy_header_groups": grouped["header_groups"],
+            "policy_grouped_column_count": grouped["column_count"],
+            "policy_grouped_rows": grouped["rows"],
+            # pagination
+            "page_obj": page_obj,
+            "paginator": paginator,
+            "per_page": per_page,
+            "valid_per_page": VALID_PER_PAGE,
+            "total_count": total_count,
+            "base_qs_str": base_qs_str,
         }
 
 
 @register_model_view(SecurityPolicyRulebook, "list", path="", detail=False)
 class SecurityPolicyRulebookListView(generic.ObjectListView):
-    queryset = SecurityPolicyRulebook.objects.all()
+    queryset = SecurityPolicyRulebook.objects.prefetch_related("assignments__assigned_object_type").all()
     filterset = SecurityPolicyRulebookFilterSet
     filterset_form = SecurityPolicyRulebookFilterForm
     table = SecurityPolicyRulebookTable
+    template_name = "netbox_nsm/securitypolicyrulebook_list.html"
+    actions = (AddObject, BulkDelete)
 
 
 @register_model_view(SecurityPolicyRulebook, "add", detail=False)
@@ -777,27 +1416,141 @@ class SecurityPolicyRulebookBulkDeleteView(generic.BulkDeleteView):
 
 
 def _extract_ip_refs(obj):
-    """Return list of {str, url} from field_data object_ref values."""
+    """Return list of {display, url, type} for IP-relevant objects reachable from obj."""
+    return _extract_ip_refs_visited(obj, set())
+
+
+_FIELD_TYPE_LABELS = {
+    "prefix": "Prefix",
+    "ip_address": "IP Address",
+    "range": "Range",
+}
+
+
+def _extract_ip_refs_visited(obj, visited=None):
+    """Like _extract_ip_refs but accepts a visited set to avoid cycles in address groups."""
+    if visited is None:
+        visited = set()
     refs = []
-    for v in (obj.field_data or {}).values():
-        if isinstance(v, dict) and v.get("str") and v.get("url"):
-            refs.append({"str": v["str"], "url": v["url"]})
+
+    fd = getattr(obj, "field_data", None)
+    if fd:
+        for v in fd.values():
+            if isinstance(v, dict) and (v.get("str") or v.get("display")) and v.get("url"):
+                refs.append({"display": v.get("display") or v.get("str"), "url": v["url"], "type": ""})
+        return refs
+
+    try:
+        if obj._meta.app_label == "ipam" and obj._meta.model_name in ("prefix", "ipaddress", "iprange"):
+            refs.append({"display": str(obj), "url": obj.get_absolute_url(), "type": obj._meta.verbose_name.capitalize()})
+            return refs
+    except Exception:
+        pass
+
+    address_type = getattr(obj, "address_type", None)
+    if address_type == "address-group":
+        try:
+            for member in obj.address_group.all():
+                if member.pk not in visited:
+                    visited.add(member.pk)
+                    refs.extend(_extract_ip_refs_visited(member, visited))
+        except Exception:
+            pass
+        return refs
+
+    for field_name in ("prefix", "ip_address", "range"):
+        try:
+            related = getattr(obj, field_name, None)
+            if related is not None:
+                refs.append({"display": str(related), "url": related.get_absolute_url(), "type": _FIELD_TYPE_LABELS.get(field_name, field_name)})
+        except Exception:
+            pass
+
     return refs
 
 
 def _collect_ips_from_group(group, visited=None):
-    """Recursively resolve IPs from SecurityObjectGroup members and sub_groups."""
+    """Recursively resolve IPs from SecurityObjectGroup sub_groups."""
     if visited is None:
         visited = set()
     if group.pk in visited:
         return []
     visited.add(group.pk)
     refs = []
-    for member in group.members.all().select_related("custom_type"):
-        refs.extend(_extract_ip_refs(member))
     for sub in group.sub_groups.all():
         refs.extend(_collect_ips_from_group(sub, visited))
     return refs
+
+
+def _build_addr_tree_node(obj, visited=None):
+    """
+    Recursively build an address hierarchy tree node for nsm_addresses objects.
+    Returns: {name, url, kind: 'group'|'leaf', ip_ref: {str,url}|None, children: [...]}
+    """
+    if visited is None:
+        visited = set()
+    if obj.pk in visited:
+        return None
+    visited.add(obj.pk)
+
+    address_type = getattr(obj, "address_type", None)
+
+    if address_type == "address-group":
+        children = []
+        try:
+            for sub in obj.address_group.all():
+                child = _build_addr_tree_node(sub, visited)
+                if child:
+                    children.append(child)
+        except Exception:
+            pass
+        return {
+            "name": str(obj.name),
+            "url": obj.get_absolute_url(),
+            "kind": "group",
+            "ip_ref": None,
+            "children": children,
+        }
+
+    if address_type in ("ip-prefix", "ip-address", "ip-range"):
+        ip_ref = None
+        try:
+            if address_type == "ip-prefix":
+                p = obj.prefix
+                if p:
+                    ip_ref = {"str": str(p), "url": p.get_absolute_url()}
+            elif address_type == "ip-address":
+                ip = obj.ip_address
+                if ip:
+                    ip_ref = {"str": str(ip), "url": ip.get_absolute_url()}
+            elif address_type == "ip-range":
+                r = obj.range
+                if r:
+                    ip_ref = {"str": str(r), "url": r.get_absolute_url()}
+        except Exception:
+            pass
+        return {
+            "name": str(obj.name),
+            "url": obj.get_absolute_url(),
+            "kind": "leaf",
+            "ip_ref": ip_ref,
+            "children": [],
+        }
+
+    # IPAM object or unknown — treat as leaf
+    ip_ref = None
+    try:
+        if obj._meta.app_label == "ipam":
+            ip_ref = {"str": str(obj), "url": obj.get_absolute_url()}
+    except Exception:
+        pass
+    return {
+        "name": str(obj),
+        "url": getattr(obj, "get_absolute_url", lambda: "#")(),
+        "kind": "leaf",
+        "ip_ref": ip_ref,
+        "children": [],
+    }
 
 
 @register_model_view(SecurityPolicyRule)
@@ -805,30 +1558,88 @@ class SecurityPolicyRuleView(generic.ObjectView):
     queryset = SecurityPolicyRule.objects.prefetch_related(
         "source_users",
         "destination_users",
-        "custom_srcdst_objects__custom_type",
-        "destination_custom_objects__custom_type",
-        "source_groups__members__custom_type",
-        "source_groups__sub_groups",
-        "destination_groups__members__custom_type",
-        "destination_groups__sub_groups",
-        "custom_service_objects__custom_type",
-        "custom_action_objects__custom_type",
+        "object_items__field",
+        "object_items__content_type",
+        "group_items__field",
+        "group_items__security_group",
     ).select_related("rulebook")
 
     def get_extra_context(self, request, instance):
+        src_items = instance.object_items.filter(field__placement="source").select_related("field")
+        dst_items = instance.object_items.filter(field__placement="destination").select_related("field")
+
+        src_group_items = instance.group_items.filter(field__placement="source").select_related("security_group")
+        dst_group_items = instance.group_items.filter(field__placement="destination").select_related("security_group")
+
+        fixed_object_items = instance.object_items.filter(field__placement="fixed").select_related("field")
+        fixed_group_items = instance.group_items.filter(field__placement="fixed").select_related("field", "security_group")
+
+        fixed_objects_by_area = {}
+        for item in fixed_object_items:
+            assigned = item.assigned_object
+            if assigned and item.field:
+                fixed_objects_by_area.setdefault(item.field.slug, []).append(assigned)
+
+        fixed_groups_by_area = {}
+        for item in fixed_group_items:
+            if item.field:
+                fixed_groups_by_area.setdefault(item.field.slug, []).append(item.security_group)
+
         src_ips = []
-        for o in instance.custom_srcdst_objects.all():
-            src_ips.extend(_extract_ip_refs(o))
-        for g in instance.source_groups.all():
-            src_ips.extend(_collect_ips_from_group(g))
+        src_addr_nodes = []
+        for item in src_items:
+            assigned = item.assigned_object
+            if assigned:
+                src_ips.extend(_extract_ip_refs(assigned))
+                node = _build_addr_tree_node(assigned)
+                if node:
+                    src_addr_nodes.append(node)
 
         dst_ips = []
-        for o in instance.destination_custom_objects.all():
-            dst_ips.extend(_extract_ip_refs(o))
-        for g in instance.destination_groups.all():
-            dst_ips.extend(_collect_ips_from_group(g))
+        dst_addr_nodes = []
+        for item in dst_items:
+            assigned = item.assigned_object
+            if assigned:
+                dst_ips.extend(_extract_ip_refs(assigned))
+                node = _build_addr_tree_node(assigned)
+                if node:
+                    dst_addr_nodes.append(node)
 
-        return {"src_ips": src_ips, "dst_ips": dst_ips}
+        vgc = instance.virtual_group_config or {}
+
+        def _group_label(objects):
+            names = sorted(str(getattr(o, "name", str(o))) for o in objects)
+            return " | ".join(names)
+
+        source_objs = [item.assigned_object for item in src_items if item.assigned_object]
+        dest_objs = [item.assigned_object for item in dst_items if item.assigned_object]
+        svc_objs = fixed_objects_by_area.get("service", [])
+        act_objs = fixed_objects_by_area.get("action", [])
+
+        return {
+            "src_ips": src_ips,
+            "dst_ips": dst_ips,
+            "src_addr_nodes": src_addr_nodes,
+            "dst_addr_nodes": dst_addr_nodes,
+            "source_objects": source_objs,
+            "destination_objects": dest_objs,
+            "source_groups": [item.security_group for item in src_group_items],
+            "destination_groups": [item.security_group for item in dst_group_items],
+            "service_objects": svc_objs,
+            "service_groups": fixed_groups_by_area.get("service", []),
+            "action_objects": act_objs,
+            "action_groups": fixed_groups_by_area.get("action", []),
+            "info_objects": fixed_objects_by_area.get("info", []),
+            "info_groups": fixed_groups_by_area.get("info", []),
+            "vgroup_source": bool(vgc.get("source", False)),
+            "vgroup_source_label": _group_label(source_objs),
+            "vgroup_destination": bool(vgc.get("destination", False)),
+            "vgroup_destination_label": _group_label(dest_objs),
+            "vgroup_services": bool(vgc.get("services", False)),
+            "vgroup_services_label": _group_label(svc_objs),
+            "vgroup_action": bool(vgc.get("action", False)),
+            "vgroup_action_label": _group_label(act_objs),
+        }
 
 
 @register_model_view(SecurityPolicyRule, "list", path="", detail=False)
@@ -859,11 +1670,15 @@ class SecurityPolicyRuleEditView(generic.ObjectEditView):
                     instance.index = (result.get("max_index") or 0) + 1
                     if rulebook.rule_comment_template and not instance.comments:
                         try:
-                            instance.comments = rulebook.rule_comment_template.format_map({
-                                "rulebook": rulebook.name,
-                                "index": instance.index,
-                                "rule_name": "",
-                            })
+                            instance.comments = (
+                                rulebook.rule_comment_template.format_map(
+                                    {
+                                        "rulebook": rulebook.name,
+                                        "index": instance.index,
+                                        "rule_name": "",
+                                    }
+                                )
+                            )
                         except (KeyError, ValueError):
                             instance.comments = rulebook.rule_comment_template
                 except SecurityPolicyRulebook.DoesNotExist:
@@ -871,19 +1686,96 @@ class SecurityPolicyRuleEditView(generic.ObjectEditView):
         return instance
 
     def get_extra_context(self, request, instance):
-        initial_labels: dict = {"source": {}, "destination": {}, "service": {}, "action": {}}
+        from netbox_nsm.display_utils import ct_display_label
+        # Build current selections JSON for pre-populating the picker on edit
+        selections = []
         if instance.pk:
-            for obj in instance.custom_srcdst_objects.select_related("custom_type").all():
-                initial_labels["source"][str(obj.pk)] = obj.custom_type.name
-            for obj in instance.destination_custom_objects.select_related("custom_type").all():
-                initial_labels["destination"][str(obj.pk)] = obj.custom_type.name
-            for obj in instance.custom_service_objects.select_related("custom_type").all():
-                initial_labels["service"][str(obj.pk)] = obj.custom_type.name
-            for obj in instance.custom_action_objects.select_related("custom_type").all():
-                initial_labels["action"][str(obj.pk)] = obj.custom_type.name
+            # Build a ct_id → matching_class lookup from TypeConfig
+            from netbox_nsm.models import TypeConfig as _TC
+            _mc_map = {tc.content_type_id: tc.matching_class for tc in _TC.objects.only("content_type_id", "matching_class")}
+
+            for item in instance.object_items.select_related("field", "content_type").all():
+                assigned = item.assigned_object
+                try:
+                    name = getattr(assigned, "name", None) or str(assigned)
+                except Exception:
+                    name = None
+                if not name:
+                    name = f"#{item.object_id}"
+                selections.append(
+                    {
+                        "area": str(item.field.slug) if item.field else "",
+                        "placement": str(item.field.placement) if item.field else "",
+                        "kind": "object",
+                        "id": f"{item.content_type_id}.{item.object_id}",
+                        "name": str(name),
+                        "typeName": ct_display_label(item.content_type) if item.content_type_id else "",
+                        "matchingClass": _mc_map.get(item.content_type_id, ""),
+                        "exclude": bool(item.exclude),
+                    }
+                )
+            for item in instance.group_items.select_related(
+                "field", "security_group"
+            ).all():
+                selections.append(
+                    {
+                        "area": str(item.field.slug) if item.field else "",
+                        "placement": str(item.field.placement) if item.field else "",
+                        "kind": "group",
+                        "id": str(item.security_group.pk),
+                        "name": str(item.security_group.name),
+                        "typeName": "Groups",
+                        "exclude": bool(item.exclude),
+                    }
+                )
+        rulebook = getattr(instance, "rulebook", None)
+        if rulebook is None and not instance.pk:
+            rulebook_pk = request.GET.get("rulebook")
+            if rulebook_pk and str(rulebook_pk).isdigit():
+                try:
+                    rulebook = SecurityPolicyRulebook.objects.get(pk=int(rulebook_pk))
+                except SecurityPolicyRulebook.DoesNotExist:
+                    pass
+
+        # Pre-fill source/destination zones from matrix add_href params
+        if not instance.pk and rulebook:
+            from netbox_nsm.display_utils import ct_display_label
+            from netbox_nsm.models import TypeConfig as _TC
+            _mc_map = {tc.content_type_id: tc.matching_class for tc in _TC.objects.only("content_type_id", "matching_class")}
+            src_field = RulebookField.objects.filter(rulebook=rulebook, placement="source").first()
+            dst_field = RulebookField.objects.filter(rulebook=rulebook, placement="destination").first()
+            for param_ct, param_obj, field in [
+                ("prefill_src_ct", "prefill_src_obj", src_field),
+                ("prefill_dst_ct", "prefill_dst_obj", dst_field),
+            ]:
+                ct_val = request.GET.get(param_ct, "")
+                obj_val = request.GET.get(param_obj, "")
+                if not (ct_val.isdigit() and obj_val.isdigit() and field):
+                    continue
+                ct_id = int(ct_val)
+                obj_pk = int(obj_val)
+                try:
+                    ct = ContentType.objects.get(pk=ct_id)
+                    mc = ct.model_class()
+                    obj = mc.objects.get(pk=obj_pk) if mc else None
+                    name = getattr(obj, "name", None) or str(obj) if obj else f"#{obj_pk}"
+                except Exception:
+                    name = f"#{obj_pk}"
+                    ct = None
+                selections.append({
+                    "area": str(field.slug),
+                    "placement": str(field.placement),
+                    "kind": "object",
+                    "id": f"{ct_id}.{obj_pk}",
+                    "name": name,
+                    "typeName": ct_display_label(ct) if ct else "",
+                    "matchingClass": _mc_map.get(ct_id, ""),
+                    "exclude": False,
+                })
         return {
-            "nsm_add_options": _build_security_rule_add_options(),
-            "nsm_initial_labels": json.dumps(initial_labels),
+            "nsm_rule_picker_data": _build_security_rule_picker_data(rulebook=rulebook),
+            "nsm_rule_selections": selections,
+            "nsm_rule_virtual_groups": instance.virtual_group_config if instance.pk else {},
         }
 
 
@@ -929,7 +1821,9 @@ class SecurityPolicyAssignmentDeleteView(generic.ObjectDeleteView):
     queryset = SecurityPolicyAssignment.objects.all()
 
 
-@register_model_view(SecurityPolicyAssignment, "bulk_delete", path="delete", detail=False)
+@register_model_view(
+    SecurityPolicyAssignment, "bulk_delete", path="delete", detail=False
+)
 class SecurityPolicyAssignmentBulkDeleteView(generic.BulkDeleteView):
     queryset = SecurityPolicyAssignment.objects.all()
     table = SecurityPolicyAssignmentTable
@@ -986,9 +1880,70 @@ class SecurityPolicyRulebookBulkAssignView(generic.ObjectView):
                 else:
                     skipped += 1
             from django.contrib import messages as dj_messages
+
             dj_messages.success(
                 request,
                 f"{created} assignment(s) created, {skipped} already existed.",
             )
             return redirect(instance.get_absolute_url())
         return self.render_to_response({"object": instance, "form": form})
+
+
+class GlobalRulesSearchView(View):
+    """
+    Global text search across ALL rulebooks.
+    GET param: q — searches SecurityPolicyRule.name and rulebook name.
+    Results are grouped by rulebook.
+    URL: /plugins/netbox-nsm/security-rule/search/
+    """
+
+    template_name = "netbox_nsm/global_rules_search.html"
+
+    def get(self, request):
+        from django.shortcuts import render as _render
+        from collections import defaultdict
+
+        q = request.GET.get("q", "").strip()
+
+        rulebook_groups = []
+        total_count = 0
+
+        if q:
+            rules_qs = (
+                SecurityPolicyRule.objects.filter(
+                    Q(name__icontains=q) | Q(rulebook__name__icontains=q)
+                )
+                .select_related("rulebook")
+                .order_by("rulebook__name", "index", "name")
+            )
+
+            groups = defaultdict(list)
+            for rule in rules_qs:
+                groups[rule.rulebook].append(rule)
+
+            for rulebook, rules in sorted(groups.items(), key=lambda x: x[0].name if x[0] else ""):
+                policy_url = (
+                    reverse(
+                        "plugins:netbox_nsm:securitypolicyrulebook_policy",
+                        args=[rulebook.pk],
+                    )
+                    + f"?q={q}"
+                ) if rulebook else ""
+                rulebook_groups.append(
+                    {
+                        "rulebook": rulebook,
+                        "rules": rules,
+                        "policy_url": policy_url,
+                    }
+                )
+            total_count = sum(len(g["rules"]) for g in rulebook_groups)
+
+        return _render(
+            request,
+            self.template_name,
+            {
+                "q": q,
+                "rulebook_groups": rulebook_groups,
+                "total_count": total_count,
+            },
+        )

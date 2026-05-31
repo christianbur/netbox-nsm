@@ -19,11 +19,10 @@ class SecurityObjectGroupSerializer(NetBoxModelSerializer):
             "url",
             "display",
             "name",
-            "area",
             "description",
             "tags",
             "custom_fields",
             "created",
             "last_updated",
         )
-        brief_fields = ("id", "url", "display", "name", "area")
+        brief_fields = ("id", "url", "display", "name")

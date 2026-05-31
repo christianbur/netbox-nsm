@@ -1,0 +1,63 @@
+{% extends 'generic/object_edit.html' %}
+{% load form_helpers %}
+{% load i18n %}
+{% load static %}
+
+{% block form %}
+  {% for field in form.hidden_fields %}
+    {{ field }}
+  {% endfor %}
+
+  {{ form.non_field_errors }}
+
+  <div class="field-group mb-4">
+    <div class="row mb-3"><div class="col-12"><h2>{% trans "Object Group" %}</h2></div></div>
+    {% render_field form.name %}
+    {% render_field form.areas %}
+    {% render_field form.color %}
+    {% render_field form.description %}
+  </div>
+
+  <div class="field-group mb-4">
+    <div class="row mb-2"><div class="col-12"><h3 class="h5 mb-1">{% trans "Members" %}</h3></div></div>
+    <div id="nsm-group-member-picker"></div>
+    <div class="small text-muted mt-2">
+      {% trans "Only one object type per group is allowed (for example only Addresses or only Labels)." %}
+    </div>
+  </div>
+
+  <div class="nsm-hidden-group-fields d-none">
+    {% render_field form.members %}
+  </div>
+
+  <div class="field-group mb-4">
+    {% render_field form.sub_groups %}
+  </div>
+
+  <div class="field-group mb-4">
+    {% render_field form.tags %}
+  </div>
+
+  {% if form.comments %}
+    <div class="field-group mb-5">
+      {% render_field form.comments %}
+    </div>
+  {% endif %}
+
+  {% if form.changelog_message %}
+    <div class="bg-primary-subtle border border-primary rounded-1 pt-3 px-3 mb-3">
+      {% render_field form.changelog_message %}
+    </div>
+  {% endif %}
+{% endblock form %}
+
+{% block javascript %}
+  {{ block.super }}
+  {% if nsm_group_member_picker_data %}
+  {{ nsm_group_member_picker_data|json_script:"nsm-group-member-picker-data" }}
+  {% endif %}
+  {% if nsm_group_member_initial %}
+  {{ nsm_group_member_initial|json_script:"nsm-group-member-initial" }}
+  {% endif %}
+  <script src="{% static 'netbox_nsm/js/security_object_group_form.js' %}?v=20260528a"></script>
+{% endblock javascript %}

@@ -18,6 +18,7 @@ class FamilyChoices(ChoiceSet):
         (CCC, "CCC", "orange"),
     ]
 
+
 __all__ = [
     "ActionChoices",
     "FamilyChoices",

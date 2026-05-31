@@ -10,7 +10,17 @@
       <h5 class="card-header">{% trans "Object Group" %}</h5>
       <table class="table table-hover attr-table">
         <tr><th scope="row">{% trans "Name" %}</th><td>{{ object.name }}</td></tr>
-        <tr><th scope="row">{% trans "Area" %}</th><td>{{ object.get_area_display }}</td></tr>
+        <tr>
+          <th scope="row">{% trans "Areas" %}</th>
+          <td>
+            {% for area in object.areas.all %}
+              {% if not forloop.first %}, {% endif %}
+              {{ area.name }}
+            {% empty %}
+              <span class="text-muted">—</span>
+            {% endfor %}
+          </td>
+        </tr>
         <tr>
           <th scope="row">{% trans "Parent Groups" %}</th>
           <td>
@@ -21,6 +31,19 @@
               {% endfor %}
             {% else %}
               <span class="text-muted">{% trans "None (root group)" %}</span>
+            {% endif %}
+          </td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "Color" %}</th>
+          <td>
+            {% if object.color %}
+              <span class="d-inline-flex align-items-center gap-2">
+                <span class="d-inline-block rounded-circle border" style="width: 1rem; height: 1rem; background: {{ object.color }}; border-color: var(--bs-border-color) !important;"></span>
+                <span>{{ object.color }}</span>
+              </span>
+            {% else %}
+              {{ object.color|placeholder }}
             {% endif %}
           </td>
         </tr>
@@ -42,12 +65,19 @@
       <h5 class="card-header">{% trans "Parent Groups" %}</h5>
       <div class="card-body">
         <table class="table table-hover">
-          <thead><tr><th>{% trans "Name" %}</th><th>{% trans "Area" %}</th></tr></thead>
+          <thead><tr><th>{% trans "Name" %}</th><th>{% trans "Areas" %}</th></tr></thead>
           <tbody>
             {% for g in parent_groups %}
               <tr>
                 <td><a href="{{ g.get_absolute_url }}">{{ g.name }}</a></td>
-                <td>{{ g.get_area_display }}</td>
+                <td>
+                  {% for area in g.areas.all %}
+                    {% if not forloop.first %}, {% endif %}
+                    {{ area.name }}
+                  {% empty %}
+                    <span class="text-muted">—</span>
+                  {% endfor %}
+                </td>
               </tr>
             {% endfor %}
           </tbody>
@@ -63,12 +93,19 @@
       <h5 class="card-header">{% trans "Sub-Groups" %}</h5>
       <div class="card-body">
         <table class="table table-hover">
-          <thead><tr><th>{% trans "Name" %}</th><th>{% trans "Area" %}</th></tr></thead>
+          <thead><tr><th>{% trans "Name" %}</th><th>{% trans "Areas" %}</th></tr></thead>
           <tbody>
             {% for g in sub_groups %}
               <tr>
                 <td><a href="{{ g.get_absolute_url }}">{{ g.name }}</a></td>
-                <td>{{ g.get_area_display }}</td>
+                <td>
+                  {% for area in g.areas.all %}
+                    {% if not forloop.first %}, {% endif %}
+                    {{ area.name }}
+                  {% empty %}
+                    <span class="text-muted">—</span>
+                  {% endfor %}
+                </td>
               </tr>
             {% endfor %}
           </tbody>

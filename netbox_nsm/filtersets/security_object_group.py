@@ -10,11 +10,11 @@ __all__ = ("SecurityObjectGroupFilterSet",)
 
 @register_filterset
 class SecurityObjectGroupFilterSet(PrimaryModelFilterSet):
-    area = django_filters.CharFilter()
+    area_id = django_filters.NumberFilter(field_name="areas")
 
     class Meta:
         model = SecurityObjectGroup
-        fields = ("id", "name", "area")
+        fields = ("id", "name", "area_id")
 
     def search(self, queryset, name, value):
         if not value.strip():

@@ -286,16 +286,23 @@
   <li class="nav-item" role="presentation">
     <a class="nav-link" id="nsm-tab-matrix" data-bs-toggle="tab" href="#nsm-panel-matrix" role="tab">Zone Matrix</a>
   </li>
+  <li class="nav-item" role="presentation">
+    <a class="nav-link" id="nsm-tab-ipanalysis" data-bs-toggle="tab" href="#nsm-panel-ipanalysis" role="tab">IP Analysis</a>
+  </li>
 </ul>
 <script>
 (function () {
-  const TABS = ['nsm-panel-analysis', 'nsm-panel-matrix'];
-  // Activate tab from hash on load
+  const TABS = ['nsm-panel-analysis', 'nsm-panel-matrix', 'nsm-panel-ipanalysis'];
+  // If IP analysis result is present, default to that tab
+  {% if ip_sel_pk %}
+  const defaultTab = 'nsm-panel-ipanalysis';
+  {% else %}
+  const defaultTab = null;
+  {% endif %}
   const hash = window.location.hash.replace('#', '');
-  if (TABS.includes(hash)) {
-    const trigger = document.querySelector('[href="#' + hash + '"]');
-    if (trigger) bootstrap.Tab.getOrCreateInstance(trigger).show();
-  }
+  const activateId = TABS.includes(hash) ? hash : (defaultTab || 'nsm-panel-analysis');
+  const trigger = document.querySelector('[href="#' + activateId + '"]');
+  if (trigger) bootstrap.Tab.getOrCreateInstance(trigger).show();
   // Update hash when tab changes
   document.getElementById('nsm-viz-tab-nav').addEventListener('shown.bs.tab', function (e) {
     const target = e.target.getAttribute('href');
@@ -364,20 +371,19 @@
     <strong>Zone Matrix</strong>
     <span class="text-muted ms-1 small">Rows&nbsp;=&nbsp;Source &middot; Columns&nbsp;=&nbsp;Destination &middot; Click a cell to open Security Rules</span>
     <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
-      <span class="badge text-bg-success">Permit</span>
-      <span class="badge text-bg-danger">Deny</span>
-      <span class="badge text-bg-warning text-dark">Log</span>
-      <span class="badge text-bg-info text-dark">Count</span>
-      <span class="badge rounded-pill bg-secondary">N</span>
+      {% for a in action_legend %}
+        <span class="badge" style="background-color:{{ a.color }};color:#fff;">{{ a.name }}</span>
+      {% endfor %}
+      <span class="badge rounded-pill" style="background:#6c757d;color:#fff;">N</span>
       <span class="text-muted small">= multiple rules</span>
     </div>
   </div>
 
-  {% if all_zones %}
+  {% if available_types %}
     <div class="nsm-viz-filter-header">
       <i class="mdi mdi-filter-outline"></i>
-      <span>Filter Zones</span>
-      {% if selected_src_pks or selected_dst_pks %}
+      <span>Matrix Filter</span>
+      {% if src_filter_pks or dst_filter_pks %}
         <span class="badge text-bg-primary fw-normal ms-1">active</span>
       {% endif %}
       <button class="btn btn-sm btn-link ms-auto p-0 text-secondary"
@@ -390,35 +396,38 @@
       </button>
     </div>
     <div class="collapse show" id="nsm-filter-collapse">
-      <form method="get" class="nsm-viz-filter">
+      <form method="get" class="nsm-viz-filter" id="nsm-matrix-filter-form">
         <div class="d-flex flex-column gap-1">
-          <label class="form-label mb-0 small fw-bold">Source (Rows)</label>
-          <select name="src_zone_id" multiple class="form-select form-select-sm">
-            {% for zone in all_zones %}
-              <option value="{{ zone.pk }}"
-                      {% if zone.pk in selected_src_pks %}selected{% endif %}>
-                {{ zone.name }}
-              </option>
+          <label class="form-label mb-0 small fw-bold">Object type</label>
+          <select name="obj_type" class="form-select form-select-sm" style="min-width:12rem;" onchange="this.form.submit()">
+            {% for t in available_types %}
+              <option value="{{ t.ct_id }}" {% if t.ct_id == selected_ct_id %}selected{% endif %}>{{ t.label }}</option>
             {% endfor %}
           </select>
+        </div>
+        <div class="d-flex flex-column gap-1">
+          <label class="form-label mb-0 small fw-bold">Source (Rows)</label>
+          <select name="src_id" multiple class="form-select form-select-sm">
+            {% for z in all_src_zones %}
+              <option value="{{ z.pk }}" {% if z.pk in src_filter_pks %}selected{% endif %}>{{ z.name }}</option>
+            {% endfor %}
+          </select>
+          <span class="text-muted" style="font-size:.7rem;">Ctrl+Click to select multiple</span>
         </div>
         <div class="d-flex flex-column gap-1">
           <label class="form-label mb-0 small fw-bold">Destination (Columns)</label>
-          <select name="dst_zone_id" multiple class="form-select form-select-sm">
-            {% for zone in all_zones %}
-              <option value="{{ zone.pk }}"
-                      {% if zone.pk in selected_dst_pks %}selected{% endif %}>
-                {{ zone.name }}
-              </option>
+          <select name="dst_id" multiple class="form-select form-select-sm">
+            {% for z in all_dst_zones %}
+              <option value="{{ z.pk }}" {% if z.pk in dst_filter_pks %}selected{% endif %}>{{ z.name }}</option>
             {% endfor %}
           </select>
+          <span class="text-muted" style="font-size:.7rem;">Ctrl+Click to select multiple</span>
         </div>
         <div class="d-flex flex-column gap-1 align-self-end">
           <button type="submit" class="btn btn-sm btn-primary">Apply</button>
-          {% if selected_src_pks or selected_dst_pks %}
-            <a href="{{ viz_url_base }}" class="btn btn-sm btn-outline-secondary">Reset</a>
+          {% if src_filter_pks or dst_filter_pks %}
+            <a href="{{ viz_url_base }}{% if selected_ct_id %}?obj_type={{ selected_ct_id }}{% endif %}" class="btn btn-sm btn-outline-secondary">Reset</a>
           {% endif %}
-          <span class="text-muted small">Ctrl/Cmd&nbsp;+&nbsp;click</span>
         </div>
       </form>
     </div>
@@ -441,7 +450,7 @@
               </th>
               {% for zone in dst_zones %}
                 <th class="nsm-col-label">
-                  {% if zone.pk %}<a href="{% url 'plugins:netbox_nsm:objectcustom' zone.pk %}" class="nsm-col-text text-decoration-none" title="{{ zone.name }}">{{ zone.name }}</a>{% else %}<span class="nsm-col-text text-muted" title="{{ zone.name }}">{{ zone.name }}</span>{% endif %}
+                  <a href="{{ zone.get_absolute_url }}" class="nsm-col-text text-decoration-none" title="{{ zone.name }}">{{ zone.name }}</a>
                 </th>
               {% endfor %}
             </tr>
@@ -449,7 +458,7 @@
           <tbody>
             {% for row in matrix_rows %}
               <tr>
-                <th class="nsm-row-label" title="{{ row.source_zone.name }}">{% if row.source_zone.pk %}<a href="{% url 'plugins:netbox_nsm:objectcustom' row.source_zone.pk %}" class="text-decoration-none" style="color:inherit">{{ row.source_zone.name }}</a>{% else %}<span class="text-muted">{{ row.source_zone.name }}</span>{% endif %}</th>
+                <th class="nsm-row-label" title="{{ row.source_zone.name }}"><a href="{{ row.source_zone.get_absolute_url }}" class="text-decoration-none" style="color:inherit">{{ row.source_zone.name }}</a></th>
                 {% for cell in row.cells %}
                   {% if cell.type == "empty" %}
                     <td class="nsm-viz-cell-empty{% if cell.is_self %} nsm-viz-cell-self{% endif %}">
@@ -458,7 +467,7 @@
                   {% elif cell.type == "single" %}
                     <td class="nsm-viz-cell-action{% if cell.is_self %} nsm-viz-cell-self{% endif %}">
                       <a href="{{ cell.href }}"
-                         class="text-bg-{{ cell.color }}"
+                         style="background-color:{{ cell.color }};color:#fff;"
                          title="{{ cell.label }}">{{ cell.label }}</a>
                     </td>
                   {% else %}
@@ -486,6 +495,156 @@
 
 
 </div>{# end tab-pane matrix #}
+
+<!-- ── TAB 3: IP Analysis ─────────────────────────────────── -->
+<div class="tab-pane fade" id="nsm-panel-ipanalysis" role="tabpanel">
+  <div class="card-header d-flex align-items-center gap-2 flex-wrap">
+    <i class="mdi mdi-ip-network-outline text-primary"></i>
+    <strong>IP Analysis</strong>
+    <span class="text-muted ms-1 small">Select a source or destination object to resolve its IP addresses</span>
+  </div>
+
+  {# ── Object selector ── #}
+  <div class="p-3 border-bottom">
+    <form method="get" class="d-flex align-items-end gap-2 flex-wrap" id="nsm-ip-analysis-form">
+      {# preserve matrix params #}
+      {% if request.GET.obj_type %}<input type="hidden" name="obj_type" value="{{ request.GET.obj_type }}">{% endif %}
+      {% for z in all_src_zones %}{% if z.pk in src_filter_pks %}<input type="hidden" name="src_id" value="{{ z.pk }}">{% endif %}{% endfor %}
+      {% for z in all_dst_zones %}{% if z.pk in dst_filter_pks %}<input type="hidden" name="dst_id" value="{{ z.pk }}">{% endif %}{% endfor %}
+      <input type="hidden" name="_tab" value="nsm-panel-ipanalysis">
+      <div class="d-flex flex-column gap-1">
+        <label class="form-label mb-0 small fw-bold">Object</label>
+        <select name="ip_ct" id="nsm-ip-ct" class="form-select form-select-sm d-none">
+          <option value="">—</option>
+          {% for grp in ip_analysis_groups %}
+            {% for obj in grp.objects %}
+              <option value="{{ obj.ct_id }}" data-pk="{{ obj.pk }}"
+                {% if obj.ct_id|stringformat:"s" == ip_sel_ct and obj.pk|stringformat:"s" == ip_sel_pk %}selected{% endif %}>
+                {{ obj.name }} ({{ grp.type_label }})
+              </option>
+            {% endfor %}
+          {% endfor %}
+        </select>
+        <select name="ip_pk" id="nsm-ip-pk" class="form-select form-select-sm d-none">
+          <option value="">—</option>
+        </select>
+        {# Combined visual selector #}
+        <select id="nsm-ip-combined" class="form-select form-select-sm" style="min-width:20rem;">
+          <option value="">— select object —</option>
+          {% for grp in ip_analysis_groups %}
+            <optgroup label="{{ grp.type_label }}">
+              {% for obj in grp.objects %}
+                <option value="{{ obj.ct_id }}:{{ obj.pk }}"
+                  {% if obj.ct_id|stringformat:"s" == ip_sel_ct and obj.pk|stringformat:"s" == ip_sel_pk %}selected{% endif %}>
+                  {{ obj.name }}
+                </option>
+              {% endfor %}
+            </optgroup>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn btn-sm btn-primary">Analyse</button>
+      {% if ip_sel_pk %}
+        <a href="?{% if request.GET.obj_type %}obj_type={{ request.GET.obj_type }}&{% endif %}#nsm-panel-ipanalysis" class="btn btn-sm btn-outline-secondary">Reset</a>
+      {% endif %}
+    </form>
+    <script>
+    (function(){
+      var combined = document.getElementById('nsm-ip-combined');
+      var ctInput  = document.getElementById('nsm-ip-ct');
+      var pkInput  = document.getElementById('nsm-ip-pk');
+      var form     = document.getElementById('nsm-ip-analysis-form');
+      function sync() {
+        var val = combined.value;
+        if (!val) { ctInput.value = ''; pkInput.value = ''; return; }
+        var parts = val.split(':');
+        ctInput.value = parts[0];
+        pkInput.value = parts[1];
+      }
+      combined.addEventListener('change', sync);
+      sync();
+      form.addEventListener('submit', function() {
+        // Redirect to IP analysis tab after submit
+        form.action = window.location.pathname + '#nsm-panel-ipanalysis';
+      });
+    })();
+    </script>
+  </div>
+
+  {# ── Results ── #}
+  {% if ip_tree_node or ip_refs %}
+  <div class="p-3">
+    <h6 class="fw-bold mb-3">
+      <i class="mdi mdi-tag-outline me-1"></i>{{ ip_selected_name }}
+    </h6>
+
+    {# 4-tab card identical to rule detail page #}
+    <ul class="nav nav-tabs mb-0" id="nsm-ip-tabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#nsm-ip-pane-ips" type="button">
+          IPs <span class="badge text-bg-secondary ms-1">{{ ip_refs|length }}</span>
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#nsm-ip-pane-tree" type="button">
+          Tree
+        </button>
+      </li>
+    </ul>
+    <div class="tab-content border border-top-0 rounded-bottom p-2">
+
+      {# IPs tab #}
+      <div class="tab-pane fade show active" id="nsm-ip-pane-ips" role="tabpanel">
+        {% if ip_refs %}
+          <div style="max-height:22rem;overflow-y:auto;">
+            <table class="table table-sm table-hover mb-0">
+              <tbody>
+                {% for ref in ip_refs %}
+                  <tr>
+                    <td>
+                      {% if ref.url %}<a href="{{ ref.url }}">{% endif %}
+                      <code>{{ ref.display }}</code>
+                      {% if ref.url %}</a>{% endif %}
+                    </td>
+                    <td class="text-muted small">{{ ref.type }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="text-muted small mb-0 p-2">No IP addresses resolved.</p>
+        {% endif %}
+      </div>
+
+      {# Tree tab #}
+      <div class="tab-pane fade" id="nsm-ip-pane-tree" role="tabpanel">
+        {% if ip_tree_node %}
+          <div style="max-height:28rem;overflow-y:auto;font-size:.82rem;">
+            {% with node=ip_tree_node depth=0 %}
+              {% include "netbox_nsm/inc/addr_tree_node.html" %}
+            {% endwith %}
+          </div>
+        {% else %}
+          <p class="text-muted small mb-0 p-2">No tree data.</p>
+        {% endif %}
+      </div>
+
+    </div>{# end tab-content #}
+  </div>
+  {% elif ip_sel_pk %}
+    <div class="p-4 text-center text-muted">
+      <i class="mdi mdi-ip-off mdi-36px"></i>
+      <p class="mt-2">No IP addresses found for this object.</p>
+    </div>
+  {% else %}
+    <div class="p-4 text-center text-muted">
+      <i class="mdi mdi-cursor-default-click mdi-36px"></i>
+      <p class="mt-2">Select an object above to see its IP resolution.</p>
+    </div>
+  {% endif %}
+</div>{# end tab-pane ipanalysis #}
+
 </div>{# end tab-content #}
 
 {% endblock %}

@@ -29,14 +29,110 @@
           <td><pre class="mb-0 small" style="white-space:pre-wrap">{{ object.rule_comment_template }}</pre></td>
         </tr>
         {% endif %}
+        {% if assignments %}
+        <tr>
+          <th scope="row">{% trans "Assigned Objects" %}</th>
+          <td>
+            {% for assignment in assignments %}
+            {% with obj=assignment.assigned_object %}
+            {% if obj %}
+            <a href="{{ obj.get_absolute_url }}" class="badge text-bg-secondary text-decoration-none me-1">
+              <i class="mdi mdi-server me-1"></i>{{ obj }}
+            </a>
+            {% endif %}
+            {% endwith %}
+            {% endfor %}
+          </td>
+        </tr>
+        {% endif %}
       </table>
     </div>
     {% include 'inc/panels/custom_fields.html' %}
     {% include 'inc/panels/tags.html' %}
     {% include 'inc/panels/comments.html' %}
+
     {% plugin_left_page object %}
   </div>
   <div class="col-md-6">
+
+    {# ── RulebookFields ────────────────────────────────────────────── #}
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">{% trans "Fields" %}</h5>
+        <a href="{% url 'plugins:netbox_nsm:rulebookfield_add' %}?rulebook={{ object.pk }}"
+           class="btn btn-sm btn-primary">
+          <i class="mdi mdi-plus-thick me-1"></i>{% trans "Add Field" %}
+        </a>
+      </div>
+      <div class="card-body p-0">
+        {% if rulebook_fields %}
+          {% for field in rulebook_fields %}
+          <div class="border-bottom px-3 py-2">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <strong title="{{ field.slug }}">{{ field.name }}</strong>
+                {% if field.placement == "source" %}
+                  <span class="badge bg-secondary text-white ms-2">Source</span>
+                {% elif field.placement == "destination" %}
+                  <span class="badge bg-secondary text-white ms-2">Destination</span>
+                {% elif field.placement == "fixed" %}
+                  <span class="badge bg-secondary text-white ms-2">Fixed</span>
+                {% else %}
+                  <span class="badge bg-secondary text-white ms-2">{{ field.get_placement_display }}</span>
+                {% endif %}
+                <span class="badge bg-light text-dark border ms-1">#{{ field.sort_order }}</span>
+              </div>
+              <div class="d-flex gap-1">
+                <a href="{% url 'plugins:netbox_nsm:rulebookfieldtype_add' %}?field={{ field.pk }}"
+                   class="btn btn-xs btn-outline-primary" title="{% trans 'Add Type' %}">
+                  <i class="mdi mdi-plus"></i>
+                </a>
+                <a href="{% url 'plugins:netbox_nsm:rulebookfield_edit' field.pk %}"
+                   class="btn btn-xs btn-outline-warning" title="{% trans 'Edit' %}">
+                  <i class="mdi mdi-pencil"></i>
+                </a>
+                <a href="{% url 'plugins:netbox_nsm:rulebookfield_delete' field.pk %}"
+                   class="btn btn-xs btn-outline-danger" title="{% trans 'Delete' %}">
+                  <i class="mdi mdi-trash-can-outline"></i>
+                </a>
+              </div>
+            </div>
+            {% if field.type_configs.all %}
+            <div class="mt-1 ms-1 d-flex flex-wrap gap-1">
+              {% for ft in field.type_configs.all %}
+              <span class="badge bg-primary-subtle text-primary border border-primary-subtle d-inline-flex align-items-center gap-1">
+                {{ ft.type_config }}
+                {% if ft.type_config.matching_class %}
+                  <span class="badge bg-info text-dark ms-1" style="font-size:.7em">{{ ft.type_config.matching_class }}</span>
+                {% endif %}
+                {% if ft.max_items %}
+                  <span class="badge bg-light text-dark border ms-1" title="Max Items pro Regel" style="font-size:.7em"><i class="mdi mdi-counter"></i> {{ ft.max_items }}</span>
+                {% endif %}
+                <a href="{% url 'plugins:netbox_nsm:rulebookfieldtype_edit' ft.pk %}"
+                   class="text-warning ms-1" title="{% trans 'Bearbeiten' %}" style="line-height:1">
+                  <i class="mdi mdi-pencil" style="font-size:.85em"></i>
+                </a>
+                <a href="{% url 'plugins:netbox_nsm:rulebookfieldtype_delete' ft.pk %}"
+                   class="text-danger ms-1" title="{% trans 'Entfernen' %}" style="line-height:1">
+                  <i class="mdi mdi-close-circle" style="font-size:.85em"></i>
+                </a>
+              </span>
+              {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-muted small mt-1 ms-1">{% trans "Keine Typen konfiguriert" %}</div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="p-3 text-muted">
+            {% trans "Noch keine Fields konfiguriert." %}
+            <a href="{% url 'plugins:netbox_nsm:rulebookfield_add' %}?rulebook={{ object.pk }}">{% trans "Add now." %}</a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
     {% plugin_right_page object %}
   </div>
 </div>

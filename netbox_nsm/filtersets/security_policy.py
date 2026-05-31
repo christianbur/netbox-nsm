@@ -32,7 +32,9 @@ class SecurityPolicyRulebookFilterSet(PrimaryModelFilterSet):
     def search(self, queryset, name, value):
         if not value.strip():
             return queryset
-        return queryset.filter(Q(name__icontains=value) | Q(description__icontains=value))
+        return queryset.filter(
+            Q(name__icontains=value) | Q(description__icontains=value)
+        )
 
 
 @register_filterset
@@ -51,7 +53,9 @@ class SecurityPolicyRuleFilterSet(PrimaryModelFilterSet):
     def search(self, queryset, name, value):
         if not value.strip():
             return queryset
-        return queryset.filter(Q(name__icontains=value) | Q(description__icontains=value))
+        return queryset.filter(
+            Q(name__icontains=value) | Q(description__icontains=value)
+        )
 
 
 @register_filterset
@@ -110,12 +114,16 @@ class SecurityPolicyAssignmentFilterSet(AssignmentFilterSet):
         ).exists():
             return queryset.none()
         return queryset.filter(
-            assigned_object_type=ContentType.objects.get_for_model(VirtualDeviceContext),
+            assigned_object_type=ContentType.objects.get_for_model(
+                VirtualDeviceContext
+            ),
             assigned_object_id__in=vdcs.values_list("id", flat=True),
         )
 
     def filter_virtual_machine(self, queryset, name, value):
-        if not (vms := VirtualMachine.objects.filter(**{f"{name}__in": value})).exists():
+        if not (
+            vms := VirtualMachine.objects.filter(**{f"{name}__in": value})
+        ).exists():
             return queryset.none()
         return queryset.filter(
             assigned_object_type=ContentType.objects.get_for_model(VirtualMachine),

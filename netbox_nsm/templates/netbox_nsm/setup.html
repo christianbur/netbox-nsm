@@ -1,0 +1,329 @@
+{% extends 'base/layout.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "NSM Setup" %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-xl-10">
+
+    {# ── Flash Messages ── #}
+    {% if messages %}
+    <div class="mb-3">
+      {% for message in messages %}
+      <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {# Section 1 – Custom Objects Plugin #}
+    <div class="card mb-4">
+      <h5 class="card-header d-flex align-items-center gap-2">
+        <i class="mdi mdi-puzzle-outline"></i>
+        Plugin: netbox-custom-objects
+      </h5>
+      <div class="card-body">
+        {% if plugin_installed %}
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="mdi mdi-check-circle me-1"></i>{% trans "Installed" %}</span>
+            <span class="text-muted small">
+              {% blocktrans %}The plugin <strong>netbox-custom-objects</strong> is available. NSM uses it for dynamic object types (zones, addresses, services, …).{% endblocktrans %}
+            </span>
+          </div>
+
+          {# ── Object Types ── #}
+          <h6 class="fw-semibold mb-2 mt-3">{% trans "Required Custom Object Types" %}</h6>
+          <p class="text-muted small mb-2">
+            {% trans "NSM requires the following Custom Object Types. Missing ones can be imported individually or all at once." %}
+          </p>
+
+          <table class="table table-sm table-borderless mb-3" style="max-width:600px">
+            <thead class="table-active">
+              <tr>
+                <th>Slug</th>
+                <th class="text-center" style="width:80px">{% trans "Status" %}</th>
+                <th style="width:140px"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for slug, cot in cot_status.items %}
+              <tr>
+                <td><code>{{ slug }}</code></td>
+                <td class="text-center">
+                  {% if cot %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                      <i class="mdi mdi-check"></i> {% trans "present" %}
+                    </span>
+                  {% else %}
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                      <i class="mdi mdi-close"></i> {% trans "missing" %}
+                    </span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if not cot %}
+                  <form method="post" class="m-0">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="import_type_{{ slug }}">
+                    <button type="submit" class="btn btn-sm btn-outline-primary">
+                      <i class="mdi mdi-download me-1"></i>{% trans "Import" %}
+                    </button>
+                  </form>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+
+          {% if not all_cots_ok %}
+          <form method="post" class="m-0">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="import_all_types">
+            <button type="submit" class="btn btn-primary">
+              <i class="mdi mdi-sync me-1"></i>{% trans "Import all missing types" %}
+            </button>
+          </form>
+          {% else %}
+          <div class="text-success small">
+            <i class="mdi mdi-check-all me-1"></i>{% trans "All required types are present." %}
+          </div>
+          {% endif %}
+
+        {% else %}
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="mdi mdi-alert me-1"></i>{% trans "Not installed" %}</span>
+            <span class="text-muted small">
+              {% blocktrans %}The plugin <strong>netbox-custom-objects</strong> is not installed or not enabled. NSM can be used without it, but only with native NetBox types (IPAM, DCIM).{% endblocktrans %}
+            </span>
+          </div>
+          <div class="mt-2 text-muted small">
+            {% trans "Installation instructions" %}:
+            <a href="https://github.com/netbox-community/netbox-custom-objects" target="_blank" rel="noopener">
+              github.com/netbox-community/netbox-custom-objects
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# Section 2 – TypeConfigs #}
+    {% if plugin_installed %}
+    <div class="card mb-4">
+      <h5 class="card-header d-flex align-items-center gap-2">
+        <i class="mdi mdi-cog-outline"></i>
+        NSM TypeConfigs
+      </h5>
+      <div class="card-body">
+        <p class="text-muted small mb-3">
+          {% blocktrans %}Each Custom Object Type requires a <strong>TypeConfig</strong> that defines its matching class, display template, and allowed placements.{% endblocktrans %}
+        </p>
+
+        <table class="table table-sm table-borderless mb-3" style="max-width:800px">
+          <thead class="table-active">
+            <tr>
+              <th>{% trans "Type" %}</th>
+              <th>{% trans "Matching Class" %}</th>
+              <th>{% trans "Display Template" %}</th>
+              <th class="text-center" style="width:90px">{% trans "Status" %}</th>
+              <th style="width:140px"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for entry in tc_status %}
+            <tr>
+              <td><code>{{ entry.spec.slug }}</code></td>
+              <td>
+                <span class="badge bg-info text-dark">{{ entry.spec.matching_class }}</span>
+              </td>
+              <td><code class="text-muted">{{ entry.spec.display_template }}</code></td>
+              <td class="text-center">
+                {% if entry.typeconfig %}
+                  <span class="badge bg-success-subtle text-success border border-success-subtle">
+                    <i class="mdi mdi-check"></i> OK
+                  </span>
+                {% elif not entry.cot %}
+                  <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                    <i class="mdi mdi-minus"></i> {% trans "not imported" %}
+                  </span>
+                {% else %}
+                  <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                    <i class="mdi mdi-close"></i> {% trans "missing" %}
+                  </span>
+                {% endif %}
+              </td>
+              <td>
+                {% if entry.cot and not entry.typeconfig %}
+                <form method="post" class="m-0">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="create_typeconfig_{{ entry.spec.slug }}">
+                  <button type="submit" class="btn btn-sm btn-outline-primary">
+                    <i class="mdi mdi-plus me-1"></i>{% trans "Create" %}
+                  </button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        {% if all_cots_ok and not all_tcs_ok %}
+        <form method="post" class="m-0">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="create_all_typeconfigs">
+          <button type="submit" class="btn btn-primary">
+            <i class="mdi mdi-cog-play me-1"></i>{% trans "Create all missing TypeConfigs" %}
+          </button>
+        </form>
+        {% elif all_tcs_ok %}
+        <div class="text-success small">
+          <i class="mdi mdi-check-all me-1"></i>{% trans "All TypeConfigs are configured." %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# Section 3 – Demo Rulebooks #}
+    <div class="card mb-4">
+      <h5 class="card-header d-flex align-items-center gap-2">
+        <i class="mdi mdi-flask-outline"></i>
+        {% trans "Create demo rulebooks" %}
+      </h5>
+      <div class="card-body">
+        {% if not all_tcs_ok %}
+        <div class="alert alert-warning d-flex align-items-center gap-2 mb-0">
+          <i class="mdi mdi-alert-outline fs-5"></i>
+          <span>
+            {% trans "All TypeConfigs must be present before demo rulebooks can be created (see section 2)." %}
+          </span>
+        </div>
+        {% else %}
+
+        <div class="row g-3">
+
+          {# ── Zone Matrix ── #}
+          <div class="col-md-6">
+            <div class="card h-100 border-primary-subtle">
+              <div class="card-body">
+                <h6 class="card-title fw-semibold">
+                  <i class="mdi mdi-grid me-1 text-primary"></i>{% trans "Demo – Zone Matrix" %}
+                </h6>
+                <p class="card-text text-muted small mb-3">
+                  {% blocktrans %}Creates the rulebook <strong>"Demo - Zone Matrix"</strong> with fields Source / Destination (zones), Service, and Action. If zone objects are available, 6 example rules are created (trust↔untrust, trust↔dmz, mgmt↔…).{% endblocktrans %}
+                </p>
+                <form method="post" class="m-0">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="create_demo_matrix">
+                  <button type="submit" class="btn btn-outline-primary btn-sm">
+                    <i class="mdi mdi-plus me-1"></i>{% trans "Create" %}
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          {# ── Addresses ── #}
+          <div class="col-md-6">
+            <div class="card h-100 border-primary-subtle">
+              <div class="card-body">
+                <h6 class="card-title fw-semibold">
+                  <i class="mdi mdi-ip-network me-1 text-primary"></i>{% trans "Demo – Addresses" %}
+                </h6>
+                <p class="card-text text-muted small mb-3">
+                  {% blocktrans %}Creates the rulebook <strong>"Demo - Addresses"</strong> with fields Source / Destination (addresses), Service, and Action – without rules.{% endblocktrans %}
+                </p>
+                <form method="post" class="m-0">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="create_demo_addresses">
+                  <button type="submit" class="btn btn-outline-primary btn-sm">
+                    <i class="mdi mdi-plus me-1"></i>{% trans "Create" %}
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          {# ── Enterprise DC ── #}
+          <div class="col-12">
+            <div class="card border-warning-subtle">
+              <div class="card-header bg-transparent border-bottom-0 pb-0">
+                <h6 class="card-title fw-semibold mb-0">
+                  <i class="mdi mdi-office-building-cog me-1 text-warning"></i>{% trans "Enterprise DC Demo" %}
+                </h6>
+              </div>
+              <div class="card-body pt-2">
+                <div class="row g-3 align-items-start">
+                  <div class="col-md-9">
+                    <p class="text-muted small mb-2">
+                      {% blocktrans %}
+                        Creates a complete enterprise data centre scenario with <strong>DCIM</strong> (Cisco Nexus Spine/Leaf fabric, Dell R750 hypervisors),
+                        <strong>Virtualisation</strong> (VMware vSphere cluster <em>dc-vsphere</em> + GCP cluster <em>gcp-dmz</em>, ~516 VMs),
+                        and full <strong>NSM</strong> policy objects:
+                      {% endblocktrans %}
+                    </p>
+                    <ul class="list-unstyled small text-muted ms-2 mb-2">
+                      <li><i class="mdi mdi-circle-small"></i>
+                        {% trans "11 Zones" %}: prod · integration-1/2/3 · dev-1/2/3 · test-1/2/3 · infrastructure
+                      </li>
+                      <li><i class="mdi mdi-circle-small"></i>
+                        {% trans "DNS subdomains per zone" %}:
+                        <code>web-01.prod.demo.de</code>, <code>db-01.int1.demo.de</code>, <code>ad-gc-01.infra.demo.de</code>, …
+                      </li>
+                      <li><i class="mdi mdi-circle-small"></i>
+                        {% trans "19 Address objects" %} (zone subnets 10.x.0.0/16, OOB/HV-MGMT, Users, GCP DMZ)
+                      </li>
+                      <li><i class="mdi mdi-circle-small"></i>
+                        {% trans "~40 Labels" %} (Env × App × Role × Tier)
+                      </li>
+                      <li><i class="mdi mdi-circle-small"></i>
+                        {% trans "34 Services" %} (SSH, HTTPS, DNS, Kerberos, AD-RPC, DB ports, …)
+                      </li>
+                      <li><i class="mdi mdi-circle-small"></i>
+                        <strong>{% trans "11 Rulebooks" %}</strong>:
+                        trustsec-core (90 rules) · trustsec-infra · illumio-intra-zone ·
+                        fw-dc-inter-zone · fw-mgmt · fw-user-access · fw-sase ·
+                        fw-internet-outer/inner · fw-gcp-dmz · fw-vpn-partner
+                      </li>
+                    </ul>
+                    <p class="text-muted small mb-0">
+                      {% trans "All objects are idempotent (get_or_create) — safe to re-run." %}
+                    </p>
+                  </div>
+                  <div class="col-md-3 text-md-end">
+                    {% if enterprise_demo_blocked %}
+                      <div class="alert alert-secondary py-2 px-3 mb-0 small">
+                        <i class="mdi mdi-lock-outline me-1"></i>
+                        {% trans "Not available: IP addresses already exist in this database." %}
+                      </div>
+                    {% else %}
+                      <form method="post" class="m-0">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="create_demo_enterprise">
+                        <button type="submit" class="btn btn-warning btn-sm">
+                          <i class="mdi mdi-play me-1"></i>{% trans "Import Enterprise Demo" %}
+                        </button>
+                      </form>
+                      <div class="text-muted small mt-2">
+                        <i class="mdi mdi-clock-outline me-1"></i>{% trans "~30–60 s" %}
+                      </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% endif %}{# plugin_installed #}
+
+  </div>
+</div>
+{% endblock %}

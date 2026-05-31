@@ -16,21 +16,22 @@
     <div class="card">
       <h5 class="card-header">{% trans "Custom Type" %}</h5>
       <table class="table table-hover attr-table">
+          <tr>
+          <th scope="row">{% trans "Order" %}</th>
+          <td>{{ object.sort_order }}</td>
+        </tr>
         <tr>
           <th scope="row">{% trans "Type" %}</th>
-          <td>
-            {% if object.icon %}<i class="mdi {{ object.icon }} me-1"></i>{% endif %}
-            {{ object.name }}
-          </td>
+          <td>{{ object.name }}</td>
         </tr>
-        <tr><th scope="row">{% trans "Area" %}</th><td>{{ object.get_area_display }}</td></tr>
         <tr>
-          <th scope="row">{% trans "Icon" %}</th>
+          <th scope="row">{% trans "Areas" %}</th>
           <td>
-            {% if object.icon %}
-              <i class="mdi {{ object.icon }} me-1 fs-5"></i>
-              <code>{{ object.icon }}</code>
-            {% else %}—{% endif %}
+            {% for area in object.areas.all %}
+              <span class="badge text-bg-secondary">{{ area.name }}</span>
+            {% empty %}
+              &mdash;
+            {% endfor %}
           </td>
         </tr>
         <tr><th scope="row">{% trans "Description" %}</th><td>{{ object.description|placeholder }}</td></tr>

@@ -1,3 +1,4 @@
+from django.utils.translation import gettext_lazy as _
 from utilities.choices import ChoiceSet
 
 __all__ = ("ActionChoices",)
@@ -12,9 +13,9 @@ class ActionChoices(ChoiceSet):
     REJECT = "reject"
 
     CHOICES = [
-        (PERMIT, "Allow", "green"),
-        (DENY, "Deny", "red"),
-        (LOG, "Log", "orange"),
-        (COUNT, "Count", "orange"),
-        (REJECT, "Reject", "red"),
+        (PERMIT, _("Permit"), "green"),
+        (DENY, _("Deny"), "red"),
+        (LOG, _("Log"), "orange"),
+        (COUNT, _("Count"), "orange"),
+        (REJECT, _("Reject"), "red"),
     ]

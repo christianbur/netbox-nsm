@@ -1,0 +1,348 @@
+{% load i18n %}
+<style>
+  .nsm-tree-hdr {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 12px; cursor: pointer;
+    font-size: 13px; font-weight: 500;
+    border: none; background: none; width: 100%; text-align: left;
+    color: inherit;
+  }
+  .nsm-tree-hdr:hover { background: var(--bs-tertiary-bg); }
+  .nsm-tree-hdr .nsm-chev {
+    font-size: 10px; transition: transform .15s;
+    color: var(--bs-secondary-color); flex-shrink: 0;
+  }
+  .nsm-tree-hdr[aria-expanded="true"] .nsm-chev { transform: rotate(90deg); }
+  .nsm-tree-hdr[aria-expanded="false"] .nsm-chev { transform: rotate(0deg); }
+  .nsm-rb-hdr {
+    display: flex; align-items: center; gap: 6px;
+    padding: 3px 12px 3px 24px; cursor: pointer;
+    font-size: 12px; border: none; background: none;
+    width: 100%; text-align: left; color: inherit;
+  }
+  .nsm-rb-hdr:hover { background: var(--bs-tertiary-bg); }
+  .nsm-rb-hdr .nsm-chev {
+    font-size: 9px; transition: transform .15s;
+    color: var(--bs-secondary-color); flex-shrink: 0;
+  }
+  .nsm-rb-hdr[aria-expanded="true"] .nsm-chev { transform: rotate(90deg); }
+  .nsm-rb-hdr[aria-expanded="false"] .nsm-chev { transform: rotate(0deg); }
+  .nsm-link-row .nsm-link-actions { visibility: hidden; }
+  .nsm-link-row:hover .nsm-link-actions { visibility: visible; }
+  .nsm-del-btn { padding: 0 4px; line-height: 1.4; }
+</style>
+
+<div class="card">
+  <h5 class="card-header d-flex justify-content-between align-items-center">
+    <span>{% trans "Security" %}{% if nsm_security_badge %} <span class="badge text-bg-secondary ms-1">{{ nsm_security_badge }}</span>{% endif %}</span>
+    <span class="d-flex gap-1">
+      <a href="{{ nsm_analyzer_url }}" class="btn btn-ghost-secondary btn-sm">{% trans "Analyzer" %}</a>
+      <a href="{{ nsm_assign_url }}" class="btn btn-ghost-primary btn-sm">
+        <i class="mdi mdi-plus-thick"></i> {% trans "Assign" %}
+      </a>
+    </span>
+  </h5>
+  <div class="card-body p-0">
+
+    {% if not nsm_rulebook_groups and not nsm_link_type_groups %}
+    <div class="ps-3 py-2 text-muted">{% trans "None" %}</div>
+    {% endif %}
+
+    {# ── Rulebook section ──────────────────────────────────────────────── #}
+    {% if nsm_rulebook_groups %}
+    <div class="border-bottom">
+      <button class="nsm-tree-hdr"
+              data-bs-toggle="collapse"
+              data-bs-target="#nsm-cat-rulebook"
+              aria-expanded="true">
+        <i class="mdi mdi-chevron-right nsm-chev"></i>
+        <span>{% trans "Rulebook" %}</span>
+        <span class="badge text-bg-secondary ms-1">{{ nsm_unique_rules_total }}</span>
+      </button>
+      <div id="nsm-cat-rulebook" class="collapse show">
+        <div class="nsm-rulebook-accordion"
+             id="nsm-accordion"
+             data-api-url="{{ nsm_api_url }}"
+             data-next-offset="{{ nsm_next_offset }}"
+             data-has-more="{% if nsm_has_more %}1{% else %}0{% endif %}">
+
+          {% for group in nsm_rulebook_groups %}
+          {% with rb=group.rulebook %}
+          <div class="border-top" data-rb-pk="{{ rb.pk }}">
+            <button class="nsm-rb-hdr"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#nsm-rb-{{ rb.pk }}"
+                    aria-expanded="false">
+              <i class="mdi mdi-chevron-right nsm-chev"></i>
+              {% if rb.get_absolute_url %}<a href="{{ rb.get_absolute_url }}" class="text-body" onclick="event.stopPropagation()">{{ rb.name }}</a>{% else %}<span>{{ rb.name }}</span>{% endif %}
+              <span class="badge text-bg-secondary ms-1 nsm-rb-count">{{ group.unique_count }}</span>
+            </button>
+            <div id="nsm-rb-{{ rb.pk }}" class="collapse">
+              {% for fg in group.field_groups %}
+              <div class="nsm-fg" data-field-pk="{{ fg.field.pk }}">
+                <div class="py-1" style="font-size:11px; color:var(--bs-secondary-color); border-top:1px solid var(--bs-border-color-translucent); padding-left:2.25rem;">
+                  <i class="mdi mdi-arrow-right-thin"></i> {{ fg.field.name }}
+                </div>
+                <table class="table table-hover table-sm mb-0">
+                  <tbody class="nsm-fg-tbody">
+                    {% for rule in fg.rules %}
+                    <tr>
+                      <td style="font-size:12px; padding-left:3.25rem;">
+                        <a href="{{ rule.get_absolute_url }}">{{ rule.name }}</a>
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endwith %}
+          {% endfor %}
+
+          {# sentinel for infinite scroll #}
+          <div class="nsm-sentinel" style="height:1px;"></div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {# ── NSMObjectLink type groups ──────────────────────────────────────── #}
+    {% for group in nsm_link_type_groups %}
+    <div class="border-bottom">
+      <button class="nsm-tree-hdr"
+              data-bs-toggle="collapse"
+              data-bs-target="#nsm-cat-{{ group.type_key }}"
+              aria-expanded="true">
+        <i class="mdi mdi-chevron-right nsm-chev"></i>
+        <span>{{ group.type_label }}</span>
+        <span class="badge text-bg-secondary ms-1">{{ group.count }}</span>
+      </button>
+      <div id="nsm-cat-{{ group.type_key }}" class="collapse show">
+        <div {% if group.count > 15 %}style="max-height:420px;overflow-y:auto;"{% endif %}>
+        <table class="table table-hover table-sm mb-0">
+          <tbody>
+            {% for linked in group.objects %}
+            <tr class="nsm-link-row">
+              <td class="ps-5" style="font-size:12px;">
+                <a href="{{ linked.url }}">{{ linked.name }}</a>
+              </td>
+              {% if linked.comment %}<td class="text-muted" style="font-size:11px;">{{ linked.comment }}</td>{% endif %}
+              {% if linked.delete_url %}<td class="pe-2 text-end nsm-link-actions" style="white-space:nowrap;">
+                <a href="{{ linked.edit_url }}" class="btn btn-ghost-secondary btn-sm nsm-del-btn" title="{% trans "Edit comment" %}">
+                  <i class="mdi mdi-pencil-outline"></i>
+                </a>
+                <a href="{{ linked.delete_url }}" class="btn btn-ghost-danger btn-sm nsm-del-btn" title="{% trans "Remove assignment" %}">
+                  <i class="mdi mdi-close"></i>
+                </a>
+              </td>{% endif %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+
+    {# ── Enforced Rulebooks (Device / VM / VDC only) ───────────────────── #}
+    {% if nsm_enforcer_assignments %}
+    <div class="border-bottom">
+      <button class="nsm-tree-hdr"
+              data-bs-toggle="collapse"
+              data-bs-target="#nsm-cat-enforced"
+              aria-expanded="true">
+        <i class="mdi mdi-chevron-right nsm-chev"></i>
+        <span>{% trans "Enforced Rulebooks" %}</span>
+        <span class="badge text-bg-secondary ms-1">{{ nsm_enforcer_assignments|length }}</span>
+      </button>
+      <div id="nsm-cat-enforced" class="collapse show">
+        <table class="table table-hover table-sm mb-0">
+          <tbody>
+            {% for assignment in nsm_enforcer_assignments %}
+            <tr>
+              <td class="ps-5" style="font-size:12px;">
+                <a href="{{ assignment.rulebook.get_absolute_url }}">{{ assignment.rulebook.name }}</a>
+                <span class="badge text-bg-secondary ms-1" style="font-size:10px;">{{ assignment.rulebook.get_rulebook_type_display }}</span>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    {# ── Inherited NSMObjectLinks – loaded on demand ────────────────────── #}
+    {% if nsm_inherited_api_url %}
+    <div id="nsm-inh-container" data-api-url="{{ nsm_inherited_api_url }}">
+      <div class="border-top pt-1 pb-1 px-3 d-flex align-items-center justify-content-between"
+           style="font-size:11px; color: var(--bs-secondary-color);">
+        <span><i class="mdi mdi-arrow-up-circle-outline"></i> {% trans "Inherited from containing prefix" %}</span>
+        <button id="nsm-inh-load-btn" class="btn btn-sm btn-outline-secondary py-0 px-1"
+                style="font-size:10px;" type="button">
+          <i class="mdi mdi-download-outline"></i> {% trans "Load" %}
+        </button>
+      </div>
+      <div id="nsm-inh-body"></div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<script>
+(function () {
+  var accordion = document.querySelector('.nsm-rulebook-accordion');
+  if (!accordion || accordion.dataset.hasMore !== '1') return;
+
+  var loading = false;
+  var sentinel = accordion.querySelector('.nsm-sentinel');
+
+  function appendItems(results) {
+    results.forEach(function (item) {
+      var rbPk = String(item.rulebook_pk || 0);
+      var rbColId = 'nsm-rb-' + rbPk;
+      var existing = accordion.querySelector('[data-rb-pk="' + rbPk + '"]');
+      var collapseDiv;
+
+      if (existing) {
+        collapseDiv = document.getElementById(rbColId);
+      } else {
+        var rbLink = item.rulebook_url
+          ? '<a href="' + escHtml(item.rulebook_url) + '" class="text-body" onclick="event.stopPropagation()">' + escHtml(item.rulebook_name) + '</a>'
+          : escHtml(item.rulebook_name);
+
+        var div = document.createElement('div');
+        div.className = 'border-top';
+        div.dataset.rbPk = rbPk;
+        div.innerHTML =
+          '<button class="nsm-rb-hdr" data-bs-toggle="collapse" data-bs-target="#' + rbColId + '" aria-expanded="false">' +
+            '<i class="mdi mdi-chevron-right nsm-chev"></i>' +
+            rbLink +
+            '<span class="badge text-bg-secondary ms-1 nsm-rb-count">0</span>' +
+          '</button>' +
+          '<div id="' + rbColId + '" class="collapse"></div>';
+        accordion.insertBefore(div, sentinel);
+        collapseDiv = div.querySelector('.collapse');
+      }
+
+      var fieldPk = String(item.field_pk || 0);
+      var fgDiv = collapseDiv.querySelector('[data-field-pk="' + fieldPk + '"]');
+      if (!fgDiv) {
+        fgDiv = document.createElement('div');
+        fgDiv.className = 'nsm-fg';
+        fgDiv.dataset.fieldPk = fieldPk;
+        fgDiv.innerHTML =
+          '<div class="py-1" style="font-size:11px; color:var(--bs-secondary-color); border-top:1px solid var(--bs-border-color-translucent); padding-left:2.25rem;">' +
+            '<i class="mdi mdi-arrow-right-thin"></i> ' + escHtml(item.field_name) +
+          '</div>' +
+          '<table class="table table-hover table-sm mb-0"><tbody class="nsm-fg-tbody"></tbody></table>';
+        collapseDiv.appendChild(fgDiv);
+      }
+
+      var tbody = fgDiv.querySelector('.nsm-fg-tbody');
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td style="font-size:12px; padding-left:3.25rem;">' +
+          '<a href="' + escHtml(item.rule_url) + '">' + escHtml(item.rule_name) + '</a>' +
+        '</td>';
+      tbody.appendChild(tr);
+    });
+  }
+
+  var observer = new IntersectionObserver(function (entries) {
+    if (!entries[0].isIntersecting || loading) return;
+    if (accordion.dataset.hasMore !== '1') { observer.disconnect(); return; }
+
+    loading = true;
+    var url = accordion.dataset.apiUrl + '&offset=' + accordion.dataset.nextOffset;
+    fetch(url, {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        appendItems(data.results);
+        accordion.dataset.nextOffset = data.offset;
+        accordion.dataset.hasMore = data.has_more ? '1' : '0';
+        if (!data.has_more) observer.disconnect();
+        loading = false;
+      })
+      .catch(function () { loading = false; });
+  }, {root: null, threshold: 0});
+
+  observer.observe(sentinel);
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+})();
+</script>
+
+<script>
+(function () {
+  var inhContainer = document.getElementById('nsm-inh-container');
+  var inhBtn = document.getElementById('nsm-inh-load-btn');
+  if (!inhContainer || !inhBtn) return;
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  inhBtn.addEventListener('click', function () {
+    inhBtn.disabled = true;
+    inhBtn.innerHTML = '<i class="mdi mdi-loading mdi-spin"></i>';
+
+    fetch(inhContainer.dataset.apiUrl, {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        // Remove the header bar (replace with plain label)
+        var hdrBar = inhBtn.closest('.d-flex');
+        if (hdrBar) {
+          var lbl = document.createElement('div');
+          lbl.className = 'border-top pt-1 pb-1 px-3';
+          lbl.style.cssText = 'font-size:11px; color: var(--bs-secondary-color);';
+          lbl.innerHTML = '<i class="mdi mdi-arrow-up-circle-outline"></i> ' + hdrBar.querySelector('span').textContent.trim();
+          hdrBar.replaceWith(lbl);
+        }
+
+        var body = document.getElementById('nsm-inh-body');
+        if (!data.groups || data.groups.length === 0) {
+          body.innerHTML = '<div class="px-3 py-1 text-muted" style="font-size:11px;">{% trans "No inherited links found." %}</div>';
+          return;
+        }
+
+        data.groups.forEach(function (group) {
+          var colId = 'nsm-inh-' + group.type_key;
+          var scrollStyle = group.count > 15 ? ' style="max-height:420px;overflow-y:auto;"' : '';
+          var rows = group.objects.map(function (linked) {
+            return '<tr><td class="ps-5" style="font-size:12px;">' +
+              '<a href="' + escHtml(linked.url) + '">' + escHtml(linked.name) + '</a>' +
+              ' <span class="text-muted" style="font-size:11px;">' +
+                '({% trans "from" %} <a href="' + escHtml(linked.inherited_from_url) + '" class="text-muted">' + escHtml(linked.inherited_from_name) + '</a>)' +
+              '</span>' +
+              '</td></tr>';
+          }).join('');
+
+          var div = document.createElement('div');
+          div.className = 'border-bottom';
+          div.innerHTML =
+            '<button class="nsm-tree-hdr" data-bs-toggle="collapse" data-bs-target="#' + colId + '" aria-expanded="true">' +
+              '<i class="mdi mdi-chevron-right nsm-chev"></i>' +
+              '<span class="text-muted fst-italic">' + escHtml(group.type_label) + '</span>' +
+              '<span class="badge text-bg-secondary ms-1 opacity-75">' + group.count + '</span>' +
+            '</button>' +
+            '<div id="' + colId + '" class="collapse show">' +
+              '<div' + scrollStyle + '>' +
+                '<table class="table table-hover table-sm mb-0"><tbody>' + rows + '</tbody></table>' +
+              '</div>' +
+            '</div>';
+          body.appendChild(div);
+        });
+      })
+      .catch(function () {
+        inhBtn.disabled = false;
+        inhBtn.innerHTML = '<i class="mdi mdi-download-outline"></i> {% trans "Load" %}';
+      });
+  });
+})();
+</script>

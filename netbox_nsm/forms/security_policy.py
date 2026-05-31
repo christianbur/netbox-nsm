@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext_lazy as _
+import json
 
 from dcim.models import Device, VirtualDeviceContext
 from netbox.forms import (
@@ -19,11 +20,14 @@ from utilities.forms.rendering import FieldSet, ObjectAttribute
 from virtualization.models import VirtualMachine
 
 from netbox_nsm.models import (
-    SecurityObject,
+    RulebookField,
+    SecurityArea,
     SecurityObjectGroup,
     SecurityPolicyRule,
     SecurityPolicyRulebook,
     SecurityPolicyAssignment,
+    SecurityPolicyRuleObjectItem,
+    SecurityPolicyRuleGroupItem,
 )
 
 __all__ = (
@@ -42,13 +46,28 @@ class SecurityPolicyRulebookForm(PrimaryModelForm):
     name = forms.CharField(max_length=100, required=True)
     rule_comment_template = forms.CharField(
         required=False,
-        widget=forms.Textarea(attrs={"rows": 5, "placeholder": "## Notes\n\n{rulebook} – Rule #{index}\n"}),
+        widget=forms.Textarea(
+            attrs={"rows": 5, "placeholder": "## Notes\n\n{rulebook} – Rule #{index}\n"}
+        ),
         label=_("Rule Comment Template"),
-        help_text=_("Markdown template pre-filled when adding new rules. Supports {rule_name}, {index}, {rulebook}."),
+        help_text=_(
+            "Markdown template pre-filled when adding new rules. Supports {rule_name}, {index}, {rulebook}."
+        ),
+    )
+    assigned_devices = DynamicModelMultipleChoiceField(
+        queryset=Device.objects.all(),
+        required=False,
+        label=_("Assigned Devices"),
+    )
+    assigned_vms = DynamicModelMultipleChoiceField(
+        queryset=VirtualMachine.objects.all(),
+        required=False,
+        label=_("Assigned Virtual Machines"),
     )
 
     fieldsets = (
         FieldSet("name", "rulebook_type", "description", name=_("Rulebook")),
+        FieldSet("assigned_devices", "assigned_vms", name=_("Assigned Objects")),
         FieldSet("rule_comment_template", name=_("Rule Defaults")),
         FieldSet("tags", name=_("Tags")),
     )
@@ -65,6 +84,47 @@ class SecurityPolicyRulebookForm(PrimaryModelForm):
             "tags",
         )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            from django.contrib.contenttypes.models import ContentType
+            device_ct = ContentType.objects.get_for_model(Device)
+            vm_ct = ContentType.objects.get_for_model(VirtualMachine)
+            device_pks = list(self.instance.assignments.filter(
+                assigned_object_type=device_ct
+            ).values_list("assigned_object_id", flat=True))
+            vm_pks = list(self.instance.assignments.filter(
+                assigned_object_type=vm_ct
+            ).values_list("assigned_object_id", flat=True))
+            self.initial["assigned_devices"] = device_pks
+            self.initial["assigned_vms"] = vm_pks
+
+    def save(self, commit=True):
+        instance = super().save(commit=commit)
+        if commit:
+            self._save_assignments(instance)
+        return instance
+
+    def _save_assignments(self, instance):
+        from django.contrib.contenttypes.models import ContentType
+        from netbox_nsm.models import SecurityPolicyAssignment
+        device_ct = ContentType.objects.get_for_model(Device)
+        vm_ct = ContentType.objects.get_for_model(VirtualMachine)
+        instance.assignments.filter(
+            assigned_object_type__in=[device_ct, vm_ct]
+        ).delete()
+        for device in self.cleaned_data.get("assigned_devices") or []:
+            SecurityPolicyAssignment.objects.get_or_create(
+                rulebook=instance,
+                assigned_object_type=device_ct,
+                assigned_object_id=device.pk,
+            )
+        for vm in self.cleaned_data.get("assigned_vms") or []:
+            SecurityPolicyAssignment.objects.get_or_create(
+                rulebook=instance,
+                assigned_object_type=vm_ct,
+                assigned_object_id=vm.pk,
+            )
 
 
 class SecurityPolicyRulebookFilterForm(PrimaryModelFilterSetForm):
@@ -93,51 +153,22 @@ class SecurityPolicyRulebookBulkEditForm(PrimaryModelBulkEditForm):
 
 class SecurityPolicyRuleForm(PrimaryModelForm):
     index = forms.IntegerField(min_value=1, required=True, initial=100)
-    enabled = forms.BooleanField(required=False, initial=True, label=_("Status (on/off)"))
+    enabled = forms.BooleanField(
+        required=False, initial=True, label=_("Status (on/off)")
+    )
     name = forms.CharField(max_length=100, required=True)
     rulebook = DynamicModelChoiceField(
         queryset=SecurityPolicyRulebook.objects.all(), required=True
     )
-
-    custom_srcdst_objects = forms.ModelMultipleChoiceField(
-        queryset=SecurityObject.objects.filter(custom_type__area="srcdst"),
+    area_selections = forms.CharField(
+        widget=forms.HiddenInput(),
         required=False,
-        label=_("Source Objects"),
+        initial="[]",
     )
-    source_groups = forms.ModelMultipleChoiceField(
-        queryset=SecurityObjectGroup.objects.filter(area="srcdst"),
+    virtual_group_config = forms.CharField(
+        widget=forms.HiddenInput(),
         required=False,
-        label=_("Source Groups"),
-    )
-    destination_custom_objects = forms.ModelMultipleChoiceField(
-        queryset=SecurityObject.objects.filter(custom_type__area="srcdst"),
-        required=False,
-        label=_("Destination Objects"),
-    )
-    destination_groups = forms.ModelMultipleChoiceField(
-        queryset=SecurityObjectGroup.objects.filter(area="srcdst"),
-        required=False,
-        label=_("Destination Groups"),
-    )
-    custom_service_objects = forms.ModelMultipleChoiceField(
-        queryset=SecurityObject.objects.filter(custom_type__area="services"),
-        required=False,
-        label=_("Service Objects"),
-    )
-    service_groups = forms.ModelMultipleChoiceField(
-        queryset=SecurityObjectGroup.objects.filter(area="services"),
-        required=False,
-        label=_("Service Groups"),
-    )
-    custom_action_objects = forms.ModelMultipleChoiceField(
-        queryset=SecurityObject.objects.filter(custom_type__area="action"),
-        required=False,
-        label=_("Action Objects"),
-    )
-    action_groups = forms.ModelMultipleChoiceField(
-        queryset=SecurityObjectGroup.objects.filter(area="action"),
-        required=False,
-        label=_("Action Groups"),
+        initial="{}",
     )
 
     fieldsets = (
@@ -148,26 +179,6 @@ class SecurityPolicyRuleForm(PrimaryModelForm):
             "name",
             "description",
             name=_("Policy Rule"),
-        ),
-        FieldSet(
-            "custom_srcdst_objects",
-            "source_groups",
-            name=_("Source"),
-        ),
-        FieldSet(
-            "destination_custom_objects",
-            "destination_groups",
-            name=_("Destination"),
-        ),
-        FieldSet(
-            "custom_service_objects",
-            "service_groups",
-            name=_("Service"),
-        ),
-        FieldSet(
-            "custom_action_objects",
-            "action_groups",
-            name=_("Action"),
         ),
         FieldSet("tags", name=_("Tags")),
     )
@@ -180,14 +191,6 @@ class SecurityPolicyRuleForm(PrimaryModelForm):
             "index",
             "enabled",
             "name",
-            "custom_srcdst_objects",
-            "source_groups",
-            "destination_custom_objects",
-            "destination_groups",
-            "custom_service_objects",
-            "service_groups",
-            "custom_action_objects",
-            "action_groups",
             "description",
             "comments",
             "tags",
@@ -195,6 +198,96 @@ class SecurityPolicyRuleForm(PrimaryModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+    def save(self, commit=True):
+        instance = super().save(commit=commit)
+        if commit:
+            self._save_area_selections(instance)
+            self._save_virtual_group_config(instance)
+        return instance
+
+    def _save_virtual_group_config(self, instance):
+        """Parse virtual_group_config JSON and save to rule.virtual_group_config.
+        Format: {area_slug: true} — true means all items in that area form one AND-group.
+        """
+        raw = self.cleaned_data.get("virtual_group_config", "{}") or "{}"
+        try:
+            config = json.loads(raw)
+        except (ValueError, TypeError):
+            config = {}
+        if not isinstance(config, dict):
+            config = {}
+        # Keep only areas where value is truthy
+        clean = {str(k): True for k, v in config.items() if v}
+        instance.virtual_group_config = clean
+        instance.save(update_fields=["virtual_group_config"])
+
+    def _save_area_selections(self, instance):
+        """Parse area_selections JSON and create/update SecurityPolicyRuleObjectItem and SecurityPolicyRuleGroupItem."""
+        raw = self.cleaned_data.get("area_selections", "[]") or "[]"
+        try:
+            selections = json.loads(raw)
+        except (ValueError, TypeError):
+            selections = []
+
+        if not isinstance(selections, list):
+            selections = []
+
+        # Delete old items and re-create from submitted selections
+        instance.object_items.all().delete()
+        instance.group_items.all().delete()
+
+        # Build RulebookField lookup: slug → field (scoped to this rulebook)
+        field_cache = {
+            f.slug: f
+            for f in RulebookField.objects.filter(rulebook=instance.rulebook)
+        }
+
+        for sel in selections:
+            if not isinstance(sel, dict):
+                continue
+            area_slug = str(sel.get("area", "")).strip()
+            kind = str(sel.get("kind", "")).strip()
+            obj_id = sel.get("id")
+
+            if not area_slug or not kind or not obj_id:
+                continue
+            field = field_cache.get(area_slug)
+            if not field:
+                continue
+
+            if kind == "object":
+                parts = str(obj_id).split(".", 1)
+                if len(parts) != 2:
+                    continue
+                try:
+                    ct_id, real_obj_id = int(parts[0]), int(parts[1])
+                except (ValueError, TypeError):
+                    continue
+                exclude = bool(sel.get("exclude", False))
+                SecurityPolicyRuleObjectItem.objects.get_or_create(
+                    rule=instance,
+                    field=field,
+                    content_type_id=ct_id,
+                    object_id=real_obj_id,
+                    defaults={"exclude": exclude},
+                )
+            elif kind == "group":
+                try:
+                    pk = int(obj_id)
+                except (ValueError, TypeError):
+                    continue
+                try:
+                    grp = SecurityObjectGroup.objects.get(pk=pk)
+                except SecurityObjectGroup.DoesNotExist:
+                    continue
+                exclude = bool(sel.get("exclude", False))
+                SecurityPolicyRuleGroupItem.objects.get_or_create(
+                    rule=instance,
+                    field=field,
+                    security_group=grp,
+                    defaults={"exclude": exclude},
+                )
 
 
 class SecurityPolicyRuleFilterForm(PrimaryModelFilterSetForm):

@@ -8,95 +8,119 @@
   <div class="col-12">
     <div class="card mb-3">
       <div class="card-body pb-2">
-        <ul class="nav nav-tabs mb-3" role="tablist">
-          {% for tab in main_tabs %}
-            <li class="nav-item" role="presentation">
-              <a class="nav-link{% if tab.slug == active_main_tab %} active{% endif %}" href="{{ tab.href }}">
-                {{ tab.label }}
-              </a>
-            </li>
-          {% endfor %}
-        </ul>
-
         {% for group in tab_groups %}
           {% if group.slug == active_main_tab %}
             <div class="card border-0 bg-body-tertiary mb-3">
               <div class="card-body py-3">
-                <div class="fw-semibold text-uppercase text-muted mb-2">{{ group.label }}</div>
-                <ul class="nav nav-pills gap-2 mb-3" role="tablist">
-                  {% for tab_slug in group.tabs %}
-                    {% for tab in tabs %}
-                      {% if tab.slug == tab_slug %}
-                        <li class="nav-item" role="presentation">
-                          <a class="nav-link{% if tab.slug == active_tab.slug %} active{% endif %}" href="{% url tab_url_name tab=tab.slug %}">
-                            {{ tab.label }}
-                          </a>
-                        </li>
-                      {% endif %}
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                  <div>
+                    <div class="fw-semibold text-uppercase text-muted">{{ group.label }}</div>
+                    <div class="small text-muted">{{ result_count }} object{{ result_count|pluralize }}</div>
+                  </div>
+                </div>
+
+                <div class="d-flex flex-wrap align-items-end gap-3 mb-3">
+                  <ul class="nav nav-tabs" role="tablist">
+                    {% for panel_tab in panel_tabs %}
+                      <li class="nav-item" role="presentation">
+                        <a class="nav-link{% if panel_tab.active %} active{% endif %}" href="{{ panel_tab.href }}">{{ panel_tab.label }}</a>
+                      </li>
                     {% endfor %}
-                  {% endfor %}
-                </ul>
-
-                <div class="d-flex flex-wrap gap-2 align-items-center">
-                  <a class="btn btn-primary" href="{{ active_tab_add_url }}">Add</a>
-                  <button type="submit" form="nsm-bulk-delete-form" class="btn btn-danger btn-sm ms-auto"
-                          onclick="return confirm('Delete selected objects?');">
-                    <i class="mdi mdi-trash-can-outline"></i> Delete selected
-                  </button>
+                  </ul>
                 </div>
 
-                <form id="nsm-bulk-delete-form" method="post"
-                      action="/plugins/netbox-nsm/custom-objects/delete/">
-                  {% csrf_token %}
-                <div class="table-responsive mt-3">
-                  <table class="table table-hover align-middle mb-0">
-                    <thead>
-                      <tr>
-                        <th style="width:1rem">
-                          <input type="checkbox" id="nsm-select-all"
-                                 onclick="document.querySelectorAll('.nsm-obj-cb').forEach(cb=>cb.checked=this.checked)">
-                        </th>
-                        {% for column in table_columns %}
-                          <th>{{ column.label }}</th>
-                        {% endfor %}
-                        <th></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {% for row in table_rows %}
-                        <tr>
-                          <td>
-                            <input type="checkbox" class="nsm-obj-cb" name="pk" value="{{ row.pk }}">
-                          </td>
-                          {% for cell in row.cells %}
-                            <td>
-                              {% if forloop.first and row.url %}
-                                <a href="{{ row.url }}">{{ cell }}</a>
-                              {% else %}
-                                {{ cell }}
-                              {% endif %}
-                            </td>
+                {% if active_tab %}
+                  {% if panel == 'filters' %}
+                    <div class="card border">
+                      <div class="card-body">
+                        <form method="get" action="">
+                          <input type="hidden" name="panel" value="results">
+                          <div class="row g-3 align-items-end">
+                            <div class="col-md-6 col-lg-4">
+                              <label class="form-label">Search</label>
+                              <input type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="Name, description, color, fields ...">
+                            </div>
+                            <div class="col-auto">
+                              <button type="submit" class="btn btn-primary">Apply</button>
+                            </div>
+                            <div class="col-auto">
+                              <a href="{{ request.path }}" class="btn btn-outline-secondary">Reset</a>
+                            </div>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+                  {% else %}
+                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                      <a class="btn btn-primary" href="{{ active_tab_add_url }}">Add</a>
+                      <button type="submit" form="nsm-bulk-delete-form" class="btn btn-danger btn-sm ms-auto"
+                              onclick="return confirm('Delete selected objects?');">
+                        <i class="mdi mdi-trash-can-outline"></i> Delete selected
+                      </button>
+                    </div>
+
+                    <form id="nsm-bulk-delete-form" method="post"
+                          action="/plugins/netbox-nsm/custom-objects/delete/">
+                      {% csrf_token %}
+                    <div class="table-responsive mt-3">
+                      <table class="table table-hover align-middle mb-0">
+                        <thead>
+                          <tr>
+                            <th style="width:1rem">
+                              <input type="checkbox" id="nsm-select-all"
+                                     onclick="document.querySelectorAll('.nsm-obj-cb').forEach(cb=>cb.checked=this.checked)">
+                            </th>
+                            {% for column in table_columns %}
+                              <th>{{ column.label }}</th>
+                            {% endfor %}
+                            <th></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for row in table_rows %}
+                            <tr>
+                              <td>
+                                <input type="checkbox" class="nsm-obj-cb" name="pk" value="{{ row.pk }}">
+                              </td>
+                              {% for cell in row.cells %}
+                                <td>
+                                  {% if forloop.first and row.url %}
+                                    <a href="{{ row.url }}">{{ cell }}</a>
+                                  {% else %}
+                                    {{ cell }}
+                                  {% endif %}
+                                </td>
+                              {% endfor %}
+                              <td class="text-end text-nowrap noprint p-1">
+                                <span class="btn-group dropdown">
+                                  <a class="btn btn-sm btn-warning" href="{{ row.edit_url }}" type="button" aria-label="Edit"><i class="mdi mdi-pencil"></i></a>
+                                  <a class="btn btn-sm btn-warning dropdown-toggle" type="button" data-bs-toggle="dropdown" style="padding-left:2px"><span class="visually-hidden">Toggle Dropdown</span></a>
+                                  <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="{{ row.delete_url }}"><i class="mdi mdi-trash-can-outline"></i> Delete</a></li>
+                                    <li><a class="dropdown-item" href="{{ row.changelog_url }}"><i class="mdi mdi-history"></i> Changelog</a></li>
+                                  </ul>
+                                </span>
+                              </td>
+                            </tr>
+                          {% empty %}
+                            <tr>
+                              <td colspan="{{ table_columns|length|add:2 }}" class="text-muted">No objects found.</td>
+                            </tr>
                           {% endfor %}
-                          <td class="text-end text-nowrap noprint p-1">
-                            <span class="btn-group dropdown">
-                              <a class="btn btn-sm btn-warning" href="{{ row.edit_url }}" type="button" aria-label="Edit"><i class="mdi mdi-pencil"></i></a>
-                              <a class="btn btn-sm btn-warning dropdown-toggle" type="button" data-bs-toggle="dropdown" style="padding-left:2px"><span class="visually-hidden">Toggle Dropdown</span></a>
-                              <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{{ row.delete_url }}"><i class="mdi mdi-trash-can-outline"></i> Delete</a></li>
-                                <li><a class="dropdown-item" href="{{ row.changelog_url }}"><i class="mdi mdi-history"></i> Changelog</a></li>
-                              </ul>
-                            </span>
-                          </td>
-                        </tr>
-                      {% empty %}
-                        <tr>
-                          <td colspan="{{ table_columns|length|add:2 }}" class="text-muted">No objects found.</td>
-                        </tr>
-                      {% endfor %}
-                    </tbody>
-                  </table>
-                </div>
-                </form>
+                        </tbody>
+                      </table>
+                    </div>
+                    </form>
+                  {% endif %}
+                {% else %}
+                  <div class="alert alert-secondary d-flex justify-content-between align-items-center mb-0" role="alert">
+                    <div>
+                      <div class="fw-semibold">No object types in this area yet.</div>
+                      <div class="small">Create a type for {{ group.label }} in the Object-Builder first.</div>
+                    </div>
+                    <a class="btn btn-primary" href="{{ active_tab_add_url }}">Open Object-Builder</a>
+                  </div>
+                {% endif %}
               </div>
             </div>
           {% endif %}

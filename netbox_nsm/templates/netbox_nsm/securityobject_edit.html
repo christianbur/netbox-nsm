@@ -1,0 +1,10 @@
+{% extends 'generic/object_edit.html' %}
+{% load form_helpers %}
+
+{% block form %}
+  <form method="post" enctype="multipart/form-data" class="object-edit-form">
+    {% csrf_token %}
+    {% render_form form %}
+    {% block buttons %}{{ block.super }}{% endblock %}
+  </form>
+{% endblock %}

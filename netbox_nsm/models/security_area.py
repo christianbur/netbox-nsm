@@ -9,11 +9,6 @@ from netbox.search import SearchIndex, register_search
 __all__ = ("SecurityArea", "SecurityAreaIndex")
 
 
-class PlacementModeChoices(models.TextChoices):
-    FIXED = "fixed", _("Fixed (single list, no source/destination split)")
-    DIRECTIONAL = "directional", _("Directional (separate Source and Destination)")
-
-
 class SecurityArea(PrimaryModel):
     sort_order = models.PositiveIntegerField(
         default=100,
@@ -22,23 +17,15 @@ class SecurityArea(PrimaryModel):
     slug = models.CharField(
         max_length=50,
         unique=True,
-        help_text=_("Unique identifier used internally (e.g. 'srcdst', 'services')."),
+        help_text=_(
+            "Unique identifier used internally (e.g. 'source', 'destination', 'services')."
+        ),
     )
     name = models.CharField(max_length=100)
-    placement_mode = models.CharField(
-        max_length=20,
-        choices=PlacementModeChoices.choices,
-        default=PlacementModeChoices.FIXED,
-        help_text=_("Whether objects in this area are assigned with source/destination (directional) or as a single list (fixed)."),
-    )
-    is_system = models.BooleanField(
-        default=False,
-        help_text=_("System areas are built-in and cannot be deleted."),
-    )
 
     class Meta:
-        verbose_name = _("Area")
-        verbose_name_plural = _("Areas")
+        verbose_name = _("Security Area")
+        verbose_name_plural = _("Security Areas")
         ordering = ("sort_order", "slug")
 
     def __str__(self):
@@ -48,8 +35,6 @@ class SecurityArea(PrimaryModel):
         return reverse("plugins:netbox_nsm:securityarea", args=[self.pk])
 
     def delete(self, *args, **kwargs):
-        if self.is_system:
-            raise ValidationError(_("System areas cannot be deleted."))
         if self.object_types.exists():
             raise ValidationError(
                 _("This area still has object types. Remove them first.")

@@ -1,0 +1,34 @@
+{% comment %}
+Renders one node of the address tree.
+  node  = { name, url, kind: 'group'|'leaf', ip_ref: {str,url}|None, children: [...] }
+  depth = current nesting depth (0 = top-level)
+  prefix = 'src' or 'dst'  (for unique HTML IDs)
+  forloop_counter = parent forloop.counter (for unique IDs)
+{% endcomment %}
+{% if node.kind == "group" %}
+  {% if node.children %}
+  <details class="nsm-addr-details{% if depth == 0 %} nsm-addr-top{% endif %}">
+    <summary class="nsm-addr-summary">
+      <a href="{{ node.url }}" class="nsm-addr-link" onclick="event.stopPropagation()">{{ node.name }}</a>
+    </summary>
+    <div class="nsm-addr-children">
+      {% for child in node.children %}
+        {% include "netbox_nsm/inc/addr_tree_node.html" with node=child depth=depth|add:1 prefix=prefix forloop_counter=forloop.counter %}
+      {% endfor %}
+    </div>
+  </details>
+  {% else %}
+  <div class="nsm-addr-leaf">
+    <a href="{{ node.url }}">{{ node.name }}</a>
+    <span class="text-muted small ms-1">(leer)</span>
+  </div>
+  {% endif %}
+{% else %}
+  {# Leaf node #}
+  <div class="nsm-addr-leaf">
+    <a href="{{ node.url }}" class="nsm-addr-obj-link">{{ node.name }}</a>
+    {% if node.ip_ref %}
+      <span class="nsm-addr-ip">→ <a href="{{ node.ip_ref.url }}" class="text-muted">{{ node.ip_ref.str }}</a></span>
+    {% endif %}
+  </div>
+{% endif %}

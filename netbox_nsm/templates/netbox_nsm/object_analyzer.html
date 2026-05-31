@@ -1,0 +1,805 @@
+{% extends 'generic/_base.html' %}
+{% load i18n static %}
+
+{% block title %}Object Analyzer{% endblock %}
+
+{% block content %}
+<style>
+/* ── Search / Picker ─────────────────────────────────── */
+.nsm-oa-wrap  { position: relative; }
+.nsm-oa-input {
+  width: 100%; padding: .38rem .8rem; font-size: .85rem;
+  border: 1px solid var(--bs-secondary); border-radius: .35rem;
+  background: var(--bs-body-bg); color: var(--bs-body-color);
+}
+.nsm-oa-input:focus { outline: 0; border-color: var(--bs-primary); box-shadow: 0 0 0 .15rem rgba(13,110,253,.2); }
+.nsm-oa-drop {
+  position: absolute; left: 0; right: 0; top: 100%;
+  background: var(--bs-body-bg); border: 1px solid var(--bs-border-color);
+  border-top: 0; border-radius: 0 0 .35rem .35rem;
+  max-height: 18rem; overflow-y: auto; z-index: 400;
+  box-shadow: 0 6px 16px rgba(0,0,0,.18);
+}
+.nsm-oa-drop-item {
+  padding: .32rem .8rem; cursor: pointer; font-size: .83rem;
+  display: flex; align-items: baseline; gap: .4rem;
+}
+.nsm-oa-drop-item:hover { background: var(--bs-primary-bg-subtle); }
+.nsm-oa-drop-type { font-size: .7rem; color: var(--bs-secondary-color); }
+.nsm-oa-drop-msg  { padding: .4rem .8rem; font-size: .8rem; color: var(--bs-secondary-color); }
+.nsm-oa-sel {
+  display: inline-flex; align-items: center; gap: .4rem;
+  background: var(--bs-primary-bg-subtle); border: 1px solid var(--bs-primary-border-subtle);
+  border-radius: .35rem; padding: .25rem .6rem; font-size: .83rem; font-weight: 600;
+}
+.nsm-oa-sel-clear { cursor: pointer; opacity: .6; font-size: .9rem; line-height: 1; }
+.nsm-oa-sel-clear:hover { opacity: 1; }
+
+/* ── Graph Canvas ────────────────────────────────────── */
+#nsm-oa-graph {
+  height: 700px;
+  border: 1px solid var(--bs-border-color);
+  border-radius: .5rem;
+  overflow: hidden;
+  background: var(--bs-body-bg);
+}
+/* React Flow overrides for dark/light mode */
+.react-flow__background { opacity: 1; }
+.react-flow__controls-button { background: var(--bs-body-bg); border-color: var(--bs-border-color); color: var(--bs-body-color); }
+.react-flow__minimap { border: 1px solid var(--bs-border-color); border-radius: .35rem; overflow: hidden; }
+
+.nsm-oa-legend { font-size: .75rem; }
+.nsm-oa-legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; }
+</style>
+
+{{ api_types|json_script:"nsm-oa-api-types" }}
+
+<div class="container-fluid">
+
+  {# ── Search card ─────────────────────────────────────────────── #}
+  <div class="card mb-3">
+    <div class="card-header d-flex align-items-center gap-2">
+      <i class="mdi mdi-graph text-primary"></i>
+      <strong>Object Analyzer</strong>
+      <span class="text-muted small ms-1">
+        Objekt auswählen → Select object · click to expand · double-click to open
+      </span>
+
+    </div>
+    <div class="card-body p-3">
+      <form method="get" id="nsm-oa-form">
+        <input type="hidden" name="ct" id="nsm-oa-ct" value="{{ sel_ct }}">
+        <input type="hidden" name="pk" id="nsm-oa-pk" value="{{ sel_pk }}">
+        <input type="hidden" name="name" id="nsm-oa-name" value="{{ sel_name }}">
+        <div class="d-flex gap-2 align-items-start" style="max-width:44rem;">
+          <div class="nsm-oa-wrap flex-grow-1">
+            <input type="text" class="nsm-oa-input" id="nsm-oa-search"
+                   placeholder="Search: Device, VM, IP, Prefix, Label, Zone, Rule …"
+                   autocomplete="off"
+                   value="{% if sel_pk %}{{ sel_name }}{% endif %}">
+            <div class="nsm-oa-drop" id="nsm-oa-drop" hidden></div>
+          </div>
+          <button type="submit" class="btn btn-sm btn-primary flex-shrink-0">
+            <i class="mdi mdi-graph-outline"></i> Analyse
+          </button>
+          {% if sel_pk %}
+            <button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0" id="nsm-oa-clear">
+              <i class="mdi mdi-close"></i>
+            </button>
+          {% endif %}
+        </div>
+        {% if sel_pk %}
+          <div class="mt-2 d-flex align-items-center gap-2">
+            <span class="nsm-oa-sel">
+              <i class="mdi mdi-check-circle text-primary"></i>
+              {{ sel_name }}
+            </span>
+            <span class="text-muted small">— Click a node in the graph to load its connections.</span>
+          </div>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+
+  {# ── Legend ──────────────────────────────────────────────────── #}
+  <div class="d-flex flex-wrap gap-3 mb-2 nsm-oa-legend">
+    {% for item in legend %}
+      <span><span class="nsm-oa-legend-dot" style="background:{{ item.color }};"></span>{{ item.label }}</span>
+    {% endfor %}
+    <span><span class="nsm-oa-legend-dot" style="background:#0d6efd;"></span>Device</span>
+    <span><span class="nsm-oa-legend-dot" style="background:#0891b2;"></span>VM</span>
+    <span><span class="nsm-oa-legend-dot" style="background:#6c757d;"></span>Interface</span>
+    <span><span class="nsm-oa-legend-dot" style="background:#16a34a;"></span>IP</span>
+    <span><span class="nsm-oa-legend-dot" style="background:#0d9488;"></span>Prefix</span>
+    <span><span class="nsm-oa-legend-dot" style="background:#c026d3;"></span>Label</span>
+    <span><span class="nsm-oa-legend-dot" style="background:#dc3545;"></span>Zone / Rule</span>
+  </div>
+
+  {# ── Graph ────────────────────────────────────────────────────── #}
+  <div id="nsm-oa-graph"
+       data-ct="{{ sel_ct }}"
+       data-pk="{{ sel_pk }}">
+    {% if not sel_pk %}
+      <div class="h-100 d-flex flex-column align-items-center justify-content-center text-muted">
+        <i class="mdi mdi-graph-outline" style="font-size:3rem;"></i>
+        <p class="lead mt-3 mb-1">Select object</p>
+        <p class="small">Select an object above – the graph starts with this node.</p>
+      </div>
+    {% endif %}
+  </div>
+
+</div>{# /container #}
+
+{# ── React Flow via ESM ───────────────────────────────────────────── #}
+<script type="importmap">
+{
+  "imports": {
+    "react":            "https://esm.sh/react@18.3.1",
+    "react/jsx-runtime":"https://esm.sh/react@18.3.1/jsx-runtime",
+    "react-dom":        "https://esm.sh/react-dom@18.3.1",
+    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+    "@xyflow/react":    "https://esm.sh/@xyflow/react@12?deps=react@18.3.1,react-dom@18.3.1"
+  }
+}
+</script>
+<link rel="stylesheet" href="https://esm.sh/@xyflow/react@12/dist/style.css">
+
+<script type="module">
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { createRoot } from 'react-dom/client';
+import {
+  ReactFlow, useNodesState, useEdgesState,
+  Background, Controls, MiniMap, MarkerType, Panel,
+  Handle, Position,
+  BaseEdge, EdgeLabelRenderer, getBezierPath,
+} from '@xyflow/react';
+
+/* ─────────── Node styles ─────────────────────────────────────── */
+const NS = {
+  device:   { icon: '🖥',  color: '#0d6efd', bg: '#dbeafe' },
+  vm:       { icon: '☁',   color: '#0891b2', bg: '#cffafe' },
+  interface:{ icon: '🔌',  color: '#6c757d', bg: '#e9ecef' },
+  ip:       { icon: '●',   color: '#16a34a', bg: '#dcfce7' },
+  prefix:   { icon: '⊞',  color: '#0d9488', bg: '#ccfbf1' },
+  iprange:  { icon: '↔',   color: '#d97706', bg: '#fef3c7' },
+  vlan:     { icon: '📡',  color: '#ea580c', bg: '#ffedd5' },
+  vrf:      { icon: '⇄',   color: '#7c3aed', bg: '#ede9fe' },
+  label:    { icon: '🏷',  color: '#c026d3', bg: '#fae8ff' },
+  zone:     { icon: '🛡',  color: '#dc3545', bg: '#ffe4e6' },
+  group:    { icon: '⬡',   color: '#78716c', bg: '#f5f5f4' },
+  rule:     { icon: '⚡',  color: '#e85f00', bg: '#fff7ed' },
+  rulebook: { icon: '📘',  color: '#374151', bg: '#f3f4f6' },
+  site:     { icon: '📍',  color: '#0369a1', bg: '#eff6ff' },
+  tenant:   { icon: '🏢',  color: '#15803d', bg: '#f0fdf4' },
+  object:   { icon: '◆',   color: '#64748b', bg: '#f8fafc' },
+};
+
+/* ─────────── Edge factory ────────────────────────────────────── */
+function mkEdge(id, source, target, label) {
+  return {
+    id, source, target, label, type: 'nsm',
+    markerEnd: { type: MarkerType.ArrowClosed, width: 12, height: 12, color: '#94a3b8' },
+    style: { stroke: '#94a3b8', strokeWidth: 1.5 },
+  };
+}
+
+/* shared collapse callback — set by App, used by NsmEdge */
+const _graphCb = {};
+
+/* ─────────── Custom edge component ──────────────────────────── */
+function NsmEdge({ id, source, target, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, markerEnd, style, label }) {
+  const [edgePath, labelX, labelY] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition });
+  return React.createElement(React.Fragment, null,
+    React.createElement(BaseEdge, { id, path: edgePath, markerEnd, style }),
+    React.createElement(EdgeLabelRenderer, null,
+      React.createElement('div', {
+        style: { position: 'absolute', transform: `translate(-50%,-50%) translate(${labelX}px,${labelY}px)`, pointerEvents: 'all', textAlign: 'center' },
+        className: 'nodrag nopan',
+      },
+        label ? React.createElement('span', {
+          style: { display: 'block', fontSize: 10, fontWeight: 600, color: '#475569', background: 'rgba(248,250,252,.92)', padding: '1px 5px', borderRadius: 3, cursor: 'pointer' },
+          title: 'Collapse',
+          onClick: (e) => { e.stopPropagation(); _graphCb.collapseEdge?.(source, target); },
+        }, label + ' ▾') : null,
+      )
+    )
+  );
+}
+/* ─────────── Plural labels ─────────────────────────────────────── */
+const TYPE_PLURAL = {
+  device: 'Devices', vm: 'VMs', interface: 'Interfaces', ip: 'IPs',
+  prefix: 'Prefixes', iprange: 'IP-Ranges', vlan: 'VLANs', vrf: 'VRFs',
+  label: 'Labels', zone: 'Zones', group: 'Groups', rule: 'Rules',
+  rulebook: 'Rulebooks', site: 'Sites', tenant: 'Tenants', object: 'Objects',
+};
+/* ─────────── Layout helper ──────────────────────────────────── */
+const HGAP = 230, VGAP = 160;
+function childPositions(parentPos, count) {
+  if (!count) return [];
+  const totalW = (count - 1) * HGAP;
+  return Array.from({ length: count }, (_, i) => ({
+    x: parentPos.x - totalW / 2 + i * HGAP,
+    y: parentPos.y + VGAP,
+  }));
+}
+
+/* ─────────── Tree auto-layout ──────────────────────────────── */
+function treeLayout(allNodes, allEdges) {
+  if (allNodes.length <= 1) return allNodes;
+  const childMap = {}, parentSet = new Set();
+  allEdges.forEach(e => {
+    (childMap[e.source] = childMap[e.source] || []).push(e.target);
+    parentSet.add(e.target);
+  });
+  const roots = allNodes.filter(n => !parentSet.has(n.id));
+  if (!roots.length) return allNodes;
+
+  /* subtree width = number of leaves × HGAP (minimum spacing between leaves) */
+  const wCache = {};
+  function subtreeW(id) {
+    if (wCache[id] !== undefined) return wCache[id];
+    const kids = childMap[id] || [];
+    return (wCache[id] = kids.length ? kids.reduce((s, k) => s + subtreeW(k), 0) : HGAP);
+  }
+
+  /* place each node centered above its subtree */
+  const pos = {};
+  function place(id, leftX, depth) {
+    const w = subtreeW(id);
+    pos[id] = { x: leftX + w / 2, y: depth * VGAP };
+    let x = leftX;
+    (childMap[id] || []).forEach(k => { place(k, x, depth + 1); x += subtreeW(k); });
+  }
+
+  /* start all roots centered at x=0 */
+  let rx = -roots.reduce((s, r) => s + subtreeW(r.id), 0) / 2;
+  roots.forEach(r => { place(r.id, rx, 0); rx += subtreeW(r.id); });
+
+  return allNodes.map(n => pos[n.id] !== undefined ? { ...n, position: pos[n.id] } : n);
+}
+
+/* ─────────── Custom node component ──────────────────────────── */
+function NsmNode({ id, data, selected }) {
+  const s = NS[data.nodeType] || NS.object;
+  const textColor = selected ? '#fff' : '#1a202c';
+
+  return React.createElement(React.Fragment, null,
+    /* ── target handle (top) ── */
+    React.createElement(Handle, {
+      type: 'target', position: Position.Top,
+      style: { background: s.color, width: 8, height: 8, border: '2px solid #fff' },
+    }),
+    /* ── node body ── */
+    React.createElement('div', {
+      style: {
+        padding: '18px 12px 8px', borderRadius: 10, position: 'relative',
+        background: selected ? s.color : s.bg,
+        border: `2px solid ${s.color}`,
+        color: textColor, minWidth: 140, maxWidth: 210,
+        boxShadow: data.loading ? `0 0 0 3px ${s.color}88`
+          : selected ? `0 0 0 3px ${s.color}44` : '0 2px 8px rgba(0,0,0,.12)',
+        transition: 'all .15s', userSelect: 'none',
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        cursor: 'default',
+      },
+    },
+      /* top-left: link to object */
+      data.url && data.url !== '#'
+        ? React.createElement('a', {
+            href: data.url, target: '_blank', rel: 'noreferrer',
+            onClick: e => e.stopPropagation(),
+            style: {
+              position: 'absolute', top: 3, left: 5,
+              fontSize: 10, lineHeight: 1,
+              color: selected ? 'rgba(255,255,255,.75)' : s.color,
+              textDecoration: 'none', opacity: .8,
+            },
+            title: 'Open object',
+          }, '↗')
+        : null,
+      /* top-right: remove button */
+      React.createElement('button', {
+        style: {
+          position: 'absolute', top: 1, right: 3,
+          background: 'transparent', border: 'none',
+          cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: '0 2px',
+          color: selected ? 'rgba(255,255,255,.8)' : '#dc3545',
+        },
+        title: 'Remove node',
+        onClick: (e) => { e.stopPropagation(); data.onRemove(id); },
+      }, '×'),
+      /* header row */
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 7 } },
+        React.createElement('span', { style: { fontSize: 17, lineHeight: 1, flexShrink: 0 } },
+          data.loading ? '⏳' : s.icon),
+        React.createElement('div', { style: { flex: 1, overflow: 'hidden' } },
+          React.createElement('div', {
+            style: { fontWeight: 700, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+          }, data.label),
+          React.createElement('div', {
+            style: { fontSize: 10, opacity: .6, letterSpacing: '.3px', marginTop: 1 },
+          }, (data.typeLabel || data.nodeType) + (data.childCount != null ? ` · ${data.childCount}` : '')),
+        ),
+        !data.loading && data.expanded
+          ? React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', background: selected ? '#fff' : s.color, flexShrink: 0 } })
+          : null,
+      ),
+    ),
+    /* ── source handle (bottom) ── */
+    React.createElement(Handle, {
+      type: 'source', position: Position.Bottom,
+      style: {
+        background: s.color, border: '2px solid #fff',
+        width: data.loading || data.expanded ? 8 : 0,
+        height: data.loading || data.expanded ? 8 : 0,
+        opacity: data.loading || data.expanded ? 1 : 0,
+      },
+    }),
+    /* ── expand stub: always visible below node (except while loading) ── */
+    !data.loading
+      ? React.createElement('div', {
+          className: 'nodrag nopan',
+          title: data.expanded ? 'Einklappen' : 'Expandieren',
+          onClick: e => { e.stopPropagation(); data.expanded ? data.onCollapse(id) : data.onExpand(id); },
+          style: {
+            position: 'absolute',
+            bottom: -36, left: '50%', transform: 'translateX(-50%)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            cursor: 'pointer', pointerEvents: 'all', zIndex: 5,
+          },
+        },
+        React.createElement('div', {
+          style: { width: 2, height: 18, background: s.color, opacity: 0.65, borderRadius: 1 },
+        }),
+        React.createElement('div', {
+          style: {
+            width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
+            background: s.color, color: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 13, fontWeight: 700, lineHeight: 1,
+            boxShadow: '0 1px 4px rgba(0,0,0,.25)',
+          },
+        }, data.expanded ? '\u2212' : '+'),
+      )
+      : null,
+  );
+}
+
+const nodeTypes = { nsm: NsmNode };
+const edgeTypes = { nsm: NsmEdge };
+
+/* ─────────── Helpers ─────────────────────────────────────────── */
+function getCsrf() {
+  const m = document.cookie.match(/csrftoken=([^;]+)/);
+  return m ? m[1] : '';
+}
+async function fetchNodeData(ctId, pk) {
+  const r = await fetch(`/plugins/netbox-nsm/api/analyzer/?ct=${ctId}&pk=${pk}`, {
+    headers: { Accept: 'application/json', 'X-CSRFToken': getCsrf() },
+  });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+/* ─────────── Main App ────────────────────────────────────────── */
+function App({ initialCt, initialPk }) {
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [status, setStatus] = useState('');
+
+  /* stable refs */
+  const rfInstanceRef  = useRef(null);
+  const expandedRef    = useRef(new Set());
+  const posMap         = useRef({});
+  const childrenMapRef = useRef({});   /* nodeId → [directChildId, …] */
+  const groupDataRef   = useRef({});   /* groupNodeId → { children: API-edge-list } */
+  const expandFnRef    = useRef(null);
+  const collapseFnRef  = useRef(null);
+  const removeFnRef    = useRef(null);
+  const resetFnRef     = useRef(null);
+
+  /* stable callbacks passed into node data */
+  const stableExpand   = useCallback((id) => expandFnRef.current?.(id),  []);
+  const stableCollapse = useCallback((id) => collapseFnRef.current?.(id), []);
+  const stableRemove   = useCallback((id) => removeFnRef.current?.(id),   []);
+
+  function mkNodeData(base) {
+    return { ...base, onExpand: stableExpand, onCollapse: stableCollapse, onRemove: stableRemove };
+  }
+  function mkNode(id, pos, base) {
+    return { id, type: 'nsm', position: pos, data: mkNodeData(base) };
+  }
+
+  /* ── Collapse edge (per-connection) ──────────────────────── */
+  const collapseEdge = useCallback((sourceId, targetId) => {
+    function getAllDescendants(id) {
+      const kids = childrenMapRef.current[id] || [];
+      return kids.flatMap(k => [k, ...getAllDescendants(k)]);
+    }
+    /* gone = target + all its descendants */
+    const gone = new Set([targetId, ...getAllDescendants(targetId)]);
+
+    /* survivors: nodes in gone that have edges to nodes outside gone
+       (excluding sourceId, whose edge to target is being removed) */
+    const currentEdges = rfInstanceRef.current?.getEdges() || [];
+    const survivors = new Set();
+    for (const gid of gone) {
+      const hasExternalEdge = currentEdges.some(e =>
+        (e.source === gid && !gone.has(e.target) && e.target !== sourceId) ||
+        (e.target === gid && !gone.has(e.source) && e.source !== sourceId)
+      );
+      if (hasExternalEdge) survivors.add(gid);
+    }
+    survivors.forEach(id => gone.delete(id));
+
+    /* clean refs */
+    for (const id of gone) {
+      expandedRef.current.delete(id);
+      delete childrenMapRef.current[id];
+      delete groupDataRef.current[id];
+    }
+    for (const sid of survivors) {
+      const kids = childrenMapRef.current[sid];
+      if (kids) {
+        const remaining = kids.filter(k => !gone.has(k));
+        remaining.length === 0
+          ? (delete childrenMapRef.current[sid], expandedRef.current.delete(sid))
+          : (childrenMapRef.current[sid] = remaining);
+      }
+    }
+
+    /* remove target from source's children list */
+    if (childrenMapRef.current[sourceId]) {
+      childrenMapRef.current[sourceId] = childrenMapRef.current[sourceId]
+        .filter(id => !gone.has(id) && id !== targetId);
+      if (childrenMapRef.current[sourceId].length === 0) {
+        delete childrenMapRef.current[sourceId];
+        expandedRef.current.delete(sourceId);
+        setNodes(ns => ns.map(n => n.id === sourceId
+          ? { ...n, data: { ...n.data, expanded: false } } : n));
+      }
+    }
+
+    setNodes(ns => ns.filter(n => !gone.has(n.id)));
+    setEdges(es => es.filter(e => {
+      if (gone.has(e.source) || gone.has(e.target)) return false;
+      if (e.source === sourceId && e.target === targetId) return false;
+      return true;
+    }));
+    setTimeout(() => rfInstanceRef.current?.fitView({ duration: 300, padding: 0.15 }), 80);
+  }, []);
+
+  /* ── Collapse all (legacy, kept for completeness) ──────────── */
+  const collapseNode = useCallback((nodeId) => {
+    /* Phase 1: collect all descendants WITHOUT touching refs yet */
+    function getAllDescendants(id) {
+      const kids = childrenMapRef.current[id] || [];
+      return kids.flatMap(k => [k, ...getAllDescendants(k)]);
+    }
+    const gone = new Set(getAllDescendants(nodeId));
+
+    /* Phase 2: keep any descendant that has an edge to a node outside
+       the collapsed subtree (gone ∪ {nodeId}) */
+    const currentEdges = rfInstanceRef.current?.getEdges() || [];
+    const survivors = new Set();
+    for (const gid of gone) {
+      const hasExternalEdge = currentEdges.some(e =>
+        (e.source === gid && !gone.has(e.target) && e.target !== nodeId) ||
+        (e.target === gid && !gone.has(e.source) && e.source !== nodeId)
+      );
+      if (hasExternalEdge) survivors.add(gid);
+    }
+    survivors.forEach(id => gone.delete(id));
+
+    /* Phase 3: clean refs only for truly removed nodes */
+    for (const id of gone) {
+      expandedRef.current.delete(id);
+      delete childrenMapRef.current[id];
+      delete groupDataRef.current[id];
+    }
+    /* For survivors: remove any of their children that were deleted */
+    for (const sid of survivors) {
+      const kids = childrenMapRef.current[sid];
+      if (kids) {
+        const remaining = kids.filter(k => !gone.has(k));
+        if (remaining.length === 0) {
+          delete childrenMapRef.current[sid];
+          expandedRef.current.delete(sid);
+        } else {
+          childrenMapRef.current[sid] = remaining;
+        }
+      }
+    }
+    const directKids = new Set(childrenMapRef.current[nodeId] || []);
+    delete childrenMapRef.current[nodeId];
+    expandedRef.current.delete(nodeId);
+
+    /* Phase 4: update graph */
+    setNodes(ns => ns
+      .filter(n => !gone.has(n.id))
+      .map(n => n.id === nodeId ? { ...n, data: { ...n.data, expanded: false } } : n));
+    setEdges(es => es.filter(e => {
+      if (gone.has(e.source) || gone.has(e.target)) return false;
+      /* also remove the tree-edges from nodeId to its direct children
+         (even survivors are no longer attached here) */
+      if (e.source === nodeId && directKids.has(e.target)) return false;
+      return true;
+    }));
+  }, []);
+
+  /* ── Place children into graph (groups by edge_label) ──────── */
+  function applyChildren(nodeId, parentPos, apiChildren) {
+    /* deduplicate by node id */
+    const seenIds = new Set();
+    const unique  = apiChildren.filter(c => seenIds.has(c.node.id) ? false : (seenIds.add(c.node.id), true));
+
+    /* group by edge_label */
+    const byLabel = {};
+    unique.forEach(c => {
+      (byLabel[c.edge_label] = byLabel[c.edge_label] || []).push(c);
+    });
+    const labelKeys     = Object.keys(byLabel);
+    const typePositions = childPositions(parentPos, labelKeys.length);
+
+    const directKids = [];
+    const newNodes   = [];
+    const newEdges   = [];
+
+    labelKeys.forEach((label, li) => {
+      const group        = byLabel[label];
+      const typePos      = typePositions[li];
+      const firstType    = group[0].node.node_type;
+
+      if (group.length === 1) {
+        /* single child → add directly */
+        const c   = group[0];
+        const cid = c.node.id;
+        newNodes.push(mkNode(cid, typePos, {
+          label: c.node.label, nodeType: c.node.node_type, typeLabel: c.node.type_label,
+          ctId: c.node.ct_id, objectId: c.node.object_id,
+          url: c.node.url, loading: false, expanded: false, childCount: null,
+        }));
+        newEdges.push(mkEdge(`e-${nodeId}-${cid}`, nodeId, cid, label));
+        directKids.push(cid);
+      } else {
+        /* multiple → group node labelled after edge_label */
+        const gid = `grp:${nodeId}:${label.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+        newNodes.push(mkNode(gid, typePos, {
+          label: `${label} · ${group.length}`, nodeType: firstType, typeLabel: group[0].node.type_label,
+          ctId: null, objectId: null, url: null,
+          loading: false, expanded: false, childCount: group.length,
+        }));
+        newEdges.push(mkEdge(`e-${nodeId}-${gid}`, nodeId, gid, label));
+        groupDataRef.current[gid] = { children: group };
+        directKids.push(gid);
+      }
+    });
+
+    childrenMapRef.current[nodeId] = directKids;
+    const curEdges = rfInstanceRef.current?.getEdges() || [];
+    const allEdgesForLayout = [...curEdges, ...newEdges];
+    setNodes(ns => {
+      const ids = new Set(ns.map(n => n.id));
+      const merged = [...ns, ...newNodes.filter(n => !ids.has(n.id))];
+      return treeLayout(merged, allEdgesForLayout);
+    });
+    setEdges(es => { const ids = new Set(es.map(e => e.id)); return [...es, ...newEdges.filter(e => !ids.has(e.id))]; });
+    setTimeout(() => rfInstanceRef.current?.fitView({ duration: 400, padding: 0.18 }), 80);
+  }
+
+  /* ── Expand ─────────────────────────────────────────────────── */
+  const expandNode = useCallback(async (nodeId) => {
+    if (expandedRef.current.has(nodeId)) return;
+    expandedRef.current.add(nodeId);
+
+    /* group node → place all children directly (no re-grouping) */
+    if (groupDataRef.current[nodeId]) {
+      const gd      = groupDataRef.current[nodeId];
+      const pos     = rfInstanceRef.current?.getNode(nodeId)?.position || { x: 400, y: 200 };
+      const seenIds = new Set();
+      const unique  = gd.children.filter(c => seenIds.has(c.node.id) ? false : (seenIds.add(c.node.id), true));
+      const positions = childPositions(pos, unique.length);
+      const newNodes = [], newEdges = [], directKids = [];
+      unique.forEach((c, i) => {
+        const cid = c.node.id;
+        newNodes.push(mkNode(cid, positions[i], {
+          label: c.node.label, nodeType: c.node.node_type, typeLabel: c.node.type_label,
+          ctId: c.node.ct_id, objectId: c.node.object_id,
+          url: c.node.url, loading: false, expanded: false, childCount: null,
+        }));
+        newEdges.push(mkEdge(`e-${nodeId}-${cid}`, nodeId, cid, c.edge_label));
+        directKids.push(cid);
+      });
+      childrenMapRef.current[nodeId] = directKids;
+      const curEdges = rfInstanceRef.current?.getEdges() || [];
+      const allEdgesForLayout = [...curEdges, ...newEdges];
+      setNodes(ns => {
+        const ids = new Set(ns.map(n => n.id));
+        const merged = [...ns, ...newNodes.filter(n => !ids.has(n.id))].map(n =>
+          n.id === nodeId ? { ...n, data: { ...n.data, expanded: true } } : n
+        );
+        return treeLayout(merged, allEdgesForLayout);
+      });
+      setEdges(es => { const ids = new Set(es.map(e => e.id)); return [...es, ...newEdges.filter(e => !ids.has(e.id))]; });
+      setTimeout(() => rfInstanceRef.current?.fitView({ duration: 400, padding: 0.18 }), 80);
+      return;
+    }
+
+    /* API node */
+    const parts = nodeId.split(':');
+    const ctId  = Number(parts[0]);
+    const pk    = Number(parts[1]);
+    if (!ctId || !pk) { expandedRef.current.delete(nodeId); return; }
+
+    setNodes(ns => ns.map(n => n.id === nodeId ? { ...n, data: { ...n.data, loading: true } } : n));
+
+    let data;
+    try { data = await fetchNodeData(ctId, pk); }
+    catch (e) {
+      setStatus('Error: ' + e.message);
+      expandedRef.current.delete(nodeId);
+      setNodes(ns => ns.map(n => n.id === nodeId ? { ...n, data: { ...n.data, loading: false } } : n));
+      return;
+    }
+
+    const apiChildren = data.children || [];
+    const parentPos   = rfInstanceRef.current?.getNode(nodeId)?.position || { x: 400, y: 50 };
+    setNodes(ns => ns.map(n => n.id === nodeId
+      ? { ...n, data: { ...n.data, loading: false, expanded: true, childCount: apiChildren.length } }
+      : n));
+    applyChildren(nodeId, parentPos, apiChildren);
+  }, []);
+
+  /* ── Remove single node + its edges ─────────────────────── */
+  const removeNode = useCallback((nodeId) => {
+    expandedRef.current.delete(nodeId);
+    delete childrenMapRef.current[nodeId];
+    delete groupDataRef.current[nodeId];
+    setNodes(ns => ns.filter(n => n.id !== nodeId));
+    setEdges(es => es.filter(e => e.source !== nodeId && e.target !== nodeId));
+  }, []);
+
+  /* ── Reset graph (called on mode change) ────────────────── */
+  const resetGraph = useCallback(() => {
+    if (!initialCt || !initialPk) return;
+    expandedRef.current.clear();
+    posMap.current        = {};
+    childrenMapRef.current = {};
+    groupDataRef.current   = {};
+    const rootId  = `${initialCt}:${initialPk}`;
+    const rootPos = { x: 400, y: 50 };
+    posMap.current[rootId] = rootPos;
+    setEdges([]);
+    setNodes([mkNode(rootId, rootPos, {
+      label: '…', nodeType: 'object', ctId: initialCt, objectId: initialPk,
+      url: '#', loading: true, expanded: false,
+    })]);
+    fetchNodeData(initialCt, initialPk)
+      .then(d => {
+        setNodes([mkNode(rootId, rootPos, {
+          label: d.node.label, nodeType: d.node.node_type, typeLabel: d.node.type_label,
+          ctId: d.node.ct_id, objectId: d.node.object_id,
+          url: d.node.url, loading: false, expanded: false,
+          childCount: d.children?.length ?? 0,
+        })]);
+        setTimeout(() => rfInstanceRef.current?.fitView({ duration: 300, padding: 0.25 }), 80);
+      })
+      .catch(e => setStatus('Fehler: ' + e.message));
+  }, [initialCt, initialPk]);
+
+  /* auto-initialize when component mounts */
+  useEffect(() => { const t = setTimeout(() => resetGraph(), 50); return () => clearTimeout(t); }, [resetGraph]);
+
+  /* keep fn-refs current */
+  expandFnRef.current   = expandNode;
+  collapseFnRef.current = collapseNode;
+  removeFnRef.current   = removeNode;
+  resetFnRef.current    = resetGraph;
+  /* expose collapse to edge component */
+  _graphCb.collapse     = collapseNode;
+  _graphCb.collapseEdge = collapseEdge;
+
+  return React.createElement(ReactFlow, {
+    nodes, edges, onNodesChange, onEdgesChange,
+    nodeTypes, edgeTypes,
+    onInit: (rfi) => { rfInstanceRef.current = rfi; },
+    fitView: true, minZoom: 0.1, maxZoom: 3,
+    nodesDraggable: true, nodesConnectable: false,
+  },
+    React.createElement(Background, { gap: 18, size: 1, color: '#cbd5e1' }),
+    React.createElement(Controls),
+    React.createElement(MiniMap, {
+      nodeColor: n => (NS[n.data?.nodeType] || NS.object).color,
+      nodeStrokeWidth: 3, zoomable: true, pannable: true,
+    }),
+    status ? React.createElement(Panel, { position: 'top-center' },
+      React.createElement('div', {
+        style: { background: '#dc354599', color: '#fff', padding: '5px 14px', borderRadius: 6, fontSize: 12 },
+      }, status)
+    ) : null,
+  );
+}
+
+/* ─────────── Bootstrap ───────────────────────────────────────── */
+const graphEl = document.getElementById('nsm-oa-graph');
+if (graphEl && graphEl.dataset.pk) {
+  const ct = parseInt(graphEl.dataset.ct);
+  const pk = parseInt(graphEl.dataset.pk);
+  createRoot(graphEl).render(React.createElement(App, { initialCt: ct, initialPk: pk }));
+}
+</script>
+
+{# ── Picker JS (vanilla) ──────────────────────────────────────── #}
+<script>
+(function () {
+  'use strict';
+  var apiTypes = [];
+  try { apiTypes = JSON.parse(document.getElementById('nsm-oa-api-types').textContent) || []; } catch (_) {}
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function getCsrf() { var m = document.cookie.match(/csrftoken=([^;]+)/); return m ? m[1] : ''; }
+  function debounce(fn, ms) { var t; return function() { clearTimeout(t); var a=arguments,ctx=this; t=setTimeout(function(){fn.apply(ctx,a);},ms); }; }
+
+  var searchEl = document.getElementById('nsm-oa-search');
+  var dropEl   = document.getElementById('nsm-oa-drop');
+  var ctEl     = document.getElementById('nsm-oa-ct');
+  var pkEl     = document.getElementById('nsm-oa-pk');
+  var nameEl   = document.getElementById('nsm-oa-name');
+  var formEl   = document.getElementById('nsm-oa-form');
+  var clearEl  = document.getElementById('nsm-oa-clear');
+
+  if (!searchEl) return;
+  var _ctrl = null;
+
+  function closeDrop() { dropEl.innerHTML=''; dropEl.hidden=true; }
+
+  function pick(ctId, pk, name) {
+    ctEl.value=ctId; pkEl.value=pk; nameEl.value=name;
+    searchEl.value=name; closeDrop(); formEl.submit();
+  }
+
+  var doSearch = debounce(function(q) {
+    if (!q.trim()) { closeDrop(); return; }
+    if (_ctrl) _ctrl.abort();
+    _ctrl = new AbortController();
+    dropEl.innerHTML = "<div class='nsm-oa-drop-msg'>Suche\u2026</div>";
+    dropEl.hidden = false;
+
+    var fetches = apiTypes.map(function(t) {
+      var url = t.api_url + '?q=' + encodeURIComponent(q) + '&limit=15&brief=1';
+      return fetch(url, { signal: _ctrl.signal, headers: { Accept: 'application/json', 'X-CSRFToken': getCsrf() }})
+        .then(function(r){return r.json();})
+        .then(function(d){return (d.results||[]).map(function(o){return {ct:t.ct_id,pk:o.id,name:o.display||o.name||String(o.id),type:t.name};});})
+        .catch(function(e){if(e.name!=='AbortError')console.warn(e);return [];});
+    });
+
+    Promise.all(fetches).then(function(all) {
+      if (_ctrl && _ctrl.signal.aborted) return;
+      var items = [].concat.apply([], all);
+      if (!items.length) { dropEl.innerHTML="<div class='nsm-oa-drop-msg'>Keine Ergebnisse</div>"; dropEl.hidden=false; return; }
+      var html = '';
+      items.forEach(function(item) {
+        html += "<div class='nsm-oa-drop-item' data-ct='"+esc(item.ct)+"' data-pk='"+esc(item.pk)+"' data-name='"+esc(item.name)+"'>"
+              + esc(item.name)+" <span class='nsm-oa-drop-type'>"+esc(item.type)+"</span></div>";
+      });
+      dropEl.innerHTML=html; dropEl.hidden=false;
+      dropEl.querySelectorAll('.nsm-oa-drop-item').forEach(function(el){
+        el.addEventListener('click', function(){pick(el.dataset.ct,el.dataset.pk,el.dataset.name);});
+      });
+    });
+  }, 250);
+
+  searchEl.addEventListener('input', function(){ctEl.value='';pkEl.value='';nameEl.value='';doSearch(searchEl.value);});
+  searchEl.addEventListener('focus', function(){if(searchEl.value.trim()&&!ctEl.value)doSearch(searchEl.value);});
+  document.addEventListener('click', function(e){if(!dropEl.contains(e.target)&&e.target!==searchEl)closeDrop();});
+  searchEl.addEventListener('keydown', function(e){
+    if(e.key==='Escape')closeDrop();
+    if(e.key==='Enter'){e.preventDefault();var f=dropEl.querySelector('.nsm-oa-drop-item');if(f)f.click();}
+  });
+  if (clearEl) clearEl.addEventListener('click', function(){ctEl.value='';pkEl.value='';nameEl.value='';formEl.submit();});
+})();
+
+</script>
+{% endblock %}

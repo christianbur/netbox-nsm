@@ -7,28 +7,63 @@ from netbox.tables import NetBoxTable
 from netbox.tables.columns import TagColumn
 
 from netbox_nsm.models import SecurityObjectGroup
+from netbox_nsm.tables.mixins import render_html_color
 
 __all__ = ("SecurityObjectGroupTable",)
 
 
 class SecurityObjectGroupTable(NetBoxTable):
     name = tables.LinkColumn(verbose_name=_("Name"))
-    area = tables.Column(verbose_name=_("Area"))
-    member_count = tables.Column(verbose_name=_("Members"), orderable=False, accessor=tables.A("pk"))
-    parent_groups_col = tables.Column(verbose_name=_("Parent Groups"), orderable=False, accessor=tables.A("pk"))
+    areas = tables.Column(verbose_name=_("Areas"), orderable=False)
+    color = tables.Column(verbose_name=_("Color"), orderable=False)
+    member_count = tables.Column(
+        verbose_name=_("Members"), orderable=False, accessor=tables.A("pk")
+    )
+    parent_groups_col = tables.Column(
+        verbose_name=_("Parent Groups"), orderable=False, accessor=tables.A("pk")
+    )
     tags = TagColumn(url_name="plugins:netbox_nsm:securityobjectgroup_list")
 
     class Meta(NetBoxTable.Meta):
         model = SecurityObjectGroup
-        fields = ("pk", "id", "name", "area", "parent_groups_col", "member_count", "description", "tags")
-        default_columns = ("pk", "name", "area", "parent_groups_col", "member_count", "description")
+        fields = (
+            "pk",
+            "id",
+            "name",
+            "areas",
+            "color",
+            "parent_groups_col",
+            "member_count",
+            "description",
+            "tags",
+        )
+        default_columns = (
+            "pk",
+            "name",
+            "areas",
+            "color",
+            "parent_groups_col",
+            "member_count",
+            "description",
+        )
+
+    def render_color(self, value):
+        return render_html_color(value)
+
+    def render_areas(self, record):
+        names = list(record.areas.order_by("sort_order", "name", "slug").values_list("name", flat=True))
+        return ", ".join(names) if names else mark_safe("—")
 
     def render_member_count(self, record):
         parts = []
         for m in record.members.all():
-            parts.append(format_html('<a href="{}">{}</a>', m.get_absolute_url(), m.name))
+            parts.append(
+                format_html('<a href="{}">{}</a>', m.get_absolute_url(), m.name)
+            )
         for g in record.sub_groups.all():
-            parts.append(format_html('<a href="{}">{}</a>', g.get_absolute_url(), g.name))
+            parts.append(
+                format_html('<a href="{}">{}</a>', g.get_absolute_url(), g.name)
+            )
         parts.sort(key=lambda s: s.lower() if isinstance(s, str) else str(s))
         if not parts:
             return mark_safe("—")
@@ -41,7 +76,10 @@ class SecurityObjectGroupTable(NetBoxTable):
         return format_html_join(
             ", ",
             '<a href="{}">{}</a>',
-            ((g.get_absolute_url(), g.name) for g in sorted(parents, key=lambda g: g.name)),
+            (
+                (g.get_absolute_url(), g.name)
+                for g in sorted(parents, key=lambda g: g.name)
+            ),
         )
 
     def value_member_count(self, record):

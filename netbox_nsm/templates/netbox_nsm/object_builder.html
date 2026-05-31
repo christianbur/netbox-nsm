@@ -30,30 +30,25 @@
           {% endfor %}
         </ul>
 
-        {# ── Types tab ──────────────────────────────────────────────────────── #}
-        {% if active_tab == "types" %}
+        {# ── Types / Areas / Config tab ─────────────────────────────────────────── #}
+        {% if active_tab == "types" or active_tab == "areas" or active_tab == "config" %}
+          {% if active_tab == "types" %}
+            <div class="d-flex flex-wrap gap-2 mb-3">
+              <form method="post" action="{% url 'plugins:netbox_nsm:custom_objects_sync' %}" class="m-0">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary">
+                  <i class="mdi mdi-sync me-1"></i>{% trans "Sync built-in types to Custom Objects" %}
+                </button>
+              </form>
+              <form method="post" action="{% url 'plugins:netbox_nsm:custom_objects_demo' %}" class="m-0">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-primary">
+                  <i class="mdi mdi-flask me-1"></i>{% trans "Demo: create Custom Objects" %}
+                </button>
+              </form>
+            </div>
+          {% endif %}
           {% render_table table %}
-        {% endif %}
-
-        {% if active_tab == "areas" %}
-          <div class="alert alert-info" role="alert">
-            <div class="fw-semibold mb-1">{% trans "System vs. custom areas" %}</div>
-            <div>{% trans "System areas are built-in and define the canonical structure used by the rule editor. Custom areas are your own extensions." %}</div>
-          </div>
-
-          <div class="card mb-3 border-0 bg-body-tertiary">
-            <div class="card-body">
-              <div class="fw-semibold text-uppercase text-muted mb-2">{% trans "System areas" %}</div>
-              {% render_table system_table %}
-            </div>
-          </div>
-
-          <div class="card border-0 bg-body-tertiary">
-            <div class="card-body">
-              <div class="fw-semibold text-uppercase text-muted mb-2">{% trans "Custom areas" %}</div>
-              {% render_table custom_table %}
-            </div>
-          </div>
         {% endif %}
 
         {# ── Built-in tab ───────────────────────────────────────────────────── #}

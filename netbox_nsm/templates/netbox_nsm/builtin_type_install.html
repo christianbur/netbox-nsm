@@ -34,7 +34,7 @@
             <th style="width:2rem"></th>
             <th>{% trans "Built-in" %}</th>
             <th>{% trans "Name (editable)" %}</th>
-            <th>{% trans "Area" %}</th>
+            <th>{% trans "Areas" %}</th>
             <th>{% trans "Fields" %}</th>
             <th style="width:6rem"></th>
           </tr>
@@ -63,7 +63,15 @@
               {% endif %}
             </td>
             <td class="align-middle">
-              <span class="badge text-bg-secondary">{{ t.area }}</span>
+              {% if t.areas %}
+                {% for area in t.areas %}
+                  <span class="badge text-bg-secondary">{{ area }}</span>
+                {% endfor %}
+              {% elif t.area %}
+                <span class="badge text-bg-secondary">{{ t.area }}</span>
+              {% else %}
+                &mdash;
+              {% endif %}
             </td>
             <td class="align-middle">
               <small class="text-secondary">

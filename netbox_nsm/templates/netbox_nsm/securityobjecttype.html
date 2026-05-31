@@ -17,10 +17,23 @@
       <h5 class="card-header">{% trans "Custom Type" %}</h5>
       <table class="table table-hover attr-table">
           <tr>
+          <th scope="row">{% trans "Order" %}</th>
+          <td>{{ object.sort_order }}</td>
+        </tr>
+        <tr>
           <th scope="row">{% trans "Type" %}</th>
           <td>{{ object.name }}</td>
         </tr>
-        <tr><th scope="row">{% trans "Area" %}</th><td>{{ object.area.name }}</td></tr>
+        <tr>
+          <th scope="row">{% trans "Areas" %}</th>
+          <td>
+            {% for area in object.areas.all %}
+              <span class="badge text-bg-secondary">{{ area.name }}</span>
+            {% empty %}
+              &mdash;
+            {% endfor %}
+          </td>
+        </tr>
         <tr><th scope="row">{% trans "Description" %}</th><td>{{ object.description|placeholder }}</td></tr>
         {% if object.display_template %}
         <tr>

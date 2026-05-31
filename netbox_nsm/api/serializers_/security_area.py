@@ -21,7 +21,6 @@ class SecurityAreaSerializer(PrimaryModelSerializer):
             "slug",
             "name",
             "sort_order",
-            "is_system",
             "tags",
             "custom_fields",
             "created",

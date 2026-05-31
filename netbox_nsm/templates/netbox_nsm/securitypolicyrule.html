@@ -10,6 +10,23 @@
     width: 9rem;
     white-space: nowrap;
   }
+  /* Address tree */
+  .nsm-addr-details { margin: 2px 0; }
+  .nsm-addr-top { border-bottom: 1px solid var(--bs-border-color); margin-bottom: 4px; padding-bottom: 4px; }
+  .nsm-addr-top:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .nsm-addr-summary {
+    cursor: pointer; user-select: none;
+    padding: 3px 4px; border-radius: 4px;
+    font-weight: 500; list-style: none;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .nsm-addr-summary::before { content: "▶"; font-size: .7rem; color: var(--bs-secondary-color); flex-shrink: 0; }
+  details[open] > .nsm-addr-summary::before { content: "▼"; }
+  .nsm-addr-summary:hover { background: var(--bs-tertiary-bg); }
+  .nsm-addr-link { font-size: .9rem; }
+  .nsm-addr-children { padding-left: 1.2rem; border-left: 2px solid var(--bs-border-color); margin: 2px 0 4px 8px; }
+  .nsm-addr-leaf { padding: 2px 4px; font-size: .85rem; display: flex; align-items: center; gap: 6px; }
+  .nsm-addr-ip { font-size: .78rem; }
 </style>
 {% endblock %}
 
@@ -17,10 +34,10 @@
 <div class="row">
   <div class="col col-md-6">
     <div class="card">
-      <h5 class="card-header">Sicherheitsregel</h5>
+      <h5 class="card-header">Security Rule</h5>
       <table class="table table-hover attr-table">
         <tr>
-          <th scope="row">Regelwerk</th>
+          <th scope="row">Rulebook</th>
           <td>{{ object.rulebook|linkify|placeholder }}</td>
         </tr>
         <tr>
@@ -29,19 +46,19 @@
         </tr>
         <tr>
           <th scope="row">{% trans "Status" %}</th>
-          <td>{% if object.enabled %}{% trans "Ein" %}{% else %}{% trans "Aus" %}{% endif %}</td>
+          <td>{% if object.enabled %}{% trans "Enabled" %}{% else %}{% trans "Disabled" %}{% endif %}</td>
         </tr>
         <tr>
           <th scope="row">{% trans "Name" %}</th>
           <td>{{ object.name }}</td>
         </tr>
         <tr>
-          <th scope="row">Aktion</th>
+          <th scope="row">Action</th>
           <td>{{ object.get_policy_action_display }}</td>
         </tr>
         {% if object.description %}
         <tr>
-          <th scope="row">Beschreibung</th>
+          <th scope="row">Description</th>
           <td>{{ object.description|placeholder }}</td>
         </tr>
         {% endif %}
@@ -53,75 +70,86 @@
     {% plugin_left_page object %}
   </div>
   <div class="col-md-6">
-    {% if src_ips or dst_ips %}
+    {% if src_ips or dst_ips or src_addr_nodes or dst_addr_nodes %}
     <div class="card">
-      <h5 class="card-header">IP-Adressen</h5>
-      <div class="row g-0">
-        <div class="col-6 border-end">
-          <div class="px-3 py-2 fw-semibold text-muted small border-bottom">
-            Quelle
-            {% if src_ips %}<span class="badge text-bg-secondary ms-1">{{ src_ips|length }}</span>{% endif %}
+      <h5 class="card-header">IP Analysis</h5>
+      <div class="card-body p-0">
+        <ul class="nav nav-tabs px-3 pt-2" id="nsm-addr-tabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="nsm-tab-src-ips" data-bs-toggle="tab" data-bs-target="#nsm-pane-src-ips" type="button" role="tab">
+              Source IPs{% if src_ips %} <span class="badge text-bg-secondary ms-1">{{ src_ips|length }}</span>{% endif %}
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="nsm-tab-src-tree" data-bs-toggle="tab" data-bs-target="#nsm-pane-src-tree" type="button" role="tab">
+              Source Tree
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="nsm-tab-dst-ips" data-bs-toggle="tab" data-bs-target="#nsm-pane-dst-ips" type="button" role="tab">
+              Destination IPs{% if dst_ips %} <span class="badge text-bg-secondary ms-1">{{ dst_ips|length }}</span>{% endif %}
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="nsm-tab-dst-tree" data-bs-toggle="tab" data-bs-target="#nsm-pane-dst-tree" type="button" role="tab">
+              Destination Tree
+            </button>
+          </li>
+        </ul>
+        <div class="tab-content">
+          <div class="tab-pane fade show active p-3" id="nsm-pane-src-ips" role="tabpanel">
+            {% if src_ips %}
+            <ul class="list-unstyled mb-0" style="max-height:320px;overflow-y:auto;">
+              {% for ref in src_ips %}<li><a href="{{ ref.url }}" class="font-monospace small">{{ ref.str }}</a></li>{% endfor %}
+            </ul>
+            {% else %}<span class="text-muted">—</span>{% endif %}
           </div>
-          <ul class="list-unstyled mb-0 px-3 py-2" style="max-height:200px;overflow-y:auto;">
-            {% for ref in src_ips %}
-              <li><a href="{{ ref.url }}">{{ ref.str }}</a></li>
-            {% empty %}
-              <li class="text-muted">—</li>
-            {% endfor %}
-          </ul>
-        </div>
-        <div class="col-6">
-          <div class="px-3 py-2 fw-semibold text-muted small border-bottom">
-            Ziel
-            {% if dst_ips %}<span class="badge text-bg-secondary ms-1">{{ dst_ips|length }}</span>{% endif %}
+          <div class="tab-pane fade p-2" id="nsm-pane-src-tree" role="tabpanel">
+            {% if src_addr_nodes %}
+              {% for node in src_addr_nodes %}{% include "netbox_nsm/inc/addr_tree_node.html" with node=node depth=0 prefix="src" forloop_counter=forloop.counter %}{% endfor %}
+            {% else %}<span class="text-muted p-2 d-block">—</span>{% endif %}
           </div>
-          <ul class="list-unstyled mb-0 px-3 py-2" style="max-height:200px;overflow-y:auto;">
-            {% for ref in dst_ips %}
-              <li><a href="{{ ref.url }}">{{ ref.str }}</a></li>
-            {% empty %}
-              <li class="text-muted">—</li>
-            {% endfor %}
-          </ul>
+          <div class="tab-pane fade p-3" id="nsm-pane-dst-ips" role="tabpanel">
+            {% if dst_ips %}
+            <ul class="list-unstyled mb-0" style="max-height:320px;overflow-y:auto;">
+              {% for ref in dst_ips %}<li><a href="{{ ref.url }}" class="font-monospace small">{{ ref.str }}</a></li>{% endfor %}
+            </ul>
+            {% else %}<span class="text-muted">—</span>{% endif %}
+          </div>
+          <div class="tab-pane fade p-2" id="nsm-pane-dst-tree" role="tabpanel">
+            {% if dst_addr_nodes %}
+              {% for node in dst_addr_nodes %}{% include "netbox_nsm/inc/addr_tree_node.html" with node=node depth=0 prefix="dst" forloop_counter=forloop.counter %}{% endfor %}
+            {% else %}<span class="text-muted p-2 d-block">—</span>{% endif %}
+          </div>
         </div>
       </div>
     </div>
     {% endif %}
+
     <div class="card">
-      <h5 class="card-header">Quelle</h5>
+      <h5 class="card-header">Source</h5>
       <table class="table table-hover attr-table nsm-rule-values-table">
         <tr>
-          <th scope="row">{% trans "Objekte" %}</th>
-          <td>{% for item in source_objects %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>
-        </tr>
-        <tr>
-          <th scope="row">{% trans "Gruppen" %}</th>
-          <td>{% for item in source_groups %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>
+          <th scope="row">{% trans "Objects" %}</th>
+          <td>{% if vgroup_source and source_objects %}<span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-normal">{{ vgroup_source_label }}</span>{% else %}{% for item in source_objects %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}{% endif %}</td>
         </tr>
       </table>
     </div>
     <div class="card">
-      <h5 class="card-header">Ziel</h5>
+      <h5 class="card-header">Destination</h5>
       <table class="table table-hover attr-table nsm-rule-values-table">
         <tr>
-          <th scope="row">{% trans "Objekte" %}</th>
-          <td>{% for item in destination_objects %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>
-        </tr>
-        <tr>
-          <th scope="row">{% trans "Gruppen" %}</th>
-          <td>{% for item in destination_groups %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>
+          <th scope="row">{% trans "Objects" %}</th>
+          <td>{% if vgroup_destination and destination_objects %}<span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-normal">{{ vgroup_destination_label }}</span>{% else %}{% for item in destination_objects %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}{% endif %}</td>
         </tr>
       </table>
     </div>
     <div class="card">
-      <h5 class="card-header">Dienst</h5>
+      <h5 class="card-header">Service</h5>
       <table class="table table-hover attr-table nsm-rule-values-table">
         <tr>
-          <th scope="row">{% trans "Objekte" %}</th>
-          <td>{% for item in service_objects %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>
-        </tr>
-        <tr>
-          <th scope="row">{% trans "Gruppen" %}</th>
-          <td>{% for item in service_groups %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>
+          <th scope="row">{% trans "Objects" %}</th>
+          <td>{% if vgroup_services and service_objects %}<span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-normal">{{ vgroup_services_label }}</span>{% else %}{% for item in service_objects %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}{% endif %}</td>
         </tr>
       </table>
     </div>

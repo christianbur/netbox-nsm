@@ -17,6 +17,8 @@ from netbox_nsm.constants import RULESET_ASSIGNMENT_MODELS
 __all__ = (
     "RulebookTypeChoices",
     "SecurityPolicyRulebook",
+    "RulebookField",
+    "RulebookFieldType",
     "SecurityPolicyRule",
     "SecurityPolicyRuleObjectItem",
     "SecurityPolicyRuleGroupItem",
@@ -46,8 +48,8 @@ class SecurityPolicyRulebook(ContactsMixin, PrimaryModel):
     )
 
     class Meta:
-        verbose_name = _("Security Policy")
-        verbose_name_plural = _("Security Policies")
+        verbose_name = _("Rulebook")
+        verbose_name_plural = _("Rulebooks")
         ordering = ("name",)
 
     def __str__(self):
@@ -55,6 +57,118 @@ class SecurityPolicyRulebook(ContactsMixin, PrimaryModel):
 
     def get_absolute_url(self):
         return reverse("plugins:netbox_nsm:securitypolicyrulebook", args=[self.pk])
+
+    @property
+    def matching_classes(self) -> set:
+        """Auto-derive matching strategy from all RulebookFieldType entries."""
+        return {
+            ftc.type_config.matching_class
+            for field in self.fields.prefetch_related("type_configs__type_config")
+            for ftc in field.type_configs.all()
+            if ftc.type_config.matching_class
+        }
+
+
+class _FieldPlacementChoices(models.TextChoices):
+    SOURCE = "source", _("Source")
+    DESTINATION = "destination", _("Destination")
+    FIXED = "fixed", _("Fixed")
+
+
+class RulebookField(models.Model):
+    """A field (column) in a Rulebook's rule editor, e.g. 'Source', 'Destination', 'Service'.
+
+    Replaces the global SecurityArea model. Each Rulebook defines its own fields,
+    allowing full flexibility across different vendors and use-cases.
+    """
+
+    rulebook = models.ForeignKey(
+        to="netbox_nsm.SecurityPolicyRulebook",
+        on_delete=models.CASCADE,
+        related_name="fields",
+        verbose_name=_("Rulebook"),
+    )
+    slug = models.SlugField(
+        max_length=50,
+        verbose_name=_("Slug"),
+        help_text=_(
+            "Internal identifier (e.g. 'source', 'destination', 'services'). "
+            "Unique within the Rulebook."
+        ),
+    )
+    name = models.CharField(
+        max_length=100,
+        verbose_name=_("Name"),
+        help_text=_("Display name shown in the rule editor and policy table."),
+    )
+    sort_order = models.PositiveIntegerField(
+        default=100,
+        verbose_name=_("Sort Order"),
+        help_text=_("Order in which this field appears (lower comes first)."),
+    )
+    placement = models.CharField(
+        max_length=20,
+        choices=_FieldPlacementChoices.choices,
+        default=_FieldPlacementChoices.SOURCE,
+        verbose_name=_("Placement"),
+        help_text=_("Traffic direction for this field."),
+    )
+    class Meta:
+        unique_together = (("rulebook", "slug"),)
+        ordering = ("rulebook", "sort_order", "slug")
+        verbose_name = _("Rulebook Field")
+        verbose_name_plural = _("Rulebook Fields")
+
+    def __str__(self):
+        return f"{self.rulebook} / {self.name}"
+
+    @property
+    def display(self):
+        return str(self)
+
+
+class RulebookFieldType(models.Model):
+    """Associates a TypeConfig with a RulebookField.
+
+    Defines which object types are allowed within a specific field of a Rulebook.
+    """
+
+    field = models.ForeignKey(
+        to="netbox_nsm.RulebookField",
+        on_delete=models.CASCADE,
+        related_name="type_configs",
+        verbose_name=_("Field"),
+    )
+    type_config = models.ForeignKey(
+        to="netbox_nsm.TypeConfig",
+        on_delete=models.CASCADE,
+        related_name="rulebook_field_types",
+        verbose_name=_("Type Config"),
+    )
+    sort_order = models.PositiveIntegerField(
+        default=100,
+        verbose_name=_("Sort Order"),
+        help_text=_("Order in which this type appears within the field."),
+    )
+    max_items = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_("Max Items"),
+        help_text=_("Maximum number of objects of this type per rule. Leave empty for unlimited."),
+    )
+
+    class Meta:
+        unique_together = (("field", "type_config"),)
+        ordering = ("field", "sort_order")
+        verbose_name = _("Rulebook Field Type")
+        verbose_name_plural = _("Rulebook Field Types")
+
+    def __str__(self):
+        return f"{self.field} / {self.type_config}"
+
+    @property
+    def display(self):
+        return str(self)
 
 
 class SecurityPolicyRule(ContactsMixin, PrimaryModel):
@@ -82,6 +196,15 @@ class SecurityPolicyRule(ContactsMixin, PrimaryModel):
         choices=ActionChoices,
         default=ActionChoices.PERMIT,
     )
+    virtual_group_config = models.JSONField(
+        blank=True,
+        default=dict,
+        verbose_name="Virtual Group Config",
+        help_text=(
+            "Stores virtual AND-group configuration per area. "
+            "Format: {area_slug: [[id1,id2],[id3]]} — outer=OR, inner=AND."
+        ),
+    )
 
     class Meta:
         verbose_name = _("Security Rule")
@@ -101,70 +224,123 @@ class SecurityPolicyRule(ContactsMixin, PrimaryModel):
         return reverse("plugins:netbox_nsm:securitypolicyrule", args=[self.pk])
 
 
-class _PlacementChoices(models.TextChoices):
-    SOURCE = "source", _("Source")
-    DESTINATION = "destination", _("Destination")
-    FIXED = "fixed", _("Fixed")
-
-
 class SecurityPolicyRuleObjectItem(models.Model):
-    """Assigns a SecurityObject to a rule within a specific area and placement."""
+    """Assigns any NetBox object to a rule within a specific RulebookField."""
 
     rule = models.ForeignKey(
         to="netbox_nsm.SecurityPolicyRule",
         on_delete=models.CASCADE,
         related_name="object_items",
     )
-    area = models.ForeignKey(
-        to="netbox_nsm.SecurityArea",
+    field = models.ForeignKey(
+        to="netbox_nsm.RulebookField",
         on_delete=models.PROTECT,
         related_name="rule_object_items",
+        null=True,
+        blank=True,
+        verbose_name=_("Field"),
     )
-    placement = models.CharField(max_length=20, choices=_PlacementChoices.choices)
-    security_object = models.ForeignKey(
-        to="netbox_nsm.SecurityObject",
+    content_type = models.ForeignKey(
+        to=ContentType,
         on_delete=models.CASCADE,
-        related_name="rule_object_items",
+        related_name="nsm_rule_items",
+        verbose_name=_("Objekttyp"),
+    )
+    object_id = models.PositiveBigIntegerField(verbose_name=_("Objekt-ID"))
+    assigned_object = GenericForeignKey("content_type", "object_id")
+    exclude = models.BooleanField(
+        default=False,
+        verbose_name=_("Exclude"),
+        help_text=_("If set, this object is excluded from the field (EXCEPT semantics)."),
     )
 
     class Meta:
-        unique_together = (("rule", "area", "placement", "security_object"),)
-        ordering = ("area__sort_order", "area__slug", "placement", "security_object__name")
+        unique_together = (("rule", "field", "content_type", "object_id"),)
+        indexes = (models.Index(fields=("content_type", "object_id")),)
+        ordering = (
+            "field__sort_order",
+            "field__slug",
+            "object_id",
+        )
         verbose_name = _("Rule Object Item")
         verbose_name_plural = _("Rule Object Items")
 
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if self.field_id and self.content_type_id:
+            # Bestimme den passenden RulebookFieldType für dieses Objekt
+            from django.contrib.contenttypes.models import ContentType
+            try:
+                ft = RulebookFieldType.objects.get(
+                    field=self.field,
+                    type_config__content_type_id=self.content_type_id,
+                )
+                if ft.max_items is not None:
+                    existing = SecurityPolicyRuleObjectItem.objects.filter(
+                        rule=self.rule,
+                        field=self.field,
+                        content_type_id=self.content_type_id,
+                    )
+                    if self.pk:
+                        existing = existing.exclude(pk=self.pk)
+                    if existing.count() >= ft.max_items:
+                        raise ValidationError(
+                            {
+                                "field": _(
+                                    "Dieser Typ erlaubt maximal %(max)d Objekt(e) pro Regel."
+                                ) % {"max": ft.max_items}
+                            }
+                        )
+            except RulebookFieldType.DoesNotExist:
+                pass
+
     def __str__(self):
-        return f"{self.rule} / {self.area} / {self.placement} / {self.security_object}"
+        return f"{self.rule} / {self.field} / {self.object_id}"
+
+    @property
+    def display(self):
+        return str(self)
 
 
 class SecurityPolicyRuleGroupItem(models.Model):
-    """Assigns a SecurityObjectGroup to a rule within a specific area and placement."""
+    """Assigns a SecurityObjectGroup to a rule within a specific RulebookField."""
 
     rule = models.ForeignKey(
         to="netbox_nsm.SecurityPolicyRule",
         on_delete=models.CASCADE,
         related_name="group_items",
     )
-    area = models.ForeignKey(
-        to="netbox_nsm.SecurityArea",
+    field = models.ForeignKey(
+        to="netbox_nsm.RulebookField",
         on_delete=models.PROTECT,
         related_name="rule_group_items",
+        null=True,
+        blank=True,
+        verbose_name=_("Field"),
     )
-    placement = models.CharField(max_length=20, choices=_PlacementChoices.choices)
     security_group = models.ForeignKey(
         to="netbox_nsm.SecurityObjectGroup",
         on_delete=models.CASCADE,
         related_name="rule_group_items",
     )
+    exclude = models.BooleanField(
+        default=False,
+        verbose_name=_("Exclude"),
+        help_text=_("If set, this group is excluded from the field (EXCEPT semantics)."),
+    )
 
     class Meta:
-        unique_together = (("rule", "area", "placement", "security_group"),)
-        ordering = ("area__sort_order", "area__slug", "placement", "security_group__name")
+        unique_together = (("rule", "field", "security_group"),)
+        ordering = (
+            "field__sort_order",
+            "field__slug",
+            "security_group__name",
+        )
         verbose_name = _("Rule Group Item")
         verbose_name_plural = _("Rule Group Items")
 
     def __str__(self):
-        return f"{self.rule} / {self.area} / {self.placement} / {self.security_group}"
+        return f"{self.rule} / {self.field} / {self.security_group}"
 
 
 class SecurityPolicyAssignment(NetBoxModel):
@@ -195,8 +371,8 @@ class SecurityPolicyAssignment(NetBoxModel):
             ),
         )
         ordering = ("rulebook", "assigned_object_id")
-        verbose_name = _("Security Zone Rulebook assignment")
-        verbose_name_plural = _("Security Zone Rulebook assignments")
+        verbose_name = _("Rulebook Assignment")
+        verbose_name_plural = _("Rulebook Assignments")
 
     def __str__(self):
         return f"{self.assigned_object}: {self.rulebook}"

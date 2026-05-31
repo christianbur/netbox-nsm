@@ -51,6 +51,7 @@ class SecurityAreaDeleteView(generic.ObjectDeleteView):
 
     def post(self, request, *args, **kwargs):
         from django.core.exceptions import ValidationError
+
         obj_id = kwargs.get("pk") or kwargs.get("id")
         if obj_id is None:
             raise Http404("Missing object identifier")

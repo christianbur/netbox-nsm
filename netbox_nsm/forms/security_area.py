@@ -17,7 +17,9 @@ class SecurityAreaForm(PrimaryModelForm):
     slug = SlugField(
         max_length=50,
         label=_("Slug"),
-        help_text=_("Internal identifier (lowercase, no spaces). Cannot be changed after creation."),
+        help_text=_(
+            "Internal identifier (lowercase, no spaces). Cannot be changed after creation."
+        ),
     )
 
     fieldsets = (
@@ -32,6 +34,4 @@ class SecurityAreaForm(PrimaryModelForm):
 
 class SecurityAreaFilterForm(PrimaryModelFilterSetForm):
     model = SecurityArea
-    fieldsets = (
-        FieldSet("q", "filter_id", "tag"),
-    )
+    fieldsets = (FieldSet("q", "filter_id", "tag"),)

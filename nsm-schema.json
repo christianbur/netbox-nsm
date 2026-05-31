@@ -1,0 +1,575 @@
+{
+  "schema_version": "1",
+  "types": [
+    {
+      "name": "nsm_action",
+      "slug": "nsm_action",
+      "version": "0.1",
+      "verbose_name": "Action",
+      "verbose_name_plural": "Action",
+      "description": "Outcome a security rule takes on matched traffic.",
+      "group_name": "NSM Action",
+      "fields": [
+        {
+          "id": 1,
+          "name": "name",
+          "type": "text",
+          "label": "Name",
+          "primary": true,
+          "required": true,
+          "weight": 10
+        },
+        {
+          "id": 7,
+          "name": "color",
+          "type": "text",
+          "label": "Color",
+          "description": "HTML color code (e.g. #FF0000)",
+          "validation_regex": "^#[0-9a-fA-F]{6}$",
+          "weight": 20
+        },
+        {
+          "id": 2,
+          "name": "slug",
+          "type": "text",
+          "label": "Slug",
+          "description": "URL-friendly unique shorthand"
+        },
+        {
+          "id": 3,
+          "name": "description",
+          "type": "text",
+          "label": "Description"
+        },
+        {
+          "id": 6,
+          "name": "comments",
+          "type": "longtext",
+          "label": "Comments",
+          "group_name": "Comments",
+          "weight": 910
+        }
+      ],
+      "removed_fields": [
+        {
+          "id": 4,
+          "name": "owner_group"
+        },
+        {
+          "id": 5,
+          "name": "owner"
+        },
+        {
+          "id": 100,
+          "name": "display_template"
+        }
+      ]
+    },
+    {
+      "name": "nsm_addresses",
+      "slug": "nsm_addresses",
+      "version": "0.1",
+      "verbose_name": "Addresses",
+      "verbose_name_plural": "Addresses",
+      "description": "Represents exactly one IP address, prefix, or range.",
+      "group_name": "NSM Source/Destination",
+      "fields": [
+        {
+          "id": 1,
+          "name": "name",
+          "type": "text",
+          "label": "Name",
+          "primary": true,
+          "required": true,
+          "weight": 10
+        },
+        {
+          "id": 7,
+          "name": "color",
+          "type": "text",
+          "label": "Color",
+          "description": "HTML color code (e.g. #FF0000)",
+          "validation_regex": "^#[0-9a-fA-F]{6}$",
+          "weight": 20
+        },
+        {
+          "id": 2,
+          "name": "slug",
+          "type": "text",
+          "label": "Slug",
+          "description": "URL-friendly unique shorthand"
+        },
+        {
+          "id": 3,
+          "name": "description",
+          "type": "text",
+          "label": "Description"
+        },
+        {
+          "id": 6,
+          "name": "comments",
+          "type": "longtext",
+          "label": "Comments",
+          "group_name": "Comments",
+          "weight": 910
+        },
+        {
+          "id": 100,
+          "name": "address_type",
+          "type": "select",
+          "label": "Address Type",
+          "group_name": "NSM Address",
+          "required": true,
+          "choice_set": "nsm_addresses_address_type"
+        },
+        {
+          "id": 101,
+          "name": "ip_address",
+          "type": "object",
+          "label": "IP Address",
+          "group_name": "NSM Address",
+          "related_object_type": "ipam/ipaddress"
+        },
+        {
+          "id": 102,
+          "name": "prefix",
+          "type": "object",
+          "label": "Prefix",
+          "group_name": "NSM Address",
+          "related_object_type": "ipam/prefix"
+        },
+        {
+          "id": 103,
+          "name": "range",
+          "type": "object",
+          "label": "Range",
+          "group_name": "NSM Address",
+          "related_object_type": "ipam/iprange"
+        },
+        {
+          "id": 105,
+          "name": "address_group",
+          "type": "multi-object",
+          "label": "Address Group",
+          "group_name": "NSM Address",
+          "related_object_type": "netbox_custom_objects/table10model"
+        }
+      ],
+      "removed_fields": [
+        {
+          "id": 4,
+          "name": "owner_group"
+        },
+        {
+          "id": 5,
+          "name": "owner"
+        },
+        {
+          "id": 104,
+          "name": "group"
+        },
+        {
+          "id": 105,
+          "name": "display_template"
+        }
+      ]
+    },
+    {
+      "name": "nsm_labels",
+      "slug": "nsm_labels",
+      "version": "0.1",
+      "verbose_name": "Labels",
+      "verbose_name_plural": "Labels",
+      "description": "Logical attribute with type classification.",
+      "group_name": "NSM Source/Destination",
+      "fields": [
+        {
+          "id": 1,
+          "name": "name",
+          "type": "text",
+          "label": "Name",
+          "primary": true,
+          "required": true,
+          "weight": 10
+        },
+        {
+          "id": 7,
+          "name": "color",
+          "type": "text",
+          "label": "Color",
+          "description": "HTML color code (e.g. #FF0000)",
+          "validation_regex": "^#[0-9a-fA-F]{6}$",
+          "weight": 20
+        },
+        {
+          "id": 2,
+          "name": "slug",
+          "type": "text",
+          "label": "Slug",
+          "description": "URL-friendly unique shorthand"
+        },
+        {
+          "id": 3,
+          "name": "description",
+          "type": "text",
+          "label": "Description"
+        },
+        {
+          "id": 6,
+          "name": "comments",
+          "type": "longtext",
+          "label": "Comments",
+          "group_name": "Comments",
+          "weight": 910
+        },
+        {
+          "id": 100,
+          "name": "label_type",
+          "type": "select",
+          "label": "Label Type",
+          "group_name": "NSM Label",
+          "required": true,
+          "choice_set": "nsm_labels_label_type"
+        },
+        {
+          "id": 101,
+          "name": "custom_type",
+          "type": "text",
+          "label": "Custom Type",
+          "description": "Required when Label Type = Custom (e.g. 'Department').",
+          "group_name": "NSM Label"
+        }
+      ],
+      "removed_fields": [
+        {
+          "id": 4,
+          "name": "owner_group"
+        },
+        {
+          "id": 5,
+          "name": "owner"
+        },
+        {
+          "id": 102,
+          "name": "group"
+        },
+        {
+          "id": 103,
+          "name": "display_template"
+        }
+      ]
+    },
+    {
+      "name": "nsm_services",
+      "slug": "nsm_services",
+      "version": "0.1",
+      "verbose_name": "Services",
+      "verbose_name_plural": "Services",
+      "description": "Represents exactly one network service (protocol + optional port).",
+      "group_name": "NSM Services",
+      "fields": [
+        {
+          "id": 1,
+          "name": "name",
+          "type": "text",
+          "label": "Name",
+          "primary": true,
+          "required": true,
+          "weight": 10
+        },
+        {
+          "id": 7,
+          "name": "color",
+          "type": "text",
+          "label": "Color",
+          "description": "HTML color code (e.g. #FF0000)",
+          "validation_regex": "^#[0-9a-fA-F]{6}$",
+          "weight": 20
+        },
+        {
+          "id": 2,
+          "name": "slug",
+          "type": "text",
+          "label": "Slug",
+          "description": "URL-friendly unique shorthand"
+        },
+        {
+          "id": 3,
+          "name": "description",
+          "type": "text",
+          "label": "Description"
+        },
+        {
+          "id": 6,
+          "name": "comments",
+          "type": "longtext",
+          "label": "Comments",
+          "group_name": "Comments",
+          "weight": 910
+        },
+        {
+          "id": 100,
+          "name": "protocol",
+          "type": "select",
+          "label": "Protocol",
+          "group_name": "NSM Service",
+          "required": true,
+          "choice_set": "nsm_services_protocol"
+        },
+        {
+          "id": 101,
+          "name": "port",
+          "type": "integer",
+          "label": "Port",
+          "description": "Port 0–65535 (TCP/UDP/SCTP only).",
+          "group_name": "NSM Service",
+          "validation_minimum": 0,
+          "validation_maximum": 65535
+        }
+      ],
+      "removed_fields": [
+        {
+          "id": 4,
+          "name": "owner_group"
+        },
+        {
+          "id": 5,
+          "name": "owner"
+        },
+        {
+          "id": 102,
+          "name": "group"
+        },
+        {
+          "id": 103,
+          "name": "display_template"
+        }
+      ]
+    },
+    {
+      "name": "nsm_zones",
+      "slug": "nsm_zones",
+      "version": "0.1",
+      "verbose_name": "Zones",
+      "verbose_name_plural": "Zones",
+      "description": "Security zone (logical segment of the network).",
+      "group_name": "NSM Source/Destination",
+      "fields": [
+        {
+          "id": 1,
+          "name": "name",
+          "type": "text",
+          "label": "Name",
+          "primary": true,
+          "required": true,
+          "weight": 10
+        },
+        {
+          "id": 2,
+          "name": "slug",
+          "type": "text",
+          "label": "Slug",
+          "description": "URL-friendly unique shorthand"
+        },
+        {
+          "id": 3,
+          "name": "description",
+          "type": "text",
+          "label": "Description"
+        },
+        {
+          "id": 6,
+          "name": "comments",
+          "type": "longtext",
+          "label": "Comments",
+          "group_name": "Comments",
+          "weight": 910
+        },
+        {
+          "id": 7,
+          "name": "color",
+          "type": "text",
+          "label": "Color",
+          "weight": 20
+        }
+      ],
+      "removed_fields": [
+        {
+          "id": 4,
+          "name": "owner_group"
+        },
+        {
+          "id": 5,
+          "name": "owner"
+        },
+        {
+          "id": 101,
+          "name": "group"
+        },
+        {
+          "id": 100,
+          "name": "display_template"
+        }
+      ]
+    },
+    {
+      "name": "nsm_group",
+      "slug": "nsm_group",
+      "version": "0.1",
+      "verbose_name": "Group",
+      "verbose_name_plural": "Groups",
+      "description": "Named container grouping NSM objects. Objects reference their group via the 'group' field.",
+      "group_name": "NSM Group",
+      "fields": [
+        {
+          "id": 1,
+          "name": "name",
+          "type": "text",
+          "label": "Name",
+          "primary": true,
+          "required": true,
+          "weight": 10
+        },
+        {
+          "id": 2,
+          "name": "slug",
+          "type": "text",
+          "label": "Slug",
+          "description": "URL-friendly unique shorthand"
+        },
+        {
+          "id": 3,
+          "name": "description",
+          "type": "text",
+          "label": "Description"
+        },
+        {
+          "id": 6,
+          "name": "comments",
+          "type": "longtext",
+          "label": "Comments",
+          "group_name": "Comments",
+          "weight": 910
+        },
+        {
+          "id": 7,
+          "name": "color",
+          "type": "text",
+          "label": "Color",
+          "weight": 20
+        },
+        {
+          "id": 100,
+          "name": "section",
+          "type": "select",
+          "label": "Section",
+          "group_name": "NSM Group",
+          "required": true,
+          "description": "Which area this group applies to.",
+          "choice_set": "nsm_group_section"
+        },
+        {
+          "id": 101,
+          "name": "parent_group",
+          "type": "text",
+          "label": "Parent Group",
+          "description": "Name of the parent nsm_group (for nested groups).",
+          "group_name": "NSM Group"
+        }
+      ],
+      "removed_fields": [
+        {
+          "id": 4,
+          "name": "owner_group"
+        },
+        {
+          "id": 5,
+          "name": "owner"
+        },
+        {
+          "id": 102,
+          "name": "display_template"
+        }
+      ]
+    },
+    {
+      "name": "nsm_panel",
+      "slug": "nsm_panel",
+      "version": "0.1",
+      "verbose_name": "Panel",
+      "verbose_name_plural": "Panels",
+      "description": "Firewall virtual context (vsys, VDOM, context, routing-instance).",
+      "group_name": "NSM Panel",
+      "fields": [
+        {
+          "id": 1,
+          "name": "name",
+          "type": "text",
+          "label": "Name",
+          "primary": true,
+          "required": true,
+          "weight": 10
+        },
+        {
+          "id": 2,
+          "name": "slug",
+          "type": "text",
+          "label": "Slug",
+          "description": "URL-friendly unique shorthand"
+        },
+        {
+          "id": 3,
+          "name": "description",
+          "type": "text",
+          "label": "Description"
+        },
+        {
+          "id": 6,
+          "name": "comments",
+          "type": "longtext",
+          "label": "Comments",
+          "group_name": "Comments",
+          "weight": 910
+        },
+        {
+          "id": 7,
+          "name": "color",
+          "type": "text",
+          "label": "Color",
+          "weight": 20
+        },
+        {
+          "id": 100,
+          "name": "panel_type",
+          "type": "select",
+          "label": "Panel Type",
+          "group_name": "NSM Panel",
+          "required": true,
+          "choice_set": "nsm_panel_panel_type"
+        },
+        {
+          "id": 101,
+          "name": "device",
+          "type": "object",
+          "label": "Device",
+          "group_name": "NSM Panel",
+          "related_object_type": "dcim/device"
+        }
+      ],
+      "removed_fields": [
+        {
+          "id": 4,
+          "name": "owner_group"
+        },
+        {
+          "id": 5,
+          "name": "owner"
+        },
+        {
+          "id": 102,
+          "name": "display_template"
+        }
+      ]
+    }
+  ]
+}

@@ -21,7 +21,6 @@ from virtualization.models import VirtualMachine
 
 from netbox_nsm.models import (
     SecurityArea,
-    SecurityObject,
     SecurityObjectGroup,
     SecurityPolicyRule,
     SecurityPolicyRulebook,
@@ -46,9 +45,13 @@ class SecurityPolicyRulebookForm(PrimaryModelForm):
     name = forms.CharField(max_length=100, required=True)
     rule_comment_template = forms.CharField(
         required=False,
-        widget=forms.Textarea(attrs={"rows": 5, "placeholder": "## Notes\n\n{rulebook} – Rule #{index}\n"}),
+        widget=forms.Textarea(
+            attrs={"rows": 5, "placeholder": "## Notes\n\n{rulebook} – Rule #{index}\n"}
+        ),
         label=_("Rule Comment Template"),
-        help_text=_("Markdown template pre-filled when adding new rules. Supports {rule_name}, {index}, {rulebook}."),
+        help_text=_(
+            "Markdown template pre-filled when adding new rules. Supports {rule_name}, {index}, {rulebook}."
+        ),
     )
 
     fieldsets = (
@@ -68,7 +71,6 @@ class SecurityPolicyRulebookForm(PrimaryModelForm):
             "comments",
             "tags",
         )
-
 
 
 class SecurityPolicyRulebookFilterForm(PrimaryModelFilterSetForm):
@@ -97,7 +99,9 @@ class SecurityPolicyRulebookBulkEditForm(PrimaryModelBulkEditForm):
 
 class SecurityPolicyRuleForm(PrimaryModelForm):
     index = forms.IntegerField(min_value=1, required=True, initial=100)
-    enabled = forms.BooleanField(required=False, initial=True, label=_("Status (on/off)"))
+    enabled = forms.BooleanField(
+        required=False, initial=True, label=_("Status (on/off)")
+    )
     name = forms.CharField(max_length=100, required=True)
     rulebook = DynamicModelChoiceField(
         queryset=SecurityPolicyRulebook.objects.all(), required=True
@@ -106,6 +110,11 @@ class SecurityPolicyRuleForm(PrimaryModelForm):
         widget=forms.HiddenInput(),
         required=False,
         initial="[]",
+    )
+    virtual_group_config = forms.CharField(
+        widget=forms.HiddenInput(),
+        required=False,
+        initial="{}",
     )
 
     fieldsets = (
@@ -140,7 +149,24 @@ class SecurityPolicyRuleForm(PrimaryModelForm):
         instance = super().save(commit=commit)
         if commit:
             self._save_area_selections(instance)
+            self._save_virtual_group_config(instance)
         return instance
+
+    def _save_virtual_group_config(self, instance):
+        """Parse virtual_group_config JSON and save to rule.virtual_group_config.
+        Format: {area_slug: true} — true means all items in that area form one AND-group.
+        """
+        raw = self.cleaned_data.get("virtual_group_config", "{}") or "{}"
+        try:
+            config = json.loads(raw)
+        except (ValueError, TypeError):
+            config = {}
+        if not isinstance(config, dict):
+            config = {}
+        # Keep only areas where value is truthy
+        clean = {str(k): True for k, v in config.items() if v}
+        instance.virtual_group_config = clean
+        instance.save(update_fields=["virtual_group_config"])
 
     def _save_area_selections(self, instance):
         """Parse area_selections JSON and create/update SecurityPolicyRuleObjectItem and SecurityPolicyRuleGroupItem."""
@@ -172,29 +198,41 @@ class SecurityPolicyRuleForm(PrimaryModelForm):
             area = area_cache.get(area_slug)
             if not area:
                 continue
+            # Keep legacy placement consumers working while source/destination are separate areas.
+            if area_slug == "source":
+                placement = "source"
+            elif area_slug == "destination":
+                placement = "destination"
             if placement not in ("source", "destination", "fixed"):
                 continue
 
-            try:
-                pk = int(obj_id)
-            except (ValueError, TypeError):
-                continue
-
             if kind == "object":
-                try:
-                    obj = SecurityObject.objects.get(pk=pk)
-                except SecurityObject.DoesNotExist:
+                parts = str(obj_id).split(".", 1)
+                if len(parts) != 2:
                     continue
+                try:
+                    ct_id, real_obj_id = int(parts[0]), int(parts[1])
+                except (ValueError, TypeError):
+                    continue
+                exclude = bool(sel.get("exclude", False))
                 SecurityPolicyRuleObjectItem.objects.get_or_create(
-                    rule=instance, area=area, placement=placement, security_object=obj
+                    rule=instance, area=area, placement=placement,
+                    content_type_id=ct_id, object_id=real_obj_id,
+                    defaults={"exclude": exclude},
                 )
             elif kind == "group":
+                try:
+                    pk = int(obj_id)
+                except (ValueError, TypeError):
+                    continue
                 try:
                     grp = SecurityObjectGroup.objects.get(pk=pk)
                 except SecurityObjectGroup.DoesNotExist:
                     continue
+                exclude = bool(sel.get("exclude", False))
                 SecurityPolicyRuleGroupItem.objects.get_or_create(
-                    rule=instance, area=area, placement=placement, security_group=grp
+                    rule=instance, area=area, placement=placement, security_group=grp,
+                    defaults={"exclude": exclude},
                 )
 
 

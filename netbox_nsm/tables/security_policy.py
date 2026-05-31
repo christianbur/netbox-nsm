@@ -26,7 +26,7 @@ MAX_PILLS = 3
 
 def _card(label, items, max_pills=MAX_PILLS):
     """
-    items: list of dicts with keys 'url', 'name', and optional 'style'.
+    items: list of dicts with keys 'url', 'name', optional 'style', optional 'excluded'.
     Returns an nsm-rule-card HTML string.
     First max_pills are shown; the rest collapse to a hoverable +N badge.
     """
@@ -35,39 +35,47 @@ def _card(label, items, max_pills=MAX_PILLS):
 
     pills = ""
     for item in shown:
-        style = f' style="{conditional_escape(item["style"])}"' if item.get("style") else ""
+        style = (
+            f' style="{conditional_escape(item["style"])}"' if item.get("style") else ""
+        )
+        excluded_class = " nsm-pill-excluded" if item.get("excluded") else ""
+        excluded_prefix = '<span class="nsm-pill-not-badge" title="Excluded (EXCEPT)">!</span>' if item.get("excluded") else ""
         pills += (
             f'<a href="{conditional_escape(str(item["url"]))}"'
-            f' class="nsm-rule-pill text-decoration-none"{style}'
-            f' title="{conditional_escape(str(item["name"]))}">'            
-            f'{conditional_escape(str(item["name"]))}</a>'
+            f' class="nsm-rule-pill text-decoration-none{excluded_class}"{style}'
+            f' title="{conditional_escape(str(item["name"]))}">'  
+            f'{excluded_prefix}{conditional_escape(str(item["name"]))}</a>'
         )
 
     if hidden:
         for item in hidden:
-            item_style = ("display:none;" + item["style"]) if item.get("style") else "display:none"
+            item_style = (
+                ("display:none;" + item["style"])
+                if item.get("style")
+                else "display:none"
+            )
+            excluded_class = " nsm-pill-excluded" if item.get("excluded") else ""
+            excluded_prefix = '<span class="nsm-pill-not-badge">!</span>' if item.get("excluded") else ""
             pills += (
                 f'<a href="{conditional_escape(str(item["url"]))}"'
-                f' class="nsm-rule-pill nsm-pill-hidden text-decoration-none"'
+                f' class="nsm-rule-pill nsm-pill-hidden text-decoration-none{excluded_class}"'
                 f' style="{conditional_escape(item_style)}"'
-                f' title="{conditional_escape(str(item["name"]))}">'
-                f'{conditional_escape(str(item["name"]))}</a>'
-            )
-        pills += (
+                f' title="{conditional_escape(str(item["name"]))}">'  
+                f'{excluded_prefix}{conditional_escape(str(item["name"]))}</a>'
             f'<button type="button"'
             f' class="nsm-rule-pill nsm-rule-pill-muted nsm-pill-more"'
             f' style="border:none;cursor:pointer;flex-shrink:0;max-width:none;overflow:visible;"'
-            f' onclick="var c=this.closest(\'.nsm-rule-pills\');'
-            f'c.querySelectorAll(\'.nsm-pill-hidden\').forEach(function(e){{e.style.display=\'\';}});'
+            f" onclick=\"var c=this.closest('.nsm-rule-pills');"
+            f"c.querySelectorAll('.nsm-pill-hidden').forEach(function(e){{e.style.display='';}});"
             f'this.remove();"'
-            f'>+{len(hidden)}</button>'
+            f">+{len(hidden)}</button>"
         )
 
     return (
         f'<div class="nsm-rule-card">'
         f'<div class="nsm-rule-label">{conditional_escape(str(label))}</div>'
         f'<div class="nsm-rule-pills">{pills}</div>'
-        f'</div>'
+        f"</div>"
     )
 
 
@@ -97,30 +105,31 @@ def _build_src_dst_html(zones=(), users=()):
     return _rule_stack(_build_src_dst_cards(zones, users))
 
 
-def _custom_objects_cards(custom_objs):
+def _custom_objects_cards(custom_objs_with_exclude):
     """Group SecurityObjects by custom_type and render as labelled cards with icons.
-    Uses display_template from the custom type if set."""
+    Uses display_template from the custom type if set.
+    custom_objs_with_exclude: list of (obj, exclude_bool) tuples."""
     type_map = OrderedDict()
-    for obj in custom_objs:
+    for obj, excluded in custom_objs_with_exclude:
         ct = obj.custom_type
         key = ct.name
-        display_name = obj.render_display() if hasattr(obj, "render_display") else obj.name
-        type_map.setdefault(key, []).append(
-            {"url": obj.get_absolute_url(), "name": display_name}
+        display_name = (
+            obj.render_display() if hasattr(obj, "render_display") else obj.name
         )
-    return [
-        _card(label, items)
-        for label, items in type_map.items()
-    ]
+        type_map.setdefault(key, []).append(
+            {"url": obj.get_absolute_url(), "name": display_name, "excluded": excluded}
+        )
+    return [_card(label, items) for label, items in type_map.items()]
 
 
 # ── custom columns ────────────────────────────────────────────────────────────
 
-def _groups_cards(groups):
+
+def _groups_cards(groups_with_exclude):
     """Render SecurityObjectGroup instances as a single 'Groups' card."""
     items = [
-        {"url": g.get_absolute_url(), "name": g.name}
-        for g in groups
+        {"url": g.get_absolute_url(), "name": g.name, "excluded": exc}
+        for g, exc in groups_with_exclude
     ]
     if not items:
         return []
@@ -131,11 +140,13 @@ def _rule_objects(record, placement, area_slugs=None):
     allowed = set(area_slugs or [])
     out = []
     for item in record.object_items.all():
-        if item.placement != placement:
+        if item.field is None:
             continue
-        if allowed and item.area.slug not in allowed:
+        if item.field.placement != placement:
             continue
-        out.append(item.security_object)
+        if allowed and item.field.slug not in allowed:
+            continue
+        out.append((item.assigned_object, item.exclude))
     return out
 
 
@@ -143,11 +154,13 @@ def _rule_groups(record, placement, area_slugs=None):
     allowed = set(area_slugs or [])
     out = []
     for item in record.group_items.all():
-        if item.placement != placement:
+        if item.field is None:
             continue
-        if allowed and item.area.slug not in allowed:
+        if item.field.placement != placement:
             continue
-        out.append(item.security_group)
+        if allowed and item.field.slug not in allowed:
+            continue
+        out.append((item.security_group, item.exclude))
     return out
 
 
@@ -169,14 +182,20 @@ class DestinationColumn(tables.Column):
 
 class ServiceColumn(tables.Column):
     def render(self, value, record):
-        cards = _custom_objects_cards(_rule_objects(record, "fixed", area_slugs=("services", "service")))
-        cards += _groups_cards(_rule_groups(record, "fixed", area_slugs=("services", "service")))
+        cards = _custom_objects_cards(
+            _rule_objects(record, "fixed", area_slugs=("service",))
+        )
+        cards += _groups_cards(
+            _rule_groups(record, "fixed", area_slugs=("service",))
+        )
         return _rule_stack(cards)
 
 
 class ActionColumn(tables.Column):
     def render(self, value, record):
-        cards = _custom_objects_cards(_rule_objects(record, "fixed", area_slugs=("action",)))
+        cards = _custom_objects_cards(
+            _rule_objects(record, "fixed", area_slugs=("action",))
+        )
         cards += _groups_cards(_rule_groups(record, "fixed", area_slugs=("action",)))
         return _rule_stack(cards)
 
@@ -197,8 +216,8 @@ class NameColumn(tables.Column):
             f'<a href="{conditional_escape(url)}"'
             f' title="{conditional_escape(full)}"'
             f' class="text-body">'
-            f'{conditional_escape(display)}'
-            f'</a>'
+            f"{conditional_escape(display)}"
+            f"</a>"
         )
 
 
@@ -216,7 +235,9 @@ class SecurityPolicyRulebookTable(NetBoxTable):
 
 class SecurityPolicyRuleTable(NetBoxTable):
     index = tables.Column(
-        verbose_name=mark_safe('<i class="mdi mdi-pound" title="Index" aria-label="Index" style="color:inherit"></i>'),
+        verbose_name=_("Index"),
+        linkify=True,
+        attrs={"th": {"style": "width: 1%; white-space: nowrap;"}, "td": {"style": "white-space: nowrap;"}},
     )
     status = tables.TemplateColumn(
         template_code="""
@@ -232,6 +253,7 @@ class SecurityPolicyRuleTable(NetBoxTable):
         """,
         orderable=False,
         verbose_name=_("Status"),
+        attrs={"th": {"style": "width: 1%; white-space: nowrap;"}, "td": {"style": "white-space: nowrap;"}},
     )
     name = NameColumn(
         verbose_name=_("Name"),

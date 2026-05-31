@@ -10,7 +10,7 @@ __all__ = ("SecurityObjectGroupFilterSet",)
 
 @register_filterset
 class SecurityObjectGroupFilterSet(PrimaryModelFilterSet):
-    area_id = django_filters.NumberFilter(field_name="area")
+    area_id = django_filters.NumberFilter(field_name="areas")
 
     class Meta:
         model = SecurityObjectGroup

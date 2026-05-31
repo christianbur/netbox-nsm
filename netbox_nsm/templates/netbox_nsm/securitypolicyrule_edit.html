@@ -29,6 +29,7 @@
 
   <div class="nsm-hidden-pickers">
     <input type="hidden" name="area_selections" id="nsm-area-selections" value="[]">
+    <input type="hidden" name="virtual_group_config" id="nsm-virtual-group-config" value="{}">
   </div>
 
   <div class="field-group mb-4">
@@ -56,5 +57,18 @@
   {% if nsm_rule_selections %}
   {{ nsm_rule_selections|json_script:"nsm-rule-selections" }}
   {% endif %}
-  <script src="{% static 'netbox_nsm/js/security_rule_form.js' %}?v=20260528b"></script>
+  {% if nsm_rule_virtual_groups %}
+  {{ nsm_rule_virtual_groups|json_script:"nsm-rule-virtual-groups" }}
+  {% endif %}
+  <script>
+  window.NSM_I18N = {
+    "remove_selected": "{% trans 'Remove selected' %}",
+    "search_in": "{% trans 'Search in' %}",
+    "types": "{% trans 'Types' %}",
+    "groups": "{% trans 'Groups' %}",
+    "search": "{% trans 'Search' %}",
+    "remove": "{% trans 'Remove' %}"
+  };
+  </script>
+  <script src="{% static 'netbox_nsm/js/security_rule_form.js' %}?v=20260531b"></script>
 {% endblock javascript %}

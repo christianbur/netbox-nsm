@@ -6,10 +6,15 @@ from netbox.forms import (
     PrimaryModelFilterSetForm,
     PrimaryModelForm,
 )
-from utilities.forms.fields import TagFilterField, DynamicModelChoiceField, DynamicModelMultipleChoiceField
+from utilities.forms.fields import (
+    TagFilterField,
+    DynamicModelChoiceField,
+    DynamicModelMultipleChoiceField,
+)
 from utilities.forms.rendering import FieldSet
 
-from netbox_nsm.models import SecurityObjectGroup, SecurityObject, SecurityArea
+from netbox_nsm.models import SecurityObjectGroup, SecurityArea
+from netbox_nsm.forms.widgets import ColorSelectTextWidget
 
 __all__ = (
     "SecurityObjectGroupForm",
@@ -19,14 +24,9 @@ __all__ = (
 
 
 class SecurityObjectGroupForm(PrimaryModelForm):
-    area = DynamicModelChoiceField(
+    areas = DynamicModelMultipleChoiceField(
         queryset=SecurityArea.objects.all(),
-        label=_("Area"),
-    )
-    members = DynamicModelMultipleChoiceField(
-        queryset=SecurityObject.objects.all(),
-        required=False,
-        label=_("Members"),
+        label=_("Areas"),
     )
     sub_groups = DynamicModelMultipleChoiceField(
         queryset=SecurityObjectGroup.objects.all(),
@@ -34,15 +34,53 @@ class SecurityObjectGroupForm(PrimaryModelForm):
         label=_("Sub-Groups"),
     )
 
+    color = forms.CharField(
+        max_length=7,
+        required=False,
+        label=_('Color'),
+        widget=ColorSelectTextWidget(),
+        help_text=_('HTML color code (e.g. #aabbcc) used for this group in the policy view.'),
+    )
     fieldsets = (
-        FieldSet("name", "area", "description", name=_("Group")),
-        FieldSet("members", "sub_groups", name=_("Members")),
+        FieldSet("name", "areas", "color", "description", name=_("Group")),
+        FieldSet("sub_groups", name=_("Members")),
         FieldSet("tags", name=_("Tags")),
     )
 
     class Meta:
         model = SecurityObjectGroup
-        fields = ("name", "area", "members", "sub_groups", "description", "comments", "tags")
+        fields = (
+            "name",
+            "areas",
+            "color",
+            "sub_groups",
+            "description",
+            "comments",
+            "tags",
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        area_ids = set()
+        if self.is_bound:
+            area_ids.update(self.data.getlist("areas"))
+        else:
+            initial_areas = self.initial.get("areas") or []
+            area_ids.update(
+                getattr(area, "pk", area) for area in initial_areas if area
+            )
+
+        if not area_ids and self.instance.pk:
+            area_ids.update(self.instance.areas.values_list("pk", flat=True))
+
+        area_ids = {int(area_id) for area_id in area_ids if str(area_id).isdigit()}
+        if not area_ids:
+            return
+
+        self.fields["sub_groups"].queryset = (
+            SecurityObjectGroup.objects.filter(areas__pk__in=area_ids).distinct()
+        )
 
     def clean_sub_groups(self):
         sub_groups = self.cleaned_data.get("sub_groups", [])
@@ -52,20 +90,20 @@ class SecurityObjectGroupForm(PrimaryModelForm):
 
     def clean(self):
         super().clean()
-        area = self.cleaned_data.get("area")
-        members = self.cleaned_data.get("members")
+        areas = self.cleaned_data.get("areas")
         sub_groups = self.cleaned_data.get("sub_groups")
-        if area and members:
-            bad = [m.name for m in members if m.custom_type.area_id != area.pk]
+        area_ids = {a.pk for a in (areas or [])}
+
+        if area_ids and sub_groups:
+            bad = [
+                g.name
+                for g in sub_groups
+                if not g.areas.filter(pk__in=area_ids).exists()
+            ]
             if bad:
                 raise forms.ValidationError(
-                    _("These members do not match group area '%s': %s") % (area, ", ".join(bad))
-                )
-        if area and sub_groups:
-            bad = [g.name for g in sub_groups if g.area_id != area.pk]
-            if bad:
-                raise forms.ValidationError(
-                    _("These sub-groups do not match group area '%s': %s") % (area, ", ".join(bad))
+                    _("These sub-groups do not match the selected group areas: %s")
+                    % (", ".join(bad))
                 )
         return self.cleaned_data
 
@@ -76,10 +114,10 @@ class SecurityObjectGroupFilterForm(PrimaryModelFilterSetForm):
         FieldSet("q", "filter_id", "tag"),
         FieldSet("area_id", name=_("Group")),
     )
-    area_id = DynamicModelChoiceField(
+    area_id = DynamicModelMultipleChoiceField(
         queryset=SecurityArea.objects.all(),
         required=False,
-        label=_("Area"),
+        label=_("Areas"),
     )
     tags = TagFilterField(model)
 
@@ -87,8 +125,15 @@ class SecurityObjectGroupFilterForm(PrimaryModelFilterSetForm):
 class SecurityObjectGroupBulkEditForm(PrimaryModelBulkEditForm):
     model = SecurityObjectGroup
     description = forms.CharField(max_length=200, required=False)
-    nullable_fields = ["description"]
+    color = forms.CharField(
+        max_length=7,
+        required=False,
+        label=_('Color'),
+        widget=ColorSelectTextWidget(),
+        help_text=_('HTML color code (e.g. #aabbcc).'),
+    )
+    nullable_fields = ["description", "color"]
     fieldsets = (
-        FieldSet("description"),
+        FieldSet("color", "description"),
         FieldSet("tags", name=_("Tags")),
     )

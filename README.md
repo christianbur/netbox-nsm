@@ -17,26 +17,41 @@ tightly integrated with NetBox's existing IPAM and DCIM data.
 3. [Configuration](#configuration)
 4. [Quick Start / Setup Wizard](#quick-start--setup-wizard)
 5. [Type Config](#type-config)
-6. [Object Builder](#object-builder)
-7. [NSM Object Links & Security Panel](#nsm-object-links--security-panel)
-8. [Security Policies](#security-policies)
+6. [NSM Object Links & Security Panel](#nsm-object-links--security-panel)
+7. [Security Policies](#security-policies)
    - [Rulebook List](#rulebook-list)
    - [Rulebook Detail](#rulebook-detail)
    - [Policy Rules](#policy-rules)
    - [Policy Analysis](#policy-analysis)
    - [Zone Matrix](#zone-matrix)
-9. [Demo – Object Analyzer](#demo--object-analyzer)
-10. [Demo Data: Enterprise DC](#demo-data-enterprise-dc)
-11. [REST API](#rest-api)
-12. [Compatibility](#compatibility)
+8. [Demo – Object Analyzer](#demo--object-analyzer)
+9. [Demo Data: Enterprise DC](#demo-data-enterprise-dc)
+10. [REST API](#rest-api)
+11. [Compatibility](#compatibility)
 
 ---
 
 ## Overview
 
-`netbox-nsm` extends NetBox with a complete **network security management** layer on top of the
-existing IPAM and DCIM inventory. Security metadata lives directly next to the objects it
-describes — no separate security tool needed.
+`netbox-nsm` is a **documentation plugin** — it helps you maintain an overview of your network
+security landscape directly inside NetBox, where your IPAM and DCIM data already lives.
+
+Many organisations run **multiple firewall platforms** managed by different teams:
+a data centre team operating Palo Alto or Fortinet, a cloud team with AWS Security Groups or
+GCP Firewall Rules, a remote-access team with Cisco ASA VPN policies. Each platform has its
+own management UI, and getting a consistent cross-platform picture is hard.
+
+`netbox-nsm` is **not** a policy enforcement tool and does not push rules to firewalls.
+It does not replace Tufin, AlgoSec or similar products.
+Instead, it gives you a place to **document**, **visualise** and **cross-reference** security
+policies alongside the rest of your network inventory — vendor-agnostic, in one place.
+
+Typical use cases:
+- Document which security zones a prefix belongs to
+- Map firewall rules from different platforms into a common rulebook format
+- Visualise zone-to-zone policies as a matrix
+- Check at a glance which rules affect a specific IP or prefix
+- Keep an audit trail of intended policy alongside the live IPAM data
 
 Key concepts:
 
@@ -123,108 +138,146 @@ A `TypeConfig` record controls how one specific NetBox object type behaves insid
 
 ![Type Config List](docs/img/02-type-config-list.png)
 
+![Type Config Detail](docs/img/03-type-config-detail.png)
+
+A TypeConfig is required for every security object type you want to use inside NSM.
+Without it, the plugin does not know how to handle or display that type.
+
 | Field | Description |
 |---|---|
-| **Object Type** | The NetBox ContentType this config applies to (e.g. `Custom Objects › Zones`) |
-| **Matching Class** | Semantic role: `address`, `zone`, `label`, `service`, `action`, … Used by Rulebooks to auto-derive their matching strategy |
-| **Display Template** | Format string for rendering objects in the UI, e.g. `{name}` or `{name} ({protocol}/{port})` |
-| **Allowed Placements** | Restricts which rule fields this type may appear in (`source`, `destination`, `fixed`) |
-| **Inherit from parent** | Shows NSM links of the parent Prefix on child objects (sub-Prefix, IP Address, IP Range) |
-| **Stop if own link present** | Suppresses inherited links once the child has its own direct NSM link of the same type |
-
----
-
-## Object Builder
-
-**Security → Configuration → Object Builder**
-
-Lists all active Type Configs in one place. From here you can browse, add or edit Type Configs
-without navigating to the individual list view.
-
-![Object Builder](docs/img/04-object-builder.png)
+| **Object Type** | The NetBox ContentType this config applies to (e.g. `Custom Objects › nsm_zones`) |
+| **Matching Class** | Semantic role: `address`, `zone`, `label`, `service`, `action`, … Tells Rulebooks how to interpret objects of this type when building policies |
+| **Display Template** | How to render objects of this type in the UI. E.g. `{name}` for zones, `{name} ({protocol}/{port})` for services |
+| **Allowed Placements** | Restricts which rule fields this type may appear in: `source`, `destination`, or `fixed` (e.g. services are typically `fixed`, not source/destination) |
+| **Inherit from parent** | If enabled: sub-Prefixes and IP Addresses automatically show the NSM links of their parent Prefix in the Security Panel |
+| **Stop if own link present** | If enabled: once a child object has its own direct link of this type, the inherited link from the parent is hidden — useful for exceptions |
 
 ---
 
 ## NSM Object Links & Security Panel
 
-An `NSMObjectLink` is a **bidirectional link** between any two NetBox objects.
+The Security Panel is **automatically injected into every NetBox object's detail page** — no
+configuration needed. It shows all security objects linked to the current object, grouped by
+type (Zones, Addresses, Labels, Services, …).
 
-Typical use cases:
+An `NSMObjectLink` is a bidirectional link between any NetBox object (Prefix, IP Address,
+Device, Interface, …) and a security object (Zone, Address object, Address group, Label, …).
+Multiple links per object are supported — a prefix can belong to a zone *and* have an address
+object *and* carry several labels at the same time.
 
-- Prefix `10.10.0.0/16` ↔ Zone `prod`
-- Prefix `10.10.0.0/16` ↔ Address `prod-net`
-- IP Address `10.10.0.5` ↔ Label `web-tier`
+Typical examples:
 
-Links are created on any NetBox object's detail page via the **+ Assign** button in the
-Security panel (right column).
+| NetBox object | linked to |
+|---|---|
+| Prefix `10.10.0.0/16` | Zone `prod`, Address `prod-net` |
+| IP Address `10.10.0.5` | Label `web-tier`, Label `app-server` |
+| Device `fw-dc-01` | Zone `infrastructure` |
+
+New links are created directly on the detail page via the **+ Assign** button in the Security
+panel.
 
 ### Security Panel on a Prefix (with data)
 
 ![Prefix Security Panel](docs/img/14-prefix-security-panel-filled.png)
 
-- **Left:** `Custom Objects linking to this object` — table of all Custom Objects that reference
-  this Prefix (here: `Addresses → infrastructure`)
-- **Right:** Security panel grouped by type — `Addresses (1)` and `Zones (1)`, both showing
-  `infrastructure`, with the badge *"Inherited from containing prefix"* where applicable
+The panel groups all linked security objects by type:
 
-### Link Inheritance
+- **Zones** — which security zone(s) this object belongs to
+- **Addresses** — address objects or address groups that represent this object in policies
+- **Labels** — arbitrary classification tags (environment, role, tier, …)
+- **Services** — service objects linked to this object (less common, but possible)
 
-When **Inherit from parent** is enabled on a TypeConfig, child objects (sub-Prefix, IP Address,
-IP Range) automatically display the NSM links of their containing Prefix in the Security panel.
+Each entry shows the object name with its colour badge and a direct link to the security object.
 
-When **Stop if own link present** is also enabled, inherited links of that type are hidden as
-soon as the child object has its own direct NSM link of the same type.
+### Direct vs. Inherited Links
+
+Links can be **direct** (assigned explicitly to this object) or **inherited** (taken from a
+containing Prefix). Inherited links are shown with an *"Inherited from containing prefix"* badge.
+
+This is controlled per security object type via the TypeConfig:
+
+- **Inherit from parent** — a sub-Prefix or IP Address automatically shows the NSM links of
+  its parent Prefix. Useful so you don't have to assign the same zone to every sub-prefix
+  individually.
+- **Stop if own link present** — once the child has its own direct link of that type, the
+  inherited link is suppressed. Useful for exceptions: a sub-prefix that belongs to a
+  *different* zone than its parent.
 
 ---
 
 ## Security Policies
 
+A **Security Rulebook** is a named, ordered list of firewall rules — the NSM equivalent of a
+policy or rule base on a real firewall. Each Rulebook has its own column structure (fields),
+so you can model zone-based, address-based or label-based policies side by side.
+
+Rulebooks are purely for **documentation** — they describe the intended or actual policy of a
+firewall or firewall cluster, but do not push any configuration to devices.
+
 ### Rulebook List
 
 **Security → Security Policies**
 
-Lists all Rulebooks with rule count, type and tags.
+Lists all Rulebooks with rule count and type. You can have one Rulebook per firewall, per
+cluster, or per team — whatever makes sense for your environment.
 
 ![Rulebook List](docs/img/05-rulebook-list.png)
 
 ### Rulebook Detail
 
-The detail page shows the Rulebook's fields (columns), each with its allowed Type Configs and
-sort order.
+The detail page shows the Rulebook's **fields** (columns) and their configuration.
 
 ![Rulebook Detail](docs/img/06-rulebook-detail.png)
 
-A Rulebook defines its own **fields** (columns), e.g. Source, Destination, Service, Action.
-Each field references one or more Type Configs to control which object types are allowed in that
-column. This makes Rulebooks fully flexible — one Rulebook can be zone-based, another
-address-based, another label-based.
+Each field defines one column in the rule editor, for example:
+- **Source** — accepts Zone and Address objects
+- **Destination** — accepts Zone and Address objects
+- **Service** — accepts Service objects
+- **Action** — accepts Action objects (Permit / Deny / Drop)
+
+This column structure is fully configurable per Rulebook. A zone-based Rulebook uses Zone
+objects in Source/Destination; an address-based Rulebook uses Address objects instead.
+Both can coexist in the same NetBox instance.
 
 ### Policy Rules
 
-The **Policy** tab shows all rules in an inline table.
+The **Policy** tab shows all rules as an inline table — one row per rule.
 
 ![Policy Rules](docs/img/07-policy-rules.png)
 
-Each column corresponds to a Rulebook Field. Objects appear as colour-coded pills (if a colour
-is defined on the object) or plain links. Rules can be added, reordered by index, enabled/
-disabled, and bulk-deleted.
+Objects appear as colour-coded pills (using the colour defined on the object) or plain links.
+Each rule has:
+- An **index** (sort order)
+- An **enabled/disabled** toggle
+- A **name** and optional **comment**
+- One cell per field (Source, Destination, Service, Action, …)
+- A **log** flag
+
+Rules can be added directly in the table, reordered by index, enabled/disabled individually,
+and bulk-deleted. This is where you transcribe the actual firewall rules.
 
 ### Policy Analysis
 
-The **Analysis** tab summarises the policy: rule count, enabled vs. disabled, and breakdowns
-by matching class.
+The **Analysis** tab gives a statistical overview of the Rulebook.
 
 ![Policy Analysis](docs/img/08-policy-analysis.png)
 
+Shows rule counts, enabled vs. disabled breakdown, and which object types (matching classes)
+appear across all rules. Useful to quickly check if a policy is complete or has gaps.
+
 ### Zone Matrix
 
-The **Zone Matrix** tab renders all rules as a matrix of source zone × destination zone.
-Each cell lists the services and action for that traffic direction.
+The **Zone Matrix** tab renders all rules as a grid: **source zone × destination zone**.
+Each cell shows the services that are permitted or denied between those two zones.
 
 ![Zone Matrix](docs/img/09-zone-matrix.png)
 
-Particularly useful for zone-based firewall policies (Palo Alto, Fortinet, Cisco ASA, …) to
-instantly see what is allowed between security zones.
+This is the most useful view for understanding a zone-based firewall policy at a glance.
+Instead of reading through hundreds of rows, you see the entire policy on one screen —
+which zones can talk to which, and over which services.
+
+Works best for Rulebooks that use Zone objects in Source and Destination fields (Palo Alto,
+Fortinet, Cisco ASA, Check Point, …).
 
 ---
 
@@ -232,37 +285,32 @@ instantly see what is allowed between security zones.
 
 **Security → Analysis → Demo – Object Analyzer**
 
-A developer/demo tool to select any NetBox object and inspect all its NSM links and matching
-rules in one view.
+Select any NetBox object (Prefix, IP Address, Device, …) and see everything NSM knows about it
+in one view:
+
+- All direct and inherited **NSM links** (Zones, Addresses, Labels, …)
+- All **policy rules** across all Rulebooks where this object appears as source or destination
 
 ![Object Analyzer](docs/img/11-object-analyzer.png)
+
+Useful for answering questions like: *"Which zone does this prefix belong to?"* or
+*"Which firewall rules reference this IP address?"*
+
+This is a demo/exploration tool — the same information is also visible directly on each
+object's detail page via the Security Panel.
 
 ---
 
 ## Demo Data: Enterprise DC
 
-The Setup Wizard (when no IP addresses exist) offers an **Enterprise DC Demo** that creates a
-complete, realistic scenario:
+The Setup Wizard offers an **Enterprise DC Demo** (only available when no IP addresses exist
+in the database) that imports a complete, realistic multi-zone datacenter scenario — including
+DCIM objects, prefixes, NSM zones/addresses/labels/services and 11 rulebooks with 250+ rules.
 
-**DCIM / Virtualisation**
-- Site DC-01, Cisco Nexus Spine/Leaf fabric, Dell R750 hypervisors, 25 racks
-- 2 Spines + 22 Leafs + 24 Hypervisors + ~516 VMs (VMware vSphere + GCP cluster)
-- Prefixes and IP addresses for all zones
-
-**NSM Objects**
-- 11 Zones: prod · integration-1/2/3 · dev-1/2/3 · test-1/2/3 · infrastructure
-- 19 Address objects (zone subnets 10.x.0.0/16, OOB/HV-MGMT, Users, GCP DMZ)
-- ~40 Labels (Env × App × Role × Tier)
-- 34 Services (SSH, HTTPS, DNS, Kerberos, AD-RPC, DB ports, …)
-
-**11 Rulebooks** with 250+ rules in total:
-trustsec-core (90) · trustsec-infra · illumio-intra-zone · fw-dc-inter-zone ·
-fw-mgmt · fw-user-access · fw-sase · fw-internet-outer · fw-internet-inner ·
-fw-gcp-dmz · fw-vpn-partner
-
-All imports are idempotent (`get_or_create`) — safe to re-run.
+Useful for exploring all plugin features without building data by hand.
 
 > **Note:** The Import button is hidden when IP addresses already exist in the database.
+> All imports are idempotent (`get_or_create`) — safe to re-run.
 
 ---
 
@@ -291,9 +339,7 @@ using the bundled `nsm-schema.json` as the request body.
 ## Compatibility
 
 | NetBox | Plugin |
-|---|---|
-| 4.5.x | 0.0.1 |
-| 4.6.x | 0.0.1 |
+| 4.6.x | 0.1.0 |
 
 ---
 

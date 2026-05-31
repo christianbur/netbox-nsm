@@ -36,15 +36,24 @@ tightly integrated with NetBox's existing IPAM and DCIM data.
 `netbox-nsm` is a **documentation plugin** — it helps you maintain an overview of your network
 security landscape directly inside NetBox, where your IPAM and DCIM data already lives.
 
-Many organisations run **multiple firewall platforms** managed by different teams:
-a data centre team operating Palo Alto or Fortinet, a cloud team with AWS Security Groups or
-GCP Firewall Rules, a remote-access team with Cisco ASA VPN policies. Each platform has its
-own management UI, and getting a consistent cross-platform picture is hard.
-
 `netbox-nsm` is **not** a policy enforcement tool and does not push rules to firewalls.
 It does not replace Tufin, AlgoSec or similar products.
 Instead, it gives you a place to **document**, **visualise** and **cross-reference** security
 policies alongside the rest of your network inventory — vendor-agnostic, in one place.
+
+Rulebooks are flexible enough to model virtually any firewall vendor's policy style:
+
+| Policy style | Objects used | Typical vendors |
+|---|---|---|
+| Zone-based | Zone objects in Source + Destination | Palo Alto, Fortinet, Cisco ASA, Check Point |
+| Address-based | Address or Prefix objects | iptables, AWS Security Groups, ACLs |
+| Zone + Address | Zones and Addresses combined | Mixed environments |
+| Label-based | Labels / Tags | Illumio, VMware NSX, cloud micro-segmentation |
+| Mixed | Any combination of the above | Multi-vendor / multi-team environments |
+
+Because each Rulebook defines its own column structure, you can document policies from
+completely different platforms side by side in the same NetBox instance — each in its own
+native style.
 
 Typical use cases:
 - Document which security zones a prefix belongs to
@@ -188,6 +197,15 @@ The panel groups all linked security objects by type:
 - **Services** — service objects linked to this object (less common, but possible)
 
 Each entry shows the object name with its colour badge and a direct link to the security object.
+
+### IP Address — inherited Security Panel
+
+An IP Address that has no direct NSM links of its own still shows the links of its parent
+Prefix — marked with the *"Inherited from containing prefix"* badge.
+
+![IP Address Security Panel](docs/img/13-ipaddress-nsm-panel.png)
+
+This means you only need to assign zones/addresses to Prefixes, not to every individual IP.
 
 ### Direct vs. Inherited Links
 

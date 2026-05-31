@@ -5,6 +5,8 @@ from django.urls import reverse, NoReverseMatch
 from django.utils.translation import gettext_lazy as _
 from django.utils.html import escape, conditional_escape
 from django.db.models import Count, Max, Q
+from django.views import View
+from netbox.object_actions import AddObject, BulkDelete
 import json
 
 import markdown
@@ -694,6 +696,7 @@ __all__ = (
     "SecurityPolicyAssignmentEditView",
     "SecurityPolicyAssignmentDeleteView",
     "SecurityPolicyAssignmentBulkDeleteView",
+    "GlobalRulesSearchView",
 )
 
 
@@ -816,8 +819,7 @@ class SecurityPolicyRulebookVisualizationView(generic.ObjectView):
         if selected_ct_id is None and available_types:
             selected_ct_id = available_types[0]["ct_id"]
 
-        src_objs_by_pk = {}
-        dst_objs_by_pk = {}
+        used_zones_by_pk = {}
         if selected_ct_id is not None:
             try:
                 selected_ct = ContentType.objects.get(pk=selected_ct_id)
@@ -831,13 +833,11 @@ class SecurityPolicyRulebookVisualizationView(generic.ObjectView):
                         obj = item.assigned_object
                         if obj is None:
                             continue
-                        if item.field and item.field.placement == "source":
-                            src_objs_by_pk[obj.pk] = obj
-                        elif item.field and item.field.placement == "destination":
-                            dst_objs_by_pk[obj.pk] = obj
+                        used_zones_by_pk[obj.pk] = obj
 
-        all_src_zones = sorted(src_objs_by_pk.values(), key=lambda z: getattr(z, "name", str(z)).lower())
-        all_dst_zones = sorted(dst_objs_by_pk.values(), key=lambda z: getattr(z, "name", str(z)).lower())
+        all_zones = sorted(used_zones_by_pk.values(), key=lambda z: getattr(z, "name", str(z)).lower())
+        all_src_zones = all_zones
+        all_dst_zones = all_zones
 
         src_filter_pks = {int(v) for v in request.GET.getlist("src_id") if v.isdigit()}
         dst_filter_pks = {int(v) for v in request.GET.getlist("dst_id") if v.isdigit()}
@@ -884,7 +884,7 @@ class SecurityPolicyRulebookVisualizationView(generic.ObjectView):
             return {"count": len(rules_list), "color": None, "label": None}
 
         def _combined_badge(fwd_rules, rev_rules):
-            """Merge fwd + rev (dedup by pk) into a single badge for simplex mode."""
+            """Merge fwd + rev (dedup by pk) into a single badge for undirected mode."""
             seen = set()
             merged = []
             for r in fwd_rules + rev_rules:
@@ -893,9 +893,9 @@ class SecurityPolicyRulebookVisualizationView(generic.ObjectView):
                     merged.append(r)
             return _badge(merged)
 
-        matrix_mode = request.GET.get("mode", "duplex")
-        if matrix_mode not in ("simplex", "duplex"):
-            matrix_mode = "duplex"
+        matrix_mode = request.GET.get("mode", "directed")
+        if matrix_mode not in ("undirected", "directed"):
+            matrix_mode = "directed"
 
         matrix_rows = []
         for src in src_zones:
@@ -909,8 +909,13 @@ class SecurityPolicyRulebookVisualizationView(generic.ObjectView):
                     "combined": _combined_badge(fwd_rules, rev_rules),
                     "fwd_href": f"{policy_url_base}?src_obj_id={src.pk}&dst_obj_id={dst.pk}",
                     "rev_href": f"{policy_url_base}?src_obj_id={dst.pk}&dst_obj_id={src.pk}",
-                    "both_href": f"{policy_url_base}?src_obj_id={src.pk}&dst_obj_id={dst.pk}",
-                    "add_href": f"{add_url_base}?rulebook={instance.pk}&return_url={policy_url_base}",
+                    "both_href": f"{policy_url_base}?src_obj_id={src.pk}&dst_obj_id={dst.pk}&bidir=1",
+                    "add_href": (
+                        f"{add_url_base}?rulebook={instance.pk}"
+                        f"&prefill_src_ct={selected_ct_id}&prefill_src_obj={src.pk}"
+                        f"&prefill_dst_ct={selected_ct_id}&prefill_dst_obj={dst.pk}"
+                        f"&return_url={policy_url_base}"
+                    ),
                     "is_self": src.pk == dst.pk,
                 })
             matrix_rows.append({"source_zone": src, "cells": cells})
@@ -1067,9 +1072,16 @@ class SecurityPolicyRulebookIPAnalysisView(generic.ObjectView):
 
 @register_model_view(SecurityPolicyRulebook)
 class SecurityPolicyRulebookView(generic.ObjectView):
-    queryset = SecurityPolicyRulebook.objects.all()
+    queryset = SecurityPolicyRulebook.objects.prefetch_related(
+        "assignments__assigned_object_type",
+    ).all()
 
     def get_extra_context(self, request, instance):
+        # Assigned objects
+        assignments = list(
+            instance.assignments.select_related("assigned_object_type").all()
+        )
+
         # Fields + Matching Strategy (always available)
         from netbox_nsm.models import RulebookField
         rulebook_fields = list(
@@ -1081,6 +1093,7 @@ class SecurityPolicyRulebookView(generic.ObjectView):
 
         if instance.rulebook_type != RulebookTypeChoices.POLICY:
             return {
+                "assignments": assignments,
                 "rulebook_fields": rulebook_fields,
                 "matching_classes": matching_classes,
             }
@@ -1094,6 +1107,7 @@ class SecurityPolicyRulebookView(generic.ObjectView):
         order_map = {name: idx + 1 for idx, name in enumerate(selected_columns)}
 
         return {
+            "assignments": assignments,
             "security_rules_columns": SECURITY_RULES_COLUMNS,
             "selected_security_rules_columns": selected_columns,
             "selected_security_rules_columns_set": selected_set,
@@ -1268,6 +1282,29 @@ class SecurityPolicyRulebookRulesView(generic.ObjectView):
         # resolve active filter badge objects (compound IDs: ct_pk.obj_pk)
         active_src_objs = []
         active_dst_objs = []
+        if src_obj_filter or dst_obj_filter:
+            src_pks = [int(v) for v in src_obj_filter]
+            dst_pks = [int(v) for v in dst_obj_filter]
+            def _resolve_objs(pks, placement):
+                seen = set()
+                result = []
+                for item in (
+                    SecurityPolicyRuleObjectItem.objects
+                    .filter(rule__rulebook=instance, field__placement=placement, object_id__in=pks)
+                    .select_related("content_type", "field")
+                    .distinct()
+                ):
+                    if item.object_id in seen:
+                        continue
+                    seen.add(item.object_id)
+                    obj = item.assigned_object
+                    if obj is not None:
+                        result.append(obj)
+                return result
+            if src_pks:
+                active_src_objs = _resolve_objs(src_pks, "source")
+            if dst_pks:
+                active_dst_objs = _resolve_objs(dst_pks, "destination")
 
         config = _get_policy_table_config(request, instance.pk)
         selected_columns = _filter_policy_columns(
@@ -1344,10 +1381,12 @@ class SecurityPolicyRulebookRulesView(generic.ObjectView):
 
 @register_model_view(SecurityPolicyRulebook, "list", path="", detail=False)
 class SecurityPolicyRulebookListView(generic.ObjectListView):
-    queryset = SecurityPolicyRulebook.objects.all()
+    queryset = SecurityPolicyRulebook.objects.prefetch_related("assignments__assigned_object_type").all()
     filterset = SecurityPolicyRulebookFilterSet
     filterset_form = SecurityPolicyRulebookFilterForm
     table = SecurityPolicyRulebookTable
+    template_name = "netbox_nsm/securitypolicyrulebook_list.html"
+    actions = (AddObject, BulkDelete)
 
 
 @register_model_view(SecurityPolicyRulebook, "add", detail=False)
@@ -1697,6 +1736,42 @@ class SecurityPolicyRuleEditView(generic.ObjectEditView):
                     rulebook = SecurityPolicyRulebook.objects.get(pk=int(rulebook_pk))
                 except SecurityPolicyRulebook.DoesNotExist:
                     pass
+
+        # Pre-fill source/destination zones from matrix add_href params
+        if not instance.pk and rulebook:
+            from netbox_nsm.display_utils import ct_display_label
+            from netbox_nsm.models import TypeConfig as _TC
+            _mc_map = {tc.content_type_id: tc.matching_class for tc in _TC.objects.only("content_type_id", "matching_class")}
+            src_field = RulebookField.objects.filter(rulebook=rulebook, placement="source").first()
+            dst_field = RulebookField.objects.filter(rulebook=rulebook, placement="destination").first()
+            for param_ct, param_obj, field in [
+                ("prefill_src_ct", "prefill_src_obj", src_field),
+                ("prefill_dst_ct", "prefill_dst_obj", dst_field),
+            ]:
+                ct_val = request.GET.get(param_ct, "")
+                obj_val = request.GET.get(param_obj, "")
+                if not (ct_val.isdigit() and obj_val.isdigit() and field):
+                    continue
+                ct_id = int(ct_val)
+                obj_pk = int(obj_val)
+                try:
+                    ct = ContentType.objects.get(pk=ct_id)
+                    mc = ct.model_class()
+                    obj = mc.objects.get(pk=obj_pk) if mc else None
+                    name = getattr(obj, "name", None) or str(obj) if obj else f"#{obj_pk}"
+                except Exception:
+                    name = f"#{obj_pk}"
+                    ct = None
+                selections.append({
+                    "area": str(field.slug),
+                    "placement": str(field.placement),
+                    "kind": "object",
+                    "id": f"{ct_id}.{obj_pk}",
+                    "name": name,
+                    "typeName": ct_display_label(ct) if ct else "",
+                    "matchingClass": _mc_map.get(ct_id, ""),
+                    "exclude": False,
+                })
         return {
             "nsm_rule_picker_data": _build_security_rule_picker_data(rulebook=rulebook),
             "nsm_rule_selections": selections,
@@ -1812,3 +1887,63 @@ class SecurityPolicyRulebookBulkAssignView(generic.ObjectView):
             )
             return redirect(instance.get_absolute_url())
         return self.render_to_response({"object": instance, "form": form})
+
+
+class GlobalRulesSearchView(View):
+    """
+    Global text search across ALL rulebooks.
+    GET param: q — searches SecurityPolicyRule.name and rulebook name.
+    Results are grouped by rulebook.
+    URL: /plugins/netbox-nsm/security-rule/search/
+    """
+
+    template_name = "netbox_nsm/global_rules_search.html"
+
+    def get(self, request):
+        from django.shortcuts import render as _render
+        from collections import defaultdict
+
+        q = request.GET.get("q", "").strip()
+
+        rulebook_groups = []
+        total_count = 0
+
+        if q:
+            rules_qs = (
+                SecurityPolicyRule.objects.filter(
+                    Q(name__icontains=q) | Q(rulebook__name__icontains=q)
+                )
+                .select_related("rulebook")
+                .order_by("rulebook__name", "index", "name")
+            )
+
+            groups = defaultdict(list)
+            for rule in rules_qs:
+                groups[rule.rulebook].append(rule)
+
+            for rulebook, rules in sorted(groups.items(), key=lambda x: x[0].name if x[0] else ""):
+                policy_url = (
+                    reverse(
+                        "plugins:netbox_nsm:securitypolicyrulebook_policy",
+                        args=[rulebook.pk],
+                    )
+                    + f"?q={q}"
+                ) if rulebook else ""
+                rulebook_groups.append(
+                    {
+                        "rulebook": rulebook,
+                        "rules": rules,
+                        "policy_url": policy_url,
+                    }
+                )
+            total_count = sum(len(g["rules"]) for g in rulebook_groups)
+
+        return _render(
+            request,
+            self.template_name,
+            {
+                "q": q,
+                "rulebook_groups": rulebook_groups,
+                "total_count": total_count,
+            },
+        )

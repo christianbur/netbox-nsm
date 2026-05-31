@@ -111,8 +111,10 @@ def _custom_objects_cards(custom_objs_with_exclude):
     custom_objs_with_exclude: list of (obj, exclude_bool) tuples."""
     type_map = OrderedDict()
     for obj, excluded in custom_objs_with_exclude:
-        ct = obj.custom_type
-        key = ct.name
+        if obj is None:
+            continue
+        ct = getattr(obj, "custom_type", None)
+        key = ct.name if ct is not None else type(obj).__name__
         display_name = (
             obj.render_display() if hasattr(obj, "render_display") else obj.name
         )
@@ -221,16 +223,44 @@ class NameColumn(tables.Column):
         )
 
 
+class AssignedObjectsColumn(tables.Column):
+    """Renders all SecurityPolicyAssignment objects for a rulebook as links."""
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("orderable", False)
+        kwargs.setdefault("verbose_name", _("Assigned Objects"))
+        super().__init__(*args, **kwargs)
+
+    def render(self, value):
+        assignments = list(value.all())
+        if not assignments:
+            return mark_safe('<span class="text-muted">—</span>')
+        parts = []
+        for a in assignments:
+            obj = a.assigned_object
+            if obj is None:
+                continue
+            url = getattr(obj, "get_absolute_url", lambda: "#")()
+            name = conditional_escape(str(obj))
+            ct = type(obj).__name__
+            parts.append(
+                f'<a href="{conditional_escape(url)}" class="badge text-bg-secondary text-decoration-none me-1">'
+                f'<i class="mdi mdi-server me-1"></i>{name}</a>'
+            )
+        return mark_safe("".join(parts)) if parts else mark_safe('<span class="text-muted">—</span>')
+
+
 class SecurityPolicyRulebookTable(NetBoxTable):
     name = tables.LinkColumn()
     rulebook_type = tables.Column(verbose_name=_("Type"))
+    assigned_objects = AssignedObjectsColumn(accessor="assignments")
     tags = TagColumn(url_name="plugins:netbox_nsm:securitypolicyrulebook_list")
     actions = ActionsColumn(actions=("edit", "delete"))
 
     class Meta(NetBoxTable.Meta):
         model = SecurityPolicyRulebook
-        fields = ("id", "name", "rulebook_type", "description", "tags")
-        default_columns = ("name", "rulebook_type", "description")
+        fields = ("id", "name", "rulebook_type", "description", "assigned_objects", "tags")
+        default_columns = ("name", "rulebook_type", "assigned_objects", "description")
 
 
 class SecurityPolicyRuleTable(NetBoxTable):

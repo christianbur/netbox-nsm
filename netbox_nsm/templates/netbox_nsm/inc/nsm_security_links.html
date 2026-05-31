@@ -146,6 +146,34 @@
     </div>
     {% endfor %}
 
+    {# ── Enforced Rulebooks (Device / VM / VDC only) ───────────────────── #}
+    {% if nsm_enforcer_assignments %}
+    <div class="border-bottom">
+      <button class="nsm-tree-hdr"
+              data-bs-toggle="collapse"
+              data-bs-target="#nsm-cat-enforced"
+              aria-expanded="true">
+        <i class="mdi mdi-chevron-right nsm-chev"></i>
+        <span>{% trans "Enforced Rulebooks" %}</span>
+        <span class="badge text-bg-secondary ms-1">{{ nsm_enforcer_assignments|length }}</span>
+      </button>
+      <div id="nsm-cat-enforced" class="collapse show">
+        <table class="table table-hover table-sm mb-0">
+          <tbody>
+            {% for assignment in nsm_enforcer_assignments %}
+            <tr>
+              <td class="ps-5" style="font-size:12px;">
+                <a href="{{ assignment.rulebook.get_absolute_url }}">{{ assignment.rulebook.name }}</a>
+                <span class="badge text-bg-secondary ms-1" style="font-size:10px;">{{ assignment.rulebook.get_rulebook_type_display }}</span>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
     {# ── Inherited NSMObjectLinks – loaded on demand ────────────────────── #}
     {% if nsm_inherited_api_url %}
     <div id="nsm-inh-container" data-api-url="{{ nsm_inherited_api_url }}">

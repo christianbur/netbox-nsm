@@ -29,11 +29,28 @@
           <td><pre class="mb-0 small" style="white-space:pre-wrap">{{ object.rule_comment_template }}</pre></td>
         </tr>
         {% endif %}
+        {% if assignments %}
+        <tr>
+          <th scope="row">{% trans "Assigned Objects" %}</th>
+          <td>
+            {% for assignment in assignments %}
+            {% with obj=assignment.assigned_object %}
+            {% if obj %}
+            <a href="{{ obj.get_absolute_url }}" class="badge text-bg-secondary text-decoration-none me-1">
+              <i class="mdi mdi-server me-1"></i>{{ obj }}
+            </a>
+            {% endif %}
+            {% endwith %}
+            {% endfor %}
+          </td>
+        </tr>
+        {% endif %}
       </table>
     </div>
     {% include 'inc/panels/custom_fields.html' %}
     {% include 'inc/panels/tags.html' %}
     {% include 'inc/panels/comments.html' %}
+
     {% plugin_left_page object %}
   </div>
   <div class="col-md-6">

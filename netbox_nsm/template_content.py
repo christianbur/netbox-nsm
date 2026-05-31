@@ -311,6 +311,27 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
 
         security_badge = unique_rules_total + total_links or None
 
+        # ── Enforced rulebooks (Device/VM/VDC only) ───────────────────────
+        from netbox_nsm.models import SecurityPolicyAssignment
+        enforcer_assignments = []
+        enforcer_add_url = None
+        try:
+            from dcim.models import Device, VirtualDeviceContext
+            from virtualization.models import VirtualMachine
+            if isinstance(obj, (Device, VirtualMachine, VirtualDeviceContext)):
+                enforcer_assignments = list(
+                    SecurityPolicyAssignment.objects.filter(
+                        assigned_object_type=ct,
+                        assigned_object_id=obj.pk,
+                    ).select_related("rulebook").order_by("rulebook__name")
+                )
+                enforcer_add_url = (
+                    reverse("plugins:netbox_nsm:securitypolicyassignment_add")
+                    + f"?assigned_object_type_id={ct.pk}&assigned_object_id={obj.pk}&return_url={return_url}"
+                )
+        except Exception:
+            pass
+
         return self.render(
             "netbox_nsm/inc/nsm_security_links.html",
             {
@@ -324,6 +345,8 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
                 "nsm_api_url": api_url,
                 "nsm_assign_url": assign_url,
                 "nsm_analyzer_url": analyzer_url,
+                "nsm_enforcer_assignments": enforcer_assignments,
+                "nsm_enforcer_add_url": enforcer_add_url,
             },
         )
 
@@ -374,5 +397,4 @@ template_extensions = [
     AddressSetContextInfo,
     InterfaceInfo,
     NsmSecurityLinksExtension,
-    DeviceRulebookEnforcerExtension,
 ]

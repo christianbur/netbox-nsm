@@ -20,6 +20,7 @@ from utilities.forms.rendering import FieldSet, ObjectAttribute
 from virtualization.models import VirtualMachine
 
 from netbox_nsm.models import (
+    RulebookField,
     SecurityArea,
     SecurityObjectGroup,
     SecurityPolicyRule,
@@ -53,9 +54,20 @@ class SecurityPolicyRulebookForm(PrimaryModelForm):
             "Markdown template pre-filled when adding new rules. Supports {rule_name}, {index}, {rulebook}."
         ),
     )
+    assigned_devices = DynamicModelMultipleChoiceField(
+        queryset=Device.objects.all(),
+        required=False,
+        label=_("Assigned Devices"),
+    )
+    assigned_vms = DynamicModelMultipleChoiceField(
+        queryset=VirtualMachine.objects.all(),
+        required=False,
+        label=_("Assigned Virtual Machines"),
+    )
 
     fieldsets = (
         FieldSet("name", "rulebook_type", "description", name=_("Rulebook")),
+        FieldSet("assigned_devices", "assigned_vms", name=_("Assigned Objects")),
         FieldSet("rule_comment_template", name=_("Rule Defaults")),
         FieldSet("tags", name=_("Tags")),
     )
@@ -71,6 +83,48 @@ class SecurityPolicyRulebookForm(PrimaryModelForm):
             "comments",
             "tags",
         )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            from django.contrib.contenttypes.models import ContentType
+            device_ct = ContentType.objects.get_for_model(Device)
+            vm_ct = ContentType.objects.get_for_model(VirtualMachine)
+            device_pks = list(self.instance.assignments.filter(
+                assigned_object_type=device_ct
+            ).values_list("assigned_object_id", flat=True))
+            vm_pks = list(self.instance.assignments.filter(
+                assigned_object_type=vm_ct
+            ).values_list("assigned_object_id", flat=True))
+            self.initial["assigned_devices"] = device_pks
+            self.initial["assigned_vms"] = vm_pks
+
+    def save(self, commit=True):
+        instance = super().save(commit=commit)
+        if commit:
+            self._save_assignments(instance)
+        return instance
+
+    def _save_assignments(self, instance):
+        from django.contrib.contenttypes.models import ContentType
+        from netbox_nsm.models import SecurityPolicyAssignment
+        device_ct = ContentType.objects.get_for_model(Device)
+        vm_ct = ContentType.objects.get_for_model(VirtualMachine)
+        instance.assignments.filter(
+            assigned_object_type__in=[device_ct, vm_ct]
+        ).delete()
+        for device in self.cleaned_data.get("assigned_devices") or []:
+            SecurityPolicyAssignment.objects.get_or_create(
+                rulebook=instance,
+                assigned_object_type=device_ct,
+                assigned_object_id=device.pk,
+            )
+        for vm in self.cleaned_data.get("assigned_vms") or []:
+            SecurityPolicyAssignment.objects.get_or_create(
+                rulebook=instance,
+                assigned_object_type=vm_ct,
+                assigned_object_id=vm.pk,
+            )
 
 
 class SecurityPolicyRulebookFilterForm(PrimaryModelFilterSetForm):
@@ -183,27 +237,23 @@ class SecurityPolicyRuleForm(PrimaryModelForm):
         instance.object_items.all().delete()
         instance.group_items.all().delete()
 
-        area_cache = {a.slug: a for a in SecurityArea.objects.all()}
+        # Build RulebookField lookup: slug → field (scoped to this rulebook)
+        field_cache = {
+            f.slug: f
+            for f in RulebookField.objects.filter(rulebook=instance.rulebook)
+        }
 
         for sel in selections:
             if not isinstance(sel, dict):
                 continue
             area_slug = str(sel.get("area", "")).strip()
-            placement = str(sel.get("placement", "")).strip()
             kind = str(sel.get("kind", "")).strip()
             obj_id = sel.get("id")
 
-            if not area_slug or not placement or not kind or not obj_id:
+            if not area_slug or not kind or not obj_id:
                 continue
-            area = area_cache.get(area_slug)
-            if not area:
-                continue
-            # Keep legacy placement consumers working while source/destination are separate areas.
-            if area_slug == "source":
-                placement = "source"
-            elif area_slug == "destination":
-                placement = "destination"
-            if placement not in ("source", "destination", "fixed"):
+            field = field_cache.get(area_slug)
+            if not field:
                 continue
 
             if kind == "object":
@@ -216,8 +266,10 @@ class SecurityPolicyRuleForm(PrimaryModelForm):
                     continue
                 exclude = bool(sel.get("exclude", False))
                 SecurityPolicyRuleObjectItem.objects.get_or_create(
-                    rule=instance, area=area, placement=placement,
-                    content_type_id=ct_id, object_id=real_obj_id,
+                    rule=instance,
+                    field=field,
+                    content_type_id=ct_id,
+                    object_id=real_obj_id,
                     defaults={"exclude": exclude},
                 )
             elif kind == "group":
@@ -231,7 +283,9 @@ class SecurityPolicyRuleForm(PrimaryModelForm):
                     continue
                 exclude = bool(sel.get("exclude", False))
                 SecurityPolicyRuleGroupItem.objects.get_or_create(
-                    rule=instance, area=area, placement=placement, security_group=grp,
+                    rule=instance,
+                    field=field,
+                    security_group=grp,
                     defaults={"exclude": exclude},
                 )
 

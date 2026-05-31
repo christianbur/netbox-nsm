@@ -335,27 +335,13 @@
           [data-bs-theme="dark"] .nsm-status-icon-on { background: rgba(31,122,51,.22); color: #6dd485; border-color: rgba(31,122,51,.45); }
           [data-bs-theme="dark"] .nsm-status-icon-off { background: rgba(166,58,50,.22); color: #ec8a83; border-color: rgba(166,58,50,.45); }
 
-          /* Search-Toggle */
-          .nsm-search-toggle {
-            cursor: pointer;
-            list-style: none;
-            user-select: none;
-            border-radius: .5rem;
-            background: var(--nsm-surface-alt);
-            border: 1px solid var(--nsm-line);
-            padding: .35rem .75rem;
-            color: var(--nsm-text);
-          }
-          .nsm-search-toggle::-webkit-details-marker { display: none; }
-          .nsm-search-toggle::marker { display: none; }
-
           @media (max-width: 992px) {
             .nsm-policy-table .table thead th { font-size: .7rem; padding: .45rem .5rem; }
             .nsm-policy-table .table tbody td { font-size: .78rem; padding: .45rem .5rem; }
             .nsm-rule-pill { max-width: 140px; font-size: .72rem; }
           }
         </style>
-        <div class="mb-3 d-flex align-items-center justify-content-between gap-2 flex-wrap">
+        <div class="mb-2 d-flex align-items-center justify-content-between gap-2 flex-wrap">
           <div class="d-flex align-items-center gap-2">
             <strong>Security Rules</strong>
             <span class="badge text-bg-secondary">{{ total_count }}</span>
@@ -381,39 +367,36 @@
             {% endif %}
           </div>
         </div>
-        <details class="mb-3" {% if search_q %}open{% endif %}>
-          <summary class="nsm-search-toggle d-flex align-items-center gap-2">
-            <i class="mdi mdi-magnify"></i>
-            <span class="fw-semibold small">Search</span>
-            {% if search_q %}
-              <span class="badge text-bg-warning ms-1">active</span>
-            {% endif %}
-            <i class="mdi mdi-chevron-down ms-auto"></i>
-          </summary>
-          <form method="get" class="mt-2 p-3 border rounded">
-            <div class="row g-2 align-items-end">
-              <div class="col-sm-6">
-                <input type="text" name="q" value="{{ search_q|default:'' }}"
-                       class="form-control form-control-sm"
-                       placeholder="Name, description, zones, objects …">
-              </div>
-              <div class="col-auto d-flex gap-1">
-                <button type="submit" class="btn btn-sm btn-primary">
-                  <i class="mdi mdi-magnify"></i>
-                </button>
-                <a href="{{ request.path }}" class="btn btn-sm btn-outline-secondary">
-                  <i class="mdi mdi-close"></i>
-                </a>
-              </div>
+
+        <div class="mb-3">
+          <form method="get" action="{% url 'plugins:netbox_nsm:global_rules_search' %}">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text"><i class="mdi mdi-shield-search"></i></span>
+              <input type="text" name="q" value="{{ object.name }}"
+                     class="form-control"
+                     placeholder="{% trans 'Rule name or rulebook …' %}">
+              <button type="submit" class="btn btn-primary">
+                <i class="mdi mdi-magnify"></i> {% trans "Search" %}
+              </button>
             </div>
-            {% for v in src_filter %}
-              <input type="hidden" name="source_zones_id" value="{{ v }}">
-            {% endfor %}
-            {% for v in dst_filter %}
-              <input type="hidden" name="destination_zones_id" value="{{ v }}">
-            {% endfor %}
           </form>
-        </details>
+          <details class="mt-1">
+            <summary style="list-style:none;cursor:pointer;user-select:none;font-size:11px;" class="text-muted d-inline-flex align-items-center gap-1">
+              <i class="mdi mdi-help-circle-outline"></i>
+              <span>{% trans "Search help" %}</span>
+              <i class="mdi mdi-chevron-down"></i>
+            </summary>
+            <div class="mt-1 ps-1 border-start border-secondary text-muted" style="font-size:11px;">
+              <p class="mb-1">{% trans "Searches across <strong>all rulebooks</strong>. The field is pre-filled with this rulebook's name as a starting filter." %}</p>
+              <p class="mb-1"><strong>{% trans "Examples:" %}</strong></p>
+              <ul class="mb-0 ps-3">
+                <li><code>Demo</code> – {% trans "all rules whose name or rulebook contains \"Demo\"" %}</li>
+                <li><code>Zone Matrix</code> – {% trans "filter by rulebook name" %}</li>
+                <li><code>allow</code> – {% trans "find rules with \"allow\" in the name" %}</li>
+              </ul>
+            </div>
+          </details>
+        </div>
       {% endif %}
 
       <form method="post" id="nsm-bulk-delete-form">

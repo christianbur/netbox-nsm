@@ -58,6 +58,11 @@
     );
     outline: 2px solid rgba(251,191,36,.55); outline-offset: -2px; }
   td.nsm-viz-cell-self > * { position: relative; z-index: 3; }
+  td.nsm-viz-cell-mirror { background: repeating-linear-gradient(
+      135deg,
+      rgba(100,116,139,.08) 0px, rgba(100,116,139,.08) 3px,
+      transparent 3px, transparent 9px
+    ); pointer-events: none; }
   .nsm-cell-dir { display: flex; flex-direction: column; align-items: center; gap: .1rem; }
   .nsm-dir-badge {
     display: inline-flex; align-items: center; justify-content: center;
@@ -125,12 +130,12 @@
           <div class="d-flex flex-column gap-1">
             <label class="form-label mb-0 small fw-bold">View</label>
             <div class="btn-group btn-group-sm" role="group">
-              <input type="radio" class="btn-check" name="mode" id="mode-duplex" value="duplex" autocomplete="off" onchange="this.form.submit()" {% if matrix_mode != 'simplex' %}checked{% endif %}>
-              <label class="btn btn-outline-secondary" for="mode-duplex" title="Directed: → and ← shown separately">
+              <input type="radio" class="btn-check" name="mode" id="mode-directed" value="directed" autocomplete="off" onchange="this.form.submit()" {% if matrix_mode != 'undirected' %}checked{% endif %}>
+              <label class="btn btn-outline-secondary" for="mode-directed" title="Directed: → and ← shown separately">
                 <i class="mdi mdi-arrow-left-right"></i> Directed
               </label>
-              <input type="radio" class="btn-check" name="mode" id="mode-simplex" value="simplex" autocomplete="off" onchange="this.form.submit()" {% if matrix_mode == 'simplex' %}checked{% endif %}>
-              <label class="btn btn-outline-secondary" for="mode-simplex" title="Undirected: A↔B merged into one bubble">
+              <input type="radio" class="btn-check" name="mode" id="mode-undirected" value="undirected" autocomplete="off" onchange="this.form.submit()" {% if matrix_mode == 'undirected' %}checked{% endif %}>
+              <label class="btn btn-outline-secondary" for="mode-undirected" title="Undirected: A↔B merged into one bubble">
                 <i class="mdi mdi-circle-double"></i> Undirected
               </label>
             </div>
@@ -175,17 +180,17 @@
                 </th>
                 {% for cell in row.cells %}
                   <td class="{% if cell.is_self %}nsm-viz-cell-self{% endif %}">
-                    {% if matrix_mode == 'simplex' %}
-                      {# Simplex: eine Bubble für A↔B #}
+                    {% if matrix_mode == 'undirected' %}
+                      {# Undirected: eine Bubble für A↔B #}
                       {% if cell.combined.count == 0 %}
                         <a href="{{ cell.add_href }}" class="nsm-dir-badge nsm-dir-badge-empty" title="Add Rule">+</a>
                       {% elif cell.combined.count == 1 %}
                         <a href="{{ cell.both_href }}" class="nsm-dir-badge" style="background-color:{{ cell.combined.color }};color:#fff;" title="{{ cell.combined.label }}">{{ cell.combined.label }}</a>
                       {% else %}
-                        <a href="{{ cell.both_href }}" class="nsm-dir-badge nsm-dir-badge-count" title="{{ cell.combined.count }} Regeln">{{ cell.combined.count }}</a>
+                        <a href="{{ cell.both_href }}" class="nsm-dir-badge nsm-dir-badge-count" title="{{ cell.combined.count }} Rules (A↔B)">{{ cell.combined.count }}</a>
                       {% endif %}
                     {% else %}
-                      {# Duplex: → und ← getrennt #}
+                      {# Directed: → und ← getrennt #}
                       <div class="nsm-cell-dir">
                         {% if cell.fwd.count == 0 %}
                           <a href="{{ cell.add_href }}" class="nsm-dir-badge nsm-dir-badge-empty" title="Add Rule (→)">→</a>

@@ -10,31 +10,16 @@
         <span class="badge bg-primary ms-2">{{ enforcer_assignments|length }}</span>
       {% endif %}
     </h5>
-    <a href="{{ enforcer_add_url }}" class="btn btn-sm btn-primary">
-      <i class="mdi mdi-plus-thick me-1"></i>{% trans "Rulebook zuweisen" %}
-    </a>
   </div>
 
   {% if enforcer_assignments %}
   <div class="list-group list-group-flush">
     {% for assignment in enforcer_assignments %}
-    <div class="list-group-item d-flex justify-content-between align-items-center py-2">
-      <div>
-        <a href="{{ assignment.rulebook.get_absolute_url }}" class="fw-semibold text-decoration-none">
-          {{ assignment.rulebook.name }}
-        </a>
-        <span class="badge bg-secondary ms-2 small">{{ assignment.rulebook.get_rulebook_type_display }}</span>
-      </div>
-      <div class="d-flex gap-1 align-items-center">
-        <a href="{% url 'plugins:netbox_nsm:securitypolicyrulebook' assignment.rulebook.pk %}"
-           class="btn btn-xs btn-outline-secondary" title="{% trans 'Regeln anzeigen' %}">
-          <i class="mdi mdi-table-eye"></i>
-        </a>
-        <a href="{% url 'plugins:netbox_nsm:securitypolicyassignment_delete' assignment.pk %}?return_url={{ enforcer_return_url }}"
-           class="btn btn-xs btn-outline-danger" title="{% trans 'Zuweisung entfernen' %}">
-          <i class="mdi mdi-trash-can-outline"></i>
-        </a>
-      </div>
+    <div class="list-group-item py-2">
+      <a href="{{ assignment.rulebook.get_absolute_url }}" class="fw-semibold text-decoration-none">
+        {{ assignment.rulebook.name }}
+      </a>
+      <span class="badge bg-secondary ms-2 small">{{ assignment.rulebook.get_rulebook_type_display }}</span>
     </div>
     {% endfor %}
   </div>

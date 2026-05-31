@@ -139,6 +139,12 @@ urlpatterns = [
         "security-zone-policy-rulebook-assignments/<int:pk>/",
         include(get_model_urls("netbox_nsm", "securitypolicyassignment")),
     ),
+    # Global Rules Search
+    path(
+        "security-rule/search/",
+        GlobalRulesSearchView.as_view(),
+        name="global_rules_search",
+    ),
     # Object Analyzer
     path(
         "object-analyzer/",

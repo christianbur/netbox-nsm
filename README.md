@@ -25,7 +25,6 @@ tightly integrated with NetBox's existing IPAM and DCIM data.
    - [Policy Rules](#policy-rules)
    - [Policy Analysis](#policy-analysis)
    - [Zone Matrix](#zone-matrix)
-   - [IP Analysis](#ip-analysis)
 9. [Demo – Object Analyzer](#demo--object-analyzer)
 10. [Demo Data: Enterprise DC](#demo-data-enterprise-dc)
 11. [REST API](#rest-api)
@@ -226,19 +225,6 @@ Each cell lists the services and action for that traffic direction.
 
 Particularly useful for zone-based firewall policies (Palo Alto, Fortinet, Cisco ASA, …) to
 instantly see what is allowed between security zones.
-
-### IP Analysis
-
-The **IP Analysis** tab lets you look up a specific IP address or prefix and see all rules that
-match it — from both source and destination perspective.
-
-![IP Analysis](docs/img/10-ip-analysis.png)
-
-Enter a Prefix, IP Address or Custom Object in the search box. The result lists:
-- All rules where this object appears on the **source** side
-- All rules where this object appears on the **destination** side
-
-Links navigate directly to the matching rule in the full policy view.
 
 ---
 

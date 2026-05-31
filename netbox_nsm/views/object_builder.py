@@ -68,6 +68,6 @@ class ObjectBuilderView(LoginRequiredMixin, View):
             table = NSMTypeConfigTable(qs)
             RequestConfig(request, paginate={"per_page": 50}).configure(table)
             context["table"] = table
-            context["add_url"] = reverse("plugins:netbox_nsm:nsmtypeconfig_add")
+            context["add_url"] = reverse("plugins:netbox_nsm:typeconfig_add")
 
         return render(request, "netbox_nsm/object_builder.html", context)

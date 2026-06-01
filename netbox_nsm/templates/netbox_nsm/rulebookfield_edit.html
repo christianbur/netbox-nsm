@@ -91,51 +91,6 @@
             <div class="form-text">{{ form.max_items.help_text }}</div>
           </div>
 
-          <hr class="my-3">
-          <h6 class="text-muted mb-3"><i class="mdi mdi-filter-outline me-1"></i>Query &amp; Facets</h6>
-
-          <div class="mb-3 form-check">
-            {{ form.searchable }}
-            <label class="form-check-label" for="{{ form.searchable.id_for_label }}">
-              Searchable
-            </label>
-            <div class="form-text">Include this field in global rule search.</div>
-          </div>
-
-          <div class="mb-3 form-check">
-            {{ form.filterable }}
-            <label class="form-check-label" for="{{ form.filterable.id_for_label }}">
-              Filterable
-            </label>
-            <div class="form-text">Allow filtering this field via the NSM query language.</div>
-          </div>
-
-          <div class="mb-3 form-check">
-            {{ form.facetable }}
-            <label class="form-check-label" for="{{ form.facetable.id_for_label }}">
-              Facetable
-            </label>
-            <div class="form-text">Show this field as a facet card in the policy view.</div>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label" for="{{ form.facet_mode.id_for_label }}">
-              Facet Mode
-            </label>
-            {{ form.facet_mode }}
-            {% if form.facet_mode.errors %}<div class="text-danger small mt-1">{{ form.facet_mode.errors }}</div>{% endif %}
-            <div class="form-text"><strong>value</strong>: single value per entry &nbsp;|&nbsp; <strong>set</strong>: comma-separated list</div>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label" for="{{ form.facet_weight.id_for_label }}">
-              Facet Weight
-            </label>
-            {{ form.facet_weight }}
-            {% if form.facet_weight.errors %}<div class="text-danger small mt-1">{{ form.facet_weight.errors }}</div>{% endif %}
-            <div class="form-text">Order in the facet panel — higher value appears first.</div>
-          </div>
-
           <div class="d-flex gap-2 mt-4">
             <button type="submit" class="btn btn-primary">
               <i class="mdi mdi-content-save me-1"></i>{% trans "Save" %}

@@ -4,21 +4,25 @@ NSM Query Parser
 Parses query strings like:
     Source.Labels = Web
     Source.Labels = Web AND Destination.Labels = Database
+    Source.zone = prod OR Source.zone = trust
     Service.Name in (HTTP, HTTPS)
     Action != Deny
     Owner exists
     Description contains SAP
 
 Grammar:
-    query     = condition (AND condition)*
-    condition = field_path operator value
-              | field_path exists_op
-    field_path = WORD | WORD "." WORD
-    operator  = "=" | "!=" | "contains"
-    exists_op = "exists" | "!exists"
-    in_op     = "in" "(" value_list ")" | "notin" "(" value_list ")"
-    value     = literal (unquoted or quoted)
+    query      = and_group (OR and_group)*
+    and_group  = condition (AND condition)*
+    condition  = field_path operator value
+               | field_path exists_op
+    field_path = WORD | WORD "." WORD | WORD "." WORD "." WORD
+    operator   = "=" | "!=" | "contains"
+    exists_op  = "exists" | "!exists"
+    in_op      = "in" "(" value_list ")" | "notin" "(" value_list ")"
+    value      = literal (unquoted or quoted)
     value_list = literal ("," literal)*
+
+Precedence: AND binds tighter than OR (standard).
 """
 
 import re
@@ -51,9 +55,17 @@ class Condition:
 
 @dataclass
 class Query:
-    conditions: List[Condition]
+    conditions: List[Condition]  # first AND-group (backwards compat)
     raw: str = ""
     parse_error: Optional[str] = None
+    # OR-groups: each group is a list of AND-conditions.
+    # If len(groups) == 1 it is a pure AND-query (default).
+    groups: List[List[Condition]] = dc_field(default_factory=list)
+
+    def __post_init__(self):
+        # Ensure groups mirrors conditions for single-group queries
+        if not self.groups and self.conditions:
+            self.groups = [self.conditions]
 
     @property
     def is_valid(self) -> bool:
@@ -61,57 +73,76 @@ class Query:
 
     @property
     def is_empty(self) -> bool:
-        return len(self.conditions) == 0
+        return not any(self.groups)
 
     @property
     def is_active(self) -> bool:
         return self.is_valid and not self.is_empty
 
     def to_string(self) -> str:
-        return "\nAND\n".join(c.to_string() for c in self.conditions)
+        or_parts = []
+        for group in (self.groups or [self.conditions]):
+            or_parts.append(" AND ".join(c.to_string() for c in group))
+        return " OR ".join(or_parts)
 
     def add_condition(self, condition: "Condition") -> "Query":
-        """Return a new Query with the condition appended (AND)."""
+        """Return a new Query with the condition appended (AND) to the first group."""
+        new_conditions = self.conditions + [condition]
         return Query(
-            conditions=self.conditions + [condition],
+            conditions=new_conditions,
             raw="",
+            groups=[new_conditions] + (self.groups[1:] if len(self.groups) > 1 else []),
         )
 
     def remove_condition_index(self, index: int) -> "Query":
-        """Return a new Query with the condition at `index` removed."""
+        """Return a new Query with the condition at `index` removed from the first group."""
         conds = list(self.conditions)
         if 0 <= index < len(conds):
             conds.pop(index)
-        return Query(conditions=conds, raw="")
+        return Query(
+            conditions=conds,
+            raw="",
+            groups=[conds] + (self.groups[1:] if len(self.groups) > 1 else []),
+        )
 
 
 def parse(raw: str) -> Query:
     """Parse a query string into a Query object."""
     raw_stripped = (raw or "").strip()
     if not raw_stripped:
-        return Query(conditions=[], raw=raw_stripped)
+        return Query(conditions=[], raw=raw_stripped, groups=[])
 
-    # Normalize && → AND, normalize whitespace around AND
+    # Normalize && → AND, || → OR
     text = raw_stripped
     text = re.sub(r"\s*&&\s*", " AND ", text)
-    # Split by AND (case-insensitive, must be surrounded by whitespace)
-    parts = re.split(r"(?i)\s+AND\s+", text)
+    text = re.sub(r"\s*\|\|\s*", " OR ", text)
 
-    conditions = []
-    for part in parts:
-        part = part.strip()
-        if not part:
-            continue
-        cond = _parse_condition(part)
-        if cond is None:
-            return Query(
-                conditions=[],
-                raw=raw_stripped,
-                parse_error=f"Cannot parse: {part!r}",
-            )
-        conditions.append(cond)
+    # Split by OR first (lowest precedence)
+    or_parts = re.split(r"(?i)\s+OR\s+", text)
 
-    return Query(conditions=conditions, raw=raw_stripped)
+    groups: List[List[Condition]] = []
+    for or_part in or_parts:
+        # Within each OR-group, split by AND
+        and_parts = re.split(r"(?i)\s+AND\s+", or_part)
+        conditions: List[Condition] = []
+        for part in and_parts:
+            part = part.strip()
+            if not part:
+                continue
+            cond = _parse_condition(part)
+            if cond is None:
+                return Query(
+                    conditions=[],
+                    raw=raw_stripped,
+                    parse_error=f"Cannot parse: {part!r}",
+                    groups=[],
+                )
+            conditions.append(cond)
+        if conditions:
+            groups.append(conditions)
+
+    first_group = groups[0] if groups else []
+    return Query(conditions=first_group, raw=raw_stripped, groups=groups)
 
 
 # ---------------------------------------------------------------------------
@@ -125,9 +156,12 @@ def _parse_condition(text: str) -> Optional[Condition]:
     """Parse a single condition clause."""
     text = text.strip()
 
+    # field path: x  |  x.y  |  x.y.z  (x=column, y=type-hint, z=object-property)
+    _FP_RE = rf"{_FIELD_RE}(?:\.{_FIELD_RE})*"
+
     # exists / !exists  (no value)
     m = re.fullmatch(
-        rf"({_FIELD_RE}(?:\.{_FIELD_RE})?)\s+(!exists|exists)",
+        rf"({_FP_RE})\s+(!exists|exists)",
         text,
         re.IGNORECASE,
     )
@@ -139,13 +173,18 @@ def _parse_condition(text: str) -> Optional[Condition]:
 
     # in / notin  with parentheses
     m = re.fullmatch(
-        rf"({_FIELD_RE}(?:\.{_FIELD_RE})?)\s+(in|notin)\s+\(([^)]*)\)",
+        rf"({_FP_RE})\s+(in|notin)\s+\(([^)]*)\)",
         text,
         re.IGNORECASE,
     )
     if m:
         field, sub_field = _split_field(m.group(1))
-        values = [v.strip() for v in m.group(3).split(",") if v.strip()]
+        raw_values = [v.strip() for v in m.group(3).split(",") if v.strip()]
+        # Strip surrounding quotes from each value (e.g. "prod" → prod)
+        values = [
+            v[1:-1] if len(v) >= 2 and v[0] in ('"', "'") and v[0] == v[-1] else v
+            for v in raw_values
+        ]
         return Condition(
             field=field,
             sub_field=sub_field,
@@ -155,7 +194,7 @@ def _parse_condition(text: str) -> Optional[Condition]:
 
     # = | == | != | contains  with a value (remainder of string)
     m = re.match(
-        rf"^({_FIELD_RE}(?:\.{_FIELD_RE})?)\s*(!=|==|=|contains)\s*(.+)$",
+        rf"^({_FP_RE})\s*(!=|==|=|contains)\s*(.+)$",
         text,
         re.IGNORECASE,
     )

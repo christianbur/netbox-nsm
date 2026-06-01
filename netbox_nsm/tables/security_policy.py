@@ -1,5 +1,6 @@
 import django_tables2 as tables
 from collections import OrderedDict
+from django.db.models import Count
 from django.utils.html import conditional_escape, mark_safe
 from django.utils.translation import gettext_lazy as _
 
@@ -263,21 +264,31 @@ class AssignedObjectsColumn(tables.Column):
 class SecurityPolicyRulebookTable(NetBoxTable):
     name = tables.LinkColumn()
     rulebook_type = tables.Column(verbose_name=_("Type"))
-    assigned_objects = AssignedObjectsColumn(accessor="assignments")
+    rule_count = tables.Column(
+        verbose_name=_("Rules"),
+        orderable=True,
+        attrs={"td": {"class": "text-center"}, "th": {"class": "text-center", "style": "width:1%;white-space:nowrap;"}},
+    )
+    assigned_objects = AssignedObjectsColumn(accessor="assignments", attrs={"td": {"class": "text-center"}, "th": {"class": "text-center"}})
     tags = TagColumn(url_name="plugins:netbox_nsm:securitypolicyrulebook_list")
     actions = ActionsColumn(actions=("edit", "delete"))
+
+    def render_rule_count(self, value):
+        return mark_safe(
+            f'<span class="badge text-bg-primary" style="font-size:11px;">{value}</span>'
+        )
 
     class Meta(NetBoxTable.Meta):
         model = SecurityPolicyRulebook
         fields = (
             "id",
             "name",
-            "rulebook_type",
+            "rule_count",
             "description",
             "assigned_objects",
             "tags",
         )
-        default_columns = ("name", "rulebook_type", "assigned_objects", "description")
+        default_columns = ("name", "rule_count", "assigned_objects", "description")
 
 
 class SecurityPolicyRuleTable(NetBoxTable):

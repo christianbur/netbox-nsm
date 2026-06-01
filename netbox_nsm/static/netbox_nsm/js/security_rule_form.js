@@ -122,13 +122,6 @@
     syncHidden();
   }
 
-  function toggleExclude(area, placement, kind, id) {
-    var k = selKey(area, placement, kind, id);
-    if (!state.selections[k]) return;
-    state.selections[k].exclude = !state.selections[k].exclude;
-    syncHidden();
-  }
-
   function removeSelection(area, placement, kind, id) {
     delete state.selections[selKey(area, placement, kind, id)];
     syncHidden();
@@ -343,12 +336,7 @@
     // ── Standard list mode ──
     var html = "<ul class='list-group nsm-sel-list'>";
     sel.forEach(function (s) {
-      var isExcluded = !!s.exclude;
-      var excludeClass = isExcluded ? " nsm-chip-excluded list-group-item-danger" : "";
-      var excludeLabel = isExcluded ? "EXCEPT (aktiv)" : "EXCEPT";
-      var excludeBtnClass = isExcluded ? "btn-danger" : "btn-outline-secondary";
-      var allowExclude = (s.matchingClass === "label");
-      html += "<li class='list-group-item d-flex justify-content-between align-items-center gap-2 py-1" + excludeClass + "'>"
+      html += "<li class='list-group-item d-flex justify-content-between align-items-center gap-2 py-1'>"
         + "<div class='d-flex align-items-center gap-2'>"
         + "<input class='form-check-input m-0' type='checkbox'"
         + " data-nsm-cb='1'"
@@ -356,22 +344,12 @@
         + " data-placement='" + esc(s.placement) + "'"
         + " data-kind='" + esc(s.kind) + "'"
         + " data-id='" + esc(s.id) + "' />"
-        + "<span" + (isExcluded ? " style='text-decoration:line-through;opacity:.7'" : "") + ">" + esc(s.name) + "</span>"
+        + "<span>" + esc(s.name) + "</span>"
         + (s.typeName
           ? "<span class='text-muted small'>" + esc(s.typeName) + "</span>"
           : "")
         + "</div>"
         + "<div class='d-flex gap-1'>"
-        + (allowExclude
-          ? "<button type='button' class='btn btn-xs " + excludeBtnClass + " p-0 px-1'"
-            + " style='font-size:.7rem;line-height:1.4'"
-            + " data-nsm-toggle-exclude='1'"
-            + " data-area='" + esc(s.area) + "'"
-            + " data-placement='" + esc(s.placement) + "'"
-            + " data-kind='" + esc(s.kind) + "'"
-            + " data-id='" + esc(s.id) + "'"
-            + " title='" + esc(excludeLabel) + "'>!</button>"
-          : "")
         + "<button type='button' class='btn btn-sm btn-link text-danger p-0'"
         + " data-nsm-remove='1'"
         + " data-area='" + esc(s.area) + "'"
@@ -467,6 +445,7 @@
       ".nsm-empty { color: var(--bs-secondary-color, #6c757d); font-style: italic; padding: .4rem 0; }",
       ".nsm-sel-list { margin: 0; }",
       ".nsm-hint { font-size: .8rem; color: var(--bs-secondary-color, #6c757d); margin-bottom: .4rem; }",
+      ".nsm-hint-tip { font-size: .72rem; opacity: .7; margin-bottom: .35rem; }",
       ".nsm-vgroup-toggle { font-size: .9rem; }",
     ].join("\n");
     document.head.appendChild(s);
@@ -520,6 +499,7 @@
       + (typeNames.length
         ? "<div class='nsm-hint'>" + t('types', 'Types') + ": " + esc(typeNames.join(", ")) + "</div>"
         : "")
+      + "<div class='nsm-hint nsm-hint-tip'><i class='mdi mdi-lightbulb-outline me-1'></i>" + t('search_tip', 'Tip: use * or leave empty to show all') + "</div>"
       + "<div class='nsm-search-wrap'>"
       + "<input type='search' class='form-control form-control-sm nsm-search-input'"
       + " autocomplete='off'"
@@ -650,17 +630,6 @@
     });
 
     root.addEventListener("click", function (e) {
-      // ── Toggle exclude (EXCEPT) ──
-      var excludeBtn = e.target.closest("[data-nsm-toggle-exclude]");
-      if (excludeBtn) {
-        toggleExclude(
-          excludeBtn.dataset.area, excludeBtn.dataset.placement,
-          excludeBtn.dataset.kind, excludeBtn.dataset.id
-        );
-        renderSelected(excludeBtn.dataset.area, excludeBtn.dataset.placement);
-        return;
-      }
-
       // ── Standard: remove item ──
       var removeBtn = e.target.closest("[data-nsm-remove]");
       if (removeBtn) {

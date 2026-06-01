@@ -190,7 +190,6 @@ class RulebookFieldType(models.Model):
             "Maximum number of objects of this type per rule. Leave empty for unlimited."
         ),
     )
-
     class Meta:
         unique_together = (("field", "type_config"),)
         ordering = ("field", "sort_order")

@@ -50,25 +50,14 @@ class RulebookFieldForm(forms.ModelForm):
             "name",
             "sort_order",
             "placement",
-            "searchable",
-            "filterable",
-            "facetable",
-            "facet_mode",
-            "facet_weight",
         )
         widgets = {
             "name": forms.TextInput(),
             "sort_order": forms.NumberInput(attrs={"min": 0}),
-            "facet_weight": forms.NumberInput(attrs={"min": 0}),
         }
         labels = {
             "name": _("Name"),
             "sort_order": _("Sort Order"),
-            "searchable": _("Searchable"),
-            "filterable": _("Filterable"),
-            "facetable": _("Facetable"),
-            "facet_mode": _("Facet Mode"),
-            "facet_weight": _("Facet Weight"),
         }
 
 

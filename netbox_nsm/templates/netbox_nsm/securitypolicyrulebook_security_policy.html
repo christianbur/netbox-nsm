@@ -6,66 +6,6 @@
 <div class="card">
   <div class="card-body p-0">
     <div class="p-3">
-      {% if active_src_zones or active_dst_zones %}
-        <div class="alert alert-info d-flex align-items-start gap-2 mb-3 py-2">
-          <i class="mdi mdi-filter-outline mt-1"></i>
-          <div class="flex-grow-1">
-            <strong>Active zone filter</strong>
-            {% if active_src_zones %}
-              &nbsp;&mdash;&nbsp;
-              <span class="text-muted small">Source:</span>
-              {% for z in active_src_zones %}
-                <a href="{% url 'plugins:netbox_nsm:securityzone' z.pk %}" class="badge text-bg-secondary text-decoration-none">{{ z.name }}</a>
-              {% endfor %}
-            {% endif %}
-            {% if active_dst_zones %}
-              &nbsp;&rarr;&nbsp;
-              <span class="text-muted small">Destination:</span>
-              {% for z in active_dst_zones %}
-                <a href="{% url 'plugins:netbox_nsm:securityzone' z.pk %}" class="badge text-bg-secondary text-decoration-none">{{ z.name }}</a>
-              {% endfor %}
-            {% endif %}
-          </div>
-          <a href="{{ request.path }}" class="btn btn-sm btn-outline-secondary ms-2">
-            <i class="mdi mdi-close"></i> Reset filter
-          </a>
-        </div>
-      {% endif %}
-
-      {% if active_src_objs or active_dst_objs %}
-        <div class="alert alert-info d-flex align-items-start gap-2 mb-3 py-2">
-          <i class="mdi mdi-tag-multiple-outline mt-1"></i>
-          <div class="flex-grow-1">
-            <strong>Active object filter</strong>
-            {% if active_src_objs %}
-              &nbsp;&mdash;&nbsp;
-              <span class="text-muted small">Source:</span>
-              {% for obj in active_src_objs %}
-                <a href="{{ obj.get_absolute_url }}"
-                   class="badge text-decoration-none"
-                   style="background:{{ obj.custom_type.color|default:'#6c757d' }};color:#fff;">
-                  {{ obj.name }}
-                </a>
-              {% endfor %}
-            {% endif %}
-            {% if active_dst_objs %}
-              &nbsp;&rarr;&nbsp;
-              <span class="text-muted small">Destination:</span>
-              {% for obj in active_dst_objs %}
-                <a href="{{ obj.get_absolute_url }}"
-                   class="badge text-decoration-none"
-                   style="background:{{ obj.custom_type.color|default:'#6c757d' }};color:#fff;">
-                  {{ obj.name }}
-                </a>
-              {% endfor %}
-            {% endif %}
-          </div>
-          <a href="{{ request.path }}" class="btn btn-sm btn-outline-secondary ms-2">
-            <i class="mdi mdi-close"></i> Reset filter
-          </a>
-        </div>
-      {% endif %}
-
       {% if is_security_rules %}
         <style>
           /* ============================================================
@@ -383,7 +323,7 @@
               <input type="text" name="nsm_q" id="nsm-q-input"
                      value="{{ nsm_q }}"
                      class="form-control font-monospace{% if nsm_query_error %} is-invalid{% endif %}"
-                     placeholder="{% trans 'e.g. Source.Name = Web AND Service.Name = HTTPS' %}"
+                     placeholder="{% trans 'e.g. Source.zone = prod AND Service in (HTTP, HTTPS)' %}"
                      autocomplete="off"
                      spellcheck="false">
               {% if nsm_q %}
@@ -417,36 +357,77 @@
           <div class="collapse mt-2" id="nsm-query-help">
             <div class="border rounded p-3 small text-muted" style="font-size:12px;">
               <div class="row g-3">
-                <div class="col-md-6">
-                  <strong class="text-body d-block mb-1">{% trans "Operators" %}</strong>
+                <div class="col-md-4">
+                  <strong class="text-body d-block mb-1">{% trans "Field path" %}</strong>
+                  <table class="table table-sm table-borderless mb-0" style="font-size:11px;">
+                    <tbody>
+                      <tr><td><code>x</code></td><td>{% trans "column or fixed field" %}</td><td><code>index</code>, <code>Action</code></td></tr>
+                      <tr><td><code>x.y</code></td><td>{% trans "column + type hint" %}</td><td><code>Source.zone</code></td></tr>
+                      <tr><td><code>x.y.z</code></td><td>{% trans "column + type hint + object property" %}</td><td><code>Source.address.prefix</code></td></tr>
+                    </tbody>
+                  </table>
+                  <strong class="text-body d-block mb-1 mt-2">{% trans "Operators" %}</strong>
                   <table class="table table-sm table-borderless mb-0" style="font-size:11px;">
                     <tbody>
                       <tr><td><code>=</code></td><td>{% trans "equals" %}</td><td><code>Action = Permit</code></td></tr>
                       <tr><td><code>!=</code></td><td>{% trans "not equals" %}</td><td><code>Action != Deny</code></td></tr>
-                      <tr><td><code>contains</code></td><td>{% trans "contains / IP in subnet" %}</td><td><code>Description contains SAP</code></td></tr>
-                      <tr><td><code>exists</code></td><td>{% trans "field has a value" %}</td><td><code>Owner exists</code></td></tr>
+                      <tr><td><code>contains</code></td><td>{% trans "contains / IP in subnet" %}</td><td><code>Source.address.prefix contains 10.0.0.0</code></td></tr>
+                      <tr><td><code>exists</code></td><td>{% trans "field has a value" %}</td><td><code>Source exists</code></td></tr>
                       <tr><td><code>!exists</code></td><td>{% trans "field is empty" %}</td><td><code>Destination !exists</code></td></tr>
-                      <tr><td><code>in</code></td><td>{% trans "one of" %}</td><td><code>Service.Name in (HTTP, HTTPS)</code></td></tr>
-                      <tr><td><code>notin</code></td><td>{% trans "none of" %}</td><td><code>Service.Name notin (HTTP)</code></td></tr>
+                      <tr><td><code>in</code></td><td>{% trans "one of" %}</td><td><code>Source.zone in (prod, trust)</code></td></tr>
+                      <tr><td><code>notin</code></td><td>{% trans "none of" %}</td><td><code>Service notin (HTTP)</code></td></tr>
                     </tbody>
                   </table>
+                  <strong class="text-body d-block mb-1 mt-2">{% trans "Logic" %}</strong>
+                  <table class="table table-sm table-borderless mb-0" style="font-size:11px;">
+                    <tbody>
+                      <tr><td><code>AND</code> / <code>&&</code></td><td>{% trans "both must match" %}</td></tr>
+                      <tr><td><code>OR</code> / <code>||</code></td><td>{% trans "either must match" %}</td></tr>
+                    </tbody>
+                  </table>
+                  <div class="mt-1 text-muted" style="font-size:10px;">{% trans "AND binds tighter than OR" %}: <code>A AND B OR C</code> = <code>(A AND B) OR C</code></div>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-4">
                   <strong class="text-body d-block mb-1">{% trans "Examples" %}</strong>
-                  <ul class="list-unstyled mb-0" style="line-height:1.8;">
-                    <li><a href="?nsm_q=Name+contains+allow" class="nsm-query-example font-monospace">Name contains allow</a></li>
+                  <ul class="list-unstyled mb-0" style="line-height:1.9;">
+                    <li><a href="?nsm_q=index+%3D+1" class="nsm-query-example font-monospace">index = 1</a></li>
+                    <li><a href="?nsm_q=name+contains+allow" class="nsm-query-example font-monospace">name contains allow</a></li>
                     <li><a href="?nsm_q=Action+%3D+Permit" class="nsm-query-example font-monospace">Action = Permit</a></li>
-                    <li><a href="?nsm_q=Description+contains+SAP" class="nsm-query-example font-monospace">Description contains SAP</a></li>
+                    <li><a href="?nsm_q=description+contains+SAP" class="nsm-query-example font-monospace">description contains SAP</a></li>
                     {% for field in object.fields.all %}
                       {% if field.facetable or field.searchable %}
-                        <li><a href="?nsm_q={{ field.name }}.Name+exists" class="nsm-query-example font-monospace">{{ field.name }}.Name exists</a></li>
+                        <li><a href="?nsm_q={{ field.name }}+exists" class="nsm-query-example font-monospace">{{ field.name }} exists</a></li>
+                      {% endif %}
+                    {% endfor %}
+                    <li class="mt-1 text-muted" style="font-size:10px;">{% trans "AND" %}</li>
+                    {% for field in object.fields.all %}
+                      {% if field.facetable or field.searchable %}
+                        <li><a href="?nsm_q={{ field.name }}.zone+exists" class="nsm-query-example font-monospace">{{ field.name }}.zone exists</a></li>
+                        <li><a href="?nsm_q={{ field.name }}.address.prefix+contains+10.0.0.0" class="nsm-query-example font-monospace">{{ field.name }}.address.prefix contains 10.0.0.0</a></li>
+                      {% endif %}
+                    {% endfor %}
+                    <li class="mt-1 text-muted" style="font-size:10px;">{% trans "OR" %}</li>
+                    {% for field in object.fields.all %}
+                      {% if field.facetable or field.searchable %}
+                        <li><a href="?nsm_q={{ field.name }}+%3D+%22a%22+OR+{{ field.name }}+%3D+%22b%22" class="nsm-query-example font-monospace">{{ field.name }} = "a" OR {{ field.name }} = "b"</a></li>
                       {% endif %}
                     {% endfor %}
                   </ul>
+                </div>
+                <div class="col-md-4">
+                  <strong class="text-body d-block mb-1">{% trans "Fixed fields" %}</strong>
+                  <table class="table table-sm table-borderless mb-0" style="font-size:11px;">
+                    <tbody>
+                      <tr><td><code>index</code></td><td>{% trans "rule index" %}</td></tr>
+                      <tr><td><code>name</code></td><td>{% trans "rule name" %}</td></tr>
+                      <tr><td><code>description</code></td><td>{% trans "rule description" %}</td></tr>
+                      <tr><td><code>action</code></td><td>{% trans "permit / deny / …" %}</td></tr>
+                      <tr><td><code>enabled</code></td><td><code>true</code> / <code>false</code></td></tr>
+                    </tbody>
+                  </table>
                   <div class="mt-2 text-muted" style="font-size:11px;">
                     <i class="mdi mdi-information-outline me-1"></i>
-                    {% trans "Combine with" %} <code>AND</code> {% trans "or" %} <code>&&</code>.
-                    {% trans "Field names match rulebook columns (case-insensitive)." %}
+                    {% trans "Column names match rulebook headers (case-insensitive)." %}
                   </div>
                 </div>
               </div>
@@ -464,66 +445,97 @@
               <span class="nsm-facet-title fw-semibold text-muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;">
                 <i class="mdi mdi-filter-variant me-1"></i>Filter
               </span>
-              <button type="button" id="nsm-facet-toggle" class="btn p-0 ms-1 text-muted" style="border:none;background:none;font-size:18px;line-height:1;" title="Collapse filter panel">
+              <button type="button" id="nsm-facet-toggle" class="btn p-0 ms-1 text-muted" style="font-size:16px;line-height:1;width:26px;height:26px;min-width:26px;min-height:26px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(128,128,128,.25);border-radius:4px;background:none;" title="Collapse filter panel">
                 <i class="mdi mdi-chevron-double-left" id="nsm-facet-chev"></i>
               </button>
             </div>
             <div id="nsm-facet-content">
               {% for facet in nsm_facets %}
-              <div class="nsm-facet-section mb-3" data-facet-slug="{{ facet.field_slug }}" data-mode="value">
+              <div class="nsm-facet-section mb-1" data-facet-slug="{{ facet.field_slug }}" data-mode="value">
                 <div class="d-flex justify-content-between align-items-start mb-1">
-                  <div>
+                  <button type="button" class="nsm-facet-section-toggle btn p-0 text-muted me-1 flex-shrink-0 d-flex align-items-center"
+                          data-section="{{ facet.field_slug }}"
+                          style="font-size:13px;border:none;background:none;line-height:1;">
+                    <i class="mdi mdi-chevron-right nsm-sec-chev"></i>
+                  </button>
+                  <div class="flex-grow-1 min-width-0">
                     <span class="fw-semibold" style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--tblr-text-muted, #6b7280);">{{ facet.field_name }}</span>
-                    {% if facet.field_subtitle %}<div class="text-muted" style="font-size:10px;">{{ facet.field_subtitle }}</div>{% endif %}
                   </div>
                   <button type="button" class="nsm-facet-mode-toggle btn p-0 text-muted flex-shrink-0 ms-1"
                           data-facet="{{ facet.field_slug }}"
-                          title="Toggle value / set mode"
-                          style="font-size:10px;border:none;background:none;line-height:1;">
-                    <span class="nsm-facet-mode-label" style="font-size:9px;border:1px solid currentColor;border-radius:3px;padding:0 2px;">val</span>
+                          title="Toggle val (einzeln) / set (Kombination)"
+                          style="font-size:10px;border:none;background:none;line-height:1;display:flex;align-items:center;gap:2px;">
+                    <span class="nsm-facet-mode-label nsm-mode-val" style="font-size:9px;padding:0 2px;border:1px solid currentColor;border-radius:3px;">val</span>
+                    <span class="nsm-facet-mode-label nsm-mode-set" style="font-size:9px;padding:0 2px;border:1px solid currentColor;border-radius:3px;opacity:.35;">set</span>
                   </button>
                 </div>
-                <div class="nsm-facet-entries-value">
-                  {% for entry in facet.entries_value %}
-                    {% if nsm_q %}
-                      {% with newq=nsm_q|add:" AND "|add:entry.qval %}
-                        <a href="?nsm_q={{ newq|urlencode }}"
-                           class="nsm-facet-entry d-flex justify-content-between align-items-center px-1 py-1 rounded {% if entry.qval in nsm_q %}active{% endif %}"
-                           style="font-size:12px;text-decoration:none;">
-                          <span class="text-truncate">{{ entry.value }}</span>
-                          <span class="badge bg-secondary ms-1 flex-shrink-0" style="font-size:10px;">{{ entry.count }}</span>
-                        </a>
-                      {% endwith %}
-                    {% else %}
-                      <a href="?nsm_q={{ entry.qval|urlencode }}"
-                         class="nsm-facet-entry d-flex justify-content-between align-items-center px-1 py-1 rounded"
-                         style="font-size:12px;text-decoration:none;">
-                        <span class="text-truncate">{{ entry.value }}</span>
-                        <span class="badge bg-secondary ms-1 flex-shrink-0" style="font-size:10px;">{{ entry.count }}</span>
-                      </a>
-                    {% endif %}
-                  {% endfor %}
-                </div>
-                <div class="nsm-facet-entries-set" style="display:none;">
-                  {% for entry in facet.entries_set %}
-                    {% if nsm_q %}
-                      {% with newq=nsm_q|add:" AND "|add:entry.qval %}
-                        <a href="?nsm_q={{ newq|urlencode }}"
-                           class="nsm-facet-entry d-flex justify-content-between align-items-center px-1 py-1 rounded {% if entry.qval in nsm_q %}active{% endif %}"
-                           style="font-size:12px;text-decoration:none;">
-                          <span class="text-truncate">{{ entry.value }}</span>
-                          <span class="badge bg-secondary ms-1 flex-shrink-0" style="font-size:10px;">{{ entry.count }}</span>
-                        </a>
-                      {% endwith %}
-                    {% else %}
-                      <a href="?nsm_q={{ entry.qval|urlencode }}"
-                         class="nsm-facet-entry d-flex justify-content-between align-items-center px-1 py-1 rounded"
-                         style="font-size:12px;text-decoration:none;">
-                        <span class="text-truncate">{{ entry.value }}</span>
-                        <span class="badge bg-secondary ms-1 flex-shrink-0" style="font-size:10px;">{{ entry.count }}</span>
-                      </a>
-                    {% endif %}
-                  {% endfor %}
+                <div class="nsm-facet-body" style="display:none;">
+                  <div class="nsm-facet-entries-value">
+                    {% for grp_block in facet.entries_value %}
+                      <div class="nsm-facet-group-block">
+                        {% if grp_block.group_short %}<div class="nsm-facet-group-hdr">{{ grp_block.group_short }}</div>{% endif %}
+                        {% for entry in grp_block.entries %}
+                          {% if entry.disabled %}
+                            <a href="?nsm_q={{ entry.qval|urlencode }}"
+                               class="nsm-facet-entry d-flex justify-content-between align-items-center px-1 py-1 rounded nsm-facet-entry--disabled"
+                               style="font-size:12px;text-decoration:none;">
+                              <span class="text-truncate">{{ entry.value }}</span>
+                              <span class="badge nsm-badge-dim ms-1 flex-shrink-0" style="font-size:10px;">{{ entry.count_all }}</span>
+                            </a>
+                          {% elif entry.already_active %}
+                            <span
+                             class="nsm-facet-entry nsm-facet-entry--active d-flex justify-content-between align-items-center px-1 py-1 rounded"
+                             style="font-size:12px;">
+                            <span class="text-truncate">{{ entry.value }}</span>
+                            <span class="badge text-bg-primary ms-1 flex-shrink-0" style="font-size:10px;">{{ entry.count }}</span>
+                          </span>
+                          {% else %}
+                            {% with newq=nsm_q|add:" AND "|add:entry.qval %}
+                            <a href="?nsm_q={% if nsm_q %}{{ newq|urlencode }}{% else %}{{ entry.qval|urlencode }}{% endif %}"
+                               class="nsm-facet-entry d-flex justify-content-between align-items-center px-1 py-1 rounded"
+                               style="font-size:12px;text-decoration:none;">
+                            <span class="text-truncate">{{ entry.value }}</span>
+                            <span class="badge text-bg-primary ms-1 flex-shrink-0" style="font-size:10px;">{{ entry.count }}</span>
+                          </a>
+                            {% endwith %}
+                          {% endif %}
+                        {% endfor %}
+                      </div>
+                    {% endfor %}
+                  </div>
+                  <div class="nsm-facet-entries-set">
+                    {% for grp_block in facet.entries_set %}
+                      <div class="nsm-facet-group-block">
+                        {% if grp_block.group_short %}<div class="nsm-facet-group-hdr">{{ grp_block.group_short }}</div>{% endif %}
+                        {% for entry in grp_block.entries %}
+                          {% if entry.disabled %}
+                            <a href="?nsm_q={{ entry.qval|urlencode }}"
+                               class="nsm-facet-entry d-flex justify-content-between align-items-center px-1 py-1 rounded nsm-facet-entry--disabled"
+                               style="font-size:12px;text-decoration:none;">
+                              <span class="text-truncate">{{ entry.value }}</span>
+                              <span class="badge nsm-badge-dim ms-1 flex-shrink-0" style="font-size:10px;">{{ entry.count_all }}</span>
+                            </a>
+                          {% elif entry.already_active %}
+                            <span
+                             class="nsm-facet-entry nsm-facet-entry--active d-flex justify-content-between align-items-center px-1 py-1 rounded"
+                             style="font-size:12px;">
+                            <span class="text-truncate">{{ entry.value }}</span>
+                            <span class="badge text-bg-primary ms-1 flex-shrink-0" style="font-size:10px;">{{ entry.count }}</span>
+                          </span>
+                          {% else %}
+                            {% with newq=nsm_q|add:" AND "|add:entry.qval %}
+                            <a href="?nsm_q={% if nsm_q %}{{ newq|urlencode }}{% else %}{{ entry.qval|urlencode }}{% endif %}"
+                               class="nsm-facet-entry d-flex justify-content-between align-items-center px-1 py-1 rounded"
+                               style="font-size:12px;text-decoration:none;">
+                            <span class="text-truncate">{{ entry.value }}</span>
+                            <span class="badge text-bg-primary ms-1 flex-shrink-0" style="font-size:10px;">{{ entry.count }}</span>
+                          </a>
+                            {% endwith %}
+                          {% endif %}
+                        {% endfor %}
+                      </div>
+                    {% endfor %}
+                  </div>
                 </div>
               </div>
               {% endfor %}
@@ -532,12 +544,15 @@
                 <i class="mdi mdi-close me-1"></i>Clear
               </a>
               {% endif %}
+
             </div>{# nsm-facet-content #}
           </div>{# nsm-facet-panel #}
 
           {# ── Right: rules panel ───────────────────────────────── #}
           <div id="nsm-rules-panel" class="flex-grow-1" style="min-width:0;">
-
+        {% else %}
+          <div id="nsm-rules-panel">
+        {% endif %}{# nsm_facets #}
 
       <form method="post" id="nsm-bulk-delete-form">
         {% csrf_token %}
@@ -925,7 +940,8 @@
         var chev = document.getElementById('nsm-facet-chev');
         if (!panel || !btn) return;
         var LS_KEY = 'nsm-facet-panel-state';
-        var collapsed = localStorage.getItem(LS_KEY) === 'collapsed';
+        var _stored = localStorage.getItem(LS_KEY);
+        var collapsed = _stored === null ? true : _stored === 'collapsed';
         function apply() {
           if (collapsed) {
             panel.classList.add('nsm-collapsed');
@@ -945,31 +961,70 @@
         });
       })();
 
-      // Facet value/set mode toggle (sidebar)
+      // Facet section collapse/expand (mit localStorage-Persistenz)
+      (function () {
+        var SEC_LS_KEY = 'nsm-facet-sections-open';
+        var openSlugs;
+        try { openSlugs = JSON.parse(localStorage.getItem(SEC_LS_KEY)) || []; } catch(e) { openSlugs = []; }
+
+        function saveState() {
+          var open = [];
+          document.querySelectorAll('.nsm-facet-section').forEach(function (sec) {
+            var body = sec.querySelector('.nsm-facet-body');
+            if (body && body.style.display !== 'none') open.push(sec.getAttribute('data-facet-slug'));
+          });
+          try { localStorage.setItem(SEC_LS_KEY, JSON.stringify(open)); } catch(e) {}
+        }
+
+        // Restore open state on load
+        document.querySelectorAll('.nsm-facet-section').forEach(function (sec) {
+          var slug = sec.getAttribute('data-facet-slug');
+          var body = sec.querySelector('.nsm-facet-body');
+          var chev = sec.querySelector('.nsm-sec-chev');
+          if (!body) return;
+          if (openSlugs.indexOf(slug) !== -1) {
+            body.style.display = '';
+            if (chev) chev.className = 'mdi mdi-chevron-down nsm-sec-chev';
+          } else {
+            body.style.display = 'none';
+            if (chev) chev.className = 'mdi mdi-chevron-right nsm-sec-chev';
+          }
+        });
+
+        document.querySelectorAll('.nsm-facet-section-toggle').forEach(function (btn) {
+          btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var slug = btn.getAttribute('data-section');
+            var section = document.querySelector('.nsm-facet-section[data-facet-slug="' + slug + '"]');
+            var body = section && section.querySelector('.nsm-facet-body');
+            var chev = btn.querySelector('.nsm-sec-chev');
+            if (!body) return;
+            var collapsed = body.style.display === 'none';
+            body.style.display = collapsed ? '' : 'none';
+            if (chev) chev.className = collapsed ? 'mdi mdi-chevron-down nsm-sec-chev' : 'mdi mdi-chevron-right nsm-sec-chev';
+            saveState();
+          });
+        });
+      })();
+
+      // Facet value/set mode toggle (sidebar) — both sections always visible, active = normal, inactive = dimmed
       document.querySelectorAll('.nsm-facet-mode-toggle').forEach(function (btn) {
         btn.addEventListener('click', function (e) {
           e.stopPropagation();
           var slug = btn.getAttribute('data-facet');
           var block = document.querySelector('.nsm-facet-section[data-facet-slug="' + slug + '"]');
-          var label = btn.querySelector('.nsm-facet-mode-label');
           if (!block) return;
-          var vList = block.querySelector('.nsm-facet-entries-value');
-          var sList = block.querySelector('.nsm-facet-entries-set');
-          if (!vList || !sList) return;
-          var current = block.getAttribute('data-mode');
-          if (current === 'value') {
-            block.setAttribute('data-mode', 'set');
-            vList.style.display = 'none';
-            sList.style.display = '';
-            if (label) label.textContent = 'set';
-          } else {
-            block.setAttribute('data-mode', 'value');
-            sList.style.display = 'none';
-            vList.style.display = '';
-            if (label) label.textContent = 'val';
+          var isSet = block.getAttribute('data-mode') === 'set';
+          block.setAttribute('data-mode', isSet ? 'value' : 'set');
+          var valLbl = btn.querySelector('.nsm-mode-val');
+          var setLbl = btn.querySelector('.nsm-mode-set');
+          if (valLbl && setLbl) {
+            valLbl.style.opacity = isSet ? '' : '.35';
+            setLbl.style.opacity = isSet ? '.35' : '';
           }
         });
       });
+
       </script>
       <style>
         /* ── Facet sidebar ───────────────────────────────────────── */
@@ -980,8 +1035,8 @@
           overflow: hidden;
         }
         .nsm-facet-sidebar.nsm-collapsed {
-          width: 28px;
-          min-width: 28px;
+          width: 36px;
+          min-width: 36px;
         }
         .nsm-facet-sidebar.nsm-collapsed #nsm-facet-content { display: none; }
         .nsm-facet-sidebar.nsm-collapsed .nsm-facet-title { display: none; }
@@ -991,9 +1046,29 @@
           padding-bottom: 0;
           justify-content: center;
         }
+        /* facet entries */
         .nsm-facet-entry { color: var(--tblr-body-color); }
         .nsm-facet-entry:hover { background: rgba(var(--tblr-primary-rgb), .08); }
         .nsm-facet-entry.active { background: rgba(var(--tblr-primary-rgb), .15); color: var(--tblr-primary); font-weight: 600; }
+        .nsm-facet-entry--active { background: rgba(var(--tblr-primary-rgb), .15); color: var(--tblr-primary); font-weight: 600; cursor: default; }
+        .nsm-facet-entry--disabled { opacity: .35; }
+
+        .nsm-badge-dim { background: rgba(128,128,128,.18) !important; color: var(--tblr-body-color) !important; border: 1px solid rgba(128,128,128,.3) !important; }
+        /* suppress focus ring and shadow on toggle buttons */
+        .nsm-facet-section-toggle, .nsm-facet-mode-toggle { box-shadow: none !important; }
+        #nsm-facet-toggle:focus, .nsm-facet-section-toggle:focus, .nsm-facet-mode-toggle:focus { outline: none !important; box-shadow: none !important; border-color: transparent !important; }
+        #nsm-facet-toggle:focus { border-color: rgba(128,128,128,.25) !important; }
+        /* val / set mode — only the active list is shown */
+        .nsm-facet-section[data-mode='value'] .nsm-facet-entries-set { display: none; }
+        .nsm-facet-section[data-mode='set']   .nsm-facet-entries-value { display: none; }
+        .nsm-facet-group-hdr {
+          font-size: 9px; text-transform: uppercase; letter-spacing: .05em;
+          color: var(--tblr-text-muted, #6b7280);
+          padding: 4px 4px 1px; margin-top: 2px;
+          border-top: 1px solid var(--nsm-line, rgba(128,128,128,.15));
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .nsm-facet-group-block:first-child .nsm-facet-group-hdr { margin-top: 0; border-top: none; }
         .nsm-query-example { font-size: 11px; display: block; color: inherit; opacity: .8; }
         .nsm-query-example:hover { opacity: 1; }
         #nsm-q-input { font-size: 12px; }
@@ -1004,6 +1079,20 @@
           font-family: var(--tblr-font-monospace);
           position: absolute; top: 2px; right: 3px;
           font-size: 9px; opacity: .35; pointer-events: none;
+        }
+        .nsm-group-badge {
+          background: rgba(var(--tblr-primary-rgb), .12) !important;
+          color: var(--tblr-primary) !important;
+          border: 1px solid rgba(var(--tblr-primary-rgb), .3) !important;
+          font-size: .72rem; font-weight: 600;
+        }
+        .nsm-group-badge.active {
+          background: rgba(var(--tblr-primary-rgb), .25) !important;
+        }
+        .nsm-group-expand {
+          margin-top: 3px; padding: 3px 4px;
+          border-left: 2px solid rgba(var(--tblr-primary-rgb), .3);
+          display: flex; flex-wrap: wrap; gap: 3px;
         }
       </style>
     </div>

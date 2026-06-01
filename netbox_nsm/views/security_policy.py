@@ -8,6 +8,7 @@ from django.db.models import Count, Max, Q
 from django.views import View
 from netbox.object_actions import AddObject, BulkDelete
 import json
+import re
 
 import markdown
 import django_tables2 as tables
@@ -77,10 +78,13 @@ def _render_vgroup_cell(items):
 
 
 def _render_policy_cell(items):
+    import uuid as _uuid
     if not items:
         return '<span class="text-muted small">-</span>'
+    regular = [i for i in items if not i.get("is_group")]
+    groups = [i for i in items if i.get("is_group")]
     out = []
-    for item in items:
+    for item in regular:
         color = (item.get("color") or "").strip()
         style_attr = ""
         extra_class = ""
@@ -102,14 +106,31 @@ def _render_policy_cell(items):
             )
             extra_class = " nsm-rule-pill-colored"
         out.append(
-            (
-                f'<a href="{conditional_escape(item["url"])}" '
-                f'class="nsm-rule-pill{extra_class} text-decoration-none"'
-                f"{style_attr} "
-                f'title="{conditional_escape(item["name"])}">'
-                f'{conditional_escape(item["name"])}'
-                "</a>"
-            )
+            f'<a href="{conditional_escape(item["url"])}" '
+            f'class="nsm-rule-pill{extra_class} text-decoration-none"'
+            f"{style_attr} "
+            f'title="{conditional_escape(item["name"])}">'
+            f'{conditional_escape(item["name"])}'
+            "</a>"
+        )
+    if groups:
+        uid = _uuid.uuid4().hex[:8]
+        pills_html = "".join(
+            f'<a href="{conditional_escape(g["url"])}" '
+            f'class="nsm-rule-pill text-decoration-none" '
+            f'title="{conditional_escape(g["name"])}">'
+            f'{conditional_escape(g["name"])}</a>'
+            for g in groups
+        )
+        out.append(
+            f'<button type="button" '
+            f'class="nsm-rule-pill nsm-group-badge" '
+            f'style="border:none;cursor:pointer;" '
+            f"onclick=\"var d=document.getElementById('nsm-grp-{uid}');d.style.display=d.style.display==='none'?'':'none';this.classList.toggle('active');\" "
+            f'title="{len(groups)} Group(s) \u2013 click to expand">'
+            f'<i class="mdi mdi-account-group" style="font-size:10px;"></i> G</button>'
+            f'<div id="nsm-grp-{uid}" class="nsm-group-expand" style="display:none;">'
+            f'{pills_html}</div>'
         )
     return f'<div class="nsm-rule-pills">{"".join(out)}</div>'
 
@@ -195,7 +216,7 @@ def _build_grouped_policy_table_data(rules, selected_columns, rulebook=None):
 
             header_groups.append(
                 {
-                    "label": field.name if field else field_slug.capitalize(),
+                    "label": re.sub(r'\s*\(.*?\)\s*$', '', field.name).strip() if field else field_slug.capitalize(),
                     "columns": cols,
                 }
             )
@@ -245,6 +266,7 @@ def _build_grouped_policy_table_data(rules, selected_columns, rulebook=None):
                     "url": item.security_group.get_absolute_url(),
                     "name": item.security_group.name,
                     "color": "",
+                    "is_group": True,
                 }
             )
 
@@ -893,6 +915,12 @@ class SecurityPolicyRulebookVisualizationView(generic.ObjectView):
             else all_dst_zones
         )
 
+        # Field names for NSM query links
+        _src_fields = list(instance.fields.filter(placement="source").order_by("sort_order"))
+        _dst_fields = list(instance.fields.filter(placement="destination").order_by("sort_order"))
+        _src_fname = _src_fields[0].slug if _src_fields else "source"
+        _dst_fname = _dst_fields[0].slug if _dst_fields else "destination"
+
         def _action_color_label(rule):
             for item in rule.object_items.all():
                 if not item.field or item.field.slug != "action":
@@ -948,20 +976,32 @@ class SecurityPolicyRulebookVisualizationView(generic.ObjectView):
         if matrix_mode not in ("undirected", "directed"):
             matrix_mode = "directed"
 
+        from urllib.parse import quote as _urlquote
+
+        def _nsm_href(src_name, dst_name):
+            q = f'{_src_fname} == "{src_name}" AND {_dst_fname} == "{dst_name}"'
+            return f"{policy_url_base}?nsm_q={_urlquote(q)}"
+
+        def _nsm_href_bidir(sn, dn):
+            q = f'{_src_fname} == "{sn}" AND {_dst_fname} == "{dn}" OR {_src_fname} == "{dn}" AND {_dst_fname} == "{sn}"'
+            return f"{policy_url_base}?nsm_q={_urlquote(q)}"
+
         matrix_rows = []
         for src in src_zones:
             cells = []
             for dst in dst_zones:
                 fwd_rules = cell_map.get((src.pk, dst.pk), [])
                 rev_rules = cell_map.get((dst.pk, src.pk), [])
+                sn = getattr(src, "name", str(src))
+                dn = getattr(dst, "name", str(dst))
                 cells.append(
                     {
                         "fwd": _badge(fwd_rules),
                         "rev": _badge(rev_rules),
                         "combined": _combined_badge(fwd_rules, rev_rules),
-                        "fwd_href": f"{policy_url_base}?src_obj_id={src.pk}&dst_obj_id={dst.pk}",
-                        "rev_href": f"{policy_url_base}?src_obj_id={dst.pk}&dst_obj_id={src.pk}",
-                        "both_href": f"{policy_url_base}?src_obj_id={src.pk}&dst_obj_id={dst.pk}&bidir=1",
+                        "fwd_href": _nsm_href(sn, dn),
+                        "rev_href": _nsm_href(dn, sn),
+                        "both_href": _nsm_href_bidir(sn, dn),
                         "add_href": (
                             f"{add_url_base}?rulebook={instance.pk}"
                             f"&prefill_src_ct={selected_ct_id}&prefill_src_obj={src.pk}"
@@ -1289,94 +1329,6 @@ class SecurityPolicyRulebookRulesView(generic.ObjectView):
             .order_by("index")
         )
 
-        # ── optional object filter (src_obj_id / dst_obj_id) — ORM pre-filter ─
-        src_obj_filter = [v for v in request.GET.getlist("src_obj_id") if v.isdigit()]
-        dst_obj_filter = [v for v in request.GET.getlist("dst_obj_id") if v.isdigit()]
-        bidir = request.GET.get("bidir") == "1"
-
-        if bidir and len(src_obj_filter) == 1 and len(dst_obj_filter) == 1:
-            spk, dpk = src_obj_filter[0], dst_obj_filter[0]
-            fwd = base_rules_qs.annotate(
-                _sf=Count(
-                    "object_items",
-                    filter=Q(object_items__field__placement="source")
-                    & Q(object_items__object_id=spk),
-                    distinct=True,
-                ),
-                _df=Count(
-                    "object_items",
-                    filter=Q(object_items__field__placement="destination")
-                    & Q(object_items__object_id=dpk),
-                    distinct=True,
-                ),
-            ).filter(_sf__gte=1, _df__gte=1)
-            rev = base_rules_qs.annotate(
-                _sr=Count(
-                    "object_items",
-                    filter=Q(object_items__field__placement="source")
-                    & Q(object_items__object_id=dpk),
-                    distinct=True,
-                ),
-                _dr=Count(
-                    "object_items",
-                    filter=Q(object_items__field__placement="destination")
-                    & Q(object_items__object_id=spk),
-                    distinct=True,
-                ),
-            ).filter(_sr__gte=1, _dr__gte=1)
-            base_rules_qs = (fwd | rev).distinct().order_by("index")
-        else:
-            if src_obj_filter:
-                n = len(src_obj_filter)
-                base_rules_qs = base_rules_qs.annotate(
-                    _src_obj_matched=Count(
-                        "object_items",
-                        filter=Q(object_items__field__placement="source")
-                        & Q(object_items__object_id__in=src_obj_filter),
-                        distinct=True,
-                    )
-                ).filter(_src_obj_matched=n)
-            if dst_obj_filter:
-                n = len(dst_obj_filter)
-                base_rules_qs = base_rules_qs.annotate(
-                    _dst_obj_matched=Count(
-                        "object_items",
-                        filter=Q(object_items__field__placement="destination")
-                        & Q(object_items__object_id__in=dst_obj_filter),
-                        distinct=True,
-                    )
-                ).filter(_dst_obj_matched=n)
-
-        # resolve active filter badge objects
-        active_src_objs, active_dst_objs = [], []
-        if src_obj_filter or dst_obj_filter:
-            src_pks = [int(v) for v in src_obj_filter]
-            dst_pks = [int(v) for v in dst_obj_filter]
-
-            def _resolve_objs(pks, placement):
-                seen, result = set(), []
-                for item in (
-                    SecurityPolicyRuleObjectItem.objects.filter(
-                        rule__rulebook=instance,
-                        field__placement=placement,
-                        object_id__in=pks,
-                    )
-                    .select_related("content_type", "field")
-                    .distinct()
-                ):
-                    if (
-                        item.object_id not in seen
-                        and (obj := item.assigned_object) is not None
-                    ):
-                        seen.add(item.object_id)
-                        result.append(obj)
-                return result
-
-            if src_pks:
-                active_src_objs = _resolve_objs(src_pks, "source")
-            if dst_pks:
-                active_dst_objs = _resolve_objs(dst_pks, "destination")
-
         # ── NSM Query Engine ──────────────────────────────────────────────────
         nsm_q_raw = request.GET.get("nsm_q", "").strip()
         query = parse(nsm_q_raw)
@@ -1388,8 +1340,17 @@ class SecurityPolicyRulebookRulesView(generic.ObjectView):
         # Filter via query engine
         filtered_rules = filter_rules(all_rules, query, context)
 
-        # Compute facets from filtered result set
-        facets = compute_facets(filtered_rules, context)
+        # Compute facets: entries from all_rules, counts from filtered_rules
+        facets = compute_facets(all_rules, context, filtered_rules=filtered_rules)
+
+        # Mark entries that are already active in the current query (avoid duplicates)
+        _nsm_q_lower = nsm_q_raw.lower()
+        for facet in facets:
+            for grp_list in (facet.get("entries_value", []), facet.get("entries_set", [])):
+                for grp_block in grp_list:
+                    for entry in grp_block.get("entries", []):
+                        entry["already_active"] = entry["qval"].lower() in _nsm_q_lower
+
 
         # ── Column config ─────────────────────────────────────────────────────
         config = _get_policy_table_config(request, instance.pk)
@@ -1471,8 +1432,6 @@ class SecurityPolicyRulebookRulesView(generic.ObjectView):
             "security_rules_columns": SECURITY_RULES_COLUMNS,
             "selected_security_rules_columns": selected_columns,
             "nsm_available_policy_areas": availability,
-            "active_src_objs": active_src_objs,
-            "active_dst_objs": active_dst_objs,
             # NSM Query Engine
             "nsm_q": nsm_q_raw,
             "nsm_query": query,
@@ -1495,7 +1454,7 @@ class SecurityPolicyRulebookRulesView(generic.ObjectView):
 class SecurityPolicyRulebookListView(generic.ObjectListView):
     queryset = SecurityPolicyRulebook.objects.prefetch_related(
         "assignments__assigned_object_type"
-    ).all()
+    ).annotate(rule_count=Count("rules")).all()
     filterset = SecurityPolicyRulebookFilterSet
     filterset_form = SecurityPolicyRulebookFilterForm
     table = SecurityPolicyRulebookTable

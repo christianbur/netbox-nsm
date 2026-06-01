@@ -32,7 +32,10 @@ class RulebookContext:
 
         if rulebook:
             try:
-                for f in rulebook.fields.all():
+                fields_qs = rulebook.fields.prefetch_related(
+                    "type_configs__type_config__content_type"
+                ).all()
+                for f in fields_qs:
                     self._by_slug[f.slug.lower()] = f
                     self._by_name[f.name.lower()] = f
             except Exception:
@@ -302,6 +305,7 @@ def compute_facets(rules: List, context: RulebookContext) -> List[Dict]:
             {
                 "field_slug": "_status",
                 "field_name": "Status",
+                "field_subtitle": "",
                 "facet_mode": "value",
                 "facet_weight": 9999,
                 "entries": status_entries,
@@ -336,10 +340,21 @@ def compute_facets(rules: List, context: RulebookContext) -> List[Dict]:
                 result.append({"value": val, "count": cnt, "qval": qval})
             return result
 
+        # Subtitle: distinct TypeConfig names for this field (prefetched)
+        type_names = list(
+            dict.fromkeys(
+                str(ft.type_config)
+                for ft in sorted(field.type_configs.all(), key=lambda ft: ft.sort_order)
+            )
+        )
+        subtitle = ", ".join(type_names) if type_names else ""
+        subtitle = ", ".join(type_names) if type_names else ""
+
         facets.append(
             {
                 "field_slug": field.slug,
                 "field_name": field.name,
+                "field_subtitle": subtitle,
                 "facet_mode": getattr(field, "facet_mode", "value"),
                 "facet_weight": getattr(field, "facet_weight", 100),
                 "entries": make_entries(counter_value),

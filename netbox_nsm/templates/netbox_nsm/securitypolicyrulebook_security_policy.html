@@ -400,12 +400,6 @@
                       {% if not nsm_q %}disabled{% endif %}>
                 <i class="mdi mdi-content-copy"></i>
               </button>
-              {% if nsm_facets %}
-              <button type="button" class="btn btn-outline-secondary" id="nsm-facet-panel-toggle"
-                      title="Show/hide facets">
-                <i class="mdi mdi-filter-variant"></i>
-              </button>
-              {% endif %}
               <button type="button" class="btn btn-outline-secondary" data-bs-toggle="collapse"
                       data-bs-target="#nsm-query-help" aria-expanded="false"
                       title="{% trans 'Query syntax help' %}">
@@ -460,98 +454,90 @@
           </div>
         </div>
 
-        {# ─── Facets + Rules — two-column layout ────────────────────────────── #}
+        {# ─── Facet side-panel + rules layout ──────────────────────────────── #}
         {% if nsm_facets %}
-        <div class="row g-3 mb-3" id="nsm-layout-row">
-          <div id="nsm-facet-panel" class="col-lg-3 col-md-4" style="display:none;">
-            <div class="card border h-100" style="font-size:12px;">
-              <div class="card-header py-1 px-2 d-flex align-items-center gap-1" style="font-size:12px;">
-                <i class="mdi mdi-filter-variant me-1"></i>
-                <strong class="flex-grow-1">Facets</strong>
-                {% if nsm_q %}
-                  <a href="{{ request.path }}" class="text-muted text-decoration-none" style="font-size:11px;" title="Clear all filters">
-                    <i class="mdi mdi-filter-remove-outline"></i>
-                  </a>
-                {% endif %}
-              </div>
-              <div class="card-body p-0" id="nsm-facet-body">
-                {% for facet in nsm_facets %}
-                  <div class="border-bottom nsm-facet-block" data-facet-slug="{{ facet.field_slug }}" data-mode="value">
-                    {# Header row: collapse toggle + mode toggle side by side — no nested buttons #}
-                    <div class="d-flex align-items-center">
-                      <div role="button" tabindex="0"
-                           class="flex-grow-1 px-2 py-1 d-flex align-items-center nsm-facet-toggle-row"
-                           style="font-size:11px;font-weight:600;cursor:pointer;min-width:0;"
-                           data-bs-toggle="collapse"
-                           data-bs-target="#nsm-facet-{{ facet.field_slug }}"
-                           aria-expanded="false">
-                        <i class="mdi mdi-chevron-down nsm-facet-chev me-1" style="transform:rotate(-90deg);flex-shrink:0;"></i>
-                        <span class="text-truncate flex-grow-1">{{ facet.field_name }}</span>
-                      </div>
-                      <button type="button"
-                              class="nsm-facet-mode-toggle btn btn-sm p-0 px-1 me-1 text-muted"
-                              data-facet="{{ facet.field_slug }}"
-                              title="Toggle value / set mode"
-                              style="font-size:10px;line-height:1.6;border:none;background:none;flex-shrink:0;">
-                        <i class="mdi mdi-swap-horizontal"></i>
-                        <span class="nsm-facet-mode-label" style="font-size:9px;">val</span>
-                      </button>
-                    </div>
-                    <div id="nsm-facet-{{ facet.field_slug }}" class="collapse">
-                      <div class="px-1 pb-1 nsm-facet-entries-value">
-                        {% for entry in facet.entries_value %}
-                          {% if nsm_q %}
-                            {% with newq=nsm_q|add:" AND "|add:entry.qval %}
-                              <a href="?nsm_q={{ newq|urlencode }}"
-                                 class="d-flex align-items-center justify-content-between px-2 py-1 text-decoration-none rounded nsm-facet-entry {% if entry.qval in nsm_q %}active fw-semibold{% endif %}"
-                                 style="font-size:11px;">
-                                <span class="text-truncate">{{ entry.value }}</span>
-                                <span class="badge bg-secondary ms-1" style="font-size:10px;">{{ entry.count }}</span>
-                              </a>
-                            {% endwith %}
-                          {% else %}
-                            <a href="?nsm_q={{ entry.qval|urlencode }}"
-                               class="d-flex align-items-center justify-content-between px-2 py-1 text-decoration-none rounded nsm-facet-entry"
-                               style="font-size:11px;">
-                              <span class="text-truncate">{{ entry.value }}</span>
-                              <span class="badge bg-secondary ms-1" style="font-size:10px;">{{ entry.count }}</span>
-                            </a>
-                          {% endif %}
-                        {% endfor %}
-                      </div>
-                      <div class="px-1 pb-1 nsm-facet-entries-set" style="display:none;">
-                        {% for entry in facet.entries_set %}
-                          {% if nsm_q %}
-                            {% with newq=nsm_q|add:" AND "|add:entry.qval %}
-                              <a href="?nsm_q={{ newq|urlencode }}"
-                                 class="d-flex align-items-center justify-content-between px-2 py-1 text-decoration-none rounded nsm-facet-entry {% if entry.qval in nsm_q %}active fw-semibold{% endif %}"
-                                 style="font-size:11px;">
-                                <span class="text-truncate">{{ entry.value }}</span>
-                                <span class="badge bg-secondary ms-1" style="font-size:10px;">{{ entry.count }}</span>
-                              </a>
-                            {% endwith %}
-                          {% else %}
-                            <a href="?nsm_q={{ entry.qval|urlencode }}"
-                               class="d-flex align-items-center justify-content-between px-2 py-1 text-decoration-none rounded nsm-facet-entry"
-                               style="font-size:11px;">
-                              <span class="text-truncate">{{ entry.value }}</span>
-                              <span class="badge bg-secondary ms-1" style="font-size:10px;">{{ entry.count }}</span>
-                            </a>
-                          {% endif %}
-                        {% endfor %}
-                      </div>
-                    </div>
-                  </div>
-                {% endfor %}
-              </div>
+        <div class="d-flex align-items-start" id="nsm-layout-row">
+
+          {# ── Left: collapsible facet sidebar ─────────────────────── #}
+          <div id="nsm-facet-panel" class="nsm-facet-sidebar flex-shrink-0 me-3">
+            <div id="nsm-facet-header" class="d-flex justify-content-between align-items-center pb-1 mb-2 border-bottom">
+              <span class="nsm-facet-title fw-semibold text-muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;">
+                <i class="mdi mdi-filter-variant me-1"></i>Filter
+              </span>
+              <button type="button" id="nsm-facet-toggle" class="btn p-0 ms-1 text-muted" style="border:none;background:none;font-size:18px;line-height:1;" title="Collapse filter panel">
+                <i class="mdi mdi-chevron-double-left" id="nsm-facet-chev"></i>
+              </button>
             </div>
-          </div>
-          <div class="col-12" id="nsm-rules-panel">
-        {% else %}
-        <div>
-          <div>
-        {% endif %}
-      {% endif %}
+            <div id="nsm-facet-content">
+              {% for facet in nsm_facets %}
+              <div class="nsm-facet-section mb-3" data-facet-slug="{{ facet.field_slug }}" data-mode="value">
+                <div class="d-flex justify-content-between align-items-start mb-1">
+                  <div>
+                    <span class="fw-semibold" style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--tblr-text-muted, #6b7280);">{{ facet.field_name }}</span>
+                    {% if facet.field_subtitle %}<div class="text-muted" style="font-size:10px;">{{ facet.field_subtitle }}</div>{% endif %}
+                  </div>
+                  <button type="button" class="nsm-facet-mode-toggle btn p-0 text-muted flex-shrink-0 ms-1"
+                          data-facet="{{ facet.field_slug }}"
+                          title="Toggle value / set mode"
+                          style="font-size:10px;border:none;background:none;line-height:1;">
+                    <span class="nsm-facet-mode-label" style="font-size:9px;border:1px solid currentColor;border-radius:3px;padding:0 2px;">val</span>
+                  </button>
+                </div>
+                <div class="nsm-facet-entries-value">
+                  {% for entry in facet.entries_value %}
+                    {% if nsm_q %}
+                      {% with newq=nsm_q|add:" AND "|add:entry.qval %}
+                        <a href="?nsm_q={{ newq|urlencode }}"
+                           class="nsm-facet-entry d-flex justify-content-between align-items-center px-1 py-1 rounded {% if entry.qval in nsm_q %}active{% endif %}"
+                           style="font-size:12px;text-decoration:none;">
+                          <span class="text-truncate">{{ entry.value }}</span>
+                          <span class="badge bg-secondary ms-1 flex-shrink-0" style="font-size:10px;">{{ entry.count }}</span>
+                        </a>
+                      {% endwith %}
+                    {% else %}
+                      <a href="?nsm_q={{ entry.qval|urlencode }}"
+                         class="nsm-facet-entry d-flex justify-content-between align-items-center px-1 py-1 rounded"
+                         style="font-size:12px;text-decoration:none;">
+                        <span class="text-truncate">{{ entry.value }}</span>
+                        <span class="badge bg-secondary ms-1 flex-shrink-0" style="font-size:10px;">{{ entry.count }}</span>
+                      </a>
+                    {% endif %}
+                  {% endfor %}
+                </div>
+                <div class="nsm-facet-entries-set" style="display:none;">
+                  {% for entry in facet.entries_set %}
+                    {% if nsm_q %}
+                      {% with newq=nsm_q|add:" AND "|add:entry.qval %}
+                        <a href="?nsm_q={{ newq|urlencode }}"
+                           class="nsm-facet-entry d-flex justify-content-between align-items-center px-1 py-1 rounded {% if entry.qval in nsm_q %}active{% endif %}"
+                           style="font-size:12px;text-decoration:none;">
+                          <span class="text-truncate">{{ entry.value }}</span>
+                          <span class="badge bg-secondary ms-1 flex-shrink-0" style="font-size:10px;">{{ entry.count }}</span>
+                        </a>
+                      {% endwith %}
+                    {% else %}
+                      <a href="?nsm_q={{ entry.qval|urlencode }}"
+                         class="nsm-facet-entry d-flex justify-content-between align-items-center px-1 py-1 rounded"
+                         style="font-size:12px;text-decoration:none;">
+                        <span class="text-truncate">{{ entry.value }}</span>
+                        <span class="badge bg-secondary ms-1 flex-shrink-0" style="font-size:10px;">{{ entry.count }}</span>
+                      </a>
+                    {% endif %}
+                  {% endfor %}
+                </div>
+              </div>
+              {% endfor %}
+              {% if nsm_q %}
+              <a href="{{ request.path }}" class="btn btn-sm btn-outline-danger w-100 mt-1" style="font-size:11px;">
+                <i class="mdi mdi-close me-1"></i>Clear
+              </a>
+              {% endif %}
+            </div>{# nsm-facet-content #}
+          </div>{# nsm-facet-panel #}
+
+          {# ── Right: rules panel ───────────────────────────────── #}
+          <div id="nsm-rules-panel" class="flex-grow-1" style="min-width:0;">
+
 
       <form method="post" id="nsm-bulk-delete-form">
         {% csrf_token %}
@@ -691,9 +677,11 @@
       </nav>
       {% endif %}
 
-      {# Close the two-column rules panel + row (opened above if nsm_facets) #}
-      </div>{# col (rules-panel or fallback) #}
-      </div>{# row or fallback #}
+      </div>{# nsm-rules-panel #}
+      {% if nsm_facets %}
+        </div>{# nsm-layout-row #}
+      {% endif %}
+      {% endif %}{# is_security_rules #}
 
       <script>
       (function () {
@@ -930,58 +918,82 @@
         });
       })();
 
-      // Facet panel show/hide toggle
+      // Facet sidebar collapse/expand
       (function () {
-        var toggleBtn = document.getElementById('nsm-facet-panel-toggle');
         var panel = document.getElementById('nsm-facet-panel');
-        var rulesPanel = document.getElementById('nsm-rules-panel');
-        if (!toggleBtn || !panel || !rulesPanel) return;
-        var visible = false;
+        var btn = document.getElementById('nsm-facet-toggle');
+        var chev = document.getElementById('nsm-facet-chev');
+        if (!panel || !btn) return;
+        var LS_KEY = 'nsm-facet-panel-state';
+        var collapsed = localStorage.getItem(LS_KEY) === 'collapsed';
         function apply() {
-          if (visible) {
-            panel.style.display = '';
-            panel.classList.add('col-lg-3', 'col-md-4');
-            rulesPanel.classList.remove('col-12');
-            rulesPanel.classList.add('col-lg-9', 'col-md-8');
-            toggleBtn.classList.add('active');
+          if (collapsed) {
+            panel.classList.add('nsm-collapsed');
+            if (chev) { chev.className = 'mdi mdi-chevron-double-right'; }
+            btn.title = 'Expand filter panel';
           } else {
-            panel.style.display = 'none';
-            panel.classList.remove('col-lg-3', 'col-md-4');
-            rulesPanel.classList.remove('col-lg-9', 'col-md-8');
-            rulesPanel.classList.add('col-12');
-            toggleBtn.classList.remove('active');
+            panel.classList.remove('nsm-collapsed');
+            if (chev) { chev.className = 'mdi mdi-chevron-double-left'; }
+            btn.title = 'Collapse filter panel';
           }
         }
-        apply(); // start hidden
-        toggleBtn.addEventListener('click', function () {
-          visible = !visible;
+        apply();
+        btn.addEventListener('click', function () {
+          collapsed = !collapsed;
+          localStorage.setItem(LS_KEY, collapsed ? 'collapsed' : 'expanded');
           apply();
         });
       })();
-      document.querySelectorAll('[data-bs-toggle="collapse"][data-bs-target^="#nsm-facet-"]').forEach(function (el) {
-        var target = document.querySelector(el.getAttribute('data-bs-target'));
-        if (!target) return;
-        target.addEventListener('hide.bs.collapse', function () {
-          var chev = el.querySelector('.nsm-facet-chev');
-          if (chev) chev.style.transform = 'rotate(-90deg)';
-        });
-        target.addEventListener('show.bs.collapse', function () {
-          var chev = el.querySelector('.nsm-facet-chev');
-          if (chev) chev.style.transform = '';
-        });
-      });
-      // keyboard support for div[role=button] facet headers
-      document.querySelectorAll('.nsm-facet-toggle-row').forEach(function (el) {
-        el.addEventListener('keydown', function (e) {
-          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); }
+
+      // Facet value/set mode toggle (sidebar)
+      document.querySelectorAll('.nsm-facet-mode-toggle').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var slug = btn.getAttribute('data-facet');
+          var block = document.querySelector('.nsm-facet-section[data-facet-slug="' + slug + '"]');
+          var label = btn.querySelector('.nsm-facet-mode-label');
+          if (!block) return;
+          var vList = block.querySelector('.nsm-facet-entries-value');
+          var sList = block.querySelector('.nsm-facet-entries-set');
+          if (!vList || !sList) return;
+          var current = block.getAttribute('data-mode');
+          if (current === 'value') {
+            block.setAttribute('data-mode', 'set');
+            vList.style.display = 'none';
+            sList.style.display = '';
+            if (label) label.textContent = 'set';
+          } else {
+            block.setAttribute('data-mode', 'value');
+            sList.style.display = 'none';
+            vList.style.display = '';
+            if (label) label.textContent = 'val';
+          }
         });
       });
       </script>
       <style>
-        .nsm-facet-entry { color: var(--tblr-body-color); transition: background .12s; }
+        /* ── Facet sidebar ───────────────────────────────────────── */
+        .nsm-facet-sidebar {
+          width: 185px;
+          min-width: 185px;
+          transition: width .2s ease, min-width .2s ease;
+          overflow: hidden;
+        }
+        .nsm-facet-sidebar.nsm-collapsed {
+          width: 28px;
+          min-width: 28px;
+        }
+        .nsm-facet-sidebar.nsm-collapsed #nsm-facet-content { display: none; }
+        .nsm-facet-sidebar.nsm-collapsed .nsm-facet-title { display: none; }
+        .nsm-facet-sidebar.nsm-collapsed #nsm-facet-header {
+          border-bottom: none;
+          margin-bottom: 0;
+          padding-bottom: 0;
+          justify-content: center;
+        }
+        .nsm-facet-entry { color: var(--tblr-body-color); }
         .nsm-facet-entry:hover { background: rgba(var(--tblr-primary-rgb), .08); }
-        .nsm-facet-entry.active { background: rgba(var(--tblr-primary-rgb), .15); color: var(--tblr-primary); }
-        .nsm-facet-chev { transition: transform .2s; }
+        .nsm-facet-entry.active { background: rgba(var(--tblr-primary-rgb), .15); color: var(--tblr-primary); font-weight: 600; }
         .nsm-query-example { font-size: 11px; display: block; color: inherit; opacity: .8; }
         .nsm-query-example:hover { opacity: 1; }
         #nsm-q-input { font-size: 12px; }

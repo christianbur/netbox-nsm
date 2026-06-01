@@ -45,14 +45,15 @@ class ObjectRulesApiView(View):
             return HttpResponseBadRequest("Invalid ct_id")
 
         qs = (
-            SecurityPolicyRuleObjectItem.objects
-            .filter(content_type=ct, object_id=obj_id)
+            SecurityPolicyRuleObjectItem.objects.filter(
+                content_type=ct, object_id=obj_id
+            )
             .select_related("rule", "rule__rulebook", "field")
             .order_by("rule__rulebook__name", "field__sort_order", "rule__index")
         )
 
         total = qs.count()
-        batch = qs[offset: offset + LIMIT]
+        batch = qs[offset : offset + LIMIT]
 
         results = []
         seen = set()
@@ -61,19 +62,29 @@ class ObjectRulesApiView(View):
             if key in seen:
                 continue
             seen.add(key)
-            results.append({
-                "rule_name": item.rule.name,
-                "rule_url": item.rule.get_absolute_url(),
-                "rulebook_pk": item.rule.rulebook.pk if item.rule.rulebook else 0,
-                "rulebook_name": item.rule.rulebook.name if item.rule.rulebook else "",
-                "rulebook_url": item.rule.rulebook.get_absolute_url() if item.rule.rulebook else "",
-                "field_pk": item.field_id or 0,
-                "field_name": str(item.field) if item.field else "",
-            })
+            results.append(
+                {
+                    "rule_name": item.rule.name,
+                    "rule_url": item.rule.get_absolute_url(),
+                    "rulebook_pk": item.rule.rulebook.pk if item.rule.rulebook else 0,
+                    "rulebook_name": (
+                        item.rule.rulebook.name if item.rule.rulebook else ""
+                    ),
+                    "rulebook_url": (
+                        item.rule.rulebook.get_absolute_url()
+                        if item.rule.rulebook
+                        else ""
+                    ),
+                    "field_pk": item.field_id or 0,
+                    "field_name": str(item.field) if item.field else "",
+                }
+            )
 
-        return JsonResponse({
-            "results": results,
-            "total": total,
-            "offset": offset + len(results),
-            "has_more": (offset + LIMIT) < total,
-        })
+        return JsonResponse(
+            {
+                "results": results,
+                "total": total,
+                "offset": offset + len(results),
+                "has_more": (offset + LIMIT) < total,
+            }
+        )

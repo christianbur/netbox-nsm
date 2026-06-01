@@ -10,7 +10,9 @@ __all__ = ("NSMObjectLinkAssignForm",)
 def _build_type_choices():
     """Return choices with human-readable app → model labels from NSMTypeConfig."""
     choices = [("", _("── Select type ──"))]
-    for cfg in NSMTypeConfig.objects.select_related("content_type").order_by("order_id"):
+    for cfg in NSMTypeConfig.objects.select_related("content_type").order_by(
+        "order_id"
+    ):
         ct = cfg.content_type
         model_class = ct.model_class()
         if model_class:
@@ -41,7 +43,9 @@ class NSMObjectLinkAssignForm(forms.Form):
     object_b_id = forms.IntegerField(
         label=_("Element"),
         min_value=1,
-        help_text=_("ID of the object. Select a type first, then a dropdown will appear."),
+        help_text=_(
+            "ID of the object. Select a type first, then a dropdown will appear."
+        ),
         widget=forms.HiddenInput(),
         required=False,
     )

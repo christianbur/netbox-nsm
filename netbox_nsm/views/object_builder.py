@@ -62,8 +62,10 @@ class ObjectBuilderView(LoginRequiredMixin, View):
             context["add_url"] = reverse("plugins:netbox_nsm:securityarea_add")
 
         elif tab == "config":
-            qs = NSMTypeConfig.objects.select_related("content_type").prefetch_related("areas").order_by(
-                "order_id", "content_type__app_label", "content_type__model"
+            qs = (
+                NSMTypeConfig.objects.select_related("content_type")
+                .prefetch_related("areas")
+                .order_by("order_id", "content_type__app_label", "content_type__model")
             )
             table = NSMTypeConfigTable(qs)
             RequestConfig(request, paginate={"per_page": 50}).configure(table)

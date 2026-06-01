@@ -68,6 +68,7 @@ class DynamicPluginMenu(PluginMenu):
     def name(self):
         return slugify(self.label)
 
+
 security_policy_menu_items = (
     PluginMenuItem(
         link="plugins:netbox_nsm:securitypolicyrulebook_list",
@@ -94,6 +95,7 @@ assignments_menu_items = (
 
 
 if plugin_settings.get("top_level_menu"):
+
     def _menu_groups():
         analysis_items = (
             _make_literal_menu_item(

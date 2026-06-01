@@ -51,7 +51,11 @@ class SecurityObjectGroupTable(NetBoxTable):
         return render_html_color(value)
 
     def render_areas(self, record):
-        names = list(record.areas.order_by("sort_order", "name", "slug").values_list("name", flat=True))
+        names = list(
+            record.areas.order_by("sort_order", "name", "slug").values_list(
+                "name", flat=True
+            )
+        )
         return ", ".join(names) if names else mark_safe("—")
 
     def render_member_count(self, record):

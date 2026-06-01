@@ -30,4 +30,11 @@ class TypeConfigSerializer(NetBoxModelSerializer):
             "created",
             "last_updated",
         )
-        brief_fields = ("id", "url", "display", "content_type", "matching_class", "inherit_links")
+        brief_fields = (
+            "id",
+            "url",
+            "display",
+            "content_type",
+            "matching_class",
+            "inherit_links",
+        )

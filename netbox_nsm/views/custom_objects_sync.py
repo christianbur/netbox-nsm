@@ -40,7 +40,9 @@ def _prune_stale(document):
     from netbox_custom_objects.models import CustomObjectType
 
     wanted_cot_slugs = {t["slug"] for t in document["types"]}
-    wanted_area_slugs = {t["group_name"] for t in document["types"] if t.get("group_name")}
+    wanted_area_slugs = {
+        t["group_name"] for t in document["types"] if t.get("group_name")
+    }
 
     stale_cots = CustomObjectType.objects.exclude(slug__in=wanted_cot_slugs)
     cots_removed = stale_cots.count()
@@ -153,6 +155,7 @@ def _sync_type_configs_and_sections(builtin_types):
             continue
 
         from django.contrib.contenttypes.models import ContentType as DjContentType
+
         ct = DjContentType.objects.get_for_model(cot.get_model())
 
         NSMTypeConfig.objects.update_or_create(
@@ -177,9 +180,7 @@ class SyncBuiltinToCustomObjectsView(LoginRequiredMixin, View):
     """POST-only: full sync of BUILTIN_CUSTOM_TYPES into custom-objects."""
 
     def post(self, request, *args, **kwargs):
-        redirect_url = reverse(
-            "plugins:netbox_nsm:object_builder", args=["types"]
-        )
+        redirect_url = reverse("plugins:netbox_nsm:object_builder", args=["types"])
 
         try:
             from netbox_custom_objects.schema.executor import apply_document

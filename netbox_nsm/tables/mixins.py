@@ -43,8 +43,8 @@ def render_html_color(value):
         '<span class="d-inline-flex align-items-center gap-2">'
         '<span class="d-inline-block rounded-circle border" '
         'style="width: 1rem; height: 1rem; background: {}; border-color: var(--bs-border-color) !important;"></span>'
-        '<span>{}</span>'
-        '</span>',
+        "<span>{}</span>"
+        "</span>",
         value,
         value,
     )

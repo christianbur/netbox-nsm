@@ -35,4 +35,3 @@ router.register("rule-object-items", SecurityPolicyRuleObjectItemViewSet)
 router.register("rule-group-items", SecurityPolicyRuleGroupItemViewSet)
 
 urlpatterns = router.urls
-

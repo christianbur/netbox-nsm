@@ -1,6 +1,7 @@
 """
 Object Analyzer page view.
 """
+
 from __future__ import annotations
 
 from django.contrib.auth.mixins import LoginRequiredMixin

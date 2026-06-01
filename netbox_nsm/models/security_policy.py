@@ -113,6 +113,38 @@ class RulebookField(models.Model):
         verbose_name=_("Placement"),
         help_text=_("Traffic direction for this field."),
     )
+    # ── Query / Facet metadata ─────────────────────────────────────────────
+    searchable = models.BooleanField(
+        default=True,
+        verbose_name=_("Searchable"),
+        help_text=_("Include this field in query searches."),
+    )
+    filterable = models.BooleanField(
+        default=True,
+        verbose_name=_("Filterable"),
+        help_text=_("Allow filtering on this field."),
+    )
+    facetable = models.BooleanField(
+        default=False,
+        verbose_name=_("Facetable"),
+        help_text=_("Show this field in the facet navigation panel."),
+    )
+    facet_mode = models.CharField(
+        max_length=10,
+        choices=(("value", _("Value")), ("set", _("Set"))),
+        default="value",
+        verbose_name=_("Facet Mode"),
+        help_text=_(
+            "Value: count each individual value separately. "
+            "Set: count the complete combination of values as one entry."
+        ),
+    )
+    facet_weight = models.PositiveIntegerField(
+        default=100,
+        verbose_name=_("Facet Weight"),
+        help_text=_("Facets with higher weight appear first."),
+    )
+
     class Meta:
         unique_together = (("rulebook", "slug"),)
         ordering = ("rulebook", "sort_order", "slug")
@@ -154,7 +186,9 @@ class RulebookFieldType(models.Model):
         null=True,
         blank=True,
         verbose_name=_("Max Items"),
-        help_text=_("Maximum number of objects of this type per rule. Leave empty for unlimited."),
+        help_text=_(
+            "Maximum number of objects of this type per rule. Leave empty for unlimited."
+        ),
     )
 
     class Meta:
@@ -251,7 +285,9 @@ class SecurityPolicyRuleObjectItem(models.Model):
     exclude = models.BooleanField(
         default=False,
         verbose_name=_("Exclude"),
-        help_text=_("If set, this object is excluded from the field (EXCEPT semantics)."),
+        help_text=_(
+            "If set, this object is excluded from the field (EXCEPT semantics)."
+        ),
     )
 
     class Meta:
@@ -267,9 +303,11 @@ class SecurityPolicyRuleObjectItem(models.Model):
 
     def clean(self):
         from django.core.exceptions import ValidationError
+
         if self.field_id and self.content_type_id:
             # Bestimme den passenden RulebookFieldType für dieses Objekt
             from django.contrib.contenttypes.models import ContentType
+
             try:
                 ft = RulebookFieldType.objects.get(
                     field=self.field,
@@ -288,7 +326,8 @@ class SecurityPolicyRuleObjectItem(models.Model):
                             {
                                 "field": _(
                                     "Dieser Typ erlaubt maximal %(max)d Objekt(e) pro Regel."
-                                ) % {"max": ft.max_items}
+                                )
+                                % {"max": ft.max_items}
                             }
                         )
             except RulebookFieldType.DoesNotExist:
@@ -326,7 +365,9 @@ class SecurityPolicyRuleGroupItem(models.Model):
     exclude = models.BooleanField(
         default=False,
         verbose_name=_("Exclude"),
-        help_text=_("If set, this group is excluded from the field (EXCEPT semantics)."),
+        help_text=_(
+            "If set, this group is excluded from the field (EXCEPT semantics)."
+        ),
     )
 
     class Meta:

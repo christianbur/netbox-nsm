@@ -33,7 +33,9 @@ class RulebookFieldForm(forms.ModelForm):
             "Interner Bezeichner (z.\u202fB. <code>source</code>, <code>services</code>). "
             "Eindeutig innerhalb des Rulebooks."
         ),
-        widget=forms.TextInput(attrs={"list": "slug-presets", "style": "font-family: monospace;"}),
+        widget=forms.TextInput(
+            attrs={"list": "slug-presets", "style": "font-family: monospace;"}
+        ),
     )
     placement = forms.ChoiceField(
         choices=_PLACEMENT_CHOICES,
@@ -43,14 +45,30 @@ class RulebookFieldForm(forms.ModelForm):
 
     class Meta:
         model = RulebookField
-        fields = ("slug", "name", "sort_order", "placement")
+        fields = (
+            "slug",
+            "name",
+            "sort_order",
+            "placement",
+            "searchable",
+            "filterable",
+            "facetable",
+            "facet_mode",
+            "facet_weight",
+        )
         widgets = {
             "name": forms.TextInput(),
             "sort_order": forms.NumberInput(attrs={"min": 0}),
+            "facet_weight": forms.NumberInput(attrs={"min": 0}),
         }
         labels = {
             "name": _("Name"),
             "sort_order": _("Sort Order"),
+            "searchable": _("Searchable"),
+            "filterable": _("Filterable"),
+            "facetable": _("Facetable"),
+            "facet_mode": _("Facet Mode"),
+            "facet_weight": _("Facet Weight"),
         }
 
 
@@ -77,5 +95,7 @@ class RulebookFieldTypeForm(forms.ModelForm):
             "max_items": _("Max Items"),
         }
         help_texts = {
-            "max_items": _("Maximum number of objects of this type per rule. Leave empty for unlimited."),
+            "max_items": _(
+                "Maximum number of objects of this type per rule. Leave empty for unlimited."
+            ),
         }

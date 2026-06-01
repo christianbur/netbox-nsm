@@ -19,6 +19,7 @@ _ACTIONS_TEMPLATE = """
 </a>
 """
 
+
 class NSMTypeConfigTable(NetBoxTable):
     content_type = tables.Column(
         verbose_name="Objekt-Typ",
@@ -48,7 +49,9 @@ class NSMTypeConfigTable(NetBoxTable):
             app_name = value.app_label.upper()
             model_name = value.model
         # Ersten Buchstaben groß, Rest unverändert (erhält z. B. "IP range" → "IP range")
-        model_name = model_name[:1].upper() + model_name[1:] if model_name else model_name
+        model_name = (
+            model_name[:1].upper() + model_name[1:] if model_name else model_name
+        )
         return format_html(
             '<span class="text-muted fw-semibold">{}</span>'
             ' <span class="text-muted">&rsaquo;</span> {}',
@@ -68,8 +71,19 @@ class NSMTypeConfigTable(NetBoxTable):
 
     class Meta(NetBoxTable.Meta):
         model = NSMTypeConfig
-        fields = ("id", "content_type", "areas", "order_id", "display_template", "actions")
-        default_columns = ("content_type", "areas", "order_id", "display_template", "actions")
+        fields = (
+            "id",
+            "content_type",
+            "areas",
+            "order_id",
+            "display_template",
+            "actions",
+        )
+        default_columns = (
+            "content_type",
+            "areas",
+            "order_id",
+            "display_template",
+            "actions",
+        )
         empty_text = _("No NSMTypeConfig entries found.")
-
-

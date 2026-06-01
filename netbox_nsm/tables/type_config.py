@@ -20,16 +20,16 @@ _ACTIONS_TEMPLATE = """
 
 
 _MATCHING_CLASS_BADGE = {
-    "address":     ("bg-info",      "text-white"),
-    "zone":        ("bg-primary",   "text-white"),
-    "label":       ("bg-success",   "text-white"),
-    "service":     ("bg-warning",   "text-white"),
-    "action":      ("bg-danger",    "text-white"),
-    "user":        ("bg-dark",      "text-white"),
+    "address": ("bg-info", "text-white"),
+    "zone": ("bg-primary", "text-white"),
+    "label": ("bg-success", "text-white"),
+    "service": ("bg-warning", "text-white"),
+    "action": ("bg-danger", "text-white"),
+    "user": ("bg-dark", "text-white"),
     "application": ("bg-secondary", "text-white"),
-    "group":       ("bg-secondary", "text-white"),
-    "trust":       ("bg-secondary", "text-white"),
-    "other":       ("bg-secondary", "text-white"),
+    "group": ("bg-secondary", "text-white"),
+    "trust": ("bg-secondary", "text-white"),
+    "other": ("bg-secondary", "text-white"),
 }
 
 
@@ -41,9 +41,13 @@ class TypeConfigTable(NetBoxTable):
     )
     matching_class = tables.Column(verbose_name="Matching Class")
     display_template = tables.Column(verbose_name="Display Template")
-    allowed_placements = tables.Column(verbose_name="Allowed Placements", orderable=False)
+    allowed_placements = tables.Column(
+        verbose_name="Allowed Placements", orderable=False
+    )
     inherit_links = tables.Column(verbose_name="Vererbung", orderable=True)
-    inherit_stop_on_own = tables.Column(verbose_name="Stop bei eigenem Link", orderable=True)
+    inherit_stop_on_own = tables.Column(
+        verbose_name="Stop bei eigenem Link", orderable=True
+    )
     actions = tables.TemplateColumn(
         template_code=_ACTIONS_TEMPLATE,
         verbose_name="",
@@ -60,7 +64,9 @@ class TypeConfigTable(NetBoxTable):
         else:
             app_name = value.app_label.upper()
             model_name = value.model
-        model_name = model_name[:1].upper() + model_name[1:] if model_name else model_name
+        model_name = (
+            model_name[:1].upper() + model_name[1:] if model_name else model_name
+        )
         return format_html(
             '<span class="text-muted fw-semibold">{}</span>'
             ' <span class="text-muted">&rsaquo;</span> {}',
@@ -82,15 +88,35 @@ class TypeConfigTable(NetBoxTable):
 
     def render_inherit_links(self, value):
         if value:
-            return mark_safe('<span class="badge bg-success text-white"><i class="mdi mdi-arrow-up-circle-outline"></i> An</span>')
+            return mark_safe(
+                '<span class="badge bg-success text-white"><i class="mdi mdi-arrow-up-circle-outline"></i> An</span>'
+            )
         return mark_safe('<span class="text-muted">—</span>')
 
     def render_inherit_stop_on_own(self, value):
         if value:
-            return mark_safe('<span class="badge bg-warning text-white">Stop bei eigenem Link</span>')
+            return mark_safe(
+                '<span class="badge bg-warning text-white">Stop bei eigenem Link</span>'
+            )
         return mark_safe('<span class="text-muted">—</span>')
 
     class Meta(NetBoxTable.Meta):
         model = TypeConfig
-        fields = ("content_type", "matching_class", "display_template", "allowed_placements", "inherit_links", "inherit_stop_on_own", "actions")
-        default_columns = ("content_type", "matching_class", "display_template", "allowed_placements", "inherit_links", "inherit_stop_on_own", "actions")
+        fields = (
+            "content_type",
+            "matching_class",
+            "display_template",
+            "allowed_placements",
+            "inherit_links",
+            "inherit_stop_on_own",
+            "actions",
+        )
+        default_columns = (
+            "content_type",
+            "matching_class",
+            "display_template",
+            "allowed_placements",
+            "inherit_links",
+            "inherit_stop_on_own",
+            "actions",
+        )

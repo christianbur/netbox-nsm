@@ -2,6 +2,7 @@
 JSON API view for the Object Analyzer.
 GET /plugins/netbox-nsm/api/analyzer/?ct=<ct_id>&pk=<pk>
 """
+
 from __future__ import annotations
 
 import dataclasses

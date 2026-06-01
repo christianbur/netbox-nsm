@@ -32,12 +32,19 @@ class RulebookFieldAddView(View):
         form = RulebookFieldForm()
         from netbox.views.generic.base import BaseObjectView
         from django.template.response import TemplateResponse
-        return TemplateResponse(request, "netbox_nsm/rulebookfield_edit.html", {
-            "form": form,
-            "rulebook": rulebook,
-            "object": None,
-            "return_url": reverse("plugins:netbox_nsm:securitypolicyrulebook", args=[rulebook.pk]),
-        })
+
+        return TemplateResponse(
+            request,
+            "netbox_nsm/rulebookfield_edit.html",
+            {
+                "form": form,
+                "rulebook": rulebook,
+                "object": None,
+                "return_url": reverse(
+                    "plugins:netbox_nsm:securitypolicyrulebook", args=[rulebook.pk]
+                ),
+            },
+        )
 
     def post(self, request):
         rulebook = self._get_rulebook(request)
@@ -46,15 +53,26 @@ class RulebookFieldAddView(View):
             field = form.save(commit=False)
             field.rulebook = rulebook
             field.save()
-            messages.success(request, _("Field '%(name)s' wurde angelegt.") % {"name": field.name})
-            return redirect(reverse("plugins:netbox_nsm:securitypolicyrulebook", args=[rulebook.pk]))
+            messages.success(
+                request, _("Field '%(name)s' wurde angelegt.") % {"name": field.name}
+            )
+            return redirect(
+                reverse("plugins:netbox_nsm:securitypolicyrulebook", args=[rulebook.pk])
+            )
         from django.template.response import TemplateResponse
-        return TemplateResponse(request, "netbox_nsm/rulebookfield_edit.html", {
-            "form": form,
-            "rulebook": rulebook,
-            "object": None,
-            "return_url": reverse("plugins:netbox_nsm:securitypolicyrulebook", args=[rulebook.pk]),
-        })
+
+        return TemplateResponse(
+            request,
+            "netbox_nsm/rulebookfield_edit.html",
+            {
+                "form": form,
+                "rulebook": rulebook,
+                "object": None,
+                "return_url": reverse(
+                    "plugins:netbox_nsm:securitypolicyrulebook", args=[rulebook.pk]
+                ),
+            },
+        )
 
 
 class RulebookFieldEditView(View):
@@ -67,27 +85,50 @@ class RulebookFieldEditView(View):
         field = self._get_field(pk)
         form = RulebookFieldForm(instance=field)
         from django.template.response import TemplateResponse
-        return TemplateResponse(request, "netbox_nsm/rulebookfield_edit.html", {
-            "form": form,
-            "rulebook": field.rulebook,
-            "object": field,
-            "return_url": reverse("plugins:netbox_nsm:securitypolicyrulebook", args=[field.rulebook_id]),
-        })
+
+        return TemplateResponse(
+            request,
+            "netbox_nsm/rulebookfield_edit.html",
+            {
+                "form": form,
+                "rulebook": field.rulebook,
+                "object": field,
+                "return_url": reverse(
+                    "plugins:netbox_nsm:securitypolicyrulebook",
+                    args=[field.rulebook_id],
+                ),
+            },
+        )
 
     def post(self, request, pk):
         field = self._get_field(pk)
         form = RulebookFieldForm(request.POST, instance=field)
         if form.is_valid():
             field = form.save()
-            messages.success(request, _("Field '%(name)s' wurde gespeichert.") % {"name": field.name})
-            return redirect(reverse("plugins:netbox_nsm:securitypolicyrulebook", args=[field.rulebook_id]))
+            messages.success(
+                request, _("Field '%(name)s' wurde gespeichert.") % {"name": field.name}
+            )
+            return redirect(
+                reverse(
+                    "plugins:netbox_nsm:securitypolicyrulebook",
+                    args=[field.rulebook_id],
+                )
+            )
         from django.template.response import TemplateResponse
-        return TemplateResponse(request, "netbox_nsm/rulebookfield_edit.html", {
-            "form": form,
-            "rulebook": field.rulebook,
-            "object": field,
-            "return_url": reverse("plugins:netbox_nsm:securitypolicyrulebook", args=[field.rulebook_id]),
-        })
+
+        return TemplateResponse(
+            request,
+            "netbox_nsm/rulebookfield_edit.html",
+            {
+                "form": form,
+                "rulebook": field.rulebook,
+                "object": field,
+                "return_url": reverse(
+                    "plugins:netbox_nsm:securitypolicyrulebook",
+                    args=[field.rulebook_id],
+                ),
+            },
+        )
 
 
 class RulebookFieldDeleteView(View):
@@ -96,10 +137,18 @@ class RulebookFieldDeleteView(View):
     def get(self, request, pk):
         field = get_object_or_404(RulebookField, pk=pk)
         from django.template.response import TemplateResponse
-        return TemplateResponse(request, "netbox_nsm/rulebookfield_delete.html", {
-            "object": field,
-            "return_url": reverse("plugins:netbox_nsm:securitypolicyrulebook", args=[field.rulebook_id]),
-        })
+
+        return TemplateResponse(
+            request,
+            "netbox_nsm/rulebookfield_delete.html",
+            {
+                "object": field,
+                "return_url": reverse(
+                    "plugins:netbox_nsm:securitypolicyrulebook",
+                    args=[field.rulebook_id],
+                ),
+            },
+        )
 
     def post(self, request, pk):
         field = get_object_or_404(RulebookField, pk=pk)
@@ -107,7 +156,9 @@ class RulebookFieldDeleteView(View):
         field_name = field.name
         field.delete()
         messages.success(request, _("Field '%(name)s' deleted.") % {"name": field_name})
-        return redirect(reverse("plugins:netbox_nsm:securitypolicyrulebook", args=[rulebook_pk]))
+        return redirect(
+            reverse("plugins:netbox_nsm:securitypolicyrulebook", args=[rulebook_pk])
+        )
 
 
 class RulebookFieldTypeAddView(View):
@@ -121,11 +172,19 @@ class RulebookFieldTypeAddView(View):
         field = self._get_field(request)
         form = RulebookFieldTypeForm()
         from django.template.response import TemplateResponse
-        return TemplateResponse(request, "netbox_nsm/rulebookfieldtype_edit.html", {
-            "form": form,
-            "field": field,
-            "return_url": reverse("plugins:netbox_nsm:securitypolicyrulebook", args=[field.rulebook_id]),
-        })
+
+        return TemplateResponse(
+            request,
+            "netbox_nsm/rulebookfieldtype_edit.html",
+            {
+                "form": form,
+                "field": field,
+                "return_url": reverse(
+                    "plugins:netbox_nsm:securitypolicyrulebook",
+                    args=[field.rulebook_id],
+                ),
+            },
+        )
 
     def post(self, request):
         field = self._get_field(request)
@@ -134,14 +193,29 @@ class RulebookFieldTypeAddView(View):
             ft = form.save(commit=False)
             ft.field = field
             ft.save()
-            messages.success(request, _("Type added to field '%(name)s'.") % {"name": field.name})
-            return redirect(reverse("plugins:netbox_nsm:securitypolicyrulebook", args=[field.rulebook_id]))
+            messages.success(
+                request, _("Type added to field '%(name)s'.") % {"name": field.name}
+            )
+            return redirect(
+                reverse(
+                    "plugins:netbox_nsm:securitypolicyrulebook",
+                    args=[field.rulebook_id],
+                )
+            )
         from django.template.response import TemplateResponse
-        return TemplateResponse(request, "netbox_nsm/rulebookfieldtype_edit.html", {
-            "form": form,
-            "field": field,
-            "return_url": reverse("plugins:netbox_nsm:securitypolicyrulebook", args=[field.rulebook_id]),
-        })
+
+        return TemplateResponse(
+            request,
+            "netbox_nsm/rulebookfieldtype_edit.html",
+            {
+                "form": form,
+                "field": field,
+                "return_url": reverse(
+                    "plugins:netbox_nsm:securitypolicyrulebook",
+                    args=[field.rulebook_id],
+                ),
+            },
+        )
 
 
 class RulebookFieldTypeEditView(View):
@@ -151,27 +225,51 @@ class RulebookFieldTypeEditView(View):
         ft = get_object_or_404(RulebookFieldType, pk=pk)
         form = RulebookFieldTypeForm(instance=ft)
         from django.template.response import TemplateResponse
-        return TemplateResponse(request, "netbox_nsm/rulebookfieldtype_edit.html", {
-            "form": form,
-            "field": ft.field,
-            "object": ft,
-            "return_url": reverse("plugins:netbox_nsm:securitypolicyrulebook", args=[ft.field.rulebook_id]),
-        })
+
+        return TemplateResponse(
+            request,
+            "netbox_nsm/rulebookfieldtype_edit.html",
+            {
+                "form": form,
+                "field": ft.field,
+                "object": ft,
+                "return_url": reverse(
+                    "plugins:netbox_nsm:securitypolicyrulebook",
+                    args=[ft.field.rulebook_id],
+                ),
+            },
+        )
 
     def post(self, request, pk):
         ft = get_object_or_404(RulebookFieldType, pk=pk)
         form = RulebookFieldTypeForm(request.POST, instance=ft)
         if form.is_valid():
             ft = form.save()
-            messages.success(request, _("Field Type '%(name)s' gespeichert.") % {"name": str(ft.type_config)})
-            return redirect(reverse("plugins:netbox_nsm:securitypolicyrulebook", args=[ft.field.rulebook_id]))
+            messages.success(
+                request,
+                _("Field Type '%(name)s' gespeichert.") % {"name": str(ft.type_config)},
+            )
+            return redirect(
+                reverse(
+                    "plugins:netbox_nsm:securitypolicyrulebook",
+                    args=[ft.field.rulebook_id],
+                )
+            )
         from django.template.response import TemplateResponse
-        return TemplateResponse(request, "netbox_nsm/rulebookfieldtype_edit.html", {
-            "form": form,
-            "field": ft.field,
-            "object": ft,
-            "return_url": reverse("plugins:netbox_nsm:securitypolicyrulebook", args=[ft.field.rulebook_id]),
-        })
+
+        return TemplateResponse(
+            request,
+            "netbox_nsm/rulebookfieldtype_edit.html",
+            {
+                "form": form,
+                "field": ft.field,
+                "object": ft,
+                "return_url": reverse(
+                    "plugins:netbox_nsm:securitypolicyrulebook",
+                    args=[ft.field.rulebook_id],
+                ),
+            },
+        )
 
 
 class RulebookFieldTypeDeleteView(View):
@@ -180,14 +278,24 @@ class RulebookFieldTypeDeleteView(View):
     def get(self, request, pk):
         ft = get_object_or_404(RulebookFieldType, pk=pk)
         from django.template.response import TemplateResponse
-        return TemplateResponse(request, "netbox_nsm/rulebookfieldtype_delete.html", {
-            "object": ft,
-            "return_url": reverse("plugins:netbox_nsm:securitypolicyrulebook", args=[ft.field.rulebook_id]),
-        })
+
+        return TemplateResponse(
+            request,
+            "netbox_nsm/rulebookfieldtype_delete.html",
+            {
+                "object": ft,
+                "return_url": reverse(
+                    "plugins:netbox_nsm:securitypolicyrulebook",
+                    args=[ft.field.rulebook_id],
+                ),
+            },
+        )
 
     def post(self, request, pk):
         ft = get_object_or_404(RulebookFieldType, pk=pk)
         rulebook_pk = ft.field.rulebook_id
         ft.delete()
         messages.success(request, _("Type entry deleted."))
-        return redirect(reverse("plugins:netbox_nsm:securitypolicyrulebook", args=[rulebook_pk]))
+        return redirect(
+            reverse("plugins:netbox_nsm:securitypolicyrulebook", args=[rulebook_pk])
+        )

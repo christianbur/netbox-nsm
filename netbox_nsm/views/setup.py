@@ -89,20 +89,58 @@ TYPECONFIG_SPECS = [
 
 _DEMO_MATRIX_RULES = [
     # 6 unique zone pairs (one rule per unordered pair)
-    {"name": "trust-to-untrust", "src": "trust",   "dst": "untrust", "svc": "HTTPS",   "action": "permit"},
-    {"name": "trust-to-dmz",     "src": "trust",   "dst": "dmz",     "svc": "HTTPS",   "action": "permit"},
-    {"name": "trust-to-mgmt",    "src": "trust",   "dst": "mgmt",    "svc": "SSH",     "action": "permit"},
-    {"name": "untrust-to-dmz",   "src": "untrust", "dst": "dmz",     "svc": "HTTPS",   "action": "permit"},
-    {"name": "untrust-to-mgmt",  "src": "untrust", "dst": "mgmt",    "svc": "SSH",     "action": "deny"},
-    {"name": "dmz-to-mgmt",      "src": "dmz",     "dst": "mgmt",    "svc": "SSH",     "action": "deny"},
+    {
+        "name": "trust-to-untrust",
+        "src": "trust",
+        "dst": "untrust",
+        "svc": "HTTPS",
+        "action": "permit",
+    },
+    {
+        "name": "trust-to-dmz",
+        "src": "trust",
+        "dst": "dmz",
+        "svc": "HTTPS",
+        "action": "permit",
+    },
+    {
+        "name": "trust-to-mgmt",
+        "src": "trust",
+        "dst": "mgmt",
+        "svc": "SSH",
+        "action": "permit",
+    },
+    {
+        "name": "untrust-to-dmz",
+        "src": "untrust",
+        "dst": "dmz",
+        "svc": "HTTPS",
+        "action": "permit",
+    },
+    {
+        "name": "untrust-to-mgmt",
+        "src": "untrust",
+        "dst": "mgmt",
+        "svc": "SSH",
+        "action": "deny",
+    },
+    {
+        "name": "dmz-to-mgmt",
+        "src": "dmz",
+        "dst": "mgmt",
+        "svc": "SSH",
+        "action": "deny",
+    },
 ]
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
+
 def _check_custom_objects_installed():
     try:
         import netbox_custom_objects  # noqa: F401
+
         return True
     except ImportError:
         return False
@@ -112,6 +150,7 @@ def _get_cot_status():
     """Return ``{slug: cot_or_None}`` for all required slugs."""
     try:
         from netbox_custom_objects.models import CustomObjectType
+
         existing = {
             cot.slug: cot
             for cot in CustomObjectType.objects.filter(slug__in=REQUIRED_COT_SLUGS)
@@ -124,9 +163,11 @@ def _get_cot_status():
 def _get_typeconfig_status():
     """Return list of ``{"spec", "cot", "typeconfig"}`` dicts."""
     from django.contrib.contenttypes.models import ContentType as DjCT
+
     result = []
     try:
         from netbox_custom_objects.models import CustomObjectType
+
         for spec in TYPECONFIG_SPECS:
             cot = tc = None
             try:
@@ -276,30 +317,53 @@ def _create_demo_matrix():
         )
 
         field_specs = [
-            {"slug": "source",      "name": "Source",      "sort_order": 10, "placement": "source"},
-            {"slug": "destination", "name": "Destination", "sort_order": 20, "placement": "destination"},
-            {"slug": "service",     "name": "Service",     "sort_order": 30, "placement": "fixed"},
-            {"slug": "action",      "name": "Action",      "sort_order": 40, "placement": "fixed"},
+            {
+                "slug": "source",
+                "name": "Source",
+                "sort_order": 10,
+                "placement": "source",
+            },
+            {
+                "slug": "destination",
+                "name": "Destination",
+                "sort_order": 20,
+                "placement": "destination",
+            },
+            {
+                "slug": "service",
+                "name": "Service",
+                "sort_order": 30,
+                "placement": "fixed",
+            },
+            {
+                "slug": "action",
+                "name": "Action",
+                "sort_order": 40,
+                "placement": "fixed",
+            },
         ]
         fields = _get_or_create_fields(rb, field_specs)
 
-        _attach_typeconfig(fields["source"],      "nsm_zones")
+        _attach_typeconfig(fields["source"], "nsm_zones")
         _attach_typeconfig(fields["destination"], "nsm_zones")
-        _attach_typeconfig(fields["service"],     "nsm_services")
-        _attach_typeconfig(fields["action"],      "nsm_action")
+        _attach_typeconfig(fields["service"], "nsm_services")
+        _attach_typeconfig(fields["action"], "nsm_action")
 
         # Try to attach objects to rules if available
         def _get_objects_by_name(slug):
             try:
                 cot = CustomObjectType.objects.get(slug=slug)
                 model = cot.get_model()
-                return {obj.name.lower(): (obj, DjCT.objects.get_for_model(model)) for obj in model.objects.all()}
+                return {
+                    obj.name.lower(): (obj, DjCT.objects.get_for_model(model))
+                    for obj in model.objects.all()
+                }
             except Exception:
                 return {}
 
-        zones_by_name   = _get_objects_by_name("nsm_zones")
+        zones_by_name = _get_objects_by_name("nsm_zones")
         services_by_name = _get_objects_by_name("nsm_services")
-        actions_by_name  = _get_objects_by_name("nsm_action")
+        actions_by_name = _get_objects_by_name("nsm_action")
 
         for i, rule_def in enumerate(_DEMO_MATRIX_RULES):
             rule, _ = SecurityPolicyRule.objects.get_or_create(
@@ -321,10 +385,10 @@ def _create_demo_matrix():
                     defaults={"exclude": False},
                 )
 
-            _add_object(fields["source"],      zones_by_name,   rule_def["src"])
-            _add_object(fields["destination"], zones_by_name,   rule_def["dst"])
-            _add_object(fields["service"],     services_by_name, rule_def["svc"])
-            _add_object(fields["action"],      actions_by_name, rule_def["action"])
+            _add_object(fields["source"], zones_by_name, rule_def["src"])
+            _add_object(fields["destination"], zones_by_name, rule_def["dst"])
+            _add_object(fields["service"], services_by_name, rule_def["svc"])
+            _add_object(fields["action"], actions_by_name, rule_def["action"])
 
     return rb
 
@@ -338,19 +402,39 @@ def _create_demo_addresses():
         )
 
         field_specs = [
-            {"slug": "source",      "name": "Source",      "sort_order": 10, "placement": "source"},
-            {"slug": "destination", "name": "Destination", "sort_order": 20, "placement": "destination"},
-            {"slug": "service",     "name": "Service",     "sort_order": 30, "placement": "fixed"},
-            {"slug": "action",      "name": "Action",      "sort_order": 40, "placement": "fixed"},
+            {
+                "slug": "source",
+                "name": "Source",
+                "sort_order": 10,
+                "placement": "source",
+            },
+            {
+                "slug": "destination",
+                "name": "Destination",
+                "sort_order": 20,
+                "placement": "destination",
+            },
+            {
+                "slug": "service",
+                "name": "Service",
+                "sort_order": 30,
+                "placement": "fixed",
+            },
+            {
+                "slug": "action",
+                "name": "Action",
+                "sort_order": 40,
+                "placement": "fixed",
+            },
         ]
         fields = _get_or_create_fields(rb, field_specs)
 
-        _attach_typeconfig(fields["source"],      "nsm_zones")
-        _attach_typeconfig(fields["source"],      "nsm_addresses")
+        _attach_typeconfig(fields["source"], "nsm_zones")
+        _attach_typeconfig(fields["source"], "nsm_addresses")
         _attach_typeconfig(fields["destination"], "nsm_zones")
         _attach_typeconfig(fields["destination"], "nsm_addresses")
-        _attach_typeconfig(fields["service"],     "nsm_services")
-        _attach_typeconfig(fields["action"],      "nsm_action")
+        _attach_typeconfig(fields["service"], "nsm_services")
+        _attach_typeconfig(fields["action"], "nsm_action")
 
     return rb
 
@@ -361,7 +445,9 @@ def _run_enterprise_demo(request):
     import sys
     from pathlib import Path
 
-    script_path = Path(__file__).resolve().parent.parent / "demos" / "enterprise_dc" / "import.py"
+    script_path = (
+        Path(__file__).resolve().parent.parent / "demos" / "enterprise_dc" / "import.py"
+    )
     if not script_path.exists():
         raise FileNotFoundError(f"Import script not found: {script_path}")
 
@@ -372,18 +458,28 @@ def _run_enterprise_demo(request):
     try:
         with open(script_path) as fh:
             code = compile(fh.read(), str(script_path), "exec")
-        exec(code, {"__name__": "__main__"})  # noqa: S102  (controlled path, plugin context)
+        exec(
+            code, {"__name__": "__main__"}
+        )  # noqa: S102  (controlled path, plugin context)
     finally:
         sys.stdout = old_stdout
 
     output = captured.getvalue()
     # Extract the last section (summary) for the success message
-    summary_lines = [ln for ln in output.splitlines() if ln.startswith("  ") or "===" in ln or "complete" in ln.lower()]
+    summary_lines = [
+        ln
+        for ln in output.splitlines()
+        if ln.startswith("  ") or "===" in ln or "complete" in ln.lower()
+    ]
     summary = " | ".join(summary_lines[-8:]) if summary_lines else _("Import finished.")
-    messages.success(request, _("Enterprise Demo imported successfully. %(summary)s") % {"summary": summary})
+    messages.success(
+        request,
+        _("Enterprise Demo imported successfully. %(summary)s") % {"summary": summary},
+    )
 
 
 # ─── View ─────────────────────────────────────────────────────────────────────
+
 
 class SetupView(LoginRequiredMixin, View):
     template_name = "netbox_nsm/setup.html"
@@ -392,37 +488,50 @@ class SetupView(LoginRequiredMixin, View):
         plugin_installed = _check_custom_objects_installed()
         cot_status = _get_cot_status() if plugin_installed else None
         tc_status = _get_typeconfig_status() if plugin_installed else None
-        all_cots_ok = plugin_installed and all(v is not None for v in (cot_status or {}).values())
-        all_tcs_ok = all_cots_ok and all(e["typeconfig"] is not None for e in (tc_status or []))
+        all_cots_ok = plugin_installed and all(
+            v is not None for v in (cot_status or {}).values()
+        )
+        all_tcs_ok = all_cots_ok and all(
+            e["typeconfig"] is not None for e in (tc_status or [])
+        )
 
         enterprise_demo_blocked = IPAddress.objects.exists()
 
-        return render(request, self.template_name, {
-            "plugin_installed": plugin_installed,
-            "cot_status": cot_status,
-            "tc_status": tc_status,
-            "all_cots_ok": all_cots_ok,
-            "all_tcs_ok": all_tcs_ok,
-            "enterprise_demo_blocked": enterprise_demo_blocked,
-        })
+        return render(
+            request,
+            self.template_name,
+            {
+                "plugin_installed": plugin_installed,
+                "cot_status": cot_status,
+                "tc_status": tc_status,
+                "all_cots_ok": all_cots_ok,
+                "all_tcs_ok": all_tcs_ok,
+                "enterprise_demo_blocked": enterprise_demo_blocked,
+            },
+        )
 
     def post(self, request):
         action = request.POST.get("action", "")
 
         try:
             if action.startswith("import_type_"):
-                slug = action[len("import_type_"):]
+                slug = action[len("import_type_") :]
                 _import_single_type(slug)
-                messages.success(request, _("Type '%(slug)s' imported successfully.") % {"slug": slug})
+                messages.success(
+                    request,
+                    _("Type '%(slug)s' imported successfully.") % {"slug": slug},
+                )
 
             elif action == "import_all_types":
                 _import_all_types()
                 messages.success(request, _("All NSM types synchronised successfully."))
 
             elif action.startswith("create_typeconfig_"):
-                slug = action[len("create_typeconfig_"):]
+                slug = action[len("create_typeconfig_") :]
                 _create_typeconfig_for_slug(slug)
-                messages.success(request, _("TypeConfig for '%(slug)s' created.") % {"slug": slug})
+                messages.success(
+                    request, _("TypeConfig for '%(slug)s' created.") % {"slug": slug}
+                )
 
             elif action == "create_all_typeconfigs":
                 _create_all_typeconfigs()
@@ -444,7 +553,12 @@ class SetupView(LoginRequiredMixin, View):
 
             elif action == "create_demo_enterprise":
                 if IPAddress.objects.exists():
-                    messages.error(request, _("Enterprise Demo cannot be imported: IP addresses already exist in the database."))
+                    messages.error(
+                        request,
+                        _(
+                            "Enterprise Demo cannot be imported: IP addresses already exist in the database."
+                        ),
+                    )
                     return redirect(reverse("plugins:netbox_nsm:setup"))
                 _run_enterprise_demo(request)
 

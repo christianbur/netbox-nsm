@@ -20,9 +20,7 @@ class NSMSection(PrimaryModel):
     slug = models.SlugField(
         max_length=50,
         unique=True,
-        help_text=_(
-            "Unique identifier (e.g. 'source', 'destination', 'services')."
-        ),
+        help_text=_("Unique identifier (e.g. 'source', 'destination', 'services')."),
     )
     name = models.CharField(max_length=100)
     sort_order = models.PositiveIntegerField(

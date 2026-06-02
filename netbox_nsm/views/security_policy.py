@@ -193,13 +193,26 @@ def _build_grouped_policy_table_data(rules, selected_columns, rulebook=None):
         for field_slug in _slugs_for_col(col):
             field = fields_by_slug.get(field_slug)
             ct_ids = field_ct_ids_map.get(field_slug, [])
-            types = [
-                (f"ct_{ct_id}", ct_label_map.get(ct_id, f"Type {ct_id}"))
-                for ct_id in ct_ids
-                if f"{field_slug}::ct_{ct_id}" in used_keys
-            ]
+            is_fixed = field is not None and field.placement == "fixed"
+            if is_fixed:
+                # Fixed-placement fields (e.g. scope, action, service): always show
+                # all configured TypeConfig sub-columns, even if no rules have data
+                # yet. Source/destination columns are data-driven.
+                types = [
+                    (f"ct_{ct_id}", ct_label_map.get(ct_id, f"Type {ct_id}"))
+                    for ct_id in ct_ids
+                ]
+            else:
+                types = [
+                    (f"ct_{ct_id}", ct_label_map.get(ct_id, f"Type {ct_id}"))
+                    for ct_id in ct_ids
+                    if f"{field_slug}::ct_{ct_id}" in used_keys
+                ]
             if f"{field_slug}::Groups" in used_keys:
                 types.append(("Groups", "Groups"))
+            # For fixed fields with no TypeConfigs at all, show a placeholder column
+            if not types and is_fixed:
+                types = [("_empty", "—")]
             if not types:
                 continue
 

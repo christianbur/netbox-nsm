@@ -511,7 +511,7 @@ def compute_facets(
                 if len(parts) == 1:
                     qval = f'{fp} == "{parts[0]}"'
                 else:
-                    qval = f'{fp} in ({{", ".join(parts)}})'
+                    qval = f'{fp} in ({", ".join(parts)})'
                 grp_entries.append({"value": val, "count": cnt, "count_all": all_count, "disabled": cnt == 0, "qval": qval})
             if grp_entries:
                 entries_set.append({"group": grp, "group_short": grp, "entries": grp_entries})

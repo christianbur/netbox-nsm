@@ -1,5 +1,6 @@
 import django_tables2 as tables
 from django.utils.html import format_html, mark_safe
+from django.utils.translation import gettext_lazy as _
 
 from netbox.tables import NetBoxTable
 
@@ -22,6 +23,7 @@ _ACTIONS_TEMPLATE = """
 _MATCHING_CLASS_BADGE = {
     "address": ("bg-info", "text-white"),
     "zone": ("bg-primary", "text-white"),
+    "zone-scope": ("bg-primary", "text-white"),
     "label": ("bg-success", "text-white"),
     "service": ("bg-warning", "text-white"),
     "action": ("bg-danger", "text-white"),
@@ -35,18 +37,18 @@ _MATCHING_CLASS_BADGE = {
 
 class TypeConfigTable(NetBoxTable):
     content_type = tables.Column(
-        verbose_name="Objekt-Typ",
+        verbose_name=_("Object Type"),
         orderable=True,
         order_by=("content_type__app_label", "content_type__model"),
     )
-    matching_class = tables.Column(verbose_name="Matching Class")
-    display_template = tables.Column(verbose_name="Display Template")
+    matching_class = tables.Column(verbose_name=_("Matching Class"))
+    display_template = tables.Column(verbose_name=_("Display Template"))
     allowed_placements = tables.Column(
-        verbose_name="Allowed Placements", orderable=False
+        verbose_name=_("Allowed Placements"), orderable=False
     )
-    inherit_links = tables.Column(verbose_name="Vererbung", orderable=True)
+    inherit_links = tables.Column(verbose_name=_("Inheritance"), orderable=True)
     inherit_stop_on_own = tables.Column(
-        verbose_name="Stop bei eigenem Link", orderable=True
+        verbose_name=_("Stop on own link"), orderable=True
     )
     actions = tables.TemplateColumn(
         template_code=_ACTIONS_TEMPLATE,
@@ -83,20 +85,22 @@ class TypeConfigTable(NetBoxTable):
 
     def render_allowed_placements(self, value):
         if not value:
-            return mark_safe('<span class="text-muted">alle</span>')
+            return mark_safe('<span class="text-muted">' + str(_("all")) + '</span>')
         return ", ".join(value)
 
     def render_inherit_links(self, value):
         if value:
-            return mark_safe(
-                '<span class="badge bg-success text-white"><i class="mdi mdi-arrow-up-circle-outline"></i> An</span>'
+            return format_html(
+                '<span class="badge bg-success text-white"><i class="mdi mdi-arrow-up-circle-outline"></i> {}</span>',
+                _("On"),
             )
         return mark_safe('<span class="text-muted">—</span>')
 
     def render_inherit_stop_on_own(self, value):
         if value:
-            return mark_safe(
-                '<span class="badge bg-warning text-white">Stop bei eigenem Link</span>'
+            return format_html(
+                '<span class="badge bg-warning text-white">{}</span>',
+                _("Stop on own link"),
             )
         return mark_safe('<span class="text-muted">—</span>')
 

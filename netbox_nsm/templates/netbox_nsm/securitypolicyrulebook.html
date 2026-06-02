@@ -17,6 +17,12 @@
           <th scope="row">{% trans "Type" %}</th>
           <td>{{ object.get_rulebook_type_display }}</td>
         </tr>
+        {% if object.platform %}
+        <tr>
+          <th scope="row">{% trans "Platform" %}</th>
+          <td><a href="{{ object.platform.get_absolute_url }}">{{ object.platform }}</a></td>
+        </tr>
+        {% endif %}
         {% if object.description %}
         <tr>
           <th scope="row">{% trans "Description" %}</th>

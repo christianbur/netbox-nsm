@@ -4,7 +4,7 @@ from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from dcim.models import Device, VirtualDeviceContext
+from dcim.models import Device, Platform, VirtualDeviceContext
 from netbox.models import NetBoxModel, PrimaryModel
 from netbox.models.features import ContactsMixin
 from netbox.search import SearchIndex, register_search
@@ -37,6 +37,15 @@ class SecurityPolicyRulebook(ContactsMixin, PrimaryModel):
         max_length=20,
         choices=RulebookTypeChoices.choices,
         default=RulebookTypeChoices.POLICY,
+    )
+    platform = models.ForeignKey(
+        to="dcim.Platform",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="nsm_rulebooks",
+        verbose_name=_("Platform"),
+        help_text=_("Firewall platform or security fabric (e.g. PAN-OS, Cisco ASA, TrustSec, Zscaler)."),
     )
     mgmt_url = models.URLField(
         blank=True,

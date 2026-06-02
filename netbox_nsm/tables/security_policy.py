@@ -264,6 +264,7 @@ class AssignedObjectsColumn(tables.Column):
 class SecurityPolicyRulebookTable(NetBoxTable):
     name = tables.LinkColumn()
     rulebook_type = tables.Column(verbose_name=_("Type"))
+    platform = tables.Column(verbose_name=_("Platform"), orderable=True)
     mgmt_url = tables.Column(
         verbose_name=_("Manager"),
         orderable=False,
@@ -297,13 +298,15 @@ class SecurityPolicyRulebookTable(NetBoxTable):
         fields = (
             "id",
             "name",
+            "rulebook_type",
+            "platform",
             "rule_count",
             "mgmt_url",
             "description",
             "assigned_objects",
             "tags",
         )
-        default_columns = ("name", "rule_count", "assigned_objects", "mgmt_url", "description")
+        default_columns = ("name", "platform", "rule_count", "assigned_objects", "mgmt_url", "description")
 
 
 class SecurityPolicyRuleTable(NetBoxTable):

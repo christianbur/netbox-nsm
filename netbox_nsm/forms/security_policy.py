@@ -3,7 +3,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext_lazy as _
 import json
 
-from dcim.models import Device, VirtualDeviceContext
+from dcim.models import Device, Platform, VirtualDeviceContext
 from netbox.forms import (
     NetBoxModelFilterSetForm,
     PrimaryModelBulkEditForm,
@@ -54,6 +54,11 @@ class SecurityPolicyRulebookForm(PrimaryModelForm):
             "Markdown template pre-filled when adding new rules. Supports {rule_name}, {index}, {rulebook}."
         ),
     )
+    platform = DynamicModelChoiceField(
+        queryset=Platform.objects.all(),
+        required=False,
+        label=_("Platform"),
+    )
     assigned_devices = DynamicModelMultipleChoiceField(
         queryset=Device.objects.all(),
         required=False,
@@ -66,7 +71,7 @@ class SecurityPolicyRulebookForm(PrimaryModelForm):
     )
 
     fieldsets = (
-        FieldSet("name", "rulebook_type", "description", name=_("Rulebook")),
+        FieldSet("name", "rulebook_type", "platform", "description", name=_("Rulebook")),
         FieldSet("assigned_devices", "assigned_vms", name=_("Assigned Objects")),
         FieldSet("rule_comment_template", "mgmt_url", name=_("Rule Defaults")),
         FieldSet("tags", name=_("Tags")),
@@ -78,6 +83,7 @@ class SecurityPolicyRulebookForm(PrimaryModelForm):
         fields = (
             "name",
             "rulebook_type",
+            "platform",
             "rule_comment_template",
             "mgmt_url",
             "description",

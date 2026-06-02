@@ -306,7 +306,7 @@ class SecurityPolicyRulebookTable(NetBoxTable):
             "assigned_objects",
             "tags",
         )
-        default_columns = ("name", "platform", "rule_count", "assigned_objects", "mgmt_url", "description")
+        default_columns = ("name", "rule_count", "platform", "assigned_objects", "mgmt_url", "description")
 
 
 class SecurityPolicyRuleTable(NetBoxTable):

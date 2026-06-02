@@ -2,17 +2,25 @@ from django import forms
 from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext_lazy as _
 
-from netbox_nsm.models import NSMTypeConfig, NSMObjectLink
+from netbox_nsm.models import NSMObjectLink, TypeConfig
 
 __all__ = ("NSMObjectLinkAssignForm",)
 
 
 def _build_type_choices():
-    """Return choices with human-readable app → model labels from NSMTypeConfig."""
+    """Return choices with human-readable app → model labels from TypeConfig."""
+    all_configs = list(
+        TypeConfig.objects.select_related("content_type").order_by(
+            "content_type__app_label", "content_type__model", "matching_class"
+        )
+    )
+    # Count entries per ContentType to decide when to add matching_class suffix
+    ct_counts: dict[int, int] = {}
+    for cfg in all_configs:
+        ct_counts[cfg.content_type_id] = ct_counts.get(cfg.content_type_id, 0) + 1
+
     choices = [("", _("── Select type ──"))]
-    for cfg in NSMTypeConfig.objects.select_related("content_type").order_by(
-        "order_id"
-    ):
+    for cfg in all_configs:
         ct = cfg.content_type
         model_class = ct.model_class()
         if model_class:
@@ -21,7 +29,10 @@ def _build_type_choices():
         else:
             app_name = ct.app_label.replace("_", " ").title()
             model_name = ct.model.replace("_", " ").title()
-        choices.append((ct.pk, f"{app_name} → {model_name}"))
+        label = f"{app_name} → {model_name}"
+        if ct_counts[cfg.content_type_id] > 1 and cfg.matching_class:
+            label += f" ({cfg.get_matching_class_display()})"
+        choices.append((ct.pk, label))
     return choices
 
 

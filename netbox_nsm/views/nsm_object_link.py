@@ -9,7 +9,7 @@ from django.views import View
 
 from netbox.views import generic
 from netbox_nsm.forms import NSMObjectLinkAssignForm
-from netbox_nsm.models import NSMObjectLink, NSMTypeConfig
+from netbox_nsm.models import NSMObjectLink, NSMTypeConfig, TypeConfig
 
 __all__ = (
     "NSMObjectLinkAssignView",
@@ -218,9 +218,9 @@ class NSMObjectTypeElementsApiView(LoginRequiredMixin, View):
         except ContentType.DoesNotExist:
             return HttpResponseBadRequest("Invalid ct_id")
 
-        # Only allow NSMTypeConfig-configured types
-        if not NSMTypeConfig.objects.filter(content_type=ct).exists():
-            return HttpResponseBadRequest("Type not in NSMTypeConfig")
+        # Only allow TypeConfig-configured types
+        if not TypeConfig.objects.filter(content_type=ct).exists():
+            return HttpResponseBadRequest("Type not configured in NSM")
 
         q = request.GET.get("q", "").strip()
         model_class = ct.model_class()

@@ -11,7 +11,7 @@ __all__ = ("MatchingClassChoices", "TypeConfig")
 class MatchingClassChoices(models.TextChoices):
     ADDRESS = "address", _("Address")
     ZONE = "zone", _("Zone")
-    ZONE_SCOPE = "zone-scope", _("Zone-Scope")
+    LABEL_SCOPE = "label-scope", _("Label-Scope")
     LABEL = "label", _("Label")
     TRUST = "trust", _("Trust")
     SERVICE = "service", _("Service")

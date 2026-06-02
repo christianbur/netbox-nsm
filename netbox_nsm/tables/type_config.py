@@ -23,7 +23,7 @@ _ACTIONS_TEMPLATE = """
 _MATCHING_CLASS_BADGE = {
     "address": ("bg-info", "text-white"),
     "zone": ("bg-primary", "text-white"),
-    "zone-scope": ("bg-primary", "text-white"),
+    "label-scope": ("bg-primary", "text-white"),
     "label": ("bg-success", "text-white"),
     "service": ("bg-warning", "text-white"),
     "action": ("bg-danger", "text-white"),

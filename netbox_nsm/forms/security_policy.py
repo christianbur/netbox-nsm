@@ -74,6 +74,7 @@ class SecurityPolicyRulebookForm(PrimaryModelForm):
         FieldSet("name", "rulebook_type", "platform", "description", name=_("Rulebook")),
         FieldSet("assigned_devices", "assigned_vms", name=_("Assigned Objects")),
         FieldSet("rule_comment_template", "mgmt_url", name=_("Rule Defaults")),
+        FieldSet("show_colored_pills", name=_("Display")),
         FieldSet("tags", name=_("Tags")),
     )
     comments = CommentField()
@@ -86,6 +87,7 @@ class SecurityPolicyRulebookForm(PrimaryModelForm):
             "platform",
             "rule_comment_template",
             "mgmt_url",
+            "show_colored_pills",
             "description",
             "comments",
             "tags",

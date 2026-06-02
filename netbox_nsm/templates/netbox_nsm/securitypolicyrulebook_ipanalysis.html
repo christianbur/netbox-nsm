@@ -133,18 +133,25 @@
             {# Result left #}
             {% if ip_sel_pk %}
               {% if ip_refs or ip_tree_node %}
-                <ul class="nav nav-tabs mb-0" id="nsm-tabs-left">
-                  <li class="nav-item">
-                    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#nsm-pane-left-ips" type="button">
-                      IPs <span class="badge text-bg-secondary ms-1">{{ ip_refs|length }}</span>
-                    </button>
-                  </li>
-                  <li class="nav-item">
-                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#nsm-pane-left-tree" type="button">Tree</button>
-                  </li>
-                </ul>
+                <div class="d-flex align-items-center justify-content-between mb-0">
+                  <ul class="nav nav-tabs flex-grow-1" id="nsm-tabs-left" role="tablist">
+                    <li class="nav-item" role="presentation">
+                      <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#nsm-pane-left-ips" type="button" aria-selected="true" role="tab">
+                        IPs <span class="badge text-bg-secondary ms-1">{{ ip_refs|length }}</span>
+                      </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                      <button class="nav-link" data-bs-toggle="tab" data-bs-target="#nsm-pane-left-tree" type="button" aria-selected="false" tabindex="-1" role="tab">Tree</button>
+                    </li>
+                  </ul>
+                  <button type="button" class="btn btn-ghost-secondary btn-sm ms-2" id="nsm-copy-left"
+                          title="Copy IPs to clipboard" onclick="nsmCopyCol('left')">
+                    <i class="mdi mdi-content-copy"></i> <span id="nsm-copy-left-lbl">Copy</span>
+                  </button>
+                </div>
                 <div class="tab-content border border-top-0 rounded-bottom p-2">
-                  <div class="tab-pane fade show active" id="nsm-pane-left-ips">
+                  <div class="tab-pane fade show active" id="nsm-pane-left-ips" role="tabpanel"
+                       data-ips="{% for ref in ip_refs %}{{ ref.display }}{% if not forloop.last %}&#10;{% endif %}{% endfor %}">
                     {% if ip_refs %}
                       <div style="max-height:22rem;overflow-y:auto;">
                         <table class="table table-sm table-hover mb-0">
@@ -162,7 +169,7 @@
                       <p class="text-muted small p-2 mb-0">No IPs resolved.</p>
                     {% endif %}
                   </div>
-                  <div class="tab-pane fade" id="nsm-pane-left-tree">
+                  <div class="tab-pane fade" id="nsm-pane-left-tree" role="tabpanel">
                     {% if ip_tree_node %}
                       <div style="max-height:28rem;overflow-y:auto;font-size:.82rem;">
                         {% with node=ip_tree_node depth=0 %}
@@ -230,18 +237,25 @@
             {# Result right #}
             {% if ip2_sel_pk %}
               {% if ip2_refs or ip2_tree_node %}
-                <ul class="nav nav-tabs mb-0" id="nsm-tabs-right">
-                  <li class="nav-item">
-                    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#nsm-pane-right-ips" type="button">
-                      IPs <span class="badge text-bg-secondary ms-1">{{ ip2_refs|length }}</span>
-                    </button>
-                  </li>
-                  <li class="nav-item">
-                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#nsm-pane-right-tree" type="button">Tree</button>
-                  </li>
-                </ul>
+                <div class="d-flex align-items-center justify-content-between mb-0">
+                  <ul class="nav nav-tabs flex-grow-1" id="nsm-tabs-right" role="tablist">
+                    <li class="nav-item" role="presentation">
+                      <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#nsm-pane-right-ips" type="button" aria-selected="true" role="tab">
+                        IPs <span class="badge text-bg-secondary ms-1">{{ ip2_refs|length }}</span>
+                      </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                      <button class="nav-link" data-bs-toggle="tab" data-bs-target="#nsm-pane-right-tree" type="button" aria-selected="false" tabindex="-1" role="tab">Tree</button>
+                    </li>
+                  </ul>
+                  <button type="button" class="btn btn-ghost-secondary btn-sm ms-2" id="nsm-copy-right"
+                          title="Copy IPs to clipboard" onclick="nsmCopyCol('right')">
+                    <i class="mdi mdi-content-copy"></i> <span id="nsm-copy-right-lbl">Copy</span>
+                  </button>
+                </div>
                 <div class="tab-content border border-top-0 rounded-bottom p-2">
-                  <div class="tab-pane fade show active" id="nsm-pane-right-ips">
+                  <div class="tab-pane fade show active" id="nsm-pane-right-ips" role="tabpanel"
+                       data-ips="{% for ref in ip2_refs %}{{ ref.display }}{% if not forloop.last %}&#10;{% endif %}{% endfor %}">
                     {% if ip2_refs %}
                       <div style="max-height:22rem;overflow-y:auto;">
                         <table class="table table-sm table-hover mb-0">
@@ -259,7 +273,7 @@
                       <p class="text-muted small p-2 mb-0">No IPs resolved.</p>
                     {% endif %}
                   </div>
-                  <div class="tab-pane fade" id="nsm-pane-right-tree">
+                  <div class="tab-pane fade" id="nsm-pane-right-tree" role="tabpanel">
                     {% if ip2_tree_node %}
                       <div style="max-height:28rem;overflow-y:auto;font-size:.82rem;">
                         {% with node=ip2_tree_node depth=0 %}
@@ -292,6 +306,122 @@
 </div>
 
 <script>
+/* ── Tree → CSV helper ─────────────────────────────────────────── */
+function nsmTreeToCSV(containerEl, rootName) {
+  var rows = [];
+
+  function csvCell(s) {
+    s = String(s || '');
+    if (s.indexOf(',') >= 0 || s.indexOf('"') >= 0 || s.indexOf('\n') >= 0)
+      return '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+
+  function traverse(el, path) {
+    /* group nodes: <details class="nsm-addr-details"> */
+    var details = el.querySelectorAll(':scope > details.nsm-addr-details');
+    details.forEach(function(det) {
+      var nameEl = det.querySelector(':scope > summary .nsm-addr-link');
+      var name   = nameEl ? nameEl.textContent.trim() : '';
+      var childWrap = det.querySelector(':scope > .nsm-addr-children');
+      if (childWrap) traverse(childWrap, path.concat([name]));
+    });
+
+    /* leaf nodes: <div class="nsm-addr-leaf"> */
+    var leaves = el.querySelectorAll(':scope > .nsm-addr-leaf');
+    leaves.forEach(function(leaf) {
+      var nameEl = leaf.querySelector('.nsm-addr-obj-link');
+      var ipEl   = leaf.querySelector('.nsm-addr-ip a');
+      var name   = nameEl ? nameEl.textContent.trim() : '';
+      var ip     = ipEl   ? ipEl.textContent.trim()   : '';
+      var row    = path.concat([name]);
+      if (ip) row.push(ip);
+      rows.push(row);
+    });
+  }
+
+  /* start from top-level nsm-addr-top details */
+  var tops = containerEl.querySelectorAll('.nsm-addr-top');
+  tops.forEach(function(det) {
+    var nameEl    = det.querySelector(':scope > summary .nsm-addr-link');
+    var name      = nameEl ? nameEl.textContent.trim() : (rootName || 'root');
+    var childWrap = det.querySelector(':scope > .nsm-addr-children');
+    if (childWrap) traverse(childWrap, [name]);
+  });
+
+  if (!rows.length) return '';
+  var maxCols = rows.reduce(function(m, r) { return Math.max(m, r.length); }, 0);
+  return rows.map(function(r) {
+    while (r.length < maxCols) r.push('');
+    return r.map(csvCell).join(',');
+  }).join('\n');
+}
+
+/* ── Download helper ────────────────────────────────────────────── */
+function nsmDownloadCSV(csv, filename) {
+  var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href = url; a.download = filename || 'export.csv';
+  document.body.appendChild(a); a.click();
+  setTimeout(function() { document.body.removeChild(a); URL.revokeObjectURL(url); }, 200);
+}
+
+/* ── Main copy/export action ────────────────────────────────────── */
+function nsmCopyCol(side) {
+  /* find active tab pane */
+  var activeLink = document.querySelector('#nsm-tabs-' + side + ' .nav-link.active');
+  var target     = activeLink ? activeLink.getAttribute('data-bs-target') : null;
+  var pane       = target ? document.querySelector(target) : null;
+  if (!pane) return;
+
+  var btn  = document.getElementById('nsm-copy-' + side);
+  var lbl  = document.getElementById('nsm-copy-' + side + '-lbl');
+  var orig = btn.innerHTML;
+
+  var isTree = pane.id.indexOf('-tree') >= 0;
+
+  if (isTree) {
+    /* Tree tab → CSV download */
+    var rootName = (document.getElementById('nsm-' + side + '-name') || {}).value || 'root';
+    var csv = nsmTreeToCSV(pane, rootName);
+    if (!csv) return;
+    nsmDownloadCSV(csv, rootName + '_tree.csv');
+    btn.innerHTML = '<i class="mdi mdi-check"></i> <span>Saved</span>';
+    setTimeout(function() { btn.innerHTML = orig; }, 1500);
+  } else {
+    /* IPs tab → clipboard */
+    var ips = pane.dataset.ips || '';
+    if (!ips) {
+      ips = Array.prototype.map.call(pane.querySelectorAll('code'), function(el) {
+        return el.textContent.trim();
+      }).filter(Boolean).join('\n');
+    }
+    navigator.clipboard.writeText(ips).then(function() {
+      btn.innerHTML = '<i class="mdi mdi-check"></i> <span>Copied</span>';
+      setTimeout(function() { btn.innerHTML = orig; }, 1500);
+    });
+  }
+}
+
+/* ── Update button label when tab changes ───────────────────────── */
+['left', 'right'].forEach(function(side) {
+  document.addEventListener('shown.bs.tab', function(e) {
+    var target = e.target.getAttribute('data-bs-target') || '';
+    if (target.indexOf('nsm-pane-' + side) < 0) return;
+    var lbl = document.getElementById('nsm-copy-' + side + '-lbl');
+    var btn = document.getElementById('nsm-copy-' + side);
+    if (!lbl || !btn) return;
+    if (target.indexOf('-tree') >= 0) {
+      lbl.textContent = 'CSV';
+      btn.title = 'Tree als CSV herunterladen';
+    } else {
+      lbl.textContent = 'Copy';
+      btn.title = 'IPs in Zwischenablage kopieren';
+    }
+  });
+});
+
 (function () {
   "use strict";
 

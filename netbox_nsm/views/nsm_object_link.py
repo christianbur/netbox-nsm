@@ -218,9 +218,9 @@ class NSMObjectTypeElementsApiView(LoginRequiredMixin, View):
         except ContentType.DoesNotExist:
             return HttpResponseBadRequest("Invalid ct_id")
 
-        # Only allow TypeConfig-configured types
-        if not TypeConfig.objects.filter(content_type=ct).exists():
-            return HttpResponseBadRequest("Type not configured in NSM")
+        # Only allow TypeConfig-configured types with panel_linkable=True
+        if not TypeConfig.objects.filter(content_type=ct, panel_linkable=True).exists():
+            return HttpResponseBadRequest("Type not configured as panel-linkable in NSM")
 
         q = request.GET.get("q", "").strip()
         model_class = ct.model_class()

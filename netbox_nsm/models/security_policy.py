@@ -61,6 +61,14 @@ class SecurityPolicyRulebook(ContactsMixin, PrimaryModel):
             "Supports {rule_name}, {index}, {rulebook}."
         ),
     )
+    show_colored_pills = models.BooleanField(
+        default=True,
+        verbose_name=_("Show colored pills"),
+        help_text=_(
+            "Display object links as colored bubbles in the policy table. "
+            "Disable to show plain text pills without background color."
+        ),
+    )
 
     class Meta:
         verbose_name = _("Rulebook")
@@ -203,6 +211,14 @@ class RulebookFieldType(models.Model):
         verbose_name=_("Max Items"),
         help_text=_(
             "Maximum number of objects of this type per rule. Leave empty for unlimited."
+        ),
+    )
+    show_colored_pills = models.BooleanField(
+        default=True,
+        verbose_name=_("Show colored pills"),
+        help_text=_(
+            "Display objects of this type as colored pills (using the TypeConfig color). "
+            "Disable to show plain pills without background color."
         ),
     )
     class Meta:

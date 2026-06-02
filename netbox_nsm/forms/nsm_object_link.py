@@ -8,31 +8,27 @@ __all__ = ("NSMObjectLinkAssignForm",)
 
 
 def _build_type_choices():
-    """Return choices with human-readable app → model labels from TypeConfig."""
+    """Return choices for types with panel_linkable=True, using 'Name (matching_class)' labels."""
     all_configs = list(
-        TypeConfig.objects.select_related("content_type").order_by(
-            "content_type__app_label", "content_type__model", "matching_class"
-        )
+        TypeConfig.objects.filter(panel_linkable=True)
+        .select_related("content_type")
+        .order_by("name", "matching_class")
     )
-    # Count entries per ContentType to decide when to add matching_class suffix
-    ct_counts: dict[int, int] = {}
-    for cfg in all_configs:
-        ct_counts[cfg.content_type_id] = ct_counts.get(cfg.content_type_id, 0) + 1
 
     choices = [("", _("── Select type ──"))]
     for cfg in all_configs:
-        ct = cfg.content_type
-        model_class = ct.model_class()
-        if model_class:
-            app_name = model_class._meta.app_config.verbose_name
-            model_name = str(model_class._meta.verbose_name).title()
+        if cfg.name and cfg.matching_class:
+            label = f"{cfg.name} ({cfg.matching_class})"
+        elif cfg.name:
+            label = cfg.name
         else:
-            app_name = ct.app_label.replace("_", " ").title()
-            model_name = ct.model.replace("_", " ").title()
-        label = f"{app_name} → {model_name}"
-        if ct_counts[cfg.content_type_id] > 1 and cfg.matching_class:
-            label += f" ({cfg.get_matching_class_display()})"
-        choices.append((ct.pk, label))
+            ct = cfg.content_type
+            model_class = ct.model_class()
+            if model_class:
+                label = f"{model_class._meta.app_config.verbose_name} → {str(model_class._meta.verbose_name).title()}"
+            else:
+                label = f"{ct.app_label} → {ct.model}"
+        choices.append((cfg.content_type.pk, label))
     return choices
 
 

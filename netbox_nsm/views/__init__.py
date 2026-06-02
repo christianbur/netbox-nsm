@@ -1,6 +1,3 @@
-from .object_builder import *
-from .custom_objects_demo import CustomObjectsDemoView
-from .custom_objects_sync import SyncBuiltinToCustomObjectsView
 from .security_area import *
 from .security_policy import *
 from .security_object_group import *

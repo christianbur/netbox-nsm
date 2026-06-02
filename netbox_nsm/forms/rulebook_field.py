@@ -105,7 +105,7 @@ class RulebookFieldTypeForm(forms.ModelForm):
 
     class Meta:
         model = RulebookFieldType
-        fields = ("type_config", "sort_order", "max_items")
+        fields = ("type_config", "sort_order", "max_items", "show_colored_pills")
         widgets = {
             "sort_order": forms.NumberInput(attrs={"min": 0}),
             "max_items": forms.NumberInput(attrs={"min": 1}),

@@ -8,16 +8,7 @@ from netbox_nsm.models import NSMTypeConfig
 
 __all__ = ("NSMTypeConfigTable",)
 
-_ACTIONS_TEMPLATE = """
-<a href="{% url 'plugins:netbox_nsm:nsmtypeconfig_edit' record.pk %}"
-   class="btn btn-sm btn-warning" title="Edit">
-  <i class="mdi mdi-pencil"></i>
-</a>
-<a href="{% url 'plugins:netbox_nsm:nsmtypeconfig_delete' record.pk %}"
-   class="btn btn-sm btn-danger" title="Delete">
-  <i class="mdi mdi-trash-can-outline"></i>
-</a>
-"""
+_ACTIONS_TEMPLATE = ""
 
 
 class NSMTypeConfigTable(NetBoxTable):
@@ -32,12 +23,6 @@ class NSMTypeConfigTable(NetBoxTable):
     )
     order_id = tables.Column(verbose_name="Reihenfolge")
     display_template = tables.Column(verbose_name="Display Template")
-    actions = tables.TemplateColumn(
-        template_code=_ACTIONS_TEMPLATE,
-        verbose_name="",
-        orderable=False,
-    )
-
     def render_content_type(self, value):
         if not value:
             return "—"
@@ -77,13 +62,11 @@ class NSMTypeConfigTable(NetBoxTable):
             "areas",
             "order_id",
             "display_template",
-            "actions",
         )
         default_columns = (
             "content_type",
             "areas",
             "order_id",
             "display_template",
-            "actions",
         )
         empty_text = _("No NSMTypeConfig entries found.")

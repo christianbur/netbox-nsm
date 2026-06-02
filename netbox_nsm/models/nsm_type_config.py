@@ -68,4 +68,4 @@ class NSMTypeConfig(NetBoxModel):
         return f"{self.content_type.app_label} | {self.content_type.model}"
 
     def get_absolute_url(self):
-        return reverse("plugins:netbox_nsm:nsmtypeconfig_edit", args=[self.pk])
+        return reverse("plugins:netbox_nsm:typeconfig_list")

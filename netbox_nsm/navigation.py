@@ -34,11 +34,6 @@ def _build_object_groups():
                         permissions=["netbox_nsm.view_typeconfig"],
                     ),
                     PluginMenuItem(
-                        link="plugins:netbox_nsm:object_builder_root",
-                        link_text=_("Object Builder"),
-                        permissions=["netbox_nsm.view_typeconfig"],
-                    ),
-                    PluginMenuItem(
                         link="plugins:netbox_nsm:typeconfig_list",
                         link_text=_("Type Config"),
                         permissions=["netbox_nsm.view_typeconfig"],
@@ -72,7 +67,7 @@ class DynamicPluginMenu(PluginMenu):
 security_policy_menu_items = (
     PluginMenuItem(
         link="plugins:netbox_nsm:securitypolicyrulebook_list",
-        link_text=_("Security Policies"),
+        link_text=_("Rulebooks"),
         permissions=["netbox_nsm.view_securitypolicyrulebook"],
         buttons=(
             PluginMenuButton(
@@ -99,7 +94,7 @@ if plugin_settings.get("top_level_menu"):
     def _menu_groups():
         analysis_items = (
             _make_literal_menu_item(
-                "/plugins/netbox-nsm/security-policy/4/ipanalysis/",
+                "/plugins/netbox-nsm/rulebooks/4/ipanalysis/",
                 _("IP Analysis"),
                 ["netbox_nsm.view_securitypolicyrulebook"],
             ),
@@ -111,7 +106,7 @@ if plugin_settings.get("top_level_menu"):
         )
         groups = (
             _build_object_groups()
-            + ((_("Security Policies"), security_policy_menu_items),)
+            + ((_("Rulebooks"), security_policy_menu_items),)
             + ((_("Analysis"), analysis_items),)
         )
         if plugin_settings.get("assignments_menu"):

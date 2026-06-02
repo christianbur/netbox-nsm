@@ -135,9 +135,17 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
             get_display_template_map,
             render_object_display,
             ct_display_label,
+            tc_panel_label,
         )
 
         tmpl_map = get_display_template_map()
+        # Build ct_id → TypeConfig map for panel labels (one DB query)
+        from netbox_nsm.models import TypeConfig as _TCModel
+
+        _tc_map = {
+            tc.content_type_id: tc
+            for tc in _TCModel.objects.select_related("content_type").all()
+        }
 
         # ── NSMObjectLinks grouped by linked-object type ──────────────────
         from django.db.models import prefetch_related_objects as _prefetch
@@ -171,7 +179,7 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
             type_key = f"{lct.app_label}__{lct.model}"
             if type_key not in links_by_type:
                 links_by_type[type_key] = {
-                    "label": ct_display_label(lct),
+                    "label": tc_panel_label(lct, _tc_map.get(lct.id)),
                     "objects": [],
                 }
             links_by_type[type_key]["objects"].append(
@@ -203,7 +211,7 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
             type_key = f"{lct.app_label}__{lct.model}"
             if type_key not in links_by_type:
                 links_by_type[type_key] = {
-                    "label": ct_display_label(lct),
+                    "label": tc_panel_label(lct, _tc_map.get(lct.id)),
                     "objects": [],
                 }
             links_by_type[type_key]["objects"].append(
@@ -255,7 +263,7 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
                     for _addr_obj in _AddrModel.objects.filter(**_fk_filter):
                         if _addr_type_key not in links_by_type:
                             links_by_type[_addr_type_key] = {
-                                "label": ct_display_label(_addr_ct),
+                                "label": tc_panel_label(_addr_ct, _tc_map.get(_addr_ct.id)),
                                 "objects": [],
                             }
                         links_by_type[_addr_type_key]["objects"].append(
@@ -268,6 +276,72 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
                                 "name": render_object_display(
                                     _addr_obj, _addr_ct.pk, tmpl_map
                                 ),
+                                "comment": "",
+                            }
+                        )
+        except Exception:
+            pass
+
+        # ── Custom Objects with 'group' M2M: show members in the panel ─────
+        # 1. If current object IS a group: show its members.
+        # 2. If current object IS a member: show which groups contain it.
+        try:
+            _group_rel = getattr(obj, "group", None)
+            _obj_model = type(obj)
+            _obj_ct = ct
+
+            # Direction 1: current object has group members (it is a group)
+            if _group_rel is not None and hasattr(_group_rel, "all"):
+                _members = list(_group_rel.all())
+                if _members:
+                    _mem_ct = ContentType.objects.get_for_model(_members[0])
+                    _mem_type_key = f"{_mem_ct.app_label}__{_mem_ct.model}"
+                    if _mem_type_key not in links_by_type:
+                        links_by_type[_mem_type_key] = {
+                            "label": tc_panel_label(_mem_ct, _tc_map.get(_mem_ct.id)),
+                            "objects": [],
+                        }
+                    _existing_urls = {e["url"] for e in links_by_type[_mem_type_key]["objects"]}
+                    for _mem in _members:
+                        _mem_url = (
+                            _mem.get_absolute_url()
+                            if hasattr(_mem, "get_absolute_url")
+                            else "#"
+                        )
+                        if _mem_url not in _existing_urls:
+                            links_by_type[_mem_type_key]["objects"].append(
+                                {
+                                    "url": _mem_url,
+                                    "name": render_object_display(_mem, _mem_ct.pk, tmpl_map),
+                                    "comment": "",
+                                }
+                            )
+
+            # Direction 2: find groups that contain this object as a member
+            try:
+                _parent_groups = list(_obj_model.objects.filter(group=obj))
+            except Exception:
+                _parent_groups = []
+            if _parent_groups:
+                _grp_ct = ContentType.objects.get_for_model(_parent_groups[0])
+                _grp_type_key = f"{_grp_ct.app_label}__{_grp_ct.model}"
+                if _grp_type_key not in links_by_type:
+                    links_by_type[_grp_type_key] = {
+                        "label": tc_panel_label(_grp_ct, _tc_map.get(_grp_ct.id)),
+                        "objects": [],
+                    }
+                _existing_urls = {e["url"] for e in links_by_type[_grp_type_key]["objects"]}
+                for _grp in _parent_groups:
+                    _grp_url = (
+                        _grp.get_absolute_url()
+                        if hasattr(_grp, "get_absolute_url")
+                        else "#"
+                    )
+                    if _grp_url not in _existing_urls:
+                        links_by_type[_grp_type_key]["objects"].append(
+                            {
+                                "url": _grp_url,
+                                "name": render_object_display(_grp, _grp_ct.pk, tmpl_map),
                                 "comment": "",
                             }
                         )

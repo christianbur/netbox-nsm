@@ -54,6 +54,7 @@ TYPECONFIG_SPECS = [
         "matching_class": "zone",
         "display_template": "{name}",
         "allowed_placements": ["source", "destination"],
+        "panel_linkable": True,
     },
     {
         "slug": "nsm_addresses",
@@ -61,6 +62,7 @@ TYPECONFIG_SPECS = [
         "matching_class": "address",
         "display_template": "{name}",
         "allowed_placements": ["source", "destination"],
+        "panel_linkable": True,
     },
     {
         "slug": "nsm_labels",
@@ -68,6 +70,7 @@ TYPECONFIG_SPECS = [
         "matching_class": "label",
         "display_template": "{label_type[0]!u}:{name}",
         "allowed_placements": ["source", "destination"],
+        "panel_linkable": True,
     },
     {
         "slug": "nsm_services",
@@ -75,6 +78,7 @@ TYPECONFIG_SPECS = [
         "matching_class": "service",
         "display_template": "{name} ({protocol}/{port})",
         "allowed_placements": ["fixed"],
+        "panel_linkable": True,
     },
     {
         "slug": "nsm_action",
@@ -82,6 +86,7 @@ TYPECONFIG_SPECS = [
         "matching_class": "action",
         "display_template": "{name!u}",
         "allowed_placements": ["fixed"],
+        "panel_linkable": True,
     },
 ]
 
@@ -243,9 +248,11 @@ def _create_typeconfig_for_slug(slug):
     TypeConfig.objects.update_or_create(
         content_type=ct,
         defaults={
+            "name": spec["label"],
             "matching_class": spec["matching_class"],
             "display_template": spec["display_template"],
             "allowed_placements": spec["allowed_placements"],
+            "panel_linkable": spec.get("panel_linkable", True),
         },
     )
 
@@ -262,9 +269,11 @@ def _create_all_typeconfigs():
             TypeConfig.objects.update_or_create(
                 content_type=ct,
                 defaults={
+                    "name": spec["label"],
                     "matching_class": spec["matching_class"],
                     "display_template": spec["display_template"],
                     "allowed_placements": spec["allowed_placements"],
+                    "panel_linkable": spec.get("panel_linkable", True),
                 },
             )
         except Exception:

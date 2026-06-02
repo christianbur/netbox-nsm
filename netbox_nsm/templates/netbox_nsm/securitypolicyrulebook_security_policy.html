@@ -146,6 +146,28 @@
             background: var(--nsm-surface);
             border-bottom: 1px solid var(--nsm-line);
             border-right: 1px solid var(--nsm-line);
+            max-width: 0;           /* makes width:Xpx on th actually clamp td */
+            overflow: hidden;
+          }
+          /* area cells that contain pills can wrap vertically */
+          .nsm-policy-table .table tbody td[data-nsm-field] {
+            white-space: normal;
+          }
+          /* inner wrapper for truncation in text cells */
+          .nsm-cell-inner {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            display: block;
+          }
+          /* pills container: one pill per line */
+          .nsm-rule-pills {
+            display: flex;
+            flex-direction: column;
+            flex-wrap: nowrap;
+            gap: .2rem;
+            align-items: flex-start;
+            overflow: hidden;
           }
           .nsm-policy-table .table tbody td:last-child { border-right: 0; }
           .nsm-policy-table .table tbody tr:last-child td { border-bottom: 0; }
@@ -180,12 +202,6 @@
             box-shadow: none;
           }
           .nsm-rule-label { display: none; }
-          .nsm-rule-pills {
-            display: flex;
-            flex-wrap: wrap;
-            gap: .25rem;
-            align-items: center;
-          }
           .nsm-rule-pill {
             background: var(--nsm-pill-bg);
             border: 1px solid var(--nsm-pill-border);
@@ -278,7 +294,7 @@
           @media (max-width: 992px) {
             .nsm-policy-table .table thead th { font-size: .7rem; padding: .45rem .5rem; }
             .nsm-policy-table .table tbody td { font-size: .78rem; padding: .45rem .5rem; }
-            .nsm-rule-pill { max-width: 140px; font-size: .72rem; }
+            .nsm-rule-pill { max-width: none; font-size: .72rem; }
           }
         </style>
         <div class="mb-2 d-flex align-items-center justify-content-between gap-2 flex-wrap">
@@ -572,7 +588,7 @@
                     <input type="checkbox" id="select-all"
                            onclick="document.querySelectorAll('input[name=pk]').forEach(cb=>cb.checked=this.checked);document.dispatchEvent(new Event('change'))">
                   </th>
-                  <th rowspan="2" class="nsm-main-col"><button type="button" class="nsm-sort-btn" data-nsm-sort data-nsm-col-index="1"><span>Index</span><i class="mdi mdi-unfold-more-horizontal"></i></button></th>
+                  <th rowspan="2" class="nsm-main-col"><button type="button" class="nsm-sort-btn" data-nsm-sort data-nsm-col-index="1"><span>ID</span><i class="mdi mdi-unfold-more-horizontal"></i></button></th>
                   <th rowspan="2" class="nsm-main-col"><button type="button" class="nsm-sort-btn" data-nsm-sort data-nsm-col-index="2"><span>Status</span><i class="mdi mdi-unfold-more-horizontal"></i></button></th>
                   <th rowspan="2" class="nsm-main-col"><button type="button" class="nsm-sort-btn" data-nsm-sort data-nsm-col-index="3"><span>Name</span><i class="mdi mdi-unfold-more-horizontal"></i></button></th>
                   {% for group in policy_header_groups %}
@@ -606,7 +622,7 @@
                 {% for row in policy_grouped_rows %}
                   <tr>
                     <td><input type="checkbox" name="pk" value="{{ row.pk }}"></td>
-                    <td class="nsm-main-col">{{ row.index }}</td>
+                    <td class="nsm-main-col"><span class="nsm-cell-inner">{{ row.index }}</span></td>
                     <td class="nsm-main-col" data-sort-value="{% if row.enabled %}1{% else %}0{% endif %}" data-filter-value="{% if row.enabled %}ein on enabled aktiv 1{% else %}aus off disabled inaktiv 0{% endif %}">
                       {% if row.enabled %}
                         <span class="nsm-status-icon nsm-status-icon-on" title="Ein" aria-label="Ein"><i class="mdi mdi-check"></i></span>
@@ -614,7 +630,7 @@
                         <span class="nsm-status-icon nsm-status-icon-off" title="Aus" aria-label="Aus"><i class="mdi mdi-close"></i></span>
                       {% endif %}
                     </td>
-                    <td class="nsm-main-col"><a href="{{ row.url }}" class="text-body">{{ row.name }}</a></td>
+                    <td class="nsm-main-col"><span class="nsm-cell-inner"><a href="{{ row.url }}" class="text-body">{{ row.name }}</a></span></td>
                     {% for group in policy_header_groups %}
                       {% for col in group.columns %}
                         {% with cell=row.cells|get_item:col.key %}
@@ -624,7 +640,7 @@
                         {% endwith %}
                       {% endfor %}
                     {% endfor %}
-                    <td data-sort-value="{{ row.description|default:''|lower }}" title="{{ row.description|default:'' }}">{{ row.description|truncatechars:21 }}</td>
+                    <td data-sort-value="{{ row.description|default:''|lower }}" title="{{ row.description|default:'' }}"><span class="nsm-cell-inner">{{ row.description|truncatechars:21 }}</span></td>
                     <td class="text-end text-nowrap noprint p-1">
                       <span class="btn-group dropdown">
                         <a class="btn btn-sm btn-warning" href="{{ row.edit_url }}" type="button" aria-label="Edit"><i class="mdi mdi-pencil"></i></a>
@@ -881,6 +897,187 @@
         });
       })();
 
+      // ── Column resize ─────────────────────────────────────────────────
+      (function () {
+        var table = document.querySelector('.nsm-policy-table table');
+        if (!table || !table.tHead) return;
+        var rows = table.tHead.rows;
+        if (rows.length < 2) return;
+        var filterRow = table.querySelector('tr.nsm-filter-row');
+        var tbody = table.tBodies[0];
+        var numCols = (tbody && tbody.rows[0]) ? tbody.rows[0].cells.length : 0;
+        if (!numCols) return;
+
+        var lastDataCol = numCols - 2; // Description col (before Actions)
+
+        // Map col indices from row 0
+        var row0Cells = Array.prototype.slice.call(rows[0].cells);
+        var row0Start = []; var acc = 0;
+        row0Cells.forEach(function (th) { row0Start.push(acc); acc += (th.colSpan || 1); });
+        var rowspanColSet = {};
+        row0Cells.forEach(function (th, ci) {
+          if ((th.rowSpan || 1) >= 2) {
+            for (var k = 0; k < (th.colSpan || 1); k++) rowspanColSet[row0Start[ci] + k] = true;
+          }
+        });
+        var row1ColIndices = [];
+        for (var c = 0; c < numCols; c++) { if (!rowspanColSet[c]) row1ColIndices.push(c); }
+
+        // 1. Measure content widths: temporarily set all cols to 1px in fixed layout
+        //    so cell content overflows, then read scrollWidth (= actual content width).
+        var measureStyle = document.createElement('style');
+        measureStyle.textContent = [
+          '.nsm-policy-table table.nsm-col-measuring tbody td,',
+          '.nsm-policy-table table.nsm-col-measuring tbody td .nsm-cell-inner,',
+          '.nsm-policy-table table.nsm-col-measuring tbody td .nsm-rule-pills {',
+          '  overflow: visible !important; max-width: none !important;',
+          '}',
+          // Individual pills: remove max-width + overflow so scrollWidth = true content size
+          '.nsm-policy-table table.nsm-col-measuring tbody td .nsm-rule-pill {',
+          '  overflow: visible !important; max-width: none !important;',
+          '  white-space: nowrap !important;',
+          '}'
+        ].join('\n');
+        document.head.appendChild(measureStyle);
+
+        var tempCG = document.createElement('colgroup');
+        for (var i0 = 0; i0 < numCols; i0++) {
+          var tc = document.createElement('col');
+          tc.style.width = '1px';
+          tempCG.appendChild(tc);
+        }
+        table.insertBefore(tempCG, table.firstChild);
+        table.classList.add('nsm-col-measuring');
+        table.style.tableLayout = 'fixed';
+        table.style.width = (numCols * 2) + 'px';
+        table.style.minWidth = '0';
+        void table.offsetWidth; // sync reflow
+
+        // Header th: default overflow:visible → scrollWidth = natural content width in 1px mode
+        var hdrW = {};
+        row0Cells.forEach(function (th, ci) {
+          if ((th.rowSpan || 1) >= 2) hdrW[row0Start[ci]] = th.scrollWidth;
+        });
+        if (rows[1] && rows[1] !== filterRow) {
+          Array.prototype.forEach.call(rows[1].cells, function (th, j) {
+            if (row1ColIndices[j] !== undefined) hdrW[row1ColIndices[j]] = th.scrollWidth;
+          });
+        }
+
+        // Body cells: measure widest content per column
+        // For pill cells: find widest individual pill (flex items in 1px container
+        //   don't expand on their own; we must measure each pill separately)
+        // For text cells: scrollWidth of .nsm-cell-inner or td directly
+        var CELL_PAD_H = 20; // horizontal cell padding (2 × .6rem ≈ 9.6px each side)
+        var colWidths = [];
+        for (var c2 = 0; c2 < numCols; c2++) colWidths.push([]);
+        Array.prototype.forEach.call(tbody.rows, function (row) {
+          Array.prototype.forEach.call(row.cells, function (td, ci) {
+            var pills = td.querySelectorAll('.nsm-rule-pill');
+            if (pills.length) {
+              // pill cells: take widest pill + cell padding
+              var maxPill = 0;
+              Array.prototype.forEach.call(pills, function (p) {
+                maxPill = Math.max(maxPill, p.scrollWidth);
+              });
+              colWidths[ci].push(Math.max(1, maxPill + CELL_PAD_H));
+            } else {
+              var inner = td.querySelector('.nsm-cell-inner');
+              colWidths[ci].push(Math.max(1, inner ? inner.scrollWidth + CELL_PAD_H : td.scrollWidth));
+            }
+          });
+        });
+
+        // Remove measurement setup
+        table.removeChild(tempCG);
+        table.classList.remove('nsm-col-measuring');
+        document.head.removeChild(measureStyle);
+        table.style.tableLayout = '';
+        table.style.width = '';
+        table.style.minWidth = '';
+
+        // ~60 chars × 7px (Inter at .78rem); columns wider than this get truncated with …
+        var CH60_PX = 420;
+
+        // Per-column width strategy:
+        //   col 0           checkbox: fixed 28px
+        //   col 1 (ID):     minimal = header natural width only
+        //   col 2 (Status): minimal = header natural width only
+        //   col N-1 (Actions): fixed 72px
+        //   all content cols: max(header, max-body-cell-width) capped at CH60_PX
+        //   Using max (not percentile) avoids sparse columns being sized at 0.
+        var initialWidths = colWidths.map(function (arr, ci) {
+          var h = hdrW[ci] || 40;
+          if (ci === 0) return 28;
+          if (ci === numCols - 1) return Math.max(72, h);
+          if (ci === 1 || ci === 2) return Math.max(30, h);          // ID, Status: minimal
+          var maxW = arr.length ? Math.max.apply(null, arr) : 0;
+          return Math.max(h, Math.min(maxW, CH60_PX));                // show up to 60 chars
+        });
+
+        // 2. Build colgroup
+        var colgroup = document.createElement('colgroup');
+        var cols = [];
+        for (var i = 0; i < numCols; i++) {
+          var col = document.createElement('col');
+          col.style.width = initialWidths[i] + 'px';
+          colgroup.appendChild(col);
+          cols.push(col);
+        }
+        table.insertBefore(colgroup, table.firstChild);
+
+        // 3. Switch to fixed layout
+        table.style.tableLayout = 'fixed';
+        table.style.width = 'max-content';
+        table.style.minWidth = table.offsetWidth + 'px';
+
+        // 4. Full header height (rows 0 + 1, excluding filter row)
+        var row0H = rows[0].offsetHeight;
+        var row1H = (rows[1] && rows[1] !== filterRow) ? rows[1].offsetHeight : 0;
+        var fullH = row0H + row1H;
+
+        // 5. Add resize handles spanning full header height
+        function addHandle(th, colIdx, extendUp) {
+          if (colIdx < 0 || colIdx >= cols.length) return;
+          th.style.position = 'relative';
+          th.style.overflow = 'visible';
+          var handle = document.createElement('div');
+          handle.className = 'nsm-col-resize-handle';
+          handle.style.top = (extendUp ? -extendUp : 0) + 'px';
+          handle.style.height = fullH + 'px';
+          handle.addEventListener('mousedown', function (e) {
+            e.preventDefault();
+            var startX = e.clientX;
+            var startW = cols[colIdx].offsetWidth || 60;
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+            handle.classList.add('nsm-col-resize-handle--active');
+            function onMove(ev) { cols[colIdx].style.width = Math.max(28, startW + ev.clientX - startX) + 'px'; }
+            function onUp() {
+              document.body.style.cursor = '';
+              document.body.style.userSelect = '';
+              handle.classList.remove('nsm-col-resize-handle--active');
+              document.removeEventListener('mousemove', onMove);
+              document.removeEventListener('mouseup', onUp);
+            }
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+          });
+          th.appendChild(handle);
+        }
+
+        // Rowspan≥2 cells in row 0: handle spans full fullH, top=0
+        row0Cells.forEach(function (th, ci) {
+          if ((th.rowSpan || 1) >= 2) addHandle(th, row0Start[ci], 0);
+        });
+        // Row 1 sub-column cells: extend handle upward by row0H to cover group header row
+        if (rows[1] && rows[1] !== filterRow) {
+          Array.prototype.forEach.call(rows[1].cells, function (th, j) {
+            if (row1ColIndices[j] !== undefined) addHandle(th, row1ColIndices[j], row0H);
+          });
+        }
+      })();
+
       // Matrix cell Ctrl+click → fill query bar
       (function () {
         var inp = document.getElementById('nsm-q-input');
@@ -1128,6 +1325,23 @@
           margin-top: 3px; padding: 3px 4px;
           border-left: 2px solid rgba(var(--tblr-primary-rgb), .3);
           display: flex; flex-wrap: wrap; gap: 3px;
+        }
+        /* ── Column resize handle ────────────────────────────────────── */
+        .nsm-col-resize-handle {
+          position: absolute;
+          top: 0;
+          right: 0;
+          width: 7px;
+          height: 100%;
+          cursor: col-resize;
+          z-index: 20;
+          user-select: none;
+          border-right: 2px solid rgba(128,128,128,.25);
+          transition: border-color .12s;
+        }
+        .nsm-col-resize-handle:hover,
+        .nsm-col-resize-handle--active {
+          border-right-color: var(--tblr-primary, #206bc4) !important;
         }
       </style>
     </div>

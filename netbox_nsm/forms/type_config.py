@@ -50,6 +50,12 @@ _NETBOX_APPS = [
 class TypeConfigForm(NetBoxModelForm):
     """Edit form — content_type ist bereits gesetzt, wird nur angezeigt."""
 
+    name = forms.CharField(
+        max_length=100,
+        required=True,
+        label=_("Name"),
+        help_text=_("Display name used as column header and type label throughout NSM."),
+    )
     matching_class = forms.ChoiceField(
         choices=[("", _("— none —"))] + list(MatchingClassChoices.choices),
         required=False,
@@ -105,10 +111,12 @@ class TypeConfigForm(NetBoxModelForm):
     )
 
     fieldsets = (
+        FieldSet("name", name=_("Identity")),
         FieldSet(
             "matching_class",
             "display_template",
             "allowed_placements",
+            "panel_linkable",
             name=_("Configuration"),
         ),
         FieldSet("inherit_links", "inherit_stop_on_own", name=_("Inheritance")),
@@ -117,11 +125,13 @@ class TypeConfigForm(NetBoxModelForm):
     class Meta:
         model = TypeConfig
         fields = (
+            "name",
             "matching_class",
             "display_template",
             "allowed_placements",
             "inherit_links",
             "inherit_stop_on_own",
+            "panel_linkable",
         )
 
     def __init__(self, *args, **kwargs):
@@ -138,6 +148,12 @@ class TypeConfigForm(NetBoxModelForm):
 class TypeConfigAddForm(NetBoxModelForm):
     """Add form — object type selection from all NetBox ContentTypes."""
 
+    name = forms.CharField(
+        max_length=100,
+        required=True,
+        label=_("Name"),
+        help_text=_("Display name used as column header and type label throughout NSM."),
+    )
     content_type = ContentTypeChoiceField(
         queryset=ContentType.objects.filter(app_label__in=_NETBOX_APPS).order_by(
             "app_label", "model"
@@ -200,11 +216,13 @@ class TypeConfigAddForm(NetBoxModelForm):
     )
 
     fieldsets = (
+        FieldSet("name", name=_("Identity")),
         FieldSet("content_type", name=_("Object Type")),
         FieldSet(
             "matching_class",
             "display_template",
             "allowed_placements",
+            "panel_linkable",
             name=_("Configuration"),
         ),
         FieldSet("inherit_links", "inherit_stop_on_own", name=_("Inheritance")),
@@ -213,12 +231,14 @@ class TypeConfigAddForm(NetBoxModelForm):
     class Meta:
         model = TypeConfig
         fields = (
+            "name",
             "content_type",
             "matching_class",
             "display_template",
             "allowed_placements",
             "inherit_links",
             "inherit_stop_on_own",
+            "panel_linkable",
         )
 
     def clean_allowed_placements(self):

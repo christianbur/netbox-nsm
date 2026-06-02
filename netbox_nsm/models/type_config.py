@@ -30,6 +30,11 @@ class TypeConfig(NetBoxModel):
     and which placements it is allowed to appear in.
     """
 
+    name = models.CharField(
+        max_length=100,
+        verbose_name=_("Name"),
+        help_text=_("Display name used as column header and type label throughout NSM."),
+    )
     content_type = models.ForeignKey(
         to="contenttypes.ContentType",
         on_delete=models.CASCADE,
@@ -83,6 +88,13 @@ class TypeConfig(NetBoxModel):
             "type, inherited links of that type are suppressed."
         ),
     )
+    panel_linkable = models.BooleanField(
+        default=True,
+        verbose_name=_("Linkable in panel"),
+        help_text=_(
+            "If enabled, objects of this type can be linked from the NSM Security Panel."
+        ),
+    )
 
     class Meta:
         verbose_name = _("Type Config")
@@ -91,6 +103,8 @@ class TypeConfig(NetBoxModel):
         unique_together = [("content_type", "matching_class")]
 
     def __str__(self):
+        if self.name:
+            return self.name
         if not self.content_type_id:
             return f"TypeConfig(#{self.pk})"
         mc = self.content_type.model_class()

@@ -20,15 +20,13 @@ from .registry import (
     node_from_object,
     registry,
 )
-from ._helpers import nsm_link_edges, policy_item_edges, _MAX
+from ._helpers import nsm_link_edges, policy_item_edges, group_m2m_edges, addr_fk_edges, inherited_nsm_link_edges, _MAX
 
 # ── Shared host helpers ─────────────────────────────────────────────────────
 
 
 def _host_edges(obj, *, iface_model, iface_fk: str) -> list[AnalyzerEdge]:
     """Common edges for Device and VirtualMachine."""
-    from netbox_nsm.models import NSMObjectLink
-
     edges = []
 
     for iface in iface_model.objects.filter(**{iface_fk: obj})[:_MAX]:
@@ -46,15 +44,12 @@ def _host_edges(obj, *, iface_model, iface_fk: str) -> list[AnalyzerEdge]:
         if val:
             edges.append(AnalyzerEdge(label, edge_type, node_from_object(val)))
 
-    # Labels / zones assigned to this host via NSMObjectLink (forward only)
+    # Bidirectional NSMObjectLinks (Security Panel parity: zones, labels, prefixes, etc.)
     ct = ContentType.objects.get_for_model(obj)
-    for link in NSMObjectLink.objects.filter(
-        object_a_type=ct, object_a_id=obj.pk
-    ).select_related("object_b_type")[:15]:
-        if link.object_b is not None:
-            edges.append(
-                AnalyzerEdge("Label", "has_label", node_from_object(link.object_b))
-            )
+    edges.extend(nsm_link_edges(obj, ct))
+
+    # Rules that reference this host (one edge per rule)
+    edges.extend(policy_item_edges(obj, ct))
 
     return edges
 
@@ -143,6 +138,8 @@ def _ipaddress(ip):
     ct = ContentType.objects.get_for_model(ip)
     edges.extend(policy_item_edges(ip, ct))
     edges.extend(nsm_link_edges(ip, ct))
+    edges.extend(addr_fk_edges(ip))
+    edges.extend(inherited_nsm_link_edges(ip))
     return edges
 
 
@@ -169,6 +166,8 @@ def _prefix(pfx):
     ct = ContentType.objects.get_for_model(pfx)
     edges.extend(policy_item_edges(pfx, ct))
     edges.extend(nsm_link_edges(pfx, ct))
+    edges.extend(addr_fk_edges(pfx))
+    edges.extend(inherited_nsm_link_edges(pfx))
     return edges
 
 
@@ -249,6 +248,7 @@ def _generic_fallback(obj) -> list[AnalyzerEdge]:
     Traverses:
     - Forward FK fields
     - Forward M2M fields (excluding tags)
+    - group M2M members + reverse parent groups (Security Panel)
     - Reverse through-table M2M (netbox_custom_objects only)
     - Bidirectional NSMObjectLink
     - SecurityPolicyRuleObjectItem → deduplicated to Rulebook level
@@ -266,13 +266,16 @@ def _generic_fallback(obj) -> list[AnalyzerEdge]:
                 label = str(f.verbose_name).title() if f.verbose_name else f.name
                 edges.append(AnalyzerEdge(label, f.name, node_from_object(related)))
 
-    # Forward M2M fields
+    # Forward M2M fields (skip group — handled by group_m2m_edges below)
     for f in obj._meta.many_to_many:
-        if f.name == "tags":
+        if f.name in ("tags", "group"):
             continue
         label = str(f.verbose_name).title() if f.verbose_name else f.name
         for rel in getattr(obj, f.name).all()[:25]:
             edges.append(AnalyzerEdge(label, f.name, node_from_object(rel)))
+
+    # group M2M: members (forward) + parent groups (reverse) — Security Panel parity
+    edges.extend(group_m2m_edges(obj))
 
     # Reverse through-table M2M (netbox_custom_objects):
     # The reverse M2M accessor has related_name='+' (not navigable via Python

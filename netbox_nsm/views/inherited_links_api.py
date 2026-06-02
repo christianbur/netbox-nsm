@@ -68,6 +68,7 @@ class InheritedLinksApiView(View):
                 get_display_template_map,
                 render_object_display,
                 ct_display_label,
+                tc_panel_label,
             )
             from django.db.models import prefetch_related_objects
 
@@ -176,7 +177,7 @@ class InheritedLinksApiView(View):
                         )
                         if type_key not in inh_links_by_type:
                             inh_links_by_type[type_key] = {
-                                "label": ct_display_label(lct),
+                                "label": tc_panel_label(lct, tc),
                                 "objects": [],
                             }
                             covered_type_keys.add(type_key)
@@ -210,7 +211,7 @@ class InheritedLinksApiView(View):
                                 ):
                                     if _addr_type_key not in inh_links_by_type:
                                         inh_links_by_type[_addr_type_key] = {
-                                            "label": ct_display_label(_addr_ct),
+                                            "label": tc_panel_label(_addr_ct, tc),
                                             "objects": [],
                                         }
                                         covered_type_keys.add(_addr_type_key)

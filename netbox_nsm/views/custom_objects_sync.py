@@ -180,7 +180,7 @@ class SyncBuiltinToCustomObjectsView(LoginRequiredMixin, View):
     """POST-only: full sync of BUILTIN_CUSTOM_TYPES into custom-objects."""
 
     def post(self, request, *args, **kwargs):
-        redirect_url = reverse("plugins:netbox_nsm:object_builder", args=["types"])
+        redirect_url = reverse("plugins:netbox_nsm:setup")
 
         try:
             from netbox_custom_objects.schema.executor import apply_document

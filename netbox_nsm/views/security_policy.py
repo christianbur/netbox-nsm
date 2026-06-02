@@ -77,7 +77,7 @@ def _render_vgroup_cell(items):
     return f'<div class="nsm-vgroup-bubble">{inner}</div>'
 
 
-def _render_policy_cell(items):
+def _render_policy_cell(items, colored=True):
     import uuid as _uuid
     if not items:
         return '<span class="text-muted small">-</span>'
@@ -85,7 +85,7 @@ def _render_policy_cell(items):
     groups = [i for i in items if i.get("is_group")]
     out = []
     for item in regular:
-        color = (item.get("color") or "").strip()
+        color = (item.get("color") or "").strip() if colored else ""
         style_attr = ""
         extra_class = ""
         if color:
@@ -144,14 +144,18 @@ def _build_grouped_policy_table_data(rules, selected_columns, rulebook=None):
     # Build ct_id → label map from TypeConfig
     ct_label_map = {}
     for tc in TypeConfig.objects.select_related("content_type"):
-        mc = tc.content_type.model_class()
-        if mc:
-            vc = getattr(mc._meta, "verbose_name", tc.content_type.model)
-            ct_label_map[tc.content_type.pk] = str(vc).capitalize()
+        lct = tc.content_type
+        if tc.name:
+            label = tc.name
+        else:
+            mc = lct.model_class()
+            label = mc._meta.verbose_name.title() if mc else lct.model.replace("_", " ").title()
+        ct_label_map[lct.pk] = label
 
     # Build field metadata from rulebook
     fields_by_slug = {}
     field_ct_ids_map = {}  # slug → [ct_id, ...]
+    field_ct_colored_map = {}  # slug → {ct_id: show_colored_pills}
     if rulebook:
         for field in rulebook.fields.prefetch_related(
             "type_configs__type_config__content_type"
@@ -162,6 +166,11 @@ def _build_grouped_policy_table_data(rules, selected_columns, rulebook=None):
                 for ft in field.type_configs.all()
                 if ft.type_config and ft.type_config.content_type_id
             ]
+            field_ct_colored_map[field.slug] = {
+                ft.type_config.content_type_id: ft.show_colored_pills
+                for ft in field.type_configs.all()
+                if ft.type_config and ft.type_config.content_type_id
+            }
 
     def _slugs_for_col(col):
         if col == "source":
@@ -219,11 +228,21 @@ def _build_grouped_policy_table_data(rules, selected_columns, rulebook=None):
             cols = []
             for type_key, type_label in types:
                 key = f"{field_slug}::{type_key}"
+                # Per-type colored flag (from RulebookFieldType.show_colored_pills)
+                if type_key.startswith("ct_"):
+                    try:
+                        _ct_id = int(type_key[3:])
+                    except ValueError:
+                        _ct_id = None
+                    _type_colored = field_ct_colored_map.get(field_slug, {}).get(_ct_id, True) if _ct_id else True
+                else:
+                    _type_colored = True
                 col_def = {
                     "key": key,
                     "label": type_label,
                     "area_slug": field_slug,
                     "type_name": type_key,
+                    "colored": _type_colored,
                 }
                 cols.append(col_def)
                 grouped_columns.append(col_def)
@@ -285,8 +304,11 @@ def _build_grouped_policy_table_data(rules, selected_columns, rulebook=None):
             )
 
         cells = {}
+        _global_colored = getattr(rulebook, "show_colored_pills", True) if rulebook else True
+        # Build per-column colored map (global flag acts as master switch)
+        _key_colored = {col["key"]: (col.get("colored", True) and _global_colored) for col in grouped_columns}
         for k, v in per_key.items():
-            cells[k] = _render_policy_cell(v)
+            cells[k] = _render_policy_cell(v, colored=_key_colored.get(k, _global_colored))
 
         rows.append(
             {
@@ -397,7 +419,7 @@ def _build_security_rule_picker_data(rulebook=None):
             api_url = _get_api_url_for_content_type(tc.content_type)
             if not api_url:
                 continue
-            label = str(model_class._meta.verbose_name_plural).title()
+            label = tc.name if tc.name else str(model_class._meta.verbose_name_plural).title()
             field_data["types"].append(
                 {
                     "name": label,
@@ -1580,6 +1602,22 @@ def _extract_ip_refs_visited(obj, visited=None):
     except Exception:
         pass
 
+    # Detect address groups: objects with a populated 'group' M2M relation
+    # (Custom Objects "Addresses" model uses a 'group' field for nested groups)
+    group_rel = getattr(obj, "group", None)
+    if group_rel is not None and hasattr(group_rel, "all"):
+        try:
+            members = list(group_rel.all())
+        except Exception:
+            members = []
+        if members:
+            for member in members:
+                if member.pk not in visited:
+                    visited.add(member.pk)
+                    refs.extend(_extract_ip_refs_visited(member, visited))
+            return refs
+
+    # Legacy: explicit address_type field
     address_type = getattr(obj, "address_type", None)
     if address_type == "address-group":
         try:
@@ -1634,15 +1672,32 @@ def _build_addr_tree_node(obj, visited=None):
 
     address_type = getattr(obj, "address_type", None)
 
-    if address_type == "address-group":
-        children = []
+    # Detect address groups via 'group' M2M (Custom Objects Addresses model)
+    group_rel = getattr(obj, "group", None)
+    _is_group_via_m2m = False
+    _group_members = []
+    if group_rel is not None and hasattr(group_rel, "all"):
         try:
-            for sub in obj.address_group.all():
+            _group_members = list(group_rel.all())
+            _is_group_via_m2m = bool(_group_members)
+        except Exception:
+            pass
+
+    if _is_group_via_m2m or address_type == "address-group":
+        children = []
+        if _is_group_via_m2m:
+            for sub in _group_members:
                 child = _build_addr_tree_node(sub, visited)
                 if child:
                     children.append(child)
-        except Exception:
-            pass
+        else:
+            try:
+                for sub in obj.address_group.all():
+                    child = _build_addr_tree_node(sub, visited)
+                    if child:
+                        children.append(child)
+            except Exception:
+                pass
         return {
             "name": str(obj.name),
             "url": obj.get_absolute_url(),
@@ -1676,15 +1731,22 @@ def _build_addr_tree_node(obj, visited=None):
             "children": [],
         }
 
-    # IPAM object or unknown — treat as leaf
+    # IPAM object or unknown — treat as leaf; check common IP fields
     ip_ref = None
     try:
         if obj._meta.app_label == "ipam":
             ip_ref = {"str": str(obj), "url": obj.get_absolute_url()}
+        else:
+            # Custom Objects Addresses: check prefix, ip_address, range fields
+            for _fn in ("prefix", "ip_address", "range"):
+                _rel = getattr(obj, _fn, None)
+                if _rel is not None:
+                    ip_ref = {"str": str(_rel), "url": _rel.get_absolute_url()}
+                    break
     except Exception:
         pass
     return {
-        "name": str(obj),
+        "name": str(getattr(obj, "name", obj)),
         "url": getattr(obj, "get_absolute_url", lambda: "#")(),
         "kind": "leaf",
         "ip_ref": ip_ref,

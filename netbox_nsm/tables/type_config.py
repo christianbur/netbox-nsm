@@ -1,4 +1,5 @@
 import django_tables2 as tables
+from django.urls import reverse, NoReverseMatch
 from django.utils.html import format_html, mark_safe
 from django.utils.translation import gettext_lazy as _
 
@@ -36,6 +37,11 @@ _MATCHING_CLASS_BADGE = {
 
 
 class TypeConfigTable(NetBoxTable):
+    name = tables.Column(
+        verbose_name=_("Name"),
+        orderable=True,
+        linkify=True,
+    )
     content_type = tables.Column(
         verbose_name=_("Object Type"),
         orderable=True,
@@ -49,6 +55,9 @@ class TypeConfigTable(NetBoxTable):
     inherit_links = tables.Column(verbose_name=_("Inheritance"), orderable=True)
     inherit_stop_on_own = tables.Column(
         verbose_name=_("Stop on own link"), orderable=True
+    )
+    panel_linkable = tables.Column(
+        verbose_name=_("Panel"), orderable=True
     )
     actions = tables.TemplateColumn(
         template_code=_ACTIONS_TEMPLATE,
@@ -69,12 +78,26 @@ class TypeConfigTable(NetBoxTable):
         model_name = (
             model_name[:1].upper() + model_name[1:] if model_name else model_name
         )
-        return format_html(
+        inner = format_html(
             '<span class="text-muted fw-semibold">{}</span>'
             ' <span class="text-muted">&rsaquo;</span> {}',
             app_name,
             model_name,
         )
+        # Try to find the object list URL
+        url = None
+        for pattern in (
+            f"{value.app_label}:{value.model}_list",
+            f"plugins:{value.app_label}:{value.model}_list",
+        ):
+            try:
+                url = reverse(pattern)
+                break
+            except NoReverseMatch:
+                pass
+        if url:
+            return format_html('<a href="{}">{}</a>', url, inner)
+        return inner
 
     def render_matching_class(self, value):
         if not value:
@@ -104,23 +127,35 @@ class TypeConfigTable(NetBoxTable):
             )
         return mark_safe('<span class="text-muted">—</span>')
 
+    def render_panel_linkable(self, value):
+        if value:
+            return format_html(
+                '<span class="badge bg-primary text-white"><i class="mdi mdi-link-variant"></i> {}</span>',
+                _("Yes"),
+            )
+        return mark_safe('<span class="text-muted">—</span>')
+
     class Meta(NetBoxTable.Meta):
         model = TypeConfig
         fields = (
+            "name",
             "content_type",
             "matching_class",
             "display_template",
             "allowed_placements",
             "inherit_links",
             "inherit_stop_on_own",
+            "panel_linkable",
             "actions",
         )
         default_columns = (
+            "name",
             "content_type",
             "matching_class",
             "display_template",
             "allowed_placements",
             "inherit_links",
             "inherit_stop_on_own",
+            "panel_linkable",
             "actions",
         )

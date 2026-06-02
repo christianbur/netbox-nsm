@@ -452,14 +452,14 @@
             <div id="nsm-facet-content">
               {% for facet in nsm_facets %}
               <div class="nsm-facet-section mb-1" data-facet-slug="{{ facet.field_slug }}" data-mode="value">
-                <div class="d-flex justify-content-between align-items-start mb-1">
-                  <button type="button" class="nsm-facet-section-toggle btn p-0 text-muted me-1 flex-shrink-0 d-flex align-items-center"
-                          data-section="{{ facet.field_slug }}"
-                          style="font-size:13px;border:none;background:none;line-height:1;">
-                    <i class="mdi mdi-chevron-right nsm-sec-chev"></i>
-                  </button>
-                  <div class="flex-grow-1 min-width-0">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <div class="flex-grow-1 min-width-0 d-flex align-items-center gap-1">
                     <span class="fw-semibold" style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--tblr-text-muted, #6b7280);">{{ facet.field_name }}</span>
+                    <button type="button" class="nsm-facet-section-toggle btn p-0 text-muted flex-shrink-0 d-flex align-items-center"
+                            data-section="{{ facet.field_slug }}"
+                            style="font-size:12px;border:none;background:none;line-height:1;">
+                      <i class="mdi mdi-menu-right nsm-sec-chev"></i>
+                    </button>
                   </div>
                   <button type="button" class="nsm-facet-mode-toggle btn p-0 text-muted flex-shrink-0 ms-1"
                           data-facet="{{ facet.field_slug }}"
@@ -881,31 +881,6 @@
         });
       })();
 
-      // Facet value/set mode toggle
-      document.querySelectorAll('.nsm-facet-mode-toggle').forEach(function (btn) {
-        btn.addEventListener('click', function (e) {
-          e.stopPropagation();
-          var slug = btn.getAttribute('data-facet');
-          var block = document.querySelector('.nsm-facet-block[data-facet-slug="' + slug + '"]');
-          var label = block.querySelector('.nsm-facet-mode-label');
-          var vList = block.querySelector('.nsm-facet-entries-value');
-          var sList = block.querySelector('.nsm-facet-entries-set');
-          if (!block || !vList || !sList) return;
-          var current = block.getAttribute('data-mode');
-          if (current === 'value') {
-            block.setAttribute('data-mode', 'set');
-            vList.style.display = 'none';
-            sList.style.display = '';
-            label.textContent = 'set';
-          } else {
-            block.setAttribute('data-mode', 'value');
-            sList.style.display = 'none';
-            vList.style.display = '';
-            label.textContent = 'val';
-          }
-        });
-      });
-
       // Matrix cell Ctrl+click → fill query bar
       (function () {
         var inp = document.getElementById('nsm-q-input');
@@ -984,10 +959,10 @@
           if (!body) return;
           if (openSlugs.indexOf(slug) !== -1) {
             body.style.display = '';
-            if (chev) chev.className = 'mdi mdi-chevron-down nsm-sec-chev';
+            if (chev) chev.className = 'mdi mdi-menu-down nsm-sec-chev';
           } else {
             body.style.display = 'none';
-            if (chev) chev.className = 'mdi mdi-chevron-right nsm-sec-chev';
+            if (chev) chev.className = 'mdi mdi-menu-right nsm-sec-chev';
           }
         });
 
@@ -1001,29 +976,89 @@
             if (!body) return;
             var collapsed = body.style.display === 'none';
             body.style.display = collapsed ? '' : 'none';
-            if (chev) chev.className = collapsed ? 'mdi mdi-chevron-down nsm-sec-chev' : 'mdi mdi-chevron-right nsm-sec-chev';
+            if (chev) chev.className = collapsed ? 'mdi mdi-menu-down nsm-sec-chev' : 'mdi mdi-menu-right nsm-sec-chev';
             saveState();
           });
         });
       })();
 
-      // Facet value/set mode toggle (sidebar) — both sections always visible, active = normal, inactive = dimmed
-      document.querySelectorAll('.nsm-facet-mode-toggle').forEach(function (btn) {
-        btn.addEventListener('click', function (e) {
-          e.stopPropagation();
-          var slug = btn.getAttribute('data-facet');
-          var block = document.querySelector('.nsm-facet-section[data-facet-slug="' + slug + '"]');
-          if (!block) return;
-          var isSet = block.getAttribute('data-mode') === 'set';
-          block.setAttribute('data-mode', isSet ? 'value' : 'set');
+      // Facet value/set mode toggle (sidebar) — URL-param persistence
+      (function () {
+        function applyMode(block, btn, mode) {
+          block.setAttribute('data-mode', mode);
           var valLbl = btn.querySelector('.nsm-mode-val');
           var setLbl = btn.querySelector('.nsm-mode-set');
           if (valLbl && setLbl) {
-            valLbl.style.opacity = isSet ? '' : '.35';
-            setLbl.style.opacity = isSet ? '.35' : '';
+            valLbl.style.opacity = mode === 'set' ? '.35' : '';
+            setLbl.style.opacity = mode === 'set' ? '' : '.35';
           }
+        }
+
+        function getCurrentModes() {
+          var m = {};
+          document.querySelectorAll('.nsm-facet-section').forEach(function (sec) {
+            var slug = sec.getAttribute('data-facet-slug');
+            var mode = sec.getAttribute('data-mode');
+            if (mode === 'set') m[slug] = 'set';
+          });
+          return m;
+        }
+
+        function augmentUrl(href) {
+          var parts = href.split('?');
+          var base = parts[0];
+          var params = new URLSearchParams(parts[1] || '');
+          // remove stale mode params
+          Array.from(params.keys()).forEach(function (k) {
+            if (k.startsWith('nsm_fm_')) params.delete(k);
+          });
+          // inject current modes
+          var modes = getCurrentModes();
+          Object.keys(modes).forEach(function (slug) { params.set('nsm_fm_' + slug, '1'); });
+          var qs = params.toString();
+          return qs ? base + '?' + qs : base;
+        }
+
+        // Restore modes from URL on page load
+        var urlParams = new URLSearchParams(window.location.search);
+        urlParams.forEach(function (val, key) {
+          if (!key.startsWith('nsm_fm_')) return;
+          var slug = key.slice('nsm_fm_'.length);
+          var btn = document.querySelector('.nsm-facet-mode-toggle[data-facet="' + slug + '"]');
+          var block = document.querySelector('.nsm-facet-section[data-facet-slug="' + slug + '"]');
+          if (btn && block) applyMode(block, btn, 'set');
         });
-      });
+
+        // Toggle on click
+        document.querySelectorAll('.nsm-facet-mode-toggle').forEach(function (btn) {
+          btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var slug = btn.getAttribute('data-facet');
+            var block = document.querySelector('.nsm-facet-section[data-facet-slug="' + slug + '"]');
+            if (!block) return;
+            var newMode = block.getAttribute('data-mode') === 'set' ? 'value' : 'set';
+            applyMode(block, btn, newMode);
+            // update URL without reload so subsequent link clicks pick up modes
+            var newUrl = augmentUrl(window.location.href);
+            history.replaceState(null, '', newUrl);
+          });
+        });
+
+        // Intercept facet link clicks → inject mode params before navigation
+        var facetContent = document.getElementById('nsm-facet-content');
+        if (facetContent) {
+          facetContent.addEventListener('click', function (e) {
+            var a = e.target.closest('a.nsm-facet-entry, a.btn.btn-sm.btn-outline-danger');
+            if (!a) return;
+            var href = a.getAttribute('href');
+            if (!href) return;
+            var modes = getCurrentModes();
+            if (Object.keys(modes).length === 0) return; // no set modes → navigate normally
+            e.preventDefault();
+            window.location.href = augmentUrl(href);
+          });
+        }
+      })();
 
       </script>
       <style>

@@ -88,10 +88,10 @@ class RulebookContext:
 
     @property
     def facetable_fields(self) -> List:
-        """All fields ordered by weight (desc) then slug (asc). Every field is facetable."""
+        """All fields ordered by sort_order (matching table column order). Every field is facetable."""
         return sorted(
             self._by_slug.values(),
-            key=lambda x: (-getattr(x, "facet_weight", 100), x.slug),
+            key=lambda x: getattr(x, "sort_order", 9999),
         )
 
 

@@ -354,7 +354,7 @@
         if (_ctrl && _ctrl.signal.aborted) return;
         var items = [].concat.apply([], all);
         if (!items.length) {
-          dropEl.innerHTML = "<div class='nsm-drop-msg'>Keine Ergebnisse</div>";
+          dropEl.innerHTML = "<div class='nsm-drop-msg'>{% trans 'No results' %}</div>";
           dropEl.hidden = false;
           return;
         }

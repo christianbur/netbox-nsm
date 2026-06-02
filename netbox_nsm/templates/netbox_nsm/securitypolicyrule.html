@@ -3,6 +3,21 @@
 {% load helpers %}
 {% load plugins %}
 
+{% block breadcrumbs %}
+  {% if object.rulebook %}
+  <li class="breadcrumb-item">
+    <a href="{% url 'plugins:netbox_nsm:securitypolicyrulebook_list' %}">{% trans "Security Policies" %}</a>
+  </li>
+  <li class="breadcrumb-item">
+    <a href="{% url 'plugins:netbox_nsm:securitypolicyrulebook_policy' pk=object.rulebook.pk %}">{{ object.rulebook }}</a>
+  </li>
+  {% else %}
+  <li class="breadcrumb-item">
+    <a href="{% url 'plugins:netbox_nsm:securitypolicyrulebook_list' %}">{% trans "Security Policies" %}</a>
+  </li>
+  {% endif %}
+{% endblock breadcrumbs %}
+
 {% block head %}
 {{ block.super }}
 <style>

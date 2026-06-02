@@ -8,7 +8,7 @@ from django.views.generic.edit import FormView
 from utilities.views import register_model_view
 
 from netbox_nsm.forms.rulebook_field import RulebookFieldForm, RulebookFieldTypeForm
-from netbox_nsm.models import RulebookField, RulebookFieldType, SecurityPolicyRulebook
+from netbox_nsm.models import RulebookField, RulebookFieldType, SecurityPolicyRulebook, TypeConfig
 
 __all__ = (
     "RulebookFieldAddView",
@@ -53,6 +53,14 @@ class RulebookFieldAddView(View):
             field = form.save(commit=False)
             field.rulebook = rulebook
             field.save()
+            # Sync allowed types
+            selected = set(form.cleaned_data.get("type_configs") or [])
+            max_items = form.cleaned_data.get("max_items")
+            for tc in selected:
+                RulebookFieldType.objects.get_or_create(
+                    field=field, type_config=tc,
+                    defaults={"max_items": max_items},
+                )
             messages.success(
                 request, _("Field '%(name)s' wurde angelegt.") % {"name": field.name}
             )
@@ -105,6 +113,19 @@ class RulebookFieldEditView(View):
         form = RulebookFieldForm(request.POST, instance=field)
         if form.is_valid():
             field = form.save()
+            # Sync allowed types (add new, remove deselected)
+            selected = set(form.cleaned_data.get("type_configs") or [])
+            max_items = form.cleaned_data.get("max_items")
+            existing_map = {ft.type_config: ft for ft in RulebookFieldType.objects.filter(field=field)}
+            for tc in selected:
+                if tc not in existing_map:
+                    RulebookFieldType.objects.create(field=field, type_config=tc, max_items=max_items)
+                elif existing_map[tc].max_items != max_items:
+                    existing_map[tc].max_items = max_items
+                    existing_map[tc].save(update_fields=["max_items"])
+            for tc, ft in existing_map.items():
+                if tc not in selected:
+                    ft.delete()
             messages.success(
                 request, _("Field '%(name)s' wurde gespeichert.") % {"name": field.name}
             )

@@ -42,6 +42,14 @@
           {% endif %}
 
           <div class="mb-3">
+            <label class="form-label" for="{{ form.name.id_for_label }}">
+              {% trans "Name" %} <span class="text-danger">*</span>
+            </label>
+            {{ form.name }}
+            {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors }}</div>{% endif %}
+          </div>
+
+          <div class="mb-3">
             <label class="form-label" for="{{ form.slug.id_for_label }}">
               {% trans "Slug" %} <span class="text-danger">*</span>
             </label>
@@ -55,14 +63,6 @@
               <option value="action">
               <option value="info">
             </datalist>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label" for="{{ form.name.id_for_label }}">
-              {% trans "Name" %} <span class="text-danger">*</span>
-            </label>
-            {{ form.name }}
-            {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors }}</div>{% endif %}
           </div>
 
           <div class="mb-3">
@@ -83,6 +83,15 @@
           </div>
 
           <div class="mb-3">
+            <label class="form-label" for="{{ form.type_configs.id_for_label }}">
+              {% trans "Allowed Types" %}
+            </label>
+            {{ form.type_configs }}
+            {% if form.type_configs.errors %}<div class="text-danger small mt-1">{{ form.type_configs.errors }}</div>{% endif %}
+            <div class="form-text">{{ form.type_configs.help_text }} {% trans "(Ctrl/Cmd+Click for multiple)" %}</div>
+          </div>
+
+          <div class="mb-3">
             <label class="form-label" for="{{ form.max_items.id_for_label }}">
               {% trans "Max Items" %}
             </label>
@@ -98,6 +107,25 @@
             <a href="{{ return_url }}" class="btn btn-outline-secondary">{% trans "Cancel" %}</a>
           </div>
         </form>
+
+        <script>
+        (function () {
+          var nameEl = document.getElementById('{{ form.name.id_for_label }}');
+          var slugEl = document.getElementById('{{ form.slug.id_for_label }}');
+          var slugEdited = slugEl.value.length > 0;
+
+          slugEl.addEventListener('input', function () { slugEdited = true; });
+
+          nameEl.addEventListener('input', function () {
+            if (slugEdited) return;
+            slugEl.value = nameEl.value
+              .toLowerCase()
+              .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+              .replace(/[^a-z0-9]+/g, '_')
+              .replace(/^_+|_+$/g, '');
+          });
+        })();
+        </script>
       </div>
     </div>
   </div>

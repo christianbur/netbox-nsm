@@ -185,6 +185,7 @@
     var k = searchKey(areaSlug, placement);
     var s = getSearch(areaSlug, placement);
     var query = s.query.trim();
+    var apiQuery = (query === '*') ? '' : query;  // * = show all
 
     if (state._ctrl[k]) { state._ctrl[k].abort(); }
 
@@ -206,7 +207,7 @@
     var groupType   = types.find  (function (t) { return t.kind === "group"; });
 
     var fetches = objectTypes.map(function (type) {
-      var url = type.api_url + "?q=" + encodeURIComponent(query) + "&limit=20&brief=1";
+      var url = type.api_url + "?q=" + encodeURIComponent(apiQuery) + "&limit=20&brief=1";
       return fetch(url, {
         signal: ctrl.signal,
         headers: { "Accept": "application/json", "X-CSRFToken": getCsrf() },
@@ -231,9 +232,9 @@
 
     // Groups: client-side filter (static list, no API call needed)
     if (groupType && Array.isArray(groupType.entries)) {
-      var ql = query.toLowerCase();
+      var ql = apiQuery.toLowerCase();
       var groupResults = groupType.entries
-        .filter(function (g) { return g.name.toLowerCase().indexOf(ql) !== -1; })
+        .filter(function (g) { return apiQuery === '' || g.name.toLowerCase().indexOf(ql) !== -1; })
         .map(function (g) { return { kind: "group", id: g.id, name: g.name, typeName: "Group" }; });
       fetches.push(Promise.resolve(groupResults));
     }
@@ -263,7 +264,7 @@
     }
 
     if (s.loading) {
-      dropEl.innerHTML = "<div class='nsm-drop-msg'>Suche\u2026</div>";
+      dropEl.innerHTML = "<div class='nsm-drop-msg'>" + t('searching', 'Searching\u2026') + "</div>";
       dropEl.hidden = false;
       return;
     }
@@ -273,7 +274,7 @@
     });
 
     if (!available.length) {
-      dropEl.innerHTML = "<div class='nsm-drop-msg'>Keine Ergebnisse</div>";
+      dropEl.innerHTML = "<div class='nsm-drop-msg'>" + t('no_results', 'No results') + "</div>";
       dropEl.hidden = false;
       return;
     }
@@ -379,14 +380,14 @@
       + " data-area='" + esc(areaSlug) + "'"
       + (isGrouped ? " checked" : "") + ">"
       + "<label class='form-check-label small' for='nsm-vg-" + esc(areaSlug) + "'>"
-      + "Als Gruppe <span class='text-muted'>(AND \u2014 Anzeige: <em>Label1 | Label2</em>)</span>"
-      + (isGrouped ? " <span class='badge bg-primary'>aktiv</span>" : "")
+      + t('as_group', 'As group') + " <span class='text-muted'>(AND \u2014 display: <em>Label1 | Label2</em>)</span>"
+      + (isGrouped ? " <span class='badge bg-primary'>" + t('active', 'Active') + "</span>" : "")
       + "</label>"
       + "</div>"
       + "</div>";
 
     if (!sel.length) {
-      html += "<div class='nsm-empty'>Keine Auswahl</div>";
+      html += "<div class='nsm-empty'>" + t('no_selection', 'No selection') + "</div>";
       return html;
     }
 
@@ -499,7 +500,7 @@
       + (typeNames.length
         ? "<div class='nsm-hint'>" + t('types', 'Types') + ": " + esc(typeNames.join(", ")) + "</div>"
         : "")
-      + "<div class='nsm-hint nsm-hint-tip'><i class='mdi mdi-lightbulb-outline me-1'></i>" + t('search_tip', 'Tip: use * or leave empty to show all') + "</div>"
+      + "<div class='nsm-hint nsm-hint-tip'><i class='mdi mdi-lightbulb-outline me-1'></i>" + t('search_tip', 'Tip: type * to show all') + "</div>"
       + "<div class='nsm-search-wrap'>"
       + "<input type='search' class='form-control form-control-sm nsm-search-input'"
       + " autocomplete='off'"

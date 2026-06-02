@@ -170,8 +170,9 @@ def _build_grouped_policy_table_data(rules, selected_columns, rulebook=None):
             return [
                 s for s, f in fields_by_slug.items() if f.placement == "destination"
             ]
-        if col in ("service", "action", "info"):
-            return [s for s in fields_by_slug if s == col]
+        # Any other column: direct slug match (fixed-placement fields etc.)
+        if col in fields_by_slug:
+            return [col]
         return []
 
     # Collect used keys from items
@@ -431,40 +432,58 @@ def _build_security_rule_picker_data(rulebook=None):
     return {"areas": ordered_areas}
 
 
-def _available_policy_columns():
-    has_src = RulebookField.objects.filter(placement="source").exists()
-    has_dst = RulebookField.objects.filter(placement="destination").exists()
-    has_svc = RulebookField.objects.filter(slug="service").exists()
-    has_act = RulebookField.objects.filter(slug="action").exists()
-    return {
-        "source": has_src,
-        "destination": has_dst,
-        "service": has_svc,
-        "action": has_act,
-        "info": False,
+def _available_policy_columns(rulebook=None):
+    if rulebook is None:
+        # Legacy fallback (no rulebook context)
+        result = {
+            "source": RulebookField.objects.filter(placement="source").exists(),
+            "destination": RulebookField.objects.filter(placement="destination").exists(),
+        }
+        for slug in ("service", "action", "info"):
+            result[slug] = RulebookField.objects.filter(slug=slug).exists()
+        return result
+    result = {
+        "source": rulebook.fields.filter(placement="source").exists(),
+        "destination": rulebook.fields.filter(placement="destination").exists(),
     }
+    for field in rulebook.fields.filter(placement="fixed"):
+        result[field.slug] = True
+    return result
+
+
+def _dynamic_policy_columns(rulebook):
+    """Build the (name, label) column list dynamically from a rulebook's fields."""
+    cols = [
+        ("index", _("Index")),
+        ("status", _("Status")),
+        ("name", _("Name")),
+    ]
+    has_source = has_dest = False
+    for field in rulebook.fields.order_by("sort_order", "slug"):
+        if field.placement == "source" and not has_source:
+            cols.append(("source", _("Source")))
+            has_source = True
+        elif field.placement == "destination" and not has_dest:
+            cols.append(("destination", _("Destination")))
+            has_dest = True
+        elif field.placement == "fixed":
+            cols.append((field.slug, field.name))
+    cols.append(("description", _("Description")))
+    return cols
 
 
 def _filter_policy_columns(columns, availability):
-    filtered = []
-    for column in columns:
-        if column in (
-            "source",
-            "destination",
-            "service",
-            "action",
-            "info",
-        ) and not availability.get(column, False):
-            continue
-        filtered.append(column)
-    return filtered
+    """Remove columns that are known to be unavailable."""
+    return [col for col in columns if availability.get(col, True)]
 
 
 def _policy_columns_session_key(rulebook_pk):
     return f"netbox_nsm_policy_columns_{rulebook_pk}"
 
 
-def _default_security_rules_columns():
+def _default_security_rules_columns(rulebook=None):
+    if rulebook is not None:
+        return [name for name, _ in _dynamic_policy_columns(rulebook)]
     return [
         column
         for column in SecurityPolicyRuleTable.Meta.default_columns
@@ -488,10 +507,14 @@ def _sanitize_custom_columns(custom_columns):
     return sanitized
 
 
-def _get_policy_table_config(request, rulebook_pk):
-    allowed_columns = [name for name, _ in SECURITY_RULES_COLUMNS]
+def _get_policy_table_config(request, rulebook_pk, rulebook=None):
+    if rulebook is not None:
+        dynamic_cols = _dynamic_policy_columns(rulebook)
+        allowed_columns = [name for name, _ in dynamic_cols]
+    else:
+        allowed_columns = [name for name, _ in SECURITY_RULES_COLUMNS]
     allowed_set = set(allowed_columns)
-    default_columns = _default_security_rules_columns()
+    default_columns = _default_security_rules_columns(rulebook)
 
     config = request.session.get(_policy_columns_session_key(rulebook_pk), {})
     stored_columns = config.get("selected_columns")
@@ -1201,8 +1224,8 @@ class SecurityPolicyRulebookView(generic.ObjectView):
                 "matching_classes": matching_classes,
             }
 
-        availability = _available_policy_columns()
-        config = _get_policy_table_config(request, instance.pk)
+        availability = _available_policy_columns(instance)
+        config = _get_policy_table_config(request, instance.pk, rulebook=instance)
         selected_columns = _filter_policy_columns(
             config["selected_columns"], availability
         )
@@ -1211,7 +1234,7 @@ class SecurityPolicyRulebookView(generic.ObjectView):
 
         return {
             "assignments": assignments,
-            "security_rules_columns": SECURITY_RULES_COLUMNS,
+            "security_rules_columns": _dynamic_policy_columns(instance),
             "selected_security_rules_columns": selected_columns,
             "selected_security_rules_columns_set": selected_set,
             "security_rules_column_order": order_map,
@@ -1234,8 +1257,8 @@ class SecurityPolicyRulebookPolicyColumnsView(generic.ObjectView):
                 reverse("plugins:netbox_nsm:securitypolicyrulebook", args=[instance.pk])
             )
 
-        availability = _available_policy_columns()
-        allowed_columns = {name for name, _ in SECURITY_RULES_COLUMNS}
+        availability = _available_policy_columns(instance)
+        allowed_columns = {name for name, _ in _dynamic_policy_columns(instance)}
         selected_columns = [
             column
             for column in request.POST.getlist("columns")
@@ -1245,7 +1268,7 @@ class SecurityPolicyRulebookPolicyColumnsView(generic.ObjectView):
 
         if not selected_columns:
             selected_columns = _filter_policy_columns(
-                _default_security_rules_columns(), availability
+                _default_security_rules_columns(instance), availability
             )
 
         ordered_columns = []

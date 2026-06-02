@@ -264,6 +264,11 @@ class AssignedObjectsColumn(tables.Column):
 class SecurityPolicyRulebookTable(NetBoxTable):
     name = tables.LinkColumn()
     rulebook_type = tables.Column(verbose_name=_("Type"))
+    mgmt_url = tables.Column(
+        verbose_name=_("Manager"),
+        orderable=False,
+        attrs={"td": {"class": "text-center"}, "th": {"class": "text-center", "style": "width:1%;white-space:nowrap;"}},
+    )
     rule_count = tables.Column(
         verbose_name=_("Rules"),
         orderable=True,
@@ -272,6 +277,15 @@ class SecurityPolicyRulebookTable(NetBoxTable):
     assigned_objects = AssignedObjectsColumn(accessor="assignments", attrs={"td": {"class": "text-center"}, "th": {"class": "text-center"}})
     tags = TagColumn(url_name="plugins:netbox_nsm:securitypolicyrulebook_list")
     actions = ActionsColumn(actions=("edit", "delete"))
+
+    def render_mgmt_url(self, value):
+        if not value:
+            return mark_safe('<span class="text-muted">—</span>')
+        return mark_safe(
+            f'<a href="{conditional_escape(value)}" target="_blank" rel="noopener noreferrer" '
+            f'class="btn btn-sm btn-outline-secondary" title="{conditional_escape(value)}">'
+            f'<i class="mdi mdi-open-in-new"></i></a>'
+        )
 
     def render_rule_count(self, value):
         return mark_safe(
@@ -284,11 +298,12 @@ class SecurityPolicyRulebookTable(NetBoxTable):
             "id",
             "name",
             "rule_count",
+            "mgmt_url",
             "description",
             "assigned_objects",
             "tags",
         )
-        default_columns = ("name", "rule_count", "assigned_objects", "description")
+        default_columns = ("name", "rule_count", "assigned_objects", "mgmt_url", "description")
 
 
 class SecurityPolicyRuleTable(NetBoxTable):

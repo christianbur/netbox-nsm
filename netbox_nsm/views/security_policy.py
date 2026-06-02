@@ -1351,7 +1351,7 @@ class SecurityPolicyRulebookRulesView(generic.ObjectView):
         )
         from netbox_nsm.query.engine import prepare_rules
 
-        availability = _available_policy_columns()
+        availability = _available_policy_columns(instance)
         base_rules_qs = (
             SecurityPolicyRule.objects.filter(rulebook=instance)
             .prefetch_related(
@@ -1389,15 +1389,19 @@ class SecurityPolicyRulebookRulesView(generic.ObjectView):
 
 
         # ── Column config ─────────────────────────────────────────────────────
-        config = _get_policy_table_config(request, instance.pk)
+        config = _get_policy_table_config(request, instance.pk, rulebook=instance)
         selected_columns = _filter_policy_columns(
             config["selected_columns"], availability
         )
         custom_columns = config["custom_columns"]
 
         all_columns = [name for name, _ in SECURITY_RULES_COLUMNS]
+        # Dynamic fixed-placement fields (e.g. "scope") are displayed via the grouped
+        # table data, not as django-tables2 columns. Filter them out for the table instance.
+        known_table_fields = set(SecurityPolicyRuleTable.Meta.fields)
+        table_selected_columns = [c for c in selected_columns if c in known_table_fields]
         excluded_columns = [
-            name for name in all_columns if name not in selected_columns
+            name for name in all_columns if name not in set(table_selected_columns)
         ]
         custom_keys = [
             f"custom_column_{idx}" for idx in range(1, len(custom_columns) + 1)
@@ -1449,12 +1453,12 @@ class SecurityPolicyRulebookRulesView(generic.ObjectView):
         # Preserve sort order
         paged_qs_ordered = sorted(paged_qs_list, key=lambda r: paged_pks.index(r.pk))
 
-        policy_table_class = _build_policy_table_class(custom_columns, selected_columns)
+        policy_table_class = _build_policy_table_class(custom_columns, table_selected_columns)
         policy_table = policy_table_class(
             paged_qs_ordered,
             orderable=False,
             exclude=excluded_columns,
-            sequence=("pk",) + tuple(selected_columns + custom_keys + ["..."]),
+            sequence=("pk",) + tuple(table_selected_columns + custom_keys + ["..."]),
         )
         policy_table.configure(request)
 

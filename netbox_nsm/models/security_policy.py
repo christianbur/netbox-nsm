@@ -38,6 +38,12 @@ class SecurityPolicyRulebook(ContactsMixin, PrimaryModel):
         choices=RulebookTypeChoices.choices,
         default=RulebookTypeChoices.POLICY,
     )
+    mgmt_url = models.URLField(
+        blank=True,
+        default="",
+        verbose_name=_("Management URL"),
+        help_text=_("Link to the management interface of the associated firewall or device."),
+    )
     rule_comment_template = models.TextField(
         blank=True,
         default="",

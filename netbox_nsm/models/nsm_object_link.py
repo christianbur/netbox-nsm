@@ -58,3 +58,12 @@ class NSMObjectLink(NetBoxModel):
 
     def __str__(self):
         return f"{self.object_a} ↔ {self.object_b}"
+
+    def to_objectchange(self, action):
+        objectchange = super().to_objectchange(action)
+        # Set related_object to object_a so the change appears in object_a's changelog.
+        # A signal in apps.py creates an additional entry for object_b.
+        if self.object_a_type_id and self.object_a_id:
+            objectchange.related_object_type_id = self.object_a_type_id
+            objectchange.related_object_id = self.object_a_id
+        return objectchange

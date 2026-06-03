@@ -76,10 +76,7 @@ class NSMObjectLinkAssignForm(forms.Form):
     def clean(self):
         data = super().clean()
         ct_pk = data.get("object_b_type")
-        obj_id = data.get("object_b_id")
-
         if not ct_pk:
             self.add_error("object_b_type", _("Please select a type."))
-        if not obj_id:
-            self.add_error("object_b_display", _("Please select an object."))
+        # object_b_id validation is handled in the view (supports multiple IDs)
         return data

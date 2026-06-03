@@ -287,6 +287,33 @@ class SecurityPolicyRule(ContactsMixin, PrimaryModel):
     def get_absolute_url(self):
         return reverse("plugins:netbox_nsm:securitypolicyrule", args=[self.pk])
 
+    def serialize_object(self, exclude=None):
+        data = super().serialize_object(exclude=exclude)
+        # Include object items and group items so panel changes appear in the changelog diff
+        if self.pk:
+            data["object_items"] = [
+                {
+                    "area": item.field.slug if item.field else None,
+                    "type": str(item.content_type) if item.content_type else None,
+                    "object_id": item.object_id,
+                    "exclude": item.exclude,
+                }
+                for item in self.object_items.select_related("field", "content_type").order_by(
+                    "field__sort_order", "field__slug", "object_id"
+                )
+            ]
+            data["group_items"] = [
+                {
+                    "area": item.field.slug if item.field else None,
+                    "group": item.security_group.name if item.security_group else None,
+                    "exclude": item.exclude,
+                }
+                for item in self.group_items.select_related("field", "security_group").order_by(
+                    "field__sort_order", "field__slug", "security_group__name"
+                )
+            ]
+        return data
+
 
 class SecurityPolicyRuleObjectItem(models.Model):
     """Assigns any NetBox object to a rule within a specific RulebookField."""
@@ -452,6 +479,15 @@ class SecurityPolicyAssignment(NetBoxModel):
         if self.assigned_object:
             return self.assigned_object.get_absolute_url()
         return None
+
+    def to_objectchange(self, action):
+        objectchange = super().to_objectchange(action)
+        # Set related_object so the change appears in the assigned object's changelog
+        # (e.g. Device changelog shows when a rulebook is assigned/removed)
+        if self.assigned_object_type_id and self.assigned_object_id:
+            objectchange.related_object_type_id = self.assigned_object_type_id
+            objectchange.related_object_id = self.assigned_object_id
+        return objectchange
 
 
 @register_search

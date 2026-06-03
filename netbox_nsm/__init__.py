@@ -26,6 +26,20 @@ class SecurityConfig(PluginConfig):
     def ready(self):
         super().ready()
         self._patch_color_field_widget()
+        self._register_changelog_signals()
+
+    @staticmethod
+    def _register_changelog_signals():
+        from django.db.models.signals import post_save, post_delete
+        from netbox_nsm.models import NSMObjectLink
+        from netbox_nsm._changelog_signals import (
+            nsm_object_link_saved,
+            nsm_object_link_deleted,
+        )
+        post_save.connect(nsm_object_link_saved, sender=NSMObjectLink,
+                          dispatch_uid="nsm_object_link_saved_for_object_b")
+        post_delete.connect(nsm_object_link_deleted, sender=NSMObjectLink,
+                            dispatch_uid="nsm_object_link_deleted_for_object_b")
 
     @staticmethod
     def _patch_color_field_widget():

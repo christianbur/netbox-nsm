@@ -43,6 +43,8 @@ REQUIRED_COT_SLUGS = [
     "nsm_labels",
     "nsm_services",
     "nsm_action",
+    "nsm_business_apps",
+    "nsm_network_apps",
 ]
 
 # ─── Desired TypeConfig specs ─────────────────────────────────────────────────
@@ -85,6 +87,22 @@ TYPECONFIG_SPECS = [
         "label": "Action",
         "matching_class": "action",
         "display_template": "{name!u}",
+        "allowed_placements": ["fixed"],
+        "panel_linkable": True,
+    },
+    {
+        "slug": "nsm_business_apps",
+        "label": "Business Apps",
+        "matching_class": "other",
+        "display_template": "{name}",
+        "allowed_placements": ["fixed"],
+        "panel_linkable": True,
+    },
+    {
+        "slug": "nsm_network_apps",
+        "label": "Network Apps",
+        "matching_class": "application",
+        "display_template": "{name}",
         "allowed_placements": ["fixed"],
         "panel_linkable": True,
     },

@@ -167,6 +167,8 @@
             flex-wrap: nowrap;
             gap: .2rem;
             align-items: flex-start;
+            width: 100%;
+            min-width: 0;
             overflow: hidden;
           }
           .nsm-policy-table .table tbody td:last-child { border-right: 0; }
@@ -207,12 +209,12 @@
             border: 1px solid var(--nsm-pill-border);
             border-radius: 999px;
             color: var(--nsm-pill-text);
-            display: inline-block;
+            display: block;
             font-size: .76rem;
             font-weight: 600;
             line-height: 1.4;
             padding: .15rem .55rem;
-            max-width: 200px;
+            max-width: 100%;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -285,6 +287,21 @@
             width: 1.45rem;
             border: 1px solid transparent;
           }
+          .nsm-index-badge {
+            align-items: center;
+            border-radius: 999px;
+            display: inline-flex;
+            height: 1.45rem;
+            min-width: 1.45rem;
+            padding: 0 .35rem;
+            justify-content: center;
+            border: 1px solid transparent;
+            font-size: .75rem;
+            font-weight: 500;
+            text-decoration: none;
+            background: #e8eaf0; color: #3a4060; border-color: #c5c9d8;
+          }
+          [data-bs-theme="dark"] .nsm-index-badge { background: rgba(99,108,148,.22); color: #a0aacc; border-color: rgba(99,108,148,.45); }
           .nsm-status-icon i { font-size: .95rem; line-height: 1; }
           .nsm-status-icon-on { background: #e6f5ea; color: #1f7a33; border-color: #b7dec3; }
           .nsm-status-icon-off { background: #fbeae9; color: #a63a32; border-color: #e5b9b6; }
@@ -294,7 +311,7 @@
           @media (max-width: 992px) {
             .nsm-policy-table .table thead th { font-size: .7rem; padding: .45rem .5rem; }
             .nsm-policy-table .table tbody td { font-size: .78rem; padding: .45rem .5rem; }
-            .nsm-rule-pill { max-width: none; font-size: .72rem; }
+            .nsm-rule-pill { font-size: .72rem; }
           }
         </style>
         <div class="mb-2 d-flex align-items-center justify-content-between gap-2 flex-wrap">
@@ -622,7 +639,7 @@
                 {% for row in policy_grouped_rows %}
                   <tr>
                     <td><input type="checkbox" name="pk" value="{{ row.pk }}"></td>
-                    <td class="nsm-main-col"><span class="nsm-cell-inner">{{ row.index }}</span></td>
+                    <td class="nsm-main-col"><a href="{{ row.url }}" class="nsm-index-badge">{{ row.index }}</a></td>
                     <td class="nsm-main-col" data-sort-value="{% if row.enabled %}1{% else %}0{% endif %}" data-filter-value="{% if row.enabled %}ein on enabled aktiv 1{% else %}aus off disabled inaktiv 0{% endif %}">
                       {% if row.enabled %}
                         <span class="nsm-status-icon nsm-status-icon-on" title="Ein" aria-label="Ein"><i class="mdi mdi-check"></i></span>
@@ -928,13 +945,16 @@
         var measureStyle = document.createElement('style');
         measureStyle.textContent = [
           '.nsm-policy-table table.nsm-col-measuring tbody td,',
-          '.nsm-policy-table table.nsm-col-measuring tbody td .nsm-cell-inner,',
-          '.nsm-policy-table table.nsm-col-measuring tbody td .nsm-rule-pills {',
-          '  overflow: visible !important; max-width: none !important;',
+          '.nsm-policy-table table.nsm-col-measuring tbody td .nsm-cell-inner {',
+          '  overflow: visible !important; width: auto !important; min-width: 0 !important;',
           '}',
-          // Individual pills: remove max-width + overflow so scrollWidth = true content size
+          // During measurement: pills container shrinks to content (not full td)
+          '.nsm-policy-table table.nsm-col-measuring tbody td .nsm-rule-pills {',
+          '  overflow: visible !important; width: auto !important; align-items: flex-start !important;',
+          '}',
+          // Individual pills: remove width constraint + overflow so scrollWidth = true content size
           '.nsm-policy-table table.nsm-col-measuring tbody td .nsm-rule-pill {',
-          '  overflow: visible !important; max-width: none !important;',
+          '  overflow: visible !important; width: auto !important;',
           '  white-space: nowrap !important;',
           '}'
         ].join('\n');

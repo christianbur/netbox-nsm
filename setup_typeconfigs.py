@@ -33,11 +33,13 @@ def find_custom_ct_by_label(label_lower):
 
 TYPE_DEFS = [
     # (ct_resolver, matching_class, display_template, allowed_placements)
-    (lambda: find_custom_ct_by_label("zones"),    "zone",    "Z:{name}",    ["source", "destination"]),
-    (lambda: find_custom_ct_by_label("labels"),   "label",   "L:{name}",    ["source", "destination"]),
-    (lambda: find_custom_ct_by_label("addresses"),"address", "Addr:{name}", ["source", "destination"]),
-    (lambda: find_custom_ct_by_label("services"), "service", "S:{name}",    ["fixed"]),
-    (lambda: find_custom_ct_by_label("action"),   "action", "A:{name}",    ["fixed"]),
+    (lambda: find_custom_ct_by_label("zones"),         "zone",         "Z:{name}",    ["source", "destination"]),
+    (lambda: find_custom_ct_by_label("labels"),        "label",        "L:{name}",    ["source", "destination"]),
+    (lambda: find_custom_ct_by_label("addresses"),     "address",      "Addr:{name}", ["source", "destination"]),
+    (lambda: find_custom_ct_by_label("services"),      "service",      "S:{name}",    ["fixed"]),
+    (lambda: find_custom_ct_by_label("action"),        "action",       "A:{name}",    ["fixed"]),
+    (lambda: find_custom_ct_by_label("business apps"), "other",       "{name}",      ["fixed"]),
+    (lambda: find_custom_ct_by_label("network apps"),  "application", "{name}",      ["fixed"]),
     (lambda: get_ct_safe("ipam", "iprange"),  "address", "R:{name}", ["source", "destination"]),
     (lambda: get_ct_safe("ipam", "prefix"),   "address", "P:{name}", ["source"]),
 ]
@@ -78,6 +80,8 @@ SOURCE_CTS = [
     lambda: find_custom_ct_by_label("zones"),
     lambda: find_custom_ct_by_label("labels"),
     lambda: find_custom_ct_by_label("addresses"),
+    lambda: find_custom_ct_by_label("business apps"),
+    lambda: find_custom_ct_by_label("network apps"),
     lambda: get_ct_safe("ipam", "iprange"),
     lambda: get_ct_safe("ipam", "prefix"),
 ]
@@ -85,6 +89,8 @@ DEST_CTS = [
     lambda: find_custom_ct_by_label("zones"),
     lambda: find_custom_ct_by_label("labels"),
     lambda: find_custom_ct_by_label("addresses"),
+    lambda: find_custom_ct_by_label("business apps"),
+    lambda: find_custom_ct_by_label("network apps"),
     lambda: get_ct_safe("ipam", "iprange"),
 ]
 

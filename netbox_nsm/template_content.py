@@ -374,6 +374,17 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
                     reverse("plugins:netbox_nsm:inherited_links_api")
                     + f"?ct_id={ct.pk}&obj_id={obj.pk}"
                 )
+            else:
+                # For Devices / VMs: use the primary IP to look up inherited links
+                primary_ip = getattr(obj, "primary_ip", None) or getattr(obj, "primary_ip4", None)
+                if primary_ip is None:
+                    primary_ip = getattr(obj, "primary_ip6", None)
+                if primary_ip is not None and isinstance(primary_ip, _IPCheck):
+                    _ip_ct = ContentType.objects.get_for_model(primary_ip)
+                    nsm_inherited_api_url = (
+                        reverse("plugins:netbox_nsm:inherited_links_api")
+                        + f"?ct_id={_ip_ct.pk}&obj_id={primary_ip.pk}"
+                    )
         except Exception:
             pass
 

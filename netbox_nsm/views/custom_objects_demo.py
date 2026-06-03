@@ -102,9 +102,7 @@ class CustomObjectsDemoView(LoginRequiredMixin, View):
     """POST-only: applies DEMO_SCHEMA and creates a few demo objects."""
 
     def post(self, request, *args, **kwargs):
-        redirect_url = reverse(
-            "plugins:netbox_nsm:object_builder", args=["types"]
-        )
+        redirect_url = reverse("plugins:netbox_nsm:setup")
 
         try:
             from netbox_custom_objects.models import CustomObjectType

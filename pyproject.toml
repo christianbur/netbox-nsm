@@ -30,3 +30,6 @@ exclude = ["examples*", "media*", "*.tests*"]
 
 [tool.setuptools.package-data]
 "netbox_nsm" = ["templates/**/*.html", "static/**/*"]
+
+[tool.black]
+target-version = ["py312"]

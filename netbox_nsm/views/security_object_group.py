@@ -78,9 +78,7 @@ class SecurityObjectGroupView(generic.ObjectView):
 
 @register_model_view(SecurityObjectGroup, "list", path="", detail=False)
 class SecurityObjectGroupListView(generic.ObjectListView):
-    queryset = SecurityObjectGroup.objects.prefetch_related(
-        "sub_groups", "tags"
-    )
+    queryset = SecurityObjectGroup.objects.prefetch_related("sub_groups", "tags")
     filterset = SecurityObjectGroupFilterSet
     filterset_form = SecurityObjectGroupFilterForm
     table = SecurityObjectGroupTable
@@ -103,7 +101,10 @@ class SecurityObjectGroupEditView(generic.ObjectEditView):
         return initial
 
     def _build_member_picker_data(self):
-        from netbox_nsm.display_utils import get_display_template_map, render_object_display
+        from netbox_nsm.display_utils import (
+            get_display_template_map,
+            render_object_display,
+        )
         from netbox_nsm.models import NSMTypeConfig
 
         ct_template_map = get_display_template_map()
@@ -115,12 +116,13 @@ class SecurityObjectGroupEditView(generic.ObjectEditView):
                 "sort_order": int(area.sort_order),
                 "types": {},
             }
-            for area in SecurityArea.objects.all().order_by("sort_order", "name", "slug")
+            for area in SecurityArea.objects.all().order_by(
+                "sort_order", "name", "slug"
+            )
         }
 
         for tc in (
-            NSMTypeConfig.objects
-            .select_related("content_type")
+            NSMTypeConfig.objects.select_related("content_type")
             .prefetch_related("areas")
             .order_by("order_id", "content_type__app_label", "content_type__model")
         ):
@@ -143,7 +145,9 @@ class SecurityObjectGroupEditView(generic.ObjectEditView):
                     area_data["types"][type_name].append(
                         {
                             "id": str(obj.pk),
-                            "name": render_object_display(obj, tc.content_type_id, ct_template_map),
+                            "name": render_object_display(
+                                obj, tc.content_type_id, ct_template_map
+                            ),
                             "typeName": type_name,
                             "contentTypeId": tc.content_type_id,
                         }
@@ -171,7 +175,10 @@ class SecurityObjectGroupEditView(generic.ObjectEditView):
         return {"areas": ordered_areas}
 
     def get_extra_context(self, request, instance):
-        from netbox_nsm.display_utils import get_display_template_map, render_object_display
+        from netbox_nsm.display_utils import (
+            get_display_template_map,
+            render_object_display,
+        )
         from netbox_nsm.models import NSMTypeConfig
 
         initial_members = []
@@ -222,9 +229,7 @@ class SecurityObjectGroupBulkDeleteView(generic.BulkDeleteView):
 
 
 def _rules_for_group(obj):
-    return SecurityPolicyRule.objects.filter(
-        group_items__security_group=obj
-    ).distinct()
+    return SecurityPolicyRule.objects.filter(group_items__security_group=obj).distinct()
 
 
 @register_model_view(SecurityObjectGroup, "assignments")
@@ -265,9 +270,11 @@ class SecurityObjectGroupAreaView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         area_slug = kwargs.get("area", "source")
-        qs = SecurityObjectGroup.objects.filter(areas__slug=area_slug).prefetch_related(
-            "areas", "members", "sub_groups", "tags"
-        ).distinct()
+        qs = (
+            SecurityObjectGroup.objects.filter(areas__slug=area_slug)
+            .prefetch_related("areas", "members", "sub_groups", "tags")
+            .distinct()
+        )
         table = SecurityObjectGroupTable(qs)
         context.update(
             {

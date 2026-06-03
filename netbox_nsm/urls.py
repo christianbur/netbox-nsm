@@ -18,21 +18,6 @@ urlpatterns = [
     path("areas/<int:pk>/", SecurityAreaView.as_view(), name="securityarea-detail"),
     path("areas/", include(get_model_urls("netbox_nsm", "securityarea", detail=False))),
     path("areas/<int:pk>/", include(get_model_urls("netbox_nsm", "securityarea"))),
-    # Object-Builder (Areas / Types / Built-in tabs)
-    path("object-builder/", ObjectBuilderView.as_view(), name="object_builder_root"),
-    path(
-        "object-builder/<str:tab>/", ObjectBuilderView.as_view(), name="object_builder"
-    ),
-    path(
-        "object-builder/demo/custom-objects/",
-        CustomObjectsDemoView.as_view(),
-        name="custom_objects_demo",
-    ),
-    path(
-        "object-builder/sync/custom-objects/",
-        SyncBuiltinToCustomObjectsView.as_view(),
-        name="custom_objects_sync",
-    ),
     # Groups area — must come before generic object/<str:tab>/ to avoid conflict
     path(
         "object/groups/",
@@ -101,17 +86,17 @@ urlpatterns = [
         "object-groups/<int:pk>/",
         include(get_model_urls("netbox_nsm", "securityobjectgroup")),
     ),
-    # Security Policy
+    # Rulebooks
     path(
-        "security-policy/",
+        "rulebooks/",
         include(get_model_urls("netbox_nsm", "securitypolicyrulebook", detail=False)),
     ),
     path(
-        "security-policy/<int:pk>/",
+        "rulebooks/<int:pk>/",
         include(get_model_urls("netbox_nsm", "securitypolicyrulebook")),
     ),
     path(
-        "security-policy/<int:pk>/visualization/",
+        "rulebooks/<int:pk>/visualization/",
         RedirectView.as_view(
             pattern_name="plugins:netbox_nsm:securitypolicyrulebook_visualization",
             query_string=True,
@@ -119,7 +104,7 @@ urlpatterns = [
         name="securitypolicyrulebook_visualization_redirect",
     ),
     path(
-        "security-policy/<int:pk>/bulk-assign/",
+        "rulebooks/<int:pk>/bulk-assign/",
         SecurityPolicyRulebookBulkAssignView.as_view(),
         name="securitypolicyrulebook_bulk_assign",
     ),

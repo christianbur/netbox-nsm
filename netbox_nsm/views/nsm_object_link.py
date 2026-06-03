@@ -9,7 +9,7 @@ from django.views import View
 
 from netbox.views import generic
 from netbox_nsm.forms import NSMObjectLinkAssignForm
-from netbox_nsm.models import NSMObjectLink, NSMTypeConfig
+from netbox_nsm.models import NSMObjectLink, NSMTypeConfig, TypeConfig
 
 __all__ = (
     "NSMObjectLinkAssignView",
@@ -47,16 +47,20 @@ class NSMObjectLinkAssignView(LoginRequiredMixin, View):
             messages.error(request, _("Object not found."))
             return HttpResponseRedirect(return_url)
 
-        form = NSMObjectLinkAssignForm(initial={
-            "object_a_type_id": ct_id,
-            "object_a_id": obj_id,
-        })
+        form = NSMObjectLinkAssignForm(
+            initial={
+                "object_a_type_id": ct_id,
+                "object_a_id": obj_id,
+            }
+        )
 
         # Existing links for object_a
         ct_real = ContentType.objects.get_for_model(obj)
-        existing = NSMObjectLink.objects.filter(
-            object_a_type=ct_real, object_a_id=obj.pk
-        ).select_related("object_b_type").order_by("created")
+        existing = (
+            NSMObjectLink.objects.filter(object_a_type=ct_real, object_a_id=obj.pk)
+            .select_related("object_b_type")
+            .order_by("created")
+        )
 
         return self._render(request, form, obj, existing, return_url)
 
@@ -72,9 +76,11 @@ class NSMObjectLinkAssignView(LoginRequiredMixin, View):
             return HttpResponseRedirect(return_url)
 
         ct_real = ContentType.objects.get_for_model(obj)
-        existing = NSMObjectLink.objects.filter(
-            object_a_type=ct_real, object_a_id=obj.pk
-        ).select_related("object_b_type").order_by("created")
+        existing = (
+            NSMObjectLink.objects.filter(object_a_type=ct_real, object_a_id=obj.pk)
+            .select_related("object_b_type")
+            .order_by("created")
+        )
 
         if not form.is_valid():
             return self._render(request, form, obj, existing, return_url)
@@ -109,12 +115,17 @@ class NSMObjectLinkAssignView(LoginRequiredMixin, View):
 
     def _render(self, request, form, obj, existing, return_url):
         from django.shortcuts import render
-        return render(request, self.template_name, {
-            "form": form,
-            "object_a": obj,
-            "existing_links": existing,
-            "return_url": return_url,
-        })
+
+        return render(
+            request,
+            self.template_name,
+            {
+                "form": form,
+                "object_a": obj,
+                "existing_links": existing,
+                "return_url": return_url,
+            },
+        )
 
 
 class NSMObjectLinkEditView(LoginRequiredMixin, View):
@@ -141,7 +152,12 @@ class NSMObjectLinkEditView(LoginRequiredMixin, View):
 
         form = _Form(initial={"comment": link.comment or ""})
         from django.shortcuts import render
-        return render(request, self.template_name, {"form": form, "link": link, "return_url": return_url})
+
+        return render(
+            request,
+            self.template_name,
+            {"form": form, "link": link, "return_url": return_url},
+        )
 
     def post(self, request, pk):
         link = get_object_or_404(NSMObjectLink, pk=pk)
@@ -163,7 +179,12 @@ class NSMObjectLinkEditView(LoginRequiredMixin, View):
             return HttpResponseRedirect(return_url)
 
         from django.shortcuts import render
-        return render(request, self.template_name, {"form": form, "link": link, "return_url": return_url})
+
+        return render(
+            request,
+            self.template_name,
+            {"form": form, "link": link, "return_url": return_url},
+        )
 
 
 class NSMObjectLinkDeleteView(LoginRequiredMixin, View):
@@ -197,9 +218,9 @@ class NSMObjectTypeElementsApiView(LoginRequiredMixin, View):
         except ContentType.DoesNotExist:
             return HttpResponseBadRequest("Invalid ct_id")
 
-        # Only allow NSMTypeConfig-configured types
-        if not NSMTypeConfig.objects.filter(content_type=ct).exists():
-            return HttpResponseBadRequest("Type not in NSMTypeConfig")
+        # Only allow TypeConfig-configured types with panel_linkable=True
+        if not TypeConfig.objects.filter(content_type=ct, panel_linkable=True).exists():
+            return HttpResponseBadRequest("Type not configured as panel-linkable in NSM")
 
         q = request.GET.get("q", "").strip()
         model_class = ct.model_class()

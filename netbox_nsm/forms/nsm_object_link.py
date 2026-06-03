@@ -2,24 +2,33 @@ from django import forms
 from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext_lazy as _
 
-from netbox_nsm.models import NSMTypeConfig, NSMObjectLink
+from netbox_nsm.models import NSMObjectLink, TypeConfig
 
 __all__ = ("NSMObjectLinkAssignForm",)
 
 
 def _build_type_choices():
-    """Return choices with human-readable app → model labels from NSMTypeConfig."""
+    """Return choices for types with panel_linkable=True, using 'Name (matching_class)' labels."""
+    all_configs = list(
+        TypeConfig.objects.filter(panel_linkable=True)
+        .select_related("content_type")
+        .order_by("name", "matching_class")
+    )
+
     choices = [("", _("── Select type ──"))]
-    for cfg in NSMTypeConfig.objects.select_related("content_type").order_by("order_id"):
-        ct = cfg.content_type
-        model_class = ct.model_class()
-        if model_class:
-            app_name = model_class._meta.app_config.verbose_name
-            model_name = str(model_class._meta.verbose_name).title()
+    for cfg in all_configs:
+        if cfg.name and cfg.matching_class:
+            label = f"{cfg.name} ({cfg.matching_class})"
+        elif cfg.name:
+            label = cfg.name
         else:
-            app_name = ct.app_label.replace("_", " ").title()
-            model_name = ct.model.replace("_", " ").title()
-        choices.append((ct.pk, f"{app_name} → {model_name}"))
+            ct = cfg.content_type
+            model_class = ct.model_class()
+            if model_class:
+                label = f"{model_class._meta.app_config.verbose_name} → {str(model_class._meta.verbose_name).title()}"
+            else:
+                label = f"{ct.app_label} → {ct.model}"
+        choices.append((cfg.content_type.pk, label))
     return choices
 
 
@@ -41,7 +50,9 @@ class NSMObjectLinkAssignForm(forms.Form):
     object_b_id = forms.IntegerField(
         label=_("Element"),
         min_value=1,
-        help_text=_("ID of the object. Select a type first, then a dropdown will appear."),
+        help_text=_(
+            "ID of the object. Select a type first, then a dropdown will appear."
+        ),
         widget=forms.HiddenInput(),
         required=False,
     )

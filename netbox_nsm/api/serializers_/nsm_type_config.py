@@ -24,4 +24,3 @@ class NSMTypeConfigSerializer(NetBoxModelSerializer):
             "last_updated",
         )
         brief_fields = ("id", "display", "content_type")
-

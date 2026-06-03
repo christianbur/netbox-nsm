@@ -778,7 +778,7 @@ if (graphEl && graphEl.dataset.pk) {
     Promise.all(fetches).then(function(all) {
       if (_ctrl && _ctrl.signal.aborted) return;
       var items = [].concat.apply([], all);
-      if (!items.length) { dropEl.innerHTML="<div class='nsm-oa-drop-msg'>Keine Ergebnisse</div>"; dropEl.hidden=false; return; }
+      if (!items.length) { dropEl.innerHTML="<div class='nsm-oa-drop-msg'>{% trans 'No results' %}</div>"; dropEl.hidden=false; return; }
       var html = '';
       items.forEach(function(item) {
         html += "<div class='nsm-oa-drop-item' data-ct='"+esc(item.ct)+"' data-pk='"+esc(item.pk)+"' data-name='"+esc(item.name)+"'>"

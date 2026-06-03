@@ -7,6 +7,7 @@ Usage (one DB query per request):
     tmpl_map = get_display_template_map()           # {ct_id: "Addr:{name}", ...}
     label = render_object_display(obj, ct_id, tmpl_map)
 """
+
 from __future__ import annotations
 
 import functools
@@ -33,12 +34,14 @@ def get_display_template_map() -> dict[int, str]:
         )
     }
     # TypeConfig overrides NSMTypeConfig
-    result.update({
-        tc.content_type_id: tc.display_template
-        for tc in TypeConfig.objects.filter(display_template__gt="").only(
-            "content_type_id", "display_template"
-        )
-    })
+    result.update(
+        {
+            tc.content_type_id: tc.display_template
+            for tc in TypeConfig.objects.filter(display_template__gt="").only(
+                "content_type_id", "display_template"
+            )
+        }
+    )
     return result
 
 
@@ -66,10 +69,11 @@ def apply_display_template(obj: Any, tmpl: str) -> str:
     ``str(getattr(obj, field, ""))``.
     Unknown fields are replaced with an empty string.
     """
+
     def _replace(m: re.Match) -> str:
         field = m.group(1)
-        idx = m.group(2)   # e.g. '0' from {protocol[0]}, or None
-        upper = m.group(3) # '!u' conversion for uppercase, or None
+        idx = m.group(2)  # e.g. '0' from {protocol[0]}, or None
+        upper = m.group(3)  # '!u' conversion for uppercase, or None
         if field == "name" and idx is None:
             raw = _resolve_name(obj)
         else:
@@ -120,12 +124,49 @@ def ct_display_label(ct) -> str:
     """
     # Smart title-case: capitalise only all-lowercase words so "IP address" → "IP Address"
     model_name = " ".join(
-        w if any(c.isupper() for c in w) else w.capitalize()
-        for w in ct.name.split()
+        w if any(c.isupper() for c in w) else w.capitalize() for w in ct.name.split()
     )
     try:
         from django.apps import apps
-        app_vn = _APP_SHORT_NAMES.get(ct.app_label) or apps.get_app_config(ct.app_label).verbose_name
+
+        app_vn = (
+            _APP_SHORT_NAMES.get(ct.app_label)
+            or apps.get_app_config(ct.app_label).verbose_name
+        )
         return f"{app_vn} \u203a {model_name}"
     except Exception:
         return model_name
+
+
+def tc_panel_label(ct, tc=None) -> str:
+    """Return a panel group label for a ContentType: 'Name (matching_class)'.
+
+    Pass the TypeConfig instance directly (``tc``) to avoid an extra query.
+    Falls back to the model's verbose_name (no app prefix) when no TypeConfig
+    name is available, so the label is always concise and user-friendly.
+    """
+    if tc is None:
+        from netbox_nsm.models import TypeConfig
+
+        try:
+            tc = TypeConfig.objects.filter(content_type=ct).first()
+        except Exception:
+            pass
+    # Use the configured name if set
+    name = tc.name if tc else ""
+    mc = tc.matching_class if tc else ""
+    if not name:
+        # Fallback: model verbose_name without app prefix
+        model_class = ct.model_class()
+        raw = (
+            str(model_class._meta.verbose_name)
+            if model_class
+            else ct.name
+        )
+        name = " ".join(
+            w if any(c.isupper() for c in w) else w.capitalize()
+            for w in raw.split()
+        )
+    if mc:
+        return f"{name} ({mc})"
+    return name

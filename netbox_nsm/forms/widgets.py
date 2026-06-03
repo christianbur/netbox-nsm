@@ -42,7 +42,7 @@ class ColorSelectTextWidget(forms.TextInput):
         picker_html = format_html(
             '<input type="color" class="form-control form-control-color" '
             'id="{}__picker" value="{}" style="width: 3rem; min-width: 3rem; padding: 0.125rem;" '
-            'oninput="document.getElementById(\'{}\').value = this.value;">',
+            "oninput=\"document.getElementById('{}').value = this.value;\">",
             input_id,
             picker_value,
             input_id,

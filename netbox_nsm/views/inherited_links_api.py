@@ -68,6 +68,7 @@ class InheritedLinksApiView(View):
                 get_display_template_map,
                 render_object_display,
                 ct_display_label,
+                tc_panel_label,
             )
             from django.db.models import prefetch_related_objects
 
@@ -83,16 +84,18 @@ class InheritedLinksApiView(View):
             if isinstance(obj, IPAddress):
                 ip_str = str(obj.address).split("/")[0]
                 candidates = list(
-                    Prefix.objects.filter(prefix__net_contains=ip_str)
-                    .order_by()[:_MAX_ANCESTORS]
+                    Prefix.objects.filter(prefix__net_contains=ip_str).order_by()[
+                        :_MAX_ANCESTORS
+                    ]
                 )
                 candidates.sort(key=lambda p: p.prefix.prefixlen, reverse=True)
                 ancestor_prefixes = candidates
             elif isinstance(obj, IPRange):
                 start_str = str(obj.start_address).split("/")[0]
                 candidates = list(
-                    Prefix.objects.filter(prefix__net_contains=start_str)
-                    .order_by()[:_MAX_ANCESTORS]
+                    Prefix.objects.filter(prefix__net_contains=start_str).order_by()[
+                        :_MAX_ANCESTORS
+                    ]
                 )
                 candidates.sort(key=lambda p: p.prefix.prefixlen, reverse=True)
                 ancestor_prefixes = candidates
@@ -112,12 +115,14 @@ class InheritedLinksApiView(View):
             # ── Seed covered_type_keys from the object's own direct links ─
             # Used for inherit_stop_on_own logic.
             direct_fwd = list(
-                NSMObjectLink.objects.filter(object_a_type=ct, object_a_id=obj_id)
-                .select_related("object_b_type")
+                NSMObjectLink.objects.filter(
+                    object_a_type=ct, object_a_id=obj_id
+                ).select_related("object_b_type")
             )
             direct_rev = list(
-                NSMObjectLink.objects.filter(object_b_type=ct, object_b_id=obj_id)
-                .select_related("object_a_type")
+                NSMObjectLink.objects.filter(
+                    object_b_type=ct, object_b_id=obj_id
+                ).select_related("object_a_type")
             )
             covered_type_keys: set = set()
             for link in direct_fwd:
@@ -153,7 +158,9 @@ class InheritedLinksApiView(View):
                         if linked is None:
                             continue
                         lct = (
-                            link.object_b_type if direction == "fwd" else link.object_a_type
+                            link.object_b_type
+                            if direction == "fwd"
+                            else link.object_a_type
                         )
                         type_key = f"{lct.app_label}__{lct.model}"
 
@@ -170,7 +177,7 @@ class InheritedLinksApiView(View):
                         )
                         if type_key not in inh_links_by_type:
                             inh_links_by_type[type_key] = {
-                                "label": ct_display_label(lct),
+                                "label": tc_panel_label(lct, tc),
                                 "objects": [],
                             }
                             covered_type_keys.add(type_key)
@@ -194,14 +201,17 @@ class InheritedLinksApiView(View):
                     _addr_type_key = f"{_addr_ct.app_label}__{_addr_ct.model}"
                     tc = tc_map.get(_addr_ct.id)
                     if tc and tc.inherit_links:
-                        if not (tc.inherit_stop_on_own and _addr_type_key in covered_type_keys):
+                        if not (
+                            tc.inherit_stop_on_own
+                            and _addr_type_key in covered_type_keys
+                        ):
                             for ancestor in ancestor_prefixes:
                                 for _addr_obj in _AddrModel.objects.filter(
                                     prefix_id=ancestor.pk
                                 ):
                                     if _addr_type_key not in inh_links_by_type:
                                         inh_links_by_type[_addr_type_key] = {
-                                            "label": ct_display_label(_addr_ct),
+                                            "label": tc_panel_label(_addr_ct, tc),
                                             "objects": [],
                                         }
                                         covered_type_keys.add(_addr_type_key)
@@ -209,7 +219,9 @@ class InheritedLinksApiView(View):
                                         {
                                             "url": (
                                                 _addr_obj.get_absolute_url()
-                                                if hasattr(_addr_obj, "get_absolute_url")
+                                                if hasattr(
+                                                    _addr_obj, "get_absolute_url"
+                                                )
                                                 else "#"
                                             ),
                                             "name": render_object_display(
@@ -219,7 +231,10 @@ class InheritedLinksApiView(View):
                                             "inherited_from_name": str(ancestor),
                                         }
                                     )
-                                if tc.inherit_stop_on_own and _addr_type_key in covered_type_keys:
+                                if (
+                                    tc.inherit_stop_on_own
+                                    and _addr_type_key in covered_type_keys
+                                ):
                                     break
             except Exception:
                 pass
@@ -231,9 +246,13 @@ class InheritedLinksApiView(View):
                     "count": len(v["objects"]),
                     "objects": v["objects"],
                 }
-                for k, v in sorted(inh_links_by_type.items(), key=lambda x: x[1]["label"])
+                for k, v in sorted(
+                    inh_links_by_type.items(), key=lambda x: x[1]["label"]
+                )
             ]
-            return JsonResponse({"groups": groups, "total": sum(g["count"] for g in groups)})
+            return JsonResponse(
+                {"groups": groups, "total": sum(g["count"] for g in groups)}
+            )
 
         except Exception:
             return JsonResponse({"groups": [], "total": 0})

@@ -3,7 +3,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext_lazy as _
 import json
 
-from dcim.models import Device, VirtualDeviceContext
+from dcim.models import Device, Platform, VirtualDeviceContext
 from netbox.forms import (
     NetBoxModelFilterSetForm,
     PrimaryModelBulkEditForm,
@@ -54,6 +54,11 @@ class SecurityPolicyRulebookForm(PrimaryModelForm):
             "Markdown template pre-filled when adding new rules. Supports {rule_name}, {index}, {rulebook}."
         ),
     )
+    platform = DynamicModelChoiceField(
+        queryset=Platform.objects.all(),
+        required=False,
+        label=_("Platform"),
+    )
     assigned_devices = DynamicModelMultipleChoiceField(
         queryset=Device.objects.all(),
         required=False,
@@ -66,9 +71,10 @@ class SecurityPolicyRulebookForm(PrimaryModelForm):
     )
 
     fieldsets = (
-        FieldSet("name", "rulebook_type", "description", name=_("Rulebook")),
+        FieldSet("name", "rulebook_type", "platform", "description", name=_("Rulebook")),
         FieldSet("assigned_devices", "assigned_vms", name=_("Assigned Objects")),
-        FieldSet("rule_comment_template", name=_("Rule Defaults")),
+        FieldSet("rule_comment_template", "mgmt_url", name=_("Rule Defaults")),
+        FieldSet("show_colored_pills", name=_("Display")),
         FieldSet("tags", name=_("Tags")),
     )
     comments = CommentField()
@@ -78,7 +84,10 @@ class SecurityPolicyRulebookForm(PrimaryModelForm):
         fields = (
             "name",
             "rulebook_type",
+            "platform",
             "rule_comment_template",
+            "mgmt_url",
+            "show_colored_pills",
             "description",
             "comments",
             "tags",
@@ -88,14 +97,19 @@ class SecurityPolicyRulebookForm(PrimaryModelForm):
         super().__init__(*args, **kwargs)
         if self.instance and self.instance.pk:
             from django.contrib.contenttypes.models import ContentType
+
             device_ct = ContentType.objects.get_for_model(Device)
             vm_ct = ContentType.objects.get_for_model(VirtualMachine)
-            device_pks = list(self.instance.assignments.filter(
-                assigned_object_type=device_ct
-            ).values_list("assigned_object_id", flat=True))
-            vm_pks = list(self.instance.assignments.filter(
-                assigned_object_type=vm_ct
-            ).values_list("assigned_object_id", flat=True))
+            device_pks = list(
+                self.instance.assignments.filter(
+                    assigned_object_type=device_ct
+                ).values_list("assigned_object_id", flat=True)
+            )
+            vm_pks = list(
+                self.instance.assignments.filter(
+                    assigned_object_type=vm_ct
+                ).values_list("assigned_object_id", flat=True)
+            )
             self.initial["assigned_devices"] = device_pks
             self.initial["assigned_vms"] = vm_pks
 
@@ -108,6 +122,7 @@ class SecurityPolicyRulebookForm(PrimaryModelForm):
     def _save_assignments(self, instance):
         from django.contrib.contenttypes.models import ContentType
         from netbox_nsm.models import SecurityPolicyAssignment
+
         device_ct = ContentType.objects.get_for_model(Device)
         vm_ct = ContentType.objects.get_for_model(VirtualMachine)
         instance.assignments.filter(
@@ -239,8 +254,7 @@ class SecurityPolicyRuleForm(PrimaryModelForm):
 
         # Build RulebookField lookup: slug → field (scoped to this rulebook)
         field_cache = {
-            f.slug: f
-            for f in RulebookField.objects.filter(rulebook=instance.rulebook)
+            f.slug: f for f in RulebookField.objects.filter(rulebook=instance.rulebook)
         }
 
         for sel in selections:

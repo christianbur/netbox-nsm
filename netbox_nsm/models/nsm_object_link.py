@@ -48,7 +48,9 @@ class NSMObjectLink(NetBoxModel):
     class Meta:
         verbose_name = _("NSM Object Link")
         verbose_name_plural = _("NSM Object Links")
-        unique_together = (("object_a_type", "object_a_id", "object_b_type", "object_b_id"),)
+        unique_together = (
+            ("object_a_type", "object_a_id", "object_b_type", "object_b_id"),
+        )
         indexes = [
             models.Index(fields=("object_a_type", "object_a_id")),
             models.Index(fields=("object_b_type", "object_b_id")),

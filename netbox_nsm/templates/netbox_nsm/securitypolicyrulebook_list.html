@@ -3,10 +3,31 @@
 {% url 'plugins:netbox_nsm:global_rules_search' as global_search_url %}
 
 {% block content %}
+  {# ── Global Rules Query Bar ── #}
+  <div class="card mb-3">
+    <div class="card-body py-2">
+      <form method="get" action="{{ global_search_url }}">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text text-muted" title="Search rules across all rulebooks">
+            <i class="mdi mdi-shield-search"></i>
+          </span>
+          <input type="text" name="nsm_q"
+                 class="form-control font-monospace"
+                 placeholder='Search rules across all rulebooks — e.g. Source.Name == "Web" AND Action == "Permit"'
+                 autocomplete="off"
+                 spellcheck="false">
+          <button type="submit" class="btn btn-primary">
+            <i class="mdi mdi-magnify"></i>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   {{ block.super }}
   <script>
     (function () {
-      // Replace quicksearch with global rule search
+      // Replace the quicksearch with a link to the global rules search
       var qs = document.querySelector('.quicksearch');
       if (!qs) return;
       var form = document.createElement('form');
@@ -15,7 +36,7 @@
       form.className = 'input-group input-group-flat me-2';
       form.innerHTML =
         '<span class="input-group-text"><i class="mdi mdi-shield-search" aria-hidden="true"></i></span>' +
-        '<input type="search" name="q" class="form-control" placeholder="Search rules &hellip;" style="min-width:160px;">' +
+        '<input type="search" name="nsm_q" class="form-control" placeholder="Search rules &hellip;" style="min-width:160px;">' +
         '<button type="submit" class="input-group-text btn px-2" title="Search across all rulebooks"><i class="mdi mdi-magnify"></i></button>';
       qs.parentNode.replaceChild(form, qs);
     })();

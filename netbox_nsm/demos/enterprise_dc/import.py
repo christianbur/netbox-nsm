@@ -45,8 +45,16 @@ try:
     from netbox_custom_objects.models import CustomObjectType
     from netbox_nsm.models import TypeConfig
 
-    REQUIRED = ["nsm_zones", "nsm_addresses", "nsm_labels", "nsm_services", "nsm_action"]
-    missing = [s for s in REQUIRED if not CustomObjectType.objects.filter(slug=s).exists()]
+    REQUIRED = [
+        "nsm_zones",
+        "nsm_addresses",
+        "nsm_labels",
+        "nsm_services",
+        "nsm_action",
+    ]
+    missing = [
+        s for s in REQUIRED if not CustomObjectType.objects.filter(slug=s).exists()
+    ]
     if missing:
         print(f"ERROR: Missing COT types: {missing}")
         print("Run Setup → Import all types first.")
@@ -55,6 +63,7 @@ try:
     for s in REQUIRED:
         cot = CustomObjectType.objects.get(slug=s)
         from django.contrib.contenttypes.models import ContentType
+
         ct = ContentType.objects.get_for_model(cot.get_model())
         if not TypeConfig.objects.filter(content_type=ct).exists():
             missing_tc.append(s)
@@ -68,6 +77,7 @@ except ImportError as e:
     sys.exit(1)
 
 # ─── 1. Helpers ───────────────────────────────────────────────────────────────
+
 
 def gc(klass, **kwargs):
     """get_or_create, returns instance."""
@@ -89,26 +99,55 @@ def gcu(klass, lookup, **update):
 print("\n[1/8] DCIM base objects...")
 
 from dcim.models import (
-    Site, Manufacturer, DeviceType, DeviceRole,
-    Rack, Device, Interface, Cable,
+    Site,
+    Manufacturer,
+    DeviceType,
+    DeviceRole,
+    Rack,
+    Device,
+    Interface,
+    Cable,
 )
 from dcim.choices import DeviceStatusChoices, CableTypeChoices, InterfaceTypeChoices
 
 site = gcu(Site, {"slug": "dc-01"}, name="DC-01", status="active")
 
 mfr_cisco = gc(Manufacturer, slug="cisco", defaults={"name": "Cisco"})
-mfr_dell  = gc(Manufacturer, slug="dell",  defaults={"name": "Dell"})
+mfr_dell = gc(Manufacturer, slug="dell", defaults={"name": "Dell"})
 
-dt_spine = gcu(DeviceType, {"slug": "nexus-9516"},
-               manufacturer=mfr_cisco, model="Nexus 9516", u_height=14)
-dt_leaf  = gcu(DeviceType, {"slug": "nexus-93180yc-ex"},
-               manufacturer=mfr_cisco, model="Nexus 93180YC-EX", u_height=1)
-dt_hv    = gcu(DeviceType, {"slug": "dell-r750"},
-               manufacturer=mfr_dell, model="PowerEdge R750", u_height=2)
+dt_spine = gcu(
+    DeviceType,
+    {"slug": "nexus-9516"},
+    manufacturer=mfr_cisco,
+    model="Nexus 9516",
+    u_height=14,
+)
+dt_leaf = gcu(
+    DeviceType,
+    {"slug": "nexus-93180yc-ex"},
+    manufacturer=mfr_cisco,
+    model="Nexus 93180YC-EX",
+    u_height=1,
+)
+dt_hv = gcu(
+    DeviceType,
+    {"slug": "dell-r750"},
+    manufacturer=mfr_dell,
+    model="PowerEdge R750",
+    u_height=2,
+)
 
-role_spine = gc(DeviceRole, slug="spine-switch",  defaults={"name": "Spine Switch",  "color": "1a237e"})
-role_leaf  = gc(DeviceRole, slug="leaf-switch",   defaults={"name": "Leaf Switch",   "color": "0d47a1"})
-role_hv    = gc(DeviceRole, slug="hypervisor",    defaults={"name": "Hypervisor",    "color": "004d40"})
+role_spine = gc(
+    DeviceRole,
+    slug="spine-switch",
+    defaults={"name": "Spine Switch", "color": "1a237e"},
+)
+role_leaf = gc(
+    DeviceRole, slug="leaf-switch", defaults={"name": "Leaf Switch", "color": "0d47a1"}
+)
+role_hv = gc(
+    DeviceRole, slug="hypervisor", defaults={"name": "Hypervisor", "color": "004d40"}
+)
 
 print("  ✓ site, manufacturers, device types, roles")
 
@@ -119,42 +158,54 @@ DEMO_DOMAIN = "demo.de"
 
 # Zone-Name → DNS-Subdomain (FQDN: {host}.{sub}.demo.de)
 ZONE_DNS_SUB = {
-    "prod":          "prod",
+    "prod": "prod",
     "integration-1": "int1",
     "integration-2": "int2",
     "integration-3": "int3",
-    "dev-1":         "dev1",
-    "dev-2":         "dev2",
-    "dev-3":         "dev3",
-    "test-1":        "tst1",
-    "test-2":        "tst2",
-    "test-3":        "tst3",
+    "dev-1": "dev1",
+    "dev-2": "dev2",
+    "dev-3": "dev3",
+    "test-1": "tst1",
+    "test-2": "tst2",
+    "test-3": "tst3",
     "infrastructure": "infra",
 }
 
 ZONES = [
-    ("prod",          "10.1"),
+    ("prod", "10.1"),
     ("integration-1", "10.2"),
     ("integration-2", "10.3"),
     ("integration-3", "10.4"),
-    ("dev-1",         "10.5"),
-    ("dev-2",         "10.6"),
-    ("dev-3",         "10.7"),
-    ("test-1",        "10.8"),
-    ("test-2",        "10.9"),
-    ("test-3",        "10.10"),
+    ("dev-1", "10.5"),
+    ("dev-2", "10.6"),
+    ("dev-3", "10.7"),
+    ("test-1", "10.8"),
+    ("test-2", "10.9"),
+    ("test-3", "10.10"),
 ]
 
-rack_spine = gc(Rack, site=site, name="SPINE-A01",
-                defaults={"u_height": 42, "status": "active"})
-rack_infra = gc(Rack, site=site, name="INFRA-A01",
-                defaults={"u_height": 42, "status": "active"})
+rack_spine = gc(
+    Rack, site=site, name="SPINE-A01", defaults={"u_height": 42, "status": "active"}
+)
+rack_infra = gc(
+    Rack, site=site, name="INFRA-A01", defaults={"u_height": 42, "status": "active"}
+)
 
 zone_racks = {}
 for zname, _ in ZONES:
     slug = zname.replace("-", "").upper()
-    r1 = gc(Rack, site=site, name=f"{slug}-A01", defaults={"u_height": 42, "status": "active"})
-    r2 = gc(Rack, site=site, name=f"{slug}-A02", defaults={"u_height": 42, "status": "active"})
+    r1 = gc(
+        Rack,
+        site=site,
+        name=f"{slug}-A01",
+        defaults={"u_height": 42, "status": "active"},
+    )
+    r2 = gc(
+        Rack,
+        site=site,
+        name=f"{slug}-A02",
+        defaults={"u_height": 42, "status": "active"},
+    )
     zone_racks[zname] = (r1, r2)
 
 print(f"  ✓ {2 + 1 + len(ZONES)*2} racks")
@@ -164,60 +215,95 @@ print("\n[3/8] Spine Switches + Leaf Switches + Hypervisors...")
 
 spines = []
 for i, sp_name in enumerate(["SPINE-01", "SPINE-02"], 1):
-    d = gcu(Device, {"name": sp_name, "site": site},
-            device_type=dt_spine, role=role_spine,
-            rack=rack_spine, position=1 + (i-1)*14,
-            status=DeviceStatusChoices.STATUS_ACTIVE)
+    d = gcu(
+        Device,
+        {"name": sp_name, "site": site},
+        device_type=dt_spine,
+        role=role_spine,
+        rack=rack_spine,
+        position=1 + (i - 1) * 14,
+        status=DeviceStatusChoices.STATUS_ACTIVE,
+    )
     spines.append(d)
 
+
 def _ensure_iface(device, name, iface_type=InterfaceTypeChoices.TYPE_100GE_QSFP28):
-    return gc(Interface, device=device, name=name,
-              defaults={"type": iface_type})
+    return gc(Interface, device=device, name=name, defaults={"type": iface_type})
+
 
 # Spine uplink interfaces (numbered per leaf connection)
 sp_uplink_counter = [1, 1]  # per spine
 
-leaf_devices   = {}  # zname → (leaf1, leaf2)
-hv_devices     = {}  # zname → (hv1, hv2)
-infra_hvs      = []
+leaf_devices = {}  # zname → (leaf1, leaf2)
+hv_devices = {}  # zname → (hv1, hv2)
+infra_hvs = []
+
 
 def _create_leaf_pair(zname, rack_a, rack_b, leaf_prefix, u_base=3):
-    l1 = gcu(Device, {"name": f"LEAF-{leaf_prefix}-01", "site": site},
-             device_type=dt_leaf, role=role_leaf,
-             rack=rack_a, position=u_base, status=DeviceStatusChoices.STATUS_ACTIVE)
-    l2 = gcu(Device, {"name": f"LEAF-{leaf_prefix}-02", "site": site},
-             device_type=dt_leaf, role=role_leaf,
-             rack=rack_b, position=u_base, status=DeviceStatusChoices.STATUS_ACTIVE)
+    l1 = gcu(
+        Device,
+        {"name": f"LEAF-{leaf_prefix}-01", "site": site},
+        device_type=dt_leaf,
+        role=role_leaf,
+        rack=rack_a,
+        position=u_base,
+        status=DeviceStatusChoices.STATUS_ACTIVE,
+    )
+    l2 = gcu(
+        Device,
+        {"name": f"LEAF-{leaf_prefix}-02", "site": site},
+        device_type=dt_leaf,
+        role=role_leaf,
+        rack=rack_b,
+        position=u_base,
+        status=DeviceStatusChoices.STATUS_ACTIVE,
+    )
     return l1, l2
 
+
 def _create_hv_pair(zname, rack_a, rack_b, hv_prefix, u_base=5):
-    h1 = gcu(Device, {"name": f"HV-{hv_prefix}-01", "site": site},
-             device_type=dt_hv, role=role_hv,
-             rack=rack_a, position=u_base, status=DeviceStatusChoices.STATUS_ACTIVE)
-    h2 = gcu(Device, {"name": f"HV-{hv_prefix}-02", "site": site},
-             device_type=dt_hv, role=role_hv,
-             rack=rack_b, position=u_base, status=DeviceStatusChoices.STATUS_ACTIVE)
+    h1 = gcu(
+        Device,
+        {"name": f"HV-{hv_prefix}-01", "site": site},
+        device_type=dt_hv,
+        role=role_hv,
+        rack=rack_a,
+        position=u_base,
+        status=DeviceStatusChoices.STATUS_ACTIVE,
+    )
+    h2 = gcu(
+        Device,
+        {"name": f"HV-{hv_prefix}-02", "site": site},
+        device_type=dt_hv,
+        role=role_hv,
+        rack=rack_b,
+        position=u_base,
+        status=DeviceStatusChoices.STATUS_ACTIVE,
+    )
     return h1, h2
 
+
 # Infra
-l_infra1, l_infra2 = _create_leaf_pair("infra", rack_infra, rack_infra, "INFRA", u_base=3)
+l_infra1, l_infra2 = _create_leaf_pair(
+    "infra", rack_infra, rack_infra, "INFRA", u_base=3
+)
 h_infra1, h_infra2 = _create_hv_pair("infra", rack_infra, rack_infra, "INFRA", u_base=7)
 infra_hvs = [h_infra1, h_infra2]
 leaf_devices["infrastructure"] = (l_infra1, l_infra2)
-hv_devices["infrastructure"]   = (h_infra1, h_infra2)
+hv_devices["infrastructure"] = (h_infra1, h_infra2)
 
 # Zone leafs + HVs
 LEAF_PREFIXES = {
-    "prod":          "PROD",
+    "prod": "PROD",
     "integration-1": "INT1",
     "integration-2": "INT2",
     "integration-3": "INT3",
-    "dev-1":         "DEV1",
-    "dev-2":         "DEV2",
-    "dev-3":         "DEV3",
-    "test-1":        "TST1",
-    "test-2":        "TST2",
-    "test-3":        "TST3",
+    "dev-1": "DEV1",
+    "dev-2": "DEV2",
+    "dev-3": "DEV3",
+    "test-1": "TST1",
+    "test-2": "TST2",
+    "test-3": "TST3",
 }
 
 for zname, _ in ZONES:
@@ -226,31 +312,40 @@ for zname, _ in ZONES:
     l1, l2 = _create_leaf_pair(zname, rack_a, rack_b, pfx)
     h1, h2 = _create_hv_pair(zname, rack_a, rack_b, pfx)
     leaf_devices[zname] = (l1, l2)
-    hv_devices[zname]   = (h1, h2)
+    hv_devices[zname] = (h1, h2)
 
-print(f"  ✓ {len(spines)} spines, {len(leaf_devices)*2} leafs, {len(hv_devices)*2} hypervisors")
+print(
+    f"  ✓ {len(spines)} spines, {len(leaf_devices)*2} leafs, {len(hv_devices)*2} hypervisors"
+)
 
 # ─── 5. Cables (Spine↔Leaf, Leaf↔HV) ─────────────────────────────────────────
 print("\n[4/8] Cables...")
 
 cable_count = 0
 
+
 def _cable(a_iface, b_iface):
     global cable_count
-    if Cable.objects.filter(
-        terminations__interface=a_iface
-    ).exists():
+    if Cable.objects.filter(terminations__interface=a_iface).exists():
         return
     c = Cable(type=CableTypeChoices.TYPE_DAC_PASSIVE)
     c.save()
     from dcim.models import CableTermination
     from django.contrib.contenttypes.models import ContentType
+
     iface_ct = ContentType.objects.get_for_model(Interface)
-    CableTermination.objects.get_or_create(cable=c, cable_end="A",
-        defaults={"termination_type": iface_ct, "termination_id": a_iface.pk})
-    CableTermination.objects.get_or_create(cable=c, cable_end="B",
-        defaults={"termination_type": iface_ct, "termination_id": b_iface.pk})
+    CableTermination.objects.get_or_create(
+        cable=c,
+        cable_end="A",
+        defaults={"termination_type": iface_ct, "termination_id": a_iface.pk},
+    )
+    CableTermination.objects.get_or_create(
+        cable=c,
+        cable_end="B",
+        defaults={"termination_type": iface_ct, "termination_id": b_iface.pk},
+    )
     cable_count += 1
+
 
 # Spine ↔ Leaf (40GE, 4 uplinks per leaf)
 sp_port = {spines[0]: 1, spines[1]: 1}
@@ -258,10 +353,16 @@ for zname, (l1, l2) in leaf_devices.items():
     for leaf_idx, leaf in enumerate([l1, l2]):
         for sp_idx, spine in enumerate(spines):
             for link_num in range(1, 3):  # 2 links per spine per leaf
-                leaf_iface  = _ensure_iface(leaf,  f"Ethernet1/{49 + sp_idx*2 + (link_num-1)}",
-                                             InterfaceTypeChoices.TYPE_40GE_QSFP_PLUS)
-                spine_iface = _ensure_iface(spine, f"Ethernet1/{sp_port[spine]}",
-                                             InterfaceTypeChoices.TYPE_40GE_QSFP_PLUS)
+                leaf_iface = _ensure_iface(
+                    leaf,
+                    f"Ethernet1/{49 + sp_idx*2 + (link_num-1)}",
+                    InterfaceTypeChoices.TYPE_40GE_QSFP_PLUS,
+                )
+                spine_iface = _ensure_iface(
+                    spine,
+                    f"Ethernet1/{sp_port[spine]}",
+                    InterfaceTypeChoices.TYPE_40GE_QSFP_PLUS,
+                )
                 sp_port[spine] += 1
                 _cable(leaf_iface, spine_iface)
 
@@ -272,10 +373,16 @@ for zname, (h1, h2) in hv_devices.items():
     for hv_idx, hv in enumerate([h1, h2]):
         for leaf_idx, leaf in enumerate([l1, l2]):
             for port_num in range(1, 3):  # 2×10GE per leaf
-                hv_iface   = _ensure_iface(hv,   f"eth{leaf_idx*2 + port_num - 1}",
-                                            InterfaceTypeChoices.TYPE_10GE_SFP_PLUS)
-                leaf_iface = _ensure_iface(leaf, f"Ethernet1/{hv_idx*4 + leaf_idx*2 + port_num}",
-                                            InterfaceTypeChoices.TYPE_10GE_SFP_PLUS)
+                hv_iface = _ensure_iface(
+                    hv,
+                    f"eth{leaf_idx*2 + port_num - 1}",
+                    InterfaceTypeChoices.TYPE_10GE_SFP_PLUS,
+                )
+                leaf_iface = _ensure_iface(
+                    leaf,
+                    f"Ethernet1/{hv_idx*4 + leaf_idx*2 + port_num}",
+                    InterfaceTypeChoices.TYPE_10GE_SFP_PLUS,
+                )
                 _cable(hv_iface, leaf_iface)
 
 print(f"  ✓ {cable_count} cables (skipped existing)")
@@ -288,109 +395,173 @@ from ipam.models import Prefix, IPAddress, VRF
 from ipam.choices import PrefixStatusChoices
 
 ct_vsphere = gc(ClusterType, slug="vmware-vsphere", defaults={"name": "VMware vSphere"})
-ct_gce     = gc(ClusterType, slug="google-compute-engine", defaults={"name": "Google Compute Engine"})
+ct_gce = gc(
+    ClusterType,
+    slug="google-compute-engine",
+    defaults={"name": "Google Compute Engine"},
+)
 
-cluster_dc  = gc(Cluster, name="dc-vsphere",  defaults={"type": ct_vsphere})
-cluster_gcp = gc(Cluster, name="gcp-dmz",     defaults={"type": ct_gce})
+cluster_dc = gc(Cluster, name="dc-vsphere", defaults={"type": ct_vsphere})
+cluster_gcp = gc(Cluster, name="gcp-dmz", defaults={"type": ct_gce})
 
 # VRFs
 vrf_core = gc(VRF, name="core", defaults={"rd": "65000:1"})
 vrf_mgmt = gc(VRF, name="mgmt", defaults={"rd": "65000:254"})
-vrf_gcp  = gc(VRF, name="gcp-dmz", defaults={"rd": "65000:200"})
+vrf_gcp = gc(VRF, name="gcp-dmz", defaults={"rd": "65000:200"})
 
 # Supernet
-gc(Prefix, prefix="10.0.0.0/8",   defaults={"vrf": vrf_core, "status": "container",
-    "description": "DC-01 RFC1918 Adressraum (Container)"})
+gc(
+    Prefix,
+    prefix="10.0.0.0/8",
+    defaults={
+        "vrf": vrf_core,
+        "status": "container",
+        "description": "DC-01 RFC1918 Adressraum (Container)",
+    },
+)
 
 # Infrastructure
-gc(Prefix, prefix="10.0.0.0/24",  defaults={"vrf": vrf_core, "status": "active",
-    "description": "Infrastructure Zone — AD, DNS-Forwarder, SIEM"})
-gc(Prefix, prefix="10.254.0.0/24",defaults={"vrf": vrf_mgmt, "status": "active",
-    "description": "OOB-Management (Out-of-Band)"})
-gc(Prefix, prefix="10.253.0.0/24",defaults={"vrf": vrf_mgmt, "status": "active",
-    "description": "HV-Management (Hypervisor iDRAC/iLO)"})
-gc(Prefix, prefix="10.100.0.0/23",defaults={"vrf": vrf_core, "status": "active",
-    "description": "User/Client-Netz (Endgeräte, VPN-Zugänge)"})
+gc(
+    Prefix,
+    prefix="10.0.0.0/24",
+    defaults={
+        "vrf": vrf_core,
+        "status": "active",
+        "description": "Infrastructure Zone — AD, DNS-Forwarder, SIEM",
+    },
+)
+gc(
+    Prefix,
+    prefix="10.254.0.0/24",
+    defaults={
+        "vrf": vrf_mgmt,
+        "status": "active",
+        "description": "OOB-Management (Out-of-Band)",
+    },
+)
+gc(
+    Prefix,
+    prefix="10.253.0.0/24",
+    defaults={
+        "vrf": vrf_mgmt,
+        "status": "active",
+        "description": "HV-Management (Hypervisor iDRAC/iLO)",
+    },
+)
+gc(
+    Prefix,
+    prefix="10.100.0.0/23",
+    defaults={
+        "vrf": vrf_core,
+        "status": "active",
+        "description": "User/Client-Netz (Endgeräte, VPN-Zugänge)",
+    },
+)
 
 # Zone prefixes
 ZONE_DESC = {
-    "prod":          "Production Zone",
+    "prod": "Production Zone",
     "integration-1": "Integration Zone 1",
     "integration-2": "Integration Zone 2",
     "integration-3": "Integration Zone 3",
-    "dev-1":         "Development Zone 1",
-    "dev-2":         "Development Zone 2",
-    "dev-3":         "Development Zone 3",
-    "test-1":        "Test Zone 1",
-    "test-2":        "Test Zone 2",
-    "test-3":        "Test Zone 3",
+    "dev-1": "Development Zone 1",
+    "dev-2": "Development Zone 2",
+    "dev-3": "Development Zone 3",
+    "test-1": "Test Zone 1",
+    "test-2": "Test Zone 2",
+    "test-3": "Test Zone 3",
 }
 for zname, oct3 in ZONES:
     prefix_str = f"{oct3}.0.0/16"
-    gc(Prefix, prefix=prefix_str, defaults={"vrf": vrf_core, "status": "active",
-        "description": ZONE_DESC.get(zname, zname)})
+    gc(
+        Prefix,
+        prefix=prefix_str,
+        defaults={
+            "vrf": vrf_core,
+            "status": "active",
+            "description": ZONE_DESC.get(zname, zname),
+        },
+    )
 
 # GCP
-gc(Prefix, prefix="10.200.0.0/16", defaults={"vrf": vrf_gcp, "status": "active",
-    "description": "GCP DMZ — Summenprefix alle DMZ-Subnetze"})
-for sub, name in [("10.200.1.0/24", "dmz-web"), ("10.200.2.0/24", "dmz-api"), ("10.200.3.0/24", "dmz-auth")]:
-    label = {"dmz-web": "GCP DMZ Web-Server", "dmz-api": "GCP DMZ API-Server", "dmz-auth": "GCP DMZ Auth-Server"}[name]
-    gc(Prefix, prefix=sub, defaults={"vrf": vrf_gcp, "status": "active",
-        "description": label})
+gc(
+    Prefix,
+    prefix="10.200.0.0/16",
+    defaults={
+        "vrf": vrf_gcp,
+        "status": "active",
+        "description": "GCP DMZ — Summenprefix alle DMZ-Subnetze",
+    },
+)
+for sub, name in [
+    ("10.200.1.0/24", "dmz-web"),
+    ("10.200.2.0/24", "dmz-api"),
+    ("10.200.3.0/24", "dmz-auth"),
+]:
+    label = {
+        "dmz-web": "GCP DMZ Web-Server",
+        "dmz-api": "GCP DMZ API-Server",
+        "dmz-auth": "GCP DMZ Auth-Server",
+    }[name]
+    gc(
+        Prefix,
+        prefix=sub,
+        defaults={"vrf": vrf_gcp, "status": "active", "description": label},
+    )
 
 # VM definitions per zone
 VM_SPECS = [
     # (hostname_suffix,  ip_suffix,        role_tag,      app_tag,    tier_tag)
-    ("ad-dc",          "0.10",  "dc",            "ad",         "infrastructure"),
-    ("dns",            "0.11",  "dns-resolver",  "dns",        "infrastructure"),
-    ("ntp",            "0.12",  "ntp-server",    "ntp",        "infrastructure"),
-    ("syslog",         "0.13",  "syslog-relay",  "logging",    "infrastructure"),
-    ("pki-ca",         "0.14",  "pki-ca",        "pki",        "infrastructure"),
-    ("jump",           "0.50",  "jump-server",   "jump",       "management"),
-    ("mon",            "0.51",  "collector",     "monitoring", "management"),
-    ("backup-01",      "0.52",  "backup-agent",  "backup",     "management"),
-    ("backup-02",      "0.53",  "backup-agent",  "backup",     "management"),
-    ("web-01",         "1.1",   "web-server",    "web",        "frontend"),
-    ("web-02",         "1.2",   "web-server",    "web",        "frontend"),
-    ("web-03",         "1.3",   "web-server",    "web",        "frontend"),
-    ("web-04",         "1.4",   "web-server",    "web",        "frontend"),
-    ("web-05",         "1.5",   "web-server",    "web",        "frontend"),
-    ("web-06",         "1.6",   "web-server",    "web",        "frontend"),
-    ("web-07",         "1.7",   "web-server",    "web",        "frontend"),
-    ("web-08",         "1.8",   "web-server",    "web",        "frontend"),
-    ("web-09",         "1.9",   "web-server",    "web",        "frontend"),
-    ("web-10",         "1.10",  "web-server",    "web",        "frontend"),
-    ("app-01",         "2.1",   "app-server",    "app",        "application"),
-    ("app-02",         "2.2",   "app-server",    "app",        "application"),
-    ("app-03",         "2.3",   "app-server",    "app",        "application"),
-    ("app-04",         "2.4",   "app-server",    "app",        "application"),
-    ("app-05",         "2.5",   "app-server",    "app",        "application"),
-    ("app-06",         "2.6",   "app-server",    "app",        "application"),
-    ("app-07",         "2.7",   "app-server",    "app",        "application"),
-    ("app-08",         "2.8",   "app-server",    "app",        "application"),
-    ("app-09",         "2.9",   "app-server",    "app",        "application"),
-    ("app-10",         "2.10",  "app-server",    "app",        "application"),
-    ("app-11",         "2.11",  "app-server",    "app",        "application"),
-    ("app-12",         "2.12",  "app-server",    "app",        "application"),
-    ("app-13",         "2.13",  "app-server",    "app",        "application"),
-    ("app-14",         "2.14",  "app-server",    "app",        "application"),
-    ("app-15",         "2.15",  "app-server",    "app",        "application"),
-    ("db-01",          "3.1",   "db-primary",    "db",         "data"),
-    ("db-02",          "3.2",   "db-primary",    "db",         "data"),
-    ("db-03",          "3.3",   "db-primary",    "db",         "data"),
-    ("db-04",          "3.4",   "db-primary",    "db",         "data"),
-    ("db-05",          "3.5",   "db-primary",    "db",         "data"),
-    ("db-06",          "3.6",   "db-primary",    "db",         "data"),
-    ("db-07",          "3.7",   "db-primary",    "db",         "data"),
-    ("db-08",          "3.8",   "db-primary",    "db",         "data"),
-    ("db-09",          "3.9",   "db-primary",    "db",         "data"),
-    ("db-10",          "3.10",  "db-primary",    "db",         "data"),
-    ("db-rep-01",      "3.11",  "db-replica",    "db",         "data"),
-    ("db-rep-02",      "3.12",  "db-replica",    "db",         "data"),
-    ("db-rep-03",      "3.13",  "db-replica",    "db",         "data"),
-    ("db-rep-04",      "3.14",  "db-replica",    "db",         "data"),
-    ("db-rep-05",      "3.15",  "db-replica",    "db",         "data"),
-    ("db-rep-06",      "3.16",  "db-replica",    "db",         "data"),
+    ("ad-dc", "0.10", "dc", "ad", "infrastructure"),
+    ("dns", "0.11", "dns-resolver", "dns", "infrastructure"),
+    ("ntp", "0.12", "ntp-server", "ntp", "infrastructure"),
+    ("syslog", "0.13", "syslog-relay", "logging", "infrastructure"),
+    ("pki-ca", "0.14", "pki-ca", "pki", "infrastructure"),
+    ("jump", "0.50", "jump-server", "jump", "management"),
+    ("mon", "0.51", "collector", "monitoring", "management"),
+    ("backup-01", "0.52", "backup-agent", "backup", "management"),
+    ("backup-02", "0.53", "backup-agent", "backup", "management"),
+    ("web-01", "1.1", "web-server", "web", "frontend"),
+    ("web-02", "1.2", "web-server", "web", "frontend"),
+    ("web-03", "1.3", "web-server", "web", "frontend"),
+    ("web-04", "1.4", "web-server", "web", "frontend"),
+    ("web-05", "1.5", "web-server", "web", "frontend"),
+    ("web-06", "1.6", "web-server", "web", "frontend"),
+    ("web-07", "1.7", "web-server", "web", "frontend"),
+    ("web-08", "1.8", "web-server", "web", "frontend"),
+    ("web-09", "1.9", "web-server", "web", "frontend"),
+    ("web-10", "1.10", "web-server", "web", "frontend"),
+    ("app-01", "2.1", "app-server", "app", "application"),
+    ("app-02", "2.2", "app-server", "app", "application"),
+    ("app-03", "2.3", "app-server", "app", "application"),
+    ("app-04", "2.4", "app-server", "app", "application"),
+    ("app-05", "2.5", "app-server", "app", "application"),
+    ("app-06", "2.6", "app-server", "app", "application"),
+    ("app-07", "2.7", "app-server", "app", "application"),
+    ("app-08", "2.8", "app-server", "app", "application"),
+    ("app-09", "2.9", "app-server", "app", "application"),
+    ("app-10", "2.10", "app-server", "app", "application"),
+    ("app-11", "2.11", "app-server", "app", "application"),
+    ("app-12", "2.12", "app-server", "app", "application"),
+    ("app-13", "2.13", "app-server", "app", "application"),
+    ("app-14", "2.14", "app-server", "app", "application"),
+    ("app-15", "2.15", "app-server", "app", "application"),
+    ("db-01", "3.1", "db-primary", "db", "data"),
+    ("db-02", "3.2", "db-primary", "db", "data"),
+    ("db-03", "3.3", "db-primary", "db", "data"),
+    ("db-04", "3.4", "db-primary", "db", "data"),
+    ("db-05", "3.5", "db-primary", "db", "data"),
+    ("db-06", "3.6", "db-primary", "db", "data"),
+    ("db-07", "3.7", "db-primary", "db", "data"),
+    ("db-08", "3.8", "db-primary", "db", "data"),
+    ("db-09", "3.9", "db-primary", "db", "data"),
+    ("db-10", "3.10", "db-primary", "db", "data"),
+    ("db-rep-01", "3.11", "db-replica", "db", "data"),
+    ("db-rep-02", "3.12", "db-replica", "db", "data"),
+    ("db-rep-03", "3.13", "db-replica", "db", "data"),
+    ("db-rep-04", "3.14", "db-replica", "db", "data"),
+    ("db-rep-05", "3.15", "db-replica", "db", "data"),
+    ("db-rep-06", "3.16", "db-replica", "db", "data"),
 ]
 
 # ── NetBox Tags (für alle Label-Dimensionen) ──────────────────────────────────
@@ -399,24 +570,44 @@ from django.contrib.contenttypes.models import ContentType as DjCT
 
 _TAG_COLORS = {
     "env:prod": "1565c0",
-    "env:integration-1": "2e7d32", "env:integration-2": "388e3c", "env:integration-3": "43a047",
-    "env:dev-1": "e64a19",         "env:dev-2": "f4511e",         "env:dev-3": "ff5722",
-    "env:test-1": "6a1b9a",        "env:test-2": "7b1fa2",        "env:test-3": "8e24aa",
-    "env:infrastructure": "880e4f", "env:gcp-dmz": "00796b",
-    "app:ad": "3f51b5",    "app:dns": "009688",    "app:ntp": "4caf50",
-    "app:logging": "607d8b","app:pki": "9c27b0",   "app:web": "2196f3",
-    "app:app": "00bcd4",   "app:db": "ff5722",     "app:jump": "795548",
-    "app:monitoring": "ff9800", "app:backup": "8bc34a",
-    "tier:infrastructure": "546e7a", "tier:frontend": "0277bd",
-    "tier:application": "00838f",    "tier:data": "6a1b9a",
+    "env:integration-1": "2e7d32",
+    "env:integration-2": "388e3c",
+    "env:integration-3": "43a047",
+    "env:dev-1": "e64a19",
+    "env:dev-2": "f4511e",
+    "env:dev-3": "ff5722",
+    "env:test-1": "6a1b9a",
+    "env:test-2": "7b1fa2",
+    "env:test-3": "8e24aa",
+    "env:infrastructure": "880e4f",
+    "env:gcp-dmz": "00796b",
+    "app:ad": "3f51b5",
+    "app:dns": "009688",
+    "app:ntp": "4caf50",
+    "app:logging": "607d8b",
+    "app:pki": "9c27b0",
+    "app:web": "2196f3",
+    "app:app": "00bcd4",
+    "app:db": "ff5722",
+    "app:jump": "795548",
+    "app:monitoring": "ff9800",
+    "app:backup": "8bc34a",
+    "tier:infrastructure": "546e7a",
+    "tier:frontend": "0277bd",
+    "tier:application": "00838f",
+    "tier:data": "6a1b9a",
     "tier:management": "558b2f",
 }
+
 
 def _get_tag(key):
     slug = key.replace(":", "-")[:50]
     color = _TAG_COLORS.get(key, "9e9e9e")
-    tag, _ = NbTag.objects.get_or_create(slug=slug, defaults={"name": key, "color": color})
+    tag, _ = NbTag.objects.get_or_create(
+        slug=slug, defaults={"name": key, "color": color}
+    )
     return tag
+
 
 # Alle benötigten Tags vorab anlegen
 _tags_needed = set()
@@ -427,9 +618,9 @@ _tags_needed.add("env:gcp-dmz")
 for suffix, ip_suffix, role, app, tier in VM_SPECS:
     _tags_needed.update({f"app:{app}", f"role:{role}", f"tier:{tier}"})
 for _, _, role, app, tier in [
-    ("", "", "gc",           "ad",         "infrastructure"),
-    ("", "", "dns-forwarder","dns",        "infrastructure"),
-    ("", "", "siem",         "monitoring", "infrastructure"),
+    ("", "", "gc", "ad", "infrastructure"),
+    ("", "", "dns-forwarder", "dns", "infrastructure"),
+    ("", "", "siem", "monitoring", "infrastructure"),
 ]:
     _tags_needed.update({f"app:{app}", f"role:{role}", f"tier:{tier}"})
 for key in ["role:web-server", "role:api-server", "role:auth-server"]:
@@ -441,12 +632,16 @@ print(f"  ✓ {len(tag_cache)} NetBox tags angelegt")
 # ── IP→Interface-Hilfsfunktion ────────────────────────────────────────────────
 _iface_ct = DjCT.objects.get_for_model(VMInterface)
 
+
 def _assign_ip(ip_obj, iface, vrf=None, dns=None):
     """IP an Interface zuweisen (assigned_object) und primary_ip4 setzen."""
     dirty = False
-    if ip_obj.assigned_object_type_id != _iface_ct.pk or ip_obj.assigned_object_id != iface.pk:
+    if (
+        ip_obj.assigned_object_type_id != _iface_ct.pk
+        or ip_obj.assigned_object_id != iface.pk
+    ):
         ip_obj.assigned_object_type = _iface_ct
-        ip_obj.assigned_object_id   = iface.pk
+        ip_obj.assigned_object_id = iface.pk
         dirty = True
     if dns and not ip_obj.dns_name:
         ip_obj.dns_name = dns
@@ -457,18 +652,21 @@ def _assign_ip(ip_obj, iface, vrf=None, dns=None):
     if dirty:
         ip_obj.save()
 
+
 def _set_primary(vm, ip_obj):
     vm.refresh_from_db(fields=["primary_ip4"])
     if vm.primary_ip4_id != ip_obj.pk:
         vm.primary_ip4 = ip_obj
         vm.save()
 
+
 def _set_tags(vm, *tag_keys):
     tags = [tag_cache[k] for k in tag_keys if k in tag_cache]
     existing = set(vm.tags.values_list("pk", flat=True))
-    new_pks  = {t.pk for t in tags}
+    new_pks = {t.pk for t in tags}
     if not new_pks.issubset(existing):
         vm.tags.add(*tags)
+
 
 # ── Zone-VMs ──────────────────────────────────────────────────────────────────
 vm_count = 0
@@ -477,22 +675,26 @@ ip_count = 0
 with transaction.atomic():
     for zname, oct3 in ZONES:
         hv1, hv2 = hv_devices[zname]
-        for idx, (suffix, ip_suffix, role_tag, app_tag, tier_tag) in enumerate(VM_SPECS):
+        for idx, (suffix, ip_suffix, role_tag, app_tag, tier_tag) in enumerate(
+            VM_SPECS
+        ):
             hostname = f"{suffix}-{zname}"
             hv = hv1 if idx % 2 == 0 else hv2
             vm, _ = VirtualMachine.objects.get_or_create(
                 name=hostname,
                 defaults={
                     "cluster": cluster_dc,
-                    "site":    site,
-                    "status":  "active",
-                    "vcpus":   4,
-                    "memory":  8192,
+                    "site": site,
+                    "status": "active",
+                    "vcpus": 4,
+                    "memory": 8192,
                 },
             )
             vm_count += 1
-            iface, _ = VMInterface.objects.get_or_create(virtual_machine=vm, name="eth0")
-            ip_str   = f"{oct3}.{ip_suffix}/16"
+            iface, _ = VMInterface.objects.get_or_create(
+                virtual_machine=vm, name="eth0"
+            )
+            ip_str = f"{oct3}.{ip_suffix}/16"
             dns_name = f"{suffix}.{ZONE_DNS_SUB[zname]}.{DEMO_DOMAIN}"
             ip_obj, created = IPAddress.objects.get_or_create(
                 address=ip_str,
@@ -502,25 +704,37 @@ with transaction.atomic():
                 ip_count += 1
             _assign_ip(ip_obj, iface, vrf=vrf_core, dns=dns_name)
             _set_primary(vm, ip_obj)
-            _set_tags(vm, f"env:{zname}", f"app:{app_tag}", f"role:{role_tag}", f"tier:{tier_tag}")
+            _set_tags(
+                vm,
+                f"env:{zname}",
+                f"app:{app_tag}",
+                f"role:{role_tag}",
+                f"tier:{tier_tag}",
+            )
 
     # ── Infra-VMs ─────────────────────────────────────────────────────────────
     INFRA_VMS = [
-        ("ad-gc-01",   "10.0.0.10", "gc",           "ad",         "infrastructure"),
-        ("ad-gc-02",   "10.0.0.11", "gc",           "ad",         "infrastructure"),
-        ("dns-fwd-01", "10.0.0.20", "dns-forwarder","dns",        "infrastructure"),
-        ("dns-fwd-02", "10.0.0.21", "dns-forwarder","dns",        "infrastructure"),
-        ("siem-01",    "10.0.0.30", "siem",         "monitoring", "infrastructure"),
-        ("siem-02",    "10.0.0.31", "siem",         "monitoring", "infrastructure"),
+        ("ad-gc-01", "10.0.0.10", "gc", "ad", "infrastructure"),
+        ("ad-gc-02", "10.0.0.11", "gc", "ad", "infrastructure"),
+        ("dns-fwd-01", "10.0.0.20", "dns-forwarder", "dns", "infrastructure"),
+        ("dns-fwd-02", "10.0.0.21", "dns-forwarder", "dns", "infrastructure"),
+        ("siem-01", "10.0.0.30", "siem", "monitoring", "infrastructure"),
+        ("siem-02", "10.0.0.31", "siem", "monitoring", "infrastructure"),
     ]
     for hostname, ip_str, role_tag, app_tag, tier_tag in INFRA_VMS:
         vm, _ = VirtualMachine.objects.get_or_create(
             name=hostname,
-            defaults={"cluster": cluster_dc, "site": site, "status": "active", "vcpus": 4, "memory": 16384},
+            defaults={
+                "cluster": cluster_dc,
+                "site": site,
+                "status": "active",
+                "vcpus": 4,
+                "memory": 16384,
+            },
         )
         vm_count += 1
         iface, _ = VMInterface.objects.get_or_create(virtual_machine=vm, name="eth0")
-        dns_name  = f"{hostname}.infra.{DEMO_DOMAIN}"
+        dns_name = f"{hostname}.infra.{DEMO_DOMAIN}"
         ip_obj, created = IPAddress.objects.get_or_create(
             address=f"{ip_str}/24",
             defaults={"vrf": vrf_core, "status": "active", "dns_name": dns_name},
@@ -529,29 +743,40 @@ with transaction.atomic():
             ip_count += 1
         _assign_ip(ip_obj, iface, vrf=vrf_core, dns=dns_name)
         _set_primary(vm, ip_obj)
-        _set_tags(vm, "env:infrastructure", f"app:{app_tag}", f"role:{role_tag}", f"tier:{tier_tag}")
+        _set_tags(
+            vm,
+            "env:infrastructure",
+            f"app:{app_tag}",
+            f"role:{role_tag}",
+            f"tier:{tier_tag}",
+        )
 
     # ── GCP-VMs ───────────────────────────────────────────────────────────────
     GCP_VMS = [
-        ("dmz-web-01",  "10.200.1.10", "web-server",  "web", "frontend"),
-        ("dmz-web-02",  "10.200.1.11", "web-server",  "web", "frontend"),
-        ("dmz-web-03",  "10.200.1.12", "web-server",  "web", "frontend"),
-        ("dmz-web-04",  "10.200.1.13", "web-server",  "web", "frontend"),
-        ("dmz-web-05",  "10.200.1.14", "web-server",  "web", "frontend"),
-        ("dmz-api-01",  "10.200.2.10", "api-server",  "app", "application"),
-        ("dmz-api-02",  "10.200.2.11", "api-server",  "app", "application"),
-        ("dmz-api-03",  "10.200.2.12", "api-server",  "app", "application"),
+        ("dmz-web-01", "10.200.1.10", "web-server", "web", "frontend"),
+        ("dmz-web-02", "10.200.1.11", "web-server", "web", "frontend"),
+        ("dmz-web-03", "10.200.1.12", "web-server", "web", "frontend"),
+        ("dmz-web-04", "10.200.1.13", "web-server", "web", "frontend"),
+        ("dmz-web-05", "10.200.1.14", "web-server", "web", "frontend"),
+        ("dmz-api-01", "10.200.2.10", "api-server", "app", "application"),
+        ("dmz-api-02", "10.200.2.11", "api-server", "app", "application"),
+        ("dmz-api-03", "10.200.2.12", "api-server", "app", "application"),
         ("dmz-auth-01", "10.200.3.10", "auth-server", "app", "application"),
         ("dmz-auth-02", "10.200.3.11", "auth-server", "app", "application"),
     ]
     for hostname, ip_str, role_tag, app_tag, tier_tag in GCP_VMS:
         vm, _ = VirtualMachine.objects.get_or_create(
             name=hostname,
-            defaults={"cluster": cluster_gcp, "status": "active", "vcpus": 2, "memory": 4096},
+            defaults={
+                "cluster": cluster_gcp,
+                "status": "active",
+                "vcpus": 2,
+                "memory": 4096,
+            },
         )
         vm_count += 1
         iface, _ = VMInterface.objects.get_or_create(virtual_machine=vm, name="eth0")
-        dns_name  = f"{hostname}.gcp.{DEMO_DOMAIN}"
+        dns_name = f"{hostname}.gcp.{DEMO_DOMAIN}"
         ip_obj, created = IPAddress.objects.get_or_create(
             address=f"{ip_str}/24",
             defaults={"vrf": vrf_gcp, "status": "active", "dns_name": dns_name},
@@ -560,36 +785,40 @@ with transaction.atomic():
             ip_count += 1
         _assign_ip(ip_obj, iface, vrf=vrf_gcp, dns=dns_name)
         _set_primary(vm, ip_obj)
-        _set_tags(vm, "env:gcp-dmz", f"app:{app_tag}", f"role:{role_tag}", f"tier:{tier_tag}")
+        _set_tags(
+            vm, "env:gcp-dmz", f"app:{app_tag}", f"role:{role_tag}", f"tier:{tier_tag}"
+        )
 
 print(f"  ✓ {vm_count} VMs, {ip_count} new IPs")
 
 # ─── 7. NSM Objects ───────────────────────────────────────────────────────────
 print("\n[6/8] NSM COT objects (Zones, Addresses, Labels, Services)...")
 
+
 def _get_cot_model(slug):
     cot = CustomObjectType.objects.get(slug=slug)
     return cot.get_model()
 
-ZoneModel    = _get_cot_model("nsm_zones")
-AddrModel    = _get_cot_model("nsm_addresses")
-LabelModel   = _get_cot_model("nsm_labels")
+
+ZoneModel = _get_cot_model("nsm_zones")
+AddrModel = _get_cot_model("nsm_addresses")
+LabelModel = _get_cot_model("nsm_labels")
 ServiceModel = _get_cot_model("nsm_services")
-ActionModel  = _get_cot_model("nsm_action")
+ActionModel = _get_cot_model("nsm_action")
 
 # ── Zones ──────────────────────────────────────────────────────────────────────
 ZONE_DEFS = [
-    ("prod",          "#1565c0"),
+    ("prod", "#1565c0"),
     ("integration-1", "#2e7d32"),
     ("integration-2", "#388e3c"),
     ("integration-3", "#43a047"),
-    ("dev-1",         "#e64a19"),
-    ("dev-2",         "#f4511e"),
-    ("dev-3",         "#ff5722"),
-    ("test-1",        "#6a1b9a"),
-    ("test-2",        "#7b1fa2"),
-    ("test-3",        "#8e24aa"),
-    ("infrastructure","#880e4f"),
+    ("dev-1", "#e64a19"),
+    ("dev-2", "#f4511e"),
+    ("dev-3", "#ff5722"),
+    ("test-1", "#6a1b9a"),
+    ("test-2", "#7b1fa2"),
+    ("test-3", "#8e24aa"),
+    ("infrastructure", "#880e4f"),
 ]
 
 zones_by_name = {}
@@ -603,17 +832,17 @@ print(f"  ✓ {len(zones_by_name)} zones")
 
 # ── Addresses ─────────────────────────────────────────────────────────────────
 ADDR_DEFS = [
-    ("10.0.0.0/24",   "infrastructure"),
-    ("10.1.0.0/16",   "prod"),
-    ("10.2.0.0/16",   "integration-1"),
-    ("10.3.0.0/16",   "integration-2"),
-    ("10.4.0.0/16",   "integration-3"),
-    ("10.5.0.0/16",   "dev-1"),
-    ("10.6.0.0/16",   "dev-2"),
-    ("10.7.0.0/16",   "dev-3"),
-    ("10.8.0.0/16",   "test-1"),
-    ("10.9.0.0/16",   "test-2"),
-    ("10.10.0.0/16",  "test-3"),
+    ("10.0.0.0/24", "infrastructure"),
+    ("10.1.0.0/16", "prod"),
+    ("10.2.0.0/16", "integration-1"),
+    ("10.3.0.0/16", "integration-2"),
+    ("10.4.0.0/16", "integration-3"),
+    ("10.5.0.0/16", "dev-1"),
+    ("10.6.0.0/16", "dev-2"),
+    ("10.7.0.0/16", "dev-3"),
+    ("10.8.0.0/16", "test-1"),
+    ("10.9.0.0/16", "test-2"),
+    ("10.10.0.0/16", "test-3"),
     ("10.100.0.0/23", "user-clients"),
     ("10.253.0.0/24", "hv-mgmt"),
     ("10.254.0.0/24", "oob-mgmt"),
@@ -621,7 +850,7 @@ ADDR_DEFS = [
     ("10.200.1.0/24", "gcp-dmz-web"),
     ("10.200.2.0/24", "gcp-dmz-api"),
     ("10.200.3.0/24", "gcp-dmz-auth"),
-    ("0.0.0.0/0",     "internet"),
+    ("0.0.0.0/0", "internet"),
 ]
 
 addrs_by_name = {}
@@ -633,7 +862,9 @@ for addr_str, name in ADDR_DEFS:
             prefix_obj = Prefix.objects.get(prefix=addr_str)
         except (Prefix.DoesNotExist, Prefix.MultipleObjectsReturned):
             pass
-    defaults = {"prefix": prefix_obj, "comments": ""} if prefix_obj else {"comments": addr_str}
+    defaults = (
+        {"prefix": prefix_obj, "comments": ""} if prefix_obj else {"comments": addr_str}
+    )
     obj, created = AddrModel.objects.get_or_create(name=name, defaults=defaults)
     if not created and prefix_obj and obj.prefix_id is None:
         obj.prefix = prefix_obj
@@ -646,31 +877,59 @@ print(f"  ✓ {len(addrs_by_name)} addresses")
 LABEL_DEFS = [
     # (name, label_type)
     # Env
-    ("prod",          "env"), ("integration-1", "env"), ("integration-2", "env"),
-    ("integration-3", "env"), ("dev-1",         "env"), ("dev-2",         "env"),
-    ("dev-3",         "env"), ("test-1",        "env"), ("test-2",        "env"),
-    ("test-3",        "env"), ("infrastructure","env"),
+    ("prod", "env"),
+    ("integration-1", "env"),
+    ("integration-2", "env"),
+    ("integration-3", "env"),
+    ("dev-1", "env"),
+    ("dev-2", "env"),
+    ("dev-3", "env"),
+    ("test-1", "env"),
+    ("test-2", "env"),
+    ("test-3", "env"),
+    ("infrastructure", "env"),
     # App
-    ("ad",  "app"), ("dns",   "app"), ("ntp",     "app"), ("logging",  "app"),
-    ("pki", "app"), ("web",   "app"), ("app",     "app"), ("db",       "app"),
-    ("jump","app"), ("monitoring","app"), ("backup", "app"),
+    ("ad", "app"),
+    ("dns", "app"),
+    ("ntp", "app"),
+    ("logging", "app"),
+    ("pki", "app"),
+    ("web", "app"),
+    ("app", "app"),
+    ("db", "app"),
+    ("jump", "app"),
+    ("monitoring", "app"),
+    ("backup", "app"),
     # Role
-    ("dc",           "role"), ("gc",             "role"), ("dns-resolver", "role"),
-    ("dns-forwarder","role"), ("ntp-server",      "role"), ("syslog-relay", "role"),
-    ("pki-ca",       "role"), ("web-server",      "role"), ("app-server",   "role"),
-    ("db-primary",   "role"), ("db-replica",      "role"), ("jump-server",  "role"),
-    ("collector",    "role"), ("siem",            "role"), ("backup-agent", "role"),
-    ("dc-gc",        "role"),
+    ("dc", "role"),
+    ("gc", "role"),
+    ("dns-resolver", "role"),
+    ("dns-forwarder", "role"),
+    ("ntp-server", "role"),
+    ("syslog-relay", "role"),
+    ("pki-ca", "role"),
+    ("web-server", "role"),
+    ("app-server", "role"),
+    ("db-primary", "role"),
+    ("db-replica", "role"),
+    ("jump-server", "role"),
+    ("collector", "role"),
+    ("siem", "role"),
+    ("backup-agent", "role"),
+    ("dc-gc", "role"),
     # Tier
-    ("infrastructure","tier"), ("frontend","tier"), ("application","tier"),
-    ("data",         "tier"), ("management","tier"),
+    ("infrastructure", "tier"),
+    ("frontend", "tier"),
+    ("application", "tier"),
+    ("data", "tier"),
+    ("management", "tier"),
 ]
 
 labels_by_key = {}
 for lname, ltype in LABEL_DEFS:
     obj, _ = LabelModel.objects.get_or_create(
         name=lname,
-        defaults={"label_type": ltype} if hasattr(LabelModel, 'label_type') else {},
+        defaults={"label_type": ltype} if hasattr(LabelModel, "label_type") else {},
     )
     # store field data if model supports it
     labels_by_key[f"{ltype}:{lname}"] = obj
@@ -679,40 +938,40 @@ print(f"  ✓ {len(labels_by_key)} labels")
 # ── Services ──────────────────────────────────────────────────────────────────
 SVC_DEFS = [
     # (name, protocol, port)
-    ("SSH",          "tcp",  22),
-    ("HTTPS",        "tcp",  443),
-    ("HTTP",         "tcp",  80),
-    ("RDP",          "tcp",  3389),
-    ("DNS-UDP",      "udp",  53),
-    ("DNS-TCP",      "tcp",  53),
-    ("NTP",          "udp",  123),
-    ("Syslog-UDP",   "udp",  514),
-    ("Syslog-TCP",   "tcp",  6514),
-    ("LDAP",         "tcp",  389),
-    ("LDAP-UDP",     "udp",  389),
-    ("LDAPS",        "tcp",  636),
-    ("Kerberos-TCP", "tcp",  88),
-    ("Kerberos-UDP", "udp",  88),
-    ("SMB",          "tcp",  445),
-    ("RPC-EPM",      "tcp",  135),
-    ("Kpasswd-TCP",  "tcp",  464),
-    ("Kpasswd-UDP",  "udp",  464),
-    ("GC-LDAP",      "tcp",  3268),
-    ("GC-LDAPS",     "tcp",  3269),
-    ("RPC-Dyn",      "tcp",  50000),
-    ("MySQL",        "tcp",  3306),
-    ("PostgreSQL",   "tcp",  5432),
-    ("MSSQL",        "tcp",  1433),
-    ("Prometheus",   "tcp",  9100),
-    ("Telegraf",     "udp",  8125),
-    ("Logstash",     "tcp",  5044),
-    ("Elasticsearch","tcp",  9200),
-    ("Backup",       "tcp",  10000),
-    ("App-HTTP",     "tcp",  8080),
-    ("App-HTTPS",    "tcp",  8443),
-    ("BGP",          "tcp",  179),
-    ("IPSec-UDP",    "udp",  4500),
-    ("IPSec-ESP",    "ip",   0),
+    ("SSH", "tcp", 22),
+    ("HTTPS", "tcp", 443),
+    ("HTTP", "tcp", 80),
+    ("RDP", "tcp", 3389),
+    ("DNS-UDP", "udp", 53),
+    ("DNS-TCP", "tcp", 53),
+    ("NTP", "udp", 123),
+    ("Syslog-UDP", "udp", 514),
+    ("Syslog-TCP", "tcp", 6514),
+    ("LDAP", "tcp", 389),
+    ("LDAP-UDP", "udp", 389),
+    ("LDAPS", "tcp", 636),
+    ("Kerberos-TCP", "tcp", 88),
+    ("Kerberos-UDP", "udp", 88),
+    ("SMB", "tcp", 445),
+    ("RPC-EPM", "tcp", 135),
+    ("Kpasswd-TCP", "tcp", 464),
+    ("Kpasswd-UDP", "udp", 464),
+    ("GC-LDAP", "tcp", 3268),
+    ("GC-LDAPS", "tcp", 3269),
+    ("RPC-Dyn", "tcp", 50000),
+    ("MySQL", "tcp", 3306),
+    ("PostgreSQL", "tcp", 5432),
+    ("MSSQL", "tcp", 1433),
+    ("Prometheus", "tcp", 9100),
+    ("Telegraf", "udp", 8125),
+    ("Logstash", "tcp", 5044),
+    ("Elasticsearch", "tcp", 9200),
+    ("Backup", "tcp", 10000),
+    ("App-HTTP", "tcp", 8080),
+    ("App-HTTPS", "tcp", 8443),
+    ("BGP", "tcp", 179),
+    ("IPSec-UDP", "udp", 4500),
+    ("IPSec-ESP", "ip", 0),
 ]
 
 svcs_by_name = {}
@@ -739,10 +998,17 @@ print("\n[7/8] Rulebooks + Rules...")
 
 from django.contrib.contenttypes.models import ContentType as DjCT
 from netbox_nsm.models import (
-    SecurityPolicyRulebook, RulebookField, RulebookFieldType,
-    SecurityArea, NSMTypeConfig,
+    SecurityPolicyRulebook,
+    RulebookField,
+    RulebookFieldType,
+    SecurityArea,
+    NSMTypeConfig,
 )
-from netbox_nsm.models.security_policy import SecurityPolicyRule, SecurityPolicyRuleObjectItem
+from netbox_nsm.models.security_policy import (
+    SecurityPolicyRule,
+    SecurityPolicyRuleObjectItem,
+)
+
 
 def _tc(slug):
     """Get TypeConfig for a COT slug."""
@@ -750,41 +1016,53 @@ def _tc(slug):
     ct = DjCT.objects.get_for_model(cot.get_model())
     return TypeConfig.objects.get(content_type=ct)
 
-tc_zone  = _tc("nsm_zones")
-tc_addr  = _tc("nsm_addresses")
+
+tc_zone = _tc("nsm_zones")
+tc_addr = _tc("nsm_addresses")
 tc_label = _tc("nsm_labels")
-tc_svc   = _tc("nsm_services")
-tc_act   = _tc("nsm_action")
+tc_svc = _tc("nsm_services")
+tc_act = _tc("nsm_action")
+
 
 def _field(rb, slug, name, sort_order, placement):
     f, _ = RulebookField.objects.get_or_create(
-        rulebook=rb, slug=slug,
+        rulebook=rb,
+        slug=slug,
         defaults={"name": name, "sort_order": sort_order, "placement": placement},
     )
     return f
 
+
 def _attach(field, *tcs):
     for tc in tcs:
-        RulebookFieldType.objects.get_or_create(field=field, type_config=tc,
-                                                 defaults={"sort_order": 10})
+        RulebookFieldType.objects.get_or_create(
+            field=field, type_config=tc, defaults={"sort_order": 10}
+        )
+
 
 def _rule(rb, name, index, enabled=True):
     r, _ = SecurityPolicyRule.objects.get_or_create(
-        rulebook=rb, name=name,
+        rulebook=rb,
+        name=name,
         defaults={"index": index, "enabled": enabled},
     )
     return r
 
+
 def _item(rule, field, obj, ct):
     SecurityPolicyRuleObjectItem.objects.get_or_create(
-        rule=rule, field=field, content_type=ct, object_id=obj.pk,
+        rule=rule,
+        field=field,
+        content_type=ct,
+        object_id=obj.pk,
         defaults={"exclude": False},
     )
 
+
 zone_ct = DjCT.objects.get_for_model(ZoneModel)
 addr_ct = DjCT.objects.get_for_model(AddrModel)
-svc_ct  = DjCT.objects.get_for_model(ServiceModel)
-act_ct  = DjCT.objects.get_for_model(ActionModel)
+svc_ct = DjCT.objects.get_for_model(ServiceModel)
+act_ct = DjCT.objects.get_for_model(ActionModel)
 
 # ── 8a. TrustSec Core (90 bidirektionale Regeln) ─────────────────────────────
 print("  → trustsec-core (90 rules)...")
@@ -794,10 +1072,10 @@ rb_ts = SecurityPolicyRulebook.objects.get_or_create(
     defaults={"rulebook_type": "policy"},
 )[0]
 
-f_src = _field(rb_ts, "source",      "Source",      10, "source")
+f_src = _field(rb_ts, "source", "Source", 10, "source")
 f_dst = _field(rb_ts, "destination", "Destination", 20, "destination")
-f_svc = _field(rb_ts, "service",     "Service",     30, "fixed")
-f_act = _field(rb_ts, "action",      "Action",      40, "fixed")
+f_svc = _field(rb_ts, "service", "Service", 30, "fixed")
+f_act = _field(rb_ts, "action", "Action", 40, "fixed")
 _attach(f_src, tc_zone)
 _attach(f_dst, tc_zone)
 _attach(f_svc, tc_svc)
@@ -816,7 +1094,7 @@ idx = 10
 rule_count = 0
 # Bidirektional: A→B and B→A as separate rules
 for i, z1 in enumerate(zone_names_ordered):
-    for z2 in zone_names_ordered[i+1:]:
+    for z2 in zone_names_ordered[i + 1 :]:
         # Determine action: Permit only if same type group
         same = any(z1 in g and z2 in g for g in SAME_TYPE_GROUPS)
         action_key = "permit" if same else "deny"
@@ -842,10 +1120,10 @@ rb_ti = SecurityPolicyRulebook.objects.get_or_create(
     defaults={"rulebook_type": "policy"},
 )[0]
 
-fi_src = _field(rb_ti, "source",      "Source",      10, "source")
+fi_src = _field(rb_ti, "source", "Source", 10, "source")
 fi_dst = _field(rb_ti, "destination", "Destination", 20, "destination")
-fi_svc = _field(rb_ti, "service",     "Service",     30, "fixed")
-fi_act = _field(rb_ti, "action",      "Action",      40, "fixed")
+fi_svc = _field(rb_ti, "service", "Service", 30, "fixed")
+fi_act = _field(rb_ti, "action", "Action", 40, "fixed")
 _attach(fi_src, tc_zone)
 _attach(fi_dst, tc_zone)
 _attach(fi_svc, tc_svc)
@@ -878,17 +1156,19 @@ rb_il = SecurityPolicyRulebook.objects.get_or_create(
     defaults={"rulebook_type": "policy"},
 )[0]
 
-il_src = _field(rb_il, "source",      "Source (Label)",      10, "source")
+il_src = _field(rb_il, "source", "Source (Label)", 10, "source")
 il_dst = _field(rb_il, "destination", "Destination (Label)", 20, "destination")
-il_svc = _field(rb_il, "service",     "Service",             30, "fixed")
-il_act = _field(rb_il, "action",      "Action",              40, "fixed")
+il_svc = _field(rb_il, "service", "Service", 30, "fixed")
+il_act = _field(rb_il, "action", "Action", 40, "fixed")
 _attach(il_src, tc_label)
 _attach(il_dst, tc_label)
 _attach(il_svc, tc_svc)
 _attach(il_act, tc_act)
 
+
 def _lbl(key):
     return labels_by_key.get(key)
+
 
 def _irule(name, idx, src_lbl, dst_lbl, svc_name, action_key):
     r = _rule(rb_il, name, idx)
@@ -899,39 +1179,40 @@ def _irule(name, idx, src_lbl, dst_lbl, svc_name, action_key):
     _item(r, il_svc, svcs_by_name[svc_name], svc_ct)
     _item(r, il_act, actions_by_name[action_key], act_ct)
 
+
 label_ct = DjCT.objects.get_for_model(LabelModel)
 
 ILLUMIO_RULES = [
     # name,                      src_label,         dst_label,         svc,           action
-    ("web-to-app",               "app:web",          "app:app",         "App-HTTP",    "permit"),
-    ("app-to-db-primary",        "app:app",          "role:db-primary", "PostgreSQL",  "permit"),
-    ("app-to-db-replica",        "app:app",          "role:db-replica", "PostgreSQL",  "permit"),
-    ("web-to-dns",               "app:web",          "app:dns",         "DNS-UDP",     "permit"),
-    ("app-to-dns",               "app:app",          "app:dns",         "DNS-UDP",     "permit"),
-    ("db-to-dns",                "app:db",           "app:dns",         "DNS-UDP",     "permit"),
-    ("any-to-ntp",               "tier:application", "app:ntp",         "NTP",         "permit"),
-    ("monitoring-scrape",        "app:monitoring",   "tier:application","Prometheus",  "permit"),
-    ("backup-pull",              "app:backup",       "tier:data",       "Backup",      "permit"),
-    ("jump-ssh",                 "app:jump",         "tier:application","SSH",         "permit"),
-    ("jump-rdp",                 "app:jump",         "tier:frontend",   "RDP",         "permit"),
-    ("ad-krb-tcp",               "app:ad",           "app:ad",          "Kerberos-TCP","permit"),
-    ("ad-krb-udp",               "app:ad",           "app:ad",          "Kerberos-UDP","permit"),
-    ("ad-ldap",                  "app:ad",           "app:ad",          "LDAP",        "permit"),
-    ("ad-ldaps",                 "app:ad",           "app:ad",          "LDAPS",       "permit"),
-    ("ad-smb",                   "app:ad",           "app:ad",          "SMB",         "permit"),
-    ("ad-rpc-epm",               "app:ad",           "app:ad",          "RPC-EPM",     "permit"),
-    ("ad-rpc-dyn",               "app:ad",           "app:ad",          "RPC-Dyn",     "permit"),
-    ("ad-gc-ldap",               "app:ad",           "role:gc",         "GC-LDAP",     "permit"),
-    ("ad-gc-ldaps",              "app:ad",           "role:gc",         "GC-LDAPS",    "permit"),
-    ("dns-forwarding",           "role:dns-resolver","role:dns-forwarder","DNS-UDP",   "permit"),
-    ("clients-to-ad",            "tier:application", "app:ad",          "LDAP",        "permit"),
-    ("clients-to-dns",           "tier:application", "app:dns",         "DNS-UDP",     "permit"),
-    ("collector-to-siem",        "role:collector",   "role:siem",       "Logstash",    "permit"),
-    ("syslog-to-siem",           "role:syslog-relay","role:siem",       "Syslog-TCP",  "permit"),
+    ("web-to-app", "app:web", "app:app", "App-HTTP", "permit"),
+    ("app-to-db-primary", "app:app", "role:db-primary", "PostgreSQL", "permit"),
+    ("app-to-db-replica", "app:app", "role:db-replica", "PostgreSQL", "permit"),
+    ("web-to-dns", "app:web", "app:dns", "DNS-UDP", "permit"),
+    ("app-to-dns", "app:app", "app:dns", "DNS-UDP", "permit"),
+    ("db-to-dns", "app:db", "app:dns", "DNS-UDP", "permit"),
+    ("any-to-ntp", "tier:application", "app:ntp", "NTP", "permit"),
+    ("monitoring-scrape", "app:monitoring", "tier:application", "Prometheus", "permit"),
+    ("backup-pull", "app:backup", "tier:data", "Backup", "permit"),
+    ("jump-ssh", "app:jump", "tier:application", "SSH", "permit"),
+    ("jump-rdp", "app:jump", "tier:frontend", "RDP", "permit"),
+    ("ad-krb-tcp", "app:ad", "app:ad", "Kerberos-TCP", "permit"),
+    ("ad-krb-udp", "app:ad", "app:ad", "Kerberos-UDP", "permit"),
+    ("ad-ldap", "app:ad", "app:ad", "LDAP", "permit"),
+    ("ad-ldaps", "app:ad", "app:ad", "LDAPS", "permit"),
+    ("ad-smb", "app:ad", "app:ad", "SMB", "permit"),
+    ("ad-rpc-epm", "app:ad", "app:ad", "RPC-EPM", "permit"),
+    ("ad-rpc-dyn", "app:ad", "app:ad", "RPC-Dyn", "permit"),
+    ("ad-gc-ldap", "app:ad", "role:gc", "GC-LDAP", "permit"),
+    ("ad-gc-ldaps", "app:ad", "role:gc", "GC-LDAPS", "permit"),
+    ("dns-forwarding", "role:dns-resolver", "role:dns-forwarder", "DNS-UDP", "permit"),
+    ("clients-to-ad", "tier:application", "app:ad", "LDAP", "permit"),
+    ("clients-to-dns", "tier:application", "app:dns", "DNS-UDP", "permit"),
+    ("collector-to-siem", "role:collector", "role:siem", "Logstash", "permit"),
+    ("syslog-to-siem", "role:syslog-relay", "role:siem", "Syslog-TCP", "permit"),
 ]
 
 for i, (rname, src, dst, svc, act) in enumerate(ILLUMIO_RULES):
-    _irule(rname, (i+1)*10, src, dst, svc, act)
+    _irule(rname, (i + 1) * 10, src, dst, svc, act)
 print(f"     ✓ {len(ILLUMIO_RULES)} rules")
 
 # ── 8d. DC Inter-Zone Firewall ─────────────────────────────────────────────────
@@ -942,10 +1223,10 @@ rb_dc = SecurityPolicyRulebook.objects.get_or_create(
     defaults={"rulebook_type": "policy"},
 )[0]
 
-dc_src = _field(rb_dc, "source",      "Source",      10, "source")
+dc_src = _field(rb_dc, "source", "Source", 10, "source")
 dc_dst = _field(rb_dc, "destination", "Destination", 20, "destination")
-dc_svc = _field(rb_dc, "service",     "Service",     30, "fixed")
-dc_act = _field(rb_dc, "action",      "Action",      40, "fixed")
+dc_svc = _field(rb_dc, "service", "Service", 30, "fixed")
+dc_act = _field(rb_dc, "action", "Action", 40, "fixed")
 _attach(dc_src, tc_zone, tc_addr)
 _attach(dc_dst, tc_zone, tc_addr)
 _attach(dc_svc, tc_svc)
@@ -953,13 +1234,18 @@ _attach(dc_act, tc_act)
 
 DC_RULES = [
     # SSH Jump: prod-jump → all other zone jumps
-    *[(f"prod-jump-to-{z}-jump", "prod", z, "SSH", "permit")
-      for z in zone_names_ordered if z != "prod"],
+    *[
+        (f"prod-jump-to-{z}-jump", "prod", z, "SSH", "permit")
+        for z in zone_names_ordered
+        if z != "prod"
+    ],
     # HTTPS from prod to GCP DMZ
     ("prod-to-gcp-dmz-https", "prod", None, "HTTPS", "permit"),
     # API: prod ↔ integration zones
-    *[(f"prod-to-{z}-api", "prod", z, "App-HTTPS", "permit")
-      for z in ["integration-1", "integration-2", "integration-3"]],
+    *[
+        (f"prod-to-{z}-api", "prod", z, "App-HTTPS", "permit")
+        for z in ["integration-1", "integration-2", "integration-3"]
+    ],
     # Monitoring cross-zone (infra SIEM)
     ("all-zones-to-siem", None, "infrastructure", "Logstash", "permit"),
     # DNS: all zones → infra forwarder
@@ -970,7 +1256,7 @@ DC_RULES = [
 
 for i, rule_def in enumerate(DC_RULES):
     rname, src_zname, dst_zname, svc_name, action_key = rule_def
-    r = _rule(rb_dc, rname, (i+1)*10)
+    r = _rule(rb_dc, rname, (i + 1) * 10)
     if src_zname and src_zname in zones_by_name:
         _item(r, dc_src, zones_by_name[src_zname], zone_ct)
     if dst_zname and dst_zname in zones_by_name:
@@ -987,25 +1273,25 @@ rb_mg = SecurityPolicyRulebook.objects.get_or_create(
     defaults={"rulebook_type": "policy"},
 )[0]
 
-mg_src = _field(rb_mg, "source",      "Source",      10, "source")
+mg_src = _field(rb_mg, "source", "Source", 10, "source")
 mg_dst = _field(rb_mg, "destination", "Destination", 20, "destination")
-mg_svc = _field(rb_mg, "service",     "Service",     30, "fixed")
-mg_act = _field(rb_mg, "action",      "Action",      40, "fixed")
+mg_svc = _field(rb_mg, "service", "Service", 30, "fixed")
+mg_act = _field(rb_mg, "action", "Action", 40, "fixed")
 _attach(mg_src, tc_zone, tc_addr)
 _attach(mg_dst, tc_zone, tc_addr)
 _attach(mg_svc, tc_svc)
 _attach(mg_act, tc_act)
 
 MGMT_RULES = [
-    ("jump-to-oob-ssh",    "prod",        "oob-mgmt",     "SSH",   "permit"),
-    ("jump-to-hv-mgmt-ssh","prod",        "hv-mgmt",      "SSH",   "permit"),
-    ("mon-to-hv-mgmt",     "infrastructure","hv-mgmt",    "Prometheus","permit"),
-    ("deny-prod-to-hv",    "prod",        "hv-mgmt",      "HTTPS", "deny"),
-    ("deny-dev-to-oob",    "dev-1",       "oob-mgmt",     "SSH",   "deny"),
+    ("jump-to-oob-ssh", "prod", "oob-mgmt", "SSH", "permit"),
+    ("jump-to-hv-mgmt-ssh", "prod", "hv-mgmt", "SSH", "permit"),
+    ("mon-to-hv-mgmt", "infrastructure", "hv-mgmt", "Prometheus", "permit"),
+    ("deny-prod-to-hv", "prod", "hv-mgmt", "HTTPS", "deny"),
+    ("deny-dev-to-oob", "dev-1", "oob-mgmt", "SSH", "deny"),
 ]
 
 for i, (rname, src_n, dst_n, svc_n, act_n) in enumerate(MGMT_RULES):
-    r = _rule(rb_mg, rname, (i+1)*10)
+    r = _rule(rb_mg, rname, (i + 1) * 10)
     if src_n in zones_by_name:
         _item(r, mg_src, zones_by_name[src_n], zone_ct)
     elif src_n in addrs_by_name:
@@ -1024,34 +1310,36 @@ rb_usr = SecurityPolicyRulebook.objects.get_or_create(
     defaults={"rulebook_type": "policy"},
 )[0]
 
-u_src = _field(rb_usr, "source",      "Source",      10, "source")
+u_src = _field(rb_usr, "source", "Source", 10, "source")
 u_dst = _field(rb_usr, "destination", "Destination", 20, "destination")
-u_svc = _field(rb_usr, "service",     "Service",     30, "fixed")
-u_act = _field(rb_usr, "action",      "Action",      40, "fixed")
+u_svc = _field(rb_usr, "service", "Service", 30, "fixed")
+u_act = _field(rb_usr, "action", "Action", 40, "fixed")
 _attach(u_src, tc_addr, tc_zone)
 _attach(u_dst, tc_addr, tc_zone)
 _attach(u_svc, tc_svc)
 _attach(u_act, tc_act)
 
 USER_RULES = [
-    ("users-to-prod-https",   "user-clients", "prod",          "HTTPS",   "permit"),
-    ("users-to-int-https",    "user-clients", "integration-1", "HTTPS",   "permit"),
-    ("users-to-prod-jump",    "user-clients", "prod",          "SSH",     "permit"),
-    ("users-to-jump-rdp",     "user-clients", "prod",          "RDP",     "permit"),
-    ("users-to-gcp-dmz",      "user-clients", "gcp-dmz",       "HTTPS",   "permit"),
-    ("deny-users-to-dev",     "user-clients", "dev-1",         "HTTPS",   "deny"),
-    ("deny-users-to-test",    "user-clients", "test-1",        "HTTPS",   "deny"),
-    ("users-to-dns-fwd",      "user-clients", "infrastructure","DNS-UDP", "permit"),
+    ("users-to-prod-https", "user-clients", "prod", "HTTPS", "permit"),
+    ("users-to-int-https", "user-clients", "integration-1", "HTTPS", "permit"),
+    ("users-to-prod-jump", "user-clients", "prod", "SSH", "permit"),
+    ("users-to-jump-rdp", "user-clients", "prod", "RDP", "permit"),
+    ("users-to-gcp-dmz", "user-clients", "gcp-dmz", "HTTPS", "permit"),
+    ("deny-users-to-dev", "user-clients", "dev-1", "HTTPS", "deny"),
+    ("deny-users-to-test", "user-clients", "test-1", "HTTPS", "deny"),
+    ("users-to-dns-fwd", "user-clients", "infrastructure", "DNS-UDP", "permit"),
 ]
 
 for i, (rname, src_n, dst_n, svc_n, act_n) in enumerate(USER_RULES):
-    r = _rule(rb_usr, rname, (i+1)*10)
+    r = _rule(rb_usr, rname, (i + 1) * 10)
     src_obj = addrs_by_name.get(src_n) or zones_by_name.get(src_n)
     dst_obj = addrs_by_name.get(dst_n) or zones_by_name.get(dst_n)
-    src_ct  = addr_ct if src_n in addrs_by_name else zone_ct
-    dst_ct  = addr_ct if dst_n in addrs_by_name else zone_ct
-    if src_obj: _item(r, u_src, src_obj, src_ct)
-    if dst_obj: _item(r, u_dst, dst_obj, dst_ct)
+    src_ct = addr_ct if src_n in addrs_by_name else zone_ct
+    dst_ct = addr_ct if dst_n in addrs_by_name else zone_ct
+    if src_obj:
+        _item(r, u_src, src_obj, src_ct)
+    if dst_obj:
+        _item(r, u_dst, dst_obj, dst_ct)
     _item(r, u_svc, svcs_by_name[svc_n], svc_ct)
     _item(r, u_act, actions_by_name[act_n], act_ct)
 print(f"     ✓ {len(USER_RULES)} rules")
@@ -1060,52 +1348,67 @@ print(f"     ✓ {len(USER_RULES)} rules")
 print("  → remaining firewalls...")
 
 SIMPLE_RBS = [
-    ("Enterprise - fw-sase", [
-        ("sase-teams",       "user-clients", None,        "HTTPS",    "permit"),
-        ("sase-internet",    "user-clients", "internet",  "HTTPS",    "permit"),
-        ("sase-dns",         "user-clients", None,        "DNS-UDP",  "permit"),
-        ("sase-ntp",         "user-clients", None,        "NTP",      "permit"),
-        ("sase-deny-all",    "user-clients", None,        "HTTPS",    "deny"),
-    ]),
-    ("Enterprise - fw-internet-outer", [
-        ("outer-https-to-gcp","internet",   "gcp-dmz",   "HTTPS",    "permit"),
-        ("outer-ipsec-to-vpn","internet",   None,        "IPSec-UDP","permit"),
-        ("outer-deny-all",    "internet",   None,        "HTTPS",    "deny"),
-    ]),
-    ("Enterprise - fw-internet-inner", [
-        ("inner-tls-inspect", "internet",   "prod",      "HTTPS",    "permit"),
-        ("inner-waf-gcp",     "internet",   "gcp-dmz",   "HTTPS",    "permit"),
-        ("inner-ips-deny",    "internet",   None,        "HTTPS",    "deny"),
-    ]),
-    ("Enterprise - fw-gcp-dmz", [
-        ("gcp-dc-https",      "prod",       "gcp-dmz-web","HTTPS",   "permit"),
-        ("gcp-users-https",   "user-clients","gcp-dmz-web","HTTPS",  "permit"),
-        ("gcp-api-internal",  "prod",       "gcp-dmz-api","App-HTTPS","permit"),
-        ("gcp-deny-dev",      "dev-1",      "gcp-dmz",   "HTTPS",    "deny"),
-        ("gcp-deny-all",      None,         "gcp-dmz",   "HTTPS",    "deny"),
-    ]),
-    ("Enterprise - fw-vpn-partner", [
-        ("vpn-partner-prod-api","internet", "prod",      "App-HTTPS","permit"),
-        ("vpn-partner-int-api", "internet", "integration-1","App-HTTPS","permit"),
-        ("vpn-deny-dev",        "internet", "dev-1",     "App-HTTPS","deny"),
-        ("vpn-deny-test",       "internet", "test-1",    "App-HTTPS","deny"),
-    ]),
+    (
+        "Enterprise - fw-sase",
+        [
+            ("sase-teams", "user-clients", None, "HTTPS", "permit"),
+            ("sase-internet", "user-clients", "internet", "HTTPS", "permit"),
+            ("sase-dns", "user-clients", None, "DNS-UDP", "permit"),
+            ("sase-ntp", "user-clients", None, "NTP", "permit"),
+            ("sase-deny-all", "user-clients", None, "HTTPS", "deny"),
+        ],
+    ),
+    (
+        "Enterprise - fw-internet-outer",
+        [
+            ("outer-https-to-gcp", "internet", "gcp-dmz", "HTTPS", "permit"),
+            ("outer-ipsec-to-vpn", "internet", None, "IPSec-UDP", "permit"),
+            ("outer-deny-all", "internet", None, "HTTPS", "deny"),
+        ],
+    ),
+    (
+        "Enterprise - fw-internet-inner",
+        [
+            ("inner-tls-inspect", "internet", "prod", "HTTPS", "permit"),
+            ("inner-waf-gcp", "internet", "gcp-dmz", "HTTPS", "permit"),
+            ("inner-ips-deny", "internet", None, "HTTPS", "deny"),
+        ],
+    ),
+    (
+        "Enterprise - fw-gcp-dmz",
+        [
+            ("gcp-dc-https", "prod", "gcp-dmz-web", "HTTPS", "permit"),
+            ("gcp-users-https", "user-clients", "gcp-dmz-web", "HTTPS", "permit"),
+            ("gcp-api-internal", "prod", "gcp-dmz-api", "App-HTTPS", "permit"),
+            ("gcp-deny-dev", "dev-1", "gcp-dmz", "HTTPS", "deny"),
+            ("gcp-deny-all", None, "gcp-dmz", "HTTPS", "deny"),
+        ],
+    ),
+    (
+        "Enterprise - fw-vpn-partner",
+        [
+            ("vpn-partner-prod-api", "internet", "prod", "App-HTTPS", "permit"),
+            ("vpn-partner-int-api", "internet", "integration-1", "App-HTTPS", "permit"),
+            ("vpn-deny-dev", "internet", "dev-1", "App-HTTPS", "deny"),
+            ("vpn-deny-test", "internet", "test-1", "App-HTTPS", "deny"),
+        ],
+    ),
 ]
 
 for rb_name, rules in SIMPLE_RBS:
     rb_x = SecurityPolicyRulebook.objects.get_or_create(
         name=rb_name, defaults={"rulebook_type": "policy"}
     )[0]
-    x_src = _field(rb_x, "source",      "Source",      10, "source")
+    x_src = _field(rb_x, "source", "Source", 10, "source")
     x_dst = _field(rb_x, "destination", "Destination", 20, "destination")
-    x_svc = _field(rb_x, "service",     "Service",     30, "fixed")
-    x_act = _field(rb_x, "action",      "Action",      40, "fixed")
+    x_svc = _field(rb_x, "service", "Service", 30, "fixed")
+    x_act = _field(rb_x, "action", "Action", 40, "fixed")
     _attach(x_src, tc_zone, tc_addr)
     _attach(x_dst, tc_zone, tc_addr)
     _attach(x_svc, tc_svc)
     _attach(x_act, tc_act)
     for i, (rname, src_n, dst_n, svc_n, act_n) in enumerate(rules):
-        r = _rule(rb_x, rname, (i+1)*10)
+        r = _rule(rb_x, rname, (i + 1) * 10)
         for field, name, ct in [(x_src, src_n, None), (x_dst, dst_n, None)]:
             if name is None:
                 continue
@@ -1125,29 +1428,33 @@ from ipam.models import Prefix
 from django.contrib.contenttypes.models import ContentType as DjCT2
 
 prefix_ct = DjCT2.objects.get_for_model(Prefix)
-vm_ct     = DjCT2.objects.get_for_model(VirtualMachine)
+vm_ct = DjCT2.objects.get_for_model(VirtualMachine)
+
 
 def _link(obj_a, ct_a, obj_b, ct_b):
     NSMObjectLink.objects.get_or_create(
-        object_a_type=ct_a, object_a_id=obj_a.pk,
-        object_b_type=ct_b, object_b_id=obj_b.pk,
+        object_a_type=ct_a,
+        object_a_id=obj_a.pk,
+        object_b_type=ct_b,
+        object_b_id=obj_b.pk,
     )
+
 
 link_count = 0
 
 # ── Prefix → Zone ─────────────────────────────────────────────────────────────
 # Zone-Name → Prefix-CIDR Mapping
 ZONE_PREFIX_MAP = {
-    "prod":          "10.1.0.0/16",
+    "prod": "10.1.0.0/16",
     "integration-1": "10.2.0.0/16",
     "integration-2": "10.3.0.0/16",
     "integration-3": "10.4.0.0/16",
-    "dev-1":         "10.5.0.0/16",
-    "dev-2":         "10.6.0.0/16",
-    "dev-3":         "10.7.0.0/16",
-    "test-1":        "10.8.0.0/16",
-    "test-2":        "10.9.0.0/16",
-    "test-3":        "10.10.0.0/16",
+    "dev-1": "10.5.0.0/16",
+    "dev-2": "10.6.0.0/16",
+    "dev-3": "10.7.0.0/16",
+    "test-1": "10.8.0.0/16",
+    "test-2": "10.9.0.0/16",
+    "test-3": "10.10.0.0/16",
     "infrastructure": "10.0.0.0/24",
 }
 # GCP-Subnetze → Zone "infrastructure" (kein eigener Zone-Eintrag für GCP-DMZ Präfix)

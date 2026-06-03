@@ -128,7 +128,9 @@ class SecurityProperty(PrimaryModel):
         max_length=7,
         blank=True,
         default="",
-        help_text=_('Optional HTML color code (e.g. #aabbcc) used for this object in the policy view.'),
+        help_text=_(
+            "Optional HTML color code (e.g. #aabbcc) used for this object in the policy view."
+        ),
     )
 
     class Meta:

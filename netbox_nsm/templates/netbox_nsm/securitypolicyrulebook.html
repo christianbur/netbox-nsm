@@ -17,6 +17,12 @@
           <th scope="row">{% trans "Type" %}</th>
           <td>{{ object.get_rulebook_type_display }}</td>
         </tr>
+        {% if object.platform %}
+        <tr>
+          <th scope="row">{% trans "Platform" %}</th>
+          <td><a href="{{ object.platform.get_absolute_url }}">{{ object.platform }}</a></td>
+        </tr>
+        {% endif %}
         {% if object.description %}
         <tr>
           <th scope="row">{% trans "Description" %}</th>
@@ -27,6 +33,12 @@
         <tr>
           <th scope="row">{% trans "Rule Comment Template" %}</th>
           <td><pre class="mb-0 small" style="white-space:pre-wrap">{{ object.rule_comment_template }}</pre></td>
+        </tr>
+        {% endif %}
+        {% if object.mgmt_url %}
+        <tr>
+          <th scope="row">{% trans "Manager" %}</th>
+          <td><a href="{{ object.mgmt_url }}" target="_blank" rel="noopener noreferrer"><i class="mdi mdi-open-in-new me-1"></i>{{ object.mgmt_url }}</a></td>
         </tr>
         {% endif %}
         {% if assignments %}

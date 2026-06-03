@@ -25,24 +25,37 @@ class PlacementToggleWidget(forms.CheckboxSelectMultiple):
                 f'<input class="form-check-input" type="checkbox" id="{input_id}" '
                 f'name="{name}" value="{option_value}" {checked}>'
                 f'<label class="form-check-label" for="{input_id}">{option_label}</label>'
-                f'</div>'
+                f"</div>"
             )
         html_parts.append("</div>")
         return mark_safe("".join(html_parts))
+
 
 __all__ = ("TypeConfigForm", "TypeConfigAddForm")
 
 # NetBox-relevante App-Labels (Django-Interna ausgeblendet)
 _NETBOX_APPS = [
-    "circuits", "dcim", "extras", "ipam",
-    "netbox_custom_objects", "tenancy",
-    "virtualization", "vpn", "wireless",
+    "circuits",
+    "dcim",
+    "extras",
+    "ipam",
+    "netbox_custom_objects",
+    "tenancy",
+    "virtualization",
+    "vpn",
+    "wireless",
 ]
 
 
 class TypeConfigForm(NetBoxModelForm):
     """Edit form — content_type ist bereits gesetzt, wird nur angezeigt."""
 
+    name = forms.CharField(
+        max_length=100,
+        required=True,
+        label=_("Name"),
+        help_text=_("Display name used as column header and type label throughout NSM."),
+    )
     matching_class = forms.ChoiceField(
         choices=[("", _("— none —"))] + list(MatchingClassChoices.choices),
         required=False,
@@ -98,13 +111,28 @@ class TypeConfigForm(NetBoxModelForm):
     )
 
     fieldsets = (
-        FieldSet("matching_class", "display_template", "allowed_placements", name=_("Configuration")),
+        FieldSet("name", name=_("Identity")),
+        FieldSet(
+            "matching_class",
+            "display_template",
+            "allowed_placements",
+            "panel_linkable",
+            name=_("Configuration"),
+        ),
         FieldSet("inherit_links", "inherit_stop_on_own", name=_("Inheritance")),
     )
 
     class Meta:
         model = TypeConfig
-        fields = ("matching_class", "display_template", "allowed_placements", "inherit_links", "inherit_stop_on_own")
+        fields = (
+            "name",
+            "matching_class",
+            "display_template",
+            "allowed_placements",
+            "inherit_links",
+            "inherit_stop_on_own",
+            "panel_linkable",
+        )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -120,10 +148,16 @@ class TypeConfigForm(NetBoxModelForm):
 class TypeConfigAddForm(NetBoxModelForm):
     """Add form — object type selection from all NetBox ContentTypes."""
 
+    name = forms.CharField(
+        max_length=100,
+        required=True,
+        label=_("Name"),
+        help_text=_("Display name used as column header and type label throughout NSM."),
+    )
     content_type = ContentTypeChoiceField(
-        queryset=ContentType.objects.filter(
-            app_label__in=_NETBOX_APPS
-        ).order_by("app_label", "model"),
+        queryset=ContentType.objects.filter(app_label__in=_NETBOX_APPS).order_by(
+            "app_label", "model"
+        ),
         label=_("Object Type"),
         help_text=_("NetBox object type, e.g. IPAM › IP Range or DCIM › Device."),
     )
@@ -182,14 +216,30 @@ class TypeConfigAddForm(NetBoxModelForm):
     )
 
     fieldsets = (
+        FieldSet("name", name=_("Identity")),
         FieldSet("content_type", name=_("Object Type")),
-        FieldSet("matching_class", "display_template", "allowed_placements", name=_("Configuration")),
+        FieldSet(
+            "matching_class",
+            "display_template",
+            "allowed_placements",
+            "panel_linkable",
+            name=_("Configuration"),
+        ),
         FieldSet("inherit_links", "inherit_stop_on_own", name=_("Inheritance")),
     )
 
     class Meta:
         model = TypeConfig
-        fields = ("content_type", "matching_class", "display_template", "allowed_placements", "inherit_links", "inherit_stop_on_own")
+        fields = (
+            "name",
+            "content_type",
+            "matching_class",
+            "display_template",
+            "allowed_placements",
+            "inherit_links",
+            "inherit_stop_on_own",
+            "panel_linkable",
+        )
 
     def clean_allowed_placements(self):
         return list(self.cleaned_data.get("allowed_placements", []))

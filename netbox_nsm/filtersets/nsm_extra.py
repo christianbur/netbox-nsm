@@ -32,14 +32,28 @@ class _PlainFilterSet(FilterSet):
 
 @register_filterset
 class NSMObjectLinkFilterSet(NetBoxModelFilterSet):
-    object_a_type_id = django_filters.NumberFilter(field_name="object_a_type_id", label="Object A Type (ID)")
-    object_b_type_id = django_filters.NumberFilter(field_name="object_b_type_id", label="Object B Type (ID)")
-    object_a_id = django_filters.NumberFilter(field_name="object_a_id", label="Object A (ID)")
-    object_b_id = django_filters.NumberFilter(field_name="object_b_id", label="Object B (ID)")
+    object_a_type_id = django_filters.NumberFilter(
+        field_name="object_a_type_id", label="Object A Type (ID)"
+    )
+    object_b_type_id = django_filters.NumberFilter(
+        field_name="object_b_type_id", label="Object B Type (ID)"
+    )
+    object_a_id = django_filters.NumberFilter(
+        field_name="object_a_id", label="Object A (ID)"
+    )
+    object_b_id = django_filters.NumberFilter(
+        field_name="object_b_id", label="Object B (ID)"
+    )
 
     class Meta:
         model = NSMObjectLink
-        fields = ("id", "object_a_type_id", "object_a_id", "object_b_type_id", "object_b_id")
+        fields = (
+            "id",
+            "object_a_type_id",
+            "object_a_id",
+            "object_b_type_id",
+            "object_b_id",
+        )
 
     def search(self, queryset, name, value):
         if not value.strip():
@@ -51,9 +65,15 @@ class NSMObjectLinkFilterSet(NetBoxModelFilterSet):
 class TypeConfigFilterSet(NetBoxModelFilterSet):
     matching_class = django_filters.MultipleChoiceFilter(
         choices=[
-            ("address", "Address"), ("zone", "Zone"), ("label", "Label"),
-            ("trust", "Trust"), ("service", "Service"), ("action", "Action"),
-            ("user", "User"), ("application", "Application"), ("group", "Group"),
+            ("address", "Address"),
+            ("zone", "Zone"),
+            ("label", "Label"),
+            ("trust", "Trust"),
+            ("service", "Service"),
+            ("action", "Action"),
+            ("user", "User"),
+            ("application", "Application"),
+            ("group", "Group"),
             ("other", "Other"),
         ],
     )
@@ -80,7 +100,11 @@ class RulebookFieldFilterSet(_PlainFilterSet):
         label="Rulebook (ID)",
     )
     placement = django_filters.MultipleChoiceFilter(
-        choices=[("source", "Source"), ("destination", "Destination"), ("fixed", "Fixed")],
+        choices=[
+            ("source", "Source"),
+            ("destination", "Destination"),
+            ("fixed", "Fixed"),
+        ],
     )
 
     class Meta:
@@ -107,19 +131,32 @@ class RulebookFieldTypeFilterSet(_PlainFilterSet):
 
 class SecurityPolicyRuleObjectItemFilterSet(_PlainFilterSet):
     rule_id = django_filters.NumberFilter(field_name="rule_id", label="Rule (ID)")
-    field_id = django_filters.NumberFilter(field_name="field_id", label="Rulebook Field (ID)")
-    content_type_id = django_filters.NumberFilter(field_name="content_type_id", label="Content Type (ID)")
+    field_id = django_filters.NumberFilter(
+        field_name="field_id", label="Rulebook Field (ID)"
+    )
+    content_type_id = django_filters.NumberFilter(
+        field_name="content_type_id", label="Content Type (ID)"
+    )
     object_id = django_filters.NumberFilter(field_name="object_id", label="Object (ID)")
     exclude = django_filters.BooleanFilter()
 
     class Meta:
         model = SecurityPolicyRuleObjectItem
-        fields = ("id", "rule_id", "field_id", "content_type_id", "object_id", "exclude")
+        fields = (
+            "id",
+            "rule_id",
+            "field_id",
+            "content_type_id",
+            "object_id",
+            "exclude",
+        )
 
 
 class SecurityPolicyRuleGroupItemFilterSet(_PlainFilterSet):
     rule_id = django_filters.NumberFilter(field_name="rule_id", label="Rule (ID)")
-    field_id = django_filters.NumberFilter(field_name="field_id", label="Rulebook Field (ID)")
+    field_id = django_filters.NumberFilter(
+        field_name="field_id", label="Rulebook Field (ID)"
+    )
     security_group_id = django_filters.ModelMultipleChoiceFilter(
         queryset=SecurityObjectGroup.objects.all(),
         field_name="security_group",

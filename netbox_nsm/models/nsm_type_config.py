@@ -60,10 +60,12 @@ class NSMTypeConfig(NetBoxModel):
             return f"NSMTypeConfig(#{self.pk})"
         mc = self.content_type.model_class()
         if mc:
-            app_label = getattr(mc._meta.app_config, "verbose_name", self.content_type.app_label)
+            app_label = getattr(
+                mc._meta.app_config, "verbose_name", self.content_type.app_label
+            )
             model_label = mc._meta.verbose_name.title()
             return f"{app_label} › {model_label}"
         return f"{self.content_type.app_label} | {self.content_type.model}"
 
     def get_absolute_url(self):
-        return reverse("plugins:netbox_nsm:nsmtypeconfig_edit", args=[self.pk])
+        return reverse("plugins:netbox_nsm:typeconfig_list")

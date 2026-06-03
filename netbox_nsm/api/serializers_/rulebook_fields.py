@@ -29,6 +29,7 @@ __all__ = (
 
 # ── Nested helpers (no url needed, only used inside other serializers) ─────────
 
+
 class _NestedRulebookSerializer(ModelSerializer):
     display = serializers.CharField(read_only=True)
 
@@ -56,6 +57,7 @@ class _NestedGroupSerializer(ModelSerializer):
 
 # ── RulebookField ──────────────────────────────────────────────────────────────
 
+
 class RulebookFieldSerializer(ModelSerializer):
     url = HyperlinkedIdentityField(
         view_name="plugins-api:netbox_nsm-api:rulebookfield-detail"
@@ -79,6 +81,7 @@ class RulebookFieldSerializer(ModelSerializer):
 
 
 # ── RulebookFieldType ──────────────────────────────────────────────────────────
+
 
 class _NestedRulebookFieldSerializer(ModelSerializer):
     display = serializers.CharField(read_only=True)
@@ -112,6 +115,7 @@ class RulebookFieldTypeSerializer(ModelSerializer):
 
 # ── SecurityPolicyRuleObjectItem ───────────────────────────────────────────────
 
+
 class SecurityPolicyRuleObjectItemSerializer(ModelSerializer):
     url = HyperlinkedIdentityField(
         view_name="plugins-api:netbox_nsm-api:securitypolicyruleobjectitem-detail"
@@ -134,7 +138,15 @@ class SecurityPolicyRuleObjectItemSerializer(ModelSerializer):
             "assigned_object",
             "exclude",
         )
-        brief_fields = ("id", "url", "display", "rule", "field", "content_type", "object_id")
+        brief_fields = (
+            "id",
+            "url",
+            "display",
+            "rule",
+            "field",
+            "content_type",
+            "object_id",
+        )
 
     @extend_schema_field({"type": "object"})
     def get_assigned_object(self, obj):
@@ -146,6 +158,7 @@ class SecurityPolicyRuleObjectItemSerializer(ModelSerializer):
 
 
 # ── SecurityPolicyRuleGroupItem ────────────────────────────────────────────────
+
 
 class SecurityPolicyRuleGroupItemSerializer(ModelSerializer):
     url = HyperlinkedIdentityField(

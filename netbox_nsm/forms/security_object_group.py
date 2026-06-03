@@ -37,9 +37,11 @@ class SecurityObjectGroupForm(PrimaryModelForm):
     color = forms.CharField(
         max_length=7,
         required=False,
-        label=_('Color'),
+        label=_("Color"),
         widget=ColorSelectTextWidget(),
-        help_text=_('HTML color code (e.g. #aabbcc) used for this group in the policy view.'),
+        help_text=_(
+            "HTML color code (e.g. #aabbcc) used for this group in the policy view."
+        ),
     )
     fieldsets = (
         FieldSet("name", "areas", "color", "description", name=_("Group")),
@@ -67,9 +69,7 @@ class SecurityObjectGroupForm(PrimaryModelForm):
             area_ids.update(self.data.getlist("areas"))
         else:
             initial_areas = self.initial.get("areas") or []
-            area_ids.update(
-                getattr(area, "pk", area) for area in initial_areas if area
-            )
+            area_ids.update(getattr(area, "pk", area) for area in initial_areas if area)
 
         if not area_ids and self.instance.pk:
             area_ids.update(self.instance.areas.values_list("pk", flat=True))
@@ -78,9 +78,9 @@ class SecurityObjectGroupForm(PrimaryModelForm):
         if not area_ids:
             return
 
-        self.fields["sub_groups"].queryset = (
-            SecurityObjectGroup.objects.filter(areas__pk__in=area_ids).distinct()
-        )
+        self.fields["sub_groups"].queryset = SecurityObjectGroup.objects.filter(
+            areas__pk__in=area_ids
+        ).distinct()
 
     def clean_sub_groups(self):
         sub_groups = self.cleaned_data.get("sub_groups", [])
@@ -128,9 +128,9 @@ class SecurityObjectGroupBulkEditForm(PrimaryModelBulkEditForm):
     color = forms.CharField(
         max_length=7,
         required=False,
-        label=_('Color'),
+        label=_("Color"),
         widget=ColorSelectTextWidget(),
-        help_text=_('HTML color code (e.g. #aabbcc).'),
+        help_text=_("HTML color code (e.g. #aabbcc)."),
     )
     nullable_fields = ["description", "color"]
     fieldsets = (

@@ -11,6 +11,7 @@ __all__ = ("MatchingClassChoices", "TypeConfig")
 class MatchingClassChoices(models.TextChoices):
     ADDRESS = "address", _("Address")
     ZONE = "zone", _("Zone")
+    LABEL_SCOPE = "label-scope", _("Label-Scope")
     LABEL = "label", _("Label")
     TRUST = "trust", _("Trust")
     SERVICE = "service", _("Service")
@@ -29,10 +30,15 @@ class TypeConfig(NetBoxModel):
     and which placements it is allowed to appear in.
     """
 
-    content_type = models.OneToOneField(
+    name = models.CharField(
+        max_length=100,
+        verbose_name=_("Name"),
+        help_text=_("Display name used as column header and type label throughout NSM."),
+    )
+    content_type = models.ForeignKey(
         to="contenttypes.ContentType",
         on_delete=models.CASCADE,
-        related_name="nsm_type_config",
+        related_name="nsm_matching_configs",
         verbose_name=_("Object Type"),
     )
     matching_class = models.CharField(
@@ -82,21 +88,37 @@ class TypeConfig(NetBoxModel):
             "type, inherited links of that type are suppressed."
         ),
     )
+    panel_linkable = models.BooleanField(
+        default=True,
+        verbose_name=_("Linkable in panel"),
+        help_text=_(
+            "If enabled, objects of this type can be linked from the NSM Security Panel."
+        ),
+    )
 
     class Meta:
         verbose_name = _("Type Config")
         verbose_name_plural = _("Type Configs")
-        ordering = ("content_type__app_label", "content_type__model")
+        ordering = ("content_type__app_label", "content_type__model", "matching_class")
+        unique_together = [("content_type", "matching_class")]
 
     def __str__(self):
+        if self.name:
+            return self.name
         if not self.content_type_id:
             return f"TypeConfig(#{self.pk})"
         mc = self.content_type.model_class()
         if mc:
-            app_label = getattr(mc._meta.app_config, "verbose_name", self.content_type.app_label)
+            app_label = getattr(
+                mc._meta.app_config, "verbose_name", self.content_type.app_label
+            )
             model_label = mc._meta.verbose_name.title()
-            return f"{app_label} › {model_label}"
-        return f"{self.content_type.app_label} | {self.content_type.model}"
+            base = f"{app_label} › {model_label}"
+        else:
+            base = f"{self.content_type.app_label} | {self.content_type.model}"
+        if self.matching_class:
+            return f"{base} ({self.matching_class})"
+        return base
 
     def get_absolute_url(self):
         return reverse("plugins:netbox_nsm:typeconfig_edit", args=[self.pk])

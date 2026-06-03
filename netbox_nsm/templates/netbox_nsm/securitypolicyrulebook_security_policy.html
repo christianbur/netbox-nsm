@@ -6,66 +6,6 @@
 <div class="card">
   <div class="card-body p-0">
     <div class="p-3">
-      {% if active_src_zones or active_dst_zones %}
-        <div class="alert alert-info d-flex align-items-start gap-2 mb-3 py-2">
-          <i class="mdi mdi-filter-outline mt-1"></i>
-          <div class="flex-grow-1">
-            <strong>Active zone filter</strong>
-            {% if active_src_zones %}
-              &nbsp;&mdash;&nbsp;
-              <span class="text-muted small">Source:</span>
-              {% for z in active_src_zones %}
-                <a href="{% url 'plugins:netbox_nsm:securityzone' z.pk %}" class="badge text-bg-secondary text-decoration-none">{{ z.name }}</a>
-              {% endfor %}
-            {% endif %}
-            {% if active_dst_zones %}
-              &nbsp;&rarr;&nbsp;
-              <span class="text-muted small">Destination:</span>
-              {% for z in active_dst_zones %}
-                <a href="{% url 'plugins:netbox_nsm:securityzone' z.pk %}" class="badge text-bg-secondary text-decoration-none">{{ z.name }}</a>
-              {% endfor %}
-            {% endif %}
-          </div>
-          <a href="{{ request.path }}" class="btn btn-sm btn-outline-secondary ms-2">
-            <i class="mdi mdi-close"></i> Reset filter
-          </a>
-        </div>
-      {% endif %}
-
-      {% if active_src_objs or active_dst_objs %}
-        <div class="alert alert-info d-flex align-items-start gap-2 mb-3 py-2">
-          <i class="mdi mdi-tag-multiple-outline mt-1"></i>
-          <div class="flex-grow-1">
-            <strong>Active object filter</strong>
-            {% if active_src_objs %}
-              &nbsp;&mdash;&nbsp;
-              <span class="text-muted small">Source:</span>
-              {% for obj in active_src_objs %}
-                <a href="{{ obj.get_absolute_url }}"
-                   class="badge text-decoration-none"
-                   style="background:{{ obj.custom_type.color|default:'#6c757d' }};color:#fff;">
-                  {{ obj.name }}
-                </a>
-              {% endfor %}
-            {% endif %}
-            {% if active_dst_objs %}
-              &nbsp;&rarr;&nbsp;
-              <span class="text-muted small">Destination:</span>
-              {% for obj in active_dst_objs %}
-                <a href="{{ obj.get_absolute_url }}"
-                   class="badge text-decoration-none"
-                   style="background:{{ obj.custom_type.color|default:'#6c757d' }};color:#fff;">
-                  {{ obj.name }}
-                </a>
-              {% endfor %}
-            {% endif %}
-          </div>
-          <a href="{{ request.path }}" class="btn btn-sm btn-outline-secondary ms-2">
-            <i class="mdi mdi-close"></i> Reset filter
-          </a>
-        </div>
-      {% endif %}
-
       {% if is_security_rules %}
         <style>
           /* ============================================================
@@ -206,6 +146,30 @@
             background: var(--nsm-surface);
             border-bottom: 1px solid var(--nsm-line);
             border-right: 1px solid var(--nsm-line);
+            max-width: 0;           /* makes width:Xpx on th actually clamp td */
+            overflow: hidden;
+          }
+          /* area cells that contain pills can wrap vertically */
+          .nsm-policy-table .table tbody td[data-nsm-field] {
+            white-space: normal;
+          }
+          /* inner wrapper for truncation in text cells */
+          .nsm-cell-inner {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            display: block;
+          }
+          /* pills container: one pill per line */
+          .nsm-rule-pills {
+            display: flex;
+            flex-direction: column;
+            flex-wrap: nowrap;
+            gap: .2rem;
+            align-items: flex-start;
+            width: 100%;
+            min-width: 0;
+            overflow: hidden;
           }
           .nsm-policy-table .table tbody td:last-child { border-right: 0; }
           .nsm-policy-table .table tbody tr:last-child td { border-bottom: 0; }
@@ -240,23 +204,17 @@
             box-shadow: none;
           }
           .nsm-rule-label { display: none; }
-          .nsm-rule-pills {
-            display: flex;
-            flex-wrap: wrap;
-            gap: .25rem;
-            align-items: center;
-          }
           .nsm-rule-pill {
             background: var(--nsm-pill-bg);
             border: 1px solid var(--nsm-pill-border);
             border-radius: 999px;
             color: var(--nsm-pill-text);
-            display: inline-block;
+            display: block;
             font-size: .76rem;
             font-weight: 600;
             line-height: 1.4;
             padding: .15rem .55rem;
-            max-width: 200px;
+            max-width: 100%;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -329,6 +287,21 @@
             width: 1.45rem;
             border: 1px solid transparent;
           }
+          .nsm-index-badge {
+            align-items: center;
+            border-radius: 999px;
+            display: inline-flex;
+            height: 1.45rem;
+            min-width: 1.45rem;
+            padding: 0 .35rem;
+            justify-content: center;
+            border: 1px solid transparent;
+            font-size: .75rem;
+            font-weight: 500;
+            text-decoration: none;
+            background: #e8eaf0; color: #3a4060; border-color: #c5c9d8;
+          }
+          [data-bs-theme="dark"] .nsm-index-badge { background: rgba(99,108,148,.22); color: #a0aacc; border-color: rgba(99,108,148,.45); }
           .nsm-status-icon i { font-size: .95rem; line-height: 1; }
           .nsm-status-icon-on { background: #e6f5ea; color: #1f7a33; border-color: #b7dec3; }
           .nsm-status-icon-off { background: #fbeae9; color: #a63a32; border-color: #e5b9b6; }
@@ -338,12 +311,12 @@
           @media (max-width: 992px) {
             .nsm-policy-table .table thead th { font-size: .7rem; padding: .45rem .5rem; }
             .nsm-policy-table .table tbody td { font-size: .78rem; padding: .45rem .5rem; }
-            .nsm-rule-pill { max-width: 140px; font-size: .72rem; }
+            .nsm-rule-pill { font-size: .72rem; }
           }
         </style>
         <div class="mb-2 d-flex align-items-center justify-content-between gap-2 flex-wrap">
           <div class="d-flex align-items-center gap-2">
-            <strong>Security Rules</strong>
+            <strong>{% trans "Security Rules" %}</strong>
             <span class="badge text-bg-secondary">{{ total_count }}</span>
           </div>
           <div class="d-flex align-items-center gap-2 ms-auto">
@@ -353,7 +326,7 @@
                   <input type="hidden" name="{{ key }}" value="{{ val }}">
                 {% endif %}
               {% endfor %}
-              <label class="small text-muted mb-0">Rows:</label>
+              <label class="small text-muted mb-0">{% trans "Rows:" %}</label>
               <select name="per_page" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
                 {% for n in valid_per_page %}
                   <option value="{{ n }}" {% if n == per_page %}selected{% endif %}>{{ n }}</option>
@@ -362,42 +335,257 @@
             </form>
             {% if perms.netbox_nsm.add_securitypolicyrule %}
               <a href="{% url 'plugins:netbox_nsm:securitypolicyrule_add' %}?rulebook={{ object.pk }}&return_url={{ request.path|urlencode }}" class="btn btn-sm btn-primary">
-                <span class="mdi mdi-plus-thick" aria-hidden="true"></span> Add Rule
+                <span class="mdi mdi-plus-thick" aria-hidden="true"></span> {% trans "Add Rule" %}
               </a>
             {% endif %}
           </div>
         </div>
 
-        <div class="mb-3">
-          <form method="get" action="{% url 'plugins:netbox_nsm:global_rules_search' %}">
+        {# ─── NSM Query Bar ─────────────────────────────────────────────────── #}
+        <div class="mb-3" id="nsm-query-bar">
+          <form method="get" id="nsm-query-form">
+            {% for key, val in request.GET.items %}
+              {% if key != "nsm_q" and key != "page" %}
+                <input type="hidden" name="{{ key }}" value="{{ val }}">
+              {% endif %}
+            {% endfor %}
             <div class="input-group input-group-sm">
-              <span class="input-group-text"><i class="mdi mdi-shield-search"></i></span>
-              <input type="text" name="q" value="{{ object.name }}"
-                     class="form-control"
-                     placeholder="{% trans 'Rule name or rulebook …' %}">
+              <span class="input-group-text text-muted" title="{% trans 'NSM Query' %}">
+                <i class="mdi mdi-filter-outline"></i>
+              </span>
+              <input type="text" name="nsm_q" id="nsm-q-input"
+                     value="{{ nsm_q }}"
+                     class="form-control font-monospace{% if nsm_query_error %} is-invalid{% endif %}"
+                     placeholder="{% trans 'e.g. source.zone = prod AND service in (HTTP, HTTPS)' %}"
+                     autocomplete="off"
+                     spellcheck="false">
+              {% if nsm_q %}
+                <a href="{{ request.path }}" class="btn btn-outline-secondary" title="{% trans 'Clear filter' %}">
+                  <i class="mdi mdi-close"></i>
+                </a>
+              {% endif %}
               <button type="submit" class="btn btn-primary">
-                <i class="mdi mdi-magnify"></i> {% trans "Search" %}
+                <i class="mdi mdi-magnify"></i>
+              </button>
+              <button type="button" class="btn btn-outline-secondary" id="nsm-copy-query"
+                      title="Copy query to clipboard (with rulebook context)"
+                      data-rulebook="{{ instance.name }}"
+                      {% if not nsm_q %}disabled{% endif %}>
+                <i class="mdi mdi-content-copy"></i>
+              </button>
+              <button type="button" class="btn btn-outline-secondary" data-bs-toggle="collapse"
+                      data-bs-target="#nsm-query-help" aria-expanded="false"
+                      title="{% trans 'Query syntax help' %}">
+                <i class="mdi mdi-help-circle-outline"></i>
               </button>
             </div>
+            {% if nsm_query_error %}
+              <div class="invalid-feedback d-block small mt-1">
+                <i class="mdi mdi-alert-outline me-1"></i>{{ nsm_query_error }}
+              </div>
+            {% endif %}
           </form>
-          <details class="mt-1">
-            <summary style="list-style:none;cursor:pointer;user-select:none;font-size:11px;" class="text-muted d-inline-flex align-items-center gap-1">
-              <i class="mdi mdi-help-circle-outline"></i>
-              <span>{% trans "Search help" %}</span>
-              <i class="mdi mdi-chevron-down"></i>
-            </summary>
-            <div class="mt-1 ps-1 border-start border-secondary text-muted" style="font-size:11px;">
-              <p class="mb-1">{% trans "Searches across <strong>all rulebooks</strong>. The field is pre-filled with this rulebook's name as a starting filter." %}</p>
-              <p class="mb-1"><strong>{% trans "Examples:" %}</strong></p>
-              <ul class="mb-0 ps-3">
-                <li><code>Demo</code> – {% trans "all rules whose name or rulebook contains \"Demo\"" %}</li>
-                <li><code>Zone Matrix</code> – {% trans "filter by rulebook name" %}</li>
-                <li><code>allow</code> – {% trans "find rules with \"allow\" in the name" %}</li>
-              </ul>
+
+          {# Help panel #}
+          <div class="collapse mt-2" id="nsm-query-help">
+            <div class="border rounded p-3 small text-muted" style="font-size:12px;">
+              <div class="row g-3">
+                <div class="col-md-4">
+                  <strong class="text-body d-block mb-1">{% trans "Field path" %}</strong>
+                  <table class="table table-sm table-borderless mb-0" style="font-size:11px;">
+                    <tbody>
+                      <tr><td><code>x</code></td><td>{% trans "column or fixed field" %}</td><td><code>index</code>, <code>Action</code></td></tr>
+                      <tr><td><code>x.y</code></td><td>{% trans "column + type hint" %}</td><td><code>Source.zone</code></td></tr>
+                      <tr><td><code>x.y.z</code></td><td>{% trans "column + type hint + object property" %}</td><td><code>Source.address.prefix</code></td></tr>
+                    </tbody>
+                  </table>
+                  <strong class="text-body d-block mb-1 mt-2">{% trans "Operators" %}</strong>
+                  <table class="table table-sm table-borderless mb-0" style="font-size:11px;">
+                    <tbody>
+                      <tr><td><code>=</code></td><td>{% trans "equals" %}</td><td><code>Action = Permit</code></td></tr>
+                      <tr><td><code>!=</code></td><td>{% trans "not equals" %}</td><td><code>Action != Deny</code></td></tr>
+                      <tr><td><code>contains</code></td><td>{% trans "contains / IP in subnet" %}</td><td><code>Source.address.prefix contains 10.0.0.0</code></td></tr>
+                      <tr><td><code>exists</code></td><td>{% trans "field has a value" %}</td><td><code>Source exists</code></td></tr>
+                      <tr><td><code>!exists</code></td><td>{% trans "field is empty" %}</td><td><code>Destination !exists</code></td></tr>
+                      <tr><td><code>in</code></td><td>{% trans "one of" %}</td><td><code>Source.zone in (prod, trust)</code></td></tr>
+                      <tr><td><code>notin</code></td><td>{% trans "none of" %}</td><td><code>Service notin (HTTP)</code></td></tr>
+                    </tbody>
+                  </table>
+                  <strong class="text-body d-block mb-1 mt-2">{% trans "Logic" %}</strong>
+                  <table class="table table-sm table-borderless mb-0" style="font-size:11px;">
+                    <tbody>
+                      <tr><td><code>AND</code> / <code>&&</code></td><td>{% trans "both must match" %}</td></tr>
+                      <tr><td><code>OR</code> / <code>||</code></td><td>{% trans "either must match" %}</td></tr>
+                    </tbody>
+                  </table>
+                  <div class="mt-1 text-muted" style="font-size:10px;">{% trans "AND binds tighter than OR" %}: <code>A AND B OR C</code> = <code>(A AND B) OR C</code></div>
+                </div>
+                <div class="col-md-4">
+                  <strong class="text-body d-block mb-1">{% trans "Examples" %}</strong>
+                  <ul class="list-unstyled mb-0" style="line-height:1.9;">
+                    <li><a href="?nsm_q=index+%3D+1" class="nsm-query-example font-monospace">index = 1</a></li>
+                    <li><a href="?nsm_q=name+contains+allow" class="nsm-query-example font-monospace">name contains allow</a></li>
+                    <li><a href="?nsm_q=Action+%3D+Permit" class="nsm-query-example font-monospace">Action = Permit</a></li>
+                    <li><a href="?nsm_q=description+contains+SAP" class="nsm-query-example font-monospace">description contains SAP</a></li>
+                    {% for field in object.fields.all %}
+                      {% if field.facetable or field.searchable %}
+                        <li><a href="?nsm_q={{ field.name }}+exists" class="nsm-query-example font-monospace">{{ field.name }} exists</a></li>
+                      {% endif %}
+                    {% endfor %}
+                    <li class="mt-1 text-muted" style="font-size:10px;">{% trans "AND" %}</li>
+                    {% for field in object.fields.all %}
+                      {% if field.facetable or field.searchable %}
+                        <li><a href="?nsm_q={{ field.name }}.zone+exists" class="nsm-query-example font-monospace">{{ field.name }}.zone exists</a></li>
+                        <li><a href="?nsm_q={{ field.name }}.address.prefix+contains+10.0.0.0" class="nsm-query-example font-monospace">{{ field.name }}.address.prefix contains 10.0.0.0</a></li>
+                      {% endif %}
+                    {% endfor %}
+                    <li class="mt-1 text-muted" style="font-size:10px;">{% trans "OR" %}</li>
+                    {% for field in object.fields.all %}
+                      {% if field.facetable or field.searchable %}
+                        <li><a href="?nsm_q={{ field.name }}+%3D+%22a%22+OR+{{ field.name }}+%3D+%22b%22" class="nsm-query-example font-monospace">{{ field.name }} = "a" OR {{ field.name }} = "b"</a></li>
+                      {% endif %}
+                    {% endfor %}
+                  </ul>
+                </div>
+                <div class="col-md-4">
+                  <strong class="text-body d-block mb-1">{% trans "Fixed fields" %}</strong>
+                  <table class="table table-sm table-borderless mb-0" style="font-size:11px;">
+                    <tbody>
+                      <tr><td><code>index</code></td><td>{% trans "rule index" %}</td></tr>
+                      <tr><td><code>name</code></td><td>{% trans "rule name" %}</td></tr>
+                      <tr><td><code>description</code></td><td>{% trans "rule description" %}</td></tr>
+                      <tr><td><code>action</code></td><td>{% trans "permit / deny / …" %}</td></tr>
+                      <tr><td><code>enabled</code></td><td><code>true</code> / <code>false</code></td></tr>
+                    </tbody>
+                  </table>
+                  <div class="mt-2 text-muted" style="font-size:11px;">
+                    <i class="mdi mdi-information-outline me-1"></i>
+                    {% trans "Column names match rulebook headers (case-insensitive)." %}
+                  </div>
+                </div>
+              </div>
             </div>
-          </details>
+          </div>
         </div>
-      {% endif %}
+
+        {# ─── Facet side-panel + rules layout ──────────────────────────────── #}
+        {% if nsm_facets %}
+        <div class="d-flex align-items-start" id="nsm-layout-row">
+
+          {# ── Left: collapsible facet sidebar ─────────────────────── #}
+          <div id="nsm-facet-panel" class="nsm-facet-sidebar flex-shrink-0 me-3">
+            <div id="nsm-facet-header" class="d-flex justify-content-between align-items-center pb-1 mb-2 border-bottom">
+              <span class="nsm-facet-title fw-semibold text-muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;">
+                <i class="mdi mdi-filter-variant me-1"></i>Filter
+              </span>
+              <button type="button" id="nsm-facet-toggle" class="btn p-0 ms-1 text-muted" style="font-size:16px;line-height:1;width:26px;height:26px;min-width:26px;min-height:26px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(128,128,128,.25);border-radius:4px;background:none;" title="Collapse filter panel">
+                <i class="mdi mdi-chevron-double-left" id="nsm-facet-chev"></i>
+              </button>
+            </div>
+            <div id="nsm-facet-content">
+              {% for facet in nsm_facets %}
+              <div class="nsm-facet-section mb-1" data-facet-slug="{{ facet.field_slug }}" data-mode="value">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <div class="flex-grow-1 min-width-0 d-flex align-items-center gap-1">
+                    <span class="fw-semibold" style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--tblr-text-muted, #6b7280);">{{ facet.field_name }}</span>
+                    <button type="button" class="nsm-facet-section-toggle btn p-0 text-muted flex-shrink-0 d-flex align-items-center"
+                            data-section="{{ facet.field_slug }}"
+                            style="font-size:12px;border:none;background:none;line-height:1;">
+                      <i class="mdi mdi-menu-right nsm-sec-chev"></i>
+                    </button>
+                  </div>
+                  <button type="button" class="nsm-facet-mode-toggle btn p-0 text-muted flex-shrink-0 ms-1"
+                          data-facet="{{ facet.field_slug }}"
+                          title="Toggle val (einzeln) / set (Kombination)"
+                          style="font-size:10px;border:none;background:none;line-height:1;display:flex;align-items:center;gap:2px;">
+                    <span class="nsm-facet-mode-label nsm-mode-val" style="font-size:9px;padding:0 2px;border:1px solid currentColor;border-radius:3px;">val</span>
+                    <span class="nsm-facet-mode-label nsm-mode-set" style="font-size:9px;padding:0 2px;border:1px solid currentColor;border-radius:3px;opacity:.35;">set</span>
+                  </button>
+                </div>
+                <div class="nsm-facet-body" style="display:none;">
+                  <div class="nsm-facet-entries-value">
+                    {% for grp_block in facet.entries_value %}
+                      <div class="nsm-facet-group-block">
+                        {% if grp_block.group_short %}<div class="nsm-facet-group-hdr">{{ grp_block.group_short }}</div>{% endif %}
+                        {% for entry in grp_block.entries %}
+                          {% if entry.disabled %}
+                            <a href="?nsm_q={{ entry.qval|urlencode }}"
+                               class="nsm-facet-entry d-flex justify-content-between align-items-center px-1 py-1 rounded nsm-facet-entry--disabled"
+                               style="font-size:12px;text-decoration:none;">
+                              <span class="text-truncate">{{ entry.value }}</span>
+                              <span class="badge nsm-badge-dim ms-1 flex-shrink-0" style="font-size:10px;">{{ entry.count_all }}</span>
+                            </a>
+                          {% elif entry.already_active %}
+                            <span
+                             class="nsm-facet-entry nsm-facet-entry--active d-flex justify-content-between align-items-center px-1 py-1 rounded"
+                             style="font-size:12px;">
+                            <span class="text-truncate">{{ entry.value }}</span>
+                            <span class="badge text-bg-primary ms-1 flex-shrink-0" style="font-size:10px;">{{ entry.count }}</span>
+                          </span>
+                          {% else %}
+                            {% with newq=nsm_q|add:" AND "|add:entry.qval %}
+                            <a href="?nsm_q={% if nsm_q %}{{ newq|urlencode }}{% else %}{{ entry.qval|urlencode }}{% endif %}"
+                               class="nsm-facet-entry d-flex justify-content-between align-items-center px-1 py-1 rounded"
+                               style="font-size:12px;text-decoration:none;">
+                            <span class="text-truncate">{{ entry.value }}</span>
+                            <span class="badge text-bg-primary ms-1 flex-shrink-0" style="font-size:10px;">{{ entry.count }}</span>
+                          </a>
+                            {% endwith %}
+                          {% endif %}
+                        {% endfor %}
+                      </div>
+                    {% endfor %}
+                  </div>
+                  <div class="nsm-facet-entries-set">
+                    {% for grp_block in facet.entries_set %}
+                      <div class="nsm-facet-group-block">
+                        {% if grp_block.group_short %}<div class="nsm-facet-group-hdr">{{ grp_block.group_short }}</div>{% endif %}
+                        {% for entry in grp_block.entries %}
+                          {% if entry.disabled %}
+                            <a href="?nsm_q={{ entry.qval|urlencode }}"
+                               class="nsm-facet-entry d-flex justify-content-between align-items-center px-1 py-1 rounded nsm-facet-entry--disabled"
+                               style="font-size:12px;text-decoration:none;">
+                              <span class="text-truncate">{{ entry.value }}</span>
+                              <span class="badge nsm-badge-dim ms-1 flex-shrink-0" style="font-size:10px;">{{ entry.count_all }}</span>
+                            </a>
+                          {% elif entry.already_active %}
+                            <span
+                             class="nsm-facet-entry nsm-facet-entry--active d-flex justify-content-between align-items-center px-1 py-1 rounded"
+                             style="font-size:12px;">
+                            <span class="text-truncate">{{ entry.value }}</span>
+                            <span class="badge text-bg-primary ms-1 flex-shrink-0" style="font-size:10px;">{{ entry.count }}</span>
+                          </span>
+                          {% else %}
+                            {% with newq=nsm_q|add:" AND "|add:entry.qval %}
+                            <a href="?nsm_q={% if nsm_q %}{{ newq|urlencode }}{% else %}{{ entry.qval|urlencode }}{% endif %}"
+                               class="nsm-facet-entry d-flex justify-content-between align-items-center px-1 py-1 rounded"
+                               style="font-size:12px;text-decoration:none;">
+                            <span class="text-truncate">{{ entry.value }}</span>
+                            <span class="badge text-bg-primary ms-1 flex-shrink-0" style="font-size:10px;">{{ entry.count }}</span>
+                          </a>
+                            {% endwith %}
+                          {% endif %}
+                        {% endfor %}
+                      </div>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+              {% if nsm_q %}
+              <a href="{{ request.path }}" class="btn btn-sm btn-outline-danger w-100 mt-1" style="font-size:11px;">
+                <i class="mdi mdi-close me-1"></i>Clear
+              </a>
+              {% endif %}
+
+            </div>{# nsm-facet-content #}
+          </div>{# nsm-facet-panel #}
+
+          {# ── Right: rules panel ───────────────────────────────── #}
+          <div id="nsm-rules-panel" class="flex-grow-1" style="min-width:0;">
+        {% else %}
+          <div id="nsm-rules-panel">
+        {% endif %}{# nsm_facets #}
 
       <form method="post" id="nsm-bulk-delete-form">
         {% csrf_token %}
@@ -417,7 +605,7 @@
                     <input type="checkbox" id="select-all"
                            onclick="document.querySelectorAll('input[name=pk]').forEach(cb=>cb.checked=this.checked);document.dispatchEvent(new Event('change'))">
                   </th>
-                  <th rowspan="2" class="nsm-main-col"><button type="button" class="nsm-sort-btn" data-nsm-sort data-nsm-col-index="1"><span>Index</span><i class="mdi mdi-unfold-more-horizontal"></i></button></th>
+                  <th rowspan="2" class="nsm-main-col"><button type="button" class="nsm-sort-btn" data-nsm-sort data-nsm-col-index="1"><span>ID</span><i class="mdi mdi-unfold-more-horizontal"></i></button></th>
                   <th rowspan="2" class="nsm-main-col"><button type="button" class="nsm-sort-btn" data-nsm-sort data-nsm-col-index="2"><span>Status</span><i class="mdi mdi-unfold-more-horizontal"></i></button></th>
                   <th rowspan="2" class="nsm-main-col"><button type="button" class="nsm-sort-btn" data-nsm-sort data-nsm-col-index="3"><span>Name</span><i class="mdi mdi-unfold-more-horizontal"></i></button></th>
                   {% for group in policy_header_groups %}
@@ -451,7 +639,7 @@
                 {% for row in policy_grouped_rows %}
                   <tr>
                     <td><input type="checkbox" name="pk" value="{{ row.pk }}"></td>
-                    <td class="nsm-main-col">{{ row.index }}</td>
+                    <td class="nsm-main-col"><a href="{{ row.url }}" class="nsm-index-badge">{{ row.index }}</a></td>
                     <td class="nsm-main-col" data-sort-value="{% if row.enabled %}1{% else %}0{% endif %}" data-filter-value="{% if row.enabled %}ein on enabled aktiv 1{% else %}aus off disabled inaktiv 0{% endif %}">
                       {% if row.enabled %}
                         <span class="nsm-status-icon nsm-status-icon-on" title="Ein" aria-label="Ein"><i class="mdi mdi-check"></i></span>
@@ -459,15 +647,17 @@
                         <span class="nsm-status-icon nsm-status-icon-off" title="Aus" aria-label="Aus"><i class="mdi mdi-close"></i></span>
                       {% endif %}
                     </td>
-                    <td class="nsm-main-col"><a href="{{ row.url }}" class="text-body">{{ row.name }}</a></td>
+                    <td class="nsm-main-col"><span class="nsm-cell-inner"><a href="{{ row.url }}" class="text-body">{{ row.name }}</a></span></td>
                     {% for group in policy_header_groups %}
                       {% for col in group.columns %}
                         {% with cell=row.cells|get_item:col.key %}
-                          <td class="nsm-area-band-{{ col.group_band }} {% if col.is_group_start %}nsm-area-start {% endif %}{% if col.is_group_end %}nsm-area-end{% endif %}">{% if cell %}{{ cell|safe }}{% else %}<span class="nsm-cell-empty">-</span>{% endif %}</td>
+                          <td class="nsm-area-band-{{ col.group_band }} {% if col.is_group_start %}nsm-area-start {% endif %}{% if col.is_group_end %}nsm-area-end{% endif %}{% if cell and cell != '<span class="text-muted small">-</span>' %} nsm-cell-clickable{% endif %}"
+                              data-nsm-field="{{ col.area_slug }}"
+                              title="Ctrl+click to filter">{% if cell %}{{ cell|safe }}{% else %}<span class="nsm-cell-empty">-</span>{% endif %}</td>
                         {% endwith %}
                       {% endfor %}
                     {% endfor %}
-                    <td data-sort-value="{{ row.description|default:''|lower }}" title="{{ row.description|default:'' }}">{{ row.description|truncatechars:21 }}</td>
+                    <td data-sort-value="{{ row.description|default:''|lower }}" title="{{ row.description|default:'' }}"><span class="nsm-cell-inner">{{ row.description|truncatechars:21 }}</span></td>
                     <td class="text-end text-nowrap noprint p-1">
                       <span class="btn-group dropdown">
                         <a class="btn btn-sm btn-warning" href="{{ row.edit_url }}" type="button" aria-label="Edit"><i class="mdi mdi-pencil"></i></a>
@@ -534,6 +724,13 @@
         </ul>
       </nav>
       {% endif %}
+
+      </div>{# nsm-rules-panel #}
+      {% if nsm_facets %}
+        </div>{# nsm-layout-row #}
+      {% endif %}
+      {% endif %}{# is_security_rules #}
+
       <script>
       (function () {
         var form = document.getElementById('nsm-bulk-delete-form');
@@ -692,6 +889,481 @@
         });
       })();
       </script>
+      <script>
+      // Copy query to clipboard — includes Rulebook context
+      (function () {
+        var btn = document.getElementById('nsm-copy-query');
+        var inp = document.getElementById('nsm-q-input');
+        if (!btn || !inp) return;
+        var rulebook = btn.getAttribute('data-rulebook') || '';
+        btn.addEventListener('click', function () {
+          var q = inp.value.trim();
+          if (!q) return;
+          var text = rulebook ? 'Rulebook == "' + rulebook + '" AND ' + q : q;
+          navigator.clipboard.writeText(text).then(function () {
+            var icon = btn.querySelector('i');
+            if (icon) { icon.className = 'mdi mdi-check'; }
+            setTimeout(function () {
+              if (icon) { icon.className = 'mdi mdi-content-copy'; }
+            }, 1500);
+          });
+        });
+        // Enable/disable copy button based on input
+        inp.addEventListener('input', function () {
+          btn.disabled = !inp.value.trim();
+        });
+      })();
+
+      // ── Column resize ─────────────────────────────────────────────────
+      (function () {
+        var table = document.querySelector('.nsm-policy-table table');
+        if (!table || !table.tHead) return;
+        var rows = table.tHead.rows;
+        if (rows.length < 2) return;
+        var filterRow = table.querySelector('tr.nsm-filter-row');
+        var tbody = table.tBodies[0];
+        var numCols = (tbody && tbody.rows[0]) ? tbody.rows[0].cells.length : 0;
+        if (!numCols) return;
+
+        var lastDataCol = numCols - 2; // Description col (before Actions)
+
+        // Map col indices from row 0
+        var row0Cells = Array.prototype.slice.call(rows[0].cells);
+        var row0Start = []; var acc = 0;
+        row0Cells.forEach(function (th) { row0Start.push(acc); acc += (th.colSpan || 1); });
+        var rowspanColSet = {};
+        row0Cells.forEach(function (th, ci) {
+          if ((th.rowSpan || 1) >= 2) {
+            for (var k = 0; k < (th.colSpan || 1); k++) rowspanColSet[row0Start[ci] + k] = true;
+          }
+        });
+        var row1ColIndices = [];
+        for (var c = 0; c < numCols; c++) { if (!rowspanColSet[c]) row1ColIndices.push(c); }
+
+        // 1. Measure content widths: temporarily set all cols to 1px in fixed layout
+        //    so cell content overflows, then read scrollWidth (= actual content width).
+        var measureStyle = document.createElement('style');
+        measureStyle.textContent = [
+          '.nsm-policy-table table.nsm-col-measuring tbody td,',
+          '.nsm-policy-table table.nsm-col-measuring tbody td .nsm-cell-inner {',
+          '  overflow: visible !important; width: auto !important; min-width: 0 !important;',
+          '}',
+          // During measurement: pills container shrinks to content (not full td)
+          '.nsm-policy-table table.nsm-col-measuring tbody td .nsm-rule-pills {',
+          '  overflow: visible !important; width: auto !important; align-items: flex-start !important;',
+          '}',
+          // Individual pills: remove width constraint + overflow so scrollWidth = true content size
+          '.nsm-policy-table table.nsm-col-measuring tbody td .nsm-rule-pill {',
+          '  overflow: visible !important; width: auto !important;',
+          '  white-space: nowrap !important;',
+          '}'
+        ].join('\n');
+        document.head.appendChild(measureStyle);
+
+        var tempCG = document.createElement('colgroup');
+        for (var i0 = 0; i0 < numCols; i0++) {
+          var tc = document.createElement('col');
+          tc.style.width = '1px';
+          tempCG.appendChild(tc);
+        }
+        table.insertBefore(tempCG, table.firstChild);
+        table.classList.add('nsm-col-measuring');
+        table.style.tableLayout = 'fixed';
+        table.style.width = (numCols * 2) + 'px';
+        table.style.minWidth = '0';
+        void table.offsetWidth; // sync reflow
+
+        // Header th: default overflow:visible → scrollWidth = natural content width in 1px mode
+        var hdrW = {};
+        row0Cells.forEach(function (th, ci) {
+          if ((th.rowSpan || 1) >= 2) hdrW[row0Start[ci]] = th.scrollWidth;
+        });
+        if (rows[1] && rows[1] !== filterRow) {
+          Array.prototype.forEach.call(rows[1].cells, function (th, j) {
+            if (row1ColIndices[j] !== undefined) hdrW[row1ColIndices[j]] = th.scrollWidth;
+          });
+        }
+
+        // Body cells: measure widest content per column
+        // For pill cells: find widest individual pill (flex items in 1px container
+        //   don't expand on their own; we must measure each pill separately)
+        // For text cells: scrollWidth of .nsm-cell-inner or td directly
+        var CELL_PAD_H = 20; // horizontal cell padding (2 × .6rem ≈ 9.6px each side)
+        var colWidths = [];
+        for (var c2 = 0; c2 < numCols; c2++) colWidths.push([]);
+        Array.prototype.forEach.call(tbody.rows, function (row) {
+          Array.prototype.forEach.call(row.cells, function (td, ci) {
+            var pills = td.querySelectorAll('.nsm-rule-pill');
+            if (pills.length) {
+              // pill cells: take widest pill + cell padding
+              var maxPill = 0;
+              Array.prototype.forEach.call(pills, function (p) {
+                maxPill = Math.max(maxPill, p.scrollWidth);
+              });
+              colWidths[ci].push(Math.max(1, maxPill + CELL_PAD_H));
+            } else {
+              var inner = td.querySelector('.nsm-cell-inner');
+              colWidths[ci].push(Math.max(1, inner ? inner.scrollWidth + CELL_PAD_H : td.scrollWidth));
+            }
+          });
+        });
+
+        // Remove measurement setup
+        table.removeChild(tempCG);
+        table.classList.remove('nsm-col-measuring');
+        document.head.removeChild(measureStyle);
+        table.style.tableLayout = '';
+        table.style.width = '';
+        table.style.minWidth = '';
+
+        // ~60 chars × 7px (Inter at .78rem); columns wider than this get truncated with …
+        var CH60_PX = 420;
+
+        // Per-column width strategy:
+        //   col 0           checkbox: fixed 28px
+        //   col 1 (ID):     minimal = header natural width only
+        //   col 2 (Status): minimal = header natural width only
+        //   col N-1 (Actions): fixed 72px
+        //   all content cols: max(header, max-body-cell-width) capped at CH60_PX
+        //   Using max (not percentile) avoids sparse columns being sized at 0.
+        var initialWidths = colWidths.map(function (arr, ci) {
+          var h = hdrW[ci] || 40;
+          if (ci === 0) return 28;
+          if (ci === numCols - 1) return Math.max(72, h);
+          if (ci === 1 || ci === 2) return Math.max(30, h);          // ID, Status: minimal
+          var maxW = arr.length ? Math.max.apply(null, arr) : 0;
+          return Math.max(h, Math.min(maxW, CH60_PX));                // show up to 60 chars
+        });
+
+        // 2. Build colgroup
+        var colgroup = document.createElement('colgroup');
+        var cols = [];
+        for (var i = 0; i < numCols; i++) {
+          var col = document.createElement('col');
+          col.style.width = initialWidths[i] + 'px';
+          colgroup.appendChild(col);
+          cols.push(col);
+        }
+        table.insertBefore(colgroup, table.firstChild);
+
+        // 3. Switch to fixed layout
+        table.style.tableLayout = 'fixed';
+        table.style.width = 'max-content';
+        table.style.minWidth = table.offsetWidth + 'px';
+
+        // 4. Full header height (rows 0 + 1, excluding filter row)
+        var row0H = rows[0].offsetHeight;
+        var row1H = (rows[1] && rows[1] !== filterRow) ? rows[1].offsetHeight : 0;
+        var fullH = row0H + row1H;
+
+        // 5. Add resize handles spanning full header height
+        function addHandle(th, colIdx, extendUp) {
+          if (colIdx < 0 || colIdx >= cols.length) return;
+          th.style.position = 'relative';
+          th.style.overflow = 'visible';
+          var handle = document.createElement('div');
+          handle.className = 'nsm-col-resize-handle';
+          handle.style.top = (extendUp ? -extendUp : 0) + 'px';
+          handle.style.height = fullH + 'px';
+          handle.addEventListener('mousedown', function (e) {
+            e.preventDefault();
+            var startX = e.clientX;
+            var startW = cols[colIdx].offsetWidth || 60;
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+            handle.classList.add('nsm-col-resize-handle--active');
+            function onMove(ev) { cols[colIdx].style.width = Math.max(28, startW + ev.clientX - startX) + 'px'; }
+            function onUp() {
+              document.body.style.cursor = '';
+              document.body.style.userSelect = '';
+              handle.classList.remove('nsm-col-resize-handle--active');
+              document.removeEventListener('mousemove', onMove);
+              document.removeEventListener('mouseup', onUp);
+            }
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+          });
+          th.appendChild(handle);
+        }
+
+        // Rowspan≥2 cells in row 0: handle spans full fullH, top=0
+        row0Cells.forEach(function (th, ci) {
+          if ((th.rowSpan || 1) >= 2) addHandle(th, row0Start[ci], 0);
+        });
+        // Row 1 sub-column cells: extend handle upward by row0H to cover group header row
+        if (rows[1] && rows[1] !== filterRow) {
+          Array.prototype.forEach.call(rows[1].cells, function (th, j) {
+            if (row1ColIndices[j] !== undefined) addHandle(th, row1ColIndices[j], row0H);
+          });
+        }
+      })();
+
+      // Matrix cell Ctrl+click → fill query bar
+      (function () {
+        var inp = document.getElementById('nsm-q-input');
+        if (!inp) return;
+        document.querySelectorAll('td[data-nsm-field]').forEach(function (td) {
+          td.addEventListener('click', function (e) {
+            if (!e.ctrlKey && !e.metaKey) return;
+            e.preventDefault();
+            var field = td.getAttribute('data-nsm-field');
+            var pills = td.querySelectorAll('.nsm-rule-pill');
+            var names = [];
+            pills.forEach(function (pill) {
+              var name = (pill.textContent || pill.innerText || '').trim();
+              if (name) names.push(name);
+            });
+            if (!names.length) return;
+            var qval = names.length === 1
+              ? field + '.Name == "' + names[0] + '"'
+              : field + '.Name in (' + names.map(function(n){ return '"' + n + '"'; }).join(', ') + ')';
+            var current = inp.value.trim();
+            inp.value = current ? current + ' AND ' + qval : qval;
+            inp.focus();
+            inp.dispatchEvent(new Event('input'));
+          });
+        });
+      })();
+
+      // Facet sidebar collapse/expand
+      (function () {
+        var panel = document.getElementById('nsm-facet-panel');
+        var btn = document.getElementById('nsm-facet-toggle');
+        var chev = document.getElementById('nsm-facet-chev');
+        if (!panel || !btn) return;
+        var LS_KEY = 'nsm-facet-panel-state';
+        var _stored = localStorage.getItem(LS_KEY);
+        var collapsed = _stored === null ? true : _stored === 'collapsed';
+        function apply() {
+          if (collapsed) {
+            panel.classList.add('nsm-collapsed');
+            if (chev) { chev.className = 'mdi mdi-chevron-double-right'; }
+            btn.title = 'Expand filter panel';
+          } else {
+            panel.classList.remove('nsm-collapsed');
+            if (chev) { chev.className = 'mdi mdi-chevron-double-left'; }
+            btn.title = 'Collapse filter panel';
+          }
+        }
+        apply();
+        btn.addEventListener('click', function () {
+          collapsed = !collapsed;
+          localStorage.setItem(LS_KEY, collapsed ? 'collapsed' : 'expanded');
+          apply();
+        });
+      })();
+
+      // Facet section collapse/expand (mit localStorage-Persistenz)
+      (function () {
+        var SEC_LS_KEY = 'nsm-facet-sections-open';
+        var openSlugs;
+        try { openSlugs = JSON.parse(localStorage.getItem(SEC_LS_KEY)) || []; } catch(e) { openSlugs = []; }
+
+        function saveState() {
+          var open = [];
+          document.querySelectorAll('.nsm-facet-section').forEach(function (sec) {
+            var body = sec.querySelector('.nsm-facet-body');
+            if (body && body.style.display !== 'none') open.push(sec.getAttribute('data-facet-slug'));
+          });
+          try { localStorage.setItem(SEC_LS_KEY, JSON.stringify(open)); } catch(e) {}
+        }
+
+        // Restore open state on load
+        document.querySelectorAll('.nsm-facet-section').forEach(function (sec) {
+          var slug = sec.getAttribute('data-facet-slug');
+          var body = sec.querySelector('.nsm-facet-body');
+          var chev = sec.querySelector('.nsm-sec-chev');
+          if (!body) return;
+          if (openSlugs.indexOf(slug) !== -1) {
+            body.style.display = '';
+            if (chev) chev.className = 'mdi mdi-menu-down nsm-sec-chev';
+          } else {
+            body.style.display = 'none';
+            if (chev) chev.className = 'mdi mdi-menu-right nsm-sec-chev';
+          }
+        });
+
+        document.querySelectorAll('.nsm-facet-section-toggle').forEach(function (btn) {
+          btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var slug = btn.getAttribute('data-section');
+            var section = document.querySelector('.nsm-facet-section[data-facet-slug="' + slug + '"]');
+            var body = section && section.querySelector('.nsm-facet-body');
+            var chev = btn.querySelector('.nsm-sec-chev');
+            if (!body) return;
+            var collapsed = body.style.display === 'none';
+            body.style.display = collapsed ? '' : 'none';
+            if (chev) chev.className = collapsed ? 'mdi mdi-menu-down nsm-sec-chev' : 'mdi mdi-menu-right nsm-sec-chev';
+            saveState();
+          });
+        });
+      })();
+
+      // Facet value/set mode toggle (sidebar) — URL-param persistence
+      (function () {
+        function applyMode(block, btn, mode) {
+          block.setAttribute('data-mode', mode);
+          var valLbl = btn.querySelector('.nsm-mode-val');
+          var setLbl = btn.querySelector('.nsm-mode-set');
+          if (valLbl && setLbl) {
+            valLbl.style.opacity = mode === 'set' ? '.35' : '';
+            setLbl.style.opacity = mode === 'set' ? '' : '.35';
+          }
+        }
+
+        function getCurrentModes() {
+          var m = {};
+          document.querySelectorAll('.nsm-facet-section').forEach(function (sec) {
+            var slug = sec.getAttribute('data-facet-slug');
+            var mode = sec.getAttribute('data-mode');
+            if (mode === 'set') m[slug] = 'set';
+          });
+          return m;
+        }
+
+        function augmentUrl(href) {
+          var parts = href.split('?');
+          var base = parts[0];
+          var params = new URLSearchParams(parts[1] || '');
+          // remove stale mode params
+          Array.from(params.keys()).forEach(function (k) {
+            if (k.startsWith('nsm_fm_')) params.delete(k);
+          });
+          // inject current modes
+          var modes = getCurrentModes();
+          Object.keys(modes).forEach(function (slug) { params.set('nsm_fm_' + slug, '1'); });
+          var qs = params.toString();
+          return qs ? base + '?' + qs : base;
+        }
+
+        // Restore modes from URL on page load
+        var urlParams = new URLSearchParams(window.location.search);
+        urlParams.forEach(function (val, key) {
+          if (!key.startsWith('nsm_fm_')) return;
+          var slug = key.slice('nsm_fm_'.length);
+          var btn = document.querySelector('.nsm-facet-mode-toggle[data-facet="' + slug + '"]');
+          var block = document.querySelector('.nsm-facet-section[data-facet-slug="' + slug + '"]');
+          if (btn && block) applyMode(block, btn, 'set');
+        });
+
+        // Toggle on click
+        document.querySelectorAll('.nsm-facet-mode-toggle').forEach(function (btn) {
+          btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var slug = btn.getAttribute('data-facet');
+            var block = document.querySelector('.nsm-facet-section[data-facet-slug="' + slug + '"]');
+            if (!block) return;
+            var newMode = block.getAttribute('data-mode') === 'set' ? 'value' : 'set';
+            applyMode(block, btn, newMode);
+            // update URL without reload so subsequent link clicks pick up modes
+            var newUrl = augmentUrl(window.location.href);
+            history.replaceState(null, '', newUrl);
+          });
+        });
+
+        // Intercept facet link clicks → inject mode params before navigation
+        var facetContent = document.getElementById('nsm-facet-content');
+        if (facetContent) {
+          facetContent.addEventListener('click', function (e) {
+            var a = e.target.closest('a.nsm-facet-entry, a.btn.btn-sm.btn-outline-danger');
+            if (!a) return;
+            var href = a.getAttribute('href');
+            if (!href) return;
+            var modes = getCurrentModes();
+            if (Object.keys(modes).length === 0) return; // no set modes → navigate normally
+            e.preventDefault();
+            window.location.href = augmentUrl(href);
+          });
+        }
+      })();
+
+      </script>
+      <style>
+        /* ── Facet sidebar ───────────────────────────────────────── */
+        .nsm-facet-sidebar {
+          width: 185px;
+          min-width: 185px;
+          transition: width .2s ease, min-width .2s ease;
+          overflow: hidden;
+        }
+        .nsm-facet-sidebar.nsm-collapsed {
+          width: 36px;
+          min-width: 36px;
+        }
+        .nsm-facet-sidebar.nsm-collapsed #nsm-facet-content { display: none; }
+        .nsm-facet-sidebar.nsm-collapsed .nsm-facet-title { display: none; }
+        .nsm-facet-sidebar.nsm-collapsed #nsm-facet-header {
+          border-bottom: none;
+          margin-bottom: 0;
+          padding-bottom: 0;
+          justify-content: center;
+        }
+        /* facet entries */
+        .nsm-facet-entry { color: var(--tblr-body-color); }
+        .nsm-facet-entry:hover { background: rgba(var(--tblr-primary-rgb), .08); }
+        .nsm-facet-entry.active { background: rgba(var(--tblr-primary-rgb), .15); color: var(--tblr-primary); font-weight: 600; }
+        .nsm-facet-entry--active { background: rgba(var(--tblr-primary-rgb), .15); color: var(--tblr-primary); font-weight: 600; cursor: default; }
+        .nsm-facet-entry--disabled { opacity: .35; }
+
+        .nsm-badge-dim { background: rgba(128,128,128,.18) !important; color: var(--tblr-body-color) !important; border: 1px solid rgba(128,128,128,.3) !important; }
+        /* suppress focus ring and shadow on toggle buttons */
+        .nsm-facet-section-toggle, .nsm-facet-mode-toggle { box-shadow: none !important; }
+        #nsm-facet-toggle:focus, .nsm-facet-section-toggle:focus, .nsm-facet-mode-toggle:focus { outline: none !important; box-shadow: none !important; border-color: transparent !important; }
+        #nsm-facet-toggle:focus { border-color: rgba(128,128,128,.25) !important; }
+        /* val / set mode — only the active list is shown */
+        .nsm-facet-section[data-mode='value'] .nsm-facet-entries-set { display: none; }
+        .nsm-facet-section[data-mode='set']   .nsm-facet-entries-value { display: none; }
+        .nsm-facet-group-hdr {
+          font-size: 9px; text-transform: uppercase; letter-spacing: .05em;
+          color: var(--tblr-text-muted, #6b7280);
+          padding: 4px 4px 1px; margin-top: 2px;
+          border-top: 1px solid var(--nsm-line, rgba(128,128,128,.15));
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .nsm-facet-group-block:first-child .nsm-facet-group-hdr { margin-top: 0; border-top: none; }
+        .nsm-query-example { font-size: 11px; display: block; color: inherit; opacity: .8; }
+        .nsm-query-example:hover { opacity: 1; }
+        #nsm-q-input { font-size: 12px; }
+        td[data-nsm-field]:not(.nsm-cell-empty) { cursor: default; }
+        td.nsm-cell-clickable { position: relative; }
+        td.nsm-cell-clickable:hover::after {
+          content: "^";
+          font-family: var(--tblr-font-monospace);
+          position: absolute; top: 2px; right: 3px;
+          font-size: 9px; opacity: .35; pointer-events: none;
+        }
+        .nsm-group-badge {
+          background: rgba(var(--tblr-primary-rgb), .12) !important;
+          color: var(--tblr-primary) !important;
+          border: 1px solid rgba(var(--tblr-primary-rgb), .3) !important;
+          font-size: .72rem; font-weight: 600;
+        }
+        .nsm-group-badge.active {
+          background: rgba(var(--tblr-primary-rgb), .25) !important;
+        }
+        .nsm-group-expand {
+          margin-top: 3px; padding: 3px 4px;
+          border-left: 2px solid rgba(var(--tblr-primary-rgb), .3);
+          display: flex; flex-wrap: wrap; gap: 3px;
+        }
+        /* ── Column resize handle ────────────────────────────────────── */
+        .nsm-col-resize-handle {
+          position: absolute;
+          top: 0;
+          right: 0;
+          width: 7px;
+          height: 100%;
+          cursor: col-resize;
+          z-index: 20;
+          user-select: none;
+          border-right: 2px solid rgba(128,128,128,.25);
+          transition: border-color .12s;
+        }
+        .nsm-col-resize-handle:hover,
+        .nsm-col-resize-handle--active {
+          border-right-color: var(--tblr-primary, #206bc4) !important;
+        }
+      </style>
     </div>
   </div>
 </div>

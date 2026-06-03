@@ -199,20 +199,35 @@ def build_schema_document(builtin_types):
             if isinstance(fd, dict) and not fd.get("__meta__") and fd.get("name")
         }
 
-        fields.append({"id": 1, "name": "name", "type": "text", "label": "Name",
-                        "primary": True, "required": True})
+        fields.append(
+            {
+                "id": 1,
+                "name": "name",
+                "type": "text",
+                "label": "Name",
+                "primary": True,
+                "required": True,
+            }
+        )
 
         if "description" not in user_field_names:
-            fields.append({"id": 3, "name": "description", "type": "text",
-                           "label": "Description"})
+            fields.append(
+                {"id": 3, "name": "description", "type": "text", "label": "Description"}
+            )
 
         if "comments" not in user_field_names:
-            fields.append({"id": 6, "name": "comments", "type": "longtext",
-                           "label": "Comments", "group_name": "Comments"})
+            fields.append(
+                {
+                    "id": 6,
+                    "name": "comments",
+                    "type": "longtext",
+                    "label": "Comments",
+                    "group_name": "Comments",
+                }
+            )
 
         if "color" not in user_field_names:
-            fields.append({"id": 7, "name": "color", "type": "text",
-                           "label": "Color"})
+            fields.append({"id": 7, "name": "color", "type": "text", "label": "Color"})
 
         # Note: ``order_id``, ``area`` and ``display_template`` are *type-level*
         # concepts and live on NSMTypeConfig / NSMSection — they are NOT

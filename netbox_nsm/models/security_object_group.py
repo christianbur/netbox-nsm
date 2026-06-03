@@ -7,7 +7,11 @@ from django.utils.translation import gettext_lazy as _
 from netbox.models import PrimaryModel
 from netbox.search import SearchIndex, register_search
 
-__all__ = ("SecurityObjectGroup", "SecurityObjectGroupMember", "SecurityObjectGroupIndex")
+__all__ = (
+    "SecurityObjectGroup",
+    "SecurityObjectGroupMember",
+    "SecurityObjectGroupIndex",
+)
 
 
 class SecurityObjectGroup(PrimaryModel):
@@ -34,7 +38,9 @@ class SecurityObjectGroup(PrimaryModel):
         max_length=7,
         blank=True,
         default="",
-        help_text=_('Optional HTML color code (e.g. #aabbcc) used for this group in the policy view.'),
+        help_text=_(
+            "Optional HTML color code (e.g. #aabbcc) used for this group in the policy view."
+        ),
     )
 
     class Meta:

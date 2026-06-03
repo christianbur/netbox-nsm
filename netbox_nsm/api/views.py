@@ -77,27 +77,28 @@ class SecurityAreaViewSet(NetBoxModelViewSet):
 
 
 class SecurityObjectGroupViewSet(NetBoxModelViewSet):
-    queryset = SecurityObjectGroup.objects.prefetch_related(
-        "sub_groups", "tags"
-    )
+    queryset = SecurityObjectGroup.objects.prefetch_related("sub_groups", "tags")
     serializer_class = SecurityObjectGroupSerializer
     filterset_class = SecurityObjectGroupFilterSet
 
 
 # ── New viewsets ──────────────────────────────────────────────────────────────
 
+
 class NSMObjectLinkViewSet(NetBoxModelViewSet):
-    queryset = NSMObjectLink.objects.select_related(
-        "object_a_type", "object_b_type"
-    ).prefetch_related("tags").order_by("pk")
+    queryset = (
+        NSMObjectLink.objects.select_related("object_a_type", "object_b_type")
+        .prefetch_related("tags")
+        .order_by("pk")
+    )
     serializer_class = NSMObjectLinkSerializer
     filterset_class = NSMObjectLinkFilterSet
 
 
 class TypeConfigViewSet(NetBoxModelViewSet):
-    queryset = TypeConfig.objects.select_related(
-        "content_type"
-    ).prefetch_related("tags")
+    queryset = TypeConfig.objects.select_related("content_type").prefetch_related(
+        "tags"
+    )
     serializer_class = TypeConfigSerializer
     filterset_class = TypeConfigFilterSet
 
@@ -127,7 +128,9 @@ class RulebookFieldViewSet(_PlainModelViewSet):
 
 
 class RulebookFieldTypeViewSet(_PlainModelViewSet):
-    queryset = RulebookFieldType.objects.select_related("field", "type_config").order_by("pk")
+    queryset = RulebookFieldType.objects.select_related(
+        "field", "type_config"
+    ).order_by("pk")
     serializer_class = RulebookFieldTypeSerializer
     filterset_class = RulebookFieldTypeFilterSet
 

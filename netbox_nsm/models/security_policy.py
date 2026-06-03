@@ -4,7 +4,7 @@ from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from dcim.models import Device, VirtualDeviceContext
+from dcim.models import Device, Platform, VirtualDeviceContext
 from netbox.models import NetBoxModel, PrimaryModel
 from netbox.models.features import ContactsMixin
 from netbox.search import SearchIndex, register_search
@@ -38,12 +38,35 @@ class SecurityPolicyRulebook(ContactsMixin, PrimaryModel):
         choices=RulebookTypeChoices.choices,
         default=RulebookTypeChoices.POLICY,
     )
+    platform = models.ForeignKey(
+        to="dcim.Platform",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="nsm_rulebooks",
+        verbose_name=_("Platform"),
+        help_text=_("Firewall platform or security fabric (e.g. PAN-OS, Cisco ASA, TrustSec, Zscaler)."),
+    )
+    mgmt_url = models.URLField(
+        blank=True,
+        default="",
+        verbose_name=_("Management URL"),
+        help_text=_("Link to the management interface of the associated firewall or device."),
+    )
     rule_comment_template = models.TextField(
         blank=True,
         default="",
         help_text=_(
             "Markdown comment template pre-filled when adding new rules. "
             "Supports {rule_name}, {index}, {rulebook}."
+        ),
+    )
+    show_colored_pills = models.BooleanField(
+        default=True,
+        verbose_name=_("Show colored pills"),
+        help_text=_(
+            "Display object links as colored bubbles in the policy table. "
+            "Disable to show plain text pills without background color."
         ),
     )
 
@@ -113,6 +136,38 @@ class RulebookField(models.Model):
         verbose_name=_("Placement"),
         help_text=_("Traffic direction for this field."),
     )
+    # ── Query / Facet metadata ─────────────────────────────────────────────
+    searchable = models.BooleanField(
+        default=True,
+        verbose_name=_("Searchable"),
+        help_text=_("Include this field in query searches."),
+    )
+    filterable = models.BooleanField(
+        default=True,
+        verbose_name=_("Filterable"),
+        help_text=_("Allow filtering on this field."),
+    )
+    facetable = models.BooleanField(
+        default=False,
+        verbose_name=_("Facetable"),
+        help_text=_("Show this field in the facet navigation panel."),
+    )
+    facet_mode = models.CharField(
+        max_length=10,
+        choices=(("value", _("Value")), ("set", _("Set"))),
+        default="value",
+        verbose_name=_("Facet Mode"),
+        help_text=_(
+            "Value: count each individual value separately. "
+            "Set: count the complete combination of values as one entry."
+        ),
+    )
+    facet_weight = models.PositiveIntegerField(
+        default=100,
+        verbose_name=_("Facet Weight"),
+        help_text=_("Facets with higher weight appear first."),
+    )
+
     class Meta:
         unique_together = (("rulebook", "slug"),)
         ordering = ("rulebook", "sort_order", "slug")
@@ -154,9 +209,18 @@ class RulebookFieldType(models.Model):
         null=True,
         blank=True,
         verbose_name=_("Max Items"),
-        help_text=_("Maximum number of objects of this type per rule. Leave empty for unlimited."),
+        help_text=_(
+            "Maximum number of objects of this type per rule. Leave empty for unlimited."
+        ),
     )
-
+    show_colored_pills = models.BooleanField(
+        default=True,
+        verbose_name=_("Show colored pills"),
+        help_text=_(
+            "Display objects of this type as colored pills (using the TypeConfig color). "
+            "Disable to show plain pills without background color."
+        ),
+    )
     class Meta:
         unique_together = (("field", "type_config"),)
         ordering = ("field", "sort_order")
@@ -251,7 +315,9 @@ class SecurityPolicyRuleObjectItem(models.Model):
     exclude = models.BooleanField(
         default=False,
         verbose_name=_("Exclude"),
-        help_text=_("If set, this object is excluded from the field (EXCEPT semantics)."),
+        help_text=_(
+            "If set, this object is excluded from the field (EXCEPT semantics)."
+        ),
     )
 
     class Meta:
@@ -267,9 +333,11 @@ class SecurityPolicyRuleObjectItem(models.Model):
 
     def clean(self):
         from django.core.exceptions import ValidationError
+
         if self.field_id and self.content_type_id:
             # Bestimme den passenden RulebookFieldType für dieses Objekt
             from django.contrib.contenttypes.models import ContentType
+
             try:
                 ft = RulebookFieldType.objects.get(
                     field=self.field,
@@ -288,7 +356,8 @@ class SecurityPolicyRuleObjectItem(models.Model):
                             {
                                 "field": _(
                                     "Dieser Typ erlaubt maximal %(max)d Objekt(e) pro Regel."
-                                ) % {"max": ft.max_items}
+                                )
+                                % {"max": ft.max_items}
                             }
                         )
             except RulebookFieldType.DoesNotExist:
@@ -326,7 +395,9 @@ class SecurityPolicyRuleGroupItem(models.Model):
     exclude = models.BooleanField(
         default=False,
         verbose_name=_("Exclude"),
-        help_text=_("If set, this group is excluded from the field (EXCEPT semantics)."),
+        help_text=_(
+            "If set, this group is excluded from the field (EXCEPT semantics)."
+        ),
     )
 
     class Meta:

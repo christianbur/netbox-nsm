@@ -1,5 +1,6 @@
 import django_tables2 as tables
 from collections import OrderedDict
+from django.db.models import Count
 from django.utils.html import conditional_escape, mark_safe
 from django.utils.translation import gettext_lazy as _
 
@@ -39,11 +40,15 @@ def _card(label, items, max_pills=MAX_PILLS):
             f' style="{conditional_escape(item["style"])}"' if item.get("style") else ""
         )
         excluded_class = " nsm-pill-excluded" if item.get("excluded") else ""
-        excluded_prefix = '<span class="nsm-pill-not-badge" title="Excluded (EXCEPT)">!</span>' if item.get("excluded") else ""
+        excluded_prefix = (
+            '<span class="nsm-pill-not-badge" title="Excluded (EXCEPT)">!</span>'
+            if item.get("excluded")
+            else ""
+        )
         pills += (
             f'<a href="{conditional_escape(str(item["url"]))}"'
             f' class="nsm-rule-pill text-decoration-none{excluded_class}"{style}'
-            f' title="{conditional_escape(str(item["name"]))}">'  
+            f' title="{conditional_escape(str(item["name"]))}">'
             f'{excluded_prefix}{conditional_escape(str(item["name"]))}</a>'
         )
 
@@ -55,21 +60,25 @@ def _card(label, items, max_pills=MAX_PILLS):
                 else "display:none"
             )
             excluded_class = " nsm-pill-excluded" if item.get("excluded") else ""
-            excluded_prefix = '<span class="nsm-pill-not-badge">!</span>' if item.get("excluded") else ""
+            excluded_prefix = (
+                '<span class="nsm-pill-not-badge">!</span>'
+                if item.get("excluded")
+                else ""
+            )
             pills += (
                 f'<a href="{conditional_escape(str(item["url"]))}"'
                 f' class="nsm-rule-pill nsm-pill-hidden text-decoration-none{excluded_class}"'
                 f' style="{conditional_escape(item_style)}"'
-                f' title="{conditional_escape(str(item["name"]))}">'  
+                f' title="{conditional_escape(str(item["name"]))}">'
                 f'{excluded_prefix}{conditional_escape(str(item["name"]))}</a>'
-            f'<button type="button"'
-            f' class="nsm-rule-pill nsm-rule-pill-muted nsm-pill-more"'
-            f' style="border:none;cursor:pointer;flex-shrink:0;max-width:none;overflow:visible;"'
-            f" onclick=\"var c=this.closest('.nsm-rule-pills');"
-            f"c.querySelectorAll('.nsm-pill-hidden').forEach(function(e){{e.style.display='';}});"
-            f'this.remove();"'
-            f">+{len(hidden)}</button>"
-        )
+                f'<button type="button"'
+                f' class="nsm-rule-pill nsm-rule-pill-muted nsm-pill-more"'
+                f' style="border:none;cursor:pointer;flex-shrink:0;max-width:none;overflow:visible;"'
+                f" onclick=\"var c=this.closest('.nsm-rule-pills');"
+                f"c.querySelectorAll('.nsm-pill-hidden').forEach(function(e){{e.style.display='';}});"
+                f'this.remove();"'
+                f">+{len(hidden)}</button>"
+            )
 
     return (
         f'<div class="nsm-rule-card">'
@@ -187,9 +196,7 @@ class ServiceColumn(tables.Column):
         cards = _custom_objects_cards(
             _rule_objects(record, "fixed", area_slugs=("service",))
         )
-        cards += _groups_cards(
-            _rule_groups(record, "fixed", area_slugs=("service",))
-        )
+        cards += _groups_cards(_rule_groups(record, "fixed", area_slugs=("service",)))
         return _rule_stack(cards)
 
 
@@ -247,27 +254,69 @@ class AssignedObjectsColumn(tables.Column):
                 f'<a href="{conditional_escape(url)}" class="badge text-bg-secondary text-decoration-none me-1">'
                 f'<i class="mdi mdi-server me-1"></i>{name}</a>'
             )
-        return mark_safe("".join(parts)) if parts else mark_safe('<span class="text-muted">—</span>')
+        return (
+            mark_safe("".join(parts))
+            if parts
+            else mark_safe('<span class="text-muted">—</span>')
+        )
 
 
 class SecurityPolicyRulebookTable(NetBoxTable):
     name = tables.LinkColumn()
     rulebook_type = tables.Column(verbose_name=_("Type"))
-    assigned_objects = AssignedObjectsColumn(accessor="assignments")
+    platform = tables.Column(verbose_name=_("Platform"), orderable=True)
+    mgmt_url = tables.Column(
+        verbose_name=_("Manager"),
+        orderable=False,
+        attrs={"td": {"class": "text-center"}, "th": {"class": "text-center", "style": "width:1%;white-space:nowrap;"}},
+    )
+    rule_count = tables.Column(
+        verbose_name=_("Rules"),
+        orderable=True,
+        attrs={"td": {"class": "text-center"}, "th": {"class": "text-center", "style": "width:1%;white-space:nowrap;"}},
+    )
+    assigned_objects = AssignedObjectsColumn(accessor="assignments", attrs={"td": {"class": "text-center"}, "th": {"class": "text-center"}})
     tags = TagColumn(url_name="plugins:netbox_nsm:securitypolicyrulebook_list")
     actions = ActionsColumn(actions=("edit", "delete"))
 
+    def render_mgmt_url(self, value):
+        if not value:
+            return mark_safe('<span class="text-muted">—</span>')
+        return mark_safe(
+            f'<a href="{conditional_escape(value)}" target="_blank" rel="noopener noreferrer" '
+            f'class="btn btn-sm btn-outline-secondary" title="{conditional_escape(value)}">'
+            f'<i class="mdi mdi-open-in-new"></i></a>'
+        )
+
+    def render_rule_count(self, value):
+        return mark_safe(
+            f'<span class="badge text-bg-primary" style="font-size:11px;">{value}</span>'
+        )
+
     class Meta(NetBoxTable.Meta):
         model = SecurityPolicyRulebook
-        fields = ("id", "name", "rulebook_type", "description", "assigned_objects", "tags")
-        default_columns = ("name", "rulebook_type", "assigned_objects", "description")
+        fields = (
+            "id",
+            "name",
+            "rulebook_type",
+            "platform",
+            "rule_count",
+            "mgmt_url",
+            "description",
+            "assigned_objects",
+            "tags",
+        )
+        default_columns = ("name", "rule_count", "platform", "assigned_objects", "mgmt_url", "description")
 
 
 class SecurityPolicyRuleTable(NetBoxTable):
     index = tables.Column(
         verbose_name=_("Index"),
         linkify=True,
-        attrs={"th": {"style": "width: 1%; white-space: nowrap;"}, "td": {"style": "white-space: nowrap;"}},
+        attrs={
+            "th": {"style": "width: 1%; white-space: nowrap;"},
+            "td": {"style": "white-space: nowrap;"},
+        },
     )
     status = tables.TemplateColumn(
         template_code="""
@@ -283,7 +332,10 @@ class SecurityPolicyRuleTable(NetBoxTable):
         """,
         orderable=False,
         verbose_name=_("Status"),
-        attrs={"th": {"style": "width: 1%; white-space: nowrap;"}, "td": {"style": "white-space: nowrap;"}},
+        attrs={
+            "th": {"style": "width: 1%; white-space: nowrap;"},
+            "td": {"style": "white-space: nowrap;"},
+        },
     )
     name = NameColumn(
         verbose_name=_("Name"),

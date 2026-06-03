@@ -86,8 +86,22 @@ class NSMObjectLinkAssignView(LoginRequiredMixin, View):
             return self._render(request, form, obj, existing, return_url)
 
         b_ct_pk = form.cleaned_data["object_b_type"]
-        b_obj_id = form.cleaned_data["object_b_id"]
         comment = form.cleaned_data.get("comment", "")
+
+        # Support multiple selected IDs (list of hidden inputs named object_b_id)
+        raw_ids = request.POST.getlist("object_b_id")
+        b_obj_ids = []
+        for raw in raw_ids:
+            try:
+                val = int(raw)
+                if val > 0:
+                    b_obj_ids.append(val)
+            except (ValueError, TypeError):
+                pass
+
+        if not b_obj_ids:
+            form.add_error(None, _("Please select at least one object."))
+            return self._render(request, form, obj, existing, return_url)
 
         try:
             b_ct = ContentType.objects.get(pk=int(b_ct_pk))
@@ -95,21 +109,26 @@ class NSMObjectLinkAssignView(LoginRequiredMixin, View):
             form.add_error("object_b_type", _("Invalid type."))
             return self._render(request, form, obj, existing, return_url)
 
-        link, created = NSMObjectLink.objects.get_or_create(
-            object_a_type=ct_real,
-            object_a_id=obj.pk,
-            object_b_type=b_ct,
-            object_b_id=b_obj_id,
-            defaults={"comment": comment},
-        )
-        if not created:
-            # Update comment if link already existed
-            if link.comment != comment:
-                link.comment = comment
-                link.save(update_fields=["comment", "last_updated"])
-            messages.warning(request, _("Link already existed – comment updated."))
+        created_count = 0
+        for b_obj_id in b_obj_ids:
+            link, created = NSMObjectLink.objects.get_or_create(
+                object_a_type=ct_real,
+                object_a_id=obj.pk,
+                object_b_type=b_ct,
+                object_b_id=b_obj_id,
+                defaults={"comment": comment},
+            )
+            if not created:
+                if link.comment != comment:
+                    link.comment = comment
+                    link.save(update_fields=["comment", "last_updated"])
+            else:
+                created_count += 1
+
+        if created_count:
+            messages.success(request, _("{n} link(s) created.").format(n=created_count))
         else:
-            messages.success(request, _("Link created."))
+            messages.warning(request, _("All links already existed."))
 
         return HttpResponseRedirect(return_url)
 
@@ -189,8 +208,19 @@ class NSMObjectLinkEditView(LoginRequiredMixin, View):
 
 class NSMObjectLinkDeleteView(LoginRequiredMixin, View):
     """
-    POST /plugins/netbox-nsm/object-link/<int:pk>/delete/
+    GET  /plugins/netbox-nsm/object-link/<int:pk>/delete/?return_url=...  → confirmation page
+    POST /plugins/netbox-nsm/object-link/<int:pk>/delete/                 → delete and redirect
     """
+
+    def get(self, request, pk):
+        link = get_object_or_404(NSMObjectLink, pk=pk)
+        return_url = request.GET.get("return_url", "/")
+        from django.shortcuts import render
+        return render(
+            request,
+            "netbox_nsm/nsm_object_link_delete.html",
+            {"link": link, "return_url": return_url},
+        )
 
     def post(self, request, pk):
         return_url = request.POST.get("return_url", "/")

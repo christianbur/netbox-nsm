@@ -54,6 +54,21 @@ class SecurityObjectGroup(PrimaryModel):
     def get_absolute_url(self):
         return reverse("plugins:netbox_nsm:securityobjectgroup", args=[self.pk])
 
+    def serialize_object(self, exclude=None):
+        data = super().serialize_object(exclude=exclude)
+        # Include member items so group changes appear in the changelog diff
+        if self.pk:
+            data["members"] = [
+                {
+                    "type": str(m.content_type) if m.content_type else None,
+                    "object_id": m.object_id,
+                }
+                for m in self.member_items.select_related("content_type").order_by(
+                    "content_type__app_label", "content_type__model", "object_id"
+                )
+            ]
+        return data
+
 
 class SecurityObjectGroupMember(models.Model):
     """Links any NetBox object to a SecurityObjectGroup."""

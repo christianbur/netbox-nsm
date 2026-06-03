@@ -168,8 +168,12 @@ class SecurityPolicyRulebookBulkEditForm(PrimaryModelBulkEditForm):
 
 class SecurityPolicyRuleForm(PrimaryModelForm):
     index = forms.IntegerField(min_value=1, required=True, initial=100)
-    enabled = forms.BooleanField(
-        required=False, initial=True, label=_("Status (on/off)")
+    enabled = forms.TypedChoiceField(
+        choices=((True, _("Enabled")), (False, _("Disabled"))),
+        coerce=lambda x: x in (True, "True", "1", 1),
+        initial=True,
+        label=_("Status"),
+        widget=forms.Select(),
     )
     name = forms.CharField(max_length=100, required=True)
     rulebook = DynamicModelChoiceField(
@@ -215,10 +219,34 @@ class SecurityPolicyRuleForm(PrimaryModelForm):
         super().__init__(*args, **kwargs)
 
     def save(self, commit=True):
-        instance = super().save(commit=commit)
+        is_new = not self.instance.pk
+        # Use commit=False so we control when instance.save() fires.
+        # This ensures items are written to DB *before* the save signal, so
+        # the post-change snapshot in the changelog diff includes updated items.
+        instance = super().save(commit=False)
         if commit:
-            self._save_area_selections(instance)
-            self._save_virtual_group_config(instance)
+            # Parse virtual_group_config and set on instance before saving
+            raw = self.cleaned_data.get("virtual_group_config", "{}") or "{}"
+            try:
+                config = json.loads(raw)
+            except (ValueError, TypeError):
+                config = {}
+            if not isinstance(config, dict):
+                config = {}
+            instance.virtual_group_config = {str(k): True for k, v in config.items() if v}
+
+            if not is_new:
+                # Edit: save items first so they are captured in the post-snapshot
+                self._save_area_selections(instance)
+
+            # ONE save → ONE changelog entry with correct pre/post diff
+            instance.save()
+            # Save M2M fields (tags, contacts, etc.)
+            self.save_m2m()
+
+            if is_new:
+                # Create: save items after we have a PK
+                self._save_area_selections(instance)
         return instance
 
     def _save_virtual_group_config(self, instance):

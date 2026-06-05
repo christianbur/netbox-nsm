@@ -44,7 +44,7 @@ def _host_edges(obj, *, iface_model, iface_fk: str) -> list[AnalyzerEdge]:
         if val:
             edges.append(AnalyzerEdge(label, edge_type, node_from_object(val)))
 
-    # Bidirectional NSMObjectLinks (Security Panel parity: zones, labels, prefixes, etc.)
+    # Bidirectional ObjectLinks (Security Panel parity: zones, labels, prefixes, etc.)
     ct = ContentType.objects.get_for_model(obj)
     edges.extend(nsm_link_edges(obj, ct))
 
@@ -171,25 +171,25 @@ def _prefix(pfx):
     return edges
 
 
-# ── SecurityPolicyRule ───────────────────────────────────────────────────────
+# ── Rule ───────────────────────────────────────────────────────
 from netbox_nsm.models import (  # noqa: E402
-    SecurityPolicyRule,
-    SecurityPolicyRulebook,
-    SecurityObjectGroup,
-    SecurityPolicyRuleObjectItem,
-    SecurityObjectGroupMember,
-    NSMObjectLink,
+    Rule,
+    Rulebook,
+    ObjectGroup,
+    RuleObjectItem,
+    ObjectGroupMember,
+    ObjectLink,
 )
 
 
-@registry.register(SecurityPolicyRule)
+@registry.register(Rule)
 def _rule(rule):
     edges = []
     if rule.rulebook:
         edges.append(
             AnalyzerEdge("Rulebook", "in_rulebook", node_from_object(rule.rulebook))
         )
-    for item in SecurityPolicyRuleObjectItem.objects.filter(rule=rule).select_related(
+    for item in RuleObjectItem.objects.filter(rule=rule).select_related(
         "field", "content_type"
     )[:_MAX]:
         if item.assigned_object is not None:
@@ -203,8 +203,8 @@ def _rule(rule):
     return edges
 
 
-# ── SecurityPolicyRulebook ───────────────────────────────────────────────────
-@registry.register(SecurityPolicyRulebook)
+# ── Rulebook ───────────────────────────────────────────────────
+@registry.register(Rulebook)
 def _rulebook(rb):
     edges = []
     for rule in rb.rules.all()[:_MAX]:
@@ -212,15 +212,15 @@ def _rulebook(rb):
     return edges
 
 
-# ── SecurityObjectGroup ──────────────────────────────────────────────────────
-@registry.register(SecurityObjectGroup)
+# ── ObjectGroup ──────────────────────────────────────────────────────
+@registry.register(ObjectGroup)
 def _object_group(grp):
     edges = []
 
     for sub in grp.sub_groups.all()[:_MAX]:
         edges.append(AnalyzerEdge("Sub-Group", "has_subgroup", node_from_object(sub)))
 
-    for member in SecurityObjectGroupMember.objects.filter(group=grp).select_related(
+    for member in ObjectGroupMember.objects.filter(group=grp).select_related(
         "content_type"
     )[:_MAX]:
         if member.assigned_object is not None:
@@ -230,8 +230,8 @@ def _object_group(grp):
                 )
             )
 
-    for area in grp.areas.all()[:_MAX]:
-        edges.append(AnalyzerEdge("Area", "in_area", node_from_object(area)))
+    for slug in (grp.field_slugs or [])[:_MAX]:
+        edges.append(AnalyzerEdge("Field", "in_field", slug))
 
     grp_ct = ContentType.objects.get_for_model(grp)
     edges.extend(policy_item_edges(grp, grp_ct))
@@ -250,10 +250,10 @@ def _generic_fallback(obj) -> list[AnalyzerEdge]:
     - Forward M2M fields (excluding tags)
     - group M2M members + reverse parent groups (Security Panel)
     - Reverse through-table M2M (netbox_custom_objects only)
-    - Bidirectional NSMObjectLink
-    - SecurityPolicyRuleObjectItem → deduplicated to Rulebook level
+    - Bidirectional ObjectLink
+    - RuleObjectItem → deduplicated to Rulebook level
     """
-    from netbox_nsm.models import SecurityPolicyRuleObjectItem
+    from netbox_nsm.models import RuleObjectItem
 
     ct = ContentType.objects.get_for_model(obj)
     edges = []
@@ -302,12 +302,12 @@ def _generic_fallback(obj) -> list[AnalyzerEdge]:
                     AnalyzerEdge(lbl, "member_of", node_from_object(row.source))
                 )
 
-    # Bidirectional NSMObjectLink
+    # Bidirectional ObjectLink
     edges.extend(nsm_link_edges(obj, ct))
 
     # Rulebooks that reference this object (deduplicated)
     seen_rb: dict = {}
-    for item in SecurityPolicyRuleObjectItem.objects.filter(
+    for item in RuleObjectItem.objects.filter(
         content_type=ct, object_id=obj.pk
     ).select_related("rule__rulebook")[:50]:
         rb = item.rule.rulebook if item.rule else None

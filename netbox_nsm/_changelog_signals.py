@@ -1,5 +1,5 @@
 """
-Signal handlers that create additional ObjectChange records so NSMObjectLink
+Signal handlers that create additional ObjectChange records so ObjectLink
 changes appear in both linked objects' changelogs.
 """
 
@@ -7,7 +7,7 @@ from core.choices import ObjectChangeActionChoices
 
 
 def _create_related_objectchange(instance, action):
-    """Create an ObjectChange for object_b of an NSMObjectLink."""
+    """Create an ObjectChange for object_b of an ObjectLink."""
     from core.models import ObjectChange
     from netbox.context import current_request
 

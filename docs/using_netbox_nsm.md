@@ -35,17 +35,43 @@ want to document their security landscape in NetBox.
    - [Zone Matrix Tab](#zone-matrix-tab)
 9. [Object Analyzer](#object-analyzer)
 10. [REST API Reference](#rest-api-reference)
-11. [Development Notes](#development-notes)
+11. [Database Tables](#database-tables)
+12. [Development Notes](#development-notes)
 
 ---
 
 ## Prerequisites & First Start
 
+### Database migrations
+
+`netbox-custom-objects` must be migrated **before** NSM. Without these tables, the Setup
+page cannot query Custom Object Types (`relation "netbox_custom_objects_customobjecttype"
+does not exist`).
+
+After `netbox_nsm` is in `PLUGINS`, use the usual NetBox workflow (same as
+[netbox-branching](https://github.com/netboxlabs/netbox-branching)):
+
+```bash
+cd netbox/netbox
+./manage.py migrate --no-input
+```
+
+Or per plugin:
+
+```bash
+./manage.py migrate netbox_custom_objects --no-input
+./manage.py migrate netbox_nsm --no-input
+```
+
+Homelab **netbox-dev:** siehe **[DOCKER.md](DOCKER.md)** (Migrationen, `down -v`, Setup, Fehler).
+
+### Setup page
+
 After installation and migration, open **Security → Configuration → Setup**.
 The page checks whether all required COTs and TypeConfigs are present.
 
-Run **Sync types** first — it creates all seven built-in COTs and their TypeConfig records
-(idempotent: safe to run multiple times, existing objects are not overwritten).
+Use **Import** / **Import all missing types** on Setup to create built-in COTs and TypeConfigs
+(idempotent for missing entries).
 
 ---
 
@@ -53,13 +79,55 @@ Run **Sync types** first — it creates all seven built-in COTs and their TypeCo
 
 **Security → Configuration → Setup**
 
-The Setup page has three sections:
+### Plugin settings
+
+| Setting | Default | Effect |
+|---|---|---|
+| `setup_menu` | `True` | Show **Setup** under Security → Configuration; allow `/setup/` URLs |
+| `setup_allow_destructive_actions` | `True` | Show sync/demo buttons on Setup; set `False` in production |
+
+```python
+PLUGINS_CONFIG = {
+    "netbox_nsm": {
+        "setup_menu": True,
+        "setup_allow_destructive_actions": True,
+    },
+}
+```
+
+### Production vs. development actions
+
+With `setup_allow_destructive_actions: False`, Setup only shows safe operations:
+
+- per-type **Import** and **Import all missing types**
+- **Create** / **Create all missing TypeConfigs**
+
+The following are **hidden** and POST requests are rejected (production-safe):
+
+| Action | Risk |
+|---|---|
+| **Sync built-in types** | Reapplies schemas, prunes stale COTs, reseeds defaults |
+| **Create demo rulebooks** | Starter (Zone Matrix + Addresses) imports COTs/TypeConfigs if missing; Enterprise DC import |
+
+Disable them in production in `configuration.py`:
+
+```python
+PLUGINS_CONFIG = {
+    "netbox_nsm": {
+        "setup_allow_destructive_actions": False,
+    },
+}
+```
+
+Restart NetBox after changing plugin config.
+
+### Setup sections (when destructive actions are enabled)
 
 | Section | What it does |
 |---|---|
-| **Built-in types** | Shows the status of each COT and TypeConfig. "Sync" creates missing ones. |
-| **Demo rules** | Creates a small sample Rulebook to explore the rule editor. |
-| **Enterprise DC demo** | Imports a full demo scenario (DCIM + IPAM + 11 rulebooks, 250+ rules). Only available when no IP addresses exist yet. |
+| **Built-in types** | Status of each COT and TypeConfig; import missing types; optional full sync |
+| **Demo rules** | Sample rulebooks for the rule editor |
+| **Enterprise DC demo** | Full demo (DCIM + IPAM + 11 rulebooks). Button hidden once IP addresses exist |
 
 > The Enterprise DC import is idempotent (`get_or_create`) — but because it creates IP
 > addresses, it can only be triggered once (the button disappears after the first import).
@@ -163,7 +231,7 @@ signatures. Pre-populated with common apps: `dns`, `http`, `ssl`, `ssh`, `rdp`, 
 
 ## NSM Object Links
 
-An **NSMObjectLink** connects any two NetBox objects: a "host" object (e.g. a Prefix,
+An **ObjectLink** connects any two NetBox objects: a "host" object (e.g. a Prefix,
 IP Address, Device, VM) and a "security" object (Zone, Address, Label, Service, …).
 
 Links are bidirectional — querying either end finds the link.
@@ -184,7 +252,9 @@ is needed — the panel appears as soon as the plugin is installed.
 
 The panel shows:
 - All directly assigned security objects, grouped by type (Zones, Addresses, Labels, …)
+- **Group membership** for Custom Objects with a `group` M2M field (see below)
 - An "Inherited" section for links coming from parent objects (see below)
+- Quick links to **Object Analyzer** and **IP Analysis** (address objects only)
 - An **Enforced Rulebooks** section listing all Rulebooks that reference this object
 
 ### Direct Links
@@ -194,10 +264,26 @@ Each entry shows:
 - The object name as a link to the detail page
 - A remove (×) button if you have write permissions
 
+### Group Membership (Address / Service objects)
+
+Custom objects that define a `group` M2M field (notably `nsm_addresses` and
+`nsm_services`) show group relationships in the Security Panel **without** requiring an
+explicit ObjectLink:
+
+| Comment | Meaning |
+|---|---|
+| **Member of** | Parent group(s) that contain this object (reverse M2M) |
+| **Member** | Object(s) contained in this group when viewing a group object (forward M2M) |
+
+Example: on address group `group-1`, the panel lists `g-all` as *Member of* and all
+contained addresses/sub-groups as *Member*. The same edges appear in the Object Analyzer.
+
 ### Inherited Links
 
-For **IP Addresses** and **sub-Prefixes**: links of the parent Prefix are shown as inherited,
-marked with *"Inherited from containing prefix"*. Click **Load** to fetch inherited links.
+For **IP Addresses**, **IP Ranges**, and **sub-Prefixes**: links of containing Prefixes
+are shown as inherited, marked with *"Inherited from containing prefix"*. Click **Load**
+to fetch inherited links. For IP Ranges, a containing Prefix must cover **both** the
+start and end address.
 
 For **Devices** and **Virtual Machines**: inherited links are fetched via the object's primary
 IP address (primary IPv4 if set, else primary IPv6). This means the zone assignments of the
@@ -228,7 +314,7 @@ behaviour settings.
 | **Label** | Human-readable name shown in pickers |
 | **Matching Class** | Semantic role in rule columns: `zone`, `address`, `label`, `service`, `action`, `application`, `other` |
 | **Display Template** | Jinja2-like template for rendering objects: `{name}`, `{name} ({protocol}/{port})` |
-| **Allowed Placements** | Which rule columns this type can appear in: `source`, `destination`, `fixed` |
+| **Panel slugs** | Panel sections (`source`, `destination`, `services`, `action`, `info`) — rule column placement is configured per RulebookField |
 | **Panel linkable** | Show this type in the Assign picker of the Security Panel |
 | **Inherit from parent** | Enable prefix/IP inheritance for this type |
 | **Stop if own link** | Suppress inherited link if the child has its own direct link of this type |
@@ -383,12 +469,11 @@ The root endpoint (`GET /api/plugins/netbox-nsm/`) lists all available endpoints
 | Endpoint | Description | Key filters |
 |---|---|---|
 | `type-configs/` | TypeConfig records | `slug`, `matching_class` |
-| `object-links/` | NSMObjectLink records | `host_ct_id`, `host_obj_id`, `sec_obj_ct_id` |
-| `security-areas/` | Rule field area definitions | — |
-| `security-zone-policy-rulebooks/` | Rulebook records | `name` |
-| `security-zone-policy-rules/` | Rule records | `rulebook_id`, `enabled` |
-| `security-zone-policy-rulebook-assignments/` | Rulebook → object assignments | — |
-| `object-groups/` | SecurityObjectGroup records | — |
+| `object-links/` | ObjectLink records | `host_ct_id`, `host_obj_id`, `sec_obj_ct_id` |
+| `rulebooks/` | Rulebook records | `name` |
+| `rules/` | Rule records | `rulebook_id`, `enabled` |
+| `rulebook-assignments/` | Rulebook → object assignments | — |
+| `object-groups/` | ObjectGroup records | — |
 | `rulebook-fields/` | Per-Rulebook column definitions | `rulebook_id` |
 | `rulebook-field-types/` | Allowed types per field | — |
 | `rule-object-items/` | Object items within a rule cell | `rule_id`, `field_id` |
@@ -418,6 +503,20 @@ curl -H "Authorization: Token <your-token>" \
 
 ---
 
+## Database Tables
+
+NSM stores plugin data in PostgreSQL under the `netbox_nsm_*` tables (Django app `netbox_nsm`).
+Rulebook **fields** map to `netbox_nsm_rulebookfield`; **types within a field** map to
+`netbox_nsm_rulebookfieldtype` and `netbox_nsm_typeconfig`; rule rows and cell assignments
+use `netbox_nsm_rule`, `netbox_nsm_ruleobjectitem`, and `netbox_nsm_rulegroupitem`.
+
+Actual security objects (zones, addresses, labels, etc.) are **not** in these tables — they
+live in `netbox-custom-objects` (and core NetBox when referenced).
+
+See **[DATABASE.md](DATABASE.md)** for the full table list, hierarchy, and SQL examples.
+
+---
+
 ## Development Notes
 
 ### Template changes require a restart
@@ -437,6 +536,32 @@ If you change TypeConfig field values in `builtin_types.py` or `views/setup.py`,
 Setup Wizard **Sync** to push the updates to the database. Existing records are updated
 (not skipped) by the Sync operation.
 
+### netbox_branching
+
+Browser-side `fetch()` calls to the **NetBox REST API** must include the `X-NetBox-Branch`
+header (schema ID from cookie `active_branch`) when a branch is active. NSM loads
+`static/netbox_nsm/js/nsm_branch_api.js` on Security Panel, Object Analyzer, and related
+pages to set this header automatically.
+
+The **Rule Editor** object picker uses a server-side NSM endpoint instead of the REST API:
+`GET /plugins/netbox-nsm/api/picker-browse/?ct=<content_type_id>&q=…` — branch context
+comes from the Django request (cookie / `?_branch=`), so no branch header is needed in
+`rule_form.js`.
+
+The **Rules** (AG Grid) and **Matrix** tabs do not call the REST API from JavaScript —
+row data is embedded at page render time (branch cookie selects the DB schema on the
+server). Internal links (rule detail, matrix cell filters, Add Rule) get
+`?_branch=<schema_id>` via `netbox_nsm.branch_urls.with_branch_query()`.
+
+NSM registers junction tables (`RuleObjectItem`, `RuleGroupItem`, …) with netbox_branching at
+plugin startup and routes writes explicitly via `netbox_nsm.branch_db` when a branch is active.
+Without this, saving a rule in a branch fails with an FK error (parent `Rule` in branch schema,
+child rows in `main`).
+
+After upgrading NSM on an installation that already has branches, run **Branch → Migrate**
+on each active branch once so the branch schema gets the junction tables if they were
+missing.
+
 ### Locale / i18n
 
 Translation strings for templates and Python are in:
@@ -446,12 +571,16 @@ netbox_nsm/locale/de/LC_MESSAGES/django.po
 netbox_nsm/locale/en/LC_MESSAGES/django.po
 ```
 
-After adding new `{% trans "..." %}` tags, compile the catalogues:
+After adding new `{% trans "..." %}` tags or editing `django.po`, compile catalogues
+(in **netbox-dev** after `docker compose build`, or via host `msgfmt` if installed):
 
 ```bash
-python netbox/manage.py compilemessages
+# netbox-dev (empfohlen)
+./scripts/netbox-compilemessages.sh
+
+# oder im Container
+docker compose exec -T netbox python /opt/netbox/netbox/manage.py compilemessages
 ```
 
-Several strings added in the rule editor and Security Panel (e.g. `"Add Rule"`,
-`"Inherited from containing prefix"`, `"No inherited links found."`) are marked for
-translation but may not yet have German translations in `django.po`.
+Several strings in the rule editor and Security Panel (e.g. `"Member of"`, `"Member"`,
+`"Inherited from containing prefix"`) are listed in `django.po` with German translations.

@@ -15,12 +15,12 @@ _MAX = 15  # max related nodes per direction
 
 
 def nsm_link_edges(obj, ct) -> list:
-    """Bidirectional AnalyzerEdge list from NSMObjectLink."""
-    from netbox_nsm.models import NSMObjectLink
+    """Bidirectional AnalyzerEdge list from ObjectLink."""
+    from netbox_nsm.models import ObjectLink
     from netbox_nsm.analyzer.registry import AnalyzerEdge, node_from_object
 
     edges = []
-    for link in NSMObjectLink.objects.filter(
+    for link in ObjectLink.objects.filter(
         object_a_type=ct, object_a_id=obj.pk
     ).select_related("object_b_type")[:_MAX]:
         if link.object_b is not None:
@@ -28,7 +28,7 @@ def nsm_link_edges(obj, ct) -> list:
                 AnalyzerEdge("Linked", "nsm_link", node_from_object(link.object_b))
             )
 
-    for link in NSMObjectLink.objects.filter(
+    for link in ObjectLink.objects.filter(
         object_b_type=ct, object_b_id=obj.pk
     ).select_related("object_a_type")[:_MAX]:
         if link.object_a is not None:
@@ -40,12 +40,12 @@ def nsm_link_edges(obj, ct) -> list:
 
 
 def policy_item_edges(obj, ct) -> list:
-    """AnalyzerEdge list from SecurityPolicyRuleObjectItem (one edge per rule)."""
-    from netbox_nsm.models import SecurityPolicyRuleObjectItem
+    """AnalyzerEdge list from RuleObjectItem (one edge per rule)."""
+    from netbox_nsm.models import RuleObjectItem
     from netbox_nsm.analyzer.registry import AnalyzerEdge, node_from_object
 
     edges = []
-    for item in SecurityPolicyRuleObjectItem.objects.filter(
+    for item in RuleObjectItem.objects.filter(
         content_type=ct, object_id=obj.pk
     ).select_related("rule__rulebook", "field")[:15]:
         edges.append(
@@ -57,32 +57,21 @@ def policy_item_edges(obj, ct) -> list:
 
 
 def group_m2m_edges(obj) -> list:
-    """Edges for 'group' M2M field (Custom Objects):
-    - Forward: members contained in this group (obj.group.all())
-    - Reverse: parent groups that contain this object (filter(group=obj))
-    Works for any model that has a 'group' M2M field (nsm_addresses, nsm_services).
-    """
+    """Edges for ``group`` M2M (see ``netbox_nsm.group_m2m``)."""
     from netbox_nsm.analyzer.registry import AnalyzerEdge, node_from_object
+    from netbox_nsm.group_m2m import iter_group_m2m_relations
 
+    edge_kinds = {
+        "Member": "group_member",
+        "Member of": "member_of_group",
+    }
     edges = []
-
-    # Forward: members of this group
-    group_rel = getattr(obj, "group", None)
-    if group_rel is not None and hasattr(group_rel, "all"):
-        try:
-            for member in group_rel.all()[:_MAX]:
-                edges.append(AnalyzerEdge("Member", "group_member", node_from_object(member)))
-        except Exception:
-            pass
-
-    # Reverse: parent groups containing this object
-    try:
-        parent_groups = list(type(obj).objects.filter(group=obj)[:_MAX])
-        for grp in parent_groups:
-            edges.append(AnalyzerEdge("Member of", "member_of_group", node_from_object(grp)))
-    except Exception:
-        pass
-
+    for related, label in iter_group_m2m_relations(obj):
+        if len(edges) >= _MAX:
+            break
+        edges.append(
+            AnalyzerEdge(label, edge_kinds[label], node_from_object(related))
+        )
     return edges
 
 
@@ -120,56 +109,48 @@ def addr_fk_edges(obj) -> list:
 
 
 def inherited_nsm_link_edges(obj) -> list:
-    """For IPAM objects (Prefix, IPAddress, IPRange): find NSMObjectLinks
+    """For IPAM objects (Prefix, IPAddress, IPRange): find ObjectLinks
     attached to containing/parent prefixes (inherited via prefix hierarchy).
     Mirrors the Security Panel's inherited link behaviour.
     """
     from netbox_nsm.analyzer.registry import AnalyzerEdge, node_from_object
-    from netbox_nsm.models import NSMObjectLink
+    from netbox_nsm.ipam_inheritance import ancestor_prefixes_for_ipam
+    from netbox_nsm.models import ObjectLink
     from django.contrib.contenttypes.models import ContentType
 
     edges = []
     try:
         from ipam.models import Prefix as _Prefix
 
-        # Collect ancestor prefix PKs
-        ancestor_pks = []
-        model_name = type(obj).__name__
-
-        if model_name == "Prefix":
-            ip_str = str(obj.prefix)
-        elif model_name == "IPAddress":
-            ip_str = str(obj.address).split("/")[0]
-        elif model_name == "IPRange":
-            ip_str = str(getattr(obj, "start_address", "")).split("/")[0]
-        else:
-            return edges
-
-        pfx_ct = ContentType.objects.get_for_model(_Prefix)
-        # All prefixes that contain this obj's address
-        ancestors = list(
-            _Prefix.objects.filter(prefix__net_contains=ip_str)
-            .exclude(pk=getattr(obj, "pk", None) if model_name == "Prefix" else None)
-            .values_list("pk", flat=True)[:20]
-        )
-
+        ancestors = ancestor_prefixes_for_ipam(obj)
         if not ancestors:
             return edges
 
+        ancestor_pks = [p.pk for p in ancestors]
+        pfx_ct = ContentType.objects.get_for_model(_Prefix)
+
         seen_linked = set()
-        for link in NSMObjectLink.objects.filter(
-            object_a_type=pfx_ct, object_a_id__in=ancestors
+        for link in ObjectLink.objects.filter(
+            object_a_type=pfx_ct, object_a_id__in=ancestor_pks
         ).select_related("object_b_type")[:_MAX]:
             if link.object_b is not None and link.object_b.pk not in seen_linked:
                 seen_linked.add(link.object_b.pk)
-                edges.append(AnalyzerEdge("Inherited", "inherited_link", node_from_object(link.object_b)))
+                edges.append(
+                    AnalyzerEdge(
+                        "Inherited", "inherited_link", node_from_object(link.object_b)
+                    )
+                )
 
-        for link in NSMObjectLink.objects.filter(
-            object_b_type=pfx_ct, object_b_id__in=ancestors
+        for link in ObjectLink.objects.filter(
+            object_b_type=pfx_ct, object_b_id__in=ancestor_pks
         ).select_related("object_a_type")[:_MAX]:
             if link.object_a is not None and link.object_a.pk not in seen_linked:
                 seen_linked.add(link.object_a.pk)
-                edges.append(AnalyzerEdge("Inherited", "inherited_link", node_from_object(link.object_a)))
+                edges.append(
+                    AnalyzerEdge(
+                        "Inherited", "inherited_link", node_from_object(link.object_a)
+                    )
+                )
 
     except Exception:
         pass

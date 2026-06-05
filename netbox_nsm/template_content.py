@@ -1,113 +1,68 @@
+from django.templatetags.static import static
+from django.utils.html import format_html
+
 from netbox.plugins import PluginTemplateExtension
-from django.utils.translation import gettext_lazy as _
 
 
-class SecurityZoneContextInfo(PluginTemplateExtension):
-    models = ["netbox_nsm.securityzone"]
+def _build_ip_analysis_url(obj, ct, rulebook_groups):
+    """Link to rulebook IP Analysis with this object pre-selected in column A."""
+    from urllib.parse import quote
 
-    def right_page(self):
-        """ """
-        if self.context["config"].get("address_ext_page") == "right":
-            return self.x_page()
-        return ""
+    from django.urls import reverse
 
-    def left_page(self):
-        """ """
-        if self.context["config"].get("address_ext_page") == "left":
-            return self.x_page()
-        return ""
+    from netbox_nsm.models import Rulebook, RuleObjectItem, TypeConfig
+    from netbox_nsm.models.type_config import MatchingClassChoices
 
-    def full_width_page(self):
-        """ """
-        if self.context["config"].get("address_ext_page") == "full_width":
-            return self.x_page()
-        return ""
+    if not TypeConfig.objects.filter(
+        content_type=ct,
+        matching_class=MatchingClassChoices.ADDRESS,
+    ).exists():
+        return None
 
-    def x_page(self):
-        return self.render(
-            "netbox_nsm/securityzone/extend.html",
+    rulebook = None
+    if rulebook_groups:
+        rulebook = rulebook_groups[0].get("rulebook")
+    if rulebook is None:
+        rb_pk = (
+            RuleObjectItem.objects.filter(
+                content_type=ct,
+                object_id=obj.pk,
+                rule__rulebook_id__isnull=False,
+            )
+            .values_list("rule__rulebook_id", flat=True)
+            .order_by("rule__rulebook__name", "rule__rulebook_id")
+            .first()
         )
-
-
-class AddressContextInfo(PluginTemplateExtension):
-    models = ["netbox_nsm.address"]
-
-    def right_page(self):
-        """ """
-        if self.context["config"].get("address_ext_page") == "right":
-            return self.x_page()
-        return ""
-
-    def left_page(self):
-        """ """
-        if self.context["config"].get("address_ext_page") == "left":
-            return self.x_page()
-        return ""
-
-    def full_width_page(self):
-        """ """
-        if self.context["config"].get("address_ext_page") == "full_width":
-            return self.x_page()
-        return ""
-
-    def x_page(self):
-        return self.render(
-            "netbox_nsm/address/extend.html",
+        if rb_pk:
+            rulebook = Rulebook.objects.filter(pk=rb_pk).first()
+    if rulebook is None:
+        rulebook = (
+            Rulebook.objects.filter(
+                fields__type_configs__type_config__content_type=ct,
+            )
+            .distinct()
+            .order_by("name", "pk")
+            .first()
         )
+    if rulebook is None:
+        rulebook = Rulebook.objects.order_by("pk").first()
+    if rulebook is None:
+        return None
+
+    obj_name = str(obj)
+    return (
+        reverse("plugins:netbox_nsm:rulebook_ipanalysis", kwargs={"pk": rulebook.pk})
+        + f"?ip_ct={ct.pk}&ip_pk={obj.pk}&ip_name={quote(obj_name)}"
+    )
 
 
-class AddressSetContextInfo(PluginTemplateExtension):
-    models = ["netbox_nsm.addressset"]
+class NsmStylesExtension(PluginTemplateExtension):
+    """Pill styles for rulebook/rule tables (also after HTMX table refresh)."""
 
-    def right_page(self):
-        """ """
-        if self.context["config"].get("address_ext_page") == "right":
-            return self.x_page()
-        return ""
-
-    def left_page(self):
-        """ """
-        if self.context["config"].get("address_ext_page") == "left":
-            return self.x_page()
-        return ""
-
-    def full_width_page(self):
-        """ """
-        if self.context["config"].get("address_ext_page") == "full_width":
-            return self.x_page()
-        return ""
-
-    def x_page(self):
-        return self.render(
-            "netbox_nsm/addressset/extend.html",
-        )
-
-
-class InterfaceInfo(PluginTemplateExtension):
-    models = ["dcim.interface"]
-
-    def right_page(self):
-        """ """
-        if self.context["config"].get("interface_ext_page") == "right":
-            return self.x_page()
-        return ""
-
-    def left_page(self):
-        """ """
-        if self.context["config"].get("interface_ext_page") == "left":
-            return self.x_page()
-        return ""
-
-    def full_width_page(self):
-        """ """
-        if self.context["config"].get("interface_ext_page") == "full_width":
-            return self.x_page()
-        return ""
-
-    def x_page(self):
-        """ """
-        return self.render(
-            "netbox_nsm/interface/interface_extend.html",
+    def head(self):
+        return format_html(
+            '<link rel="stylesheet" href="{}" />',
+            static("netbox_nsm/css/rule-pills.css"),
         )
 
 
@@ -123,7 +78,8 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
         from django.contrib.contenttypes.models import ContentType
         from django.db.models import Count
         from django.urls import reverse
-        from netbox_nsm.models import SecurityPolicyRuleObjectItem, NSMObjectLink
+        from netbox_nsm.models import RuleObjectItem, ObjectLink
+        from netbox_nsm.object_rules_utils import build_object_field_rules_filter_url
 
         obj = self.context.get("object")
         if not obj or not hasattr(obj, "pk"):
@@ -134,24 +90,23 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
         from netbox_nsm.display_utils import (
             get_display_template_map,
             render_object_display,
-            ct_display_label,
-            tc_panel_label,
+            type_config_display_name_for_ct_id,
         )
 
         tmpl_map = get_display_template_map()
-        # Build ct_id → TypeConfig map for panel labels (one DB query)
-        from netbox_nsm.models import TypeConfig as _TCModel
+        type_label_cache: dict[int, str] = {}
 
-        _tc_map = {
-            tc.content_type_id: tc
-            for tc in _TCModel.objects.select_related("content_type").all()
-        }
+        def _link_type_label(content_type) -> str:
+            ct_id = content_type.pk
+            if ct_id not in type_label_cache:
+                type_label_cache[ct_id] = type_config_display_name_for_ct_id(ct_id)
+            return type_label_cache[ct_id]
 
-        # ── NSMObjectLinks grouped by linked-object type ──────────────────
+        # ── ObjectLinks grouped by linked-object type ──────────────────
         from django.db.models import prefetch_related_objects as _prefetch
 
         fwd_links = list(
-            NSMObjectLink.objects.filter(object_a_type=ct, object_a_id=obj.pk)
+            ObjectLink.objects.filter(object_a_type=ct, object_a_id=obj.pk)
             .select_related("object_b_type")
             .order_by("created")
         )
@@ -159,7 +114,7 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
             fwd_links, "object_b"
         )  # batch-resolve Generic FK, 1 SQL per content-type
         rev_links = list(
-            NSMObjectLink.objects.filter(object_b_type=ct, object_b_id=obj.pk)
+            ObjectLink.objects.filter(object_b_type=ct, object_b_id=obj.pk)
             .select_related("object_a_type")
             .order_by("created")
         )
@@ -179,7 +134,7 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
             type_key = f"{lct.app_label}__{lct.model}"
             if type_key not in links_by_type:
                 links_by_type[type_key] = {
-                    "label": tc_panel_label(lct, _tc_map.get(lct.id)),
+                    "label": _link_type_label(lct),
                     "objects": [],
                 }
             links_by_type[type_key]["objects"].append(
@@ -192,12 +147,12 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
                     "name": render_object_display(linked, lct.pk, tmpl_map),
                     "comment": link.comment,
                     "delete_url": reverse(
-                        "plugins:netbox_nsm:nsm_object_link_delete",
+                        "plugins:netbox_nsm:object_link_delete",
                         kwargs={"pk": link.pk},
                     )
                     + f"?return_url={_return_url}",
                     "edit_url": reverse(
-                        "plugins:netbox_nsm:nsm_object_link_edit",
+                        "plugins:netbox_nsm:object_link_edit",
                         kwargs={"pk": link.pk},
                     )
                     + f"?return_url={_return_url}",
@@ -211,7 +166,7 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
             type_key = f"{lct.app_label}__{lct.model}"
             if type_key not in links_by_type:
                 links_by_type[type_key] = {
-                    "label": tc_panel_label(lct, _tc_map.get(lct.id)),
+                    "label": _link_type_label(lct),
                     "objects": [],
                 }
             links_by_type[type_key]["objects"].append(
@@ -224,12 +179,12 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
                     "name": render_object_display(linked, lct.pk, tmpl_map),
                     "comment": link.comment,
                     "delete_url": reverse(
-                        "plugins:netbox_nsm:nsm_object_link_delete",
+                        "plugins:netbox_nsm:object_link_delete",
                         kwargs={"pk": link.pk},
                     )
                     + f"?return_url={_return_url}",
                     "edit_url": reverse(
-                        "plugins:netbox_nsm:nsm_object_link_edit",
+                        "plugins:netbox_nsm:object_link_edit",
                         kwargs={"pk": link.pk},
                     )
                     + f"?return_url={_return_url}",
@@ -238,7 +193,7 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
 
         # ── NSM address objects that reference this IPAM object via FK ────
         # nsm_addresses has ip_address / prefix / range FK fields pointing to
-        # IPAM objects.  Show them in the panel even without an NSMObjectLink.
+        # IPAM objects.  Show them in the panel even without an ObjectLink.
         try:
             from ipam.models import (
                 Prefix as _Prefix,
@@ -263,7 +218,7 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
                     for _addr_obj in _AddrModel.objects.filter(**_fk_filter):
                         if _addr_type_key not in links_by_type:
                             links_by_type[_addr_type_key] = {
-                                "label": tc_panel_label(_addr_ct, _tc_map.get(_addr_ct.id)),
+                                "label": _link_type_label(_addr_ct),
                                 "objects": [],
                             }
                         links_by_type[_addr_type_key]["objects"].append(
@@ -282,69 +237,41 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
         except Exception:
             pass
 
-        # ── Custom Objects with 'group' M2M: show members in the panel ─────
-        # 1. If current object IS a group: show its members.
-        # 2. If current object IS a member: show which groups contain it.
+        # ── group M2M: parent groups + members (both directions) ─────────
         try:
-            _group_rel = getattr(obj, "group", None)
-            _obj_model = type(obj)
-            _obj_ct = ct
+            from django.utils.translation import gettext as _gettext
 
-            # Direction 1: current object has group members (it is a group)
-            if _group_rel is not None and hasattr(_group_rel, "all"):
-                _members = list(_group_rel.all())
-                if _members:
-                    _mem_ct = ContentType.objects.get_for_model(_members[0])
-                    _mem_type_key = f"{_mem_ct.app_label}__{_mem_ct.model}"
-                    if _mem_type_key not in links_by_type:
-                        links_by_type[_mem_type_key] = {
-                            "label": tc_panel_label(_mem_ct, _tc_map.get(_mem_ct.id)),
-                            "objects": [],
-                        }
-                    _existing_urls = {e["url"] for e in links_by_type[_mem_type_key]["objects"]}
-                    for _mem in _members:
-                        _mem_url = (
-                            _mem.get_absolute_url()
-                            if hasattr(_mem, "get_absolute_url")
-                            else "#"
-                        )
-                        if _mem_url not in _existing_urls:
-                            links_by_type[_mem_type_key]["objects"].append(
-                                {
-                                    "url": _mem_url,
-                                    "name": render_object_display(_mem, _mem_ct.pk, tmpl_map),
-                                    "comment": "",
-                                }
-                            )
+            from netbox_nsm.group_m2m import iter_group_m2m_relations
 
-            # Direction 2: find groups that contain this object as a member
-            try:
-                _parent_groups = list(_obj_model.objects.filter(group=obj))
-            except Exception:
-                _parent_groups = []
-            if _parent_groups:
-                _grp_ct = ContentType.objects.get_for_model(_parent_groups[0])
-                _grp_type_key = f"{_grp_ct.app_label}__{_grp_ct.model}"
+            _grp_type_key = f"{ct.app_label}__{ct.model}"
+            _group_existing_urls = {
+                o["url"] for g in links_by_type.values() for o in g["objects"]
+            }
+
+            def _add_group_m2m_link(related, comment):
+                _url = (
+                    related.get_absolute_url()
+                    if hasattr(related, "get_absolute_url")
+                    else "#"
+                )
+                if _url in _group_existing_urls:
+                    return
                 if _grp_type_key not in links_by_type:
                     links_by_type[_grp_type_key] = {
-                        "label": tc_panel_label(_grp_ct, _tc_map.get(_grp_ct.id)),
+                        "label": _link_type_label(ct),
                         "objects": [],
                     }
-                _existing_urls = {e["url"] for e in links_by_type[_grp_type_key]["objects"]}
-                for _grp in _parent_groups:
-                    _grp_url = (
-                        _grp.get_absolute_url()
-                        if hasattr(_grp, "get_absolute_url")
-                        else "#"
-                    )
-                    if _grp_url not in _existing_urls:
-                        links_by_type[_grp_type_key]["objects"].append(
-                            {
-                                "url": _grp_url,
-                                "name": render_object_display(_grp, _grp_ct.pk, tmpl_map),
-                                "comment": "",
-                            }
-                        )
+                links_by_type[_grp_type_key]["objects"].append(
+                    {
+                        "url": _url,
+                        "name": render_object_display(related, ct.pk, tmpl_map),
+                        "comment": comment,
+                    }
+                )
+                _group_existing_urls.add(_url)
+
+            for _related, _label in iter_group_m2m_relations(obj):
+                _add_group_m2m_link(_related, str(_gettext(_label)))
         except Exception:
             pass
 
@@ -374,27 +301,17 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
                     reverse("plugins:netbox_nsm:inherited_links_api")
                     + f"?ct_id={ct.pk}&obj_id={obj.pk}"
                 )
-            else:
-                # For Devices / VMs: use the primary IP to look up inherited links
-                primary_ip = getattr(obj, "primary_ip", None) or getattr(obj, "primary_ip4", None)
-                if primary_ip is None:
-                    primary_ip = getattr(obj, "primary_ip6", None)
-                if primary_ip is not None and isinstance(primary_ip, _IPCheck):
-                    _ip_ct = ContentType.objects.get_for_model(primary_ip)
-                    nsm_inherited_api_url = (
-                        reverse("plugins:netbox_nsm:inherited_links_api")
-                        + f"?ct_id={_ip_ct.pk}&obj_id={primary_ip.pk}"
-                    )
         except Exception:
             pass
 
         # ── Security rules that reference this object ─────────────────────
         FIRST_PAGE = 30
         qs = (
-            SecurityPolicyRuleObjectItem.objects.filter(
+            RuleObjectItem.objects.filter(
                 content_type=ct, object_id=obj.pk
             )
             .select_related("rule", "rule__rulebook", "field")
+            .prefetch_related("field__type_configs__type_config__content_type")
             .order_by("rule__rulebook__name", "rule__index", "field__sort_order")
         )
         total_items = qs.count()
@@ -446,6 +363,13 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
                 {
                     "field": d["_fields"][fid]["field"],
                     "rules": d["_fields"][fid]["rules"],
+                    "filter_url": build_object_field_rules_filter_url(
+                        d["rulebook"],
+                        d["_fields"][fid]["field"],
+                        obj,
+                        ct,
+                        display_template_map=tmpl_map,
+                    ),
                 }
                 for fid in d["_field_order"]
             ]
@@ -461,8 +385,9 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
             reverse("plugins:netbox_nsm:object_analyzer")
             + f"?ct={ct.pk}&pk={obj.pk}&name={quote(obj_name)}"
         )
+        ip_analysis_url = _build_ip_analysis_url(obj, ct, rulebook_groups)
         assign_url = (
-            reverse("plugins:netbox_nsm:nsm_object_link_assign")
+            reverse("plugins:netbox_nsm:object_link_assign")
             + f"?ct_id={ct.pk}&obj_id={obj.pk}&return_url={return_url}"
         )
         api_url = (
@@ -473,7 +398,7 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
         security_badge = unique_rules_total + total_links or None
 
         # ── Enforced rulebooks (Device/VM/VDC only) ───────────────────────
-        from netbox_nsm.models import SecurityPolicyAssignment
+        from netbox_nsm.models import RulebookAssignment
 
         enforcer_assignments = []
         enforcer_add_url = None
@@ -483,7 +408,7 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
 
             if isinstance(obj, (Device, VirtualMachine, VirtualDeviceContext)):
                 enforcer_assignments = list(
-                    SecurityPolicyAssignment.objects.filter(
+                    RulebookAssignment.objects.filter(
                         assigned_object_type=ct,
                         assigned_object_id=obj.pk,
                     )
@@ -491,14 +416,14 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
                     .order_by("rulebook__name")
                 )
                 enforcer_add_url = (
-                    reverse("plugins:netbox_nsm:securitypolicyassignment_add")
+                    reverse("plugins:netbox_nsm:rulebookassignment_add")
                     + f"?assigned_object_type_id={ct.pk}&assigned_object_id={obj.pk}&return_url={return_url}"
                 )
         except Exception:
             pass
 
         return self.render(
-            "netbox_nsm/inc/nsm_security_links.html",
+            "netbox_nsm/inc/security_links.html",
             {
                 "nsm_link_type_groups": link_type_groups,
                 "nsm_inherited_api_url": nsm_inherited_api_url,
@@ -510,62 +435,11 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
                 "nsm_api_url": api_url,
                 "nsm_assign_url": assign_url,
                 "nsm_analyzer_url": analyzer_url,
+                "nsm_ip_analysis_url": ip_analysis_url,
                 "nsm_enforcer_assignments": enforcer_assignments,
                 "nsm_enforcer_add_url": enforcer_add_url,
             },
         )
 
 
-class DeviceRulebookEnforcerExtension(PluginTemplateExtension):
-    """Shows which rulebooks are enforced by this Device/VM/VDC (SecurityPolicyAssignment)."""
-
-    models = [
-        "dcim.device",
-        "virtualization.virtualmachine",
-        "dcim.virtualdevicecontext",
-    ]
-
-    def right_page(self):
-        from django.contrib.contenttypes.models import ContentType
-        from django.urls import reverse
-        from netbox_nsm.models import SecurityPolicyAssignment
-
-        obj = self.context.get("object")
-        if not obj or not hasattr(obj, "pk"):
-            return ""
-
-        ct = ContentType.objects.get_for_model(obj)
-        assignments = list(
-            SecurityPolicyAssignment.objects.filter(
-                assigned_object_type=ct,
-                assigned_object_id=obj.pk,
-            )
-            .select_related("rulebook")
-            .order_by("rulebook__name")
-        )
-
-        request = self.context.get("request")
-        return_url = request.path if request else "/"
-
-        add_url = (
-            reverse("plugins:netbox_nsm:securitypolicyassignment_add")
-            + f"?assigned_object_type_id={ct.pk}&assigned_object_id={obj.pk}&return_url={return_url}"
-        )
-
-        return self.render(
-            "netbox_nsm/inc/device_enforcer_panel.html",
-            {
-                "enforcer_assignments": assignments,
-                "enforcer_add_url": add_url,
-                "enforcer_return_url": return_url,
-            },
-        )
-
-
-template_extensions = [
-    SecurityZoneContextInfo,
-    AddressContextInfo,
-    AddressSetContextInfo,
-    InterfaceInfo,
-    NsmSecurityLinksExtension,
-]
+template_extensions = [NsmStylesExtension, NsmSecurityLinksExtension]

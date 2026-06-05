@@ -1,0 +1,76 @@
+{% load static %}
+<link rel="stylesheet" href="{% static 'netbox_nsm/css/rule-pills.css' %}?v=20260840">
+<style>
+  /* Fields table: option icon pills (inline fallback if static cache stale) */
+  .table.nsm-rb-fields-table .nsm-rb-opt-icons {
+    align-items: center;
+    display: inline-flex;
+    flex-flow: row nowrap;
+    gap: 0.35rem;
+    white-space: nowrap;
+  }
+  .table.nsm-rb-fields-table .nsm-rb-opt-pill {
+    align-items: center;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    box-sizing: border-box;
+    display: inline-flex;
+    flex-shrink: 0;
+    gap: 0.12rem;
+    height: 1.4rem;
+    justify-content: center;
+    min-width: 1.4rem;
+    padding: 0 0.34rem;
+  }
+  .table.nsm-rb-fields-table .nsm-rb-opt-pill .mdi {
+    color: #fff;
+    font-size: 0.78rem;
+    line-height: 1;
+  }
+  .table.nsm-rb-fields-table .nsm-rb-opt-pill--visible { background-color: #0ea5e9; border-color: #0284c7; }
+  .table.nsm-rb-fields-table .nsm-rb-opt-pill--search { background-color: #8b5cf6; border-color: #7c3aed; }
+  .table.nsm-rb-fields-table .nsm-rb-opt-pill--filter { background-color: #10b981; border-color: #059669; }
+  .table.nsm-rb-fields-table .nsm-rb-opt-pill--facet { background-color: #f59e0b; border-color: #d97706; }
+  .table.nsm-rb-fields-table .nsm-rb-opt-pill--palette { background-color: #ec4899; border-color: #db2777; }
+  .table.nsm-rb-fields-table .nsm-rb-opt-pill--max { background-color: #6366f1; border-color: #4f46e5; }
+  .table.nsm-rb-fields-table .nsm-rb-opt-pill--regex { background-color: #14b8a6; border-color: #0d9488; }
+  .table.nsm-rb-fields-table .nsm-rb-opt-pill--meta {
+    background-color: var(--tblr-secondary-bg, #e2e8f0);
+    border-color: var(--tblr-border-color, #cbd5e1);
+    color: var(--tblr-body-color, #475569);
+  }
+  .table.nsm-rb-fields-table .nsm-rb-opt-pill--meta .mdi,
+  .table.nsm-rb-fields-table .nsm-rb-opt-pill--meta .nsm-rb-opt-meta-value {
+    color: inherit;
+  }
+  .table.nsm-rb-fields-table .nsm-rb-opt-meta-value {
+    font-size: 0.65rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .table.nsm-rb-fields-table .nsm-rb-opt-icons:empty {
+    display: none;
+  }
+
+  /* NetBox tab badges on model tabs — same look as nsm-rule-pill--counter */
+  .page-header .nav-tabs .nav-link .badge {
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1.35;
+    padding: 0.1rem 0.5rem;
+    vertical-align: middle;
+    background: var(--tblr-secondary-bg, #eef2f7) !important;
+    border: 1px solid var(--tblr-border-color, #b8c2cf) !important;
+    color: var(--tblr-body-color, #1f2937) !important;
+  }
+  [data-bs-theme="dark"] .page-header .nav-tabs .nav-link .badge {
+    background: #2a3344 !important;
+    border-color: #5b6776 !important;
+    color: #e7ebf1 !important;
+  }
+  .breadcrumb .nsm-rule-pill--counter {
+    vertical-align: middle;
+  }
+</style>

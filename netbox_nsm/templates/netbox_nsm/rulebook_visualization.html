@@ -1,0 +1,660 @@
+{% extends 'generic/object.html' %}
+{% load i18n object_type %}
+
+{% block head %}
+{{ block.super }}
+{% include "netbox_nsm/inc/rulebook_page_head.html" %}
+{% endblock head %}
+
+{% block breadcrumbs %}
+{% include "netbox_nsm/inc/rulebook_breadcrumbs.html" with active_tab=_("Visualization") %}
+{% endblock breadcrumbs %}
+
+{% block content %}
+<style>
+  /* ── internal tab bar ── */
+  .nsm-viz-tabs {
+    border-bottom: 2px solid #1e2a38;
+    margin-bottom: 0;
+  }
+  .nsm-viz-tabs .nav-link {
+    border: none;
+    border-radius: 0;
+    color: var(--bs-secondary-color);
+    font-size: .8rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+    padding: .55rem 1.1rem;
+    text-transform: uppercase;
+  }
+  .nsm-viz-tabs .nav-link:hover {
+    color: var(--bs-body-color);
+  }
+  .nsm-viz-tabs .nav-link.active {
+    background: #1e2a38;
+    color: #c8d8e8;
+  }
+
+  /* ── zone filter ── */
+  .nsm-viz-filter-header {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .4rem 1rem;
+    border-bottom: 1px solid var(--bs-border-color);
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+    user-select: none;
+  }
+  .nsm-filter-chevron {
+    display: inline-block;
+    transition: transform .2s;
+  }
+  [aria-expanded="false"] .nsm-filter-chevron {
+    transform: rotate(180deg);
+  }
+  .nsm-viz-filter {
+    padding: .6rem 1rem;
+    border-bottom: 1px solid var(--bs-border-color);
+    display: flex;
+    align-items: flex-start;
+    gap: .75rem;
+    flex-wrap: wrap;
+  }
+  .nsm-viz-filter select {
+    min-width: 14rem;
+    max-width: 32rem;
+    max-height: calc(15 * 1.625rem);
+    overflow-y: auto;
+  }
+
+  /* ── wrapper ── */
+  .nsm-viz-wrapper {
+    overflow: auto;
+    max-height: 78vh;
+    position: relative;
+  }
+
+  /* ── table base ── */
+  .nsm-viz-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: .72rem;
+    white-space: nowrap;
+  }
+
+  /* ── sticky top-left corner ── */
+  .nsm-viz-table .nsm-corner {
+    position: sticky;
+    top: 0;
+    left: 0;
+    z-index: 22;
+    background: #1e2a38;
+    min-width: 9rem;
+    padding: 0;
+    border-right: 2px solid #374a5f;
+    border-bottom: 2px solid #374a5f;
+    overflow: hidden;
+  }
+  .nsm-corner-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 3.5rem;
+  }
+  .nsm-corner-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .nsm-corner-dst {
+    position: absolute;
+    top: .25rem;
+    right: .4rem;
+    font-size: .58rem;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: #a0b8cc;
+    line-height: 1;
+  }
+  .nsm-corner-src {
+    position: absolute;
+    bottom: .25rem;
+    left: .4rem;
+    font-size: .58rem;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: #a0b8cc;
+    line-height: 1;
+  }
+
+  /* ── destination column headers ── */
+  .nsm-viz-table thead th.nsm-col-label {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: #1e2a38;
+    border-bottom: 2px solid #374a5f;
+    border-right: 1px solid #2d3e52;
+    vertical-align: bottom;
+    padding: .3rem .2rem .25rem .2rem;
+    min-width: 2.8rem;
+  }
+  .nsm-viz-table thead th.nsm-col-label > .nsm-col-text {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    display: block;
+    max-height: 9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 700;
+    color: #c8d8e8;
+    font-size: .7rem;
+    letter-spacing: .03em;
+    line-height: 1.35;
+    padding-bottom: .1rem;
+  }
+  .nsm-viz-table thead th.nsm-col-label:hover .nsm-col-text {
+    color: #fff;
+  }
+
+  /* ── source row headers ── */
+  .nsm-viz-table tbody th.nsm-row-label {
+    position: sticky;
+    left: 0;
+    z-index: 21;
+    background: #1e2a38;
+    border-right: 2px solid #374a5f;
+    border-bottom: 1px solid #2d3e52;
+    text-align: right;
+    font-weight: 700;
+    color: #c8d8e8;
+    font-size: .7rem;
+    letter-spacing: .03em;
+    padding: .35rem .6rem .35rem .4rem;
+    white-space: nowrap;
+    max-width: 11rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .nsm-viz-table tbody th.nsm-row-label:hover {
+    color: #fff;
+    background: #263444;
+  }
+
+  /* ── data cells ── */
+  .nsm-viz-table td {
+    border-right: 1px solid var(--bs-border-color-translucent);
+    border-bottom: 1px solid var(--bs-border-color-translucent);
+    padding: .18rem .15rem;
+    text-align: center;
+    vertical-align: middle;
+    min-width: 3rem;
+    height: 2.2rem;
+  }
+
+  /* diagonal (self-zone) cells – amber hatch above badge, still clickable */
+  td.nsm-viz-cell-self {
+    position: relative;
+    isolation: isolate;   /* contains z-index so hatch never bleeds over sticky headers */
+    background: rgba(255, 255, 255, .18);
+  }
+  td.nsm-viz-cell-self::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      -45deg,
+      rgba(255, 255, 255, .40),
+      rgba(255, 255, 255, .40) 5px,
+      transparent 5px,
+      transparent 8px
+    );
+    pointer-events: none;
+    z-index: 2;
+  }
+  td.nsm-viz-cell-self > * {
+    position: relative;
+    z-index: 3;
+  }
+
+  /* empty cells */
+  .nsm-viz-cell-empty a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 1.7rem;
+    color: var(--bs-border-color);
+    border: 1px dashed var(--bs-border-color-translucent);
+    border-radius: .3rem;
+    font-size: 1rem;
+    font-weight: 300;
+    text-decoration: none;
+    transition: background .12s, color .12s, border-color .12s;
+  }
+  .nsm-viz-cell-empty a:hover {
+    color: var(--bs-primary);
+    border-color: var(--bs-primary);
+    background: var(--bs-primary-bg-subtle);
+    font-weight: 600;
+  }
+
+  /* single-rule action cells */
+  .nsm-viz-cell-action a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 1.7rem;
+    border-radius: .4rem;
+    font-weight: 800;
+    font-size: .6rem;
+    text-decoration: none;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    box-shadow: 0 1px 3px rgba(0,0,0,.15);
+    transition: filter .12s, box-shadow .12s;
+  }
+  .nsm-viz-cell-action a:hover {
+    filter: brightness(1.1);
+    box-shadow: 0 2px 6px rgba(0,0,0,.25);
+  }
+
+  /* multi-rule cells */
+  .nsm-viz-cell-multi a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.7rem;
+    height: 1.7rem;
+    padding: 0 .4rem;
+    border-radius: 999px;
+    font-weight: 800;
+    font-size: .7rem;
+    text-decoration: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,.15);
+    transition: filter .12s, box-shadow .12s;
+  }
+  .nsm-viz-cell-multi a:hover {
+    filter: brightness(1.1);
+    box-shadow: 0 2px 6px rgba(0,0,0,.25);
+  }
+</style>
+
+<!-- internal visualisation tab bar -->
+<ul class="nav nsm-viz-tabs mb-0" id="nsm-viz-tab-nav" role="tablist">
+  <li class="nav-item" role="presentation">
+    <a class="nav-link active" id="nsm-tab-analysis" data-bs-toggle="tab" href="#nsm-panel-analysis" role="tab">Policy Analysis</a>
+  </li>
+  <li class="nav-item" role="presentation">
+    <a class="nav-link" id="nsm-tab-matrix" data-bs-toggle="tab" href="#nsm-panel-matrix" role="tab">Zone Matrix</a>
+  </li>
+  <li class="nav-item" role="presentation">
+    <a class="nav-link" id="nsm-tab-ipanalysis" data-bs-toggle="tab" href="#nsm-panel-ipanalysis" role="tab">IP Analysis</a>
+  </li>
+</ul>
+<script>
+(function () {
+  const TABS = ['nsm-panel-analysis', 'nsm-panel-matrix', 'nsm-panel-ipanalysis'];
+  // If IP analysis result is present, default to that tab
+  {% if ip_sel_pk %}
+  const defaultTab = 'nsm-panel-ipanalysis';
+  {% else %}
+  const defaultTab = null;
+  {% endif %}
+  const hash = window.location.hash.replace('#', '');
+  const activateId = TABS.includes(hash) ? hash : (defaultTab || 'nsm-panel-analysis');
+  const trigger = document.querySelector('[href="#' + activateId + '"]');
+  if (trigger) bootstrap.Tab.getOrCreateInstance(trigger).show();
+  // Update hash when tab changes
+  document.getElementById('nsm-viz-tab-nav').addEventListener('shown.bs.tab', function (e) {
+    const target = e.target.getAttribute('href');
+    if (target) history.replaceState(null, '', target);
+  });
+})();
+</script>
+
+<div class="tab-content">
+
+<!-- ── TAB 1: Policy Analysis ───────────────────────────────── -->
+<div class="tab-pane fade show active" id="nsm-panel-analysis" role="tabpanel">
+<div class="card rounded-0 border-top-0">
+  <div class="card-header d-flex align-items-center gap-2">
+    <i class="mdi mdi-chart-bar text-primary"></i>
+    <strong>{% trans "Policy Analysis" %}</strong>
+    {% include "netbox_nsm/inc/nsm_count_pill.html" with value=object_analysis.total_rules title=_("Rules") %}
+  </div>
+  <div class="card-body p-0">
+    {% if object_analysis %}
+
+    <!-- per-area cards -->
+    <div class="row g-0">
+      {% for area in object_analysis.areas %}
+      <div class="col-12 border-bottom px-3 py-3">
+        <h6 class="text-muted small fw-bold text-uppercase mb-2">
+          <i class="mdi mdi-tag-multiple-outline me-1"></i>{{ area.label }}
+          <span class="fw-normal text-muted ms-1">— Top 10 von {{ area.total_objects }}</span>
+        </h6>
+
+        <!-- individual objects with scroll cap -->
+        <div style="max-height: calc(15 * 2.1rem); overflow-y: auto;">
+          <table class="table table-sm table-hover mb-0">
+            <thead class="sticky-top" style="top:0;z-index:1;">
+              <tr><th>Object</th><th>Type</th><th class="text-end"># Rules</th></tr>
+            </thead>
+            <tbody>
+              {% for obj in area.objects %}
+              <tr>
+                <td>{{ obj.name }}</td>
+                <td class="text-muted small">{{ obj.type_name }}</td>
+                <td class="text-end fw-bold">{{ obj.count }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="3" class="text-muted text-center small">—</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+      {% endfor %}
+    </div>
+
+    {% else %}
+    <div class="text-center text-muted p-5">No rules found.</div>
+    {% endif %}
+  </div>
+</div>
+</div>
+
+<!-- ── TAB 2: Zone Matrix ────────────────────────────────────── -->
+<div class="tab-pane fade" id="nsm-panel-matrix" role="tabpanel">
+  <div class="card-header d-flex align-items-center gap-2 flex-wrap">
+    <i class="mdi mdi-grid text-primary"></i>
+    <strong>Zone Matrix</strong>
+    <span class="text-muted ms-1 small">Rows&nbsp;=&nbsp;Source &middot; Columns&nbsp;=&nbsp;Destination &middot; Click a cell to open Security Rules</span>
+    <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
+      {% for a in action_legend %}
+        <span class="badge" style="background-color:{{ a.color }};color:#fff;">{{ a.name }}</span>
+      {% endfor %}
+      <span class="badge rounded-pill" style="background:#6c757d;color:#fff;">N</span>
+      <span class="text-muted small">= multiple rules</span>
+    </div>
+  </div>
+
+  {% if available_types %}
+    <div class="nsm-viz-filter-header">
+      <i class="mdi mdi-filter-outline"></i>
+      <span>Matrix Filter</span>
+      {% if src_filter_pks or dst_filter_pks %}
+        <span class="badge text-bg-primary fw-normal ms-1">active</span>
+      {% endif %}
+      <button class="btn btn-sm btn-link ms-auto p-0 text-secondary"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#nsm-filter-collapse"
+              aria-expanded="true"
+              aria-controls="nsm-filter-collapse">
+        <i class="mdi mdi-chevron-up nsm-filter-chevron"></i>
+      </button>
+    </div>
+    <div class="collapse show" id="nsm-filter-collapse">
+      <form method="get" class="nsm-viz-filter" id="nsm-matrix-filter-form">
+        <div class="d-flex flex-column gap-1">
+          <label class="form-label mb-0 small fw-bold">Object type</label>
+          <select name="obj_type" class="form-select form-select-sm" style="min-width:12rem;" onchange="this.form.submit()">
+            {% for t in available_types %}
+              <option value="{{ t.ct_id }}" {% if t.ct_id == selected_ct_id %}selected{% endif %}>{{ t.label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="d-flex flex-column gap-1">
+          <label class="form-label mb-0 small fw-bold">Source (Rows)</label>
+          <select name="src_id" multiple class="form-select form-select-sm">
+            {% for z in all_src_zones %}
+              <option value="{{ z.pk }}" {% if z.pk in src_filter_pks %}selected{% endif %}>{{ zone_labels|dict_get:z.pk }}</option>
+            {% endfor %}
+          </select>
+          <span class="text-muted" style="font-size:.7rem;">Ctrl+Click to select multiple</span>
+        </div>
+        <div class="d-flex flex-column gap-1">
+          <label class="form-label mb-0 small fw-bold">Destination (Columns)</label>
+          <select name="dst_id" multiple class="form-select form-select-sm">
+            {% for z in all_dst_zones %}
+              <option value="{{ z.pk }}" {% if z.pk in dst_filter_pks %}selected{% endif %}>{{ zone_labels|dict_get:z.pk }}</option>
+            {% endfor %}
+          </select>
+          <span class="text-muted" style="font-size:.7rem;">Ctrl+Click to select multiple</span>
+        </div>
+        <div class="d-flex flex-column gap-1 align-self-end">
+          <button type="submit" class="btn btn-sm btn-primary">Apply</button>
+          {% if src_filter_pks or dst_filter_pks %}
+            <a href="{{ viz_url_base }}{% if selected_ct_id %}?obj_type={{ selected_ct_id }}{% endif %}" class="btn btn-sm btn-outline-secondary">Reset</a>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+  {% endif %}
+
+  <div class="card-body p-0">
+    {% if matrix_rows %}
+      <div class="nsm-viz-wrapper">
+        <table class="nsm-viz-table">
+          <thead>
+            <tr>
+              <th class="nsm-corner">
+                <div class="nsm-corner-inner">
+                  <svg class="nsm-corner-svg">
+                    <line x1="0" y1="0" x2="100%" y2="100%" stroke="#374a5f" stroke-width="1.5"/>
+                  </svg>
+                  <span class="nsm-corner-dst">Destination &rarr;</span>
+                  <span class="nsm-corner-src">&darr; Source</span>
+                </div>
+              </th>
+              {% for zone in dst_zones %}
+                <th class="nsm-col-label">
+                  <a href="{{ zone.get_absolute_url }}" class="nsm-col-text text-decoration-none" title="{{ zone_labels|dict_get:zone.pk }}">{{ zone_labels|dict_get:zone.pk }}</a>
+                </th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in matrix_rows %}
+              <tr>
+                <th class="nsm-row-label" title="{{ zone_labels|dict_get:row.source_zone.pk }}"><a href="{{ row.source_zone.get_absolute_url }}" class="text-decoration-none" style="color:inherit">{{ zone_labels|dict_get:row.source_zone.pk }}</a></th>
+                {% for cell in row.cells %}
+                  {% if cell.type == "empty" %}
+                    <td class="nsm-viz-cell-empty{% if cell.is_self %} nsm-viz-cell-self{% endif %}">
+                      <a href="{{ cell.href }}" title="Add rule">+</a>
+                    </td>
+                  {% elif cell.type == "single" %}
+                    <td class="nsm-viz-cell-action{% if cell.is_self %} nsm-viz-cell-self{% endif %}">
+                      <a href="{{ cell.href }}"
+                         style="background-color:{{ cell.color }};color:#fff;"
+                         title="{{ cell.label }}">{{ cell.label }}</a>
+                    </td>
+                  {% else %}
+                    <td class="nsm-viz-cell-multi{% if cell.is_self %} nsm-viz-cell-self{% endif %}">
+                      <a href="{{ cell.href }}"
+                         class="bg-secondary text-white"
+                         title="{{ cell.count }} rules">{{ cell.count }}</a>
+                    </td>
+                  {% endif %}
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="text-center text-muted p-5">
+        <i class="mdi mdi-grid-off mdi-48px"></i>
+        <p class="mt-2">No zones match the current filter.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+
+
+</div>{# end tab-pane matrix #}
+
+<!-- ── TAB 3: IP Analysis ─────────────────────────────────── -->
+<div class="tab-pane fade" id="nsm-panel-ipanalysis" role="tabpanel">
+  <div class="card-header d-flex align-items-center gap-2 flex-wrap">
+    <i class="mdi mdi-ip-network-outline text-primary"></i>
+    <strong>IP Analysis</strong>
+    <span class="text-muted ms-1 small">Select a source or destination object to resolve its IP addresses</span>
+  </div>
+
+  {# ── Object selector ── #}
+  <div class="p-3 border-bottom">
+    <form method="get" class="d-flex align-items-end gap-2 flex-wrap" id="nsm-ip-analysis-form">
+      {# preserve matrix params #}
+      {% if request.GET.obj_type %}<input type="hidden" name="obj_type" value="{{ request.GET.obj_type }}">{% endif %}
+      {% for z in all_src_zones %}{% if z.pk in src_filter_pks %}<input type="hidden" name="src_id" value="{{ z.pk }}">{% endif %}{% endfor %}
+      {% for z in all_dst_zones %}{% if z.pk in dst_filter_pks %}<input type="hidden" name="dst_id" value="{{ z.pk }}">{% endif %}{% endfor %}
+      <input type="hidden" name="_tab" value="nsm-panel-ipanalysis">
+      <div class="d-flex flex-column gap-1">
+        <label class="form-label mb-0 small fw-bold">Object</label>
+        <select name="ip_ct" id="nsm-ip-ct" class="form-select form-select-sm d-none">
+          <option value="">—</option>
+          {% for grp in ip_analysis_groups %}
+            {% for obj in grp.objects %}
+              <option value="{{ obj.ct_id }}" data-pk="{{ obj.pk }}"
+                {% if obj.ct_id|stringformat:"s" == ip_sel_ct and obj.pk|stringformat:"s" == ip_sel_pk %}selected{% endif %}>
+                {{ obj.name }} ({{ grp.type_label }})
+              </option>
+            {% endfor %}
+          {% endfor %}
+        </select>
+        <select name="ip_pk" id="nsm-ip-pk" class="form-select form-select-sm d-none">
+          <option value="">—</option>
+        </select>
+        {# Combined visual selector #}
+        <select id="nsm-ip-combined" class="form-select form-select-sm" style="min-width:20rem;">
+          <option value="">— select object —</option>
+          {% for grp in ip_analysis_groups %}
+            <optgroup label="{{ grp.type_label }}">
+              {% for obj in grp.objects %}
+                <option value="{{ obj.ct_id }}:{{ obj.pk }}"
+                  {% if obj.ct_id|stringformat:"s" == ip_sel_ct and obj.pk|stringformat:"s" == ip_sel_pk %}selected{% endif %}>
+                  {{ obj.name }}
+                </option>
+              {% endfor %}
+            </optgroup>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn btn-sm btn-primary">Analyse</button>
+      {% if ip_sel_pk %}
+        <a href="?{% if request.GET.obj_type %}obj_type={{ request.GET.obj_type }}&{% endif %}#nsm-panel-ipanalysis" class="btn btn-sm btn-outline-secondary">Reset</a>
+      {% endif %}
+    </form>
+    <script>
+    (function(){
+      var combined = document.getElementById('nsm-ip-combined');
+      var ctInput  = document.getElementById('nsm-ip-ct');
+      var pkInput  = document.getElementById('nsm-ip-pk');
+      var form     = document.getElementById('nsm-ip-analysis-form');
+      function sync() {
+        var val = combined.value;
+        if (!val) { ctInput.value = ''; pkInput.value = ''; return; }
+        var parts = val.split(':');
+        ctInput.value = parts[0];
+        pkInput.value = parts[1];
+      }
+      combined.addEventListener('change', sync);
+      sync();
+      form.addEventListener('submit', function() {
+        // Redirect to IP analysis tab after submit
+        form.action = window.location.pathname + '#nsm-panel-ipanalysis';
+      });
+    })();
+    </script>
+  </div>
+
+  {# ── Results ── #}
+  {% if ip_tree_node or ip_refs %}
+  <div class="p-3">
+    <h6 class="fw-bold mb-3">
+      <i class="mdi mdi-tag-outline me-1"></i>{{ ip_selected_name }}
+    </h6>
+
+    {# 4-tab card identical to rule detail page #}
+    <ul class="nav nav-tabs mb-0" id="nsm-ip-tabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#nsm-ip-pane-ips" type="button">
+          {% trans "IPs" %} {% include "netbox_nsm/inc/nsm_count_pill.html" with value=ip_refs|length extra_class="ms-1" %}
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#nsm-ip-pane-tree" type="button">
+          Tree
+        </button>
+      </li>
+    </ul>
+    <div class="tab-content border border-top-0 rounded-bottom p-2">
+
+      {# IPs tab #}
+      <div class="tab-pane fade show active" id="nsm-ip-pane-ips" role="tabpanel">
+        {% if ip_refs %}
+          <div style="max-height:22rem;overflow-y:auto;">
+            <table class="table table-sm table-hover mb-0">
+              <tbody>
+                {% for ref in ip_refs %}
+                  <tr>
+                    <td>
+                      {% if ref.url %}<a href="{{ ref.url }}">{% endif %}
+                      <code>{{ ref.display }}</code>
+                      {% if ref.url %}</a>{% endif %}
+                    </td>
+                    <td class="text-muted small">{{ ref.type }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="text-muted small mb-0 p-2">No IP addresses resolved.</p>
+        {% endif %}
+      </div>
+
+      {# Tree tab #}
+      <div class="tab-pane fade" id="nsm-ip-pane-tree" role="tabpanel">
+        {% if ip_tree_node %}
+          <div style="max-height:28rem;overflow-y:auto;font-size:.82rem;">
+            {% with node=ip_tree_node depth=0 %}
+              {% include "netbox_nsm/inc/addr_tree_node.html" %}
+            {% endwith %}
+          </div>
+        {% else %}
+          <p class="text-muted small mb-0 p-2">No tree data.</p>
+        {% endif %}
+      </div>
+
+    </div>{# end tab-content #}
+  </div>
+  {% elif ip_sel_pk %}
+    <div class="p-4 text-center text-muted">
+      <i class="mdi mdi-ip-off mdi-36px"></i>
+      <p class="mt-2">No IP addresses found for this object.</p>
+    </div>
+  {% else %}
+    <div class="p-4 text-center text-muted">
+      <i class="mdi mdi-cursor-default-click mdi-36px"></i>
+      <p class="mt-2">Select an object above to see its IP resolution.</p>
+    </div>
+  {% endif %}
+</div>{# end tab-pane ipanalysis #}
+
+</div>{# end tab-content #}
+
+{% endblock %}

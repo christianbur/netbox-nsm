@@ -1,44 +1,56 @@
 #!/usr/bin/env python3
-"""Setzt schema_ids auf den korrekten Wert gemäß builtin_types.py.
-Auto-injected: name=1, description=3, comments=6, color=7
-IDs 2/4/5 (slug/owner_group/owner) werden NIE injiziert.
-User-fields starten bei 100.
+"""Assign schema_id on COT fields from builtin_types portable schema document.
+
+Run inside netbox-dev::
+
+    docker exec netbox-dev python3 /opt/netbox-nsm/scripts/set_schema_ids.py
+
+Or with explicit NetBox root::
+
+    NETBOX_ROOT=/opt/netbox python3 /opt/netbox-nsm/scripts/set_schema_ids.py
 """
-import os, sys
-os.environ['DJANGO_SETTINGS_MODULE'] = 'netbox.settings'
-sys.path.insert(0, '/app/netbox/netbox')
-import django; django.setup()
+import django_bootstrap
 
-from netbox_custom_objects.models import CustomObjectType, CustomObjectTypeField
-from django.db import connection
+django_bootstrap.setup()
 
-# Vollständiges ID-Mapping: auto + user-defined pro COT
-SCHEMA_IDS = {
-    'nsm_action':    {'name': 1, 'description': 3, 'comments': 6, 'color': 7},
-    'nsm_addresses': {'name': 1, 'description': 3, 'comments': 6, 'color': 7,
-                      'ip_address': 100, 'prefix': 101, 'range': 102, 'group': 103},
-    'nsm_labels':    {'name': 1, 'description': 3, 'comments': 6, 'color': 7,
-                      'label_type': 100},
-    'nsm_services':  {'name': 1, 'description': 3, 'comments': 6, 'color': 7,
-                      'protocol': 100, 'port': 101, 'group': 102},
-    'nsm_zones':     {'name': 1, 'description': 3, 'comments': 6, 'color': 7},
+from netbox_custom_objects.models import CustomObjectType
+from netbox_nsm.builtin_types import BUILTIN_CUSTOM_TYPES
+from netbox_nsm.custom_objects_schema import build_schema_document
+
+doc = build_schema_document(BUILTIN_CUSTOM_TYPES)
+id_maps = {
+    t["slug"]: {f["name"]: f["id"] for f in t["fields"]}
+    for t in doc["types"]
 }
 
-for cot in CustomObjectType.objects.all().order_by('slug'):
-    id_map = SCHEMA_IDS.get(cot.slug, {})
-    table = cot.get_database_table_name()
-    print(f'\n=== {cot.slug} ===')
+updated = 0
+for cot in CustomObjectType.objects.filter(slug__startswith="nsm_").order_by("slug"):
+    id_map = id_maps.get(cot.slug)
+    print(f"\n=== {cot.slug} ===")
+    if not id_map:
+        print("  (kein Eintrag in build_schema_document — übersprungen)")
+        continue
 
-    for f in cot.fields.all():
-        if f.name not in id_map:
-            print(f'  UNBEKANNT: {f.name} (pk={f.pk}) — wird nicht angefasst')
+    max_id = 0
+    for field in cot.fields.all():
+        expected = id_map.get(field.name)
+        if expected is None:
+            print(f"  UNBEKANNT: {field.name} (pk={field.pk})")
             continue
-        expected = id_map[f.name]
-        if f.schema_id != expected:
-            f.schema_id = expected
-            f.save(update_fields=['schema_id'])
-            print(f'  Korrigiert: {f.name} → schema_id={expected}')
+        max_id = max(max_id, expected, field.schema_id or 0)
+        if field.schema_id != expected:
+            field.schema_id = expected
+            field.save(update_fields=["schema_id"])
+            print(f"  Korrigiert: {field.name} → schema_id={expected}")
+            updated += 1
         else:
-            print(f'  OK: {f.name} schema_id={f.schema_id}')
+            print(f"  OK: {field.name} schema_id={field.schema_id}")
 
-print('\nFertig.')
+    next_id = getattr(cot, "next_schema_id", None)
+    needed = max_id + 1
+    if next_id is not None and next_id < needed:
+        cot.next_schema_id = needed
+        cot.save(update_fields=["next_schema_id"])
+        print(f"  next_schema_id → {needed}")
+
+print(f"\nFertig. {updated} Feld(er) aktualisiert.")

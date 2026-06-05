@@ -1,3 +1,4 @@
+{% load i18n %}
 {% comment %}
 Renders one node of the address tree.
   node  = { name, url, kind: 'group'|'leaf', ip_ref: {str,url}|None, children: [...] }
@@ -10,6 +11,14 @@ Renders one node of the address tree.
   <details class="nsm-addr-details{% if depth == 0 %} nsm-addr-top{% endif %}">
     <summary class="nsm-addr-summary">
       <a href="{{ node.url }}" class="nsm-addr-link" onclick="event.stopPropagation()">{{ node.name }}</a>
+      {% if node.leaf_count %}<span class="badge bg-secondary-subtle text-secondary nsm-addr-count">{{ node.leaf_count }}</span>{% endif %}
+      {% if show_copy and node.copy_lines %}
+      <button type="button" class="btn btn-sm btn-ghost-secondary py-0 px-1 ms-auto" title="{% trans 'Copy CSV paths' %}"
+        onclick="nsmCopyPaths(this); event.stopPropagation();"
+        data-lines="{% for line in node.copy_lines %}{{ line }}{% if not forloop.last %}&#10;{% endif %}{% endfor %}">
+        <i class="mdi mdi-content-copy"></i>
+      </button>
+      {% endif %}
     </summary>
     <div class="nsm-addr-children">
       {% for child in node.children %}
@@ -29,6 +38,13 @@ Renders one node of the address tree.
     <a href="{{ node.url }}" class="nsm-addr-obj-link">{{ node.name }}</a>
     {% if node.ip_ref %}
       <span class="nsm-addr-ip">→ <a href="{{ node.ip_ref.url }}" class="text-muted">{{ node.ip_ref.str }}</a></span>
+    {% endif %}
+    {% if show_copy and node.copy_lines %}
+    <button type="button" class="btn btn-sm btn-ghost-secondary py-0 px-1 ms-auto" title="{% trans 'Copy CSV paths' %}"
+      onclick="nsmCopyPaths(this); event.stopPropagation();"
+      data-lines="{% for line in node.copy_lines %}{{ line }}{% if not forloop.last %}&#10;{% endif %}{% endfor %}">
+      <i class="mdi mdi-content-copy"></i>
+    </button>
     {% endif %}
   </div>
 {% endif %}

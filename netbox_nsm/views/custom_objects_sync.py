@@ -1,6 +1,6 @@
 """Sync netbox_nsm built-in types into netbox-custom-objects.
 
-Triggered from the Object-Builder Types tab via a button. Performs three
+Triggered from Setup (full sync button). Performs three
 phases inside a single atomic transaction:
 
 1. Ensure all required ``extras.CustomFieldChoiceSet`` instances exist.
@@ -9,6 +9,7 @@ phases inside a single atomic transaction:
 """
 
 from django.contrib import messages
+from django.utils.translation import gettext as _
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
 from django.shortcuts import redirect
@@ -16,25 +17,30 @@ from django.urls import reverse
 from django.views import View
 
 from netbox_nsm.builtin_types import BUILTIN_CUSTOM_TYPES
+from django.http import Http404
+
+from netbox_nsm.setup_flags import setup_allow_destructive_actions, setup_menu_enabled
 from netbox_nsm.custom_objects_schema import (
     build_choice_set_specs,
     build_schema_document,
     iter_types,
     slugify_identifier,
 )
-from netbox_nsm.models import NSMSection, NSMTypeConfig
+from netbox_nsm.models import Section, TypeConfig
+from netbox_nsm.panel_sections import section_slugs_to_panel_slugs
+from netbox_nsm.type_config_specs import TYPECONFIG_SPEC_BY_SLUG
 
-__all__ = ("SyncBuiltinToCustomObjectsView",)
+__all__ = ("SyncBuiltinToCustomObjectsView", "SyncTypeConfigsView")
 
 
 _AREA_ORDER = {"srcdst": 10, "services": 30, "action": 40, "info": 50}
 
 
 def _prune_stale(document):
-    """Drop CustomObjectTypes / NSMSections left over from earlier sync runs.
+    """Drop CustomObjectTypes / Sections left over from earlier sync runs.
 
     Removes any ``CustomObjectType`` whose slug starts with ``nsm_`` but is not
-    in the current document, and any ``NSMSection`` whose slug isn't one of
+    in the current document, and any ``Section`` whose slug isn't one of
     the current group_names.
     """
     from netbox_custom_objects.models import CustomObjectType
@@ -48,7 +54,7 @@ def _prune_stale(document):
     cots_removed = stale_cots.count()
     stale_cots.delete()
 
-    stale_sections = NSMSection.objects.exclude(slug__in=wanted_area_slugs)
+    stale_sections = Section.objects.exclude(slug__in=wanted_area_slugs)
     sections_removed = stale_sections.count()
     stale_sections.delete()
 
@@ -123,7 +129,7 @@ def _seed_default_objects(builtin_types):
 
 
 def _sync_type_configs_and_sections(builtin_types):
-    """Populate NSMTypeConfig (display_template) and NSMSection (M2M) tables."""
+    """Populate TypeConfig (display_template, panel_slugs) and Section (M2M) tables."""
     from netbox_custom_objects.models import CustomObjectType
 
     sections_touched = 0
@@ -138,7 +144,7 @@ def _sync_type_configs_and_sections(builtin_types):
 
     section_by_slug = {}
     for area in referenced_areas:
-        section, _ = NSMSection.objects.update_or_create(
+        section, _ = Section.objects.update_or_create(
             slug=area,
             defaults={
                 "name": area.replace("_", " ").replace("-", " ").title(),
@@ -147,7 +153,7 @@ def _sync_type_configs_and_sections(builtin_types):
         )
         section_by_slug[area] = section
 
-    # One COT per typedef; attach NSMTypeConfig and add to each area section.
+    # One COT per typedef; attach TypeConfig and add to each area section.
     for typedef, _base_slug, slug, areas in iter_types(builtin_types):
         try:
             cot = CustomObjectType.objects.get(slug=slug)
@@ -158,11 +164,26 @@ def _sync_type_configs_and_sections(builtin_types):
 
         ct = DjContentType.objects.get_for_model(cot.get_model())
 
-        NSMTypeConfig.objects.update_or_create(
+        spec = TYPECONFIG_SPEC_BY_SLUG.get(slug)
+        panel_slugs = (
+            spec["panel_slugs"]
+            if spec
+            else section_slugs_to_panel_slugs(areas)
+        )
+        matching_class = spec["matching_class"] if spec else ""
+        TypeConfig.objects.update_or_create(
             content_type=ct,
+            matching_class=matching_class,
             defaults={
-                "display_template": str(typedef.get("display_template", "") or ""),
-                "order_id": int(typedef.get("order_id", 100) or 100),
+                "name": spec["label"] if spec else str(typedef.get("name", "") or slug),
+                "display_template": str(
+                    (spec or typedef).get("display_template", "") or ""
+                ),
+                "order_id": int(
+                    (spec or typedef).get("order_id", 100) or 100
+                ),
+                "panel_slugs": panel_slugs,
+                "panel_linkable": (spec or {}).get("panel_linkable", True),
             },
         )
         configs_touched += 1
@@ -180,13 +201,23 @@ class SyncBuiltinToCustomObjectsView(LoginRequiredMixin, View):
     """POST-only: full sync of BUILTIN_CUSTOM_TYPES into custom-objects."""
 
     def post(self, request, *args, **kwargs):
+        if not setup_menu_enabled():
+            raise Http404
         redirect_url = reverse("plugins:netbox_nsm:setup")
+
+        if not setup_allow_destructive_actions():
+            messages.error(
+                request,
+                _("Full sync is disabled (setup_allow_destructive_actions)."),
+            )
+            return redirect(redirect_url)
 
         try:
             from netbox_custom_objects.schema.executor import apply_document
         except ImportError:
             messages.error(
-                request, "Plugin netbox_custom_objects ist nicht installiert."
+                request,
+                _("Plugin netbox_custom_objects is not installed."),
             )
             return redirect(redirect_url)
 
@@ -198,28 +229,83 @@ class SyncBuiltinToCustomObjectsView(LoginRequiredMixin, View):
                 cs_created, cs_kept = _ensure_choice_sets(choice_specs)
                 apply_document(document, allow_destructive=True)
                 cots_pruned, secs_pruned = _prune_stale(document)
-                cfg_count, sec_links = _sync_type_configs_and_sections(
-                    BUILTIN_CUSTOM_TYPES
-                )
                 obj_created, obj_updated, obj_skipped = _seed_default_objects(
                     BUILTIN_CUSTOM_TYPES
                 )
         except Exception as exc:
             messages.error(
                 request,
-                f"Sync fehlgeschlagen: {exc.__class__.__name__}: {exc}",
+                _("Sync failed: %(exc_type)s: %(exc)s")
+                % {"exc_type": exc.__class__.__name__, "exc": exc},
             )
             return redirect(redirect_url)
 
         messages.success(
             request,
-            (
-                f"Sync ok — {len(document['types'])} CustomObjectTypes, "
-                f"{cs_created} neue ChoiceSets ({cs_kept} bestehend), "
-                f"{cfg_count} TypeConfigs, {sec_links} Section-Verknüpfungen, "
-                f"{obj_created} neue Objekte, {obj_updated} aktualisiert, "
-                f"{obj_skipped} übersprungen, "
-                f"{cots_pruned} alte Types + {secs_pruned} alte Sections entfernt."
-            ),
+            _(
+                "Custom Object Types synced — %(types)d types, %(cs_created)d new "
+                "ChoiceSets (%(cs_kept)d existing), %(obj_created)d new objects, "
+                "%(obj_updated)d updated, %(obj_skipped)d skipped, "
+                "%(cots_pruned)d old types + %(secs_pruned)d old sections removed. "
+                "Run TypeConfig sync (step 2) separately."
+            )
+            % {
+                "types": len(document["types"]),
+                "cs_created": cs_created,
+                "cs_kept": cs_kept,
+                "obj_created": obj_created,
+                "obj_updated": obj_updated,
+                "obj_skipped": obj_skipped,
+                "cots_pruned": cots_pruned,
+                "secs_pruned": secs_pruned,
+            },
+        )
+        return redirect(redirect_url)
+
+
+class SyncTypeConfigsView(LoginRequiredMixin, View):
+    """POST-only: TypeConfigs + NSM sections from built-in type specs."""
+
+    def post(self, request, *args, **kwargs):
+        if not setup_menu_enabled():
+            raise Http404
+        redirect_url = reverse("plugins:netbox_nsm:setup")
+
+        if not setup_allow_destructive_actions():
+            messages.error(
+                request,
+                _("TypeConfig sync is disabled (setup_allow_destructive_actions)."),
+            )
+            return redirect(redirect_url)
+
+        try:
+            from netbox_custom_objects.models import CustomObjectType  # noqa: F401
+        except ImportError:
+            messages.error(
+                request,
+                _("Plugin netbox_custom_objects is not installed."),
+            )
+            return redirect(redirect_url)
+
+        try:
+            with transaction.atomic():
+                cfg_count, sec_links = _sync_type_configs_and_sections(
+                    BUILTIN_CUSTOM_TYPES
+                )
+        except Exception as exc:
+            messages.error(
+                request,
+                _("TypeConfig sync failed: %(exc_type)s: %(exc)s")
+                % {"exc_type": exc.__class__.__name__, "exc": exc},
+            )
+            return redirect(redirect_url)
+
+        messages.success(
+            request,
+            _(
+                "TypeConfig sync complete — %(cfg_count)d TypeConfigs, "
+                "%(sec_links)d section links."
+            )
+            % {"cfg_count": cfg_count, "sec_links": sec_links},
         )
         return redirect(redirect_url)

@@ -4,54 +4,45 @@ from utilities.urls import get_model_urls
 
 from netbox_nsm.analyzer.api_view import AnalyzerAPIView
 
-# +
-# Import views so the register_model_view is run. This is required for the
-# URLs to be set up properly with get_model_urls().
-# -
 from .views import *  # noqa: F401
+from .views.plugin_static import PluginAssetView
 
 app_name = "netbox_nsm"
 
 urlpatterns = [
-    # SecurityArea CRUD
-    path("areas/", SecurityAreaListView.as_view(), name="securityarea-list"),
-    path("areas/<int:pk>/", SecurityAreaView.as_view(), name="securityarea-detail"),
-    path("areas/", include(get_model_urls("netbox_nsm", "securityarea", detail=False))),
-    path("areas/<int:pk>/", include(get_model_urls("netbox_nsm", "securityarea"))),
-    # Groups area — must come before generic object/<str:tab>/ to avoid conflict
+    path(
+        "assets/<path:asset_path>",
+        PluginAssetView.as_view(),
+        name="plugin_asset",
+    ),
+    path("setup/", SetupView.as_view(), name="setup"),
+    path(
+        "setup/sync/custom-objects/",
+        SyncBuiltinToCustomObjectsView.as_view(),
+        name="custom_objects_sync",
+    ),
+    path(
+        "setup/sync/typeconfigs/",
+        SyncTypeConfigsView.as_view(),
+        name="typeconfigs_sync",
+    ),
     path(
         "object/groups/",
-        SecurityObjectGroupAreaView.as_view(),
-        name="securityobjectgroup_area_root",
+        ObjectGroupAreaView.as_view(),
+        name="objectgroup_area_root",
     ),
     path(
         "object/groups/<str:area>/",
-        SecurityObjectGroupAreaView.as_view(),
-        name="securityobjectgroup_area",
+        ObjectGroupAreaView.as_view(),
+        name="objectgroup_area",
     ),
-    # Setup
-    path("setup/", SetupView.as_view(), name="setup"),
-    # TypeConfig
-    path(
-        "type-config/",
-        TypeConfigListView.as_view(),
-        name="typeconfig_list",
-    ),
-    path(
-        "type-config/add/",
-        TypeConfigAddView.as_view(),
-        name="typeconfig_add",
-    ),
+    path("type-config/", TypeConfigListView.as_view(), name="typeconfig_list"),
+    path("type-config/add/", TypeConfigAddView.as_view(), name="typeconfig_add"),
     path(
         "type-config/<int:pk>/",
         include(get_model_urls("netbox_nsm", "typeconfig")),
     ),
-    # RulebookField CRUD
-    path(
-        "rulebook-field/add/",
-        RulebookFieldAddView.as_view(),
-        name="rulebookfield_add",
-    ),
+    path("rulebook-field/add/", RulebookFieldAddView.as_view(), name="rulebookfield_add"),
     path(
         "rulebook-field/<int:pk>/edit/",
         RulebookFieldEditView.as_view(),
@@ -62,7 +53,6 @@ urlpatterns = [
         RulebookFieldDeleteView.as_view(),
         name="rulebookfield_delete",
     ),
-    # RulebookFieldType CRUD
     path(
         "rulebook-field-type/add/",
         RulebookFieldTypeAddView.as_view(),
@@ -80,100 +70,115 @@ urlpatterns = [
     ),
     path(
         "object-groups/",
-        include(get_model_urls("netbox_nsm", "securityobjectgroup", detail=False)),
+        include(get_model_urls("netbox_nsm", "objectgroup", detail=False)),
     ),
     path(
         "object-groups/<int:pk>/",
-        include(get_model_urls("netbox_nsm", "securityobjectgroup")),
+        include(get_model_urls("netbox_nsm", "objectgroup")),
     ),
-    # Rulebooks
     path(
         "rulebooks/",
-        include(get_model_urls("netbox_nsm", "securitypolicyrulebook", detail=False)),
+        include(get_model_urls("netbox_nsm", "rulebook", detail=False)),
     ),
     path(
         "rulebooks/<int:pk>/",
-        include(get_model_urls("netbox_nsm", "securitypolicyrulebook")),
+        include(get_model_urls("netbox_nsm", "rulebook")),
     ),
     path(
         "rulebooks/<int:pk>/visualization/",
         RedirectView.as_view(
-            pattern_name="plugins:netbox_nsm:securitypolicyrulebook_visualization",
+            pattern_name="plugins:netbox_nsm:rulebook_matrix",
             query_string=True,
+            permanent=True,
         ),
-        name="securitypolicyrulebook_visualization_redirect",
+        name="rulebook_visualization_redirect",
+    ),
+    path(
+        "rulebooks/<int:pk>/zonematrix/",
+        RedirectView.as_view(
+            pattern_name="plugins:netbox_nsm:rulebook_matrix",
+            query_string=True,
+            permanent=True,
+        ),
+        name="rulebook_zonematrix_redirect",
+    ),
+    path(
+        "rulebooks/<int:pk>/policy/",
+        RedirectView.as_view(
+            pattern_name="plugins:netbox_nsm:rulebook_rules",
+            query_string=True,
+            permanent=True,
+        ),
+        name="rulebook_policy_redirect",
     ),
     path(
         "rulebooks/<int:pk>/bulk-assign/",
-        SecurityPolicyRulebookBulkAssignView.as_view(),
-        name="securitypolicyrulebook_bulk_assign",
+        RulebookBulkAssignView.as_view(),
+        name="rulebook_bulk_assign",
     ),
     path(
-        "security-rule/",
-        include(get_model_urls("netbox_nsm", "securitypolicyrule", detail=False)),
+        "rules/",
+        include(get_model_urls("netbox_nsm", "rule", detail=False)),
     ),
     path(
-        "security-rule/<int:pk>/",
-        include(get_model_urls("netbox_nsm", "securitypolicyrule")),
+        "rules/<int:pk>/",
+        include(get_model_urls("netbox_nsm", "rule")),
     ),
     path(
-        "security-zone-policy-rulebook-assignments/",
-        include(get_model_urls("netbox_nsm", "securitypolicyassignment", detail=False)),
+        "rulebook-assignments/",
+        include(get_model_urls("netbox_nsm", "rulebookassignment", detail=False)),
     ),
     path(
-        "security-zone-policy-rulebook-assignments/<int:pk>/",
-        include(get_model_urls("netbox_nsm", "securitypolicyassignment")),
+        "rulebook-assignments/<int:pk>/",
+        include(get_model_urls("netbox_nsm", "rulebookassignment")),
     ),
-    # Global Rules Search
+    path("rules/search/", GlobalRulesSearchView.as_view(), name="global_rules_search"),
+    path("object-analyzer/", ObjectAnalyzerView.as_view(), name="object_analyzer"),
+    path("api/analyzer/", AnalyzerAPIView.as_view(), name="analyzer_api"),
+    path("api/object-rules/", ObjectRulesApiView.as_view(), name="object_rules_api"),
     path(
-        "security-rule/search/",
-        GlobalRulesSearchView.as_view(),
-        name="global_rules_search",
+        "api/rulebooks/<int:pk>/policy-facets/",
+        RulebookPolicyFacetsApiView.as_view(),
+        name="rulebook_policy_facets_api",
     ),
-    # Object Analyzer
     path(
-        "object-analyzer/",
-        ObjectAnalyzerView.as_view(),
-        name="object_analyzer",
+        "api/picker-browse/",
+        RulePickerBrowseApiView.as_view(),
+        name="rule_picker_browse_api",
     ),
-    # Object Analyzer JSON API
     path(
-        "api/analyzer/",
-        AnalyzerAPIView.as_view(),
-        name="analyzer_api",
+        "api/rulebooks/<int:pk>/picker-data/",
+        RulebookPickerDataApiView.as_view(),
+        name="rulebook_picker_data_api",
     ),
-    # Lazy-load API: rules for a given object
     path(
-        "api/object-rules/",
-        ObjectRulesApiView.as_view(),
-        name="object_rules_api",
+        "api/rules/<int:pk>/field-selections/",
+        RuleFieldSelectionsApiView.as_view(),
+        name="rule_field_selections_api",
     ),
-    # Lazy-load API: inherited links for IPAM objects
     path(
         "api/inherited-links/",
         InheritedLinksApiView.as_view(),
         name="inherited_links_api",
     ),
-    # Lazy-load API: elements of an NSMTypeConfig type
     path(
         "api/type-elements/",
-        NSMObjectTypeElementsApiView.as_view(),
+        ObjectTypeElementsApiView.as_view(),
         name="object_type_elements_api",
     ),
-    # NSMObjectLink assign / edit / delete
     path(
         "object-link/assign/",
-        NSMObjectLinkAssignView.as_view(),
-        name="nsm_object_link_assign",
+        ObjectLinkAssignView.as_view(),
+        name="object_link_assign",
     ),
     path(
         "object-link/<int:pk>/edit/",
-        NSMObjectLinkEditView.as_view(),
-        name="nsm_object_link_edit",
+        ObjectLinkEditView.as_view(),
+        name="object_link_edit",
     ),
     path(
         "object-link/<int:pk>/delete/",
-        NSMObjectLinkDeleteView.as_view(),
-        name="nsm_object_link_delete",
+        ObjectLinkDeleteView.as_view(),
+        name="object_link_delete",
     ),
 ]

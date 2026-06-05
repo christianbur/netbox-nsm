@@ -1,0 +1,237 @@
+{# LEGACY — klassische HTML-Zonenmatrix (Tab /zonematrix/). Ersetzt durch /matrix/ (AG Grid). Nicht mehr geroutet; nur Archiv. #}
+{% extends 'generic/object.html' %}
+{% load i18n object_type %}
+
+{% block head %}
+{{ block.super }}
+{% include "netbox_nsm/inc/rulebook_page_head.html" %}
+{% endblock head %}
+
+{% block breadcrumbs %}
+{% include "netbox_nsm/inc/rulebook_breadcrumbs.html" with active_tab=_("Zone Matrix") %}
+{% endblock breadcrumbs %}
+
+{% block content %}
+<style>
+  .nsm-viz-filter-header {
+    display: flex; align-items: center; gap: .5rem;
+    padding: .4rem 1rem; border-bottom: 1px solid var(--bs-border-color);
+    font-size: .75rem; font-weight: 700; letter-spacing: .05em;
+    text-transform: uppercase; color: var(--bs-secondary-color); user-select: none;
+  }
+  .nsm-filter-chevron { display: inline-block; transition: transform .2s; }
+  [aria-expanded="false"] .nsm-filter-chevron { transform: rotate(180deg); }
+  .nsm-viz-filter {
+    padding: .6rem 1rem; border-bottom: 1px solid var(--bs-border-color);
+    display: flex; align-items: flex-start; gap: .75rem; flex-wrap: wrap;
+  }
+  .nsm-viz-filter select { min-width: 14rem; max-width: 32rem; max-height: calc(15 * 1.625rem); overflow-y: auto; }
+  .nsm-viz-wrapper { overflow: auto; max-height: 78vh; position: relative; }
+  .nsm-viz-table { border-collapse: separate; border-spacing: 0; font-size: .72rem; white-space: nowrap; }
+  .nsm-viz-table .nsm-corner {
+    position: sticky; top: 0; left: 0; z-index: 22;
+    background: #1e2a38; min-width: 9rem; padding: 0;
+    border-right: 2px solid #374a5f; border-bottom: 2px solid #374a5f; overflow: hidden;
+  }
+  .nsm-corner-inner { position: relative; width: 100%; height: 100%; min-height: 3.5rem; }
+  .nsm-corner-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .nsm-corner-dst { position: absolute; top: .25rem; right: .4rem; font-size: .58rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #a0b8cc; line-height: 1; }
+  .nsm-corner-src { position: absolute; bottom: .25rem; left: .4rem; font-size: .58rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #a0b8cc; line-height: 1; }
+  .nsm-viz-table thead th.nsm-col-label {
+    position: sticky; top: 0; z-index: 20; background: #1e2a38;
+    border-bottom: 2px solid #374a5f; border-right: 1px solid #2d3e52;
+    vertical-align: bottom; padding: .3rem .2rem .25rem .2rem; min-width: 2.8rem;
+  }
+  .nsm-viz-table thead th.nsm-col-label > .nsm-col-text {
+    writing-mode: vertical-rl; transform: rotate(180deg); display: block;
+    max-height: 9rem; overflow: hidden; text-overflow: ellipsis;
+    font-weight: 700; color: #c8d8e8; font-size: .7rem; letter-spacing: .03em; line-height: 1.35; padding-bottom: .1rem;
+  }
+  .nsm-viz-table thead th.nsm-col-label:hover .nsm-col-text { color: #fff; }
+  .nsm-viz-table tbody th.nsm-row-label {
+    position: sticky; left: 0; z-index: 21; background: #1e2a38;
+    border-right: 2px solid #374a5f; border-bottom: 1px solid #2d3e52;
+    text-align: right; font-weight: 700; color: #c8d8e8; font-size: .7rem; letter-spacing: .03em;
+    padding: .35rem .6rem .35rem .4rem; white-space: nowrap; max-width: 11rem; overflow: hidden; text-overflow: ellipsis;
+  }
+  .nsm-viz-table tbody th.nsm-row-label:hover { color: #fff; background: #263444; }
+  .nsm-viz-table td {
+    border: 1px solid var(--bs-border-color);
+    padding: .1rem .08rem; text-align: center; vertical-align: middle; min-width: 3rem; height: 3rem;
+  }
+  .nsm-viz-table thead th.nsm-col-label { border-left: 1px solid var(--bs-border-color); border-right: 1px solid var(--bs-border-color); }
+  .nsm-viz-table tbody th.nsm-row-label { border-top: 1px solid var(--bs-border-color); border-bottom: 1px solid var(--bs-border-color); }
+  td.nsm-viz-cell-self { position: relative; isolation: isolate;
+    background: repeating-linear-gradient(
+      45deg,
+      rgba(251,191,36,.22) 0px, rgba(251,191,36,.22) 3px,
+      rgba(251,191,36,.05) 3px, rgba(251,191,36,.05) 9px
+    );
+    outline: 2px solid rgba(251,191,36,.55); outline-offset: -2px; }
+  td.nsm-viz-cell-self > * { position: relative; z-index: 3; }
+  td.nsm-viz-cell-mirror { background: repeating-linear-gradient(
+      135deg,
+      rgba(100,116,139,.08) 0px, rgba(100,116,139,.08) 3px,
+      transparent 3px, transparent 9px
+    ); pointer-events: none; }
+  .nsm-cell-dir { display: flex; flex-direction: column; align-items: center; gap: .1rem; }
+  .nsm-dir-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 2.4rem; height: 1.15rem; padding: 0 .25rem; border-radius: 999px;
+    font-weight: 700; font-size: .58rem; text-decoration: none;
+    transition: filter .12s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 5rem;
+  }
+  .nsm-dir-badge:hover { filter: brightness(1.15); }
+  .nsm-dir-badge-empty {
+    background: transparent; color: var(--bs-secondary-color);
+    border: 1px dashed var(--bs-border-color-translucent);
+  }
+  .nsm-dir-badge-empty:hover { color: var(--bs-primary); border-color: var(--bs-primary); }
+  .nsm-dir-badge-count { background: #6c757d; color: #fff; }
+</style>
+
+<div class="card">
+  <div class="card-header d-flex align-items-center gap-2 flex-wrap">
+    <i class="mdi mdi-grid text-primary"></i>
+    <strong>Zone Matrix</strong>
+  </div>
+
+  {% if available_types %}
+    <div class="nsm-viz-filter-header">
+      <i class="mdi mdi-filter-outline"></i>
+      <span>Matrix Filter</span>
+      {% if src_filter_pks or dst_filter_pks %}
+        <span class="badge text-bg-primary fw-normal ms-1">active</span>
+      {% endif %}
+      <button class="btn btn-sm btn-link ms-auto p-0 text-secondary"
+              type="button" data-bs-toggle="collapse" data-bs-target="#nsm-filter-collapse"
+              aria-expanded="true" aria-controls="nsm-filter-collapse">
+        <i class="mdi mdi-chevron-up nsm-filter-chevron"></i>
+      </button>
+    </div>
+    <div class="collapse show" id="nsm-filter-collapse">
+      <form method="get" class="d-flex flex-column gap-0" id="nsm-matrix-filter-form">
+        <div class="nsm-viz-filter border-bottom pb-2 pt-2">
+          <div class="d-flex flex-column gap-1" style="min-width: 14rem; max-width: 28rem;">
+            <label class="form-label mb-0 small fw-bold">Object type</label>
+            <select name="obj_type" class="form-select form-select-sm" onchange="this.form.submit()">
+              {% for t in available_types %}
+                <option value="{{ t.ct_id }}" {% if t.ct_id == selected_ct_id %}selected{% endif %}>{{ t.label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="nsm-viz-filter">
+          <div class="d-flex flex-column gap-1">
+            <label class="form-label mb-0 small fw-bold">Source (Rows)</label>
+            <select name="src_id" multiple class="form-select form-select-sm" onchange="this.form.submit()">
+              {% for z in all_src_zones %}
+                <option value="{{ z.pk }}" {% if z.pk in src_filter_pks %}selected{% endif %}>{{ zone_labels|dict_get:z.pk }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="d-flex flex-column gap-1">
+            <label class="form-label mb-0 small fw-bold">Destination (Columns)</label>
+            <select name="dst_id" multiple class="form-select form-select-sm" onchange="this.form.submit()">
+              {% for z in all_dst_zones %}
+                <option value="{{ z.pk }}" {% if z.pk in dst_filter_pks %}selected{% endif %}>{{ zone_labels|dict_get:z.pk }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="d-flex flex-column gap-1">
+            <label class="form-label mb-0 small fw-bold">View</label>
+            <div class="btn-group btn-group-sm" role="group">
+              <input type="radio" class="btn-check" name="mode" id="mode-directed" value="directed" autocomplete="off" onchange="this.form.submit()" {% if matrix_mode != 'undirected' %}checked{% endif %}>
+              <label class="btn btn-outline-secondary" for="mode-directed" title="Directed: → and ← shown separately">
+                <i class="mdi mdi-arrow-left-right"></i> Directed
+              </label>
+              <input type="radio" class="btn-check" name="mode" id="mode-undirected" value="undirected" autocomplete="off" onchange="this.form.submit()" {% if matrix_mode == 'undirected' %}checked{% endif %}>
+              <label class="btn btn-outline-secondary" for="mode-undirected" title="Undirected: A↔B merged into one bubble">
+                <i class="mdi mdi-circle-double"></i> Undirected
+              </label>
+            </div>
+          </div>
+          {% if src_filter_pks or dst_filter_pks %}
+            <div class="d-flex flex-column gap-1 align-self-end">
+              <a href="?{% if selected_ct_id %}obj_type={{ selected_ct_id }}{% endif %}&mode={{ matrix_mode }}" class="btn btn-sm btn-outline-secondary">Reset</a>
+            </div>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+  {% endif %}
+
+  <div class="card-body p-0">
+    {% if matrix_rows %}
+      <div class="nsm-viz-wrapper">
+        <table class="nsm-viz-table">
+          <thead>
+            <tr>
+              <th class="nsm-corner">
+                <svg class="nsm-corner-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+                  <line x1="0" y1="0" x2="100" y2="100" stroke="#374a5f" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
+                </svg>
+                <div class="nsm-corner-inner">
+                  <span class="nsm-corner-dst">Destination &rarr;</span>
+                  <span class="nsm-corner-src">&darr; Source</span>
+                </div>
+              </th>
+              {% for zone in dst_zones %}
+                <th class="nsm-col-label">
+                  <a href="{{ zone.get_absolute_url }}" class="nsm-col-text text-decoration-none" title="{{ zone_labels|dict_get:zone.pk }}">{{ zone_labels|dict_get:zone.pk }}</a>
+                </th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in matrix_rows %}
+              <tr>
+                <th class="nsm-row-label" title="{{ zone_labels|dict_get:row.source_zone.pk }}">
+                  <a href="{{ row.source_zone.get_absolute_url }}" class="text-decoration-none" style="color:inherit">{{ zone_labels|dict_get:row.source_zone.pk }}</a>
+                </th>
+                {% for cell in row.cells %}
+                  <td class="{% if cell.is_self %}nsm-viz-cell-self{% endif %}">
+                    {% if matrix_mode == 'undirected' %}
+                      {# Undirected: eine Bubble für A↔B #}
+                      {% if cell.combined.count == 0 %}
+                        <a href="{{ cell.add_href }}" class="nsm-dir-badge nsm-dir-badge-empty" title="Add Rule">+</a>
+                      {% elif cell.combined.count == 1 %}
+                        <a href="{{ cell.both_href }}" class="nsm-dir-badge" style="background-color:{{ cell.combined.color }};color:#fff;" title="{{ cell.combined.label }}">{{ cell.combined.label }}</a>
+                      {% else %}
+                        <a href="{{ cell.both_href }}" class="nsm-dir-badge nsm-dir-badge-count" title="{{ cell.combined.count }} Rules (A↔B)">{{ cell.combined.count }}</a>
+                      {% endif %}
+                    {% else %}
+                      {# Directed: → und ← getrennt #}
+                      <div class="nsm-cell-dir">
+                        {% if cell.fwd.count == 0 %}
+                          <a href="{{ cell.add_href }}" class="nsm-dir-badge nsm-dir-badge-empty" title="Add Rule (→)">→</a>
+                        {% elif cell.fwd.count == 1 %}
+                          <a href="{{ cell.fwd_href }}" class="nsm-dir-badge" style="background-color:{{ cell.fwd.color }};color:#fff;" title="{{ cell.fwd.label }} (→)">→ {{ cell.fwd.label }}</a>
+                        {% else %}
+                          <a href="{{ cell.fwd_href }}" class="nsm-dir-badge nsm-dir-badge-count" title="{{ cell.fwd.count }} Regeln (→)">→ {{ cell.fwd.count }}</a>
+                        {% endif %}
+                        {% if cell.rev.count == 0 %}
+                          <a href="{{ cell.add_href }}" class="nsm-dir-badge nsm-dir-badge-empty" title="Add Rule (←)">←</a>
+                        {% elif cell.rev.count == 1 %}
+                          <a href="{{ cell.rev_href }}" class="nsm-dir-badge" style="background-color:{{ cell.rev.color }};color:#fff;" title="{{ cell.rev.label }} (←)">← {{ cell.rev.label }}</a>
+                        {% else %}
+                          <a href="{{ cell.rev_href }}" class="nsm-dir-badge nsm-dir-badge-count" title="{{ cell.rev.count }} Regeln (←)">← {{ cell.rev.count }}</a>
+                        {% endif %}
+                      </div>
+                    {% endif %}
+                  </td>
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="text-center text-muted p-5">
+        <i class="mdi mdi-grid-off mdi-48px"></i>
+        <p class="mt-2">No zones match the current filter.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

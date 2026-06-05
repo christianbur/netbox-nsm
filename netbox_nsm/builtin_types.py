@@ -1,14 +1,16 @@
 """Built-in Custom Type definitions for netbox_nsm.
 
 These types describe the *catalog* that the "Sync built-in types" button on
-the Object-Builder page applies to ``netbox-custom-objects``. The portable
+Setup / sync applies them to ``netbox-custom-objects``. The portable
 schema generator (`netbox_nsm.custom_objects_schema`) automatically injects
 the following fields into every type, so they MUST NOT be repeated here:
 
-* ``name``        — text, primary, required (id=1)
-* ``description`` — text (id=3)
-* ``comments``    — longtext (id=6)
-* ``color``       — text (id=7)
+* ``name``        — text, primary, required (id=1, display weight 1)
+* ``description`` — text (id=3, weight 90)
+* ``comments``    — longtext (id=6, weight 100)
+* ``color``       — text (id=7, weight 91)
+
+Custom fields may set ``weight`` (display order) in ``field_definitions``.
 
 IDs 2, 4, 5 (slug / owner_group / owner) are intentionally NOT injected.
 Add them explicitly in ``field_definitions`` when needed.
@@ -22,7 +24,7 @@ Keys used by the schema builder:
 * ``areas``               — list of section slugs (``source``+``destination``
                            are collapsed into ``srcdst``)
 * ``description``         — short description (clipped to 200 chars)
-* ``display_template``    — format string stored in ``NSMTypeConfig``
+* ``display_template``    — format string stored in ``TypeConfig``
 * ``field_definitions``   — list of fields; supported types: ``text``,
                            ``markdown``, ``number``/``integer``, ``boolean``,
                            ``date``, ``json``/``table``, ``choice`` (with
@@ -74,6 +76,7 @@ BUILTIN_CUSTOM_TYPES = [
                     "any",
                 ],
                 "group_name": "NSM Service",
+                "weight": 10,
             },
             {
                 "name": "port",
@@ -83,6 +86,7 @@ BUILTIN_CUSTOM_TYPES = [
                 "validation_minimum": 0,
                 "validation_maximum": 65535,
                 "group_name": "NSM Service",
+                "weight": 11,
             },
             {
                 "name": "group",
@@ -91,6 +95,7 @@ BUILTIN_CUSTOM_TYPES = [
                 "description": "Group(s) this service belongs to.",
                 "model": "custom-objects.nsm_services",
                 "group_name": "NSM Service",
+                "weight": 12,
             },
         ],
         "default_objects": [
@@ -151,13 +156,7 @@ BUILTIN_CUSTOM_TYPES = [
                 "label": "IP Address",
                 "model": "ipam.IPAddress",
                 "group_name": "NSM Address",
-            },
-            {
-                "name": "prefix",
-                "type": "object_ref",
-                "label": "Prefix",
-                "model": "ipam.Prefix",
-                "group_name": "NSM Address",
+                "weight": 10,
             },
             {
                 "name": "range",
@@ -165,6 +164,15 @@ BUILTIN_CUSTOM_TYPES = [
                 "label": "Range",
                 "model": "ipam.IPRange",
                 "group_name": "NSM Address",
+                "weight": 20,
+            },
+            {
+                "name": "prefix",
+                "type": "object_ref",
+                "label": "Prefix",
+                "model": "ipam.Prefix",
+                "group_name": "NSM Address",
+                "weight": 30,
             },
             {
                 "name": "group",
@@ -173,6 +181,7 @@ BUILTIN_CUSTOM_TYPES = [
                 "description": "Group(s) this address belongs to.",
                 "model": "custom-objects.nsm_addresses",
                 "group_name": "NSM Address",
+                "weight": 40,
             },
         ],
         "default_objects": [],
@@ -191,6 +200,7 @@ BUILTIN_CUSTOM_TYPES = [
                 "choices": ["role", "application", "environment", "location", "custom"],
                 "required": True,
                 "group_name": "NSM Label",
+                "weight": 10,
             },
             {
                 "name": "custom_type",
@@ -198,6 +208,7 @@ BUILTIN_CUSTOM_TYPES = [
                 "label": "Custom Type",
                 "description": "Required when Label Type = Custom (e.g. 'Department').",
                 "group_name": "NSM Label",
+                "weight": 12,
             },
             {
                 "name": "display_template",
@@ -205,6 +216,7 @@ BUILTIN_CUSTOM_TYPES = [
                 "label": "Display Template",
                 "description": "Template string for display, e.g. {label_type}={name}",
                 "group_name": "NSM Label",
+                "weight": 11,
             },
         ],
         "default_objects": [
@@ -226,6 +238,7 @@ BUILTIN_CUSTOM_TYPES = [
                 "label": "Display Template",
                 "description": "Template string for display, e.g. {name}",
                 "group_name": "NSM Source/Destination",
+                "weight": 10,
             },
         ],
         "default_objects": [

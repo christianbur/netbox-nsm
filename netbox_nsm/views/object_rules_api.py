@@ -4,7 +4,8 @@ from django.contrib.contenttypes.models import ContentType
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.views import View
 
-from netbox_nsm.models import SecurityPolicyRuleObjectItem
+from netbox_nsm.models import RuleObjectItem
+from netbox_nsm.object_rules_utils import build_object_field_rules_filter_url
 
 __all__ = ("ObjectRulesApiView",)
 
@@ -45,7 +46,7 @@ class ObjectRulesApiView(View):
             return HttpResponseBadRequest("Invalid ct_id")
 
         qs = (
-            SecurityPolicyRuleObjectItem.objects.filter(
+            RuleObjectItem.objects.filter(
                 content_type=ct, object_id=obj_id
             )
             .select_related("rule", "rule__rulebook", "field")
@@ -55,23 +56,39 @@ class ObjectRulesApiView(View):
         total = qs.count()
         batch = qs[offset : offset + LIMIT]
 
+        try:
+            obj = ct.get_object_for_this_type(obj_id)
+        except Exception:
+            obj = None
+
         results = []
         seen = set()
+        filter_url_cache: dict[tuple[int, int], str] = {}
         for item in batch:
             key = (item.field_id, item.rule_id)
             if key in seen:
                 continue
             seen.add(key)
+            cache_key = (item.rule.rulebook_id or 0, item.field_id or 0)
+            if cache_key not in filter_url_cache:
+                filter_url_cache[cache_key] = build_object_field_rules_filter_url(
+                    item.rule.rulebook,
+                    item.field,
+                    obj,
+                    ct,
+                )
             results.append(
                 {
                     "rule_name": item.rule.name,
-                    "rule_url": item.rule.get_absolute_url(),
+                    "rule_url": item.rule.get_rules_grid_filter_url(),
+                    "rule_detail_url": item.rule.get_absolute_url(),
+                    "field_filter_url": filter_url_cache[cache_key],
                     "rulebook_pk": item.rule.rulebook.pk if item.rule.rulebook else 0,
                     "rulebook_name": (
                         item.rule.rulebook.name if item.rule.rulebook else ""
                     ),
                     "rulebook_url": (
-                        item.rule.rulebook.get_absolute_url()
+                        item.rule.rulebook.get_rules_tab_url()
                         if item.rule.rulebook
                         else ""
                     ),

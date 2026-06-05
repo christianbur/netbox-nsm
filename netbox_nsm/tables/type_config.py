@@ -6,8 +6,11 @@ from django.utils.translation import gettext_lazy as _
 from netbox.tables import NetBoxTable
 
 from netbox_nsm.models import TypeConfig
+from netbox_nsm.panel_sections import get_panel_sections
 
 __all__ = ("TypeConfigTable",)
+
+_SLUG_LABELS = {s["slug"]: str(s["name"]) for s in get_panel_sections()}
 
 _ACTIONS_TEMPLATE = """
 <a href="{% url 'plugins:netbox_nsm:typeconfig_edit' record.pk %}"
@@ -28,6 +31,7 @@ _MATCHING_CLASS_BADGE = {
     "label": ("bg-success", "text-white"),
     "service": ("bg-warning", "text-white"),
     "action": ("bg-danger", "text-white"),
+    "info": ("bg-light", "text-dark border"),
     "user": ("bg-dark", "text-white"),
     "application": ("bg-secondary", "text-white"),
     "group": ("bg-secondary", "text-white"),
@@ -49,8 +53,10 @@ class TypeConfigTable(NetBoxTable):
     )
     matching_class = tables.Column(verbose_name=_("Matching Class"))
     display_template = tables.Column(verbose_name=_("Display Template"))
-    allowed_placements = tables.Column(
-        verbose_name=_("Allowed Placements"), orderable=False
+    panel_slugs = tables.Column(verbose_name=_("Panel slugs"), orderable=False)
+    order_id = tables.Column(verbose_name=_("Sort order"))
+    allow_virtual_groups = tables.Column(
+        verbose_name=_("Virtual groups"), orderable=False
     )
     inherit_links = tables.Column(verbose_name=_("Inheritance"), orderable=True)
     inherit_stop_on_own = tables.Column(
@@ -106,10 +112,19 @@ class TypeConfigTable(NetBoxTable):
         label = value.replace("_", " ").capitalize()
         return format_html('<span class="badge {} {}">{}</span>', bg, fg, label)
 
-    def render_allowed_placements(self, value):
-        if not value:
-            return mark_safe('<span class="text-muted">' + str(_("all")) + '</span>')
-        return ", ".join(value)
+    def render_panel_slugs(self, record):
+        slugs = record.panel_slugs or []
+        if not slugs:
+            return "—"
+        return ", ".join(_SLUG_LABELS.get(s, s) for s in slugs)
+
+    def render_allow_virtual_groups(self, value):
+        if value:
+            return format_html(
+                '<span class="badge bg-secondary text-white">{}</span>',
+                _("Yes"),
+            )
+        return mark_safe('<span class="text-muted">—</span>')
 
     def render_inherit_links(self, value):
         if value:
@@ -142,7 +157,9 @@ class TypeConfigTable(NetBoxTable):
             "content_type",
             "matching_class",
             "display_template",
-            "allowed_placements",
+            "panel_slugs",
+            "order_id",
+            "allow_virtual_groups",
             "inherit_links",
             "inherit_stop_on_own",
             "panel_linkable",
@@ -152,10 +169,9 @@ class TypeConfigTable(NetBoxTable):
             "name",
             "content_type",
             "matching_class",
+            "panel_slugs",
+            "order_id",
             "display_template",
-            "allowed_placements",
-            "inherit_links",
-            "inherit_stop_on_own",
             "panel_linkable",
             "actions",
         )

@@ -6,44 +6,46 @@ from __future__ import annotations
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render
+from django.utils.translation import gettext_lazy as _
 from django.views import View
 
-from netbox_nsm.models import NSMTypeConfig
+from netbox_nsm.models import TypeConfig
 
 __all__ = ("ObjectAnalyzerView",)
 
-_EXTRA_TYPES = [
-    {
-        "ct_key": ("dcim", "device"),
-        "api_url": "/api/dcim/devices/",
-        "label": "Device",
-    },
-    {
-        "ct_key": ("virtualization", "virtualmachine"),
-        "api_url": "/api/virtualization/virtual-machines/",
-        "label": "Virtual Machine",
-    },
-    {
-        "ct_key": ("ipam", "ipaddress"),
-        "api_url": "/api/ipam/ip-addresses/",
-        "label": "IP Address",
-    },
-    {
-        "ct_key": ("ipam", "prefix"),
-        "api_url": "/api/ipam/prefixes/",
-        "label": "Prefix",
-    },
-    {
-        "ct_key": ("netbox_nsm", "securitypolicyrule"),
-        "api_url": None,
-        "label": "Firewall Rule",
-    },
-    {
-        "ct_key": ("netbox_nsm", "securitypolicyrulebook"),
-        "api_url": None,
-        "label": "Rulebook",
-    },
-]
+def _extra_analyzer_types():
+    return [
+        {
+            "ct_key": ("dcim", "device"),
+            "api_url": "/api/dcim/devices/",
+            "label": _("Device"),
+        },
+        {
+            "ct_key": ("virtualization", "virtualmachine"),
+            "api_url": "/api/virtualization/virtual-machines/",
+            "label": _("Virtual Machine"),
+        },
+        {
+            "ct_key": ("ipam", "ipaddress"),
+            "api_url": "/api/ipam/ip-addresses/",
+            "label": _("IP Address"),
+        },
+        {
+            "ct_key": ("ipam", "prefix"),
+            "api_url": "/api/ipam/prefixes/",
+            "label": _("Prefix"),
+        },
+        {
+            "ct_key": ("netbox_nsm", "rule"),
+            "api_url": None,
+            "label": _("Firewall Rule"),
+        },
+        {
+            "ct_key": ("netbox_nsm", "rulebook"),
+            "api_url": None,
+            "label": _("Rulebook"),
+        },
+    ]
 
 
 class ObjectAnalyzerView(LoginRequiredMixin, View):
@@ -51,18 +53,18 @@ class ObjectAnalyzerView(LoginRequiredMixin, View):
 
     def get(self, request):
         from django.contrib.contenttypes.models import ContentType
-        from netbox_nsm.views.security_policy import _get_api_url_for_content_type
+
+        from netbox_nsm.api_urls import get_api_url_for_content_type as _get_api_url_for_content_type
 
         sel_ct = request.GET.get("ct", "")
         sel_pk = request.GET.get("pk", "")
         sel_name = request.GET.get("name", "")
 
-        # Build search types: NSMTypeConfig + extras
+        # Build search types: TypeConfig + extras
         seen_ct_ids: set[int] = set()
         api_types = []
 
-        # NSMTypeConfig types first
-        for tc in NSMTypeConfig.objects.select_related("content_type").order_by(
+        for tc in TypeConfig.objects.select_related("content_type").order_by(
             "order_id", "content_type__app_label", "content_type__model"
         ):
             if tc.content_type_id in seen_ct_ids:
@@ -83,7 +85,7 @@ class ObjectAnalyzerView(LoginRequiredMixin, View):
             )
 
         # Extra types (Device, VM, IP, Prefix, Rule, Rulebook)
-        for t in _EXTRA_TYPES:
+        for t in _extra_analyzer_types():
             try:
                 app, model = t["ct_key"]
                 ct = ContentType.objects.get(app_label=app, model=model)
@@ -97,7 +99,7 @@ class ObjectAnalyzerView(LoginRequiredMixin, View):
                     continue
                 seen_ct_ids.add(ct.pk)
                 api_types.append(
-                    {"ct_id": ct.pk, "api_url": api_url, "name": t["label"]}
+                    {"ct_id": ct.pk, "api_url": api_url, "name": str(t["label"])}
                 )
             except ContentType.DoesNotExist:
                 pass

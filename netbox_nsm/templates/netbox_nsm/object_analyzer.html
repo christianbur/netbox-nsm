@@ -131,6 +131,7 @@
 </div>{# /container #}
 
 {# ── React Flow via ESM ───────────────────────────────────────────── #}
+<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/nsm_branch_api.js' %}?v=1"></script>
 <script type="importmap">
 {
   "imports": {
@@ -373,9 +374,12 @@ function getCsrf() {
   const m = document.cookie.match(/csrftoken=([^;]+)/);
   return m ? m[1] : '';
 }
+function apiHeaders(extra) {
+  return (window.NSM_BRANCH_API && window.NSM_BRANCH_API.mergeBranchHeaders(extra)) || extra;
+}
 async function fetchNodeData(ctId, pk) {
   const r = await fetch(`/plugins/netbox-nsm/api/analyzer/?ct=${ctId}&pk=${pk}`, {
-    headers: { Accept: 'application/json', 'X-CSRFToken': getCsrf() },
+    headers: apiHeaders({ Accept: 'application/json', 'X-CSRFToken': getCsrf() }),
   });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   return r.json();
@@ -740,6 +744,9 @@ if (graphEl && graphEl.dataset.pk) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
   function getCsrf() { var m = document.cookie.match(/csrftoken=([^;]+)/); return m ? m[1] : ''; }
+  function apiHeaders(extra) {
+    return (window.NSM_BRANCH_API && window.NSM_BRANCH_API.mergeBranchHeaders(extra)) || (extra || {});
+  }
   function debounce(fn, ms) { var t; return function() { clearTimeout(t); var a=arguments,ctx=this; t=setTimeout(function(){fn.apply(ctx,a);},ms); }; }
 
   var searchEl = document.getElementById('nsm-oa-search');
@@ -769,7 +776,7 @@ if (graphEl && graphEl.dataset.pk) {
 
     var fetches = apiTypes.map(function(t) {
       var url = t.api_url + '?q=' + encodeURIComponent(q) + '&limit=15&brief=1';
-      return fetch(url, { signal: _ctrl.signal, headers: { Accept: 'application/json', 'X-CSRFToken': getCsrf() }})
+      return fetch(url, { signal: _ctrl.signal, headers: apiHeaders({ Accept: 'application/json', 'X-CSRFToken': getCsrf() })})
         .then(function(r){return r.json();})
         .then(function(d){return (d.results||[]).map(function(o){return {ct:t.ct_id,pk:o.id,name:o.display||o.name||String(o.id),type:t.name};});})
         .catch(function(e){if(e.name!=='AbortError')console.warn(e);return [];});

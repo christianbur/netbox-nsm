@@ -998,15 +998,14 @@ print("\n[7/8] Rulebooks + Rules...")
 
 from django.contrib.contenttypes.models import ContentType as DjCT
 from netbox_nsm.models import (
-    SecurityPolicyRulebook,
+    Rulebook,
     RulebookField,
     RulebookFieldType,
-    SecurityArea,
-    NSMTypeConfig,
+    TypeConfig,
 )
-from netbox_nsm.models.security_policy import (
-    SecurityPolicyRule,
-    SecurityPolicyRuleObjectItem,
+from netbox_nsm.models.rulebook import (
+    Rule,
+    RuleObjectItem,
 )
 
 
@@ -1041,7 +1040,7 @@ def _attach(field, *tcs):
 
 
 def _rule(rb, name, index, enabled=True):
-    r, _ = SecurityPolicyRule.objects.get_or_create(
+    r, _ = Rule.objects.get_or_create(
         rulebook=rb,
         name=name,
         defaults={"index": index, "enabled": enabled},
@@ -1050,7 +1049,7 @@ def _rule(rb, name, index, enabled=True):
 
 
 def _item(rule, field, obj, ct):
-    SecurityPolicyRuleObjectItem.objects.get_or_create(
+    RuleObjectItem.objects.get_or_create(
         rule=rule,
         field=field,
         content_type=ct,
@@ -1067,7 +1066,7 @@ act_ct = DjCT.objects.get_for_model(ActionModel)
 # ── 8a. TrustSec Core (90 bidirektionale Regeln) ─────────────────────────────
 print("  → trustsec-core (90 rules)...")
 
-rb_ts = SecurityPolicyRulebook.objects.get_or_create(
+rb_ts = Rulebook.objects.get_or_create(
     name="Enterprise - TrustSec Core",
     defaults={"rulebook_type": "policy"},
 )[0]
@@ -1115,7 +1114,7 @@ print(f"     ✓ {rule_count} rules")
 # ── 8b. TrustSec Infra (11 Regeln) ───────────────────────────────────────────
 print("  → trustsec-infra (11 rules)...")
 
-rb_ti = SecurityPolicyRulebook.objects.get_or_create(
+rb_ti = Rulebook.objects.get_or_create(
     name="Enterprise - TrustSec Infra",
     defaults={"rulebook_type": "policy"},
 )[0]
@@ -1151,13 +1150,13 @@ print(f"     ✓ 11 rules")
 # ── 8c. Illumio Intra-Zone (25 Regeln, Label-basiert) ─────────────────────────
 print("  → illumio-intra-zone (25 rules, label-based)...")
 
-rb_il = SecurityPolicyRulebook.objects.get_or_create(
+rb_il = Rulebook.objects.get_or_create(
     name="Enterprise - Illumio Intra-Zone",
     defaults={"rulebook_type": "policy"},
 )[0]
 
-il_src = _field(rb_il, "source", "Source (Label)", 10, "source")
-il_dst = _field(rb_il, "destination", "Destination (Label)", 20, "destination")
+il_src = _field(rb_il, "source", "Source", 10, "source")
+il_dst = _field(rb_il, "destination", "Destination", 20, "destination")
 il_svc = _field(rb_il, "service", "Service", 30, "fixed")
 il_act = _field(rb_il, "action", "Action", 40, "fixed")
 _attach(il_src, tc_label)
@@ -1218,7 +1217,7 @@ print(f"     ✓ {len(ILLUMIO_RULES)} rules")
 # ── 8d. DC Inter-Zone Firewall ─────────────────────────────────────────────────
 print("  → fw-dc-inter-zone...")
 
-rb_dc = SecurityPolicyRulebook.objects.get_or_create(
+rb_dc = Rulebook.objects.get_or_create(
     name="Enterprise - fw-dc-inter-zone",
     defaults={"rulebook_type": "policy"},
 )[0]
@@ -1268,7 +1267,7 @@ print(f"     ✓ {len(DC_RULES)} rules")
 # ── 8e. MGMT Firewall ─────────────────────────────────────────────────────────
 print("  → fw-mgmt...")
 
-rb_mg = SecurityPolicyRulebook.objects.get_or_create(
+rb_mg = Rulebook.objects.get_or_create(
     name="Enterprise - fw-mgmt",
     defaults={"rulebook_type": "policy"},
 )[0]
@@ -1305,7 +1304,7 @@ print(f"     ✓ {len(MGMT_RULES)} rules")
 # ── 8f. User Firewall ─────────────────────────────────────────────────────────
 print("  → fw-user-access...")
 
-rb_usr = SecurityPolicyRulebook.objects.get_or_create(
+rb_usr = Rulebook.objects.get_or_create(
     name="Enterprise - fw-user-access",
     defaults={"rulebook_type": "policy"},
 )[0]
@@ -1396,7 +1395,7 @@ SIMPLE_RBS = [
 ]
 
 for rb_name, rules in SIMPLE_RBS:
-    rb_x = SecurityPolicyRulebook.objects.get_or_create(
+    rb_x = Rulebook.objects.get_or_create(
         name=rb_name, defaults={"rulebook_type": "policy"}
     )[0]
     x_src = _field(rb_x, "source", "Source", 10, "source")
@@ -1420,10 +1419,10 @@ for rb_name, rules in SIMPLE_RBS:
         _item(r, x_act, actions_by_name[act_n], act_ct)
     print(f"     ✓ {rb_name} ({len(rules)} rules)")
 
-# ─── 9. NSMObjectLinks: Prefix + VM → Zone ────────────────────────────────────
+# ─── 9. ObjectLinks: Prefix + VM → Zone ────────────────────────────────────
 print("\n[8/8] NSM Object Links (Prefix → Zone, VM → Zone)...")
 
-from netbox_nsm.models import NSMObjectLink
+from netbox_nsm.models import ObjectLink
 from ipam.models import Prefix
 from django.contrib.contenttypes.models import ContentType as DjCT2
 
@@ -1432,7 +1431,7 @@ vm_ct = DjCT2.objects.get_for_model(VirtualMachine)
 
 
 def _link(obj_a, ct_a, obj_b, ct_b):
-    NSMObjectLink.objects.get_or_create(
+    ObjectLink.objects.get_or_create(
         object_a_type=ct_a,
         object_a_id=obj_a.pk,
         object_b_type=ct_b,

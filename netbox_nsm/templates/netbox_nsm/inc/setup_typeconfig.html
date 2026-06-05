@@ -1,0 +1,86 @@
+{% load i18n %}
+
+<h5 class="d-flex align-items-center gap-2 mb-2 mt-2">
+  <i class="mdi mdi-cog-outline"></i>
+  NSM TypeConfigs
+</h5>
+<div class="card mb-4">
+  <div class="card-body">
+    <p class="text-muted small mb-3">
+      {% blocktrans %}Each Custom Object Type needs its own <strong>TypeConfig</strong> (matching class, display template, panel slugs). Add them here after Custom Object Types (step 1).{% endblocktrans %}
+    </p>
+
+    {% if all_cots_ok %}
+    <div class="d-flex flex-wrap gap-2 mb-3">
+      <form method="post" class="m-0">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="create_all_typeconfigs">
+        <button type="submit" class="btn btn-primary btn-sm"{% if all_tcs_ok %} disabled{% endif %}>
+          <i class="mdi mdi-plus-circle-multiple me-1"></i>{% trans "Add all TypeConfigs" %}
+        </button>
+      </form>
+    </div>
+    {% else %}
+    <p class="text-muted small mb-3">{% trans "Complete step 1 (Custom Object Types) before adding TypeConfigs." %}</p>
+    {% endif %}
+
+    <table class="table table-sm table-borderless mb-3" style="max-width:800px">
+      <thead class="table-active">
+        <tr>
+          <th>{% trans "Type" %}</th>
+          <th>{% trans "Matching Class" %}</th>
+          <th>{% trans "Display Template" %}</th>
+          <th>{% trans "Panel slugs" %}</th>
+          <th class="text-center" style="width:90px">{% trans "Status" %}</th>
+          <th style="width:140px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in tc_status %}
+        <tr>
+          <td><code>{{ entry.spec.slug }}</code></td>
+          <td>
+            {% with mc=entry.spec.matching_class %}
+            <span class="badge {% if mc == 'info' %}bg-light text-dark border{% elif mc == 'zone' %}bg-primary text-white{% elif mc == 'address' %}bg-info text-dark{% elif mc == 'label' %}bg-success text-white{% elif mc == 'service' %}bg-warning text-white{% elif mc == 'action' %}bg-danger text-white{% elif mc == 'application' %}bg-secondary text-white{% else %}bg-secondary text-white{% endif %}">{{ mc }}</span>
+            {% endwith %}
+          </td>
+          <td><code class="text-muted">{{ entry.spec.display_template }}</code></td>
+          <td><code class="text-muted">{{ entry.spec.panel_slugs|join:", " }}</code></td>
+          <td class="text-center">
+            {% if entry.typeconfig %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle">
+                <i class="mdi mdi-check"></i> OK
+              </span>
+            {% elif not entry.cot %}
+              <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                <i class="mdi mdi-minus"></i> {% trans "not imported" %}
+              </span>
+            {% else %}
+              <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                <i class="mdi mdi-close"></i> {% trans "missing" %}
+              </span>
+            {% endif %}
+          </td>
+          <td>
+            {% if entry.cot and not entry.typeconfig %}
+            <form method="post" class="m-0">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="create_typeconfig_{{ entry.spec.slug }}">
+              <button type="submit" class="btn btn-sm btn-outline-primary">
+                <i class="mdi mdi-plus me-1"></i>{% trans "Add" %}
+              </button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if all_tcs_ok %}
+    <div class="text-success small">
+      <i class="mdi mdi-check-all me-1"></i>{% trans "All TypeConfigs are configured." %}
+    </div>
+    {% endif %}
+  </div>
+</div>

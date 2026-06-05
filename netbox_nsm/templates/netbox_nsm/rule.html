@@ -1,0 +1,90 @@
+{% extends 'generic/object.html' %}
+{% load i18n %}
+{% load helpers %}
+{% load plugins %}
+
+{% block head %}
+{{ block.super }}
+{% include "netbox_nsm/inc/rulebook_page_head.html" %}
+<style>
+  .nsm-rule-values-table th {
+    width: 9rem;
+    white-space: nowrap;
+  }
+</style>
+{% endblock head %}
+
+{% block breadcrumbs %}
+  {% if object.rulebook %}
+  <li class="breadcrumb-item">
+    <a href="{% url 'plugins:netbox_nsm:rulebook_list' %}">{% trans "Rulebooks" %}</a>
+  </li>
+  <li class="breadcrumb-item">
+    <a href="{{ object.rulebook.get_absolute_url }}">{{ object.rulebook }}</a>
+  </li>
+  <li class="breadcrumb-item active" aria-current="page">{{ object }}</li>
+  {% else %}
+  <li class="breadcrumb-item">
+    <a href="{% url 'plugins:netbox_nsm:rulebook_list' %}">{% trans "Rulebooks" %}</a>
+  </li>
+  <li class="breadcrumb-item active" aria-current="page">{{ object }}</li>
+  {% endif %}
+{% endblock breadcrumbs %}
+
+{% block content %}
+<div class="row">
+  <div class="col col-md-6">
+    <div class="card">
+      <h5 class="card-header">Security Rule</h5>
+      <table class="table table-hover attr-table">
+        <tr>
+          <th scope="row">Rulebook</th>
+          <td>{{ object.rulebook|linkify|placeholder }}</td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "Index" %}</th>
+          <td>{{ object.index }}</td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "Status" %}</th>
+          <td>{% if object.enabled %}{% trans "Enabled" %}{% else %}{% trans "Disabled" %}{% endif %}</td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "Name" %}</th>
+          <td>{{ object.name }}</td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "Source" %}</th>
+          <td>{% if vgroup_source and source_objects %}<span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-normal">{{ vgroup_source_label }}</span>{% else %}{% for item in source_objects %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}{% endif %}</td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "Destination" %}</th>
+          <td>{% if vgroup_destination and destination_objects %}<span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-normal">{{ vgroup_destination_label }}</span>{% else %}{% for item in destination_objects %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}{% endif %}</td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "Service" %}</th>
+          <td>{% if vgroup_services and service_objects %}<span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-normal">{{ vgroup_services_label }}</span>{% else %}{% for item in service_objects %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}{% endif %}</td>
+        </tr>
+        <tr>
+          <th scope="row">Action</th>
+          <td>{% if vgroup_action and action_objects %}<span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-normal">{{ vgroup_action_label }}</span>{% else %}{% for item in action_objects %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}{% endif %}</td>
+        </tr>
+        {% if object.description %}
+        <tr>
+          <th scope="row">Description</th>
+          <td>{{ object.description|placeholder }}</td>
+        </tr>
+        {% endif %}
+      </table>
+    </div>
+    {% include 'inc/panels/custom_fields.html' %}
+    {% include 'inc/panels/tags.html' %}
+    {% include 'inc/panels/comments.html' %}
+    {% plugin_left_page object %}
+  </div>
+  <div class="col-md-6">
+    {% plugin_right_page object %}
+  </div>
+</div>
+{% plugin_full_width_page object %}
+{% endblock %}

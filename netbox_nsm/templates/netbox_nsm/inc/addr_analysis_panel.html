@@ -1,0 +1,41 @@
+{% load i18n %}
+{% if addr_analysis %}
+  {% for section in addr_analysis %}
+  <div class="{% if not forloop.last %}border-bottom mb-3 pb-3{% endif %}">
+    {% if section.field_name %}
+    <div class="nsm-addr-section-title mb-2">{{ section.field_name }}</div>
+    {% endif %}
+    {% for type_block in section.types %}
+    <div class="{% if not forloop.last %}mb-3{% endif %}">
+      {% if type_block.type_name and type_block.type_name != section.field_name %}
+      <div class="nsm-addr-type-title mb-1">{{ type_block.type_name }}</div>
+      {% endif %}
+      {% if type_block.nodes %}
+      <details class="nsm-addr-details nsm-addr-top" open>
+        <summary class="nsm-addr-summary">
+          <span class="fw-semibold">{% trans "All" %}</span>
+          {% if type_block.leaf_count %}<span class="badge bg-secondary-subtle text-secondary nsm-addr-count">{{ type_block.leaf_count }}</span>{% endif %}
+          {% if type_block.all_copy_lines %}
+          <button type="button" class="btn btn-sm btn-ghost-secondary py-0 px-1 ms-auto" title="{% trans 'Copy CSV paths' %}"
+            onclick="nsmCopyPaths(this); event.stopPropagation();"
+            data-lines="{% for line in type_block.all_copy_lines %}{{ line }}{% if not forloop.last %}&#10;{% endif %}{% endfor %}">
+            <i class="mdi mdi-content-copy"></i>
+          </button>
+          {% endif %}
+        </summary>
+        <div class="nsm-addr-children">
+          {% for node in type_block.nodes %}
+            {% include "netbox_nsm/inc/addr_tree_node.html" with node=node depth=0 prefix=section.field_slug show_copy=True forloop_counter=forloop.counter %}
+          {% endfor %}
+        </div>
+      </details>
+      {% else %}
+      <span class="text-muted small">—</span>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+{% elif show_empty_placeholder %}
+  <span class="text-muted small">—</span>
+{% endif %}

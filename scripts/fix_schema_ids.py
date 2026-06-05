@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Fix schema_ids und entfernt unerwünschte Felder aus nsm_action/nsm_services."""
-import os, sys
-os.environ['DJANGO_SETTINGS_MODULE'] = 'netbox.settings'
-sys.path.insert(0, '/app/netbox/netbox')
-import django; django.setup()
+import django_bootstrap
+
+django_bootstrap.setup()
 
 from netbox_custom_objects.models import CustomObjectType, CustomObjectTypeField
 from django.db import connection

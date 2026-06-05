@@ -1,11 +1,13 @@
 from django.urls import reverse
+from django.utils.translation import gettext_lazy as _
 
 from netbox.views import generic
 from utilities.views import register_model_view
 
-from netbox_nsm.forms.type_config import TypeConfigAddForm, TypeConfigForm
+from netbox_nsm.filtersets import TypeConfigFilterSet
+from netbox_nsm.forms import TypeConfigAddForm, TypeConfigForm
 from netbox_nsm.models import TypeConfig
-from netbox_nsm.tables.type_config import TypeConfigTable
+from netbox_nsm.tables import TypeConfigTable
 
 __all__ = (
     "TypeConfigListView",
@@ -18,15 +20,11 @@ __all__ = (
 class TypeConfigListView(generic.ObjectListView):
     queryset = TypeConfig.objects.select_related("content_type")
     table = TypeConfigTable
-
-    def get_extra_context(self, request):
-        return {
-            "add_url": reverse("plugins:netbox_nsm:typeconfig_add"),
-        }
+    filterset = TypeConfigFilterSet
 
 
 class TypeConfigAddView(generic.ObjectEditView):
-    queryset = TypeConfig.objects.select_related("content_type")
+    queryset = TypeConfig.objects.all()
     form = TypeConfigAddForm
 
     def get_return_url(self, request, obj=None):
@@ -44,7 +42,7 @@ class TypeConfigEditView(generic.ObjectEditView):
 
 @register_model_view(TypeConfig, "delete")
 class TypeConfigDeleteView(generic.ObjectDeleteView):
-    queryset = TypeConfig.objects.select_related("content_type")
+    queryset = TypeConfig.objects.all()
 
     def get_return_url(self, request, obj=None):
         return reverse("plugins:netbox_nsm:typeconfig_list")

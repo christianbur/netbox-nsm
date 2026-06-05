@@ -1,5 +1,5 @@
 """
-Shared utility: apply NSMTypeConfig.display_template to NetBox objects.
+Shared utility: apply TypeConfig.display_template to NetBox objects.
 
 Usage (one DB query per request):
     from netbox_nsm.display_utils import get_display_template_map, render_object_display
@@ -19,30 +19,17 @@ from typing import Any
 def get_display_template_map() -> dict[int, str]:
     """Return {content_type_id: display_template} for all configured types.
 
-    Reads from both NSMTypeConfig and TypeConfig; TypeConfig takes precedence
-    when both have a template for the same ContentType.
-
     Result is cached for the lifetime of the Python process (templates are
     virtually static at runtime; a container restart resets the cache).
     """
-    from netbox_nsm.models import NSMTypeConfig, TypeConfig
+    from netbox_nsm.models import TypeConfig
 
-    result = {
+    return {
         tc.content_type_id: tc.display_template
-        for tc in NSMTypeConfig.objects.filter(display_template__gt="").only(
+        for tc in TypeConfig.objects.filter(display_template__gt="").only(
             "content_type_id", "display_template"
         )
     }
-    # TypeConfig overrides NSMTypeConfig
-    result.update(
-        {
-            tc.content_type_id: tc.display_template
-            for tc in TypeConfig.objects.filter(display_template__gt="").only(
-                "content_type_id", "display_template"
-            )
-        }
-    )
-    return result
 
 
 _PLACEHOLDER = re.compile(r"\{(\w+)(?:\[([-]?\d+)\])?(?:!(u))?\}")
@@ -78,95 +65,97 @@ def apply_display_template(obj: Any, tmpl: str) -> str:
             raw = _resolve_name(obj)
         else:
             val = getattr(obj, field, "") or ""
-            if isinstance(val, (list, tuple)):
-                raw = "/".join(str(v) for v in val)
-            else:
-                raw = str(val)
             if idx is not None:
                 try:
-                    raw = raw[int(idx)]
-                except IndexError:
+                    raw = str(val)[int(idx)]
+                except (IndexError, ValueError, TypeError):
                     raw = ""
-        return raw.upper() if upper else raw
+            else:
+                raw = str(val)
+        if upper:
+            raw = raw.upper()
+        return raw
 
     return _PLACEHOLDER.sub(_replace, tmpl)
 
 
 def render_object_display(
-    obj: Any,
-    ct_id: int,
-    template_map: dict[int, str],
+    obj: Any, content_type_id: int, tmpl_map: dict[int, str] | None = None
 ) -> str:
-    """Return the display label for *obj*, applying the NSMTypeConfig template if available.
-
-    Falls back to ``obj.name`` → ``str(obj)`` when no template is configured.
-    """
-    tmpl = template_map.get(ct_id, "")
+    """Return the display label for *obj*, applying the TypeConfig template if available."""
+    if tmpl_map is None:
+        tmpl_map = get_display_template_map()
+    tmpl = tmpl_map.get(content_type_id, "") or "{name}"
     if tmpl:
         return apply_display_template(obj, tmpl)
-    return str(getattr(obj, "name", None) or obj)
+    return _resolve_name(obj)
 
 
-# Short display names for apps with long verbose_names.
-_APP_SHORT_NAMES: dict[str, str] = {
-    "netbox_nsm": "NSM",
-}
+def type_config_display_name(type_config, content_type=None) -> str:
+    """Picker/type label: TypeConfig.name, else model verbose_name_plural."""
+    if type_config is not None:
+        label = (getattr(type_config, "name", None) or "").strip()
+        if label:
+            return label
+    ct = content_type
+    if ct is None and type_config is not None:
+        ct = getattr(type_config, "content_type", None)
+    if ct is None:
+        return ""
+    model_class = ct.model_class()
+    if model_class:
+        return str(model_class._meta.verbose_name_plural).title()
+    return str(ct.model)
 
 
-def ct_display_label(ct) -> str:
-    """Return a human-readable type label for a ContentType.
+def type_config_display_name_for_ct_id(content_type_id: int) -> str:
+    from django.contrib.contenttypes.models import ContentType
 
-    Always renders as "App › Model", e.g.:
-        ipam.prefix                        → "IPAM › Prefix"
-        ipam.ipaddress                     → "IPAM › IP Address"
-        netbox_custom_objects.table10model → "Custom Objects › Addresses"
-        netbox_nsm.securityzone            → "NSM › Security Zone"
-    """
-    # Smart title-case: capitalise only all-lowercase words so "IP address" → "IP Address"
-    model_name = " ".join(
-        w if any(c.isupper() for c in w) else w.capitalize() for w in ct.name.split()
+    from netbox_nsm.models import TypeConfig
+
+    tc = (
+        TypeConfig.objects.filter(content_type_id=content_type_id)
+        .select_related("content_type")
+        .first()
     )
+    if tc:
+        return type_config_display_name(tc, tc.content_type)
     try:
-        from django.apps import apps
+        ct = ContentType.objects.get(pk=content_type_id)
+    except ContentType.DoesNotExist:
+        return ""
+    return type_config_display_name(None, ct)
 
-        app_vn = (
-            _APP_SHORT_NAMES.get(ct.app_label)
-            or apps.get_app_config(ct.app_label).verbose_name
+
+def type_name_for_field_content_type(field, content_type_id: int) -> str:
+    """Type label configured on a rulebook field (RulebookFieldType → TypeConfig)."""
+    if not field or not content_type_id:
+        return ""
+    for ft in field.type_configs.all():
+        tc = getattr(ft, "type_config", None)
+        if tc and tc.content_type_id == content_type_id:
+            return type_config_display_name(tc, tc.content_type)
+    return type_config_display_name_for_ct_id(content_type_id)
+
+
+def ct_display_label(content_type) -> str:
+    """Human-readable label for a ContentType (app › model)."""
+    if content_type is None:
+        return ""
+    model_class = content_type.model_class()
+    if model_class:
+        app_name = getattr(
+            model_class._meta.app_config, "verbose_name", content_type.app_label
         )
-        return f"{app_vn} \u203a {model_name}"
-    except Exception:
-        return model_name
+        model_name = str(model_class._meta.verbose_name)
+        if model_name:
+            model_name = model_name[:1].upper() + model_name[1:]
+        return f"{app_name} › {model_name}"
+    return f"{content_type.app_label} | {content_type.model}"
 
 
-def tc_panel_label(ct, tc=None) -> str:
-    """Return a panel group label for a ContentType: 'Name (matching_class)'.
-
-    Pass the TypeConfig instance directly (``tc``) to avoid an extra query.
-    Falls back to the model's verbose_name (no app prefix) when no TypeConfig
-    name is available, so the label is always concise and user-friendly.
-    """
-    if tc is None:
-        from netbox_nsm.models import TypeConfig
-
-        try:
-            tc = TypeConfig.objects.filter(content_type=ct).first()
-        except Exception:
-            pass
-    # Use the configured name if set
-    name = tc.name if tc else ""
-    mc = tc.matching_class if tc else ""
-    if not name:
-        # Fallback: model verbose_name without app prefix
-        model_class = ct.model_class()
-        raw = (
-            str(model_class._meta.verbose_name)
-            if model_class
-            else ct.name
-        )
-        name = " ".join(
-            w if any(c.isupper() for c in w) else w.capitalize()
-            for w in raw.split()
-        )
-    if mc:
-        return f"{name} ({mc})"
-    return name
+def tc_panel_label(content_type, type_config) -> str:
+    """Label for panel/link grouping: TypeConfig.name if set, else ContentType label."""
+    if type_config is not None and getattr(type_config, "name", None):
+        return type_config.name
+    return ct_display_label(content_type)

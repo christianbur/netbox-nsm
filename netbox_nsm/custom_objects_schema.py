@@ -70,6 +70,14 @@ def slugify_identifier(value):
     return s or "x"
 
 
+# Display order weights for auto-injected standard fields (netbox-custom-objects UI).
+STANDARD_FIELD_WEIGHTS = {
+    "name": 1,
+    "description": 90,
+    "color": 91,
+    "comments": 100,
+}
+
 # Map netbox_nsm field types -> portable schema types.
 _TYPE_MAP = {
     "text": "text",
@@ -171,7 +179,7 @@ def build_schema_document(builtin_types):
 
     Emits one CustomObjectType per typedef. Slug is prefixed with ``nsm_``
     (e.g. ``nsm_addresses``). Area membership is expressed via
-    NSMSection.custom_object_types M2M, with ``source``+``destination``
+    Section.custom_object_types M2M, with ``source``+``destination``
     collapsed into ``srcdst``.
     """
     types = []
@@ -207,12 +215,19 @@ def build_schema_document(builtin_types):
                 "label": "Name",
                 "primary": True,
                 "required": True,
+                "weight": STANDARD_FIELD_WEIGHTS["name"],
             }
         )
 
         if "description" not in user_field_names:
             fields.append(
-                {"id": 3, "name": "description", "type": "text", "label": "Description"}
+                {
+                    "id": 3,
+                    "name": "description",
+                    "type": "text",
+                    "label": "Description",
+                    "weight": STANDARD_FIELD_WEIGHTS["description"],
+                }
             )
 
         if "comments" not in user_field_names:
@@ -223,14 +238,23 @@ def build_schema_document(builtin_types):
                     "type": "longtext",
                     "label": "Comments",
                     "group_name": "Comments",
+                    "weight": STANDARD_FIELD_WEIGHTS["comments"],
                 }
             )
 
         if "color" not in user_field_names:
-            fields.append({"id": 7, "name": "color", "type": "text", "label": "Color"})
+            fields.append(
+                {
+                    "id": 7,
+                    "name": "color",
+                    "type": "text",
+                    "label": "Color",
+                    "weight": STANDARD_FIELD_WEIGHTS["color"],
+                }
+            )
 
         # Note: ``order_id``, ``area`` and ``display_template`` are *type-level*
-        # concepts and live on NSMTypeConfig / NSMSection — they are NOT
+        # concepts and live on TypeConfig / Section — they are NOT
         # injected as per-instance fields.
 
         # User-defined fields start at id 100 to leave headroom for future

@@ -45,9 +45,8 @@ _MODEL_TYPE_MAP: dict[tuple[str, str], str] = {
     ("dcim", "site"): "site",
     ("dcim", "location"): "site",
     ("tenancy", "tenant"): "tenant",
-    ("netbox_nsm", "securitypolicyrule"): "rule",
-    ("netbox_nsm", "securitypolicyrulebook"): "rulebook",
-    ("netbox_nsm", "securityarea"): "zone",
+    ("netbox_nsm", "rule"): "rule",
+    ("netbox_nsm", "rulebook"): "rulebook",
 }
 
 

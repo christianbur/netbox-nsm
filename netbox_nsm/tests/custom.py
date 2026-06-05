@@ -99,6 +99,9 @@ class ModelViewTestCase(NetBoxModelViewTestCase):
 
 
 class APITestCase(NetBoxAPITestCase):
+    def _get_view_namespace(self):
+        return "netbox_nsm-api"
+
     def _get_detail_url(self, instance):
         viewname = f"plugins-api:{self._get_view_namespace()}:{instance._meta.model_name}-detail"
         return reverse(viewname, kwargs={"pk": instance.pk})

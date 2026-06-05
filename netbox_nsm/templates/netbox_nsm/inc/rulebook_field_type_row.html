@@ -1,0 +1,32 @@
+{% load i18n %}
+<tr class="nsm-rb-subfield-row nsm-rb-mc-{{ tc.matching_class_css_slug }}{% if not field.visible or not ft.visible %} nsm-rb-subfield-row--muted{% endif %}">
+  <td class="nsm-rb-col-lead" aria-hidden="true"></td>
+  <td class="nsm-rb-col-lane nsm-rb-col-lane--indent" aria-hidden="true"></td>
+  <td class="nsm-rb-col-name nsm-rb-col-name--subfield align-middle">
+    <span class="nsm-rb-subfield-name">{{ tc.name|default:tc.content_type_label }}</span>
+  </td>
+  <td class="nsm-rb-col-kind align-middle">
+    {% for label in tc.type_line_kind_parts %}
+      <span class="badge text-bg-secondary{% if not forloop.first %} ms-1{% endif %}">{{ label }}</span>
+    {% empty %}
+      <span class="text-muted small">—</span>
+    {% endfor %}
+  </td>
+  <td class="nsm-rb-col-flags align-middle">
+    <div class="nsm-rb-field-flags-cell">
+      {% include "netbox_nsm/inc/rulebook_field_type_flags.html" %}
+    </div>
+  </td>
+  <td class="nsm-rb-col-actions align-middle text-end">
+    <span class="btn-group btn-group-sm noprint nsm-rb-type-actions">
+      <a href="{% url 'plugins:netbox_nsm:rulebookfieldtype_edit' ft.pk %}"
+         class="btn btn-warning" title="{% trans 'Edit' %}">
+        <i class="mdi mdi-pencil"></i>
+      </a>
+      <a href="{% url 'plugins:netbox_nsm:rulebookfieldtype_delete' ft.pk %}"
+         class="btn btn-danger" title="{% trans 'Delete' %}">
+        <i class="mdi mdi-trash-can-outline"></i>
+      </a>
+    </span>
+  </td>
+</tr>

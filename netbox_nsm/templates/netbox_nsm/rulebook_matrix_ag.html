@@ -1,0 +1,66 @@
+{% extends 'generic/object.html' %}
+{% load i18n %}
+
+{% block head %}
+{{ block.super }}
+{% include "netbox_nsm/inc/rulebook_page_head.html" %}
+{% include "netbox_nsm/inc/rulebook_matrix_ag_grid_head.html" %}
+{% endblock head %}
+
+{% block breadcrumbs %}
+{% include "netbox_nsm/inc/rulebook_breadcrumbs.html" with active_tab=matrix_tab_label %}
+{% endblock breadcrumbs %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header d-flex align-items-center gap-2 flex-wrap">
+    <i class="mdi mdi-grid text-primary"></i>
+    <strong>{% trans "Matrix" %}</strong>
+  </div>
+
+  {% if available_types %}
+    <form method="get" class="d-flex flex-column gap-0" id="nsm-matrix-filter-form">
+      <div class="nsm-matrix-viz-filter">
+        <div class="d-flex flex-column gap-1" style="min-width: 14rem; max-width: 28rem;">
+          <label class="form-label mb-0 small fw-bold">{% trans "Object type" %}</label>
+          <select name="obj_type" class="form-select form-select-sm" onchange="this.form.submit()">
+            {% for t in available_types %}
+              <option value="{{ t.ct_id }}" {% if t.ct_id == selected_ct_id %}selected{% endif %}>{{ t.label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="d-flex flex-column gap-1">
+          <label class="form-label mb-0 small fw-bold">{% trans "View" %}</label>
+          <div class="btn-group btn-group-sm" role="group">
+            <input type="radio" class="btn-check" name="mode" id="mode-directed" value="directed" autocomplete="off" onchange="this.form.submit()" {% if matrix_mode != 'undirected' %}checked{% endif %}>
+            <label class="btn btn-outline-secondary" for="mode-directed" title="{% trans 'Directed: → and ← shown separately' %}">
+              <i class="mdi mdi-arrow-left-right"></i> {% trans "Directed" %}
+            </label>
+            <input type="radio" class="btn-check" name="mode" id="mode-undirected" value="undirected" autocomplete="off" onchange="this.form.submit()" {% if matrix_mode == 'undirected' %}checked{% endif %}>
+            <label class="btn btn-outline-secondary" for="mode-undirected" title="{% trans 'Undirected: A↔B merged' %}">
+              <i class="mdi mdi-circle-double"></i> {% trans "Undirected" %}
+            </label>
+          </div>
+        </div>
+      </div>
+    </form>
+  {% endif %}
+
+  <div class="card-body p-3">
+    {% if matrix_rows %}
+      <div class="nsm-matrix-ag-layout nsm-matrix-ag-theme nsm-ag-grid-fit">
+        <div class="nsm-matrix-ag-wrap">
+          {{ matrix_ag_grid_payload|json_script:"nsm-matrix-grid-data" }}
+          <div id="nsm-matrix-ag-grid" class="nsm-matrix-ag-grid"></div>
+        </div>
+      </div>
+      {% include "netbox_nsm/inc/rulebook_matrix_ag_grid_javascript.html" %}
+    {% else %}
+      <div class="text-center text-muted p-5">
+        <i class="mdi mdi-grid-off mdi-48px"></i>
+        <p class="mt-2 mb-0">{% trans "No zones match the current filter." %}</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

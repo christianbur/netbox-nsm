@@ -29,7 +29,7 @@ build-backend = 'setuptools.build_meta'
 exclude = ["examples*", "media*", "*.tests*"]
 
 [tool.setuptools.package-data]
-"netbox_nsm" = ["templates/**/*.html", "static/**/*"]
+"netbox_nsm" = ["templates/**/*.html", "static/**/*", "plugin_assets/**/*"]
 
 [tool.black]
 target-version = ["py312"]

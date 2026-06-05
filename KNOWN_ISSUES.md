@@ -7,38 +7,23 @@
 ## TypeConfig values not updated by Setup Wizard Sync
 
 **Symptom:** After changing TypeConfig field values in `builtin_types.py` or `views/setup.py`
-(e.g. `matching_class`, `allowed_placements`), re-running the Setup Wizard "Sync" does not
+(e.g. `matching_class`, `panel_slugs`), re-running the Setup Wizard "Sync" does not
 update existing DB records — only creates missing ones.
 
 **Workaround:** Update TypeConfig records manually in the NetBox UI
-(**Security → Configuration → Type Configs**) or via the REST API.
+(**NSM → Configuration → Type Configs**) or via the REST API (`type-configs`).
 
-**Affected records (current state):**
-- `nsm_business_apps`: `matching_class=other`, `allowed_placements=["fixed"]`
-- `nsm_network_apps`: `matching_class=application`, `allowed_placements=["fixed"]`
-
----
-
-## `setup_typeconfigs.py` SOURCE_CTS / DEST_CTS stale entries
-
-`setup_typeconfigs.py` still lists `business apps` and `network apps` in `SOURCE_CTS` and
-`DEST_CTS`, but their TypeConfigs now have `allowed_placements=["fixed"]` only.
-These entries in the script have no effect (the TypeConfig overrides them) but are misleading.
-
-**Fix:** Remove `business apps` / `network apps` from `SOURCE_CTS` / `DEST_CTS` in
-`setup_typeconfigs.py`.
+**Affected records (example):** Custom types whose `panel_slugs` in `TYPECONFIG_SPECS`
+differ from what is already stored in the database.
 
 ---
 
-## `builtin_types.py` areas vs. TypeConfig placements mismatch
+## `builtin_types.py` areas vs. TypeConfig `panel_slugs`
 
-`nsm_business_apps` and `nsm_network_apps` both have `"areas": ["source", "destination"]`
-in `builtin_types.py`, but their TypeConfigs use `allowed_placements: ["fixed"]`.
-
-The `areas` field in `builtin_types.py` controls which COT "sections" (source/destination
-panels on the object detail page) the type appears in — separate from rule column placement.
-The mismatch may be intentional (show in source/dest panels, but only allow in fixed rule
-columns) — needs clarification.
+`areas` in `builtin_types.py` is synced to `TypeConfig.panel_slugs` by
+**Sync built-in types**. Rulebook column placement (`RulebookField.placement`) is
+separate: a type can appear in panel sections `source`/`destination` while only
+being attachable to `fixed` rule fields (e.g. services).
 
 ---
 

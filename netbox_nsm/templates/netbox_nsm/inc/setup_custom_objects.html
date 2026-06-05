@@ -1,0 +1,98 @@
+{% load i18n %}
+
+<h5 class="d-flex align-items-center gap-2 mb-2">
+  <i class="mdi mdi-puzzle-outline"></i>
+  Plugin: netbox-custom-objects
+</h5>
+<div class="card mb-4">
+  <div class="card-body">
+    {% if custom_objects_db_ready %}
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="mdi mdi-check-circle me-1"></i>{% trans "Installed" %}</span>
+        <span class="text-muted small">
+          {% blocktrans %}The plugin <strong>netbox-custom-objects</strong> is available. The NSM Plugin uses it for dynamic object types (zones, addresses, services, …).{% endblocktrans %}
+        </span>
+      </div>
+
+      <h6 class="fw-semibold mb-2 mt-3">{% trans "Required Custom Object Types" %}</h6>
+      <p class="text-muted small mb-2">
+        {% trans "The NSM Plugin requires the following Custom Object Types. Missing ones can be imported individually or all at once." %}
+      </p>
+
+      <table class="table table-sm table-borderless mb-3" style="max-width:600px">
+        <thead class="table-active">
+          <tr>
+            <th>Slug</th>
+            <th class="text-center" style="width:80px">{% trans "Status" %}</th>
+            <th style="width:140px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for slug, cot in cot_status.items %}
+          <tr>
+            <td><code>{{ slug }}</code></td>
+            <td class="text-center">
+              {% if cot %}
+                <span class="badge bg-success-subtle text-success border border-success-subtle">
+                  <i class="mdi mdi-check"></i> {% trans "present" %}
+                </span>
+              {% else %}
+                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                  <i class="mdi mdi-close"></i> {% trans "missing" %}
+                </span>
+              {% endif %}
+            </td>
+            <td>
+              {% if not cot %}
+              <form method="post" class="m-0">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="import_type_{{ slug }}">
+                <button type="submit" class="btn btn-sm btn-outline-primary">
+                  <i class="mdi mdi-plus me-1"></i>{% trans "Add" %}
+                </button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      {% if not all_cots_ok %}
+      <p class="text-muted small mb-2">{% trans "Or use button “1. Add all Custom Object Types” above." %}</p>
+      {% else %}
+      <div class="text-success small mb-2">
+        <i class="mdi mdi-check-all me-1"></i>{% trans "All required types are present." %}
+      </div>
+      {% endif %}
+
+    {% elif custom_objects_plugin_loaded %}
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <span class="badge bg-warning-subtle text-warning border border-warning-subtle"><i class="mdi mdi-database-alert me-1"></i>{% trans "Migrations pending" %}</span>
+        <span class="text-muted small">
+          {% trans "The NSM Plugin loaded netbox-custom-objects, but its database tables are missing. Apply plugin migrations before importing types." %}
+        </span>
+      </div>
+      <div class="alert alert-warning mb-0">
+        <p class="mb-2 small">{% trans "On the NetBox host or in the container:" %}</p>
+        <pre class="mb-0 small"><code>cd /app/netbox/netbox
+python manage.py migrate netbox_custom_objects
+python manage.py migrate netbox_nsm</code></pre>
+      </div>
+
+    {% else %}
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="mdi mdi-alert me-1"></i>{% trans "Not installed" %}</span>
+        <span class="text-muted small">
+          {% blocktrans %}The plugin <strong>netbox-custom-objects</strong> is not installed or not enabled. NSM can be used without it, but only with native NetBox types (IPAM, DCIM).{% endblocktrans %}
+        </span>
+      </div>
+      <div class="mt-2 text-muted small">
+        {% trans "Installation instructions" %}:
+        <a href="https://github.com/netbox-community/netbox-custom-objects" target="_blank" rel="noopener">
+          github.com/netbox-community/netbox-custom-objects
+        </a>
+      </div>
+    {% endif %}
+  </div>
+</div>

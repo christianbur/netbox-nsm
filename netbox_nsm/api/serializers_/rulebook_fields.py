@@ -1,3 +1,4 @@
+from django.contrib.contenttypes.models import ContentType
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.serializers import (
@@ -12,18 +13,19 @@ from utilities.api import get_serializer_for_model
 from netbox_nsm.models import (
     RulebookField,
     RulebookFieldType,
-    SecurityPolicyRuleObjectItem,
-    SecurityPolicyRuleGroupItem,
-    SecurityPolicyRulebook,
+    Rule,
+    RuleObjectItem,
+    RuleGroupItem,
+    Rulebook,
     TypeConfig,
-    SecurityObjectGroup,
+    ObjectGroup,
 )
 
 __all__ = (
     "RulebookFieldSerializer",
     "RulebookFieldTypeSerializer",
-    "SecurityPolicyRuleObjectItemSerializer",
-    "SecurityPolicyRuleGroupItemSerializer",
+    "RuleObjectItemSerializer",
+    "RuleGroupItemSerializer",
 )
 
 
@@ -34,7 +36,7 @@ class _NestedRulebookSerializer(ModelSerializer):
     display = serializers.CharField(read_only=True)
 
     class Meta:
-        model = SecurityPolicyRulebook
+        model = Rulebook
         fields = ("id", "display", "name")
 
 
@@ -51,7 +53,7 @@ class _NestedGroupSerializer(ModelSerializer):
     display = serializers.CharField(read_only=True)
 
     class Meta:
-        model = SecurityObjectGroup
+        model = ObjectGroup
         fields = ("id", "display", "name")
 
 
@@ -63,7 +65,9 @@ class RulebookFieldSerializer(ModelSerializer):
         view_name="plugins-api:netbox_nsm-api:rulebookfield-detail"
     )
     display = serializers.CharField(read_only=True)
-    rulebook = _NestedRulebookSerializer(read_only=True)
+    rulebook = serializers.PrimaryKeyRelatedField(
+        queryset=Rulebook.objects.all()
+    )
 
     class Meta:
         model = RulebookField
@@ -76,6 +80,14 @@ class RulebookFieldSerializer(ModelSerializer):
             "name",
             "sort_order",
             "placement",
+            "field_kind",
+            "visible",
+            "show_colored_pills",
+            "searchable",
+            "filterable",
+            "facet_mode",
+            "facet_weight",
+            "max_visible_pills",
         )
         brief_fields = ("id", "url", "display", "rulebook", "slug", "name", "placement")
 
@@ -96,8 +108,8 @@ class RulebookFieldTypeSerializer(ModelSerializer):
         view_name="plugins-api:netbox_nsm-api:rulebookfieldtype-detail"
     )
     display = serializers.CharField(read_only=True)
-    field = _NestedRulebookFieldSerializer(read_only=True)
-    type_config = _NestedTypeConfigSerializer(read_only=True)
+    field = serializers.PrimaryKeyRelatedField(queryset=RulebookField.objects.all())
+    type_config = serializers.PrimaryKeyRelatedField(queryset=TypeConfig.objects.all())
 
     class Meta:
         model = RulebookFieldType
@@ -108,25 +120,32 @@ class RulebookFieldTypeSerializer(ModelSerializer):
             "field",
             "type_config",
             "sort_order",
+            "visible",
             "max_items",
+            "name_filter_regex",
         )
         brief_fields = ("id", "url", "display", "field", "type_config")
 
 
-# ── SecurityPolicyRuleObjectItem ───────────────────────────────────────────────
+# ── RuleObjectItem ───────────────────────────────────────────────
 
 
-class SecurityPolicyRuleObjectItemSerializer(ModelSerializer):
+class RuleObjectItemSerializer(ModelSerializer):
     url = HyperlinkedIdentityField(
-        view_name="plugins-api:netbox_nsm-api:securitypolicyruleobjectitem-detail"
+        view_name="plugins-api:netbox_nsm-api:ruleobjectitem-detail"
     )
     display = serializers.CharField(read_only=True)
-    content_type = ContentTypeField(read_only=True)
+    rule = serializers.PrimaryKeyRelatedField(
+        queryset=Rule.objects.all()
+    )
+    field = serializers.PrimaryKeyRelatedField(
+        queryset=RulebookField.objects.all(), allow_null=True, required=False
+    )
+    content_type = ContentTypeField(queryset=ContentType.objects.all())
     assigned_object = SerializerMethodField(read_only=True)
-    field = _NestedRulebookFieldSerializer(read_only=True)
 
     class Meta:
-        model = SecurityPolicyRuleObjectItem
+        model = RuleObjectItem
         fields = (
             "id",
             "url",
@@ -157,19 +176,26 @@ class SecurityPolicyRuleObjectItemSerializer(ModelSerializer):
         return serializer(obj.assigned_object, nested=True, context=context).data
 
 
-# ── SecurityPolicyRuleGroupItem ────────────────────────────────────────────────
+# ── RuleGroupItem ────────────────────────────────────────────────
 
 
-class SecurityPolicyRuleGroupItemSerializer(ModelSerializer):
+class RuleGroupItemSerializer(ModelSerializer):
     url = HyperlinkedIdentityField(
-        view_name="plugins-api:netbox_nsm-api:securitypolicyrulegroupitem-detail"
+        view_name="plugins-api:netbox_nsm-api:rulegroupitem-detail"
     )
     display = serializers.CharField(read_only=True)
-    security_group = _NestedGroupSerializer(read_only=True)
-    field = _NestedRulebookFieldSerializer(read_only=True)
+    rule = serializers.PrimaryKeyRelatedField(
+        queryset=Rule.objects.all()
+    )
+    field = serializers.PrimaryKeyRelatedField(
+        queryset=RulebookField.objects.all(), allow_null=True, required=False
+    )
+    security_group = serializers.PrimaryKeyRelatedField(
+        queryset=ObjectGroup.objects.all()
+    )
 
     class Meta:
-        model = SecurityPolicyRuleGroupItem
+        model = RuleGroupItem
         fields = (
             "id",
             "url",

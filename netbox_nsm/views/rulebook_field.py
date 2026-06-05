@@ -8,7 +8,7 @@ from django.views.generic.edit import FormView
 from utilities.views import register_model_view
 
 from netbox_nsm.forms.rulebook_field import RulebookFieldForm, RulebookFieldTypeForm
-from netbox_nsm.models import RulebookField, RulebookFieldType, SecurityPolicyRulebook, TypeConfig
+from netbox_nsm.models import RulebookField, RulebookFieldType, Rulebook, TypeConfig
 
 __all__ = (
     "RulebookFieldAddView",
@@ -25,7 +25,7 @@ class RulebookFieldAddView(View):
 
     def _get_rulebook(self, request):
         pk = request.GET.get("rulebook") or request.POST.get("rulebook")
-        return get_object_or_404(SecurityPolicyRulebook, pk=pk)
+        return get_object_or_404(Rulebook, pk=pk)
 
     def get(self, request):
         rulebook = self._get_rulebook(request)
@@ -41,7 +41,7 @@ class RulebookFieldAddView(View):
                 "rulebook": rulebook,
                 "object": None,
                 "return_url": reverse(
-                    "plugins:netbox_nsm:securitypolicyrulebook", args=[rulebook.pk]
+                    "plugins:netbox_nsm:rulebook", args=[rulebook.pk]
                 ),
             },
         )
@@ -53,19 +53,20 @@ class RulebookFieldAddView(View):
             field = form.save(commit=False)
             field.rulebook = rulebook
             field.save()
-            # Sync allowed types
-            selected = set(form.cleaned_data.get("type_configs") or [])
-            max_items = form.cleaned_data.get("max_items")
-            for tc in selected:
-                RulebookFieldType.objects.get_or_create(
-                    field=field, type_config=tc,
-                    defaults={"max_items": max_items},
-                )
+            if "type_configs" in form.fields:
+                selected = set(form.cleaned_data.get("type_configs") or [])
+                max_items = form.cleaned_data.get("max_items")
+                for tc in selected:
+                    RulebookFieldType.objects.get_or_create(
+                        field=field,
+                        type_config=tc,
+                        defaults={"max_items": max_items},
+                    )
             messages.success(
-                request, _("Field '%(name)s' wurde angelegt.") % {"name": field.name}
+                request, _("Field '%(name)s' was created.") % {"name": field.name}
             )
             return redirect(
-                reverse("plugins:netbox_nsm:securitypolicyrulebook", args=[rulebook.pk])
+                reverse("plugins:netbox_nsm:rulebook", args=[rulebook.pk])
             )
         from django.template.response import TemplateResponse
 
@@ -77,7 +78,7 @@ class RulebookFieldAddView(View):
                 "rulebook": rulebook,
                 "object": None,
                 "return_url": reverse(
-                    "plugins:netbox_nsm:securitypolicyrulebook", args=[rulebook.pk]
+                    "plugins:netbox_nsm:rulebook", args=[rulebook.pk]
                 ),
             },
         )
@@ -102,7 +103,7 @@ class RulebookFieldEditView(View):
                 "rulebook": field.rulebook,
                 "object": field,
                 "return_url": reverse(
-                    "plugins:netbox_nsm:securitypolicyrulebook",
+                    "plugins:netbox_nsm:rulebook",
                     args=[field.rulebook_id],
                 ),
             },
@@ -113,25 +114,30 @@ class RulebookFieldEditView(View):
         form = RulebookFieldForm(request.POST, instance=field)
         if form.is_valid():
             field = form.save()
-            # Sync allowed types (add new, remove deselected)
-            selected = set(form.cleaned_data.get("type_configs") or [])
-            max_items = form.cleaned_data.get("max_items")
-            existing_map = {ft.type_config: ft for ft in RulebookFieldType.objects.filter(field=field)}
-            for tc in selected:
-                if tc not in existing_map:
-                    RulebookFieldType.objects.create(field=field, type_config=tc, max_items=max_items)
-                elif existing_map[tc].max_items != max_items:
-                    existing_map[tc].max_items = max_items
-                    existing_map[tc].save(update_fields=["max_items"])
-            for tc, ft in existing_map.items():
-                if tc not in selected:
-                    ft.delete()
+            if "type_configs" in form.fields:
+                selected = set(form.cleaned_data.get("type_configs") or [])
+                max_items = form.cleaned_data.get("max_items")
+                existing_map = {
+                    ft.type_config: ft
+                    for ft in RulebookFieldType.objects.filter(field=field)
+                }
+                for tc in selected:
+                    if tc not in existing_map:
+                        RulebookFieldType.objects.create(
+                            field=field, type_config=tc, max_items=max_items
+                        )
+                    elif existing_map[tc].max_items != max_items:
+                        existing_map[tc].max_items = max_items
+                        existing_map[tc].save(update_fields=["max_items"])
+                for tc, ft in existing_map.items():
+                    if tc not in selected:
+                        ft.delete()
             messages.success(
-                request, _("Field '%(name)s' wurde gespeichert.") % {"name": field.name}
+                request, _("Field '%(name)s' was saved.") % {"name": field.name}
             )
             return redirect(
                 reverse(
-                    "plugins:netbox_nsm:securitypolicyrulebook",
+                    "plugins:netbox_nsm:rulebook",
                     args=[field.rulebook_id],
                 )
             )
@@ -145,7 +151,7 @@ class RulebookFieldEditView(View):
                 "rulebook": field.rulebook,
                 "object": field,
                 "return_url": reverse(
-                    "plugins:netbox_nsm:securitypolicyrulebook",
+                    "plugins:netbox_nsm:rulebook",
                     args=[field.rulebook_id],
                 ),
             },
@@ -157,6 +163,14 @@ class RulebookFieldDeleteView(View):
 
     def get(self, request, pk):
         field = get_object_or_404(RulebookField, pk=pk)
+        if field.is_system_field:
+            messages.error(request, _("System fields cannot be deleted."))
+            return redirect(
+                reverse(
+                    "plugins:netbox_nsm:rulebook",
+                    args=[field.rulebook_id],
+                )
+            )
         from django.template.response import TemplateResponse
 
         return TemplateResponse(
@@ -165,7 +179,7 @@ class RulebookFieldDeleteView(View):
             {
                 "object": field,
                 "return_url": reverse(
-                    "plugins:netbox_nsm:securitypolicyrulebook",
+                    "plugins:netbox_nsm:rulebook",
                     args=[field.rulebook_id],
                 ),
             },
@@ -173,12 +187,20 @@ class RulebookFieldDeleteView(View):
 
     def post(self, request, pk):
         field = get_object_or_404(RulebookField, pk=pk)
+        if field.is_system_field:
+            messages.error(request, _("System fields cannot be deleted."))
+            return redirect(
+                reverse(
+                    "plugins:netbox_nsm:rulebook",
+                    args=[field.rulebook_id],
+                )
+            )
         rulebook_pk = field.rulebook_id
         field_name = field.name
         field.delete()
         messages.success(request, _("Field '%(name)s' deleted.") % {"name": field_name})
         return redirect(
-            reverse("plugins:netbox_nsm:securitypolicyrulebook", args=[rulebook_pk])
+            reverse("plugins:netbox_nsm:rulebook", args=[rulebook_pk])
         )
 
 
@@ -191,6 +213,14 @@ class RulebookFieldTypeAddView(View):
 
     def get(self, request):
         field = self._get_field(request)
+        if field.is_system_field:
+            messages.error(request, _("Types cannot be added to system fields."))
+            return redirect(
+                reverse(
+                    "plugins:netbox_nsm:rulebook",
+                    args=[field.rulebook_id],
+                )
+            )
         form = RulebookFieldTypeForm()
         from django.template.response import TemplateResponse
 
@@ -201,7 +231,7 @@ class RulebookFieldTypeAddView(View):
                 "form": form,
                 "field": field,
                 "return_url": reverse(
-                    "plugins:netbox_nsm:securitypolicyrulebook",
+                    "plugins:netbox_nsm:rulebook",
                     args=[field.rulebook_id],
                 ),
             },
@@ -219,7 +249,7 @@ class RulebookFieldTypeAddView(View):
             )
             return redirect(
                 reverse(
-                    "plugins:netbox_nsm:securitypolicyrulebook",
+                    "plugins:netbox_nsm:rulebook",
                     args=[field.rulebook_id],
                 )
             )
@@ -232,7 +262,7 @@ class RulebookFieldTypeAddView(View):
                 "form": form,
                 "field": field,
                 "return_url": reverse(
-                    "plugins:netbox_nsm:securitypolicyrulebook",
+                    "plugins:netbox_nsm:rulebook",
                     args=[field.rulebook_id],
                 ),
             },
@@ -255,7 +285,7 @@ class RulebookFieldTypeEditView(View):
                 "field": ft.field,
                 "object": ft,
                 "return_url": reverse(
-                    "plugins:netbox_nsm:securitypolicyrulebook",
+                    "plugins:netbox_nsm:rulebook",
                     args=[ft.field.rulebook_id],
                 ),
             },
@@ -268,11 +298,11 @@ class RulebookFieldTypeEditView(View):
             ft = form.save()
             messages.success(
                 request,
-                _("Field Type '%(name)s' gespeichert.") % {"name": str(ft.type_config)},
+                _("Field type '%(name)s' was saved.") % {"name": str(ft.type_config)},
             )
             return redirect(
                 reverse(
-                    "plugins:netbox_nsm:securitypolicyrulebook",
+                    "plugins:netbox_nsm:rulebook",
                     args=[ft.field.rulebook_id],
                 )
             )
@@ -286,7 +316,7 @@ class RulebookFieldTypeEditView(View):
                 "field": ft.field,
                 "object": ft,
                 "return_url": reverse(
-                    "plugins:netbox_nsm:securitypolicyrulebook",
+                    "plugins:netbox_nsm:rulebook",
                     args=[ft.field.rulebook_id],
                 ),
             },
@@ -306,7 +336,7 @@ class RulebookFieldTypeDeleteView(View):
             {
                 "object": ft,
                 "return_url": reverse(
-                    "plugins:netbox_nsm:securitypolicyrulebook",
+                    "plugins:netbox_nsm:rulebook",
                     args=[ft.field.rulebook_id],
                 ),
             },
@@ -318,5 +348,5 @@ class RulebookFieldTypeDeleteView(View):
         ft.delete()
         messages.success(request, _("Type entry deleted."))
         return redirect(
-            reverse("plugins:netbox_nsm:securitypolicyrulebook", args=[rulebook_pk])
+            reverse("plugins:netbox_nsm:rulebook", args=[rulebook_pk])
         )

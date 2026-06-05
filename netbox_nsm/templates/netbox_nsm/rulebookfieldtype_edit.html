@@ -62,6 +62,16 @@
             {% if form.sort_order.errors %}<div class="text-danger small mt-1">{{ form.sort_order.errors }}</div>{% endif %}
           </div>
 
+          <div class="mb-3 form-check">
+            {{ form.visible }}
+            <label class="form-check-label" for="{{ form.visible.id_for_label }}">
+              {% trans "Visible in policy table" %}
+            </label>
+            {% if form.visible.errors %}
+              <div class="text-danger small mt-1">{{ form.visible.errors }}</div>
+            {% endif %}
+          </div>
+
           <div class="mb-3">
             <label class="form-label" for="{{ form.max_items.id_for_label }}">
               {% trans "Max Items" %}
@@ -69,6 +79,15 @@
             {{ form.max_items }}
             {% if form.max_items.errors %}<div class="text-danger small mt-1">{{ form.max_items.errors }}</div>{% endif %}
             <div class="form-text">{{ form.max_items.help_text }}</div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="{{ form.name_filter_regex.id_for_label }}">
+              {% trans "Name filter (regex)" %}
+            </label>
+            {{ form.name_filter_regex }}
+            {% if form.name_filter_regex.errors %}<div class="text-danger small mt-1">{{ form.name_filter_regex.errors }}</div>{% endif %}
+            <div class="form-text">{{ form.name_filter_regex.help_text }}</div>
           </div>
 
           <div class="d-flex gap-2 mt-4">

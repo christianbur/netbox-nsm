@@ -1,0 +1,60 @@
+{% load i18n %}
+<tr class="nsm-rb-field-row{% if not field.visible %} nsm-rb-field-row--hidden{% endif %}{% if field.is_system_field %} nsm-rb-field-row--system{% endif %}">
+  <td class="nsm-rb-col-lead" aria-hidden="true"></td>
+  <td class="nsm-rb-col-name nsm-rb-col-name--field align-middle" colspan="2">
+    <span class="nsm-rb-field-line-name fw-semibold" title="{{ field.slug }}">{{ field.name }}</span>
+  </td>
+  <td class="nsm-rb-col-kind align-middle">
+    {% if field.is_system_field %}
+      <span class="badge text-bg-secondary">{% trans "System" %}</span>
+    {% elif field.placement == "source" %}
+      <span class="badge text-bg-secondary">{% trans "Source" %}</span>
+    {% elif field.placement == "destination" %}
+      <span class="badge text-bg-secondary">{% trans "Destination" %}</span>
+    {% elif field.placement == "fixed" %}
+      <span class="badge text-bg-secondary">{% trans "Fixed" %}</span>
+    {% else %}
+      <span class="badge text-bg-secondary">{{ field.get_placement_display }}</span>
+    {% endif %}
+  </td>
+  <td class="nsm-rb-col-flags align-middle">
+    <div class="nsm-rb-field-flags-cell">
+      {% include "netbox_nsm/inc/rulebook_field_flags.html" %}
+    </div>
+  </td>
+  <td class="nsm-rb-col-actions align-middle text-end">
+    <span class="btn-group btn-group-sm noprint">
+      {% if not field.is_system_field %}
+      <a href="{% url 'plugins:netbox_nsm:rulebookfieldtype_add' %}?field={{ field.pk }}"
+         class="btn btn-primary" title="{% trans 'Add type' %}">
+        <i class="mdi mdi-plus-thick"></i>
+      </a>
+      {% endif %}
+      <a href="{% url 'plugins:netbox_nsm:rulebookfield_edit' field.pk %}"
+         class="btn btn-warning" title="{% trans 'Edit' %}">
+        <i class="mdi mdi-pencil"></i>
+      </a>
+      {% if not field.is_system_field %}
+      <a href="{% url 'plugins:netbox_nsm:rulebookfield_delete' field.pk %}"
+         class="btn btn-danger" title="{% trans 'Delete' %}">
+        <i class="mdi mdi-trash-can-outline"></i>
+      </a>
+      {% endif %}
+    </span>
+  </td>
+</tr>
+{% if not field.is_system_field %}
+  {% for ft in field.field_type_list %}
+    {% with tc=ft.type_config %}
+      {% include "netbox_nsm/inc/rulebook_field_type_row.html" %}
+    {% endwith %}
+  {% empty %}
+  <tr class="nsm-rb-subfield-row nsm-rb-subfield-row--empty{% if not field.visible %} nsm-rb-field-row--hidden{% endif %}">
+    <td class="nsm-rb-col-lead" aria-hidden="true"></td>
+    <td class="nsm-rb-col-lane" aria-hidden="true"></td>
+    <td colspan="4" class="text-muted small fst-italic py-1">
+      {% trans "No types yet — use + to add one." %}
+    </td>
+  </tr>
+  {% endfor %}
+{% endif %}

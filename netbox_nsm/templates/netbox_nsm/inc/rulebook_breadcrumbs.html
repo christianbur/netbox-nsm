@@ -1,0 +1,15 @@
+{% load i18n %}
+<li class="breadcrumb-item">
+  <a href="{% url 'plugins:netbox_nsm:rulebook_list' %}">{% trans "Rulebooks" %}</a>
+</li>
+<li class="breadcrumb-item{% if not active_tab %} active{% endif %}"
+    {% if not active_tab %}aria-current="page"{% endif %}>
+  {% if active_tab %}
+    <a href="{{ object.get_absolute_url }}">{{ object }}</a>
+  {% else %}
+    {{ object }}
+  {% endif %}
+</li>
+{% if active_tab %}
+<li class="breadcrumb-item active" aria-current="page">{{ active_tab }}</li>
+{% endif %}

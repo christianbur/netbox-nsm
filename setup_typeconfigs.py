@@ -3,7 +3,7 @@ from django.contrib.contenttypes.models import ContentType
 from netbox_nsm.models import (
     TypeConfig, MatchingClassChoices,
     RulebookField, RulebookFieldType,
-    SecurityPolicyRulebook,
+    Rulebook,
 )
 
 # ── 1. ContentTypes ermitteln ──────────────────────────────────────────────
@@ -32,14 +32,14 @@ def find_custom_ct_by_label(label_lower):
 # ── 2. TypeConfigs anlegen ─────────────────────────────────────────────────
 
 TYPE_DEFS = [
-    # (ct_resolver, matching_class, display_template, allowed_placements)
+    # (ct_resolver, matching_class, display_template, panel_slugs)
     (lambda: find_custom_ct_by_label("zones"),         "zone",         "Z:{name}",    ["source", "destination"]),
     (lambda: find_custom_ct_by_label("labels"),        "label",        "L:{name}",    ["source", "destination"]),
     (lambda: find_custom_ct_by_label("addresses"),     "address",      "Addr:{name}", ["source", "destination"]),
-    (lambda: find_custom_ct_by_label("services"),      "service",      "S:{name}",    ["fixed"]),
-    (lambda: find_custom_ct_by_label("action"),        "action",       "A:{name}",    ["fixed"]),
-    (lambda: find_custom_ct_by_label("business apps"), "other",       "{name}",      ["fixed"]),
-    (lambda: find_custom_ct_by_label("network apps"),  "application", "{name}",      ["fixed"]),
+    (lambda: find_custom_ct_by_label("services"),      "service",      "S:{name}",    ["services"]),
+    (lambda: find_custom_ct_by_label("action"),        "action",       "A:{name}",    ["action"]),
+    (lambda: find_custom_ct_by_label("business apps"), "info",        "{name}",      ["info"]),
+    (lambda: find_custom_ct_by_label("network apps"),  "application", "{name}",      ["services"]),
     (lambda: get_ct_safe("ipam", "iprange"),  "address", "R:{name}", ["source", "destination"]),
     (lambda: get_ct_safe("ipam", "prefix"),   "address", "P:{name}", ["source"]),
 ]
@@ -53,12 +53,16 @@ for resolver, mc, tpl, placements in TYPE_DEFS:
         continue
     tc, created = TypeConfig.objects.get_or_create(
         content_type=ct,
-        defaults=dict(matching_class=mc, display_template=tpl, allowed_placements=placements),
+        defaults=dict(
+            matching_class=mc,
+            display_template=tpl,
+            panel_slugs=placements,
+        ),
     )
     if not created:
         tc.matching_class = mc
         tc.display_template = tpl
-        tc.allowed_placements = placements
+        tc.panel_slugs = placements
         tc.save()
     tc_map[ct.pk] = tc
     print(f"  {'NEW' if created else 'UPD'} TypeConfig [{mc:10s}]: {tc}")
@@ -80,8 +84,6 @@ SOURCE_CTS = [
     lambda: find_custom_ct_by_label("zones"),
     lambda: find_custom_ct_by_label("labels"),
     lambda: find_custom_ct_by_label("addresses"),
-    lambda: find_custom_ct_by_label("business apps"),
-    lambda: find_custom_ct_by_label("network apps"),
     lambda: get_ct_safe("ipam", "iprange"),
     lambda: get_ct_safe("ipam", "prefix"),
 ]
@@ -89,8 +91,6 @@ DEST_CTS = [
     lambda: find_custom_ct_by_label("zones"),
     lambda: find_custom_ct_by_label("labels"),
     lambda: find_custom_ct_by_label("addresses"),
-    lambda: find_custom_ct_by_label("business apps"),
-    lambda: find_custom_ct_by_label("network apps"),
     lambda: get_ct_safe("ipam", "iprange"),
 ]
 
@@ -114,7 +114,7 @@ RULEBOOK_FIELD_OVERRIDES = {
     ],
 }
 
-for rulebook in SecurityPolicyRulebook.objects.all():
+for rulebook in Rulebook.objects.all():
     print(f"\n  Rulebook: {rulebook.name!r}")
     field_defs = RULEBOOK_FIELD_OVERRIDES.get(rulebook.name, DEFAULT_FIELD_DEFS)
     for slug, name, placement, sort_order, ct_resolvers in field_defs:

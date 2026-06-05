@@ -114,8 +114,8 @@ msgstr "Kommentar"
 msgid "Please select a type."
 msgstr "Bitte einen Typ auswählen."
 
-#: netbox_nsm/forms/rulebook_field.py:20 netbox_nsm/forms/type_config.py:84
-#: netbox_nsm/forms/type_config.py:189 netbox_nsm/models/security_policy.py:96
+#: netbox_nsm/forms/rulebook_field.py:20 netbox_nsm/forms/nsm_type_config.py:84
+#: netbox_nsm/forms/nsm_type_config.py:189 netbox_nsm/models/security_policy.py:96
 #: netbox_nsm/tables/security_policy.py:347
 #: netbox_nsm/templates/netbox_nsm/securitypolicyrule.html:163
 #: netbox_nsm/views/security_policy.py:338
@@ -123,8 +123,8 @@ msgstr "Bitte einen Typ auswählen."
 msgid "Source"
 msgstr "Quelle"
 
-#: netbox_nsm/forms/rulebook_field.py:21 netbox_nsm/forms/type_config.py:85
-#: netbox_nsm/forms/type_config.py:190 netbox_nsm/models/security_policy.py:97
+#: netbox_nsm/forms/rulebook_field.py:21 netbox_nsm/forms/nsm_type_config.py:85
+#: netbox_nsm/forms/nsm_type_config.py:190 netbox_nsm/models/security_policy.py:97
 #: netbox_nsm/tables/security_policy.py:352
 #: netbox_nsm/templates/netbox_nsm/securitypolicyrule.html:167
 #: netbox_nsm/views/security_policy.py:339
@@ -132,17 +132,17 @@ msgstr "Quelle"
 msgid "Destination"
 msgstr "Ziel"
 
-#: netbox_nsm/forms/rulebook_field.py:22 netbox_nsm/forms/type_config.py:86
-#: netbox_nsm/forms/type_config.py:191 netbox_nsm/models/security_policy.py:98
+#: netbox_nsm/forms/rulebook_field.py:22 netbox_nsm/forms/nsm_type_config.py:86
+#: netbox_nsm/forms/nsm_type_config.py:191 netbox_nsm/models/security_policy.py:98
 msgid "Fixed"
 msgstr "Fest"
 
-#: netbox_nsm/forms/rulebook_field.py:31 netbox_nsm/forms/type_config.py:56
-#: netbox_nsm/forms/type_config.py:154
+#: netbox_nsm/forms/rulebook_field.py:31 netbox_nsm/forms/nsm_type_config.py:56
+#: netbox_nsm/forms/nsm_type_config.py:154
 #: netbox_nsm/models/security_object_group.py:23
-#: netbox_nsm/models/security_policy.py:124 netbox_nsm/models/type_config.py:35
+#: netbox_nsm/models/security_policy.py:124 netbox_nsm/models/nsm_type_config.py:35
 #: netbox_nsm/tables/security_object_group.py:16
-#: netbox_nsm/tables/security_policy.py:341 netbox_nsm/tables/type_config.py:41
+#: netbox_nsm/tables/security_policy.py:341 netbox_nsm/tables/nsm_type_config.py:41
 #: netbox_nsm/templates/netbox_nsm/address.html:18
 #: netbox_nsm/templates/netbox_nsm/addressset.html:14
 #: netbox_nsm/templates/netbox_nsm/rulebookfield_edit.html:46
@@ -172,10 +172,12 @@ msgid "Slug"
 msgstr "Slug"
 
 #: netbox_nsm/forms/rulebook_field.py:37
-#, fuzzy
-#| msgid "Unique identifier (e.g. 'source', 'destination', 'services')."
 msgid "Internal identifier (e.g. 'source', 'services'). Unique within the Rulebook."
-msgstr "Eindeutiger Bezeichner (z.B. 'source', 'destination', 'services')."
+msgstr "Interner Bezeichner (z. B. 'source', 'services'). Eindeutig innerhalb des Rulebooks."
+
+#: netbox_nsm/templates/netbox_nsm/rulebookfield_edit.html
+msgid "Internal identifier (e.g. <code>source</code>, <code>services</code>). Unique within the Rulebook."
+msgstr "Interner Bezeichner (z. B. <code>source</code>, <code>services</code>). Eindeutig innerhalb des Rulebooks."
 
 #: netbox_nsm/forms/rulebook_field.py:46
 #: netbox_nsm/models/security_policy.py:136
@@ -225,7 +227,7 @@ msgstr "Sortierreihenfolge"
 
 #: netbox_nsm/forms/rulebook_field.py:102
 #: netbox_nsm/models/security_policy.py:201
-#: netbox_nsm/models/type_config.py:100 netbox_nsm/navigation.py:38
+#: netbox_nsm/models/nsm_type_config.py:100 netbox_nsm/navigation.py:38
 #: netbox_nsm/templates/netbox_nsm/rulebookfieldtype_edit.html:45
 msgid "Type Config"
 msgstr "Typ-Konfiguration"
@@ -291,7 +293,7 @@ msgstr "HTML-Farbcode (z.B. #aabbcc) für diese Gruppe in der Richtlinienansicht
 
 #: netbox_nsm/forms/security_object_group.py:47
 #: netbox_nsm/forms/security_object_group.py:115
-#: netbox_nsm/models/type_config.py:21
+#: netbox_nsm/models/nsm_type_config.py:21
 #: netbox_nsm/templates/netbox_nsm/securitypropertytype.html:14
 msgid "Group"
 msgstr "Gruppe"
@@ -302,6 +304,18 @@ msgstr "Gruppe"
 #: netbox_nsm/templates/netbox_nsm/securityobjectgroup_edit.html:22
 msgid "Members"
 msgstr "Mitglieder"
+
+#: netbox_nsm/group_m2m.py:15 netbox_nsm/template_content.py
+msgid "Member"
+msgstr "Mitglied"
+
+#: netbox_nsm/group_m2m.py:16 netbox_nsm/template_content.py
+msgid "Member of"
+msgstr "Mitglied von"
+
+#: netbox_nsm/templates/netbox_nsm/inc/security_links.html:51
+msgid "Object Analyzer"
+msgstr "Objekt-Analysator"
 
 #: netbox_nsm/forms/security_object_group.py:88
 msgid "A group cannot be a sub-group of itself."
@@ -445,90 +459,81 @@ msgstr "Virtuelle Gerätekontexte"
 msgid "Select at least one device, VM, or VDC."
 msgstr "Mindestens ein Gerät, eine VM oder einen VDC auswählen."
 
-#: netbox_nsm/forms/type_config.py:57 netbox_nsm/forms/type_config.py:155
-#: netbox_nsm/models/type_config.py:36
+#: netbox_nsm/forms/nsm_type_config.py:57 netbox_nsm/forms/nsm_type_config.py:155
+#: netbox_nsm/models/nsm_type_config.py:36
 msgid "Display name used as column header and type label throughout NSM."
 msgstr ""
 
-#: netbox_nsm/forms/type_config.py:60 netbox_nsm/forms/type_config.py:165
+#: netbox_nsm/forms/nsm_type_config.py:60 netbox_nsm/forms/nsm_type_config.py:165
 msgid "— none —"
 msgstr "— keine —"
 
-#: netbox_nsm/forms/type_config.py:62 netbox_nsm/forms/type_config.py:167
-#: netbox_nsm/models/type_config.py:49 netbox_nsm/tables/type_config.py:50
+#: netbox_nsm/forms/nsm_type_config.py:62 netbox_nsm/forms/nsm_type_config.py:167
+#: netbox_nsm/models/nsm_type_config.py:49 netbox_nsm/tables/nsm_type_config.py:50
 #: netbox_nsm/templates/netbox_nsm/setup.html:129
 msgid "Matching Class"
 msgstr "Übereinstimmungsklasse"
 
-#: netbox_nsm/forms/type_config.py:64 netbox_nsm/forms/type_config.py:169
+#: netbox_nsm/forms/nsm_type_config.py:64 netbox_nsm/forms/nsm_type_config.py:169
 msgid "Semantic category of this type. Used to automatically derive the matching strategy of a rulebook."
 msgstr ""
 
-#: netbox_nsm/forms/type_config.py:72 netbox_nsm/forms/type_config.py:177
-#: netbox_nsm/models/type_config.py:59 netbox_nsm/tables/type_config.py:51
+#: netbox_nsm/forms/nsm_type_config.py:72 netbox_nsm/forms/nsm_type_config.py:177
+#: netbox_nsm/models/nsm_type_config.py:59 netbox_nsm/tables/nsm_type_config.py:51
 #: netbox_nsm/templates/netbox_nsm/securityobjecttype.html:40
 #: netbox_nsm/templates/netbox_nsm/setup.html:130
 msgid "Display Template"
 msgstr "Anzeige-Vorlage"
 
-#: netbox_nsm/forms/type_config.py:74 netbox_nsm/forms/type_config.py:179
+#: netbox_nsm/forms/nsm_type_config.py:74 netbox_nsm/forms/nsm_type_config.py:179
 msgid "Format string for the display name. Use <code>{field}</code> for a full field value, <code>{field[0]}</code> for the first character, <code>{field!u}</code> for uppercase. Example: <code>{label_type[0]!u}:{name}</code>"
 msgstr ""
 
-#: netbox_nsm/forms/type_config.py:89 netbox_nsm/forms/type_config.py:194
-#: netbox_nsm/models/type_config.py:68 netbox_nsm/tables/type_config.py:53
-msgid "Allowed Placements"
-msgstr "Erlaubte Platzierungen"
-
-#: netbox_nsm/forms/type_config.py:91 netbox_nsm/forms/type_config.py:196
-msgid "UI hint: which placements this type may appear in. Leave empty for no restriction."
-msgstr ""
-
-#: netbox_nsm/forms/type_config.py:98 netbox_nsm/forms/type_config.py:203
-#: netbox_nsm/models/type_config.py:77
+#: netbox_nsm/forms/nsm_type_config.py:98 netbox_nsm/forms/nsm_type_config.py:203
+#: netbox_nsm/models/nsm_type_config.py:77
 msgid "Inherit from parent"
 msgstr ""
 
-#: netbox_nsm/forms/type_config.py:100 netbox_nsm/forms/type_config.py:205
-#: netbox_nsm/models/type_config.py:79
+#: netbox_nsm/forms/nsm_type_config.py:100 netbox_nsm/forms/nsm_type_config.py:205
+#: netbox_nsm/models/nsm_type_config.py:79
 msgid "When enabled, Security Panel shows NSM links of the containing Prefix on child objects (IP Address, IP Range, sub-Prefix)."
 msgstr ""
 
-#: netbox_nsm/forms/type_config.py:106 netbox_nsm/forms/type_config.py:211
-#: netbox_nsm/models/type_config.py:85
+#: netbox_nsm/forms/nsm_type_config.py:106 netbox_nsm/forms/nsm_type_config.py:211
+#: netbox_nsm/models/nsm_type_config.py:85
 msgid "Stop inheritance if own link present"
 msgstr ""
 
-#: netbox_nsm/forms/type_config.py:108 netbox_nsm/forms/type_config.py:213
-#: netbox_nsm/models/type_config.py:87
+#: netbox_nsm/forms/nsm_type_config.py:108 netbox_nsm/forms/nsm_type_config.py:213
+#: netbox_nsm/models/nsm_type_config.py:87
 msgid "If the child object already has its own direct NSM link of the same type, inherited links of that type are suppressed."
 msgstr ""
 
-#: netbox_nsm/forms/type_config.py:114 netbox_nsm/forms/type_config.py:219
+#: netbox_nsm/forms/nsm_type_config.py:114 netbox_nsm/forms/nsm_type_config.py:219
 #, fuzzy
 #| msgid "Identifier"
 msgid "Identity"
 msgstr "Bezeichner"
 
-#: netbox_nsm/forms/type_config.py:120 netbox_nsm/forms/type_config.py:226
+#: netbox_nsm/forms/nsm_type_config.py:120 netbox_nsm/forms/nsm_type_config.py:226
 #: netbox_nsm/navigation.py:29
 msgid "Configuration"
 msgstr "Konfiguration"
 
-#: netbox_nsm/forms/type_config.py:122 netbox_nsm/forms/type_config.py:228
-#: netbox_nsm/tables/type_config.py:55
+#: netbox_nsm/forms/nsm_type_config.py:122 netbox_nsm/forms/nsm_type_config.py:228
+#: netbox_nsm/tables/nsm_type_config.py:55
 #, fuzzy
 #| msgid "Inherited"
 msgid "Inheritance"
 msgstr "Geerbt"
 
-#: netbox_nsm/forms/type_config.py:161 netbox_nsm/forms/type_config.py:220
-#: netbox_nsm/models/type_config.py:42 netbox_nsm/tables/type_config.py:46
+#: netbox_nsm/forms/nsm_type_config.py:161 netbox_nsm/forms/nsm_type_config.py:220
+#: netbox_nsm/models/nsm_type_config.py:42 netbox_nsm/tables/nsm_type_config.py:46
 #: netbox_nsm/templates/netbox_nsm/securityproperty.html:12
 msgid "Object Type"
 msgstr "Objekttyp"
 
-#: netbox_nsm/forms/type_config.py:162
+#: netbox_nsm/forms/nsm_type_config.py:162
 msgid "NetBox object type, e.g. IPAM › IP Range or DCIM › Device."
 msgstr "NetBox-Objekttyp, z.B. IPAM › IP-Bereich oder DCIM › Gerät."
 
@@ -588,11 +593,7 @@ msgstr "NSM-Bereich"
 msgid "NSM Sections"
 msgstr "NSM-Bereiche"
 
-#: netbox_nsm/models/nsm_type_config.py:29
-msgid "Security areas in which this type appears."
-msgstr "Sicherheitsbereiche, in denen dieser Typ erscheint."
-
-#: netbox_nsm/models/nsm_type_config.py:36 netbox_nsm/models/type_config.py:61
+#: netbox_nsm/models/nsm_type_config.py:36 netbox_nsm/models/nsm_type_config.py:61
 #, python-brace-format
 msgid "Format string used to render an object's display name. Field names in curly braces are substituted (e.g. '{name} ({protocol})')."
 msgstr ""
@@ -609,13 +610,13 @@ msgstr "Virtuelle Gruppen erlauben"
 msgid "Allows building virtual groups (AND-linking) for this type in the panel and rule editor. Multiple groups are linked with OR."
 msgstr ""
 
-#: netbox_nsm/models/nsm_type_config.py:54
-msgid "NSM Type Config"
-msgstr "NSM-Typkonfiguration"
+#: netbox_nsm/models/nsm_type_config.py:108
+msgid "Type Config"
+msgstr "Typkonfiguration"
 
-#: netbox_nsm/models/nsm_type_config.py:55
-msgid "NSM Type Configs"
-msgstr "NSM-Typkonfigurationen"
+#: netbox_nsm/models/nsm_type_config.py:109
+msgid "Type Configs"
+msgstr "Typkonfigurationen"
 
 #: netbox_nsm/models/security_area.py:15
 msgid "Order for displaying areas in UI tabs/lists (lower comes first)."
@@ -974,71 +975,71 @@ msgstr "Dieses Feld ist erforderlich."
 msgid "Value must be unique within this object type."
 msgstr "Wert muss innerhalb dieses Objekttyps eindeutig sein."
 
-#: netbox_nsm/models/type_config.py:12
+#: netbox_nsm/models/nsm_type_config.py:12
 msgid "Address"
 msgstr "Adresse"
 
-#: netbox_nsm/models/type_config.py:13
+#: netbox_nsm/models/nsm_type_config.py:13
 msgid "Zone"
 msgstr "Zone"
 
-#: netbox_nsm/models/type_config.py:14
+#: netbox_nsm/models/nsm_type_config.py:14
 #, fuzzy
 #| msgid "Label"
 msgid "Label-Scope"
 msgstr "Bezeichnung"
 
-#: netbox_nsm/models/type_config.py:15
+#: netbox_nsm/models/nsm_type_config.py:15
 #: netbox_nsm/templates/netbox_nsm/securityobjecttype.html:50
 msgid "Label"
 msgstr "Bezeichnung"
 
-#: netbox_nsm/models/type_config.py:16
+#: netbox_nsm/models/nsm_type_config.py:16
 msgid "Trust"
 msgstr "Vertrauen"
 
-#: netbox_nsm/models/type_config.py:17 netbox_nsm/tables/security_policy.py:357
+#: netbox_nsm/models/nsm_type_config.py:17 netbox_nsm/tables/security_policy.py:357
 #: netbox_nsm/templates/netbox_nsm/securitypolicyrule.html:171
 #: netbox_nsm/views/security_policy.py:340
 msgid "Service"
 msgstr "Dienst"
 
-#: netbox_nsm/models/type_config.py:18 netbox_nsm/tables/security_policy.py:362
+#: netbox_nsm/models/nsm_type_config.py:18 netbox_nsm/tables/security_policy.py:362
 #: netbox_nsm/templates/netbox_nsm/securityobject_assignments.html:21
 #: netbox_nsm/templates/netbox_nsm/securityobjectgroup_assignments.html:19
 #: netbox_nsm/views/security_policy.py:341
 msgid "Action"
 msgstr "Aktion"
 
-#: netbox_nsm/models/type_config.py:19
+#: netbox_nsm/models/nsm_type_config.py:19
 msgid "User"
 msgstr "Benutzer"
 
-#: netbox_nsm/models/type_config.py:20
+#: netbox_nsm/models/nsm_type_config.py:20
 msgid "Application"
 msgstr "Anwendung"
 
-#: netbox_nsm/models/type_config.py:22
+#: netbox_nsm/models/nsm_type_config.py:22
 msgid "Other"
 msgstr "Sonstige"
 
-#: netbox_nsm/models/type_config.py:51
+#: netbox_nsm/models/nsm_type_config.py:51
 msgid "Semantic category of this type. Used to automatically derive the matching strategy of a Rulebook (e.g. 'label', 'zone', 'address')."
 msgstr ""
 
-#: netbox_nsm/models/type_config.py:70
+#: netbox_nsm/models/nsm_type_config.py:70
 msgid "UI hint: list of placements this type may appear in. Example: [\"source\", \"destination\"] or [\"fixed\"]. Leave empty to allow all placements."
 msgstr ""
 
-#: netbox_nsm/models/type_config.py:93
+#: netbox_nsm/models/nsm_type_config.py:93
 msgid "Linkable in panel"
 msgstr ""
 
-#: netbox_nsm/models/type_config.py:95
+#: netbox_nsm/models/nsm_type_config.py:95
 msgid "If enabled, objects of this type can be linked from the NSM Security Panel."
 msgstr ""
 
-#: netbox_nsm/models/type_config.py:101
+#: netbox_nsm/models/nsm_type_config.py:101
 msgid "Type Configs"
 msgstr "Typkonfigurationen"
 
@@ -1081,10 +1082,6 @@ msgstr "Analyse"
 #: netbox_nsm/templates/netbox_nsm/inc/nsm_security_links.html:37
 msgid "Security"
 msgstr "Sicherheit"
-
-#: netbox_nsm/tables/nsm_type_config.py:72
-msgid "No NSMTypeConfig entries found."
-msgstr "Keine NSMTypeConfig-Einträge vorhanden."
 
 #: netbox_nsm/tables/security_object_group.py:23
 #: netbox_nsm/templates/netbox_nsm/securityobjectgroup.html:25
@@ -1134,25 +1131,64 @@ msgstr "Übergeordnet"
 msgid "Assigned Object"
 msgstr "Zugewiesenes Objekt"
 
-#: netbox_nsm/tables/type_config.py:57 netbox_nsm/tables/type_config.py:126
+#: netbox_nsm/tables/nsm_type_config.py:57 netbox_nsm/tables/nsm_type_config.py:126
 msgid "Stop on own link"
 msgstr ""
 
-#: netbox_nsm/tables/type_config.py:60
+#: netbox_nsm/tables/nsm_type_config.py:60
 msgid "Panel"
 msgstr ""
 
-#: netbox_nsm/tables/type_config.py:111
+#: netbox_nsm/tables/nsm_type_config.py:111
 #, fuzzy
 #| msgid "All"
 msgid "all"
 msgstr "Alle"
 
-#: netbox_nsm/tables/type_config.py:118
+#: netbox_nsm/policy_grid_payload.py:52
+#: netbox_nsm/policy_grid_payload.py:95
+#: netbox_nsm/tables/rulebook.py:357
 msgid "On"
-msgstr ""
+msgstr "Ein"
 
-#: netbox_nsm/tables/type_config.py:134
+#: netbox_nsm/policy_grid_payload.py:52
+#: netbox_nsm/tables/rulebook.py:361
+msgid "Off"
+msgstr "Aus"
+
+#: netbox_nsm/policy_grid_payload.py:95
+msgid "Summary"
+msgstr "Übersicht"
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+msgid "Delete selected"
+msgstr "Auswahl löschen"
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+msgid "Delete selected rules"
+msgstr "Ausgewählte Regeln löschen"
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+msgid "Delete selected rules?"
+msgstr "Ausgewählte Regeln löschen?"
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+msgid "Expand groups"
+msgstr "Gruppen öffnen"
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+msgid "Collapse groups"
+msgstr "Gruppen schließen"
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+msgid "Expand all column groups (Source, Destination, …)"
+msgstr "Alle Spaltengruppen öffnen (Source, Destination, …)"
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+msgid "Collapse all column groups to summary columns"
+msgstr "Alle Spaltengruppen auf Übersichtsspalten reduzieren"
+
+#: netbox_nsm/tables/nsm_type_config.py:134
 msgid "Yes"
 msgstr ""
 
@@ -2182,13 +2218,13 @@ msgstr "Verknüpfung gelöscht."
 
 #: netbox_nsm/views/rulebook_field.py:65
 #, python-format
-msgid "Field '%(name)s' wurde angelegt."
-msgstr "Feld '%(name)s' wurde angelegt."
+msgid "Field '%(name)s' was created."
+msgstr "Feld „%(name)s“ wurde angelegt."
 
 #: netbox_nsm/views/rulebook_field.py:130
 #, python-format
-msgid "Field '%(name)s' wurde gespeichert."
-msgstr "Feld '%(name)s' wurde gespeichert."
+msgid "Field '%(name)s' was saved."
+msgstr "Feld „%(name)s“ wurde gespeichert."
 
 #: netbox_nsm/views/rulebook_field.py:179
 #, python-format
@@ -2201,10 +2237,9 @@ msgid "Type added to field '%(name)s'."
 msgstr "Typ zu Feld '%(name)s' hinzugefügt."
 
 #: netbox_nsm/views/rulebook_field.py:271
-#, fuzzy, python-format
-#| msgid "Field '%(name)s' wurde gespeichert."
-msgid "Field Type '%(name)s' gespeichert."
-msgstr "Feld '%(name)s' wurde gespeichert."
+#, python-format
+msgid "Field type '%(name)s' was saved."
+msgstr "Feldtyp „%(name)s“ wurde gespeichert."
 
 #: netbox_nsm/views/rulebook_field.py:319
 msgid "Type entry deleted."
@@ -2221,15 +2256,6 @@ msgstr "Zonenmatrix"
 #: netbox_nsm/views/security_policy.py:1343
 msgid "Policy"
 msgstr "Richtlinie"
-
-#: netbox_nsm/views/setup.py:501
-msgid "Import finished."
-msgstr ""
-
-#: netbox_nsm/views/setup.py:504
-#, python-format
-msgid "Enterprise Demo imported successfully. %(summary)s"
-msgstr ""
 
 #: netbox_nsm/views/setup.py:549
 #, python-format
@@ -2254,14 +2280,194 @@ msgstr "Alle TypeConfigs erstellt/aktualisiert."
 msgid "Demo rulebook '%(name)s' created."
 msgstr "Demo-Rulebook '%(name)s' erstellt."
 
-#: netbox_nsm/views/setup.py:586
-msgid "Enterprise Demo cannot be imported: IP addresses already exist in the database."
-msgstr ""
-
 #: netbox_nsm/views/setup.py:593
 #, python-format
 msgid "Error: %(error)s"
 msgstr "Fehler: %(error)s"
+
+#: netbox_nsm/views/rulebook_field.py:167
+#: netbox_nsm/views/rulebook_field.py:191
+msgid "System fields cannot be deleted."
+msgstr "Systemfelder können nicht gelöscht werden."
+
+#: netbox_nsm/views/rulebook_field.py:217
+msgid "Types cannot be added to system fields."
+msgstr "Typen können Systemfeldern nicht hinzugefügt werden."
+
+#: netbox_nsm/views/security_policy.py:2074
+#, python-format
+msgid "%(created)d assignment(s) created, %(skipped)d already existed."
+msgstr "%(created)d Zuweisung(en) erstellt, %(skipped)d existierte(n) bereits."
+
+#: netbox_nsm/views/security_area.py:58
+msgid "Missing object identifier"
+msgstr "Objektkennung fehlt"
+
+#: netbox_nsm/views/security_area.py:62
+msgid "Area not found"
+msgstr "Bereich nicht gefunden"
+
+#: netbox_nsm/views/security_area.py:69
+#, python-format
+msgid "Area '%(name)s' was deleted."
+msgstr "Bereich „%(name)s“ wurde gelöscht."
+
+#: netbox_nsm/views/custom_objects_demo.py:114
+#: netbox_nsm/views/custom_objects_sync.py:191
+msgid "Plugin netbox_custom_objects is not installed."
+msgstr "Plugin netbox_custom_objects ist nicht installiert."
+
+#: netbox_nsm/views/custom_objects_demo.py:124
+#, python-format
+msgid "Schema could not be applied: %(exc_type)s: %(exc)s"
+msgstr "Schema konnte nicht angewendet werden: %(exc_type)s: %(exc)s"
+
+#: netbox_nsm/views/custom_objects_demo.py:137
+#, python-format
+msgid "CustomObjectType '%(slug)s' was not found."
+msgstr "CustomObjectType „%(slug)s“ wurde nicht gefunden."
+
+#: netbox_nsm/views/custom_objects_demo.py:157
+#, python-format
+msgid ""
+"Demo applied: %(types)d CustomObjectTypes, %(created)d new objects created, "
+"%(skipped)d already existed."
+msgstr ""
+"Demo angewendet: %(types)d CustomObjectTypes, %(created)d neue Objekte "
+"erstellt, %(skipped)d bereits vorhanden."
+
+#: netbox_nsm/views/custom_objects_sync.py:212
+#, python-format
+msgid "Sync failed: %(exc_type)s: %(exc)s"
+msgstr "Sync fehlgeschlagen: %(exc_type)s: %(exc)s"
+
+#: netbox_nsm/views/custom_objects_sync.py:220
+#, python-format
+msgid ""
+"Sync complete — %(types)d CustomObjectTypes, %(cs_created)d new ChoiceSets "
+"(%(cs_kept)d existing), %(cfg_count)d TypeConfigs, %(sec_links)d section "
+"links, %(obj_created)d new objects, %(obj_updated)d updated, "
+"%(obj_skipped)d skipped, %(cots_pruned)d old types + %(secs_pruned)d old "
+"sections removed."
+msgstr ""
+"Sync abgeschlossen — %(types)d CustomObjectTypes, %(cs_created)d neue "
+"ChoiceSets (%(cs_kept)d bestehend), %(cfg_count)d TypeConfigs, "
+"%(sec_links)d Section-Verknüpfungen, %(obj_created)d neue Objekte, "
+"%(obj_updated)d aktualisiert, %(obj_skipped)d übersprungen, "
+"%(cots_pruned)d alte Types + %(secs_pruned)d alte Sections entfernt."
+
+#: netbox_nsm/views/object_analyzer.py:21
+msgid "Device"
+msgstr "Gerät"
+
+#: netbox_nsm/views/object_analyzer.py:26
+msgid "Virtual Machine"
+msgstr "Virtuelle Maschine"
+
+#: netbox_nsm/views/object_analyzer.py:31
+msgid "IP Address"
+msgstr "IP-Adresse"
+
+#: netbox_nsm/views/object_analyzer.py:36
+msgid "Prefix"
+msgstr "Präfix"
+
+#: netbox_nsm/views/object_analyzer.py:41
+msgid "Firewall Rule"
+msgstr "Firewall-Regel"
+
+#: netbox_nsm/views/object_analyzer.py:46
+msgid "Rulebook"
+msgstr "Regelbuch"
+
+#: netbox_nsm/views/setup.py:501
+msgid "Import finished."
+msgstr "Import abgeschlossen."
+
+#: netbox_nsm/views/setup.py:504
+#, python-format
+msgid "Enterprise Demo imported successfully. %(summary)s"
+msgstr "Enterprise-Demo erfolgreich importiert. %(summary)s"
+
+#: netbox_nsm/views/setup.py:586
+msgid "Enterprise Demo cannot be imported: IP addresses already exist in the database."
+msgstr "Enterprise-Demo kann nicht importiert werden: IP-Adressen existieren bereits in der Datenbank."
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+msgid "FILTER"
+msgstr "FILTER"
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+msgid "Collapse filter panel"
+msgstr "Filterpanel einklappen"
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+msgid "Expand filter panel"
+msgstr "Filterpanel ausklappen"
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+msgid "No filter facets available. Enable Facet Mode on object fields or add rules with values."
+msgstr "Keine Filter-Facetten verfügbar. Facetten-Modus bei Objektfeldern aktivieren oder Regeln mit Werten anlegen."
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+msgid "Filter mode"
+msgstr "Filtermodus"
+
+#: netbox_nsm/templates/netbox_nsm/rule_edit.html
+msgid "Object fields"
+msgstr "Objektfelder"
+
+#: netbox_nsm/templates/netbox_nsm/rule_edit.html
+msgid "Select a rulebook first, then assign objects per field in the tabs below."
+msgstr "Zuerst ein Regelbuch wählen, dann Objekte je Feld in den Tabs unten zuweisen."
+
+#: netbox_nsm/templates/netbox_nsm/rule_edit.html
+msgid "Select a type first."
+msgstr "Zuerst einen Typ wählen."
+
+#: netbox_nsm/templates/netbox_nsm/rule_edit.html
+msgid "Enter at least 2 characters to search (or * for the first page only)."
+msgstr "Mindestens 2 Zeichen eingeben (oder * nur für die erste Seite)."
+
+#: netbox_nsm/templates/netbox_nsm/rule_edit.html
+msgid "Server-side search: type at least 2 characters. Large lists are loaded in pages only."
+msgstr "Serversuche: mindestens 2 Zeichen. Große Listen werden nur seitenweise geladen."
+
+#: netbox_nsm/templates/netbox_nsm/rule_edit.html
+msgid "Load more"
+msgstr "Mehr laden"
+
+#: netbox_nsm/templates/netbox_nsm/rule_edit.html
+msgid "No API endpoint for this type. Check type config or custom objects."
+msgstr "Kein API-Endpunkt für diesen Typ. Type Config oder Custom Objects prüfen."
+
+#: netbox_nsm/templates/netbox_nsm/object_link_assign.html
+msgid "Search (min. 2 chars or *)…"
+msgstr "Suchen (mind. 2 Zeichen oder *)…"
+
+#: netbox_nsm/templates/netbox_nsm/object_link_assign.html
+msgid "Search (min. 2 chars)…"
+msgstr "Suchen (mind. 2 Zeichen)…"
+
+#: netbox_nsm/templates/netbox_nsm/object_link_assign.html
+msgid "Load more…"
+msgstr "Mehr laden…"
+
+#: netbox_nsm/templates/netbox_nsm/rule_edit.html
+msgid "No types configured for this field. Add a type config under Rulebook → Fields."
+msgstr "Keine Typen für dieses Feld. Type Config unter Rulebook → Fields hinzufügen."
+
+#: netbox_nsm/templates/netbox_nsm/rule_edit.html
+msgid "Search (min. 2 chars or *)…"
+msgstr "Suchen (mind. 2 Zeichen oder *)…"
+
+#: netbox_nsm/templates/netbox_nsm/rule_edit.html
+msgid "Search (min. 2 chars)…"
+msgstr "Suchen (mind. 2 Zeichen)…"
+
+#: netbox_nsm/templates/netbox_nsm/rule_edit.html
+msgid "Select a rulebook first, then assign zones, addresses, services, and other objects per field."
+msgstr "Zuerst ein Regelbuch wählen, dann Zonen, Adressen, Dienste und weitere Objekte je Feld zuweisen."
 
 #~ msgid "Traffic-Richtung für dieses Feld."
 #~ msgstr "Traffic-Richtung für dieses Feld."

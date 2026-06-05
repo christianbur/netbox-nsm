@@ -16,6 +16,7 @@ class MatchingClassChoices(models.TextChoices):
     TRUST = "trust", _("Trust")
     SERVICE = "service", _("Service")
     ACTION = "action", _("Action")
+    INFO = "info", _("Info")
     USER = "user", _("User")
     APPLICATION = "application", _("Application")
     GROUP = "group", _("Group")
@@ -23,12 +24,7 @@ class MatchingClassChoices(models.TextChoices):
 
 
 class TypeConfig(NetBoxModel):
-    """Global per-ContentType configuration.
-
-    Defines how a NetBox object type behaves in NSM: its matching class
-    (used to auto-derive rulebook matching strategy), display template,
-    and which placements it is allowed to appear in.
-    """
+    """Per-ContentType configuration for NSM panels, rulebooks, and display."""
 
     name = models.CharField(
         max_length=100,
@@ -62,14 +58,25 @@ class TypeConfig(NetBoxModel):
             "Field names in curly braces are substituted (e.g. '{name} ({protocol})')."
         ),
     )
-    allowed_placements = models.JSONField(
+    panel_slugs = models.JSONField(
         default=list,
         blank=True,
-        verbose_name=_("Allowed Placements"),
+        verbose_name=_("Panel slugs"),
         help_text=_(
-            "UI hint: list of placements this type may appear in. "
-            'Example: ["source", "destination"] or ["fixed"]. '
-            "Leave empty to allow all placements."
+            "Panel section slugs where this type appears (e.g. source, destination, services)."
+        ),
+    )
+    order_id = models.PositiveIntegerField(
+        default=100,
+        verbose_name=_("Sort order"),
+        help_text=_("Sort order of this type within panel sections."),
+    )
+    allow_virtual_groups = models.BooleanField(
+        default=False,
+        verbose_name=_("Allow Virtual Groups"),
+        help_text=_(
+            "Allows building virtual groups (AND-linking) for this type "
+            "in the panel and rule editor. Multiple groups are linked with OR."
         ),
     )
     inherit_links = models.BooleanField(
@@ -99,8 +106,110 @@ class TypeConfig(NetBoxModel):
     class Meta:
         verbose_name = _("Type Config")
         verbose_name_plural = _("Type Configs")
-        ordering = ("content_type__app_label", "content_type__model", "matching_class")
+        ordering = (
+            "order_id",
+            "content_type__app_label",
+            "content_type__model",
+            "matching_class",
+        )
         unique_together = [("content_type", "matching_class")]
+
+    @property
+    def content_type_label(self):
+        """Human-readable NetBox model name for UI (e.g. 'Zone')."""
+        if not self.content_type_id:
+            return ""
+        mc = self.content_type.model_class()
+        if mc:
+            vn = mc._meta.verbose_name
+            if vn:
+                return str(vn).title()
+            return mc._meta.model_name.replace("_", " ").title()
+        return self.content_type.model.replace("_", " ").title()
+
+    @staticmethod
+    def _label_dedup_key(label: str) -> str:
+        """Normalize labels so Zone / Zones / zone compare equal."""
+        s = (label or "").strip().lower()
+        if len(s) > 3 and s.endswith("es"):
+            return s[:-2]
+        if len(s) > 2 and s.endswith("s"):
+            return s[:-1]
+        return s
+
+    @property
+    def type_line_subtitle(self) -> str:
+        """
+        Secondary type line label; empty when it would repeat the primary title.
+        """
+        name = (self.name or "").strip()
+        primary = name or self.content_type_label or ""
+        pkey = self._label_dedup_key(primary)
+        bits: list[str] = []
+        candidates: list[str] = []
+        if name:
+            candidates.append(self.content_type_label)
+        if self.matching_class:
+            candidates.append(self.get_matching_class_display())
+        for label in candidates:
+            label = (label or "").strip()
+            if not label:
+                continue
+            lkey = self._label_dedup_key(label)
+            if lkey == pkey:
+                continue
+            if any(self._label_dedup_key(b) == lkey for b in bits):
+                continue
+            bits.append(label)
+        return " · ".join(bits)
+
+    @property
+    def type_line_subtitle_parts(self) -> list[str]:
+        """Subtitle segments for pill display on the rulebook detail page."""
+        sub = self.type_line_subtitle
+        if not sub:
+            return []
+        return [part.strip() for part in sub.split(" · ") if part.strip()]
+
+    @property
+    def type_line_kind_parts(self) -> list[str]:
+        """Kind-column badges (matching class + meta), deduplicated."""
+        parts: list[str] = []
+        if self.matching_class:
+            mc_label = (self.get_matching_class_display() or "").strip()
+            if mc_label:
+                parts.append(mc_label)
+        for label in self.type_line_subtitle_parts:
+            label = (label or "").strip()
+            if not label:
+                continue
+            if any(self._label_dedup_key(label) == self._label_dedup_key(p) for p in parts):
+                continue
+            parts.append(label)
+        return parts
+
+    @property
+    def matching_class_icon(self):
+        icons = {
+            MatchingClassChoices.ADDRESS: "mdi-ip-network-outline",
+            MatchingClassChoices.ZONE: "mdi-map-marker-radius-outline",
+            MatchingClassChoices.SERVICE: "mdi-cog-outline",
+            MatchingClassChoices.ACTION: "mdi-play-circle-outline",
+            MatchingClassChoices.INFO: "mdi-information-outline",
+            MatchingClassChoices.USER: "mdi-account-outline",
+            MatchingClassChoices.APPLICATION: "mdi-application-outline",
+            MatchingClassChoices.GROUP: "mdi-account-group-outline",
+            MatchingClassChoices.LABEL: "mdi-label-outline",
+            MatchingClassChoices.LABEL_SCOPE: "mdi-label-multiple-outline",
+            MatchingClassChoices.TRUST: "mdi-shield-check-outline",
+        }
+        return icons.get(self.matching_class, "mdi-cube-outline")
+
+    @property
+    def matching_class_css_slug(self):
+        """Safe slug for nsm-rb-mc-* CSS classes (e.g. label-scope)."""
+        mc = (self.matching_class or "").strip()
+        return mc or MatchingClassChoices.OTHER
 
     def __str__(self):
         if self.name:

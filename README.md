@@ -16,283 +16,19 @@ tightly integrated with NetBox's existing IPAM and DCIM data.
 2. [Installation](#installation)
 3. [Configuration](#configuration)
 4. [Quick Start / Setup Wizard](#quick-start--setup-wizard)
-5. [Built-in Object Types](#built-in-object-types)
-6. [Type Config](#type-config)
-7. [NSM Object Links & Security Panel](#nsm-object-links--security-panel)
-8. [Security Policies](#security-policies)
+5. [Type Config](#type-config)
+6. [NSM Object Links & Security Panel](#nsm-object-links--security-panel)
+7. [Security Policies](#security-policies)
    - [Rulebook List](#rulebook-list)
-   - [Rule Editor](#rule-editor)
+   - [Rulebook Detail](#rulebook-detail)
+   - [Policy Rules](#policy-rules)
    - [Policy Analysis](#policy-analysis)
    - [Zone Matrix](#zone-matrix)
-9. [Object Analyzer](#object-analyzer)
+8. [Demo – Object Analyzer](#demo--object-analyzer)
+9. [Demo Data: Enterprise DC](#demo-data-enterprise-dc)
 10. [REST API](#rest-api)
-11. [Compatibility](#compatibility)
-
----
-
-## Overview
-
-`netbox-nsm` is a **documentation plugin** — it helps you maintain an overview of your network
-security landscape directly inside NetBox, where your IPAM and DCIM data already lives.
-
-`netbox-nsm` is **not** a policy enforcement tool and does not push rules to firewalls.
-It gives you a place to **document**, **visualise** and **cross-reference** security policies
-alongside your existing network inventory — vendor-agnostic, in one place.
-
-Rulebooks are flexible enough to model virtually any firewall vendor's policy style:
-
-| Policy style | Objects used | Typical vendors |
-|---|---|---|
-| Zone-based | Zone objects in Source + Destination | Palo Alto, Fortinet, Cisco ASA, Check Point |
-| Address-based | Address or Prefix objects | iptables, AWS Security Groups, ACLs |
-| Zone + Address | Zones and Addresses combined | Mixed environments |
-| Label-based | Labels / Tags | Illumio, VMware NSX, cloud micro-segmentation |
-| Mixed | Any combination of the above | Multi-vendor / multi-team environments |
-
-Key concepts:
-
-| Concept | What it is |
-|---|---|
-| **Custom Object Type (COT)** | Schema for a security object class (Zone, Address, Label, Service, Action, …), provided by `netbox-custom-objects` |
-| **NSM Object Link** | Bidirectional link between any two NetBox objects (e.g. Prefix ↔ Zone) |
-| **Type Config** | Configures how a COT is used inside NSM (matching class, display template, allowed placements) |
-| **Security Rulebook** | A named, ordered list of firewall / policy rules |
-| **Security Rule** | One rule with configurable columns (source, destination, service, action, …) |
-| **Security Panel** | Auto-injected panel showing security links on every NetBox detail page |
-
----
-
-## Installation
-
-```bash
-pip install netbox-nsm
-```
-
-Add to `configuration.py`:
-
-```python
-PLUGINS = [
-    "netbox_custom_objects",   # required dependency
-    "netbox_nsm",
-]
-```
-
-Run migrations:
-
-```bash
-python netbox/manage.py migrate netbox_nsm
-```
-
-Restart the NetBox process (gunicorn / uwsgi).
-
----
-
-## Configuration
-
-All settings are optional:
-
-```python
-PLUGINS_CONFIG = {
-    "netbox_nsm": {
-        # Render plugin as top-level "Security" menu entry (default: True)
-        "top_level_menu": True,
-
-        # Add "Security Rulebook Assignments" to the menu (default: False)
-        "assignments_menu": False,
-    }
-}
-```
-
----
-
-## Quick Start / Setup Wizard
-
-**Security → Configuration → Setup**
-
-The wizard guides you through two steps:
-
-1. **Sync built-in types** — creates (or updates) the built-in Custom Object Types via
-   `netbox-custom-objects` and creates the corresponding TypeConfig records.
-2. **Create demo data** *(optional)* — creates example rulebooks or the full Enterprise DC demo.
-
-> The "Import Enterprise Demo" button is only shown when the database contains **no IP addresses**,
-> to prevent accidental data overwrites.
-
----
-
-## Built-in Object Types
-
-The setup wizard creates five built-in Custom Object Types (COTs):
-
-| Slug | Name | Purpose | Default placements |
-|---|---|---|---|
-| `nsm_zones` | Zones | Firewall security zones (e.g. prod, dmz, untrust) | source, destination |
-| `nsm_addresses` | Addresses | Named address objects / address groups | source, destination |
-| `nsm_labels` | Labels | Classification tags (environment, role, tier, …) | fixed |
-| `nsm_services` | Services | Port/protocol definitions (tcp/443, udp/53, …) | fixed |
-| `nsm_action` | Actions | Rule outcome (permit, deny, drop, reject) | fixed |
-| `nsm_business_apps` | Business Apps | Business application with ownership metadata | fixed |
-| `nsm_network_apps` | Network Apps | Network application ID (App-ID style, e.g. ssl, ssh, dns) | fixed |
-
-### nsm_business_apps fields
-
-| Field | Type | Description |
-|---|---|---|
-| `name` | Text | Application name (required) |
-| `criticality` | Selection | low / medium / high / critical |
-| `business_owner` | Object (ContactGroup) | Responsible business contact group |
-| `technical_owner` | Object (ContactGroup) | Responsible technical contact group |
-| `description` | Text | Free-text description |
-| `color` | Text | Display colour (hex) |
-| `comments` | Long text | Extended notes |
-
-### nsm_network_apps fields
-
-| Field | Type | Description |
-|---|---|---|
-| `name` | Text | Application name (required), e.g. `ssl`, `ssh`, `dns` |
-| `app_category` | Selection | collaboration / database / email / file-sharing / general-internet / infrastructure / media / networking / remote-access / saas / security / storage / voip-video / other |
-| `app_risk` | Selection | Risk level 1 (low) to 5 (high) |
-| `default_ports` | Text | Comma-separated ports, e.g. `tcp/443,tcp/80` |
-| `description` | Text | Free-text description |
-| `color` | Text | Display colour (hex) |
-| `comments` | Long text | Extended notes |
-
-Default network app objects: `dns`, `http`, `ssl`, `ssh`, `rdp`, `smtp`, `smb`, `onedrive`, `teams`, `zoom`
-
----
-
-## Type Config
-
-**Security → Configuration → Type Config**
-
-A `TypeConfig` record controls how one NetBox object type behaves inside NSM.
-
-| Field | Description |
-|---|---|
-| **Object Type** | The NetBox ContentType this config applies to |
-| **Matching Class** | Semantic role: `zone`, `address`, `label`, `service`, `action`, `application`, `other`, … |
-| **Display Template** | How to render objects in the UI — e.g. `{name}`, `{name} ({protocol}/{port})` |
-| **Allowed Placements** | Which rule columns this type may appear in: `source`, `destination`, `fixed` |
-| **Panel linkable** | Whether this type appears in the Security Panel assign picker |
-
----
-
-## NSM Object Links & Security Panel
-
-The **Security Panel** is automatically injected into every NetBox object's detail page.
-It shows all security objects linked to the current object, grouped by type.
-
-An `NSMObjectLink` is a bidirectional link between any NetBox object (Prefix, IP Address,
-Device, VM, Interface, …) and a security object (Zone, Address, Label, …).
-
-New links are created via the **+ Assign** button in the Security panel.
-
-### Inherited Links
-
-IP Addresses and sub-Prefixes automatically show the NSM links of their **parent Prefix**
-(inherited). Devices and Virtual Machines show inherited links of their **primary IP address**.
-
-Inherited links are shown with an *"Inherited from containing prefix"* badge and are
-loaded on demand (click "Load" to show them).
-
----
-
-## Security Policies
-
-A **Security Rulebook** is a named, ordered list of firewall rules. Each Rulebook defines
-its own column structure (fields), so zone-based, address-based and label-based policies
-can coexist in the same NetBox instance.
-
-### Rulebook List
-
-**Security → Security Policies**
-
-Lists all Rulebooks with rule count and assignment count.
-
-### Rule Editor
-
-The **Policy** tab opens the inline rule editor — one row per rule.
-
-Objects appear as colour-coded pills. Each rule has:
-- An **index** (sort order), **enabled** toggle, **name**, optional **comment**
-- One cell per configured field (Source, Destination, Service, Action, …)
-- A **log** flag
-
-**Adding objects to a rule cell:**
-
-1. Click a cell to open the editor
-2. Use the **type picker** (if the field accepts multiple object types) to select which type to browse
-3. The browse list shows up to 10 objects with a search filter — type to narrow down
-4. Click an item to add it; use **Load more** if more than 10 results exist
-5. Added items appear in the selection list on the right; click × to remove
-
-**AND-groups:** Use the AND button to create sub-groups where all items must match.
-
-Rules can be added (+), reordered (edit index), enabled/disabled individually, and bulk-deleted.
-
-### Policy Analysis
-
-The **Analysis** tab shows rule counts, enabled/disabled breakdown and object type statistics.
-
-### Zone Matrix
-
-The **Zone Matrix** tab renders a source-zone × destination-zone grid.
-Each cell shows the services permitted/denied between the two zones —
-the clearest way to understand a zone-based policy at a glance.
-
----
-
-## Object Analyzer
-
-**Security → Analysis → Object Analyzer**
-
-Select any NetBox object and see everything NSM knows about it:
-- All direct and inherited NSM links (Zones, Addresses, Labels, …)
-- All policy rules across all Rulebooks where this object appears
-
----
-
-## REST API
-
-All NSM models are exposed under `/api/plugins/netbox-nsm/`:
-
-| Endpoint | Model |
-|---|---|
-| `type-configs/` | TypeConfig |
-| `object-links/` | NSMObjectLink |
-| `security-areas/` | NSMSection (rule field areas) |
-| `security-zone-policy-rulebooks/` | SecurityPolicyRulebook |
-| `security-zone-policy-rules/` | SecurityPolicyRule |
-| `security-zone-policy-rulebook-assignments/` | SecurityPolicyAssignment |
-| `object-groups/` | SecurityObjectGroup |
-| `rulebook-fields/` | RulebookField |
-| `rulebook-field-types/` | RulebookFieldType |
-| `rule-object-items/` | SecurityPolicyRuleObjectItem |
-| `rule-group-items/` | SecurityPolicyRuleGroupItem |
-
-The portable schema (Custom Object Type definitions) can be applied via:
-
-```
-POST /api/plugins/custom-objects/schema/apply/
-```
-
-using the bundled `nsm-schema.json` as the request body.
-
----
-
-## Compatibility
-
-| NetBox | Plugin |
-|--------|--------|
-| 4.6.x  | 0.1.0  |
-
----
-
-## License
-
-See [LICENSE](LICENSE).
-
+11. [Database tables](docs/DATABASE.md)
+12. [Compatibility](#compatibility)
 
 ---
 
@@ -355,13 +91,24 @@ PLUGINS = [
 ]
 ```
 
-Run migrations:
+Run migrations after `netbox_nsm` is listed in `PLUGINS` (same pattern as other NetBox plugins and
+[netbox-branching](https://github.com/netboxlabs/netbox-branching)):
 
 ```bash
-python netbox/manage.py migrate netbox_nsm
+cd netbox/netbox   # NetBox source tree
+./manage.py migrate --no-input
 ```
 
-Restart the NetBox process (gunicorn / uwsgi).
+Or per app (`netbox-custom-objects` **before** NSM):
+
+```bash
+./manage.py migrate netbox_custom_objects --no-input
+./manage.py migrate netbox_nsm --no-input
+```
+
+**Homelab netbox-dev:** Mount, Migrationen, Setup, Fehler — **[docs/DOCKER.md](docs/DOCKER.md)**.
+
+Restart NetBox after migrating: `docker restart netbox-dev`.
 
 ---
 
@@ -377,9 +124,37 @@ PLUGINS_CONFIG = {
 
         # Add "Security Rulebook Assignments" to the menu (default: False)
         "assignments_menu": False,
+
+        # Show Setup under Security → Configuration (default: True)
+        "setup_menu": True,
+
+        # Setup: full sync, demo custom types, demo rulebooks (default: True)
+        "setup_allow_destructive_actions": True,
     }
 }
 ```
+
+Hide Setup entirely (menu entry and `/plugins/netbox-nsm/setup/` URLs):
+
+```python
+PLUGINS_CONFIG = {
+    "netbox_nsm": {
+        "setup_menu": False,
+    },
+}
+```
+
+Disable destructive Setup actions in production:
+
+```python
+PLUGINS_CONFIG = {
+    "netbox_nsm": {
+        "setup_allow_destructive_actions": False,
+    },
+}
+```
+
+Restart NetBox after changing `configuration.py`.
 
 ---
 
@@ -422,7 +197,9 @@ Without it, the plugin does not know how to handle or display that type.
 | **Object Type** | The NetBox ContentType this config applies to (e.g. `Custom Objects › nsm_zones`) |
 | **Matching Class** | Semantic role: `address`, `zone`, `label`, `service`, `action`, … Tells Rulebooks how to interpret objects of this type when building policies |
 | **Display Template** | How to render objects of this type in the UI. E.g. `{name}` for zones, `{name} ({protocol}/{port})` for services |
-| **Allowed Placements** | Restricts which rule fields this type may appear in: `source`, `destination`, or `fixed` (e.g. services are typically `fixed`, not source/destination) |
+| **Panel slugs** | Panel sections where this type appears (Setup / group picker): `source`, `destination`, `services`, `action`, `info` |
+| **Sort order** | Order within panel lists |
+| **Allow virtual groups** | Enable AND/OR virtual groups for this type in the rule editor |
 | **Inherit from parent** | If enabled: sub-Prefixes and IP Addresses automatically show the NSM links of their parent Prefix in the Security Panel |
 | **Stop if own link present** | If enabled: once a child object has its own direct link of this type, the inherited link from the parent is hidden — useful for exceptions |
 
@@ -434,7 +211,7 @@ The Security Panel is **automatically injected into every NetBox object's detail
 configuration needed. It shows all security objects linked to the current object, grouped by
 type (Zones, Addresses, Labels, Services, …).
 
-An `NSMObjectLink` is a bidirectional link between any NetBox object (Prefix, IP Address,
+An `ObjectLink` is a bidirectional link between any NetBox object (Prefix, IP Address,
 Device, Interface, …) and a security object (Zone, Address object, Address group, Label, …).
 Multiple links per object are supported — a prefix can belong to a zone *and* have an address
 object *and* carry several labels at the same time.
@@ -463,6 +240,10 @@ The panel groups all linked security objects by type:
 
 Each entry shows the object name with its colour badge and a direct link to the security object.
 
+Address and service **groups** additionally list their M2M membership in the same panel:
+parent groups appear with the comment *Member of*, contained members with *Member* — no
+separate ObjectLink assignment is required for group hierarchy.
+
 ### IP Address — inherited Security Panel
 
 An IP Address that has no direct NSM links of its own still shows the links of its parent
@@ -479,9 +260,9 @@ containing Prefix). Inherited links are shown with an *"Inherited from containin
 
 This is controlled per security object type via the TypeConfig:
 
-- **Inherit from parent** — a sub-Prefix or IP Address automatically shows the NSM links of
-  its parent Prefix. Useful so you don't have to assign the same zone to every sub-prefix
-  individually.
+- **Inherit from parent** — a sub-Prefix, IP Address, or IP Range automatically shows the
+  NSM links of its containing Prefix(es). For IP Ranges, the Prefix must contain both the
+  start and end address.
 - **Stop if own link present** — once the child has its own direct link of that type, the
   inherited link is suppressed. Useful for exceptions: a sub-prefix that belongs to a
   *different* zone than its parent.
@@ -603,11 +384,11 @@ All NSM models are exposed under `/api/plugins/netbox-nsm/`:
 
 | Endpoint | Model |
 |---|---|
-| `object-links/` | `NSMObjectLink` |
+| `object-links/` | `ObjectLink` |
 | `type-configs/` | `TypeConfig` |
-| `security-policy/` | `SecurityPolicyRulebook` |
-| `security-rule/` | `SecurityPolicyRule` |
-| `security-policy-assignments/` | `SecurityPolicyAssignment` |
+| `rulebooks/` | `Rulebook` |
+| `rules/` | `Rule` |
+| `security-policy-assignments/` | `RulebookAssignment` |
 
 The portable schema (Custom Object Type definitions) can be applied via:
 

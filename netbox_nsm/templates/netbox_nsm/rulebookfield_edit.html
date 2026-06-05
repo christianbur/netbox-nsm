@@ -40,6 +40,20 @@
           {% if form.non_field_errors %}
             <div class="alert alert-danger">{{ form.non_field_errors }}</div>
           {% endif %}
+          {% if form.errors %}
+            <div class="alert alert-danger">
+              <div class="fw-semibold mb-1">{% trans "Please correct the errors below." %}</div>
+              <ul class="mb-0 small">
+                {% for field, error_list in form.errors.items %}
+                  {% if field != "__all__" %}
+                    {% for error in error_list %}
+                      <li><strong>{{ field }}</strong>: {{ error }}</li>
+                    {% endfor %}
+                  {% endif %}
+                {% endfor %}
+              </ul>
+            </div>
+          {% endif %}
 
           <div class="mb-3">
             <label class="form-label" for="{{ form.name.id_for_label }}">
@@ -47,24 +61,62 @@
             </label>
             {{ form.name }}
             {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors }}</div>{% endif %}
+            {% if not object %}
+            <div class="form-text">
+              {% trans "The slug is generated automatically from the name (lowercase, letters and numbers only)." %}
+            </div>
+            <div class="form-text font-monospace text-muted small" id="nsm-field-slug-preview" hidden></div>
+            {% endif %}
           </div>
 
+          {% if form.slug %}
           <div class="mb-3">
             <label class="form-label" for="{{ form.slug.id_for_label }}">
-              {% trans "Slug" %} <span class="text-danger">*</span>
+              {% trans "Slug" %}
             </label>
             {{ form.slug }}
             {% if form.slug.errors %}<div class="text-danger small mt-1">{{ form.slug.errors }}</div>{% endif %}
-            <div class="form-text">{{ form.slug.help_text }}</div>
-            <datalist id="slug-presets">
-              <option value="source">
-              <option value="destination">
-              <option value="services">
-              <option value="action">
-              <option value="info">
-            </datalist>
+            <div class="form-text">
+              {% if object and object.is_system_field %}
+              {% trans "Fixed internal identifier for this standard field." %}
+              {% else %}
+              {% trans "Set automatically when the field was created. Cannot be changed." %}
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="mb-3">
+            <label class="form-label" for="{{ form.sort_order.id_for_label }}">
+              {% trans "Sort Order" %}
+            </label>
+            {{ form.sort_order }}
+            {% if form.sort_order.errors %}<div class="text-danger small mt-1">{{ form.sort_order.errors }}</div>{% endif %}
+            <div class="form-text">{% trans "Order of this column in the policy table (lower = further left)." %}</div>
           </div>
 
+          <div class="mb-3 form-check">
+            {{ form.visible }}
+            <label class="form-check-label" for="{{ form.visible.id_for_label }}">
+              {% trans "Visible in policy table" %}
+            </label>
+            {% if form.visible.errors %}
+              <div class="text-danger small mt-1">{{ form.visible.errors }}</div>
+            {% endif %}
+          </div>
+
+          {% if object and object.is_system_field %}
+          <div class="mb-3">
+            <label class="form-label" for="{{ form.placement.id_for_label }}">
+              {% trans "Placement" %}
+            </label>
+            {{ form.placement }}
+            <div class="form-text">{% trans "Fixed for standard policy table columns." %}</div>
+          </div>
+          <div class="alert alert-info py-2 small mb-3">
+            {% trans "Standard fields can be renamed, reordered and hidden. Slug and placement are fixed." %}
+          </div>
+          {% else %}
           <div class="mb-3">
             <label class="form-label" for="{{ form.placement.id_for_label }}">
               {% trans "Placement" %} <span class="text-danger">*</span>
@@ -73,32 +125,22 @@
             {% if form.placement.errors %}<div class="text-danger small mt-1">{{ form.placement.errors }}</div>{% endif %}
             <div class="form-text">{{ form.placement.help_text }}</div>
           </div>
+          {% endif %}
 
+          {% if not object or not object.is_system_field %}
           <div class="mb-3">
-            <label class="form-label" for="{{ form.sort_order.id_for_label }}">
-              {% trans "Sort Order" %}
+            <label class="form-label" for="{{ form.max_visible_pills.id_for_label }}">
+              {% trans "Max visible pills" %}
             </label>
-            {{ form.sort_order }}
-            {% if form.sort_order.errors %}<div class="text-danger small mt-1">{{ form.sort_order.errors }}</div>{% endif %}
+            {{ form.max_visible_pills }}
+            {% if form.max_visible_pills.errors %}
+              <div class="text-danger small mt-1">{{ form.max_visible_pills.errors }}</div>
+            {% endif %}
+            <div class="form-text">
+              {% trans "How many object pills to show per cell in the policy table. Further values are hidden behind +X until clicked." %}
+            </div>
           </div>
-
-          <div class="mb-3">
-            <label class="form-label" for="{{ form.type_configs.id_for_label }}">
-              {% trans "Allowed Types" %}
-            </label>
-            {{ form.type_configs }}
-            {% if form.type_configs.errors %}<div class="text-danger small mt-1">{{ form.type_configs.errors }}</div>{% endif %}
-            <div class="form-text">{{ form.type_configs.help_text }} {% trans "(Ctrl/Cmd+Click for multiple)" %}</div>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label" for="{{ form.max_items.id_for_label }}">
-              {% trans "Max Items" %}
-            </label>
-            {{ form.max_items }}
-            {% if form.max_items.errors %}<div class="text-danger small mt-1">{{ form.max_items.errors }}</div>{% endif %}
-            <div class="form-text">{{ form.max_items.help_text }}</div>
-          </div>
+          {% endif %}
 
           <div class="d-flex gap-2 mt-4">
             <button type="submit" class="btn btn-primary">
@@ -107,27 +149,41 @@
             <a href="{{ return_url }}" class="btn btn-outline-secondary">{% trans "Cancel" %}</a>
           </div>
         </form>
-
-        <script>
-        (function () {
-          var nameEl = document.getElementById('{{ form.name.id_for_label }}');
-          var slugEl = document.getElementById('{{ form.slug.id_for_label }}');
-          var slugEdited = slugEl.value.length > 0;
-
-          slugEl.addEventListener('input', function () { slugEdited = true; });
-
-          nameEl.addEventListener('input', function () {
-            if (slugEdited) return;
-            slugEl.value = nameEl.value
-              .toLowerCase()
-              .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-              .replace(/[^a-z0-9]+/g, '_')
-              .replace(/^_+|_+$/g, '');
-          });
-        })();
-        </script>
       </div>
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block javascript %}
+{{ block.super }}
+{% if not object %}
+<script>
+(function () {
+  var nameInput = document.getElementById("{{ form.name.id_for_label }}");
+  var preview = document.getElementById("nsm-field-slug-preview");
+  if (!nameInput || !preview) return;
+
+  function slugifyName(value) {
+    var s = (value || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "_");
+    s = s.replace(/_+/g, "_").replace(/^_|_$/g, "");
+    return s || "x";
+  }
+
+  function updatePreview() {
+    var slug = slugifyName(nameInput.value);
+    if (!nameInput.value.trim()) {
+      preview.hidden = true;
+      preview.textContent = "";
+      return;
+    }
+    preview.hidden = false;
+    preview.textContent = "{% trans 'Slug' %}: " + slug;
+  }
+
+  nameInput.addEventListener("input", updatePreview);
+  updatePreview();
+})();
+</script>
+{% endif %}
 {% endblock %}

@@ -1,0 +1,55 @@
+{% extends 'generic/object.html' %}
+{% load i18n %}
+
+{% block head %}
+{{ block.super }}
+{% include "netbox_nsm/inc/rulebook_page_head.html" %}
+{% endblock head %}
+
+{% block breadcrumbs %}
+{% include "netbox_nsm/inc/rulebook_breadcrumbs.html" with active_tab=_("Policy Analysis") %}
+{% endblock breadcrumbs %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header d-flex align-items-center gap-2">
+    <i class="mdi mdi-chart-bar text-primary"></i>
+    <strong>{% trans "Policy Analysis" %}</strong>
+    {% include "netbox_nsm/inc/nsm_count_pill.html" with value=object_analysis.total_rules title=_("Rules") %}
+  </div>
+  <div class="card-body p-0">
+    {% if object_analysis %}
+    <div class="row g-0">
+      {% for area in object_analysis.areas %}
+      <div class="col-12 border-bottom px-3 py-3">
+        <h6 class="text-muted small fw-bold text-uppercase mb-2">
+          <i class="mdi mdi-tag-multiple-outline me-1"></i>{{ area.label }}
+          <span class="fw-normal text-muted ms-1">— Top 10 von {{ area.total_objects }}</span>
+        </h6>
+        <div style="max-height: calc(15 * 2.1rem); overflow-y: auto;">
+          <table class="table table-sm table-hover mb-0">
+            <thead class="sticky-top" style="top:0;z-index:1;">
+              <tr><th>Object</th><th>Type</th><th class="text-end"># Rules</th></tr>
+            </thead>
+            <tbody>
+              {% for obj in area.objects %}
+              <tr>
+                <td>{{ obj.name }}</td>
+                <td class="text-muted small">{{ obj.type_name }}</td>
+                <td class="text-end fw-bold">{{ obj.count }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="3" class="text-muted text-center small">—</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center text-muted p-5">No rules found.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

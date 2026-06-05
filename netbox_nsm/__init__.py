@@ -18,27 +18,31 @@ class SecurityConfig(PluginConfig):
     default_settings = {
         "top_level_menu": True,
         "assignments_menu": False,
-        "virtual_ext_page": "left",
-        "interface_ext_page": "full_width",
-        "address_ext_page": "right",
+        # Show Security → Configuration → Setup (default: on)
+        "setup_menu": True,
+        # Setup: full sync, demo custom types, demo rulebooks (default: on)
+        "setup_allow_destructive_actions": True,
     }
 
     def ready(self):
         super().ready()
+        from netbox_nsm.branching_support import register_branching_models
+
+        register_branching_models()
         self._patch_color_field_widget()
         self._register_changelog_signals()
 
     @staticmethod
     def _register_changelog_signals():
         from django.db.models.signals import post_save, post_delete
-        from netbox_nsm.models import NSMObjectLink
+        from netbox_nsm.models import ObjectLink
         from netbox_nsm._changelog_signals import (
             nsm_object_link_saved,
             nsm_object_link_deleted,
         )
-        post_save.connect(nsm_object_link_saved, sender=NSMObjectLink,
+        post_save.connect(nsm_object_link_saved, sender=ObjectLink,
                           dispatch_uid="nsm_object_link_saved_for_object_b")
-        post_delete.connect(nsm_object_link_deleted, sender=NSMObjectLink,
+        post_delete.connect(nsm_object_link_deleted, sender=ObjectLink,
                             dispatch_uid="nsm_object_link_deleted_for_object_b")
 
     @staticmethod

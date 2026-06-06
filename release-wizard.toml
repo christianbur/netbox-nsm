@@ -1,0 +1,48 @@
+# Release wizard configuration for netbox-nsm.
+# See scripts/release_wizard.py for usage.
+
+[project]
+name = "netbox-nsm"
+git_user = "christian"
+
+[repo]
+url = "https://github.com/christianbur/netbox-nsm"
+
+[changelog]
+file = "CHANGELOG.md"
+
+[commit]
+files = [
+    "pyproject.toml",
+    "netbox_nsm/version.py",
+    "netbox-plugin.yaml",
+    "CHANGELOG.md",
+]
+
+[[version]]
+file = "pyproject.toml"
+read = '^version\s*=\s*"([^"]+)"'
+write = '^version\s*=\s*"[^"]+"'
+replace = 'version = "{version}"'
+flags = ["MULTILINE"]
+
+[[version]]
+file = "netbox_nsm/version.py"
+read = '__version__\s*=\s*"([^"]+)"'
+write = '__version__\s*=\s*"[^"]+"'
+replace = '__version__ = "{version}"'
+
+[netbox_plugin]
+file = "netbox-plugin.yaml"
+
+[[watch]]
+name = "Portable schema"
+files = [
+    "netbox_nsm/schema/nsm_portable_schema.json",
+    "netbox_nsm/schema/nsm_choice_sets.json",
+]
+reminder = "Schema changed: re-run Setup → Custom Objects in NetBox (or `python3 scripts/sync_builtin.py` in the dev environment)."
+
+[reminders]
+pypi_note = "PyPI publish typically runs via the GitHub release pipeline (if configured in the repo)."
+manual_push_hint = "bash /home/christian/homelab/tools/github-push.sh netbox-nsm"

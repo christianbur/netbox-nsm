@@ -9,7 +9,10 @@ from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
 from rest_framework import status
 
+from ipam.models import Prefix
+
 from netbox_nsm.models import (
+    ObjectLink,
     RulebookField,
     RulebookFieldKind,
     RulebookFieldType,
@@ -17,6 +20,7 @@ from netbox_nsm.models import (
     Rulebook,
     TypeConfig,
 )
+from netbox_nsm.models.object_link import LinkPropagationChoices
 from netbox_nsm.rulebook_field_utils import ensure_system_rulebook_fields
 from netbox_nsm.tests.custom import APITestCase
 
@@ -48,6 +52,12 @@ _API_CRUD_PERMS = _API_VIEW_PERMS + (
     "netbox_nsm.add_rulebookfieldtype",
     "netbox_nsm.change_rulebookfieldtype",
     "netbox_nsm.delete_rulebookfieldtype",
+    "netbox_nsm.view_typeconfig",
+    "netbox_nsm.change_typeconfig",
+    "netbox_nsm.delete_typeconfig",
+    "netbox_nsm.add_objectlink",
+    "netbox_nsm.change_objectlink",
+    "netbox_nsm.delete_objectlink",
 )
 
 
@@ -306,6 +316,89 @@ class RuleFieldSelectionsViewTest(_RulebookPluginAPITestMixin, APITestCase):
         data = response.json()
         self.assertIn("cells", data)
         self.assertIn(col, data["cells"])
+
+
+class TypeConfigAPITest(_RulebookPluginAPITestMixin, APITestCase):
+    """Update and delete existing type configs via API."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.prefix_ct = ContentType.objects.get_for_model(Prefix)
+        cls.type_config = TypeConfig.objects.create(
+            name="API TypeConfig",
+            content_type=cls.prefix_ct,
+            matching_class="other",
+            display_template="{name}",
+        )
+
+    def test_typeconfig_update_and_delete(self):
+        self._grant(*_API_CRUD_PERMS)
+        detail_url = _api("typeconfig-detail", pk=self.type_config.pk)
+
+        response = self._patch_json(
+            detail_url,
+            {
+                "name": "API TypeConfig Updated",
+                "matching_class": "zone",
+                "display_template": "{prefix}",
+                "panel_slugs": ["source"],
+                "order_id": 5,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertEqual(response.data["name"], "API TypeConfig Updated")
+        self.assertEqual(response.data["matching_class"], "zone")
+
+        response = self._delete(detail_url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(TypeConfig.objects.filter(pk=self.type_config.pk).exists())
+
+
+class ObjectLinkAPITest(_RulebookPluginAPITestMixin, APITestCase):
+    """CRUD for Security Panel object links via API."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.prefix_a = Prefix.objects.filter(prefix="10.60.0.0/24").first()
+        if cls.prefix_a is None:
+            cls.prefix_a = Prefix.objects.create(prefix="10.60.0.0/24", status="active")
+        cls.prefix_b = Prefix.objects.filter(prefix="10.60.1.0/24").first()
+        if cls.prefix_b is None:
+            cls.prefix_b = Prefix.objects.create(prefix="10.60.1.0/24", status="active")
+        cls.prefix_ct = ContentType.objects.get_for_model(Prefix)
+
+    def test_object_link_crud(self):
+        self._grant(*_API_CRUD_PERMS)
+        list_url = _api("objectlink-list")
+
+        response = self._post_json(
+            list_url,
+            {
+                "object_a_type": "ipam.prefix",
+                "object_a_id": self.prefix_a.pk,
+                "object_b_type": "ipam.prefix",
+                "object_b_id": self.prefix_b.pk,
+                "comment": "api link",
+                "propagation": LinkPropagationChoices.DIRECT,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        link_id = response.data["id"]
+
+        detail_url = _api("objectlink-detail", pk=link_id)
+        response = self._patch_json(
+            detail_url,
+            {
+                "comment": "api link updated",
+                "propagation": LinkPropagationChoices.INHERIT_IPAM,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertEqual(response.data["comment"], "api link updated")
+
+        response = self._delete(detail_url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(ObjectLink.objects.filter(pk=link_id).exists())
 
 
 class RulebookWorkflowAPITest(_RulebookPluginAPITestMixin, APITestCase):

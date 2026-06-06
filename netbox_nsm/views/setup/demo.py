@@ -76,7 +76,7 @@ _DEMO_MATRIX_RULES = [
 DEMO_ACTIONS = frozenset({"create_demo_starter", "create_demo_enterprise"})
 
 # Object columns shared by starter demos (system columns come from ensure_system_rulebook_fields).
-_POLICY_OBJECT_FIELD_SPECS = (
+_SECURITY_RULES_OBJECT_FIELD_SPECS = (
     {"slug": "source", "name": "Source", "sort_order": 10, "placement": "source"},
     {
         "slug": "destination",
@@ -178,10 +178,10 @@ def _create_zone_matrix_rulebook():
 
     rb, _ = Rulebook.objects.get_or_create(
         name="Demo - Zone Matrix",
-        defaults={"rulebook_type": "policy"},
+        defaults={"rulebook_type": "security_rules"},
     )
     ensure_system_rulebook_fields(rb)
-    fields = _upsert_object_fields(rb, _POLICY_OBJECT_FIELD_SPECS)
+    fields = _upsert_object_fields(rb, _SECURITY_RULES_OBJECT_FIELD_SPECS)
     _apply_field_types(fields, _ZONE_MATRIX_FIELD_TYPES)
 
     def _get_objects_by_name(slug):
@@ -229,10 +229,10 @@ def _create_zone_matrix_rulebook():
 def _create_addresses_rulebook():
     rb, _ = Rulebook.objects.get_or_create(
         name="Demo - Addresses",
-        defaults={"rulebook_type": "policy"},
+        defaults={"rulebook_type": "security_rules"},
     )
     ensure_system_rulebook_fields(rb)
-    fields = _upsert_object_fields(rb, _POLICY_OBJECT_FIELD_SPECS)
+    fields = _upsert_object_fields(rb, _SECURITY_RULES_OBJECT_FIELD_SPECS)
     _apply_field_types(fields, _ADDRESSES_FIELD_TYPES)
     return rb
 

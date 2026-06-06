@@ -102,9 +102,9 @@ def _ag_text_filter_type(operator: str) -> str:
     return "contains"
 
 
-def _layout_object_columns(policy_layout: list) -> list[dict]:
+def _layout_object_columns(rules_layout: list) -> list[dict]:
     columns: list[dict] = []
-    for entry in policy_layout or []:
+    for entry in rules_layout or []:
         if entry.get("kind") != "object":
             continue
         group = entry.get("group") or {}
@@ -150,7 +150,7 @@ _SYSTEM_FILTER_COLUMNS: dict[str, str] = {
 
 def build_ag_grid_filter_model(
     query: Query,
-    policy_layout: list,
+    rules_layout: list,
     context: RulebookContext,
 ) -> dict | None:
     """
@@ -163,7 +163,7 @@ def build_ag_grid_filter_model(
         return None
 
     groups = query.or_groups if query.or_groups else [query.conditions]
-    columns = _layout_object_columns(policy_layout)
+    columns = _layout_object_columns(rules_layout)
     if not columns:
         return None
 
@@ -243,7 +243,7 @@ def build_ag_grid_filter_model(
 
 
 def build_filter_column_query_map(
-    policy_layout: list,
+    rules_layout: list,
     context: RulebookContext,
 ) -> dict[str, str]:
     """Map AG Grid column ids to NSM query field paths (for filter export)."""
@@ -253,7 +253,7 @@ def build_filter_column_query_map(
         "description": "Description",
         "enabled": "Status",
     }
-    for col in _layout_object_columns(policy_layout):
+    for col in _layout_object_columns(rules_layout):
         rb_field = context.get_field(col["area_slug"])
         if rb_field is None:
             continue
@@ -279,10 +279,10 @@ def field_path_to_shorthand(field_path: str) -> str:
 
 def build_filter_column_shorthand_names(
     column_map: dict[str, str],
-    policy_layout: list,
+    rules_layout: list,
 ) -> dict[str, str]:
     """Map AG Grid column ids to shorthand names used in filter query export."""
-    del policy_layout  # reserved for future label overrides
+    del rules_layout  # reserved for future label overrides
     return {
         col_id: field_path_to_shorthand(path) for col_id, path in column_map.items()
     }
@@ -290,7 +290,7 @@ def build_filter_column_shorthand_names(
 
 def build_filter_column_aliases(
     column_map: dict[str, str],
-    policy_layout: list,
+    rules_layout: list,
 ) -> dict[str, str]:
     """Map lowercase shorthand tokens to full NSM field paths."""
     aliases: dict[str, str] = {}
@@ -311,7 +311,7 @@ def build_filter_column_aliases(
         add(path, path)
         add(field_path_to_shorthand(path), path)
 
-    for col in _layout_object_columns(policy_layout):
+    for col in _layout_object_columns(rules_layout):
         label = (col.get("label") or "").strip()
         path = column_map.get(col["key"])
         if label and path:
@@ -320,8 +320,8 @@ def build_filter_column_aliases(
     return aliases
 
 
-POLICY_FILTER_QUERY_MAX_CONDITIONS = 10
-_POLICY_FILTER_QUERY_OPS = frozenset({"=", "!="})
+RULES_FILTER_QUERY_MAX_CONDITIONS = 10
+_RULES_FILTER_QUERY_OPS = frozenset({"=", "!="})
 _UNQUOTED_VALUE_RE = re.compile(r"^[\w\-:.]+$")
 
 SCOPED_FILTER_QUERY_FORMAT = '"Rulebook Name": Name(x) AND ...'
@@ -365,7 +365,7 @@ def condition_to_shorthand_filter_clause(condition) -> str:
     """Map one NSM Condition to ``Field(value)`` filter-query syntax."""
     val = _condition_filter_value(condition)
     op = (condition.operator or "=").lower()
-    if op not in _POLICY_FILTER_QUERY_OPS:
+    if op not in _RULES_FILTER_QUERY_OPS:
         op = "="
     inner = _format_shorthand_value(val, op)
     if condition.type_segment:
@@ -536,7 +536,7 @@ def _validate_filter_query_condition(cond) -> str | None:
     op = (cond.operator or "").lower()
     if op in ("exists", "!exists", "in", "notin", "contains"):
         return f"Unsupported operator {cond.operator!r}; use = or !="
-    if op not in _POLICY_FILTER_QUERY_OPS:
+    if op not in _RULES_FILTER_QUERY_OPS:
         return f"Unsupported operator {cond.operator!r}; use = or !="
     return None
 
@@ -610,12 +610,12 @@ def _parse_column_filter_part(
     if not conditions:
         return None, None, None, f"Cannot parse: {part!r}"
 
-    if len(conditions) > POLICY_FILTER_QUERY_MAX_CONDITIONS:
+    if len(conditions) > RULES_FILTER_QUERY_MAX_CONDITIONS:
         return (
             None,
             None,
             None,
-            f"At most {POLICY_FILTER_QUERY_MAX_CONDITIONS} conditions per column",
+            f"At most {RULES_FILTER_QUERY_MAX_CONDITIONS} conditions per column",
         )
 
     path = condition_to_filter_query_path(conditions[0])
@@ -691,19 +691,19 @@ def _parse_bare_value_column_part(
             op, value = _parse_shorthand_value_token(segment)
         except ValueError:
             return None, None, None, f"Cannot parse: {segment!r}"
-        if op not in _POLICY_FILTER_QUERY_OPS:
+        if op not in _RULES_FILTER_QUERY_OPS:
             return None, None, None, f"Unsupported operator {op!r}; use = or !="
         conditions.append(_condition_from_filter_path(field_path, op, value))
 
     if not conditions:
         return None, None, None, f"Cannot parse: {part!r}"
 
-    if len(conditions) > POLICY_FILTER_QUERY_MAX_CONDITIONS:
+    if len(conditions) > RULES_FILTER_QUERY_MAX_CONDITIONS:
         return (
             None,
             None,
             None,
-            f"At most {POLICY_FILTER_QUERY_MAX_CONDITIONS} conditions per column",
+            f"At most {RULES_FILTER_QUERY_MAX_CONDITIONS} conditions per column",
         )
 
     if len(conditions) == 1:
@@ -798,19 +798,19 @@ def _parse_shorthand_column_part(
             op, value = _parse_shorthand_value_token(segment)
         except ValueError:
             return None, None, None, f"Cannot parse: {segment!r}"
-        if op not in _POLICY_FILTER_QUERY_OPS:
+        if op not in _RULES_FILTER_QUERY_OPS:
             return None, None, None, f"Unsupported operator {op!r}; use = or !="
         conditions.append(_condition_from_filter_path(path, op, value))
 
     if not conditions:
         return None, None, None, f"Cannot parse: {part!r}"
 
-    if len(conditions) > POLICY_FILTER_QUERY_MAX_CONDITIONS:
+    if len(conditions) > RULES_FILTER_QUERY_MAX_CONDITIONS:
         return (
             None,
             None,
             None,
-            f"At most {POLICY_FILTER_QUERY_MAX_CONDITIONS} conditions per column",
+            f"At most {RULES_FILTER_QUERY_MAX_CONDITIONS} conditions per column",
         )
 
     if len(conditions) == 1:
@@ -876,10 +876,10 @@ def _merge_column_groups(groups: list[dict]) -> tuple[list[dict] | None, str | N
             )
         existing["conditions"].extend(group["conditions"])
     for group in merged.values():
-        if len(group["conditions"]) > POLICY_FILTER_QUERY_MAX_CONDITIONS:
+        if len(group["conditions"]) > RULES_FILTER_QUERY_MAX_CONDITIONS:
             return (
                 None,
-                f"At most {POLICY_FILTER_QUERY_MAX_CONDITIONS} conditions per column",
+                f"At most {RULES_FILTER_QUERY_MAX_CONDITIONS} conditions per column",
             )
     return list(merged.values()), None
 
@@ -888,7 +888,7 @@ def parse_grid_filter_query(
     raw: str,
     *,
     column_map: dict[str, str] | None = None,
-    policy_layout: list | None = None,
+    rules_layout: list | None = None,
     extra_aliases: dict[str, str] | None = None,
 ) -> tuple[list[dict] | None, str | None]:
     """
@@ -903,7 +903,7 @@ def parse_grid_filter_query(
         return [], None
 
     aliases = (
-        build_filter_column_aliases(column_map, policy_layout or [])
+        build_filter_column_aliases(column_map, rules_layout or [])
         if column_map
         else {}
     )
@@ -949,14 +949,14 @@ def _nsm_operator_to_ag_type(operator: str) -> str:
 def build_ag_grid_filter_model_from_column_map(
     raw: str,
     column_map: dict[str, str],
-    policy_layout: list | None = None,
+    rules_layout: list | None = None,
     extra_aliases: dict[str, str] | None = None,
 ) -> tuple[dict | None, str | None]:
     """Parse filter query text into an AG Grid filter model using a column map."""
     groups, err = parse_grid_filter_query(
         raw,
         column_map=column_map,
-        policy_layout=policy_layout or [],
+        rules_layout=rules_layout or [],
         extra_aliases=extra_aliases,
     )
     if err:
@@ -1001,12 +1001,12 @@ def build_ag_grid_filter_model_from_column_map(
 
 def build_ag_grid_filter_model_from_query_text(
     raw: str,
-    policy_layout: list,
+    rules_layout: list,
     context: RulebookContext,
 ) -> tuple[dict | None, str | None]:
     """Parse editable filter query text into an AG Grid filter model."""
-    column_map = build_filter_column_query_map(policy_layout, context)
-    return build_ag_grid_filter_model_from_column_map(raw, column_map, policy_layout)
+    column_map = build_filter_column_query_map(rules_layout, context)
+    return build_ag_grid_filter_model_from_column_map(raw, column_map, rules_layout)
 
 
 def _object_column_def(col: dict) -> dict:
@@ -1024,7 +1024,7 @@ def _object_column_def(col: dict) -> dict:
     }
 
 
-def build_policy_group_column_def(*, header_name: str | None = None) -> dict:
+def build_rulebook_rules_group_column_def(*, header_name: str | None = None) -> dict:
     """Pinned Group column for AG Grid Community custom grouping."""
     label = header_name if header_name is not None else str(_("Group"))
     return {
@@ -1033,7 +1033,7 @@ def build_policy_group_column_def(*, header_name: str | None = None) -> dict:
         "headerName": label,
         "pinned": "left",
         "lockPosition": "left",
-        "cellRenderer": "policyGroupCell",
+        "cellRenderer": "rulesGroupCell",
         "width": 280,
         "minWidth": 160,
         "maxWidth": 480,
@@ -1045,7 +1045,7 @@ def build_policy_group_column_def(*, header_name: str | None = None) -> dict:
         "suppressColumnsToolPanel": True,
         "suppressFiltersToolPanel": True,
         "suppressMovable": True,
-        "cellClass": "nsm-policy-group-cell",
+        "cellClass": "nsm-rules-group-cell",
     }
 
 
@@ -1083,12 +1083,12 @@ def _ensure_description_column_last(column_defs: list[dict]) -> list[dict]:
     return rest
 
 
-def build_policy_ag_grid_column_defs(grouped: dict) -> dict:
+def build_rulebook_rules_grid_column_defs(grouped: dict) -> dict:
     """Column definitions only (no row data)."""
-    policy_layout = grouped.get("policy_layout") or []
+    rules_layout = grouped.get("rules_layout") or []
     column_defs: list[dict] = []
 
-    for entry in policy_layout:
+    for entry in rules_layout:
         if entry.get("kind") == "system":
             slug = entry["slug"]
             spec = _SYSTEM_COLUMN_DEFS.get(slug)
@@ -1127,10 +1127,10 @@ def build_policy_ag_grid_column_defs(grouped: dict) -> dict:
     return {"columnDefs": column_defs}
 
 
-POLICY_ROW_HEIGHT = 42
-POLICY_ROW_ITEM_HEIGHT = 24
-POLICY_ROW_CELL_PADDING = 20
-POLICY_GROUP_ROW_HEIGHT = 36
+RULES_ROW_HEIGHT = 42
+RULES_ROW_ITEM_HEIGHT = 24
+RULES_ROW_CELL_PADDING = 20
+RULES_GROUP_ROW_HEIGHT = 36
 
 
 def _max_object_items(cells_items: dict) -> int:
@@ -1139,24 +1139,24 @@ def _max_object_items(cells_items: dict) -> int:
     return max(max(1, len(items or [])) for items in cells_items.values())
 
 
-def policy_row_height_for_object_lines(line_count: int) -> int:
+def rules_row_height_for_object_lines(line_count: int) -> int:
     lines = max(1, int(line_count))
     return max(
-        POLICY_ROW_HEIGHT,
-        POLICY_ROW_CELL_PADDING + lines * POLICY_ROW_ITEM_HEIGHT,
+        RULES_ROW_HEIGHT,
+        RULES_ROW_CELL_PADDING + lines * RULES_ROW_ITEM_HEIGHT,
     )
 
 
-def policy_group_row_height_for_label(label: str) -> int:
+def rules_group_row_height_for_label(label: str) -> int:
     text = str(label or "")
     line_count = max(1, len(text.split("\n")) if text else 1)
     return max(
-        POLICY_GROUP_ROW_HEIGHT,
-        POLICY_ROW_CELL_PADDING + line_count * POLICY_ROW_ITEM_HEIGHT,
+        RULES_GROUP_ROW_HEIGHT,
+        RULES_ROW_CELL_PADDING + line_count * RULES_ROW_ITEM_HEIGHT,
     )
 
 
-def build_policy_group_row_record(
+def build_rulebook_rules_group_row_record(
     bucket,
     *,
     group_key: str,
@@ -1166,7 +1166,7 @@ def build_policy_group_row_record(
     group_field_label: str = "",
 ) -> dict:
     from netbox_nsm.branch_urls import with_branch_query
-    from netbox_nsm.policy_rule_grouping import UNGROUPED_GROUP_KEY, UNGROUPED_LABEL
+    from netbox_nsm.rulebook_rules_grouping import UNGROUPED_GROUP_KEY, UNGROUPED_LABEL
 
     if group_key == UNGROUPED_GROUP_KEY or bucket is None:
         label = str(UNGROUPED_LABEL)
@@ -1188,11 +1188,11 @@ def build_policy_group_row_record(
         "_ruleCount": rule_count,
         "_groupLevel": max(1, int(group_level or 1)),
         "_groupFieldLabel": group_field_label or "",
-        "_rowHeight": policy_group_row_height_for_label(label),
+        "_rowHeight": rules_group_row_height_for_label(label),
     }
 
 
-def build_policy_ag_grid_row(row: dict) -> dict:
+def build_rulebook_rules_grid_row(row: dict) -> dict:
     """Serialize one grouped policy row as AG Grid record (raw object items)."""
     system = row.get("system") or {}
     record: dict = {
@@ -1220,7 +1220,7 @@ def build_policy_ag_grid_row(row: dict) -> dict:
     line_count = max(object_lines, desc_lines or 0, 1)
     record["_objectLineCount"] = object_lines
     record["_descriptionLineCount"] = desc_lines
-    record["_rowHeight"] = policy_row_height_for_object_lines(line_count)
+    record["_rowHeight"] = rules_row_height_for_object_lines(line_count)
     for key, items in cells_items.items():
         record[key] = items or []
         filter_text = cells_filter.get(key)
@@ -1297,17 +1297,17 @@ def apply_ag_grid_row_filter(
     return result
 
 
-def build_policy_ag_grid_payload(grouped: dict) -> dict:
+def build_rulebook_rules_grid_payload(grouped: dict) -> dict:
     """
     Build columnDefs + rowData for AG Grid (Community).
     System columns use raw values; custom renderers/editors are applied in JS.
     """
-    policy_layout = grouped.get("policy_layout") or []
+    rules_layout = grouped.get("rules_layout") or []
     rows = grouped.get("rows") or []
 
     column_defs: list[dict] = []
 
-    for entry in policy_layout:
+    for entry in rules_layout:
         if entry.get("kind") == "system":
             slug = entry["slug"]
             spec = _SYSTEM_COLUMN_DEFS.get(slug)

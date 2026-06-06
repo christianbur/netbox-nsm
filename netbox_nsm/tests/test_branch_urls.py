@@ -8,7 +8,7 @@ from netbox_nsm.branch_urls import (
     branch_schema_id_from_request,
     with_branch_query,
     wrap_matrix_cell_hrefs,
-    wrap_policy_row_urls,
+    wrap_rules_row_urls,
 )
 
 
@@ -38,7 +38,7 @@ class BranchUrlTests(SimpleTestCase):
 
     @patch("netbox_branching.constants.COOKIE_NAME", "active_branch")
     @patch("netbox_branching.constants.QUERY_PARAM", "_branch")
-    def test_wrap_policy_and_matrix_urls(self):
+    def test_wrap_rules_and_matrix_urls(self):
         request = RequestFactory().get("/")
         request.COOKIES = {"active_branch": "hh123456"}
         rows = [
@@ -49,7 +49,7 @@ class BranchUrlTests(SimpleTestCase):
                 "system": {"url": "/rules/1/"},
             }
         ]
-        wrap_policy_row_urls(rows, request)
+        wrap_rules_row_urls(rows, request)
         self.assertIn("_branch=hh123456", rows[0]["edit_url"])
 
         cells = [{"fwd_href": "/rules/?nsm_q=a", "add_href": "/rules/add/"}]

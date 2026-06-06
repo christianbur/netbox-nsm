@@ -49,8 +49,8 @@ from netbox_nsm.api_urls import (
 )
 from netbox_nsm.rulebook_field_utils import (
     ensure_system_rulebook_fields,
-    get_policy_column_labels,
-    get_policy_column_slugs,
+    get_rules_column_labels,
+    get_rules_column_slugs,
     get_visible_rulebook_fields,
     load_rulebook_fields_for_detail,
 )
@@ -61,7 +61,7 @@ from netbox_nsm.tables import (
 )
 
 
-def _policy_placement_for_area(area_slug):
+def _rules_placement_for_area(area_slug):
     if area_slug == "source":
         return "source"
     if area_slug == "destination":
@@ -89,7 +89,7 @@ def _render_vgroup_cell(items):
 DEFAULT_MAX_VISIBLE_PILLS = 5
 
 
-def _policy_pill_html(item, *, hidden=False, colored=True):
+def _rules_pill_html(item, *, hidden=False, colored=True):
     color = (item.get("color") or "").strip() if colored else ""
     style_parts = []
     if color:
@@ -125,7 +125,7 @@ def _policy_pill_html(item, *, hidden=False, colored=True):
     )
 
 
-def _render_policy_cell(items, max_pills=None, *, colored=True):
+def _render_rules_cell(items, max_pills=None, *, colored=True):
     if not items:
         return '<span class="text-muted small">-</span>'
     try:
@@ -136,9 +136,9 @@ def _render_policy_cell(items, max_pills=None, *, colored=True):
         limit = DEFAULT_MAX_VISIBLE_PILLS
     shown = items[:limit]
     hidden = items[limit:]
-    parts = [_policy_pill_html(item, colored=colored) for item in shown]
+    parts = [_rules_pill_html(item, colored=colored) for item in shown]
     for item in hidden:
-        parts.append(_policy_pill_html(item, hidden=True, colored=colored))
+        parts.append(_rules_pill_html(item, hidden=True, colored=colored))
     if hidden:
         parts.append(
             '<button type="button"'
@@ -152,7 +152,7 @@ def _render_policy_cell(items, max_pills=None, *, colored=True):
     return f'<div class="nsm-rule-pills">{"".join(parts)}</div>'
 
 
-def _policy_pill_html_ag(item, *, hidden=False, colored=True):
+def _rules_pill_html_ag(item, *, hidden=False, colored=True):
     """AG Grid: colored dot + plain text link (no pill chrome)."""
     color = (item.get("color") or "").strip() if colored else ""
     dot_html = ""
@@ -174,7 +174,7 @@ def _policy_pill_html_ag(item, *, hidden=False, colored=True):
     )
 
 
-def _render_policy_cell_ag(items, max_pills=None, *, colored=True):
+def _render_rules_cell_ag(items, max_pills=None, *, colored=True):
     if not items:
         return '<span class="nsm-cell-empty">-</span>'
     try:
@@ -185,9 +185,9 @@ def _render_policy_cell_ag(items, max_pills=None, *, colored=True):
         limit = DEFAULT_MAX_VISIBLE_PILLS
     shown = items[:limit]
     hidden = items[limit:]
-    parts = [_policy_pill_html_ag(item, colored=colored) for item in shown]
+    parts = [_rules_pill_html_ag(item, colored=colored) for item in shown]
     for item in hidden:
-        parts.append(_policy_pill_html_ag(item, hidden=True, colored=colored))
+        parts.append(_rules_pill_html_ag(item, hidden=True, colored=colored))
     if hidden:
         parts.append(
             '<button type="button"'
@@ -200,7 +200,7 @@ def _render_policy_cell_ag(items, max_pills=None, *, colored=True):
     return f'<div class="nsm-ag-cell-list">{"".join(parts)}</div>'
 
 
-def _build_grouped_policy_table_data(rules, rulebook):
+def _build_grouped_rules_table_data(rules, rulebook):
     from netbox_nsm.display_utils import get_display_template_map, render_object_display
 
     rules = list(rules)
@@ -231,14 +231,14 @@ def _build_grouped_policy_table_data(rules, rulebook):
         for slug in group.field_slugs or []:
             groups_field_slugs.add(str(slug))
 
-    policy_layout = []
+    rules_layout = []
     header_groups = []
     grouped_columns = []
     group_idx = 0
 
     for field in visible_fields:
         if field.field_kind == RulebookFieldKind.SYSTEM:
-            policy_layout.append(
+            rules_layout.append(
                 {"kind": "system", "slug": field.slug, "label": field.name}
             )
             continue
@@ -272,7 +272,7 @@ def _build_grouped_policy_table_data(rules, rulebook):
             col["is_group_end"] = idx == len(cols) - 1
             col["group_band"] = "odd" if (group_idx % 2) else "even"
         header_groups.append(group)
-        policy_layout.append(
+        rules_layout.append(
             {
                 "kind": "object",
                 "slug": field_slug,
@@ -283,7 +283,7 @@ def _build_grouped_policy_table_data(rules, rulebook):
         group_idx += 1
 
     col_index = 1
-    for entry in policy_layout:
+    for entry in rules_layout:
         if entry["kind"] == "system":
             entry["col_index"] = col_index
             col_index += 1
@@ -346,8 +346,8 @@ def _build_grouped_policy_table_data(rules, rulebook):
                 else DEFAULT_MAX_VISIBLE_PILLS
             )
             use_colored = field.show_colored_pills if field is not None else True
-            cells[k] = _render_policy_cell(v, max_pills=max_pills, colored=use_colored)
-            cells_ag[k] = _render_policy_cell_ag(
+            cells[k] = _render_rules_cell(v, max_pills=max_pills, colored=use_colored)
+            cells_ag[k] = _render_rules_cell_ag(
                 v, max_pills=max_pills, colored=use_colored
             )
             cells_filter[k] = " ".join(item["name"] for item in v)
@@ -376,7 +376,7 @@ def _build_grouped_policy_table_data(rules, rulebook):
         )
 
     return {
-        "policy_layout": policy_layout,
+        "rules_layout": rules_layout,
         "header_groups": header_groups,
         "column_count": len(grouped_columns),
         "total_column_count": col_index + 1,
@@ -396,7 +396,7 @@ SECURITY_RULES_COLUMNS = (
     ("description", _("Description")),
 )
 
-POLICY_TABLE_COLUMN_NAMES = frozenset(name for name, _ in SECURITY_RULES_COLUMNS)
+RULES_TABLE_COLUMN_NAMES = frozenset(name for name, _ in SECURITY_RULES_COLUMNS)
 
 MAX_CUSTOM_COLUMNS = 10
 
@@ -497,7 +497,7 @@ def _build_security_rule_picker_data(rulebook=None):
     return {"areas": ordered_areas}
 
 
-def _available_policy_columns(rulebook=None):
+def _available_rules_columns(rulebook=None):
     slugs = ("source", "destination", "service", "action", "info")
     if rulebook is None:
         return {
@@ -514,12 +514,12 @@ def _available_policy_columns(rulebook=None):
     return {slug: slug in visible_object_slugs for slug in slugs}
 
 
-def _build_rule_edit_policy_slots(rulebook=None):
+def _build_rule_edit_rule_slots(rulebook=None):
     """Visible src/dst/service/action/info columns for the rule editor grid."""
     if rulebook is None:
         return []
-    availability = _available_policy_columns(rulebook)
-    labels = get_policy_column_labels(rulebook)
+    availability = _available_rules_columns(rulebook)
+    labels = get_rules_column_labels(rulebook)
     slots = []
     for slug in ("source", "destination", "service", "action", "info"):
         if not availability.get(slug):
@@ -534,7 +534,7 @@ def _build_rule_edit_policy_slots(rulebook=None):
     return slots
 
 
-def _filter_policy_columns(columns, availability):
+def _filter_rules_columns(columns, availability):
     filtered = []
     for column in columns:
         if column in availability and not availability.get(column, False):
@@ -543,23 +543,23 @@ def _filter_policy_columns(columns, availability):
     return filtered
 
 
-def _policy_columns_session_key(rulebook_pk):
-    return f"netbox_nsm_policy_columns_{rulebook_pk}"
+def _rules_columns_session_key(rulebook_pk):
+    return f"netbox_nsm_rules_columns_{rulebook_pk}"
 
 
 def _default_security_rules_columns():
     return [
         column
         for column in RuleTable.Meta.default_columns
-        if column in POLICY_TABLE_COLUMN_NAMES
+        if column in RULES_TABLE_COLUMN_NAMES
     ]
 
 
-def _normalize_policy_table_columns(columns, availability=None):
+def _normalize_rules_table_columns(columns, availability=None):
     """Keep only columns that exist on RuleTable (ignore rulebook-only slugs)."""
     normalized = []
     for column in columns:
-        if column not in POLICY_TABLE_COLUMN_NAMES:
+        if column not in RULES_TABLE_COLUMN_NAMES:
             continue
         if availability is not None and not availability.get(column, True):
             continue
@@ -588,14 +588,15 @@ def _sanitize_custom_columns(custom_columns):
     return sanitized
 
 
-def _get_policy_table_config(request, rulebook):
+def _get_rules_table_config(request, rulebook):
     ensure_system_rulebook_fields(rulebook)
-    availability = _available_policy_columns(rulebook)
-    selected_columns = _normalize_policy_table_columns(
-        get_policy_column_slugs(rulebook),
+    availability = _available_rules_columns(rulebook)
+    selected_columns = _normalize_rules_table_columns(
+        get_rules_column_slugs(rulebook),
         availability,
     )
-    config = request.session.get(_policy_columns_session_key(rulebook.pk), {})
+    key = _rules_columns_session_key(rulebook.pk)
+    config = request.session.get(key, {})
     custom_columns = _sanitize_custom_columns(config.get("custom_columns") or [])
     return {
         "selected_columns": selected_columns,
@@ -627,7 +628,7 @@ def _render_custom_markdown(content):
     )
 
 
-def _build_policy_table_class(custom_columns, selected_columns):
+def _build_rules_table_class(custom_columns, selected_columns):
     attrs = {}
     custom_keys = []
     for index, custom_column in enumerate(custom_columns, start=1):
@@ -798,7 +799,7 @@ __all__ = (
     "RulebookDeleteView",
     "RulebookBulkEditView",
     "RulebookBulkDeleteView",
-    "RulebookPolicyColumnsView",
+    "RulebookRulesColumnsView",
     "RulebookRulesGridView",
     "RulebookBulkAssignView",
     "RuleView",
@@ -866,7 +867,7 @@ def _rulebook_field_for_ct(instance, placement, ct_id):
     return fields.first()
 
 
-def _matrix_policy_href(
+def _matrix_rules_href(
     base_url,
     src_field_name,
     dst_field_name,
@@ -924,7 +925,8 @@ def _matrix_policy_href(
         q = f"{_pair_query(src_name, dst_name)} OR {_pair_query(dst_name, src_name)}"
     else:
         q = _pair_query(src_name, dst_name)
-    return f"{base_url}?nsm_q={quote(q, safe='')}"
+    sep = "&" if "?" in base_url else "?"
+    return f"{base_url}{sep}nsm_q={quote(q, safe='')}"
 
 
 @register_model_view(Rulebook, name="matrix", path="matrix")
@@ -1083,7 +1085,7 @@ class RulebookView(generic.ObjectView):
         matching_classes = sorted(instance.matching_classes)
         has_object_rulebook_fields = bool(rulebook_fields_object)
 
-        if instance.rulebook_type != RulebookTypeChoices.POLICY:
+        if instance.rulebook_type != RulebookTypeChoices.SECURITY_RULES:
             return {
                 "assignments": assignments,
                 "rulebook_fields": rulebook_fields,
@@ -1093,8 +1095,8 @@ class RulebookView(generic.ObjectView):
                 "matching_classes": matching_classes,
             }
 
-        availability = _available_policy_columns(instance)
-        config = _get_policy_table_config(request, instance)
+        availability = _available_rules_columns(instance)
+        config = _get_rules_table_config(request, instance)
         selected_columns = config["selected_columns"]
         selected_set = set(selected_columns)
         order_map = {name: idx + 1 for idx, name in enumerate(selected_columns)}
@@ -1107,7 +1109,7 @@ class RulebookView(generic.ObjectView):
             "security_rules_column_order": order_map,
             "security_rules_column_order_list": selected_columns,
             "custom_columns": config["custom_columns"],
-            "nsm_available_policy_areas": availability,
+            "nsm_available_rules_areas": availability,
             "rulebook_fields": rulebook_fields,
             "rulebook_fields_system": rulebook_fields_system,
             "rulebook_fields_object": rulebook_fields_object,
@@ -1116,13 +1118,13 @@ class RulebookView(generic.ObjectView):
         }
 
 
-@register_model_view(Rulebook, name="policy_columns")
-class RulebookPolicyColumnsView(generic.ObjectView):
+@register_model_view(Rulebook, name="rules_columns", path="rules-columns")
+class RulebookRulesColumnsView(generic.ObjectView):
     queryset = Rulebook.objects.all()
 
     def post(self, request, *args, **kwargs):
         instance = self.get_object(**kwargs)
-        if instance.rulebook_type != RulebookTypeChoices.POLICY:
+        if instance.rulebook_type != RulebookTypeChoices.SECURITY_RULES:
             return redirect(reverse("plugins:netbox_nsm:rulebook", args=[instance.pk]))
 
         custom_columns = []
@@ -1131,7 +1133,7 @@ class RulebookPolicyColumnsView(generic.ObjectView):
         for title, body in zip(titles, bodies):
             custom_columns.append({"title": title, "body": body})
 
-        request.session[_policy_columns_session_key(instance.pk)] = {
+        request.session[_rules_columns_session_key(instance.pk)] = {
             "custom_columns": _sanitize_custom_columns(custom_columns),
         }
         request.session.modified = True
@@ -1145,9 +1147,9 @@ class _RulebookRulesTabMixin:
     """Bulk-delete and context for the Rules (AG Grid) tab."""
 
     queryset = Rulebook.objects.all().prefetch_related("rules")
-    template_name = "netbox_nsm/rulebook_policy.html"
-    policy_tab_route = "rulebook_rules"
-    policy_tab_key = "rules"
+    template_name = "netbox_nsm/rulebook_rules.html"
+    rules_tab_route = "rulebook_rules"
+    rules_tab_key = "rules"
 
     def post(self, request, *args, **kwargs):
         """Handle bulk-delete of rules from the rules table."""
@@ -1161,23 +1163,23 @@ class _RulebookRulesTabMixin:
             Rule.objects.filter(pk__in=pk_list, rulebook=instance).delete()
         return redirect(
             reverse(
-                f"plugins:netbox_nsm:{self.policy_tab_route}",
+                f"plugins:netbox_nsm:{self.rules_tab_route}",
                 args=[instance.pk],
             )
         )
 
     def get_extra_context(self, request, instance):
-        from netbox_nsm import policy_tab_context
+        from netbox_nsm import rulebook_rules_tab
         import netbox_nsm.views.rulebook as rulebook_views
 
-        ctx = policy_tab_context.build_policy_tab_context(
+        ctx = rulebook_rules_tab.build_rulebook_rules_tab_context(
             request,
             instance,
             view_helpers=rulebook_views,
             grid_all_rules=True,
         )
-        ctx["policy_tab_label"] = self.tab.label
-        ctx["policy_tab_key"] = self.policy_tab_key
+        ctx["rules_tab_label"] = self.tab.label
+        ctx["rules_tab_key"] = self.rules_tab_key
         ctx["nsm_show_facet_panel"] = False
         return ctx
 
@@ -1977,7 +1979,7 @@ class RuleEditView(generic.ObjectEditView):
             "nsm_rule_virtual_groups": (
                 instance.virtual_group_config if instance.pk else {}
             ),
-            "nsm_policy_slots": _build_rule_edit_policy_slots(rulebook),
+            "nsm_rule_slots": _build_rule_edit_rule_slots(rulebook),
         }
 
 

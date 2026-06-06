@@ -73,7 +73,7 @@ a.nsm-rule-pill--counter:hover {
 }
 
 /* Policy toolbar: rule count pill (not table cell pills) */
-.nsm-policy-rules-count.nsm-rule-pills {
+.nsm-rules-count.nsm-rule-pills {
   display: inline-flex;
   flex-wrap: nowrap;
   gap: 0;
@@ -82,7 +82,7 @@ a.nsm-rule-pill--counter:hover {
   max-width: none;
 }
 
-.nsm-policy-rules-count .nsm-rule-pill--counter {
+.nsm-rules-count .nsm-rule-pill--counter {
   border-radius: 999px;
 }
 

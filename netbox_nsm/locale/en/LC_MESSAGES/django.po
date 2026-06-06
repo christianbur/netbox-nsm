@@ -2111,23 +2111,23 @@ msgstr "Rulebook"
 msgid "Object Builder"
 msgstr "Object Builder"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "FILTER"
 msgstr "FILTER"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "Collapse filter panel"
 msgstr "Collapse filter panel"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "Expand filter panel"
 msgstr "Expand filter panel"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "No filter facets available. Enable Facet Mode on object fields or add rules with values."
 msgstr "No filter facets available. Enable Facet Mode on object fields or add rules with values."
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "Filter mode"
 msgstr "Filter mode"
 
@@ -2193,68 +2193,68 @@ msgstr "Search (min. 2 chars)…"
 msgid "Select a rulebook first, then assign zones, addresses, services, and other objects per field."
 msgstr "Select a rulebook first, then assign zones, addresses, services, and other objects per field."
 
-#: netbox_nsm/policy_grid_payload.py:52
+#: netbox_nsm/rulebook_rules_grid_payload.py:52
 #: netbox_nsm/tables/rulebook.py:357
 msgid "On"
 msgstr "On"
 
-#: netbox_nsm/policy_grid_payload.py:52
+#: netbox_nsm/rulebook_rules_grid_payload.py:52
 #: netbox_nsm/tables/rulebook.py:361
 msgid "Off"
 msgstr "Off"
 
-#: netbox_nsm/policy_grid_payload.py:95
+#: netbox_nsm/rulebook_rules_grid_payload.py:95
 msgid "Summary"
 msgstr "Summary"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "Delete selected"
 msgstr "Delete selected"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "Delete selected rules"
 msgstr "Delete selected rules"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "Delete selected rules?"
 msgstr "Delete selected rules?"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "Add Rule"
 msgstr "Add Rule"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "Clear filters"
 msgstr "Clear filters"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "Clear column filters and NSM query"
 msgstr "Clear column filters and NSM query"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "row"
 msgstr "row"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "rows"
 msgstr "rows"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "Loading rules"
 msgstr "Loading rules"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "Expand groups"
 msgstr "Expand groups"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "Collapse groups"
 msgstr "Collapse groups"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "Expand all column groups (Source, Destination, …)"
 msgstr "Expand all column groups (Source, Destination, …)"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "Collapse all column groups to summary columns"
 msgstr "Collapse all column groups to summary columns"

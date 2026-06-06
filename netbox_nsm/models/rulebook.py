@@ -31,7 +31,7 @@ __all__ = (
 
 
 class RulebookTypeChoices(models.TextChoices):
-    POLICY = "policy", _("Security Rules")
+    SECURITY_RULES = "security_rules", _("Security Rules")
 
 
 class RulebookStatusChoices(models.TextChoices):
@@ -52,7 +52,7 @@ class Rulebook(ContactsMixin, PrimaryModel):
     rulebook_type = models.CharField(
         max_length=20,
         choices=RulebookTypeChoices.choices,
-        default=RulebookTypeChoices.POLICY,
+        default=RulebookTypeChoices.SECURITY_RULES,
     )
     status = models.CharField(
         max_length=20,

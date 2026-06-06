@@ -2,20 +2,20 @@
 
 from django.test import RequestFactory, SimpleTestCase
 
-from netbox_nsm.policy_tab_context import (
+from netbox_nsm.rulebook_rules_tab import (
     DEFAULT_GRID_LOAD_LIMIT,
     GRID_AUTO_LOAD_ALL_MAX,
     GRID_LOAD_MORE_STEP,
-    POLICY_GRID_CLIENT_MAX,
+    RULEBOOK_RULES_GRID_CLIENT_MAX,
     PROGRESSIVE_LOAD_STEPS,
     PROGRESSIVE_LOAD_STEPS_FINE,
-    build_policy_group_grid_config,
-    resolve_policy_grid_initial_load_target,
-    resolve_policy_grid_load_target,
+    build_rulebook_rules_group_grid_config,
+    resolve_rulebook_rules_grid_initial_load_target,
+    resolve_rulebook_rules_grid_load_target,
 )
 
 
-def _sample_policy_layout():
+def _sample_rules_layout():
     return [
         {
             "kind": "object",
@@ -30,29 +30,29 @@ def _sample_policy_layout():
 
 class PolicyGridLoadTargetTests(SimpleTestCase):
     def test_loads_all_rows_up_to_client_max(self):
-        self.assertEqual(resolve_policy_grid_load_target(4000), 4000)
+        self.assertEqual(resolve_rulebook_rules_grid_load_target(4000), 4000)
 
     def test_caps_at_client_max_when_above(self):
-        total = POLICY_GRID_CLIENT_MAX + 5000
-        self.assertEqual(resolve_policy_grid_load_target(total), POLICY_GRID_CLIENT_MAX)
+        total = RULEBOOK_RULES_GRID_CLIENT_MAX + 5000
+        self.assertEqual(resolve_rulebook_rules_grid_load_target(total), RULEBOOK_RULES_GRID_CLIENT_MAX)
 
     def test_initial_load_matches_full_staged_target(self):
-        total = POLICY_GRID_CLIENT_MAX + 13000
+        total = RULEBOOK_RULES_GRID_CLIENT_MAX + 13000
         self.assertEqual(
-            resolve_policy_grid_load_target(total),
-            POLICY_GRID_CLIENT_MAX,
+            resolve_rulebook_rules_grid_load_target(total),
+            RULEBOOK_RULES_GRID_CLIENT_MAX,
         )
         self.assertEqual(
-            resolve_policy_grid_initial_load_target(total),
-            POLICY_GRID_CLIENT_MAX,
+            resolve_rulebook_rules_grid_initial_load_target(total),
+            RULEBOOK_RULES_GRID_CLIENT_MAX,
         )
 
     def test_initial_load_all_when_within_client_max(self):
-        self.assertEqual(resolve_policy_grid_initial_load_target(4000), 4000)
+        self.assertEqual(resolve_rulebook_rules_grid_initial_load_target(4000), 4000)
 
     def test_progressive_steps_exponential(self):
         self.assertEqual(PROGRESSIVE_LOAD_STEPS[:3], (10, 20, 40))
-        self.assertIn(POLICY_GRID_CLIENT_MAX, PROGRESSIVE_LOAD_STEPS)
+        self.assertIn(RULEBOOK_RULES_GRID_CLIENT_MAX, PROGRESSIVE_LOAD_STEPS)
 
     def test_progressive_steps_fine_for_small_sets(self):
         self.assertEqual(PROGRESSIVE_LOAD_STEPS_FINE[0], 5)
@@ -62,20 +62,20 @@ class PolicyGridLoadTargetTests(SimpleTestCase):
         self.assertEqual(GRID_LOAD_MORE_STEP, 2000)
 
     def test_empty_total_uses_default_cap(self):
-        self.assertEqual(resolve_policy_grid_load_target(0), DEFAULT_GRID_LOAD_LIMIT)
+        self.assertEqual(resolve_rulebook_rules_grid_load_target(0), DEFAULT_GRID_LOAD_LIMIT)
         self.assertEqual(
-            resolve_policy_grid_initial_load_target(0),
+            resolve_rulebook_rules_grid_initial_load_target(0),
             DEFAULT_GRID_LOAD_LIMIT,
         )
 
     def test_auto_load_max_matches_client_max(self):
-        self.assertEqual(GRID_AUTO_LOAD_ALL_MAX, POLICY_GRID_CLIENT_MAX)
+        self.assertEqual(GRID_AUTO_LOAD_ALL_MAX, RULEBOOK_RULES_GRID_CLIENT_MAX)
 
 
 class PolicyGroupGridConfigTests(SimpleTestCase):
     def test_group_config_without_group_by(self):
         request = RequestFactory().get("/rules/")
-        cfg = build_policy_group_grid_config(request, _sample_policy_layout())
+        cfg = build_rulebook_rules_group_grid_config(request, _sample_rules_layout())
         self.assertIn("groupByOptions", cfg)
         self.assertIn("groupByNotAllowedMessage", cfg)
         self.assertNotIn("groupModeLabels", cfg)
@@ -85,7 +85,7 @@ class PolicyGroupGridConfigTests(SimpleTestCase):
 
     def test_group_config_with_collapsed_default(self):
         request = RequestFactory().get("/rules/?group_by=col:source::ct_1")
-        cfg = build_policy_group_grid_config(request, _sample_policy_layout())
+        cfg = build_rulebook_rules_group_grid_config(request, _sample_rules_layout())
         self.assertEqual(cfg["groupBy"], "col:source::ct_1")
         self.assertTrue(cfg["groupByEnabled"])
         self.assertEqual(cfg["groupColumnLabel"], "Group")
@@ -108,7 +108,7 @@ class PolicyGroupGridConfigTests(SimpleTestCase):
             "?group_by=col%3Asource%3A%3Act_236"
             "&collapsed=all"
         )
-        cfg = build_policy_group_grid_config(request, layout)
+        cfg = build_rulebook_rules_group_grid_config(request, layout)
         self.assertEqual(cfg["groupBy"], "col:source::ct_236")
         self.assertEqual(cfg["groupColumnLabel"], "Group")
         self.assertEqual(cfg["groupExpansionMode"], "all_collapsed")
@@ -128,7 +128,7 @@ class PolicyGroupGridConfigTests(SimpleTestCase):
         request = RequestFactory().get(
             "/rules/?group_by=col:Source::Zones&group_by_2=rulebook"
         )
-        cfg = build_policy_group_grid_config(
+        cfg = build_rulebook_rules_group_grid_config(
             request,
             layout,
             include_rulebook=True,
@@ -153,7 +153,7 @@ class PolicyGroupGridConfigTests(SimpleTestCase):
             "?group_by=col%3Adestination%3A%3Act_236"
             "&group_mode=value&collapsed=all"
         )
-        cfg = build_policy_group_grid_config(request, layout)
+        cfg = build_rulebook_rules_group_grid_config(request, layout)
         self.assertEqual(cfg["groupBy"], "col:destination::ct_236")
         self.assertNotIn("groupMode", cfg)
         self.assertEqual(cfg["groupColumnLabel"], "Group")
@@ -164,7 +164,7 @@ class PolicyGroupGridConfigTests(SimpleTestCase):
         request = RequestFactory().get(
             "/rules/?group_by=col:source::ct_1&expanded=col:source::ct_1::prod"
         )
-        cfg = build_policy_group_grid_config(request, _sample_policy_layout())
+        cfg = build_rulebook_rules_group_grid_config(request, _sample_rules_layout())
         self.assertEqual(cfg["groupExpansionMode"], "expanded")
         self.assertEqual(cfg["groupExpandedKeys"], ["col:source::ct_1::prod"])
 
@@ -172,7 +172,7 @@ class PolicyGroupGridConfigTests(SimpleTestCase):
         request = RequestFactory().get(
             "/rules/?group_by=col:source::ct_1&group_by_2=tag:source"
         )
-        cfg = build_policy_group_grid_config(request, _sample_policy_layout())
+        cfg = build_rulebook_rules_group_grid_config(request, _sample_rules_layout())
         self.assertEqual(cfg["groupBy2"], "tag:source")
         self.assertNotIn("groupMode", cfg)
         self.assertNotIn("groupMode2", cfg)
@@ -181,9 +181,9 @@ class PolicyGroupGridConfigTests(SimpleTestCase):
         request = RequestFactory().get(
             "/rules/?group_by=rulebook&group_by_2=col:source::ct_1"
         )
-        cfg = build_policy_group_grid_config(
+        cfg = build_rulebook_rules_group_grid_config(
             request,
-            _sample_policy_layout(),
+            _sample_rules_layout(),
             include_rulebook=True,
         )
         self.assertEqual(cfg["groupBy"], "rulebook")
@@ -193,7 +193,7 @@ class PolicyGroupGridConfigTests(SimpleTestCase):
         request = RequestFactory().get(
             "/rules/?group_by=col:source::ct_1&group_mode=value&group_by_2=tag:source&group_mode_2=value"
         )
-        cfg = build_policy_group_grid_config(request, _sample_policy_layout())
+        cfg = build_rulebook_rules_group_grid_config(request, _sample_rules_layout())
         self.assertEqual(cfg["groupBy"], "col:source::ct_1")
         self.assertEqual(cfg["groupBy2"], "tag:source")
         self.assertNotIn("groupMode", cfg)
@@ -201,5 +201,5 @@ class PolicyGroupGridConfigTests(SimpleTestCase):
 
     def test_group_config_expand_all(self):
         request = RequestFactory().get("/rules/?group_by=col:source::ct_1&expanded=all")
-        cfg = build_policy_group_grid_config(request, _sample_policy_layout())
+        cfg = build_rulebook_rules_group_grid_config(request, _sample_rules_layout())
         self.assertEqual(cfg["groupExpansionMode"], "all_expanded")

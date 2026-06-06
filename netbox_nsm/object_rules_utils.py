@@ -7,7 +7,7 @@ from urllib.parse import quote
 from django.urls import reverse
 
 from netbox_nsm.display_utils import get_display_template_map, render_object_display
-from netbox_nsm.policy_grid_payload import conditions_to_filter_query
+from netbox_nsm.rulebook_rules_grid_payload import conditions_to_filter_query
 from netbox_nsm.query.parser import Condition
 
 

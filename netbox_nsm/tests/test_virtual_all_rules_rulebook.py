@@ -25,7 +25,7 @@ class VirtualAllRulesRulebookTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.rb = Rulebook.objects.create(
-            name="Policy RB", rulebook_type=RulebookTypeChoices.POLICY
+            name="Security Rules RB", rulebook_type=RulebookTypeChoices.SECURITY_RULES
         )
         ensure_system_rulebook_fields(cls.rb)
         cls.rule = Rule.objects.create(rulebook=cls.rb, name="r1", index=10)

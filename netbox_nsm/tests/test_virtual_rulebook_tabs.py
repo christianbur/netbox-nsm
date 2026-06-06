@@ -21,7 +21,7 @@ class VirtualRulebookTabsTests(TestCase):
             "core.view_objectchange",
         )
 
-    def test_tabs_match_policy_rulebook_subpages(self):
+    def test_tabs_match_security_rules_rulebook_subpages(self):
         request = RequestFactory().get("/")
         request.user = self.user
         virtual = build_virtual_all_rules_row(rule_count=3)

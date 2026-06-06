@@ -1068,7 +1068,7 @@ print("  → trustsec-core (90 rules)...")
 
 rb_ts = Rulebook.objects.get_or_create(
     name="Enterprise - TrustSec Core",
-    defaults={"rulebook_type": "policy"},
+    defaults={"rulebook_type": "security_rules"},
 )[0]
 
 f_src = _field(rb_ts, "source", "Source", 10, "source")
@@ -1124,7 +1124,7 @@ print("  → trustsec-infra (11 rules)...")
 
 rb_ti = Rulebook.objects.get_or_create(
     name="Enterprise - TrustSec Infra",
-    defaults={"rulebook_type": "policy"},
+    defaults={"rulebook_type": "security_rules"},
 )[0]
 
 fi_src = _field(rb_ti, "source", "Source", 10, "source")
@@ -1160,7 +1160,7 @@ print("  → illumio-intra-zone (25 rules, label-based)...")
 
 rb_il = Rulebook.objects.get_or_create(
     name="Enterprise - Illumio Intra-Zone",
-    defaults={"rulebook_type": "policy"},
+    defaults={"rulebook_type": "security_rules"},
 )[0]
 
 il_src = _field(rb_il, "source", "Source", 10, "source")
@@ -1227,7 +1227,7 @@ print("  → fw-dc-inter-zone...")
 
 rb_dc = Rulebook.objects.get_or_create(
     name="Enterprise - fw-dc-inter-zone",
-    defaults={"rulebook_type": "policy"},
+    defaults={"rulebook_type": "security_rules"},
 )[0]
 
 dc_src = _field(rb_dc, "source", "Source", 10, "source")
@@ -1277,7 +1277,7 @@ print("  → fw-mgmt...")
 
 rb_mg = Rulebook.objects.get_or_create(
     name="Enterprise - fw-mgmt",
-    defaults={"rulebook_type": "policy"},
+    defaults={"rulebook_type": "security_rules"},
 )[0]
 
 mg_src = _field(rb_mg, "source", "Source", 10, "source")
@@ -1314,7 +1314,7 @@ print("  → fw-user-access...")
 
 rb_usr = Rulebook.objects.get_or_create(
     name="Enterprise - fw-user-access",
-    defaults={"rulebook_type": "policy"},
+    defaults={"rulebook_type": "security_rules"},
 )[0]
 
 u_src = _field(rb_usr, "source", "Source", 10, "source")
@@ -1404,7 +1404,7 @@ SIMPLE_RBS = [
 
 for rb_name, rules in SIMPLE_RBS:
     rb_x = Rulebook.objects.get_or_create(
-        name=rb_name, defaults={"rulebook_type": "policy"}
+        name=rb_name, defaults={"rulebook_type": "security_rules"}
     )[0]
     x_src = _field(rb_x, "source", "Source", 10, "source")
     x_dst = _field(rb_x, "destination", "Destination", 20, "destination")

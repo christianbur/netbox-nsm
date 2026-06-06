@@ -77,8 +77,8 @@ class AllRulesGridUnionTests(TestCase):
             defaults={"name": "Union Type B"},
         )
 
-        cls.rb_a = Rulebook.objects.create(name="Union RB A", rulebook_type="policy")
-        cls.rb_b = Rulebook.objects.create(name="Union RB B", rulebook_type="policy")
+        cls.rb_a = Rulebook.objects.create(name="Union RB A", rulebook_type="security_rules")
+        cls.rb_b = Rulebook.objects.create(name="Union RB B", rulebook_type="security_rules")
         ensure_system_rulebook_fields(cls.rb_a)
         ensure_system_rulebook_fields(cls.rb_b)
 

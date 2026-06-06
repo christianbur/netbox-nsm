@@ -2,7 +2,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponseForbidden, JsonResponse
 from django.views import View
 
-from netbox_nsm.policy_grid_filter import (
+from netbox_nsm.rulebook_rules_grid_filter import (
     ALL_RULES_FILTER_QUERY_FORMAT,
     validate_all_rules_filter_query,
 )

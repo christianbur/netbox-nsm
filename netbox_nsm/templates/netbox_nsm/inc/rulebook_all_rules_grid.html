@@ -6,7 +6,7 @@
       <div class="nsm-ag-group-toolbar-row d-flex align-items-stretch">
         {% include "netbox_nsm/inc/rulebook_ag_group_by.html" %}
       </div>
-      <div class="nsm-policy-ag-grid-wrap">
+      <div class="nsm-rules-ag-grid-wrap">
       <div id="nsm-all-rules-load-status"
            class="nsm-ag-load-status d-none"
            data-loading-label="{% trans 'Loading rules' %}"
@@ -24,7 +24,7 @@
       </div>
       {% if all_rules_grid_payload %}{{ all_rules_grid_payload|json_script:"nsm-all-rules-grid-data" }}{% endif %}
       {% if all_rules_grid_config %}{{ all_rules_grid_config|json_script:"nsm-all-rules-grid-config" }}{% endif %}
-      <div id="nsm-all-rules-ag-grid" class="nsm-policy-ag-grid nsm-ag-grid-surface"></div>
+      <div id="nsm-all-rules-ag-grid" class="nsm-rules-ag-grid nsm-ag-grid-surface"></div>
       </div>
       {% include "netbox_nsm/inc/rulebook_ag_status_bar.html" with row_stats_id="nsm-all-rules-row-stats" load_more_btn_id="nsm-all-rules-load-more" %}
     </div>

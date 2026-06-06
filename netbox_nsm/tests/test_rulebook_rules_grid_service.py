@@ -2,21 +2,21 @@
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.policy_grid_payload import (
-    POLICY_ROW_HEIGHT,
+from netbox_nsm.rulebook_rules_grid_payload import (
+    RULES_ROW_HEIGHT,
     _description_cell_html,
     _description_line_count,
     apply_ag_grid_row_filter,
-    build_policy_ag_grid_row,
-    build_policy_group_row_record,
-    policy_group_row_height_for_label,
-    policy_row_height_for_object_lines,
+    build_rulebook_rules_grid_row,
+    build_rulebook_rules_group_row_record,
+    rules_group_row_height_for_label,
+    rules_row_height_for_object_lines,
 )
 
 
 class PolicyGridServiceTests(SimpleTestCase):
     def test_build_row_uses_raw_items(self):
-        row = build_policy_ag_grid_row(
+        row = build_rulebook_rules_grid_row(
             {
                 "pk": 7,
                 "edit_url": "/edit/",
@@ -37,11 +37,11 @@ class PolicyGridServiceTests(SimpleTestCase):
         self.assertEqual(row["source::ct_1"][0]["name"], "dmz")
         self.assertEqual(row["source::ct_1__filter"], "dmz")
         self.assertEqual(row["_objectLineCount"], 1)
-        self.assertEqual(row["_rowHeight"], policy_row_height_for_object_lines(1))
+        self.assertEqual(row["_rowHeight"], rules_row_height_for_object_lines(1))
 
     def test_build_row_height_scales_with_object_count(self):
         items = [{"name": f"obj-{i}"} for i in range(8)]
-        row = build_policy_ag_grid_row(
+        row = build_rulebook_rules_grid_row(
             {
                 "pk": 8,
                 "edit_url": "/edit/",
@@ -54,8 +54,8 @@ class PolicyGridServiceTests(SimpleTestCase):
             }
         )
         self.assertEqual(row["_objectLineCount"], 8)
-        self.assertEqual(row["_rowHeight"], policy_row_height_for_object_lines(8))
-        self.assertGreater(row["_rowHeight"], POLICY_ROW_HEIGHT)
+        self.assertEqual(row["_rowHeight"], rules_row_height_for_object_lines(8))
+        self.assertGreater(row["_rowHeight"], RULES_ROW_HEIGHT)
 
     def test_description_line_count_splits_source_dest(self):
         desc = (
@@ -70,7 +70,7 @@ class PolicyGridServiceTests(SimpleTestCase):
 
     def test_build_row_height_includes_description_lines(self):
         desc = "Source ×1 (a) → Dest ×2 (b, c)"
-        row = build_policy_ag_grid_row(
+        row = build_rulebook_rules_grid_row(
             {
                 "pk": 11,
                 "edit_url": "/edit/",
@@ -88,7 +88,7 @@ class PolicyGridServiceTests(SimpleTestCase):
         )
         self.assertEqual(row["_descriptionLineCount"], 2)
         self.assertEqual(row["_objectLineCount"], 1)
-        self.assertEqual(row["_rowHeight"], policy_row_height_for_object_lines(2))
+        self.assertEqual(row["_rowHeight"], rules_row_height_for_object_lines(2))
 
     def test_apply_ag_grid_row_filter_contains(self):
         rows = [
@@ -109,7 +109,7 @@ class PolicyGridServiceTests(SimpleTestCase):
         self.assertEqual(filtered[0]["name"], "alpha")
 
     def test_build_group_row_record_multiline_label_height(self):
-        record = build_policy_group_row_record(
+        record = build_rulebook_rules_group_row_record(
             {"label": "alpha\nbeta\ngamma", "url": "#"},
             group_key="col:source::ct_1::set::alpha|beta|gamma",
             rule_count=4,
@@ -117,12 +117,12 @@ class PolicyGridServiceTests(SimpleTestCase):
         self.assertEqual(record["_groupLabel"], "alpha\nbeta\ngamma")
         self.assertGreater(record["_rowHeight"], 36)
         self.assertEqual(
-            policy_group_row_height_for_label("alpha\nbeta\ngamma"),
+            rules_group_row_height_for_label("alpha\nbeta\ngamma"),
             record["_rowHeight"],
         )
 
     def test_build_group_row_record(self):
-        record = build_policy_group_row_record(
+        record = build_rulebook_rules_group_row_record(
             {"label": "prod", "url": "/zones/1/", "color": "#111"},
             group_key="col:source::ct_1::prod",
             rule_count=3,
@@ -133,7 +133,7 @@ class PolicyGridServiceTests(SimpleTestCase):
         self.assertEqual(record["_groupKey"], "col:source::ct_1::prod")
 
     def test_build_group_row_record_with_level(self):
-        record = build_policy_group_row_record(
+        record = build_rulebook_rules_group_row_record(
             {"label": "prod", "url": "#"},
             group_key="col:source::ct_1::prod",
             rule_count=2,
@@ -144,7 +144,7 @@ class PolicyGridServiceTests(SimpleTestCase):
         self.assertEqual(record["_groupFieldLabel"], "Source / Zones")
 
     def test_rule_row_lacks_group_header_fields(self):
-        row = build_policy_ag_grid_row(
+        row = build_rulebook_rules_grid_row(
             {
                 "pk": 9,
                 "edit_url": "/edit/",
@@ -160,13 +160,13 @@ class PolicyGridServiceTests(SimpleTestCase):
         self.assertNotIn("_ruleCount", row)
 
     def test_group_row_record_is_distinct_from_rule_row(self):
-        group = build_policy_group_row_record(
+        group = build_rulebook_rules_group_row_record(
             {"label": "United States", "url": "#"},
             group_key="col:source::ct_1::us",
             rule_count=1109,
             group_level=1,
         )
-        rule = build_policy_ag_grid_row(
+        rule = build_rulebook_rules_grid_row(
             {
                 "pk": 1,
                 "edit_url": "/edit/",
@@ -183,11 +183,11 @@ class PolicyGridServiceTests(SimpleTestCase):
         self.assertNotIn("_groupLabel", rule)
 
     def test_build_group_column_def(self):
-        from netbox_nsm.policy_grid_payload import build_policy_group_column_def
+        from netbox_nsm.rulebook_rules_grid_payload import build_rulebook_rules_group_column_def
 
-        col = build_policy_group_column_def()
+        col = build_rulebook_rules_group_column_def()
         self.assertEqual(col["colId"], "_group")
         self.assertEqual(col["pinned"], "left")
-        self.assertEqual(col["cellRenderer"], "policyGroupCell")
+        self.assertEqual(col["cellRenderer"], "rulesGroupCell")
         self.assertFalse(col["sortable"])
         self.assertFalse(col["filter"])

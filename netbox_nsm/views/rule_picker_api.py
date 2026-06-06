@@ -16,7 +16,7 @@ from netbox_nsm.rule_field_selections import (
     build_column_cell_payload,
     get_all_column_selections,
     get_column_selections,
-    policy_column_keys_for_rulebook,
+    rules_column_keys_for_rulebook,
     save_all_column_selections,
     save_column_selections,
 )
@@ -90,7 +90,7 @@ class RulebookPickerDataApiView(LoginRequiredMixin, View):
             return JsonResponse({"detail": "Forbidden"}, status=403)
 
         rulebook = get_object_or_404(Rulebook, pk=pk)
-        if rulebook.rulebook_type != RulebookTypeChoices.POLICY:
+        if rulebook.rulebook_type != RulebookTypeChoices.SECURITY_RULES:
             return JsonResponse({"detail": "Not found"}, status=404)
 
         return JsonResponse(_build_security_rule_picker_data(rulebook=rulebook))
@@ -128,7 +128,7 @@ class RuleFieldSelectionsApiView(LoginRequiredMixin, View):
             columns = get_all_column_selections(rule, rule.rulebook)
             return JsonResponse(
                 {
-                    "column_keys": policy_column_keys_for_rulebook(rule.rulebook),
+                    "column_keys": rules_column_keys_for_rulebook(rule.rulebook),
                     "columns": columns,
                 }
             )

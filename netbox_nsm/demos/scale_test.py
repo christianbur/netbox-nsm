@@ -75,14 +75,14 @@ def _ensure_zones(zone_model, *, count: int) -> list:
 
 def _ensure_rulebook_fields(rb):
     from netbox_nsm.views.setup.demo import (
-        _POLICY_OBJECT_FIELD_SPECS,
+        _SECURITY_RULES_OBJECT_FIELD_SPECS,
         _ZONE_MATRIX_FIELD_TYPES,
         _apply_field_types,
         _upsert_object_fields,
     )
 
     ensure_system_rulebook_fields(rb)
-    fields = _upsert_object_fields(rb, _POLICY_OBJECT_FIELD_SPECS)
+    fields = _upsert_object_fields(rb, _SECURITY_RULES_OBJECT_FIELD_SPECS)
     _apply_field_types(fields, _ZONE_MATRIX_FIELD_TYPES)
     return fields
 
@@ -111,7 +111,7 @@ def create_scale_test_demo(*, recreate: bool = True) -> dict:
         rb, _ = Rulebook.objects.get_or_create(
             name=RULEBOOK_NAME,
             defaults={
-                "rulebook_type": "policy",
+                "rulebook_type": "security_rules",
                 "description": "Performance / UI scale test",
             },
         )

@@ -82,7 +82,7 @@ def build_matrix_tab_context(
         key=lambda x: x["name"],
     )
 
-    policy_url_base = with_branch_query(
+    rules_url_base = with_branch_query(
         reverse(
             "plugins:netbox_nsm:rulebook_rules",
             args=[instance.pk],
@@ -265,24 +265,24 @@ def build_matrix_tab_context(
                     "fwd": _badge(fwd_rules),
                     "rev": _badge(rev_rules),
                     "combined": _combined_badge(fwd_rules, rev_rules),
-                    "fwd_href": view_helpers._matrix_policy_href(
-                        policy_url_base,
+                    "fwd_href": view_helpers._matrix_rules_href(
+                        rules_url_base,
                         src_field_name,
                         dst_field_name,
                         src,
                         dst,
                         **matrix_href_kwargs,
                     ),
-                    "rev_href": view_helpers._matrix_policy_href(
-                        policy_url_base,
+                    "rev_href": view_helpers._matrix_rules_href(
+                        rules_url_base,
                         src_field_name,
                         dst_field_name,
                         dst,
                         src,
                         **matrix_href_kwargs,
                     ),
-                    "both_href": view_helpers._matrix_policy_href(
-                        policy_url_base,
+                    "both_href": view_helpers._matrix_rules_href(
+                        rules_url_base,
                         src_field_name,
                         dst_field_name,
                         src,
@@ -295,7 +295,7 @@ def build_matrix_tab_context(
                             f"{add_url_base}?rulebook={instance.pk}"
                             f"&prefill_src_ct={selected_ct_id}&prefill_src_obj={src.pk}"
                             f"&prefill_dst_ct={selected_ct_id}&prefill_dst_obj={dst.pk}"
-                            f"&return_url={policy_url_base}"
+                            f"&return_url={rules_url_base}"
                         ),
                         request,
                     ),

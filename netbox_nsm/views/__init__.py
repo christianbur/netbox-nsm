@@ -12,8 +12,8 @@ from .custom_objects_sync import SyncBuiltinToCustomObjectsView, SyncTypeConfigs
 from .type_config import *
 from .rulebook_field import *
 from .object_rules_api import ObjectRulesApiView
-from .policy_grid_api import RulebookPolicyGridApiView
-from .policy_query_validate_api import RulebookPolicyQueryValidateApiView
+from .rulebook_rules_grid_api import RulebookRulesGridApiView
+from .rulebook_rules_grid_validate_api import RulebookRulesGridValidateApiView
 from .all_rules_grid_api import AllRulesGridApiView
 from .all_rules_query_validate_api import AllRulesQueryValidateApiView
 from .matrix_grid_api import RulebookMatrixGridApiView

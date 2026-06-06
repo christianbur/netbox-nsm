@@ -6,19 +6,19 @@ from netbox_nsm.all_rules_grid_service import (
     build_all_rules_grid_scaffold,
     fetch_all_rules_grid_page,
 )
-from netbox_nsm.policy_grid_filter import (
+from netbox_nsm.rulebook_rules_grid_filter import (
     ALL_RULES_FILTER_QUERY_FORMAT,
     extract_grid_filter_params,
     resolve_all_rules_filter_model,
 )
-from netbox_nsm.policy_rule_grouping import (
+from netbox_nsm.rulebook_rules_grouping import (
     parse_group_by_mode,
     parse_group_default_expanded,
-    parse_policy_group_by,
-    parse_policy_group_levels,
-    parse_policy_group_modes,
+    parse_rulebook_rules_group_by,
+    parse_rulebook_rules_group_levels,
+    parse_rulebook_rules_group_modes,
     resolve_request_group_expansion,
-    validate_policy_group_request,
+    validate_rulebook_rules_group_request,
 )
 
 __all__ = ("AllRulesGridApiView",)
@@ -70,38 +70,38 @@ class AllRulesGridApiView(LoginRequiredMixin, View):
             )
 
         grouped_meta = (
-            rulebook_views._build_grouped_policy_table_data([], scoped_rulebook)
+            rulebook_views._build_grouped_rules_table_data([], scoped_rulebook)
             if scoped_rulebook
-            else {"policy_layout": []}
+            else {"rules_layout": []}
         )
-        policy_layout = grouped_meta.get("policy_layout") or []
-        if not policy_layout:
+        rules_layout = grouped_meta.get("rules_layout") or []
+        if not rules_layout:
             from netbox_nsm.all_rules_grid_service import build_all_rules_filter_maps
 
-            _column_map, policy_layout = build_all_rules_filter_maps(rulebook_views)
+            _column_map, rules_layout = build_all_rules_filter_maps(rulebook_views)
 
-        group_err = validate_policy_group_request(
+        group_err = validate_rulebook_rules_group_request(
             request,
-            policy_layout=policy_layout,
+            rules_layout=rules_layout,
             include_rulebook=True,
         )
         if group_err:
             return JsonResponse({"error": group_err}, status=400)
 
-        group_by = parse_policy_group_by(
+        group_by = parse_rulebook_rules_group_by(
             request,
-            policy_layout=policy_layout,
+            rules_layout=rules_layout,
             include_rulebook=True,
         )
-        group_levels = parse_policy_group_levels(
+        group_levels = parse_rulebook_rules_group_levels(
             request,
-            policy_layout=policy_layout,
+            rules_layout=rules_layout,
             include_rulebook=True,
         )
         group_mode = parse_group_by_mode(request) if group_levels else ""
         group_mode_secondary = ""
         if len(group_levels) > 1:
-            _primary_mode, group_mode_secondary = parse_policy_group_modes(request)
+            _primary_mode, group_mode_secondary = parse_rulebook_rules_group_modes(request)
         if group_levels:
             preview_rules = None
             if parse_group_default_expanded(request) == 1:
@@ -134,7 +134,7 @@ class AllRulesGridApiView(LoginRequiredMixin, View):
                             _build_union_layout,
                             _records_for_rules,
                         )
-                        from netbox_nsm.policy_grid_filter import (
+                        from netbox_nsm.rulebook_rules_grid_filter import (
                             apply_ag_grid_row_filter,
                         )
 
@@ -178,7 +178,7 @@ class AllRulesGridApiView(LoginRequiredMixin, View):
             group_mode_secondary=group_mode_secondary,
             expanded_keys=expanded_keys,
             collapsed_keys=collapsed_keys,
-            policy_layout=policy_layout,
+            rules_layout=rules_layout,
             use_cached=use_cached,
             refresh_cache=refresh_cache,
         )

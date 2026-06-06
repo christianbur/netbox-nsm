@@ -24,7 +24,7 @@ def load_virtual_all_rules_fields_for_detail() -> list:
     type_ids_seen: dict[str, set[int]] = {}
 
     rulebooks = Rulebook.objects.filter(
-        rulebook_type=RulebookTypeChoices.POLICY
+        rulebook_type=RulebookTypeChoices.SECURITY_RULES
     ).order_by("name", "pk")
 
     for rulebook in rulebooks:

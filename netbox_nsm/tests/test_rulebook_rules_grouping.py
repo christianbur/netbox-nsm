@@ -5,28 +5,28 @@ from unittest.mock import patch
 
 from django.test import RequestFactory, SimpleTestCase
 
-from netbox_nsm.policy_rule_grouping import (
+from netbox_nsm.rulebook_rules_grouping import (
     COLLAPSE_ALL,
     GROUP_MODE_SET,
     GROUP_MODE_VALUE,
     UNGROUPED_GROUP_KEY,
     assign_rules_to_groups,
     assign_rules_to_groups_for_union,
-    build_policy_group_options,
+    build_rulebook_rules_group_options,
     build_rule_display_items,
     filter_collapsed_display_items,
     filter_group_display_items,
     parse_collapsed_keys,
     parse_expanded_keys,
     parse_group_by_mode,
-    parse_policy_group_modes,
-    parse_policy_group_by,
-    parse_policy_group_levels,
-    policy_grouping_enabled,
+    parse_rulebook_rules_group_modes,
+    parse_rulebook_rules_group_by,
+    parse_rulebook_rules_group_levels,
+    rules_grouping_enabled,
     resolve_group_by_value,
     resolve_group_expansion,
     resolve_request_group_expansion,
-    validate_policy_group_request,
+    validate_rulebook_rules_group_request,
 )
 
 
@@ -55,8 +55,8 @@ class PolicyRuleGroupingTests(SimpleTestCase):
             },
         ]
 
-    def test_build_policy_group_options(self):
-        opts = build_policy_group_options(self._layout())
+    def test_build_rulebook_rules_group_options(self):
+        opts = build_rulebook_rules_group_options(self._layout())
         values = [o["value"] for o in opts]
         self.assertIn("", values)
         self.assertIn("tag:source", values)
@@ -64,15 +64,15 @@ class PolicyRuleGroupingTests(SimpleTestCase):
         self.assertIn("col:source::ct_1", values)
         self.assertIn("col:destination::ct_1", values)
 
-    def test_parse_policy_group_by_validates_layout(self):
+    def test_parse_rulebook_rules_group_by_validates_layout(self):
         layout = self._layout()
         request = RequestFactory().get("/rules/?group_by=col:source::ct_1")
         self.assertEqual(
-            parse_policy_group_by(request, policy_layout=layout),
+            parse_rulebook_rules_group_by(request, rules_layout=layout),
             "col:source::ct_1",
         )
         bad = RequestFactory().get("/rules/?group_by=zone")
-        self.assertEqual(parse_policy_group_by(bad, policy_layout=layout), "")
+        self.assertEqual(parse_rulebook_rules_group_by(bad, rules_layout=layout), "")
 
     def test_resolve_group_by_value_maps_area_header_alias(self):
         layout = self._layout()
@@ -82,18 +82,18 @@ class PolicyRuleGroupingTests(SimpleTestCase):
         )
         request = RequestFactory().get("/rules/?group_by=col:Source::Zones")
         self.assertEqual(
-            parse_policy_group_by(request, policy_layout=layout),
+            parse_rulebook_rules_group_by(request, rules_layout=layout),
             "col:source::ct_1",
         )
 
-    def test_parse_policy_group_levels_resolves_secondary_alias(self):
+    def test_parse_rulebook_rules_group_levels_resolves_secondary_alias(self):
         layout = self._layout()
         request = RequestFactory().get(
             "/rules/?group_by=rulebook&group_by_2=col:Source::Zones"
         )
-        levels = parse_policy_group_levels(
+        levels = parse_rulebook_rules_group_levels(
             request,
-            policy_layout=layout,
+            rules_layout=layout,
             include_rulebook=True,
         )
         self.assertEqual(levels, ["rulebook", "col:source::ct_1"])
@@ -102,7 +102,7 @@ class PolicyRuleGroupingTests(SimpleTestCase):
         rule = SimpleNamespace(pk=1, rulebook_id=10)
         rb_maps = {10: {"Source::Zones": "source::ct_1"}}
         with patch(
-            "netbox_nsm.policy_rule_grouping._assign_by_column",
+            "netbox_nsm.rulebook_rules_grouping._assign_by_column",
             return_value={
                 1: [_bucket("col:source::ct_1::prod", "prod")],
             },
@@ -133,7 +133,7 @@ class PolicyRuleGroupingTests(SimpleTestCase):
             }
 
         with patch(
-            "netbox_nsm.policy_rule_grouping.assign_rules_to_groups",
+            "netbox_nsm.rulebook_rules_grouping.assign_rules_to_groups",
             side_effect=fake_assign,
         ):
             assigned = assign_rules_to_groups_for_union(
@@ -167,41 +167,41 @@ class PolicyRuleGroupingTests(SimpleTestCase):
         self.assertEqual(collapsed, {"col:source::ct_1::prod"})
         self.assertIsNone(level)
 
-    def test_validate_policy_group_request_rejects_unknown_field(self):
+    def test_validate_rulebook_rules_group_request_rejects_unknown_field(self):
         layout = self._layout()
         request = RequestFactory().get("/rules/?group_by=col:source::ct_999")
         self.assertIsNotNone(
-            validate_policy_group_request(request, policy_layout=layout)
+            validate_rulebook_rules_group_request(request, rules_layout=layout)
         )
 
-    def test_validate_policy_group_request_accepts_configured_column(self):
+    def test_validate_rulebook_rules_group_request_accepts_configured_column(self):
         layout = self._layout()
         request = RequestFactory().get("/rules/?group_by=col:source::ct_1")
-        self.assertIsNone(validate_policy_group_request(request, policy_layout=layout))
+        self.assertIsNone(validate_rulebook_rules_group_request(request, rules_layout=layout))
 
-    def test_validate_policy_group_request_rejects_rulebook_without_flag(self):
+    def test_validate_rulebook_rules_group_request_rejects_rulebook_without_flag(self):
         layout = self._layout()
         request = RequestFactory().get("/rules/?group_by=rulebook")
         self.assertIsNotNone(
-            validate_policy_group_request(request, policy_layout=layout)
+            validate_rulebook_rules_group_request(request, rules_layout=layout)
         )
 
-    def test_validate_policy_group_request_accepts_rulebook_when_enabled(self):
+    def test_validate_rulebook_rules_group_request_accepts_rulebook_when_enabled(self):
         layout = self._layout()
         request = RequestFactory().get("/rules/?group_by=rulebook")
         self.assertIsNone(
-            validate_policy_group_request(
+            validate_rulebook_rules_group_request(
                 request,
-                policy_layout=layout,
+                rules_layout=layout,
                 include_rulebook=True,
             )
         )
 
-    def test_build_policy_group_options_excludes_system_columns(self):
+    def test_build_rulebook_rules_group_options_excludes_system_columns(self):
         layout = self._layout() + [
             {"kind": "system", "slug": "name", "label": "Name"},
         ]
-        values = {opt["value"] for opt in build_policy_group_options(layout)}
+        values = {opt["value"] for opt in build_rulebook_rules_group_options(layout)}
         self.assertNotIn("col:name", values)
         self.assertNotIn("name", values)
 
@@ -219,61 +219,61 @@ class PolicyRuleGroupingTests(SimpleTestCase):
             GROUP_MODE_SET,
         )
 
-    def test_parse_policy_group_modes_always_set(self):
+    def test_parse_rulebook_rules_group_modes_always_set(self):
         request = RequestFactory().get(
             "/rules/?group_by=col:source::ct_1&group_mode=value&group_by_2=tag:source&group_mode_2=value"
         )
-        primary, secondary = parse_policy_group_modes(request)
+        primary, secondary = parse_rulebook_rules_group_modes(request)
         self.assertEqual(primary, GROUP_MODE_SET)
         self.assertEqual(secondary, GROUP_MODE_SET)
 
-    def test_parse_policy_group_levels_max_two(self):
+    def test_parse_rulebook_rules_group_levels_max_two(self):
         layout = self._layout()
         request = RequestFactory().get(
             "/rules/?group_by=col:source::ct_1"
             "&group_by_2=tag:source"
             "&group_by_3=tag:destination"
         )
-        levels = parse_policy_group_levels(request, policy_layout=layout)
+        levels = parse_rulebook_rules_group_levels(request, rules_layout=layout)
         self.assertEqual(levels, ["col:source::ct_1", "tag:source"])
 
-    def test_parse_policy_group_levels_single(self):
+    def test_parse_rulebook_rules_group_levels_single(self):
         layout = self._layout()
         request = RequestFactory().get("/rules/?group_by=col:source::ct_1")
-        levels = parse_policy_group_levels(request, policy_layout=layout)
+        levels = parse_rulebook_rules_group_levels(request, rules_layout=layout)
         self.assertEqual(levels, ["col:source::ct_1"])
 
-    def test_parse_policy_group_levels_rulebook_plus_column(self):
+    def test_parse_rulebook_rules_group_levels_rulebook_plus_column(self):
         layout = self._layout()
         request = RequestFactory().get(
             "/rules/?group_by=rulebook&group_by_2=col:source::ct_1"
         )
-        levels = parse_policy_group_levels(
+        levels = parse_rulebook_rules_group_levels(
             request,
-            policy_layout=layout,
+            rules_layout=layout,
             include_rulebook=True,
         )
         self.assertEqual(levels, ["rulebook", "col:source::ct_1"])
 
-    def test_parse_policy_group_levels_rulebook_ignores_duplicate_secondary(self):
+    def test_parse_rulebook_rules_group_levels_rulebook_ignores_duplicate_secondary(self):
         layout = self._layout()
         request = RequestFactory().get("/rules/?group_by=rulebook&group_by_2=rulebook")
-        levels = parse_policy_group_levels(
+        levels = parse_rulebook_rules_group_levels(
             request,
-            policy_layout=layout,
+            rules_layout=layout,
             include_rulebook=True,
         )
         self.assertEqual(levels, ["rulebook"])
 
-    def test_validate_policy_group_request_accepts_two_levels(self):
+    def test_validate_rulebook_rules_group_request_accepts_two_levels(self):
         layout = self._layout()
         request = RequestFactory().get(
             "/rules/?group_by=rulebook&group_by_2=col:source::ct_1"
         )
         self.assertIsNone(
-            validate_policy_group_request(
+            validate_rulebook_rules_group_request(
                 request,
-                policy_layout=layout,
+                rules_layout=layout,
                 include_rulebook=True,
             )
         )
@@ -494,7 +494,7 @@ class PolicyRuleGroupingTests(SimpleTestCase):
         self.assertIsNone(default_level)
 
     def test_resolve_group_expansion_expand_all(self):
-        from netbox_nsm.policy_rule_grouping import EXPAND_ALL
+        from netbox_nsm.rulebook_rules_grouping import EXPAND_ALL
 
         request = RequestFactory().get("/rules/?group_by=col:source::ct_1&expanded=all")
         expanded, collapsed, _default = resolve_group_expansion(
@@ -503,7 +503,7 @@ class PolicyRuleGroupingTests(SimpleTestCase):
         self.assertEqual(expanded, {EXPAND_ALL})
 
     def test_parse_group_default_expanded(self):
-        from netbox_nsm.policy_rule_grouping import parse_group_default_expanded
+        from netbox_nsm.rulebook_rules_grouping import parse_group_default_expanded
 
         self.assertEqual(parse_group_default_expanded(RequestFactory().get("/")), 0)
         self.assertEqual(
@@ -516,11 +516,11 @@ class PolicyRuleGroupingTests(SimpleTestCase):
         )
 
     def test_assign_by_rulebook(self):
-        rb = SimpleNamespace(pk=5, name="Policy RB")
+        rb = SimpleNamespace(pk=5, name="Security Rules RB")
         rb.get_absolute_url = lambda: "/rb/5/"
         rule = SimpleNamespace(pk=1, rulebook=rb)
         mapping = assign_rules_to_groups([rule], "rulebook")
-        self.assertEqual(mapping[1][0]["label"], "Policy RB")
+        self.assertEqual(mapping[1][0]["label"], "Security Rules RB")
         self.assertEqual(mapping[1][0]["key"], "rulebook::5")
 
     def test_nested_group_display_items(self):

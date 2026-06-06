@@ -30,7 +30,7 @@ class RuleAssignmentChangelogTest(ModelViewTestCase):
     def setUpTestData(cls):
         super().setUpTestData()
         cls.rulebook = Rulebook.objects.create(
-            name="changelog-rb", rulebook_type="policy"
+            name="changelog-rb", rulebook_type="security_rules"
         )
         cls.rule = Rule.objects.create(
             rulebook=cls.rulebook,
@@ -46,7 +46,7 @@ class RuleAssignmentChangelogTest(ModelViewTestCase):
         cls.prefix = Prefix.objects.first()
         cls.prefix_ct = ContentType.objects.get_for_model(Prefix)
 
-    def test_policy_grid_column_save_creates_rule_objectchange(self):
+    def test_rules_grid_column_save_creates_rule_objectchange(self):
         self.add_permissions("netbox_nsm.change_rule", "netbox_nsm.view_rule")
         RuleObjectItem.objects.create(
             rule=self.rule,
@@ -89,7 +89,7 @@ class RulebookFieldChangelogAPITest(APITestCase):
     def setUpTestData(cls):
         super().setUpTestData()
         cls.rulebook = Rulebook.objects.create(
-            name="field-changelog-rb", rulebook_type="policy"
+            name="field-changelog-rb", rulebook_type="security_rules"
         )
 
     def test_rulebook_field_api_create_logs_change(self):
@@ -129,7 +129,7 @@ class RuleObjectItemChangelogAPITest(APITestCase):
     def setUpTestData(cls):
         super().setUpTestData()
         cls.rulebook = Rulebook.objects.create(
-            name="item-changelog-rb", rulebook_type="policy"
+            name="item-changelog-rb", rulebook_type="security_rules"
         )
         cls.rule = Rule.objects.create(
             rulebook=cls.rulebook, name="item-rule", index=10

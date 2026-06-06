@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 
 from netbox_nsm.models import Rulebook
-from netbox_nsm.policy_grid_payload import (
+from netbox_nsm.rulebook_rules_grid_payload import (
     ALL_RULES_FILTER_QUERY_FORMAT,
     SCOPED_FILTER_FORMAT_ERROR,
     SCOPED_FILTER_QUERY_FORMAT,
@@ -25,9 +25,9 @@ __all__ = (
     "extract_grid_filter_params",
     "parse_filter_model_json",
     "resolve_all_rules_filter_model",
-    "resolve_policy_filter_model",
+    "resolve_rules_filter_model",
     "validate_all_rules_filter_query",
-    "validate_policy_filter_query",
+    "validate_rules_filter_query",
 )
 
 
@@ -59,8 +59,8 @@ def extract_all_rules_filter_params(
     Priority: rulebook_id > rulebook (name) > scoped prefix in filter_q.
     """
     from netbox_nsm.all_rules_grid_service import (
-        resolve_policy_rulebook_by_id,
-        resolve_policy_rulebook_scope,
+        resolve_rules_rulebook_by_id,
+        resolve_rules_rulebook_scope,
     )
 
     filter_q = (request.GET.get("filter_q") or request.GET.get("q") or "").strip()
@@ -68,12 +68,12 @@ def extract_all_rules_filter_params(
 
     rb_id_raw = (request.GET.get("rulebook_id") or "").strip()
     if rb_id_raw:
-        scoped_rulebook, err = resolve_policy_rulebook_by_id(rb_id_raw)
+        scoped_rulebook, err = resolve_rules_rulebook_by_id(rb_id_raw)
         if err:
             return None, filter_q or None, err
     elif (request.GET.get("rulebook") or "").strip():
         rb_name = request.GET.get("rulebook", "").strip()
-        scoped_rulebook, err = resolve_policy_rulebook_scope(rb_name)
+        scoped_rulebook, err = resolve_rules_rulebook_scope(rb_name)
         if err:
             return None, filter_q or None, err
 
@@ -92,20 +92,20 @@ def extract_all_rules_filter_params(
     if scope_err:
         return None, None, scope_err
     if rb_name:
-        scoped_rulebook, err = resolve_policy_rulebook_scope(rb_name)
+        scoped_rulebook, err = resolve_rules_rulebook_scope(rb_name)
         if err:
             return None, None, err
         return scoped_rulebook, body or None, None
     return None, body or None, None
 
 
-def resolve_policy_filter_model(
+def resolve_rules_filter_model(
     *,
     filter_model_raw: str | None = None,
     filter_q_raw: str | None = None,
     rulebook,
     view_helpers,
-    policy_layout: list | None = None,
+    rules_layout: list | None = None,
 ) -> tuple[dict | None, str | None]:
     """
     Build an AG Grid filter model for one policy rulebook.
@@ -113,12 +113,12 @@ def resolve_policy_filter_model(
     ``filter_q`` takes precedence over JSON ``filter`` / ``filterModel``.
     """
     if filter_q_raw:
-        if policy_layout is None:
-            grouped = view_helpers._build_grouped_policy_table_data([], rulebook)
-            policy_layout = grouped.get("policy_layout") or []
+        if rules_layout is None:
+            grouped = view_helpers._build_grouped_rules_table_data([], rulebook)
+            rules_layout = grouped.get("rules_layout") or []
         context = RulebookContext(rulebook)
         filter_model, err = build_ag_grid_filter_model_from_query_text(
-            filter_q_raw, policy_layout, context
+            filter_q_raw, rules_layout, context
         )
         if err:
             return None, err
@@ -126,30 +126,30 @@ def resolve_policy_filter_model(
     return parse_filter_model_json(filter_model_raw), None
 
 
-def validate_policy_filter_query(
+def validate_rules_filter_query(
     raw_q: str,
     rulebook,
     view_helpers,
     *,
-    policy_layout: list | None = None,
+    rules_layout: list | None = None,
 ) -> dict:
     """Validate policy filter_q and return JSON payload fields."""
     raw_q = (raw_q or "").strip()
     if not raw_q:
         return {"valid": True, "empty": True, "filterModel": {}}
 
-    if policy_layout is None:
-        grouped = view_helpers._build_grouped_policy_table_data([], rulebook)
-        policy_layout = grouped.get("policy_layout") or []
+    if rules_layout is None:
+        grouped = view_helpers._build_grouped_rules_table_data([], rulebook)
+        rules_layout = grouped.get("rules_layout") or []
     context = RulebookContext(rulebook)
     filter_model, err = build_ag_grid_filter_model_from_query_text(
-        raw_q, policy_layout, context
+        raw_q, rules_layout, context
     )
     if err:
         return {"valid": False, "error": err}
 
-    column_map = build_filter_column_query_map(policy_layout, context)
-    shorthand_names = build_filter_column_shorthand_names(column_map, policy_layout)
+    column_map = build_filter_column_query_map(rules_layout, context)
+    shorthand_names = build_filter_column_shorthand_names(column_map, rules_layout)
     normalized = serialize_ag_grid_filter_to_nsm_q(
         filter_model,
         column_map,
@@ -176,13 +176,13 @@ def _resolve_all_rules_filter_body(
 
     body = (filter_q_body or "").strip()
     if scoped_rulebook is not None:
-        grouped = view_helpers._build_grouped_policy_table_data([], scoped_rulebook)
-        policy_layout = grouped.get("policy_layout") or []
+        grouped = view_helpers._build_grouped_rules_table_data([], scoped_rulebook)
+        rules_layout = grouped.get("rules_layout") or []
         context = RulebookContext(scoped_rulebook)
         if not body:
             return None, scoped_rulebook, None
         filter_model, err = build_ag_grid_filter_model_from_query_text(
-            body, policy_layout, context
+            body, rules_layout, context
         )
         if err:
             return None, scoped_rulebook, err
@@ -191,12 +191,12 @@ def _resolve_all_rules_filter_body(
     if not body:
         return None, None, None
 
-    column_map, policy_layout = build_all_rules_filter_maps(view_helpers)
+    column_map, rules_layout = build_all_rules_filter_maps(view_helpers)
     extra_aliases = build_all_rules_filter_extra_aliases(column_map)
     filter_model, err = build_ag_grid_filter_model_from_column_map(
         body,
         column_map,
-        policy_layout,
+        rules_layout,
         extra_aliases=extra_aliases,
     )
     if err:
@@ -219,16 +219,16 @@ def _build_all_rules_validate_payload(
 
     body = (filter_q_body or "").strip()
     if scoped_rulebook is not None:
-        grouped = view_helpers._build_grouped_policy_table_data([], scoped_rulebook)
-        policy_layout = grouped.get("policy_layout") or []
+        grouped = view_helpers._build_grouped_rules_table_data([], scoped_rulebook)
+        rules_layout = grouped.get("rules_layout") or []
         context = RulebookContext(scoped_rulebook)
-        column_map = build_filter_column_query_map(policy_layout, context)
-        shorthand_names = build_filter_column_shorthand_names(column_map, policy_layout)
+        column_map = build_filter_column_query_map(rules_layout, context)
+        shorthand_names = build_filter_column_shorthand_names(column_map, rules_layout)
         column_order = None
     else:
-        column_map, policy_layout = build_all_rules_filter_maps(view_helpers)
+        column_map, rules_layout = build_all_rules_filter_maps(view_helpers)
         shorthand_names = build_all_rules_filter_shorthand_names(
-            column_map, policy_layout
+            column_map, rules_layout
         )
         column_order = list(ALL_RULES_FILTER_QUERY_COLUMN_ORDER)
 
@@ -353,19 +353,19 @@ def _resolve_all_rules_scope_from_parts(
     rulebook_name: str | None,
 ) -> tuple[Rulebook | None, str | None, str | None]:
     from netbox_nsm.all_rules_grid_service import (
-        resolve_policy_rulebook_by_id,
-        resolve_policy_rulebook_scope,
+        resolve_rules_rulebook_by_id,
+        resolve_rules_rulebook_scope,
     )
 
     body = (filter_q or "").strip()
     scoped_rulebook: Rulebook | None = None
 
     if (rulebook_id or "").strip():
-        scoped_rulebook, err = resolve_policy_rulebook_by_id(rulebook_id)
+        scoped_rulebook, err = resolve_rules_rulebook_by_id(rulebook_id)
         if err:
             return None, body or None, err
     elif (rulebook_name or "").strip():
-        scoped_rulebook, err = resolve_policy_rulebook_scope(rulebook_name)
+        scoped_rulebook, err = resolve_rules_rulebook_scope(rulebook_name)
         if err:
             return None, body or None, err
 
@@ -384,7 +384,7 @@ def _resolve_all_rules_scope_from_parts(
     if scope_err:
         return None, None, scope_err
     if rb_name:
-        scoped_rulebook, err = resolve_policy_rulebook_scope(rb_name)
+        scoped_rulebook, err = resolve_rules_rulebook_scope(rb_name)
         if err:
             return None, None, err
         return scoped_rulebook, unscoped_body or None, None

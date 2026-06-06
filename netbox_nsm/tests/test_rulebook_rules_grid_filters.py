@@ -5,11 +5,11 @@ from unittest.mock import MagicMock
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.policy_grid_payload import build_ag_grid_filter_model
+from netbox_nsm.rulebook_rules_grid_payload import build_ag_grid_filter_model
 from netbox_nsm.query.parser import Condition, Query, parse
 
 
-def _policy_layout():
+def _rules_layout():
     return [
         {
             "kind": "object",
@@ -66,7 +66,7 @@ def _context():
 class PolicyGridFilterTests(SimpleTestCase):
     def test_name_query_maps_to_name_column(self):
         query = parse('name == "infra-to-dev-2"')
-        model = build_ag_grid_filter_model(query, _policy_layout(), _context())
+        model = build_ag_grid_filter_model(query, _rules_layout(), _context())
         self.assertEqual(
             model["name"],
             {"filterType": "text", "type": "contains", "filter": "infra-to-dev-2"},
@@ -74,7 +74,7 @@ class PolicyGridFilterTests(SimpleTestCase):
 
     def test_simple_and_query_maps_to_zone_columns(self):
         query = parse('Source.Name == "dev-1" AND Destination.Name == "dev-2"')
-        model = build_ag_grid_filter_model(query, _policy_layout(), _context())
+        model = build_ag_grid_filter_model(query, _rules_layout(), _context())
         self.assertEqual(
             model["source::ct_1"],
             {"filterType": "text", "type": "contains", "filter": "dev-1"},
@@ -88,7 +88,7 @@ class PolicyGridFilterTests(SimpleTestCase):
         query = parse(
             'Source.Zones.Name == "PROD:dmz" AND Destination.Zones.Name == "LAN:app"'
         )
-        model = build_ag_grid_filter_model(query, _policy_layout(), _context())
+        model = build_ag_grid_filter_model(query, _rules_layout(), _context())
         self.assertEqual(
             model["source::ct_1"],
             {"filterType": "text", "type": "contains", "filter": "PROD:dmz"},
@@ -111,7 +111,7 @@ class PolicyGridFilterTests(SimpleTestCase):
                 ],
             ],
         )
-        model = build_ag_grid_filter_model(query, _policy_layout(), _context())
+        model = build_ag_grid_filter_model(query, _rules_layout(), _context())
         self.assertEqual(model["source::ct_1"]["operator"], "OR")
         self.assertEqual(
             [c["filter"] for c in model["source::ct_1"]["conditions"]],

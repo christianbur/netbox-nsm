@@ -5,10 +5,10 @@
   "use strict";
 
   var NSM_GRID_PROFILES = {
-    policy: {
-      payloadScript: "nsm-policy-grid-data",
-      configScript: "nsm-policy-grid-config",
-      gridId: "nsm-policy-ag-grid",
+    rules: {
+      payloadScript: "nsm-rulebook-rules-grid-data",
+      configScript: "nsm-rulebook-rules-grid-config",
+      gridId: "nsm-rules-ag-grid",
       loadStatusId: "nsm-ag-load-status",
       loadTrackId: "nsm-ag-load-track",
       loadProgressId: "nsm-ag-load-progress",
@@ -47,15 +47,19 @@
     return isNetBoxDark() ? "dark" : "light";
   }
 
-  function readJsonScript(id) {
+
+  function readJsonScript(id, fallbackId) {
     var el = document.getElementById(id);
+    if (!el && fallbackId) {
+      el = document.getElementById(fallbackId);
+    }
     if (!el) {
       return null;
     }
     try {
       return JSON.parse(el.textContent);
     } catch (e) {
-      console.error("NSM policy grid: invalid JSON in #" + id, e);
+      console.error("NSM rules grid: invalid JSON in #" + id, e);
       return null;
     }
   }
@@ -77,9 +81,9 @@
   var NSM_GROUP_DRAG_SOURCE = null;
   var NSM_GROUP_DRAG_VALUE = null;
   var POLICY_GROUP_COL_ID = "_group";
-  var POLICY_RULES_CACHE_TTL_MS = 10 * 60 * 1000;
+  var RULES_TAB_CACHE_TTL_MS = 10 * 60 * 1000;
 
-  function isPolicyRulesRefreshRequested() {
+  function isRulesTabRefreshRequested() {
     if (typeof window === "undefined") {
       return false;
     }
@@ -87,7 +91,7 @@
     return params.get("refresh") === "1" || params.get("cache_bust") === "1";
   }
 
-  function stripPolicyRulesRefreshFromUrl() {
+  function stripRulesTabRefreshFromUrl() {
     if (typeof window === "undefined" || !window.history || !window.history.replaceState) {
       return;
     }
@@ -127,14 +131,14 @@
   var NSM_GROUP_HEADER_POINTER_THRESHOLD = 6;
   var NSM_GROUP_HEADER_DRAG_ACTIVE = null;
 
-  function policyHeaderColIdSelector(colId) {
+  function rulesHeaderColIdSelector(colId) {
     var safe = escapeColIdForDom(colId);
     return (
       '.ag-header-cell[col-id="' + safe.replace(/\\/g, "\\\\").replace(/"/g, '\\"') + '"]'
     );
   }
 
-  function isPolicyColumnLabelHeaderCell(cell) {
+  function isRulesColumnLabelHeaderCell(cell) {
     if (!cell || !cell.classList || !cell.classList.contains("ag-header-cell")) {
       return false;
     }
@@ -154,14 +158,14 @@
     );
   }
 
-  function queryPolicyHeaderCells(gridEl, colId) {
+  function queryRulesHeaderCells(gridEl, colId) {
     if (!gridEl || !colId) {
       return [];
     }
     var cells = [];
     var seen = new WeakSet();
-    gridEl.querySelectorAll(policyHeaderColIdSelector(colId)).forEach(function (cell) {
-      if (!seen.has(cell) && isPolicyColumnLabelHeaderCell(cell)) {
+    gridEl.querySelectorAll(rulesHeaderColIdSelector(colId)).forEach(function (cell) {
+      if (!seen.has(cell) && isRulesColumnLabelHeaderCell(cell)) {
         seen.add(cell);
         cells.push(cell);
       }
@@ -169,8 +173,8 @@
     return cells;
   }
 
-  function queryPolicyHeaderCell(gridEl, colId) {
-    var cells = queryPolicyHeaderCells(gridEl, colId);
+  function queryRulesHeaderCell(gridEl, colId) {
+    var cells = queryRulesHeaderCells(gridEl, colId);
     return cells.length ? cells[0] : null;
   }
 
@@ -719,7 +723,7 @@
     });
     if (unresolved.length) {
       console.warn(
-        "NSM policy grid: grouped column mapping failed",
+        "NSM rules grid: grouped column mapping failed",
         unresolved,
         "knownColIds:",
         Object.keys(lookup)
@@ -768,7 +772,7 @@
 
   /**
    * Staged client download (10, 20, 40, …) loads all rules, then filter/sort run
-   * locally until POLICY_RULES_CACHE_TTL_MS expires or ?refresh=1 / ?cache_bust=1.
+   * locally until RULES_TAB_CACHE_TTL_MS expires or ?refresh=1 / ?cache_bust=1.
    * Server-side grouping still refetches on group_by / expansion changes
    * (use_cached=1 on Django cache); ungrouped grouping-only toggles reuse the
    * in-memory flat row cache when available.
@@ -873,22 +877,22 @@
     return base;
   }
 
-  function gridHasPolicyGroupColumn(gridApi) {
+  function gridHasRulesGroupColumn(gridApi) {
     if (!gridApi || typeof gridApi.getColumn !== "function") {
       return false;
     }
     return !!gridApi.getColumn(POLICY_GROUP_COL_ID);
   }
 
-  function syncPolicyGroupColumnDefs(gridApi, config, state, profileKey) {
+  function syncRulesGroupColumnDefs(gridApi, config, state, profileKey) {
     if (!gridApi || !state) {
       return;
     }
     var base = ensureBaseColumnDefs(gridApi, gridApi._nsmColumnDefs);
     var nextDefs = state.groupByEnabled
-      ? prependPolicyGroupColumn(base, config)
+      ? prependRulesGroupColumn(base, config)
       : base.slice();
-    var hadGroupCol = gridHasPolicyGroupColumn(gridApi);
+    var hadGroupCol = gridHasRulesGroupColumn(gridApi);
     var needsGroupCol = !!state.groupByEnabled;
     gridApi._nsmColumnDefs = nextDefs;
 
@@ -898,7 +902,7 @@
         gridApi.setGridOption("columnDefs", nextDefs);
         gridApi.setGridOption(
           "defaultColDef",
-          buildPolicyDefaultColDef(profileKey, state.groupByEnabled, extra)
+          buildRulesDefaultColDef(profileKey, state.groupByEnabled, extra)
         );
       }
       initColumnVisibilityPersistence(
@@ -929,11 +933,11 @@
     }
 
     if (state.gridEl) {
-      schedulePolicyGridWidthFit(gridApi, state.gridEl);
+      scheduleRulesGridWidthFit(gridApi, state.gridEl);
     }
   }
 
-  function applyPolicyGroupingLevels(levels, ctx) {
+  function applyRulesGroupingLevels(levels, ctx) {
     if (!ctx || !ctx.gridApi || !ctx.config || !ctx.state) {
       return false;
     }
@@ -941,7 +945,7 @@
     var gridApi = ctx.gridApi;
     var config = ctx.config;
     var state = ctx.state;
-    var profileKey = ctx.profileKey || "policy";
+    var profileKey = ctx.profileKey || "rules";
     var normalizedLevels = [];
     levels.forEach(function (spec) {
       var value = spec && spec.value != null ? String(spec.value) : "";
@@ -955,7 +959,7 @@
     state.groupByEnabled = !!(config.groupBy && config.groupByEnabled);
     resetGroupExpansionForNewGrouping(state);
 
-    syncPolicyGroupColumnDefs(gridApi, config, state, profileKey);
+    syncRulesGroupColumnDefs(gridApi, config, state, profileKey);
     renderGroupPills(config);
     syncGroupToolbarVisibility(config);
     if (gridApi._nsmRebindGroupHeaders) {
@@ -963,12 +967,12 @@
     }
 
     syncGroupingUrl(buildGroupingUrlParams(levels), true);
-    reloadPolicyGridData(
+    reloadRulesGridData(
       gridApi,
       config,
       state,
       function () {
-        resetPolicyRowHeights(gridApi, state.groupByEnabled);
+        resetRulesRowHeights(gridApi, state.groupByEnabled);
         if (gridApi._nsmRebindGroupHeaders) {
           scheduleGroupHeaderBind(gridApi._nsmRebindGroupHeaders);
         }
@@ -985,7 +989,7 @@
   }
 
   function navigateGroupingLevels(levels) {
-    if (applyPolicyGroupingLevels(levels, NSM_GROUP_NAV_CTX)) {
+    if (applyRulesGroupingLevels(levels, NSM_GROUP_NAV_CTX)) {
       return;
     }
     var params = buildGroupingUrlParams(levels);
@@ -1229,7 +1233,7 @@
       profileKey === "allRules" && allowed.indexOf("rulebook") >= 0;
 
     function bindHeaderCell(cell, groupValue) {
-      if (!isPolicyColumnLabelHeaderCell(cell)) {
+      if (!isRulesColumnLabelHeaderCell(cell)) {
         return;
       }
       cell.setAttribute("draggable", "true");
@@ -1344,7 +1348,7 @@
         if (!groupValue || allowed.indexOf(groupValue) < 0) {
           return;
         }
-        queryPolicyHeaderCells(gridEl, colId).forEach(function (cell) {
+        queryRulesHeaderCells(gridEl, colId).forEach(function (cell) {
           if (boundCells.has(cell)) {
             return;
           }
@@ -1365,7 +1369,7 @@
       });
 
       gridEl.querySelectorAll(".ag-header-cell[col-id]").forEach(function (cell) {
-        if (!isPolicyColumnLabelHeaderCell(cell)) {
+        if (!isRulesColumnLabelHeaderCell(cell)) {
           return;
         }
         var colId = cell.getAttribute("col-id");
@@ -1391,7 +1395,7 @@
           pinnedLeft
             .querySelectorAll('.ag-header-cell[col-id="rulebook"]')
             .forEach(function (cell) {
-              if (!isPolicyColumnLabelHeaderCell(cell)) {
+              if (!isRulesColumnLabelHeaderCell(cell)) {
                 return;
               }
               if (!boundCells.has(cell)) {
@@ -1406,7 +1410,7 @@
     return bindHeaders;
   }
 
-  function applyPolicyGroupConfig(config, state) {
+  function applyRulesGroupConfig(config, state) {
     if (!state) {
       return;
     }
@@ -1446,7 +1450,7 @@
     state.collapseAllGroups = true;
   }
 
-  function getActivePolicyFilterModel(api, config, state) {
+  function getActiveRulesFilterModel(api, config, state) {
     if (!state || !state.groupByEnabled || !api || typeof api.getFilterModel !== "function") {
       return null;
     }
@@ -1467,7 +1471,7 @@
     }
     groupedFilterReloadTimer = window.setTimeout(function () {
       groupedFilterReloadTimer = null;
-      reloadPolicyGridData(api, config, state);
+      reloadRulesGridData(api, config, state);
     }, 300);
   }
 
@@ -1491,7 +1495,7 @@
         delete state.collapsedGroups[key];
       });
       syncGroupExpansionUrl(state);
-      reloadPolicyGridData(gridApi, config, state, null, { groupingOnly: true });
+      reloadRulesGridData(gridApi, config, state, null, { groupingOnly: true });
     });
     collapseBtn.addEventListener("click", function () {
       if (!state || !state.groupByEnabled) {
@@ -1507,7 +1511,7 @@
         delete state.collapsedGroups[key];
       });
       syncGroupExpansionUrl(state);
-      reloadPolicyGridData(gridApi, config, state, null, { groupingOnly: true });
+      reloadRulesGridData(gridApi, config, state, null, { groupingOnly: true });
     });
   }
 
@@ -1519,7 +1523,7 @@
     bootstrap.Tooltip.getOrCreateInstance(helpBtn);
   }
 
-  function resolvePolicyLoadEndRow(config, state) {
+  function resolveRulesLoadEndRow(config, state) {
     var hardLimit = config.loadRowLimit || POLICY_GRID_FETCH_MAX;
     var total =
       (state && state.knownTotalRows) ||
@@ -1531,7 +1535,7 @@
     return hardLimit;
   }
 
-  function policyFetchPageExhausted(data, startRow, endRow, loadedCount) {
+  function rulesFetchPageExhausted(data, startRow, endRow, loadedCount) {
     var rows = (data && data.rowData) || [];
     var pageSize = Math.max(0, endRow - startRow);
     if (pageSize <= 0) {
@@ -1543,11 +1547,11 @@
     return rows.length < pageSize;
   }
 
-  function resolvePolicyInitialLoadTarget(config, state) {
-    return resolvePolicyLoadEndRow(config, state);
+  function resolveRulesInitialLoadTarget(config, state) {
+    return resolveRulesLoadEndRow(config, state);
   }
 
-  function resolvePolicyMaxLoadableRows(state, config) {
+  function resolveRulesMaxLoadableRows(state, config) {
     var hardLimit = config.loadRowLimit || POLICY_GRID_FETCH_MAX;
     var total =
       (state && state.knownTotalRows) ||
@@ -1559,7 +1563,7 @@
     return hardLimit;
   }
 
-  function canLoadMorePolicyRows(state, config) {
+  function canLoadMoreRulesRows(state, config) {
     if (!state || state.progressiveLoadActive || state.initialLoadActive) {
       return false;
     }
@@ -1570,19 +1574,19 @@
     if (loaded <= 0) {
       return false;
     }
-    var maxLoadable = resolvePolicyMaxLoadableRows(state, config);
+    var maxLoadable = resolveRulesMaxLoadableRows(state, config);
     if (loaded >= maxLoadable) {
       return false;
     }
-    var cache = getPolicyRulesDataCache(state, config);
+    var cache = getRulesTabDataCache(state, config);
     if (cache && cache.flatRows && cache.flatRows.length >= maxLoadable) {
       return false;
     }
     return loaded < maxLoadable;
   }
 
-  function updatePolicyLoadMoreButton(state, config, profile) {
-    profile = profile || (state && state.domProfile) || NSM_GRID_PROFILES.policy;
+  function updateRulesLoadMoreButton(state, config, profile) {
+    profile = profile || (state && state.domProfile) || NSM_GRID_PROFILES.rules;
     if (!profile.loadMoreBtnId) {
       return;
     }
@@ -1590,7 +1594,7 @@
     if (!btn) {
       return;
     }
-    var show = canLoadMorePolicyRows(state, config);
+    var show = canLoadMoreRulesRows(state, config);
     btn.classList.toggle("d-none", !show);
     if (!show) {
       return;
@@ -1599,13 +1603,13 @@
       typeof state.loadedRowCount === "number"
         ? state.loadedRowCount
         : (state._accumulatedRows || []).length;
-    var maxLoadable = resolvePolicyMaxLoadableRows(state, config);
+    var maxLoadable = resolveRulesMaxLoadableRows(state, config);
     var step = config.loadMoreStep || DEFAULT_POLICY_LOAD_MORE_STEP;
     var next = Math.min(maxLoadable, loaded + step);
-    btn.textContent = "Load more (" + formatPolicyLoadCount(next) + " / " + formatPolicyLoadCount(maxLoadable) + ")";
+    btn.textContent = "Load more (" + formatRulesLoadCount(next) + " / " + formatRulesLoadCount(maxLoadable) + ")";
   }
 
-  function policyDescriptionLineCount(desc) {
+  function rulesDescriptionLineCount(desc) {
     var raw = desc == null ? "" : String(desc);
     if (raw === "-" || !raw.trim()) {
       return 0;
@@ -1658,7 +1662,7 @@
       api.setFilterModel(config.initialFilterModel);
       api._nsmInitialFilterApplied = true;
     } catch (e) {
-      console.warn("NSM policy grid: initial filter model failed", e);
+      console.warn("NSM rules grid: initial filter model failed", e);
     }
   }
 
@@ -1735,7 +1739,7 @@
     btn.classList.toggle("d-none", !visible);
   }
 
-  function countDisplayedPolicyRows(api) {
+  function countDisplayedRulesRows(api) {
     var displayed = 0;
     if (api && typeof api.forEachNodeAfterFilter === "function") {
       api.forEachNodeAfterFilter(function (node) {
@@ -1762,7 +1766,7 @@
       countEl.textContent = "";
       return;
     }
-    var displayed = countDisplayedPolicyRows(gridApi);
+    var displayed = countDisplayedRulesRows(gridApi);
     var rowLabel =
       displayed === 1
         ? btn.getAttribute("data-count-row-one") || "row"
@@ -1775,7 +1779,7 @@
     );
   }
 
-  function clearAllPolicyFilters(gridApi, config) {
+  function clearAllRulesFilters(gridApi, config) {
     if (gridApi && typeof gridApi.setFilterModel === "function") {
       gridApi.setFilterModel(null);
     }
@@ -1790,7 +1794,7 @@
     filterQueryEditing = false;
     updateFilterQueryInput(gridApi, config, true);
     if (config && config.useServerFilterQ && gridApi && gridApi._nsmDatasourceState) {
-      reloadPolicyGridData(gridApi, config, gridApi._nsmDatasourceState);
+      reloadRulesGridData(gridApi, config, gridApi._nsmDatasourceState);
     }
   }
 
@@ -1941,7 +1945,7 @@
     setFilterQueryValidationState(null, "");
   }
 
-  function fetchPolicyFilterQueryValidation(config, text, callback) {
+  function fetchRulesFilterQueryValidation(config, text, callback) {
     if (!config || !config.queryValidateUrl) {
       callback(null);
       return;
@@ -1992,7 +1996,7 @@
         clearFilterQueryValidationState();
         return;
       }
-      fetchPolicyFilterQueryValidation(config, text, function (data) {
+      fetchRulesFilterQueryValidation(config, text, function (data) {
         if (!data) {
           return;
         }
@@ -2010,7 +2014,7 @@
     }, 300);
   }
 
-  function applyPolicyFilterQuery(gridApi, config, filterModel, filterQText, scopeMeta) {
+  function applyRulesFilterQuery(gridApi, config, filterModel, filterQText, scopeMeta) {
     scopeMeta = scopeMeta || {};
     if (config && config.useServerFilterQ) {
       config.activeFilterQ = (filterQText || "").trim();
@@ -2046,14 +2050,14 @@
       if (config && config.useServerFilterQ && config.gridDataUrl) {
         var state = gridApi._nsmDatasourceState;
         if (state) {
-          reloadPolicyGridData(gridApi, config, state);
+          reloadRulesGridData(gridApi, config, state);
         }
       }
     }
   }
 
   function updateRowStatsForProfile(api, total, state, config, profile) {
-    profile = profile || (state && state.domProfile) || NSM_GRID_PROFILES.policy;
+    profile = profile || (state && state.domProfile) || NSM_GRID_PROFILES.rules;
     var rowEl = document.getElementById(profile.rowStatsId);
     var selEl = profile.selectedStatsId
       ? document.getElementById(profile.selectedStatsId)
@@ -2069,9 +2073,9 @@
       state && typeof state.loadedRowCount === "number"
         ? state.loadedRowCount
         : 0;
-    var displayed = countDisplayedPolicyRows(api);
+    var displayed = countDisplayedRulesRows(api);
     if (loaded > 0 && loaded < effectiveTotal) {
-      var maxLoadable = resolvePolicyMaxLoadableRows(state, config);
+      var maxLoadable = resolveRulesMaxLoadableRows(state, config);
       if (maxLoadable < effectiveTotal) {
         rowEl.textContent =
           loaded + " / " + effectiveTotal + " rows loaded (showing up to " + maxLoadable + ")";
@@ -2088,7 +2092,7 @@
       var n = api.getSelectedRows().length;
       selEl.textContent = n > 0 ? n + (n === 1 ? " selected" : " selected") : "";
     }
-    updatePolicyLoadMoreButton(state, config, profile);
+    updateRulesLoadMoreButton(state, config, profile);
   }
 
   function tryApplyFilterQueryInput(gridApi, config) {
@@ -2098,10 +2102,10 @@
     }
     var text = (input.value || "").trim();
     if (!text) {
-      applyPolicyFilterQuery(gridApi, config, {}, "");
+      applyRulesFilterQuery(gridApi, config, {}, "");
       return;
     }
-    fetchPolicyFilterQueryValidation(config, text, function (data) {
+    fetchRulesFilterQueryValidation(config, text, function (data) {
       if (!data || !data.valid) {
         setFilterQueryValidationState("invalid", (data && data.error) || "Invalid query");
         return;
@@ -2111,7 +2115,7 @@
         (data && data.normalized) ||
         text
       ).trim();
-      applyPolicyFilterQuery(
+      applyRulesFilterQuery(
         gridApi,
         config,
         data.filterModel || {},
@@ -2654,13 +2658,13 @@
     return "";
   }
 
-  function isPolicyGroupRow(params) {
+  function isRulesGroupRow(params) {
     return !!(params && params.data && params.data._rowType === "group");
   }
 
   var NSM_COL_VIS_STORAGE_PREFIX = "nsm-ag-col-vis-";
   var NSM_ALWAYS_VISIBLE_COLS = {
-    policy: ["_actions"],
+    rules: ["_actions"],
     allRules: ["_actions"],
   };
 
@@ -2886,7 +2890,7 @@
     }
   }
 
-  function buildPolicyDefaultColDef(profileKey, groupByEnabled, extra) {
+  function buildRulesDefaultColDef(profileKey, groupByEnabled, extra) {
     var base = {
       minWidth: 72,
       sortable: true,
@@ -2910,7 +2914,7 @@
     return Object.assign({}, base, extra);
   }
 
-  function buildPolicyGroupColumnDef(config) {
+  function buildRulesGroupColumnDef(config) {
     return {
       colId: POLICY_GROUP_COL_ID,
       field: "_groupLabel",
@@ -2919,7 +2923,7 @@
       lockPosition: "left",
       cellRendererSelector: function (params) {
         if (params.data && params.data._rowType === "group") {
-          return { component: "policyGroupCell" };
+          return { component: "rulesGroupCell" };
         }
         return { component: "emptyCell" };
       },
@@ -2934,16 +2938,16 @@
       suppressColumnsToolPanel: true,
       suppressFiltersToolPanel: true,
       suppressMovable: true,
-      cellClass: "nsm-policy-group-cell",
+      cellClass: "nsm-rules-group-cell",
     };
   }
 
-  function prependPolicyGroupColumn(columnDefs, config) {
+  function prependRulesGroupColumn(columnDefs, config) {
     var defs = (columnDefs || []).slice();
     if (defs.length && defs[0].colId === POLICY_GROUP_COL_ID) {
       return defs;
     }
-    return [buildPolicyGroupColumnDef(config)].concat(defs);
+    return [buildRulesGroupColumnDef(config)].concat(defs);
   }
 
   function buildGroupRowCellRendererSelector() {
@@ -2960,18 +2964,18 @@
     };
   }
 
-  var POLICY_ROW_HEIGHT = 42;
-  var POLICY_GROUP_ROW_HEIGHT = 36;
-  var POLICY_FLOATING_FILTERS_HEIGHT = 36;
-  var POLICY_ROW_ITEM_HEIGHT = 24;
-  var POLICY_ROW_CELL_PADDING = 20;
+  var RULES_ROW_HEIGHT = 42;
+  var RULES_GROUP_ROW_HEIGHT = 36;
+  var RULES_FLOATING_FILTERS_HEIGHT = 36;
+  var RULES_ROW_ITEM_HEIGHT = 24;
+  var RULES_ROW_CELL_PADDING = 20;
   var POLICY_CELL_TEXT_MAX = 140;
   var POLICY_GRID_FETCH_MAX = 50000;
   var DEFAULT_POLICY_LOAD_LIMIT = 500;
   var DEFAULT_POLICY_LOAD_MORE_STEP = 2000;
-  var POLICY_GRID_ROW_BUFFER = 5;
-  var POLICY_GRID_PERF_OPTIONS = {
-    rowBuffer: POLICY_GRID_ROW_BUFFER,
+  var RULES_GRID_ROW_BUFFER = 5;
+  var RULES_GRID_PERF_OPTIONS = {
+    rowBuffer: RULES_GRID_ROW_BUFFER,
     suppressColumnVirtualisation: false,
     suppressAnimationFrame: true,
     suppressRowHoverHighlight: true,
@@ -2986,10 +2990,10 @@
     return raw.slice(0, Math.max(0, limit - 1)) + "…";
   }
 
-  function collectPolicyObjectFields(columnDefs, out) {
+  function collectRulesObjectFields(columnDefs, out) {
     (columnDefs || []).forEach(function (col) {
       if (col.children) {
-        collectPolicyObjectFields(col.children, out);
+        collectRulesObjectFields(col.children, out);
         return;
       }
       if (col.cellRenderer === "objectCell" && col.field) {
@@ -2998,7 +3002,7 @@
     });
   }
 
-  function maxPolicyObjectItems(data, objectFields) {
+  function maxRulesObjectItems(data, objectFields) {
     var maxItems = 1;
     (objectFields || []).forEach(function (spec) {
       var items = data && data[spec.field];
@@ -3010,23 +3014,23 @@
     return maxItems;
   }
 
-  function policyContentLineCount(data, objectFields) {
-    var objectLines = maxPolicyObjectItems(data, objectFields);
+  function rulesContentLineCount(data, objectFields) {
+    var objectLines = maxRulesObjectItems(data, objectFields);
     var descLines =
       data && data._descriptionLineCount != null
         ? Number(data._descriptionLineCount)
-        : policyDescriptionLineCount(data && data.description);
+        : rulesDescriptionLineCount(data && data.description);
     return Math.max(objectLines, descLines || 0, 1);
   }
 
-  function computePolicyDataRowHeight(data, objectFields) {
+  function computeRulesDataRowHeight(data, objectFields) {
     if (!data || data._rowType === "group") {
-      return computePolicyGroupRowHeight(data);
+      return computeRulesGroupRowHeight(data);
     }
-    var lines = policyContentLineCount(data, objectFields);
+    var lines = rulesContentLineCount(data, objectFields);
     var contentHeight = Math.max(
-      POLICY_ROW_HEIGHT,
-      POLICY_ROW_CELL_PADDING + lines * POLICY_ROW_ITEM_HEIGHT
+      RULES_ROW_HEIGHT,
+      RULES_ROW_CELL_PADDING + lines * RULES_ROW_ITEM_HEIGHT
     );
     if (data._rowHeight != null && !isNaN(Number(data._rowHeight))) {
       return Math.max(Number(data._rowHeight), contentHeight);
@@ -3034,8 +3038,8 @@
     return contentHeight;
   }
 
-  function resolvePolicyRowHeight(data, objectFields) {
-    return computePolicyDataRowHeight(data, objectFields);
+  function resolveRulesRowHeight(data, objectFields) {
+    return computeRulesDataRowHeight(data, objectFields);
   }
 
   var POLICY_TEXT_FILTER_PARAMS = {
@@ -3102,7 +3106,7 @@
     });
   }
 
-  function enablePolicyFloatingFilters(api) {
+  function enableRulesFloatingFilters(api) {
     if (!api || api._nsmFloatingFiltersEnabled) {
       return;
     }
@@ -3122,7 +3126,7 @@
     }
     api._nsmDefaultColDefExtra = { floatingFilter: true };
     if (typeof api.setGridOption === "function") {
-      api.setGridOption("floatingFiltersHeight", POLICY_FLOATING_FILTERS_HEIGHT);
+      api.setGridOption("floatingFiltersHeight", RULES_FLOATING_FILTERS_HEIGHT);
       api.setGridOption("columnDefs", columnDefs.slice());
       api.setGridOption("defaultColDef", nextDefault);
     }
@@ -3132,12 +3136,12 @@
     }
   }
 
-  function scheduleEnablePolicyFloatingFilters(api) {
+  function scheduleEnableRulesFloatingFilters(api) {
     if (!api) {
       return;
     }
     window.setTimeout(function () {
-      enablePolicyFloatingFilters(api);
+      enableRulesFloatingFilters(api);
     }, 0);
   }
 
@@ -3178,7 +3182,7 @@
     return span;
   }
 
-  function createPolicyObjectCellRenderer() {
+  function createRulesObjectCellRenderer() {
     return function (params) {
       return buildObjectCellDom(
         params.value,
@@ -3187,22 +3191,22 @@
     };
   }
 
-  function createPolicyGetRowHeight(objectFields) {
+  function createRulesGetRowHeight(objectFields) {
     return function (params) {
       if (params.data && params.data._rowType === "group") {
-        return computePolicyGroupRowHeight(params.data);
+        return computeRulesGroupRowHeight(params.data);
       }
-      return resolvePolicyRowHeight(params.data, objectFields);
+      return resolveRulesRowHeight(params.data, objectFields);
     };
   }
 
-  function createPolicyGetRowClass(objectFields) {
+  function createRulesGetRowClass(objectFields) {
     return function (params) {
       if (params.data && params.data._rowType === "group") {
-        return "nsm-policy-group-row";
+        return "nsm-rules-group-row";
       }
-      if (params.data && policyContentLineCount(params.data, objectFields) > 1) {
-        return "nsm-policy-multi-row";
+      if (params.data && rulesContentLineCount(params.data, objectFields) > 1) {
+        return "nsm-rules-multi-row";
       }
       return null;
     };
@@ -3268,7 +3272,7 @@
     }
   }
 
-  function isPolicyGroupCollapsed(groupKey, state) {
+  function isRulesGroupCollapsed(groupKey, state) {
     if (!state) {
       return false;
     }
@@ -3284,7 +3288,7 @@
     return !!state.collapsedGroups[groupKey];
   }
 
-  function togglePolicyGroupCollapse(groupKey, state) {
+  function toggleRulesGroupCollapse(groupKey, state) {
     if (!state) {
       return;
     }
@@ -3321,7 +3325,7 @@
     return span;
   }
 
-  function formatPolicyGroupLabelText(label, count) {
+  function formatRulesGroupLabelText(label, count) {
     var text = label == null ? "" : String(label);
     if (!count || count <= 0) {
       return text;
@@ -3335,9 +3339,9 @@
     return lines.join("\n");
   }
 
-  function computePolicyGroupRowHeight(data) {
+  function computeRulesGroupRowHeight(data) {
     if (!data || data._rowType !== "group") {
-      return POLICY_GROUP_ROW_HEIGHT;
+      return RULES_GROUP_ROW_HEIGHT;
     }
     if (data._rowHeight != null && !isNaN(Number(data._rowHeight))) {
       return Number(data._rowHeight);
@@ -3345,12 +3349,12 @@
     var label = data._groupLabel == null ? "" : String(data._groupLabel);
     var lineCount = label ? label.split("\n").length : 1;
     return Math.max(
-      POLICY_GROUP_ROW_HEIGHT,
-      POLICY_ROW_CELL_PADDING + lineCount * POLICY_ROW_ITEM_HEIGHT
+      RULES_GROUP_ROW_HEIGHT,
+      RULES_ROW_CELL_PADDING + lineCount * RULES_ROW_ITEM_HEIGHT
     );
   }
 
-  function createPolicyGroupCellContent(params, config, state) {
+  function createRulesGroupCellContent(params, config, state) {
     var data = params.data || {};
     if (data._rowType !== "group") {
       return createEmptyGroupColumnCell();
@@ -3358,13 +3362,13 @@
     var wrap = document.createElement("div");
     var groupLevel = Number(data._groupLevel || 1);
     wrap.className =
-      "nsm-policy-group-header nsm-policy-group-cell-inner nsm-policy-group-level-" +
+      "nsm-rules-group-header nsm-rules-group-cell-inner nsm-rules-group-level-" +
       groupLevel;
     var groupKey = String(data._groupKey == null ? "" : data._groupKey);
-    var collapsed = isPolicyGroupCollapsed(groupKey, state);
+    var collapsed = isRulesGroupCollapsed(groupKey, state);
     var toggle = document.createElement("button");
     toggle.type = "button";
-    toggle.className = "nsm-policy-group-toggle";
+    toggle.className = "nsm-rules-group-toggle";
     toggle.setAttribute(
       "aria-label",
       collapsed ? "Expand group" : "Collapse group"
@@ -3377,45 +3381,45 @@
     toggle.addEventListener("click", function (event) {
       event.preventDefault();
       event.stopPropagation();
-      togglePolicyGroupCollapse(groupKey, state);
+      toggleRulesGroupCollapse(groupKey, state);
       syncGroupExpansionUrl(state);
-      reloadPolicyGridData(params.api, config, state, null, { groupingOnly: true });
+      reloadRulesGridData(params.api, config, state, null, { groupingOnly: true });
     });
     wrap.appendChild(toggle);
 
     if (data._groupColor) {
       var dot = document.createElement("span");
-      dot.className = "nsm-policy-group-dot me-2";
+      dot.className = "nsm-rules-group-dot me-2";
       dot.style.backgroundColor = data._groupColor;
       wrap.appendChild(dot);
     }
 
     var label = data._groupLabel == null ? "" : String(data._groupLabel);
     var count = data._ruleCount == null ? 0 : Number(data._ruleCount);
-    var labelText = formatPolicyGroupLabelText(label, count);
+    var labelText = formatRulesGroupLabelText(label, count);
     var url = data._groupUrl || "#";
     if (url && url !== "#") {
       var link = document.createElement("a");
       link.href = url;
-      link.className = "nsm-policy-group-label text-body text-decoration-none";
+      link.className = "nsm-rules-group-label text-body text-decoration-none";
       link.textContent = labelText;
       wrap.appendChild(link);
     } else {
       var span = document.createElement("span");
-      span.className = "nsm-policy-group-label";
+      span.className = "nsm-rules-group-label";
       span.textContent = labelText;
       wrap.appendChild(span);
     }
     return wrap;
   }
 
-  function createPolicyGroupCellRenderer(config, state) {
+  function createRulesGroupCellRenderer(config, state) {
     return function (params) {
       var data = params.data || {};
       if (data._rowType !== "group") {
         return createEmptyGroupColumnCell();
       }
-      return createPolicyGroupCellContent(params, config, state);
+      return createRulesGroupCellContent(params, config, state);
     };
   }
 
@@ -3493,8 +3497,8 @@
     };
   }
 
-  function buildPolicyRulesCacheKey(config, state) {
-    var parts = [state && state.profileKey ? state.profileKey : "policy"];
+  function buildRulesGridCacheKey(config, state) {
+    var parts = [state && state.profileKey ? state.profileKey : "rules"];
     if (config && config.activeRulebookId) {
       parts.push("rb:" + String(config.activeRulebookId));
     } else if (config && config.activeRulebook) {
@@ -3508,14 +3512,14 @@
     return parts.join("|");
   }
 
-  function isPolicyRulesCacheFresh(cache) {
+  function isRulesTabCacheFresh(cache) {
     if (!cache || !cache.fetchedAt) {
       return false;
     }
-    return Date.now() - cache.fetchedAt < POLICY_RULES_CACHE_TTL_MS;
+    return Date.now() - cache.fetchedAt < RULES_TAB_CACHE_TTL_MS;
   }
 
-  function storePolicyRulesDataCache(state, cacheKey, rows, totalCount) {
+  function storeRulesTabDataCache(state, cacheKey, rows, totalCount) {
     if (!state) {
       return;
     }
@@ -3527,31 +3531,31 @@
     };
   }
 
-  function getPolicyRulesDataCache(state, config) {
-    if (isPolicyRulesRefreshRequested()) {
+  function getRulesTabDataCache(state, config) {
+    if (isRulesTabRefreshRequested()) {
       return null;
     }
     var cache = state && state.rulesDataCache;
     if (!cache) {
       return null;
     }
-    if (!isPolicyRulesCacheFresh(cache)) {
-      invalidatePolicyRulesDataCache(state);
+    if (!isRulesTabCacheFresh(cache)) {
+      invalidateRulesTabDataCache(state);
       return null;
     }
-    if (cache.cacheKey !== buildPolicyRulesCacheKey(config, state)) {
+    if (cache.cacheKey !== buildRulesGridCacheKey(config, state)) {
       return null;
     }
     return cache;
   }
 
-  function invalidatePolicyRulesDataCache(state) {
+  function invalidateRulesTabDataCache(state) {
     if (state) {
       state.rulesDataCache = null;
     }
   }
 
-  function isPolicyRulesDownloadComplete(state) {
+  function isRulesTabDownloadComplete(state) {
     if (!state) {
       return false;
     }
@@ -3563,22 +3567,22 @@
     return rows.length >= total;
   }
 
-  function applyPolicyRulesCacheToGrid(api, config, state, cache, done) {
+  function applyRulesTabCacheToGrid(api, config, state, cache, done) {
     if (!api || !state || !cache || !cache.flatRows || !cache.flatRows.length) {
       if (typeof done === "function") {
         done(0);
       }
       return false;
     }
-    cancelProgressivePolicyLoad(state);
+    cancelProgressiveRulesLoad(state);
     state.knownTotalRows = cache.totalCount;
     state.loadedRowCount = cache.flatRows.length;
-    setPolicyGridRows(api, cache.flatRows.slice(), state, "set");
-    notifyPolicyRowsLoaded(state, cache.totalCount, false);
+    setRulesGridRows(api, cache.flatRows.slice(), state, "set");
+    notifyRulesRowsLoaded(state, cache.totalCount, false);
     window.requestAnimationFrame(function () {
-      resetPolicyRowHeights(api, !!(state && state.groupByEnabled));
-      scheduleAutoSizePolicyContentColumns(api, state);
-      enablePolicyFloatingFilters(api);
+      resetRulesRowHeights(api, !!(state && state.groupByEnabled));
+      scheduleAutoSizeRulesContentColumns(api, state);
+      enableRulesFloatingFilters(api);
     });
     if (typeof done === "function") {
       done(cache.totalCount);
@@ -3586,23 +3590,23 @@
     return true;
   }
 
-  function maybePersistPolicyRulesDataCache(state, config) {
+  function maybePersistRulesTabDataCache(state, config) {
     if (!state || state.groupByEnabled) {
       return;
     }
-    if (!isPolicyRulesDownloadComplete(state)) {
+    if (!isRulesTabDownloadComplete(state)) {
       return;
     }
     var rows = state._accumulatedRows;
-    storePolicyRulesDataCache(
+    storeRulesTabDataCache(
       state,
-      buildPolicyRulesCacheKey(config, state),
+      buildRulesGridCacheKey(config, state),
       rows.slice(),
       state.knownTotalRows || rows.length
     );
   }
 
-  function buildPolicyGridFetchUrl(config, state, start, end, filterModel, fetchOptions) {
+  function buildRulesGridFetchUrl(config, state, start, end, filterModel, fetchOptions) {
     fetchOptions = fetchOptions || {};
     if (!config || !config.gridDataUrl) {
       return null;
@@ -3634,7 +3638,7 @@
       }
       url = appendGroupExpansionQuery(url, state);
     }
-    if (isPolicyRulesRefreshRequested()) {
+    if (isRulesTabRefreshRequested()) {
       url += "&refresh=1";
     } else if (fetchOptions.useCached) {
       url += "&use_cached=1";
@@ -3642,21 +3646,21 @@
     return url;
   }
 
-  function policyLoadUtf8ByteCount(text) {
+  function rulesLoadUtf8ByteCount(text) {
     if (typeof TextEncoder !== "undefined") {
       return new TextEncoder().encode(text).length;
     }
     return new Blob([text]).size;
   }
 
-  function recordPolicyLoadBytes(state, byteCount) {
+  function recordRulesLoadBytes(state, byteCount) {
     if (!state || typeof byteCount !== "number" || byteCount <= 0) {
       return;
     }
     state.loadedBytes = (state.loadedBytes || 0) + byteCount;
   }
 
-  function formatPolicyLoadCount(value) {
+  function formatRulesLoadCount(value) {
     var num = Math.floor(Number(value) || 0);
     if (num < 1000) {
       return String(num);
@@ -3672,7 +3676,7 @@
     return Math.round(thousands) + "k";
   }
 
-  function formatPolicyLoadBytes(bytes) {
+  function formatRulesLoadBytes(bytes) {
     var num = Number(bytes) || 0;
     if (num <= 0) {
       return "";
@@ -3696,15 +3700,15 @@
     );
   }
 
-  function resetPolicyLoadMetrics(state) {
+  function resetRulesLoadMetrics(state) {
     if (!state) {
       return;
     }
     state.loadedBytes = 0;
   }
 
-  function fetchPolicyGridRows(config, state, start, end, filterModel, fetchOptions) {
-    var url = buildPolicyGridFetchUrl(
+  function fetchRulesGridRows(config, state, start, end, filterModel, fetchOptions) {
+    var url = buildRulesGridFetchUrl(
       config,
       state,
       start,
@@ -3713,22 +3717,22 @@
       fetchOptions
     );
     if (!url) {
-      return Promise.reject(new Error("policy grid url missing"));
+      return Promise.reject(new Error("rules grid url missing"));
     }
     return fetch(url, {
       credentials: "same-origin",
       headers: { Accept: "application/json" },
     }).then(function (response) {
       if (!response.ok) {
-        throw new Error("policy grid fetch failed");
+        throw new Error("rules grid fetch failed");
       }
       var headerLength = parseInt(response.headers.get("Content-Length"), 10);
       return response.text().then(function (text) {
         var byteCount =
           !isNaN(headerLength) && headerLength > 0
             ? headerLength
-            : policyLoadUtf8ByteCount(text);
-        recordPolicyLoadBytes(state, byteCount);
+            : rulesLoadUtf8ByteCount(text);
+        recordRulesLoadBytes(state, byteCount);
         return JSON.parse(text);
       });
     });
@@ -3786,7 +3790,7 @@
     }
   }
 
-  function cancelProgressivePolicyLoad(state) {
+  function cancelProgressiveRulesLoad(state) {
     if (!state) {
       return;
     }
@@ -3794,17 +3798,17 @@
     state.progressiveLoadActive = false;
   }
 
-  function notifyPolicyRowsLoaded(state, total, partial) {
+  function notifyRulesRowsLoaded(state, total, partial) {
     if (!state || typeof state.onRowsLoaded !== "function") {
       return;
     }
     state.onRowsLoaded(total, { partial: !!partial });
-    updatePolicyLoadStatus(state);
+    updateRulesLoadStatus(state);
   }
 
-  function hidePolicyLoadStatus(state) {
+  function hideRulesLoadStatus(state) {
     var profile =
-      (state && state.domProfile) || NSM_GRID_PROFILES.policy;
+      (state && state.domProfile) || NSM_GRID_PROFILES.rules;
     var wrap = document.getElementById(profile.loadStatusId);
     var track = document.getElementById(profile.loadTrackId);
     var progressEl = document.getElementById(profile.loadProgressId);
@@ -3818,12 +3822,12 @@
     track.removeAttribute("aria-valuetext");
     labelEl.textContent = "";
     labelEl.removeAttribute("title");
-    resetPolicyLoadMetrics(state);
+    resetRulesLoadMetrics(state);
   }
 
-  function updatePolicyLoadStatus(state) {
+  function updateRulesLoadStatus(state) {
     var profile =
-      (state && state.domProfile) || NSM_GRID_PROFILES.policy;
+      (state && state.domProfile) || NSM_GRID_PROFILES.rules;
     var wrap = document.getElementById(profile.loadStatusId);
     var track = document.getElementById(profile.loadTrackId);
     var progressEl = document.getElementById(profile.loadProgressId);
@@ -3843,7 +3847,7 @@
     var complete = total > 0 && loaded >= total;
 
     if (!active || complete) {
-      hidePolicyLoadStatus(state);
+      hideRulesLoadStatus(state);
       return;
     }
 
@@ -3852,13 +3856,13 @@
     progressEl.style.width = pct + "%";
     track.setAttribute("aria-valuenow", String(pct));
     var prefix = wrap.getAttribute("data-loading-label") || "Loading rules";
-    var label = prefix + " — " + formatPolicyLoadCount(loaded) + " / " + formatPolicyLoadCount(total);
+    var label = prefix + " — " + formatRulesLoadCount(loaded) + " / " + formatRulesLoadCount(total);
     if (total > 0) {
       label += " (" + pct + "%)";
     }
     var bytes =
       state && typeof state.loadedBytes === "number" ? state.loadedBytes : 0;
-    var sizeLabel = formatPolicyLoadBytes(bytes);
+    var sizeLabel = formatRulesLoadBytes(bytes);
     if (sizeLabel) {
       label += " · " + sizeLabel;
     }
@@ -3867,18 +3871,18 @@
     track.setAttribute("aria-valuetext", label);
   }
 
-  function flushPolicyGridAsyncTransactions(api) {
+  function flushRulesGridAsyncTransactions(api) {
     if (api && typeof api.flushAsyncTransactions === "function") {
       api.flushAsyncTransactions();
     }
   }
 
-  function setPolicyGridRows(api, rows, state, mode) {
+  function setRulesGridRows(api, rows, state, mode) {
     if (!api) {
       return;
     }
     if (mode === "set") {
-      flushPolicyGridAsyncTransactions(api);
+      flushRulesGridAsyncTransactions(api);
       state._accumulatedRows = rows || [];
       if (typeof api.setGridOption === "function") {
         api.setGridOption("rowData", state._accumulatedRows);
@@ -3899,7 +3903,7 @@
       api.applyTransaction({ add: rows });
       return;
     }
-    flushPolicyGridAsyncTransactions(api);
+    flushRulesGridAsyncTransactions(api);
     if (typeof api.setGridOption === "function") {
       api.setGridOption("rowData", state._accumulatedRows);
     } else if (typeof api.setRowData === "function") {
@@ -3907,7 +3911,7 @@
     }
   }
 
-  function loadAllPolicyClientRows(api, config, state, done, fetchOptions) {
+  function loadAllRulesClientRows(api, config, state, done, fetchOptions) {
     if (!config || !config.gridDataUrl) {
       if (typeof done === "function") {
         done(state && state.knownTotalRows);
@@ -3918,11 +3922,11 @@
       state.gridEl.classList.add("nsm-ag-grid-loading");
     }
     state.initialLoadActive = true;
-    resetPolicyLoadMetrics(state);
-    updatePolicyLoadStatus(state);
-    var totalHint = resolvePolicyLoadEndRow(config, state);
-    var filterModel = getActivePolicyFilterModel(api, config, state);
-    return fetchPolicyGridRows(
+    resetRulesLoadMetrics(state);
+    updateRulesLoadStatus(state);
+    var totalHint = resolveRulesLoadEndRow(config, state);
+    var filterModel = getActiveRulesFilterModel(api, config, state);
+    return fetchRulesGridRows(
       config,
       state,
       0,
@@ -3938,16 +3942,16 @@
           state.loadedRowCount = rows.length;
           state.progressiveLoadActive = false;
           state.initialLoadActive = false;
-          notifyPolicyRowsLoaded(state, state.knownTotalRows, false);
-          maybePersistPolicyRulesDataCache(state, config);
-          if (isPolicyRulesRefreshRequested()) {
-            stripPolicyRulesRefreshFromUrl();
+          notifyRulesRowsLoaded(state, state.knownTotalRows, false);
+          maybePersistRulesTabDataCache(state, config);
+          if (isRulesTabRefreshRequested()) {
+            stripRulesTabRefreshFromUrl();
           }
         }
-        setPolicyGridRows(api, rows, state, "set");
+        setRulesGridRows(api, rows, state, "set");
         window.requestAnimationFrame(function () {
-          resetPolicyRowHeights(api, state && state.groupByEnabled);
-          scheduleAutoSizePolicyContentColumns(api, state);
+          resetRulesRowHeights(api, state && state.groupByEnabled);
+          scheduleAutoSizeRulesContentColumns(api, state);
         });
         if (typeof done === "function") {
           done(state ? state.knownTotalRows : rows.length);
@@ -3955,11 +3959,11 @@
         return rows;
       })
       .catch(function (err) {
-        console.error("NSM policy grid: client row load failed", err);
+        console.error("NSM rules grid: client row load failed", err);
         if (state) {
           state.progressiveLoadActive = false;
           state.initialLoadActive = false;
-          updatePolicyLoadStatus(state);
+          updateRulesLoadStatus(state);
         }
         if (typeof done === "function") {
           done(state ? state.knownTotalRows : 0);
@@ -3973,11 +3977,11 @@
         if (api && api._nsmRebindGroupHeaders) {
           scheduleGroupHeaderBind(api._nsmRebindGroupHeaders);
         }
-        enablePolicyFloatingFilters(api);
+        enableRulesFloatingFilters(api);
       });
   }
 
-  function loadPolicyClientRowsProgressive(api, config, state, done) {
+  function loadRulesClientRowsProgressive(api, config, state, done) {
     if (!config || !config.gridDataUrl) {
       if (typeof done === "function") {
         done(state && state.knownTotalRows);
@@ -3985,46 +3989,46 @@
       return Promise.resolve([]);
     }
 
-    var targetTotal = resolvePolicyLoadEndRow(config, state);
+    var targetTotal = resolveRulesLoadEndRow(config, state);
     var steps = buildProgressiveLoadSteps(config, targetTotal);
     if (steps.length <= 1) {
-      return loadAllPolicyClientRows(api, config, state, done);
+      return loadAllRulesClientRows(api, config, state, done);
     }
 
-    cancelProgressivePolicyLoad(state);
+    cancelProgressiveRulesLoad(state);
     var token = state.progressiveLoadToken;
     state.progressiveLoadActive = true;
     state.initialLoadActive = true;
     state._accumulatedRows = [];
-    resetPolicyLoadMetrics(state);
+    resetRulesLoadMetrics(state);
 
     if (state.gridEl) {
       state.gridEl.classList.add("nsm-ag-grid-loading");
     }
-    updatePolicyLoadStatus(state);
+    updateRulesLoadStatus(state);
 
     var prevEnd = 0;
 
     function finishLoad() {
-      flushPolicyGridAsyncTransactions(api);
+      flushRulesGridAsyncTransactions(api);
       state.progressiveLoadActive = false;
       state.initialLoadActive = false;
-      maybePersistPolicyRulesDataCache(state, config);
-      if (isPolicyRulesRefreshRequested()) {
-        stripPolicyRulesRefreshFromUrl();
+      maybePersistRulesTabDataCache(state, config);
+      if (isRulesTabRefreshRequested()) {
+        stripRulesTabRefreshFromUrl();
       }
       if (state.gridEl) {
         state.gridEl.classList.remove("nsm-ag-grid-loading");
       }
-      updatePolicyLoadStatus(state);
+      updateRulesLoadStatus(state);
       if (api && api._nsmRebindGroupHeaders) {
         scheduleGroupHeaderBind(api._nsmRebindGroupHeaders);
       }
-      scheduleAutoSizePolicyContentColumns(api, state);
+      scheduleAutoSizeRulesContentColumns(api, state);
       if (typeof done === "function") {
         done(state.knownTotalRows);
       }
-      enablePolicyFloatingFilters(api);
+      enableRulesFloatingFilters(api);
     }
 
     function loadStep(stepIndex) {
@@ -4040,9 +4044,9 @@
       var startRow = prevEnd;
       var isFirst = stepIndex === 0;
       var isLast = stepIndex === steps.length - 1;
-      var filterModel = getActivePolicyFilterModel(api, config, state);
+      var filterModel = getActiveRulesFilterModel(api, config, state);
 
-      return fetchPolicyGridRows(config, state, startRow, endRow, filterModel)
+      return fetchRulesGridRows(config, state, startRow, endRow, filterModel)
         .then(function (data) {
           if (token !== state.progressiveLoadToken) {
             return [];
@@ -4053,9 +4057,9 @@
           } else if (isFirst) {
             state.knownTotalRows = rows.length;
           }
-          setPolicyGridRows(api, rows, state, isFirst ? "set" : "add");
+          setRulesGridRows(api, rows, state, isFirst ? "set" : "add");
           state.loadedRowCount = (state._accumulatedRows || []).length;
-          var fetchDone = policyFetchPageExhausted(
+          var fetchDone = rulesFetchPageExhausted(
             data,
             startRow,
             endRow,
@@ -4069,7 +4073,7 @@
             state.progressiveLoadActive = false;
             state.initialLoadActive = false;
           }
-          notifyPolicyRowsLoaded(state, state.knownTotalRows, !isLast && !fetchDone);
+          notifyRulesRowsLoaded(state, state.knownTotalRows, !isLast && !fetchDone);
 
           if (isFirst && state.gridEl) {
             state.gridEl.classList.remove("nsm-ag-grid-loading");
@@ -4077,8 +4081,8 @@
 
           window.requestAnimationFrame(function () {
             if (isLast) {
-              flushPolicyGridAsyncTransactions(api);
-              resetPolicyRowHeights(api, state && state.groupByEnabled);
+              flushRulesGridAsyncTransactions(api);
+              resetRulesRowHeights(api, state && state.groupByEnabled);
             }
           });
 
@@ -4098,7 +4102,7 @@
           });
         })
         .catch(function (err) {
-          console.error("NSM policy grid: progressive row load failed", err);
+          console.error("NSM rules grid: progressive row load failed", err);
           finishLoad();
           return [];
         });
@@ -4107,8 +4111,8 @@
     return loadStep(0);
   }
 
-  function loadPolicyClientRows(api, config, state, done) {
-    var cache = getPolicyRulesDataCache(state, config);
+  function loadRulesClientRows(api, config, state, done) {
+    var cache = getRulesTabDataCache(state, config);
     if (
       cache &&
       cache.flatRows &&
@@ -4116,19 +4120,19 @@
       state &&
       !state.groupByEnabled
     ) {
-      applyPolicyRulesCacheToGrid(api, config, state, cache, done);
+      applyRulesTabCacheToGrid(api, config, state, cache, done);
       return Promise.resolve(cache.flatRows);
     }
     if (state) {
-      state.userLoadTarget = resolvePolicyInitialLoadTarget(config, state);
+      state.userLoadTarget = resolveRulesInitialLoadTarget(config, state);
     }
     if (state && state.groupByEnabled && state.collapseAllGroups) {
-      return loadAllPolicyClientRows(api, config, state, done);
+      return loadAllRulesClientRows(api, config, state, done);
     }
-    return loadPolicyClientRowsProgressive(api, config, state, done);
+    return loadRulesClientRowsProgressive(api, config, state, done);
   }
 
-  function appendPolicyClientRows(api, config, state, startRow, endRow, done) {
+  function appendRulesClientRows(api, config, state, startRow, endRow, done) {
     if (!config || !config.gridDataUrl || !api || !state) {
       if (typeof done === "function") {
         done(state ? state.loadedRowCount : 0);
@@ -4139,25 +4143,25 @@
       state.gridEl.classList.add("nsm-ag-grid-loading");
     }
     state.initialLoadActive = true;
-    updatePolicyLoadStatus(state);
-    var filterModel = getActivePolicyFilterModel(api, config, state);
-    return fetchPolicyGridRows(config, state, startRow, endRow, filterModel)
+    updateRulesLoadStatus(state);
+    var filterModel = getActiveRulesFilterModel(api, config, state);
+    return fetchRulesGridRows(config, state, startRow, endRow, filterModel)
       .then(function (data) {
         var rows = data.rowData || [];
         if (typeof data.lastRow === "number") {
           state.knownTotalRows = data.lastRow;
         }
-        setPolicyGridRows(api, rows, state, "add");
+        setRulesGridRows(api, rows, state, "add");
         state.loadedRowCount = (state._accumulatedRows || []).length;
         state.initialLoadActive = false;
-        notifyPolicyRowsLoaded(
+        notifyRulesRowsLoaded(
           state,
           state.knownTotalRows,
-          state.loadedRowCount < resolvePolicyMaxLoadableRows(state, config)
+          state.loadedRowCount < resolveRulesMaxLoadableRows(state, config)
         );
-        flushPolicyGridAsyncTransactions(api);
+        flushRulesGridAsyncTransactions(api);
         window.requestAnimationFrame(function () {
-          resetPolicyRowHeights(api, state && state.groupByEnabled);
+          resetRulesRowHeights(api, state && state.groupByEnabled);
         });
         if (typeof done === "function") {
           done(state.loadedRowCount);
@@ -4165,9 +4169,9 @@
         return rows;
       })
       .catch(function (err) {
-        console.error("NSM policy grid: append row load failed", err);
+        console.error("NSM rules grid: append row load failed", err);
         state.initialLoadActive = false;
-        updatePolicyLoadStatus(state);
+        updateRulesLoadStatus(state);
         if (typeof done === "function") {
           done(state ? state.loadedRowCount : 0);
         }
@@ -4183,8 +4187,8 @@
       });
   }
 
-  function loadMorePolicyRows(api, config, state, done) {
-    if (!api || !config || !state || !canLoadMorePolicyRows(state, config)) {
+  function loadMoreRulesRows(api, config, state, done) {
+    if (!api || !config || !state || !canLoadMoreRulesRows(state, config)) {
       if (typeof done === "function") {
         done(state ? state.loadedRowCount : 0);
       }
@@ -4194,10 +4198,10 @@
       typeof state.loadedRowCount === "number"
         ? state.loadedRowCount
         : (state._accumulatedRows || []).length;
-    var maxLoadable = resolvePolicyMaxLoadableRows(state, config);
+    var maxLoadable = resolveRulesMaxLoadableRows(state, config);
     var step = config.loadMoreStep || DEFAULT_POLICY_LOAD_MORE_STEP;
     state.userLoadTarget = Math.min(maxLoadable, loaded + step);
-    return appendPolicyClientRows(
+    return appendRulesClientRows(
       api,
       config,
       state,
@@ -4207,8 +4211,8 @@
     );
   }
 
-  function bindPolicyLoadMoreButton(api, config, state, profile) {
-    profile = profile || (state && state.domProfile) || NSM_GRID_PROFILES.policy;
+  function bindRulesLoadMoreButton(api, config, state, profile) {
+    profile = profile || (state && state.domProfile) || NSM_GRID_PROFILES.rules;
     if (!profile.loadMoreBtnId) {
       return;
     }
@@ -4218,24 +4222,24 @@
     }
     btn._nsmLoadMoreBound = true;
     btn.addEventListener("click", function () {
-      loadMorePolicyRows(api, config, state, function () {
+      loadMoreRulesRows(api, config, state, function () {
         updateRowStatsForProfile(api, state.knownTotalRows, state, config, profile);
       });
     });
   }
 
-  function isInfinitePolicyGrid(api) {
+  function isInfiniteRulesGrid(api) {
     if (!api || typeof api.getGridOption !== "function") {
       return false;
     }
     return api.getGridOption("rowModelType") === "infinite";
   }
 
-  function reloadPolicyGridData(gridApi, config, state, done, reloadOptions) {
+  function reloadRulesGridData(gridApi, config, state, done, reloadOptions) {
     if (!gridApi || !config || !state) {
       return;
     }
-    var profileKey = state.profileKey || "policy";
+    var profileKey = state.profileKey || "rules";
     var userDone = done || function () {};
     done = function (total) {
       scheduleGroupedColumnVisibility(
@@ -4248,17 +4252,17 @@
     };
     reloadOptions = reloadOptions || {};
     var groupingOnly = !!reloadOptions.groupingOnly;
-    var forceRefresh = isPolicyRulesRefreshRequested();
+    var forceRefresh = isRulesTabRefreshRequested();
     if (forceRefresh) {
-      invalidatePolicyRulesDataCache(state);
+      invalidateRulesTabDataCache(state);
     }
-    var dataCache = getPolicyRulesDataCache(state, config);
+    var dataCache = getRulesTabDataCache(state, config);
 
     if (!groupingOnly) {
-      invalidatePolicyRulesDataCache(state);
+      invalidateRulesTabDataCache(state);
     }
 
-    if (isInfinitePolicyGrid(gridApi)) {
+    if (isInfiniteRulesGrid(gridApi)) {
       if (typeof state.knownTotalRows !== "number" || state.knownTotalRows <= 0) {
         state.knownTotalRows = config.totalCount || 0;
       }
@@ -4284,7 +4288,7 @@
       dataCache.flatRows &&
       dataCache.flatRows.length
     ) {
-      applyPolicyRulesCacheToGrid(gridApi, config, state, dataCache);
+      applyRulesTabCacheToGrid(gridApi, config, state, dataCache);
       updateRowStatsForProfile(
         gridApi,
         dataCache.totalCount,
@@ -4297,10 +4301,10 @@
     }
 
     if (groupingOnly && !forceRefresh && state.groupByEnabled) {
-      cancelProgressivePolicyLoad(state);
+      cancelProgressiveRulesLoad(state);
       state.initialLoadActive = true;
-      updatePolicyLoadStatus(state);
-      loadAllPolicyClientRows(
+      updateRulesLoadStatus(state);
+      loadAllRulesClientRows(
         gridApi,
         config,
         state,
@@ -4319,17 +4323,17 @@
       return;
     }
 
-    cancelProgressivePolicyLoad(state);
+    cancelProgressiveRulesLoad(state);
     state.initialLoadActive = true;
-    state.userLoadTarget = resolvePolicyInitialLoadTarget(config, state);
-    updatePolicyLoadStatus(state);
-    loadPolicyClientRows(gridApi, config, state, function (total) {
+    state.userLoadTarget = resolveRulesInitialLoadTarget(config, state);
+    updateRulesLoadStatus(state);
+    loadRulesClientRows(gridApi, config, state, function (total) {
       updateRowStatsForProfile(gridApi, total, state, config, state.domProfile);
       done(total);
     });
   }
 
-  function createPolicyDatasource(config, state) {
+  function createRulesDatasource(config, state) {
     return {
       getRows: function (params) {
         if (!config || !config.gridDataUrl) {
@@ -4346,7 +4350,7 @@
         if (state && state.gridEl) {
           state.gridEl.classList.add("nsm-ag-grid-loading");
         }
-        fetchPolicyGridRows(
+        fetchRulesGridRows(
           config,
           state,
           params.startRow,
@@ -4364,7 +4368,7 @@
             params.successCallback(data.rowData || [], data.lastRow);
             if (params.api) {
               window.requestAnimationFrame(function () {
-                resetPolicyRowHeights(
+                resetRulesRowHeights(
                   params.api,
                   state && state.groupByEnabled
                 );
@@ -4372,7 +4376,7 @@
             }
           })
           .catch(function (err) {
-            console.error("NSM policy grid: datasource fetch failed", err);
+            console.error("NSM rules grid: datasource fetch failed", err);
             params.failCallback();
           })
           .finally(function () {
@@ -4398,10 +4402,10 @@
     _group: true,
   };
 
-  function collectPolicyAutoSizeColIds(columnDefs, out) {
+  function collectRulesAutoSizeColIds(columnDefs, out) {
     (columnDefs || []).forEach(function (col) {
       if (col.children) {
-        collectPolicyAutoSizeColIds(col.children, out);
+        collectRulesAutoSizeColIds(col.children, out);
         return;
       }
       if (!col.colId || POLICY_AUTOSIZE_SKIP_COL_IDS[col.colId]) {
@@ -4417,7 +4421,7 @@
     });
   }
 
-  function autoSizePolicyContentColumns(api, columnDefs, gridEl) {
+  function autoSizeRulesContentColumns(api, columnDefs, gridEl) {
     if (
       !api ||
       api._nsmAutoSizedColumns ||
@@ -4432,25 +4436,25 @@
       return;
     }
     var colIds = [];
-    collectPolicyAutoSizeColIds(columnDefs, colIds);
+    collectRulesAutoSizeColIds(columnDefs, colIds);
     if (!colIds.length) {
       return;
     }
     api.autoSizeColumns({ colIds: colIds, skipHeader: false });
     api._nsmAutoSizedColumns = true;
-    schedulePolicyGridWidthFit(api, gridEl);
+    scheduleRulesGridWidthFit(api, gridEl);
   }
 
-  function scheduleAutoSizePolicyContentColumns(api, state) {
+  function scheduleAutoSizeRulesContentColumns(api, state) {
     if (!api || !state || !state.gridEl) {
       return;
     }
     window.requestAnimationFrame(function () {
-      autoSizePolicyContentColumns(api, api._nsmColumnDefs, state.gridEl);
+      autoSizeRulesContentColumns(api, api._nsmColumnDefs, state.gridEl);
     });
   }
 
-  function fitPolicyGridWidth(api, gridEl) {
+  function fitRulesGridWidth(api, gridEl) {
     if (!api || !gridEl || typeof api.getAllDisplayedColumns !== "function") {
       return;
     }
@@ -4469,16 +4473,16 @@
     gridEl.style.width = Math.ceil(total + 2) + "px";
   }
 
-  function schedulePolicyGridWidthFit(api, gridEl) {
+  function scheduleRulesGridWidthFit(api, gridEl) {
     if (!api || !gridEl) {
       return;
     }
     window.requestAnimationFrame(function () {
-      fitPolicyGridWidth(api, gridEl);
+      fitRulesGridWidth(api, gridEl);
     });
   }
 
-  function applyPolicyGroupRowHeights(api) {
+  function applyRulesGroupRowHeights(api) {
     if (!api || typeof api.forEachNode !== "function") {
       return;
     }
@@ -4489,7 +4493,7 @@
         node.data._rowType === "group" &&
         typeof node.setRowHeight === "function"
       ) {
-        node.setRowHeight(computePolicyGroupRowHeight(node.data));
+        node.setRowHeight(computeRulesGroupRowHeight(node.data));
       }
     });
     if (typeof api.onRowHeightChanged === "function") {
@@ -4497,7 +4501,7 @@
     }
   }
 
-  function resetPolicyRowHeights(api, groupByEnabled) {
+  function resetRulesRowHeights(api, groupByEnabled) {
     if (!api) {
       return;
     }
@@ -4507,12 +4511,12 @@
       api.resetRowHeights();
     }
     if (groupByEnabled) {
-      applyPolicyGroupRowHeights(api);
+      applyRulesGroupRowHeights(api);
     }
   }
 
-  function initPolicyAgGrid() {
-    var profile = NSM_GRID_PROFILES.policy;
+  function initRulebookRulesAgGrid() {
+    var profile = NSM_GRID_PROFILES.rules;
     var payload = readJsonScript(profile.payloadScript);
     var config = readJsonScript(profile.configScript) || {};
     primeFilterQueryInput(config);
@@ -4521,7 +4525,7 @@
       return;
     }
     if (typeof agGrid === "undefined" || typeof agGrid.createGrid !== "function") {
-      console.error("NSM policy grid: ag-grid-community script not loaded");
+      console.error("NSM rules grid: ag-grid-community script not loaded");
       gridEl.innerHTML =
         '<p class="text-danger p-3 mb-0">AG Grid konnte nicht geladen werden.</p>';
       return;
@@ -4539,7 +4543,7 @@
     var datasourceState = {
       gridEl: gridEl,
       domProfile: profile,
-      profileKey: "policy",
+      profileKey: "rules",
       knownTotalRows: config.totalCount || 0,
       loadedRowCount: 0,
       loadedBytes: 0,
@@ -4552,27 +4556,27 @@
       progressiveLoadToken: 0,
       progressiveLoadActive: false,
       initialLoadActive: false,
-      userLoadTarget: resolvePolicyInitialLoadTarget(config, null),
+      userLoadTarget: resolveRulesInitialLoadTarget(config, null),
       rulesDataCache: null,
     };
-    if (isPolicyRulesRefreshRequested()) {
-      invalidatePolicyRulesDataCache(datasourceState);
+    if (isRulesTabRefreshRequested()) {
+      invalidateRulesTabDataCache(datasourceState);
     }
-    applyPolicyGroupConfig(config, datasourceState);
-    var policyObjectFields = [];
-    collectPolicyObjectFields(columnDefs, policyObjectFields);
+    applyRulesGroupConfig(config, datasourceState);
+    var rulesObjectFields = [];
+    collectRulesObjectFields(columnDefs, rulesObjectFields);
     applyTextColumnFilters(columnDefs, {
       enableColumnFilters: true,
       enableFloatingFilters: false,
     });
     if (datasourceState.groupByEnabled) {
-      columnDefs = prependPolicyGroupColumn(columnDefs, config);
+      columnDefs = prependRulesGroupColumn(columnDefs, config);
     }
     var totalRowCount = useRemoteRows
       ? datasourceState.knownTotalRows
       : (payload.rowData || []).length;
 
-    var objectCellRenderer = createPolicyObjectCellRenderer();
+    var objectCellRenderer = createRulesObjectCellRenderer();
 
     var htmlCellRenderer = function (params) {
       var wrap = document.createElement("div");
@@ -4691,7 +4695,7 @@
       return wrap;
     };
 
-    var policyGroupCellRenderer = createPolicyGroupCellRenderer(
+    var rulesGroupCellRenderer = createRulesGroupCellRenderer(
       config,
       datasourceState
     );
@@ -4705,7 +4709,7 @@
       rulebookLinkCell: rulebookLinkCellRenderer,
       descriptionCell: descriptionCellRenderer,
       actionsCell: actionsCellRenderer,
-      policyGroupCell: policyGroupCellRenderer,
+      rulesGroupCell: rulesGroupCellRenderer,
       emptyCell: function () {
         var span = document.createElement("span");
         span.className = "nsm-ag-group-row-empty";
@@ -4725,13 +4729,13 @@
     var gridOptions = {
       theme: theme || "legacy",
       columnDefs: columnDefs,
-      rowHeight: POLICY_ROW_HEIGHT,
-      getRowHeight: createPolicyGetRowHeight(policyObjectFields),
+      rowHeight: RULES_ROW_HEIGHT,
+      getRowHeight: createRulesGetRowHeight(rulesObjectFields),
       debounceVerticalScrollbar: true,
-      defaultColDef: buildPolicyDefaultColDef("policy", datasourceState.groupByEnabled),
+      defaultColDef: buildRulesDefaultColDef("rules", datasourceState.groupByEnabled),
       floatingFiltersEnabled: true,
       components: cellRenderers,
-      getRowClass: createPolicyGetRowClass(policyObjectFields),
+      getRowClass: createRulesGetRowClass(rulesObjectFields),
       isRowSelectable: function (params) {
         return !(params.data && params.data._rowType === "group");
       },
@@ -4762,11 +4766,11 @@
         updateClearFiltersButton(params.api, config);
         updateFilterQueryInput(params.api, config);
         syncBulkSelection();
-        schedulePolicyGridWidthFit(params.api, gridEl);
+        scheduleRulesGridWidthFit(params.api, gridEl);
         initColumnVisibilityPersistence(
           params.api,
           columnDefs,
-          "policy",
+          "rules",
           datasourceState.groupByEnabled,
           config
         );
@@ -4774,13 +4778,13 @@
           params.api.closeToolPanel();
         }
         if (useRemoteRows) {
-          loadPolicyClientRows(params.api, config, datasourceState, function (
+          loadRulesClientRows(params.api, config, datasourceState, function (
             total
           ) {
             updateRowStatsForProfile(params.api, total, datasourceState, config, profile);
           });
         }
-        enablePolicyFloatingFilters(params.api);
+        enableRulesFloatingFilters(params.api);
         if (params.api._nsmRebindGroupHeaders) {
           scheduleGroupHeaderBind(params.api._nsmRebindGroupHeaders);
         }
@@ -4789,29 +4793,29 @@
         applyInitialFilterModel(params.api, config);
         updateClearFiltersButton(params.api, config);
         updateFilterQueryInput(params.api, config);
-        autoSizePolicyContentColumns(params.api, columnDefs, gridEl);
-        schedulePolicyGridWidthFit(params.api, gridEl);
-        resetPolicyRowHeights(params.api, datasourceState.groupByEnabled);
-        enablePolicyFloatingFilters(params.api);
+        autoSizeRulesContentColumns(params.api, columnDefs, gridEl);
+        scheduleRulesGridWidthFit(params.api, gridEl);
+        resetRulesRowHeights(params.api, datasourceState.groupByEnabled);
+        enableRulesFloatingFilters(params.api);
         if (params.api._nsmRebindGroupHeaders) {
           scheduleGroupHeaderBind(params.api._nsmRebindGroupHeaders);
         }
       },
       onColumnResized: function (params) {
-        schedulePolicyGridWidthFit(params.api, gridEl);
+        scheduleRulesGridWidthFit(params.api, gridEl);
       },
       onDisplayedColumnsChanged: function (params) {
-        schedulePolicyGridWidthFit(params.api, gridEl);
+        scheduleRulesGridWidthFit(params.api, gridEl);
       },
       onToolPanelVisibleChanged: function (params) {
-        schedulePolicyGridWidthFit(params.api, gridEl);
+        scheduleRulesGridWidthFit(params.api, gridEl);
       },
       onFilterChanged: function (params) {
         filterQueryEditing = false;
         updateRowStatsForProfile(params.api, totalRowCount, datasourceState, config, profile);
         updateClearFiltersButton(params.api, config);
         updateFilterQueryInput(params.api, config, true);
-        resetPolicyRowHeights(params.api, datasourceState.groupByEnabled);
+        resetRulesRowHeights(params.api, datasourceState.groupByEnabled);
         scheduleGroupedFilterReload(params.api, config, datasourceState);
       },
       onSelectionChanged: function () {
@@ -4828,7 +4832,7 @@
     } else {
       gridOptions.rowData = payload.rowData || [];
     }
-    Object.assign(gridOptions, POLICY_GRID_PERF_OPTIONS);
+    Object.assign(gridOptions, RULES_GRID_PERF_OPTIONS);
 
     datasourceState.onRowsLoaded = function (total, meta) {
       if (gridApi) {
@@ -4842,24 +4846,24 @@
       gridApi._nsmDatasourceState = datasourceState;
       gridApi._nsmDefaultColDefExtra = null;
       ensureBaseColumnDefs(gridApi, columnDefs);
-      NSM_GRID_REGISTRY.policy = {
+      NSM_GRID_REGISTRY.rules = {
         api: gridApi,
         gridEl: gridEl,
         profile: profile,
       };
     } catch (err) {
-      console.error("NSM policy grid: createGrid failed", err);
+      console.error("NSM rules grid: createGrid failed", err);
       gridEl.innerHTML =
         '<p class="text-danger p-3 mb-0">AG Grid Initialisierung fehlgeschlagen (Konsole prüfen).</p>';
       return;
     }
 
-    bindPolicyLoadMoreButton(gridApi, config, datasourceState, profile);
+    bindRulesLoadMoreButton(gridApi, config, datasourceState, profile);
 
     var clearFiltersBtn = document.getElementById("nsm-ag-clear-filters");
     if (clearFiltersBtn) {
       clearFiltersBtn.addEventListener("click", function () {
-        clearAllPolicyFilters(gridApi, config);
+        clearAllRulesFilters(gridApi, config);
         updateClearFiltersButton(gridApi, config);
         updateFilterQueryInput(gridApi, config);
         updateRowStatsForProfile(gridApi, totalRowCount, datasourceState, config, profile);
@@ -4871,7 +4875,7 @@
     bindFilterQueryDropTarget(gridApi, config);
     bindCellFilterDrag(gridApi, gridEl, config);
 
-    bindNsmGroupToolbar(gridApi, config, datasourceState, gridEl, "policy", columnDefs);
+    bindNsmGroupToolbar(gridApi, config, datasourceState, gridEl, "rules", columnDefs);
 
     var bulkDeleteBtn = document.getElementById("nsm-bulk-delete-btn");
     if (bulkDeleteBtn) {
@@ -4951,7 +4955,7 @@
     });
   }
 
-  function initNsmRulesAgGrid() {
+  function initAllRulesAgGrid() {
     var profile = NSM_GRID_PROFILES.allRules;
     var payload = readJsonScript(profile.payloadScript);
     var config = readJsonScript(profile.configScript) || {};
@@ -4993,8 +4997,8 @@
     var useRemoteRows = !!(config.infiniteRowModel && config.gridDataUrl);
     var collapsedGroups = {};
     var expandedGroups = {};
-    var policyObjectFields = [];
-    collectPolicyObjectFields(columnDefs, policyObjectFields);
+    var rulesObjectFields = [];
+    collectRulesObjectFields(columnDefs, rulesObjectFields);
     applyTextColumnFilters(columnDefs, {
       enableColumnFilters: true,
       enableFloatingFilters: false,
@@ -5015,19 +5019,19 @@
       progressiveLoadToken: 0,
       progressiveLoadActive: false,
       initialLoadActive: false,
-      userLoadTarget: resolvePolicyInitialLoadTarget(config, null),
+      userLoadTarget: resolveRulesInitialLoadTarget(config, null),
       rulesDataCache: null,
     };
-    if (isPolicyRulesRefreshRequested()) {
-      invalidatePolicyRulesDataCache(datasourceState);
+    if (isRulesTabRefreshRequested()) {
+      invalidateRulesTabDataCache(datasourceState);
     }
-    applyPolicyGroupConfig(config, datasourceState);
+    applyRulesGroupConfig(config, datasourceState);
     if (datasourceState.groupByEnabled) {
-      columnDefs = prependPolicyGroupColumn(columnDefs, config);
+      columnDefs = prependRulesGroupColumn(columnDefs, config);
     }
     var totalRowCount = datasourceState.knownTotalRows;
 
-    var objectCellRenderer = createPolicyObjectCellRenderer();
+    var objectCellRenderer = createRulesObjectCellRenderer();
 
     function statusCellHtml(enabled) {
       var label = enabled ? statusOnLabel : statusOffLabel;
@@ -5066,7 +5070,7 @@
       return wrap;
     };
 
-    var policyGroupCellRenderer = createPolicyGroupCellRenderer(
+    var rulesGroupCellRenderer = createRulesGroupCellRenderer(
       config,
       datasourceState
     );
@@ -5079,7 +5083,7 @@
         wrap.innerHTML = statusCellHtml(!!params.value);
         return wrap;
       },
-      policyGroupCell: policyGroupCellRenderer,
+      rulesGroupCell: rulesGroupCellRenderer,
       emptyCell: function () {
         var span = document.createElement("span");
         span.className = "nsm-ag-group-row-empty";
@@ -5162,13 +5166,13 @@
     var gridOptions = {
       theme: theme || "legacy",
       columnDefs: columnDefs,
-      rowHeight: POLICY_ROW_HEIGHT,
-      getRowHeight: createPolicyGetRowHeight(policyObjectFields),
+      rowHeight: RULES_ROW_HEIGHT,
+      getRowHeight: createRulesGetRowHeight(rulesObjectFields),
       debounceVerticalScrollbar: true,
-      defaultColDef: buildPolicyDefaultColDef("allRules", datasourceState.groupByEnabled),
+      defaultColDef: buildRulesDefaultColDef("allRules", datasourceState.groupByEnabled),
       floatingFiltersEnabled: true,
       components: cellRenderers,
-      getRowClass: createPolicyGetRowClass(policyObjectFields),
+      getRowClass: createRulesGetRowClass(rulesObjectFields),
       isRowSelectable: function (params) {
         return !(params.data && params.data._rowType === "group");
       },
@@ -5185,7 +5189,7 @@
         updateRowStatsForProfile(params.api, totalRowCount, datasourceState, config, profile);
         updateClearFiltersButton(params.api, config);
         updateFilterQueryInput(params.api, config);
-        schedulePolicyGridWidthFit(params.api, gridEl);
+        scheduleRulesGridWidthFit(params.api, gridEl);
         initColumnVisibilityPersistence(
           params.api,
           columnDefs,
@@ -5194,11 +5198,11 @@
           config
         );
         if (useRemoteRows) {
-          loadPolicyClientRows(params.api, config, datasourceState, function (total) {
+          loadRulesClientRows(params.api, config, datasourceState, function (total) {
             updateRowStatsForProfile(params.api, total, datasourceState, config, profile);
           });
         }
-        scheduleEnablePolicyFloatingFilters(params.api);
+        scheduleEnableRulesFloatingFilters(params.api);
         if (params.api._nsmRebindGroupHeaders) {
           scheduleGroupHeaderBind(params.api._nsmRebindGroupHeaders);
         }
@@ -5206,25 +5210,25 @@
       onFirstDataRendered: function (params) {
         updateClearFiltersButton(params.api, config);
         updateFilterQueryInput(params.api, config);
-        schedulePolicyGridWidthFit(params.api, gridEl);
-        resetPolicyRowHeights(params.api, datasourceState.groupByEnabled);
-        enablePolicyFloatingFilters(params.api);
+        scheduleRulesGridWidthFit(params.api, gridEl);
+        resetRulesRowHeights(params.api, datasourceState.groupByEnabled);
+        enableRulesFloatingFilters(params.api);
         if (params.api._nsmRebindGroupHeaders) {
           scheduleGroupHeaderBind(params.api._nsmRebindGroupHeaders);
         }
       },
       onColumnResized: function (params) {
-        schedulePolicyGridWidthFit(params.api, gridEl);
+        scheduleRulesGridWidthFit(params.api, gridEl);
       },
       onDisplayedColumnsChanged: function (params) {
-        schedulePolicyGridWidthFit(params.api, gridEl);
+        scheduleRulesGridWidthFit(params.api, gridEl);
       },
       onFilterChanged: function (params) {
         filterQueryEditing = false;
         updateRowStatsForProfile(params.api, totalRowCount, datasourceState, config, profile);
         updateClearFiltersButton(params.api, config);
         updateFilterQueryInput(params.api, config, true);
-        resetPolicyRowHeights(params.api, datasourceState.groupByEnabled);
+        resetRulesRowHeights(params.api, datasourceState.groupByEnabled);
         scheduleGroupedFilterReload(params.api, config, datasourceState);
       },
       suppressCellFocus: true,
@@ -5240,7 +5244,7 @@
     } else {
       gridOptions.rowData = payload.rowData || [];
     }
-    Object.assign(gridOptions, POLICY_GRID_PERF_OPTIONS);
+    Object.assign(gridOptions, RULES_GRID_PERF_OPTIONS);
 
     datasourceState.onRowsLoaded = function (total) {
       if (gridApi) {
@@ -5265,7 +5269,7 @@
       return null;
     }
 
-    bindPolicyLoadMoreButton(gridApi, config, datasourceState, profile);
+    bindRulesLoadMoreButton(gridApi, config, datasourceState, profile);
     bindFilterQueryCopyButton(gridApi, config);
     bindFilterQueryInput(gridApi, config);
     bindFilterQueryDropTarget(gridApi, config);
@@ -5373,15 +5377,15 @@
     if (!entry || !entry.api || !entry.gridEl) {
       return;
     }
-    schedulePolicyGridWidthFit(entry.api, entry.gridEl);
-    resetPolicyRowHeights(entry.api, false);
+    scheduleRulesGridWidthFit(entry.api, entry.gridEl);
+    resetRulesRowHeights(entry.api, false);
     if (typeof entry.api.redrawRows === "function") {
       entry.api.redrawRows();
     }
   }
 
-  initPolicyAgGrid();
+  initRulebookRulesAgGrid();
   if (document.getElementById(NSM_GRID_PROFILES.allRules.gridId)) {
-    initNsmRulesAgGrid();
+    initAllRulesAgGrid();
   }
 })();

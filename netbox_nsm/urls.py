@@ -144,33 +144,6 @@ urlpatterns = [
         include(get_model_urls("netbox_nsm", "rulebook")),
     ),
     path(
-        "rulebooks/<int:pk>/visualization/",
-        RedirectView.as_view(
-            pattern_name="plugins:netbox_nsm:rulebook_matrix",
-            query_string=True,
-            permanent=True,
-        ),
-        name="rulebook_visualization_redirect",
-    ),
-    path(
-        "rulebooks/<int:pk>/zonematrix/",
-        RedirectView.as_view(
-            pattern_name="plugins:netbox_nsm:rulebook_matrix",
-            query_string=True,
-            permanent=True,
-        ),
-        name="rulebook_zonematrix_redirect",
-    ),
-    path(
-        "rulebooks/<int:pk>/policy/",
-        RedirectView.as_view(
-            pattern_name="plugins:netbox_nsm:rulebook_rules",
-            query_string=True,
-            permanent=True,
-        ),
-        name="rulebook_policy_redirect",
-    ),
-    path(
         "rulebooks/<int:pk>/bulk-assign/",
         RulebookBulkAssignView.as_view(),
         name="rulebook_bulk_assign",
@@ -194,14 +167,14 @@ urlpatterns = [
     path("rules/search/", GlobalRulesSearchView.as_view(), name="global_rules_search"),
     path("object-analyzer/", ObjectAnalyzerView.as_view(), name="object_analyzer"),
     path(
-        "api/rulebooks/<int:pk>/policy-grid/",
-        RulebookPolicyGridApiView.as_view(),
-        name="rulebook_policy_grid_api",
+        "api/rulebooks/<int:pk>/rules-grid/",
+        RulebookRulesGridApiView.as_view(),
+        name="rulebook_rules_grid_api",
     ),
     path(
-        "api/rulebooks/<int:pk>/policy-query-validate/",
-        RulebookPolicyQueryValidateApiView.as_view(),
-        name="rulebook_policy_query_validate_api",
+        "api/rulebooks/<int:pk>/rules-grid/validate/",
+        RulebookRulesGridValidateApiView.as_view(),
+        name="rulebook_rules_grid_validate_api",
     ),
     path(
         "api/rulebooks/<int:pk>/matrix-grid/",

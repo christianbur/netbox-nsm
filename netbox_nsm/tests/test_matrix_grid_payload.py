@@ -45,9 +45,9 @@ def _cell(
         "fwd": badge(fwd_count),
         "rev": badge(rev_count),
         "combined": badge(combined_count or max(fwd_count, rev_count)),
-        "fwd_href": "/policy/?fwd=1",
-        "rev_href": "/policy/?rev=1",
-        "both_href": "/policy/?both=1",
+        "fwd_href": "/rules/?fwd=1",
+        "rev_href": "/rules/?rev=1",
+        "both_href": "/rules/?both=1",
         "add_href": "/rules/add/",
         "is_self": is_self,
     }

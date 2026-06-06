@@ -10,72 +10,72 @@ from django.core.cache import cache
 
 from netbox_nsm.branch_urls import with_branch_query
 from netbox_nsm.models import Rule, Rulebook, RulebookTypeChoices
-from netbox_nsm.policy_grid_payload import (
+from netbox_nsm.rulebook_rules_grid_payload import (
     BARE_NAME_FILTER_SHORTHAND,
     _SYSTEM_COLUMN_DEFS,
     apply_suppress_movable,
     _object_column_def,
     build_filter_column_shorthand_names,
-    build_policy_ag_grid_row,
-    build_policy_group_row_record,
+    build_rulebook_rules_grid_row,
+    build_rulebook_rules_group_row_record,
 )
-from netbox_nsm.policy_grid_service import (
-    POLICY_GRID_BLOCK_SIZE,
+from netbox_nsm.rulebook_rules_grid_service import (
+    RULEBOOK_RULES_GRID_BLOCK_SIZE,
     UNION_LAYOUT_CACHE_KEY,
     UNION_LAYOUT_CACHE_TTL,
     _cached_rule_group_maps,
     _parse_filter_model,
     _rules_after_ag_filter,
     resolve_all_rules_filtered_rules,
-    wrap_policy_ag_row_urls,
+    wrap_rulebook_rules_grid_row_urls,
 )
-from netbox_nsm.policy_rule_grouping import (
+from netbox_nsm.rulebook_rules_grouping import (
     GROUP_BY_NOT_ALLOWED_MESSAGE,
     GROUP_MODE_SET,
     UNGROUPED_GROUP_KEY,
     assign_rules_to_groups_for_union,
-    build_policy_group_options,
+    build_rulebook_rules_group_options,
     build_rule_display_items,
     group_by_field_label,
     parse_group_by_mode,
-    parse_policy_group_by,
+    parse_rulebook_rules_group_by,
     resolve_group_expansion,
 )
 from netbox_nsm.query.engine import prepare_rules
 
 __all__ = (
     "ALL_RULES_FILTER_QUERY_COLUMN_ORDER",
-    "POLICY_GRID_BLOCK_SIZE",
-    "all_policy_rules_count",
+    "RULEBOOK_RULES_GRID_BLOCK_SIZE",
+    "all_rules_count",
     "build_all_rules_filter_extra_aliases",
     "build_all_rules_filter_maps",
     "build_all_rules_filter_shorthand_names",
     "build_all_rules_grid_config",
     "build_all_rules_grid_scaffold",
     "fetch_all_rules_grid_page",
-    "resolve_policy_rulebook_by_id",
-    "resolve_policy_rulebook_by_name",
-    "resolve_policy_rulebook_scope",
+    "resolve_rules_rulebook_by_id",
+    "resolve_rules_rulebook_by_name",
+    "resolve_rules_rulebook_scope",
 )
 
 ALL_RULES_FILTER_QUERY_COLUMN_ORDER = ("rulebook", "name")
 
 
-def all_policy_rules_count() -> int:
+def all_rules_count() -> int:
     return Rule.objects.filter(
-        rulebook__rulebook_type=RulebookTypeChoices.POLICY
+        rulebook__rulebook_type=RulebookTypeChoices.SECURITY_RULES
     ).count()
 
 
-def _policy_rulebooks_qs():
-    return Rulebook.objects.filter(rulebook_type=RulebookTypeChoices.POLICY).order_by(
+def _security_rules_rulebooks_qs():
+    return Rulebook.objects.filter(rulebook_type=RulebookTypeChoices.SECURITY_RULES).order_by(
         "name"
     )
 
 
 def _all_rules_base_qs():
     return (
-        Rule.objects.filter(rulebook__rulebook_type=RulebookTypeChoices.POLICY)
+        Rule.objects.filter(rulebook__rulebook_type=RulebookTypeChoices.SECURITY_RULES)
         .select_related("rulebook")
         .prefetch_related(
             "source_users",
@@ -117,10 +117,10 @@ def _build_union_layout(view_helpers) -> tuple[list[dict], dict[int, dict[str, s
     area_order: list[str] = []
     columns_by_area: dict[str, list[dict]] = defaultdict(list)
 
-    for rb in _policy_rulebooks_qs():
-        grouped = view_helpers._build_grouped_policy_table_data([], rb)
+    for rb in _security_rules_rulebooks_qs():
+        grouped = view_helpers._build_grouped_rules_table_data([], rb)
         rb_map: dict[str, str] = {}
-        for entry in grouped.get("policy_layout") or []:
+        for entry in grouped.get("rules_layout") or []:
             if entry.get("kind") != "object":
                 continue
             area = (entry.get("label") or entry.get("slug") or "").strip()
@@ -157,18 +157,18 @@ def _build_union_layout(view_helpers) -> tuple[list[dict], dict[int, dict[str, s
     return layout_groups, rb_maps
 
 
-def resolve_policy_rulebook_by_name(name: str) -> Rulebook | None:
+def resolve_rules_rulebook_by_name(name: str) -> Rulebook | None:
     """Resolve a policy rulebook by display name (case-insensitive)."""
-    rulebook, _err = resolve_policy_rulebook_scope(name)
+    rulebook, _err = resolve_rules_rulebook_scope(name)
     return rulebook
 
 
-def resolve_policy_rulebook_scope(name: str) -> tuple[Rulebook | None, str | None]:
+def resolve_rules_rulebook_scope(name: str) -> tuple[Rulebook | None, str | None]:
     """Resolve a policy rulebook by display name; return (rulebook, error)."""
     text = (name or "").strip()
     if not text:
         return None, None
-    matches = list(_policy_rulebooks_qs().filter(name__iexact=text).order_by("pk")[:3])
+    matches = list(_security_rules_rulebooks_qs().filter(name__iexact=text).order_by("pk")[:3])
     if not matches:
         return None, f"Unknown rulebook: {text}"
     if len(matches) > 1:
@@ -176,7 +176,7 @@ def resolve_policy_rulebook_scope(name: str) -> tuple[Rulebook | None, str | Non
     return matches[0], None
 
 
-def resolve_policy_rulebook_by_id(pk) -> tuple[Rulebook | None, str | None]:
+def resolve_rules_rulebook_by_id(pk) -> tuple[Rulebook | None, str | None]:
     """Resolve a policy rulebook by primary key; return (rulebook, error)."""
     if pk in (None, ""):
         return None, None
@@ -184,7 +184,7 @@ def resolve_policy_rulebook_by_id(pk) -> tuple[Rulebook | None, str | None]:
         rb_id = int(pk)
     except (TypeError, ValueError):
         return None, f"Invalid rulebook_id: {pk!r}"
-    rulebook = _policy_rulebooks_qs().filter(pk=rb_id).first()
+    rulebook = _security_rules_rulebooks_qs().filter(pk=rb_id).first()
     if rulebook is None:
         return None, f"Unknown rulebook id: {rb_id}"
     return rulebook, None
@@ -200,7 +200,7 @@ def build_all_rules_filter_maps(view_helpers) -> tuple[dict[str, str], list]:
         "enabled": "Status",
         "rulebook": "Rulebook.Name",
     }
-    policy_layout: list[dict] = [
+    rules_layout: list[dict] = [
         {"kind": "system", "slug": "index", "label": "Index"},
         {"kind": "system", "slug": "name", "label": "Name"},
         {"kind": "system", "slug": "enabled", "label": "Status"},
@@ -230,11 +230,11 @@ def build_all_rules_filter_maps(view_helpers) -> tuple[dict[str, str], list]:
                     "area_slug": slug,
                 }
             )
-    policy_layout.extend(object_areas.values())
-    policy_layout.append(
+    rules_layout.extend(object_areas.values())
+    rules_layout.append(
         {"kind": "system", "slug": "description", "label": "Description"}
     )
-    return column_map, policy_layout
+    return column_map, rules_layout
 
 
 def _labels_column_entries(column_map: dict[str, str]) -> list[tuple[str, str]]:
@@ -258,10 +258,10 @@ def build_all_rules_filter_extra_aliases(column_map: dict[str, str]) -> dict[str
 
 def build_all_rules_filter_shorthand_names(
     column_map: dict[str, str],
-    policy_layout: list,
+    rules_layout: list,
 ) -> dict[str, str]:
     """Canonical all-rules filter export names (bare Name, Rulebook, LABEL)."""
-    names = build_filter_column_shorthand_names(column_map, policy_layout)
+    names = build_filter_column_shorthand_names(column_map, rules_layout)
     if "name" in column_map:
         names["name"] = BARE_NAME_FILTER_SHORTHAND
     if "rulebook" in column_map:
@@ -359,7 +359,7 @@ def _records_for_rules(rules, view_helpers, rb_maps, request) -> list[dict]:
     records: list[dict] = []
     for rb_id, rb_rules in by_rb.items():
         rb = rb_rules[0].rulebook
-        grouped = view_helpers._build_grouped_policy_table_data(rb_rules, rb)
+        grouped = view_helpers._build_grouped_rules_table_data(rb_rules, rb)
         rows_by_pk = {row["pk"]: row for row in grouped.get("rows") or []}
         rb_map = rb_maps.get(rb_id, {})
         for rule in rb_rules:
@@ -367,11 +367,11 @@ def _records_for_rules(rules, view_helpers, rb_maps, request) -> list[dict]:
             if row is None:
                 continue
             remapped = _remap_grouped_row(row, rb_map)
-            record = build_policy_ag_grid_row(remapped)
+            record = build_rulebook_rules_grid_row(remapped)
             record["rulebook"] = rb.name
             record["_rulebook_url"] = with_branch_query(rb.get_absolute_url(), request)
             records.append(record)
-    wrap_policy_ag_row_urls(records, request)
+    wrap_rulebook_rules_grid_row_urls(records, request)
     return records
 
 
@@ -388,7 +388,7 @@ def _build_grouped_all_rules_page(
     group_mode_secondary: str = "",
     expanded_keys=None,
     collapsed_keys=None,
-    policy_layout: list | None = None,
+    rules_layout: list | None = None,
 ) -> tuple[list[dict], int]:
     primary = group_levels[0] if group_levels else ""
     secondary = group_levels[1] if len(group_levels) > 1 else ""
@@ -430,7 +430,7 @@ def _build_grouped_all_rules_page(
         for rec in _records_for_rules(page_rules, view_helpers, rb_maps, request)
     }
     level_labels = [
-        group_by_field_label(level, policy_layout) for level in group_levels
+        group_by_field_label(level, rules_layout) for level in group_levels
     ]
 
     page: list[dict] = []
@@ -443,7 +443,7 @@ def _build_grouped_all_rules_page(
                 else ""
             )
             page.append(
-                build_policy_group_row_record(
+                build_rulebook_rules_group_row_record(
                     item.get("bucket"),
                     group_key=item.get("group_key", UNGROUPED_GROUP_KEY),
                     rule_count=item.get("rule_count", 0),
@@ -478,7 +478,7 @@ def fetch_all_rules_grid_page(
     group_mode_secondary: str = "",
     expanded_keys=None,
     collapsed_keys=None,
-    policy_layout: list | None = None,
+    rules_layout: list | None = None,
     use_cached: bool = False,
     refresh_cache: bool = False,
 ) -> dict:
@@ -512,7 +512,7 @@ def fetch_all_rules_grid_page(
             group_mode_secondary=group_mode_secondary,
             expanded_keys=expanded_keys,
             collapsed_keys=collapsed_keys,
-            policy_layout=policy_layout,
+            rules_layout=rules_layout,
         )
         return {"rowData": page, "lastRow": total}
 
@@ -527,22 +527,22 @@ def build_all_rules_grid_config(request, *, read_only: bool = False) -> dict:
 
     import netbox_nsm.views.rulebook as rulebook_views
 
-    from netbox_nsm.policy_grid_filter import extract_all_rules_filter_params
-    from netbox_nsm.policy_grid_payload import (
+    from netbox_nsm.rulebook_rules_grid_filter import extract_all_rules_filter_params
+    from netbox_nsm.rulebook_rules_grid_payload import (
         enabled_status_labels,
     )
-    from netbox_nsm.policy_tab_context import (
+    from netbox_nsm.rulebook_rules_tab import (
         GRID_AUTO_LOAD_ALL_MAX,
         GRID_LOAD_MORE_STEP,
         PROGRESSIVE_LOAD_STEPS,
         PROGRESSIVE_LOAD_STEPS_FINE,
-        build_policy_group_grid_config,
-        resolve_policy_grid_initial_load_target,
-        resolve_policy_grid_load_target,
+        build_rulebook_rules_group_grid_config,
+        resolve_rulebook_rules_grid_initial_load_target,
+        resolve_rulebook_rules_grid_load_target,
     )
 
-    total = all_policy_rules_count()
-    column_map, policy_layout = build_all_rules_filter_maps(rulebook_views)
+    total = all_rules_count()
+    column_map, rules_layout = build_all_rules_filter_maps(rulebook_views)
     scoped_rulebook, filter_q_body, filter_err = extract_all_rules_filter_params(
         request
     )
@@ -559,17 +559,17 @@ def build_all_rules_grid_config(request, *, read_only: bool = False) -> dict:
         },
         "statusLabels": enabled_status_labels(),
         "infiniteRowModel": True,
-        "cacheBlockSize": POLICY_GRID_BLOCK_SIZE,
+        "cacheBlockSize": RULEBOOK_RULES_GRID_BLOCK_SIZE,
         "totalCount": total,
-        "loadRowLimit": resolve_policy_grid_load_target(total),
-        "initialLoadLimit": resolve_policy_grid_initial_load_target(total),
+        "loadRowLimit": resolve_rulebook_rules_grid_load_target(total),
+        "initialLoadLimit": resolve_rulebook_rules_grid_initial_load_target(total),
         "loadMoreStep": GRID_LOAD_MORE_STEP,
         "gridLoadSteps": list(PROGRESSIVE_LOAD_STEPS),
         "gridLoadStepsFine": list(PROGRESSIVE_LOAD_STEPS_FINE),
         "gridAutoLoadAllMax": GRID_AUTO_LOAD_ALL_MAX,
         "filterColumnMap": column_map,
         "filterColumnShorthand": build_all_rules_filter_shorthand_names(
-            column_map, policy_layout
+            column_map, rules_layout
         ),
         "filterQueryColumnOrder": list(ALL_RULES_FILTER_QUERY_COLUMN_ORDER),
         "useServerFilterQ": True,
@@ -582,21 +582,21 @@ def build_all_rules_grid_config(request, *, read_only: bool = False) -> dict:
         cfg["filterQuery"] = filter_q_body
     if filter_err:
         cfg["filterQueryError"] = filter_err
-    cfg["groupByOptions"] = build_policy_group_options(
-        policy_layout,
+    cfg["groupByOptions"] = build_rulebook_rules_group_options(
+        rules_layout,
         include_rulebook=True,
     )
     cfg["groupByNotAllowedMessage"] = str(GROUP_BY_NOT_ALLOWED_MESSAGE)
-    group_by = parse_policy_group_by(
+    group_by = parse_rulebook_rules_group_by(
         request,
-        policy_layout=policy_layout,
+        rules_layout=rules_layout,
         include_rulebook=True,
     )
     if group_by:
         cfg.update(
-            build_policy_group_grid_config(
+            build_rulebook_rules_group_grid_config(
                 request,
-                policy_layout,
+                rules_layout,
                 include_rulebook=True,
             )
         )

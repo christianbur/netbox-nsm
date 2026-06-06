@@ -838,7 +838,7 @@
   }
 
   function getPolicySlotConfigFromServer() {
-    var el = document.getElementById("nsm-policy-slots");
+    var el = document.getElementById("nsm-rule-slots");
     if (!el) return [];
     try {
       var data = JSON.parse(el.textContent);

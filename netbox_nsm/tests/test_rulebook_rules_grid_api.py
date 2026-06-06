@@ -15,7 +15,7 @@ from netbox_nsm.models import (
 )
 from netbox_nsm.rulebook_field_utils import ensure_system_rulebook_fields
 from netbox_nsm.views.all_rules_grid_api import AllRulesGridApiView
-from netbox_nsm.views.policy_grid_api import RulebookPolicyGridApiView
+from netbox_nsm.views.rulebook_rules_grid_api import RulebookRulesGridApiView
 from utilities.testing import TestCase
 
 
@@ -29,7 +29,7 @@ class PolicyGridApiGroupValidationTests(TestCase):
         )
         cls.rulebook = Rulebook.objects.create(
             name="Grid API RB",
-            rulebook_type="policy",
+            rulebook_type="security_rules",
         )
         ensure_system_rulebook_fields(cls.rulebook)
         cls.field = RulebookField.objects.create(
@@ -47,35 +47,35 @@ class PolicyGridApiGroupValidationTests(TestCase):
             visible=True,
         )
 
-    def test_policy_grid_api_rejects_unknown_group_by(self):
+    def test_rules_grid_api_rejects_unknown_group_by(self):
         self.add_permissions("netbox_nsm.view_rulebook")
         url = (
             reverse(
-                "plugins:netbox_nsm:rulebook_policy_grid_api",
+                "plugins:netbox_nsm:rulebook_rules_grid_api",
                 args=[self.rulebook.pk],
             )
             + "?group_by=col:source::ct_999"
         )
         request = RequestFactory().get(url)
         request.user = self.user
-        response = RulebookPolicyGridApiView.as_view()(request, pk=self.rulebook.pk)
+        response = RulebookRulesGridApiView.as_view()(request, pk=self.rulebook.pk)
         self.assertEqual(response.status_code, 400)
         data = json.loads(response.content)
         self.assertIn("error", data)
 
-    def test_policy_grid_api_accepts_configured_group_by(self):
+    def test_rules_grid_api_accepts_configured_group_by(self):
         self.add_permissions("netbox_nsm.view_rulebook")
         col_key = f"source::ct_{self.ct.pk}"
         url = (
             reverse(
-                "plugins:netbox_nsm:rulebook_policy_grid_api",
+                "plugins:netbox_nsm:rulebook_rules_grid_api",
                 args=[self.rulebook.pk],
             )
             + f"?group_by=col:{col_key}"
         )
         request = RequestFactory().get(url)
         request.user = self.user
-        response = RulebookPolicyGridApiView.as_view()(request, pk=self.rulebook.pk)
+        response = RulebookRulesGridApiView.as_view()(request, pk=self.rulebook.pk)
         self.assertEqual(response.status_code, 200)
 
     def test_all_rules_grid_api_rejects_unknown_group_by(self):

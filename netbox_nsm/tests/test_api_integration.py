@@ -54,7 +54,7 @@ class RulebookAPITest(_RulebookPluginAPITestMixin, APITestCase):
         list_url = _api("rulebook-list")
 
         response = self._post_json(
-            list_url, {"name": "api-test-rulebook", "rulebook_type": "policy"}
+            list_url, {"name": "api-test-rulebook", "rulebook_type": "security_rules"}
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
         rb_id = response.data["id"]
@@ -81,7 +81,7 @@ class RulebookFieldAPITest(_RulebookPluginAPITestMixin, APITestCase):
     @classmethod
     def setUpTestData(cls):
         cls.rulebook = Rulebook.objects.create(
-            name="api-field-rb", rulebook_type="policy"
+            name="api-field-rb", rulebook_type="security_rules"
         )
         ensure_system_rulebook_fields(cls.rulebook)
 
@@ -126,7 +126,7 @@ class RulebookFieldTypeAPITest(_RulebookPluginAPITestMixin, APITestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.rulebook = Rulebook.objects.create(name="api-ft-rb", rulebook_type="policy")
+        cls.rulebook = Rulebook.objects.create(name="api-ft-rb", rulebook_type="security_rules")
         cls.field = RulebookField.objects.create(
             rulebook=cls.rulebook,
             slug="services",
@@ -174,7 +174,7 @@ class RuleAPITest(_RulebookPluginAPITestMixin, APITestCase):
     @classmethod
     def setUpTestData(cls):
         cls.rulebook = Rulebook.objects.create(
-            name="api-rule-rb", rulebook_type="policy"
+            name="api-rule-rb", rulebook_type="security_rules"
         )
         ensure_system_rulebook_fields(cls.rulebook)
 
@@ -219,7 +219,7 @@ class RuleFieldSelectionsViewTest(_RulebookPluginAPITestMixin, APITestCase):
     @classmethod
     def setUpTestData(cls):
         cls.rulebook = Rulebook.objects.create(
-            name="field-sel-rb", rulebook_type="policy"
+            name="field-sel-rb", rulebook_type="security_rules"
         )
         ensure_system_rulebook_fields(cls.rulebook)
         cls.rule = Rule.objects.create(
@@ -313,7 +313,7 @@ class RulebookWorkflowAPITest(_RulebookPluginAPITestMixin, APITestCase):
 
         rb_resp = self._post_json(
             _api("rulebook-list"),
-            {"name": "workflow-rb", "rulebook_type": "policy"},
+            {"name": "workflow-rb", "rulebook_type": "security_rules"},
         )
         self.assertEqual(rb_resp.status_code, status.HTTP_201_CREATED)
         rb_id = rb_resp.data["id"]

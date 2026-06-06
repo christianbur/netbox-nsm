@@ -28,8 +28,8 @@ class RulebookMatrixGridApiView(LoginRequiredMixin, View):
             return HttpResponseForbidden()
 
         instance = get_object_or_404(Rulebook, pk=pk)
-        if instance.rulebook_type != RulebookTypeChoices.POLICY:
-            return JsonResponse({"error": "not a policy rulebook"}, status=404)
+        if instance.rulebook_type != RulebookTypeChoices.SECURITY_RULES:
+            return JsonResponse({"error": "not a security rules rulebook"}, status=404)
 
         import netbox_nsm.views.rulebook as rulebook_views
 

@@ -1,7 +1,7 @@
 {# Via {% block modals %} in rule_edit.html — outside #form_fields; assets via plugin_asset (no collectstatic). #}
 {% load i18n %}
 {{ nsm_rule_picker_catalog|json_script:"nsm-rule-picker-catalog" }}
-{{ nsm_policy_slots|json_script:"nsm-policy-slots" }}
+{{ nsm_rule_slots|json_script:"nsm-rule-slots" }}
 {% if nsm_rule_selections %}
 {{ nsm_rule_selections|json_script:"nsm-rule-selections" }}
 {% endif %}

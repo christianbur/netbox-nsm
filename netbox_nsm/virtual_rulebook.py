@@ -5,7 +5,7 @@ from __future__ import annotations
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from netbox_nsm.all_rules_grid_service import all_policy_rules_count
+from netbox_nsm.all_rules_grid_service import all_rules_count
 
 __all__ = (
     "ALL_RULES_CHANGELOG_URL_NAME",
@@ -75,7 +75,7 @@ class VirtualAllRulesRulebook:
 
     def __init__(self, *, rule_count: int | None = None):
         self.rule_count = (
-            rule_count if rule_count is not None else all_policy_rules_count()
+            rule_count if rule_count is not None else all_rules_count()
         )
         self.name = str(_("All Rules"))
         self.status = "virtual"

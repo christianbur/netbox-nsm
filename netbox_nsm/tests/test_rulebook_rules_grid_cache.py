@@ -7,14 +7,14 @@ from django.core.cache import cache
 from django.test import RequestFactory
 from django.urls import reverse
 
-from netbox_nsm.policy_grid_service import (
-    POLICY_GRID_RULES_CACHE_TTL,
+from netbox_nsm.rulebook_rules_grid_service import (
+    RULEBOOK_RULES_GRID_RULES_CACHE_TTL,
     all_rules_grid_rules_cache_key,
-    policy_grid_rules_cache_key,
-    resolve_policy_grid_filtered_rules,
+    rulebook_rules_grid_rules_cache_key,
+    resolve_rulebook_rules_grid_filtered_rules,
 )
 from netbox_nsm.views.all_rules_grid_api import AllRulesGridApiView
-from netbox_nsm.views.policy_grid_api import RulebookPolicyGridApiView
+from netbox_nsm.views.rulebook_rules_grid_api import RulebookRulesGridApiView
 from utilities.testing import TestCase
 
 
@@ -33,7 +33,7 @@ class PolicyGridRulesCacheTests(TestCase):
         )
         cls.rulebook = Rulebook.objects.create(
             name="Rules Cache RB",
-            rulebook_type="policy",
+            rulebook_type="security_rules",
         )
         ensure_system_rulebook_fields(cls.rulebook)
 
@@ -41,13 +41,13 @@ class PolicyGridRulesCacheTests(TestCase):
         super().setUp()
         cache.clear()
 
-    def test_policy_grid_rules_cache_key_ignores_grouping(self):
-        key_a = policy_grid_rules_cache_key(self.rulebook.pk, None)
-        key_b = policy_grid_rules_cache_key(self.rulebook.pk, {"name": {"filter": "x"}})
+    def test_rulebook_rules_grid_rules_cache_key_ignores_grouping(self):
+        key_a = rulebook_rules_grid_rules_cache_key(self.rulebook.pk, None)
+        key_b = rulebook_rules_grid_rules_cache_key(self.rulebook.pk, {"name": {"filter": "x"}})
         self.assertNotEqual(key_a, key_b)
         self.assertEqual(
             key_a,
-            policy_grid_rules_cache_key(self.rulebook.pk, None),
+            rulebook_rules_grid_rules_cache_key(self.rulebook.pk, None),
         )
 
     def test_all_rules_grid_rules_cache_key_scopes_rulebook(self):
@@ -55,13 +55,13 @@ class PolicyGridRulesCacheTests(TestCase):
         key_scoped = all_rules_grid_rules_cache_key(self.rulebook.pk, None)
         self.assertNotEqual(key_all, key_scoped)
 
-    def test_resolve_policy_grid_filtered_rules_populates_cache(self):
+    def test_resolve_rulebook_rules_grid_filtered_rules_populates_cache(self):
         import netbox_nsm.views.rulebook as rulebook_views
 
-        cache_key = policy_grid_rules_cache_key(self.rulebook.pk, None)
+        cache_key = rulebook_rules_grid_rules_cache_key(self.rulebook.pk, None)
         self.assertIsNone(cache.get(cache_key))
 
-        resolve_policy_grid_filtered_rules(
+        resolve_rulebook_rules_grid_filtered_rules(
             self.rulebook,
             None,
             rulebook_views,
@@ -72,20 +72,20 @@ class PolicyGridRulesCacheTests(TestCase):
         self.assertIsNotNone(cached_pks)
         self.assertEqual(cached_pks, [])
 
-    def test_resolve_policy_grid_filtered_rules_use_cached_skips_db_filter(self):
+    def test_resolve_rulebook_rules_grid_filtered_rules_use_cached_skips_db_filter(self):
         import netbox_nsm.views.rulebook as rulebook_views
 
-        cache_key = policy_grid_rules_cache_key(self.rulebook.pk, None)
-        cache.set(cache_key, [101, 102, 103], POLICY_GRID_RULES_CACHE_TTL)
+        cache_key = rulebook_rules_grid_rules_cache_key(self.rulebook.pk, None)
+        cache.set(cache_key, [101, 102, 103], RULEBOOK_RULES_GRID_RULES_CACHE_TTL)
 
         with patch(
-            "netbox_nsm.policy_grid_service.policy_grid_filtered_rules"
+            "netbox_nsm.rulebook_rules_grid_service.rulebook_rules_grid_filtered_rules"
         ) as mock_filtered:
             with patch(
-                "netbox_nsm.policy_grid_service._rules_from_cached_pks",
+                "netbox_nsm.rulebook_rules_grid_service._rules_from_cached_pks",
                 return_value=["cached-rules"],
             ) as mock_from_cache:
-                rules = resolve_policy_grid_filtered_rules(
+                rules = resolve_rulebook_rules_grid_filtered_rules(
                     self.rulebook,
                     None,
                     rulebook_views,
@@ -96,13 +96,13 @@ class PolicyGridRulesCacheTests(TestCase):
         mock_from_cache.assert_called_once_with(self.rulebook, [101, 102, 103])
         self.assertEqual(rules, ["cached-rules"])
 
-    def test_resolve_policy_grid_filtered_rules_refresh_deletes_cache(self):
+    def test_resolve_rulebook_rules_grid_filtered_rules_refresh_deletes_cache(self):
         import netbox_nsm.views.rulebook as rulebook_views
 
-        cache_key = policy_grid_rules_cache_key(self.rulebook.pk, None)
-        cache.set(cache_key, [101, 102, 103], POLICY_GRID_RULES_CACHE_TTL)
+        cache_key = rulebook_rules_grid_rules_cache_key(self.rulebook.pk, None)
+        cache.set(cache_key, [101, 102, 103], RULEBOOK_RULES_GRID_RULES_CACHE_TTL)
 
-        resolve_policy_grid_filtered_rules(
+        resolve_rulebook_rules_grid_filtered_rules(
             self.rulebook,
             None,
             rulebook_views,
@@ -113,17 +113,17 @@ class PolicyGridRulesCacheTests(TestCase):
         self.assertIsNotNone(cached_pks)
         self.assertEqual(cached_pks, [])
 
-    def test_resolve_policy_grid_filtered_rules_refresh_ignores_use_cached(self):
+    def test_resolve_rulebook_rules_grid_filtered_rules_refresh_ignores_use_cached(self):
         import netbox_nsm.views.rulebook as rulebook_views
 
-        cache_key = policy_grid_rules_cache_key(self.rulebook.pk, None)
-        cache.set(cache_key, [101, 102, 103], POLICY_GRID_RULES_CACHE_TTL)
+        cache_key = rulebook_rules_grid_rules_cache_key(self.rulebook.pk, None)
+        cache.set(cache_key, [101, 102, 103], RULEBOOK_RULES_GRID_RULES_CACHE_TTL)
 
         with patch(
-            "netbox_nsm.policy_grid_service.policy_grid_filtered_rules",
+            "netbox_nsm.rulebook_rules_grid_service.rulebook_rules_grid_filtered_rules",
             return_value=[],
         ) as mock_filtered:
-            resolve_policy_grid_filtered_rules(
+            resolve_rulebook_rules_grid_filtered_rules(
                 self.rulebook,
                 None,
                 rulebook_views,
@@ -133,34 +133,34 @@ class PolicyGridRulesCacheTests(TestCase):
 
         mock_filtered.assert_called_once()
 
-    def test_policy_grid_api_accepts_use_cached_param(self):
+    def test_rules_grid_api_accepts_use_cached_param(self):
         self.add_permissions("netbox_nsm.view_rulebook")
         url = (
             reverse(
-                "plugins:netbox_nsm:rulebook_policy_grid_api",
+                "plugins:netbox_nsm:rulebook_rules_grid_api",
                 args=[self.rulebook.pk],
             )
             + "?use_cached=1"
         )
         request = RequestFactory().get(url)
         request.user = self.user
-        response = RulebookPolicyGridApiView.as_view()(request, pk=self.rulebook.pk)
+        response = RulebookRulesGridApiView.as_view()(request, pk=self.rulebook.pk)
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.content)
         self.assertIn("rowData", data)
 
-    def test_policy_grid_api_accepts_refresh_param(self):
+    def test_rules_grid_api_accepts_refresh_param(self):
         self.add_permissions("netbox_nsm.view_rulebook")
         url = (
             reverse(
-                "plugins:netbox_nsm:rulebook_policy_grid_api",
+                "plugins:netbox_nsm:rulebook_rules_grid_api",
                 args=[self.rulebook.pk],
             )
             + "?refresh=1"
         )
         request = RequestFactory().get(url)
         request.user = self.user
-        response = RulebookPolicyGridApiView.as_view()(request, pk=self.rulebook.pk)
+        response = RulebookRulesGridApiView.as_view()(request, pk=self.rulebook.pk)
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.content)
         self.assertIn("rowData", data)

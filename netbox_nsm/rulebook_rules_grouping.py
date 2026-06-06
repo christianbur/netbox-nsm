@@ -7,7 +7,7 @@ from collections import defaultdict
 from django.utils.translation import gettext_lazy as _
 
 from netbox_nsm.models import Rulebook
-from netbox_nsm.rule_field_selections import parse_policy_column_key
+from netbox_nsm.rule_field_selections import parse_rules_column_key
 
 __all__ = (
     "COLLAPSE_ALL",
@@ -18,7 +18,7 @@ __all__ = (
     "GROUP_MODE_VALUE",
     "UNGROUPED_GROUP_KEY",
     "assign_rules_to_groups",
-    "build_policy_group_options",
+    "build_rulebook_rules_group_options",
     "build_rule_display_items",
     "filter_collapsed_display_items",
     "filter_group_display_items",
@@ -26,18 +26,18 @@ __all__ = (
     "parse_collapsed_keys",
     "parse_expanded_keys",
     "parse_group_by_mode",
-    "parse_policy_group_modes",
+    "parse_rulebook_rules_group_modes",
     "parse_group_default_expanded",
-    "parse_policy_group_by",
-    "parse_policy_group_levels",
-    "policy_grouping_enabled",
+    "parse_rulebook_rules_group_by",
+    "parse_rulebook_rules_group_levels",
+    "rules_grouping_enabled",
     "resolve_group_by_value",
     "assign_rules_to_groups_for_union",
-    "POLICY_GROUP_MAX_LEVELS",
+    "RULES_GROUP_MAX_LEVELS",
     "resolve_group_expansion",
     "resolve_group_expansion_for_rules",
     "resolve_request_group_expansion",
-    "validate_policy_group_request",
+    "validate_rulebook_rules_group_request",
 )
 
 GROUP_BY_QUERY_PARAMS = ("group_by", "group_by_2", "group_by_3")
@@ -49,7 +49,7 @@ EXPAND_ALL = "__all__"
 GROUP_BY_RULEBOOK = "rulebook"
 GROUP_MODE_VALUE = "value"
 GROUP_MODE_SET = "set"
-POLICY_GROUP_MAX_LEVELS = 2
+RULES_GROUP_MAX_LEVELS = 2
 UNGROUPED_LABEL = _("Ungrouped")
 
 
@@ -59,8 +59,8 @@ class PolicyGroupBucket(dict):
     pass
 
 
-def build_policy_group_options(
-    policy_layout: list,
+def build_rulebook_rules_group_options(
+    rules_layout: list,
     *,
     include_rulebook: bool = False,
 ) -> list[dict]:
@@ -73,7 +73,7 @@ def build_policy_group_options(
                 "label": str(_("Rulebook")),
             }
         )
-    for entry in policy_layout or []:
+    for entry in rules_layout or []:
         if entry.get("kind") != "object":
             continue
         field_slug = entry.get("slug") or ""
@@ -97,28 +97,28 @@ def build_policy_group_options(
 
 
 def allowed_group_by_values(
-    policy_layout: list,
+    rules_layout: list,
     *,
     include_rulebook: bool = False,
 ) -> set[str]:
     return {
         opt["value"]
-        for opt in build_policy_group_options(
-            policy_layout,
+        for opt in build_rulebook_rules_group_options(
+            rules_layout,
             include_rulebook=include_rulebook,
         )
         if opt.get("value")
     }
 
 
-def validate_policy_group_request(
+def validate_rulebook_rules_group_request(
     request,
     *,
-    policy_layout: list | None = None,
+    rules_layout: list | None = None,
     include_rulebook: bool = False,
 ) -> str | None:
     """Return a user-facing error when group_by URL params are not allowed."""
-    if policy_layout is None:
+    if rules_layout is None:
         return None
     for param in GROUP_BY_QUERY_PARAMS:
         raw = (request.GET.get(param) or "").strip()
@@ -126,7 +126,7 @@ def validate_policy_group_request(
             continue
         resolved = resolve_group_by_value(
             raw,
-            policy_layout,
+            rules_layout,
             include_rulebook=include_rulebook,
         )
         if not resolved:
@@ -134,11 +134,11 @@ def validate_policy_group_request(
     return None
 
 
-def group_by_field_label(mode: str, policy_layout: list | None = None) -> str:
+def group_by_field_label(mode: str, rules_layout: list | None = None) -> str:
     """Human label for the active group-by dimension (auto-group-column hint)."""
     if mode == GROUP_BY_RULEBOOK:
         return str(_("Rulebook"))
-    for opt in build_policy_group_options(policy_layout or []):
+    for opt in build_rulebook_rules_group_options(rules_layout or []):
         if opt.get("value") == mode:
             return str(opt.get("label") or mode)
     return mode
@@ -163,14 +163,14 @@ def _is_union_column_key(column_key: str) -> bool:
     return not type_part.startswith("ct_")
 
 
-def _resolve_column_group_alias(alias_key: str, policy_layout: list) -> str:
+def _resolve_column_group_alias(alias_key: str, rules_layout: list) -> str:
     """Map legacy col:AreaLabel::ColumnLabel to the canonical column key."""
     if "::" not in alias_key:
         return ""
     area_part, col_part = alias_key.split("::", 1)
     area_lower = area_part.lower()
     col_lower = col_part.lower()
-    for entry in policy_layout or []:
+    for entry in rules_layout or []:
         if entry.get("kind") != "object":
             continue
         area_label = (entry.get("label") or "").strip()
@@ -189,7 +189,7 @@ def _resolve_column_group_alias(alias_key: str, policy_layout: list) -> str:
 
 def resolve_group_by_value(
     raw: str,
-    policy_layout: list,
+    rules_layout: list,
     *,
     include_rulebook: bool = False,
 ) -> str:
@@ -198,7 +198,7 @@ def resolve_group_by_value(
     if not normalized:
         return ""
     allowed = allowed_group_by_values(
-        policy_layout or [],
+        rules_layout or [],
         include_rulebook=include_rulebook,
     )
     if normalized in allowed:
@@ -206,7 +206,7 @@ def resolve_group_by_value(
     if normalized.startswith("col:"):
         alias_key = normalized[4:]
         if _is_union_column_key(alias_key):
-            resolved = _resolve_column_group_alias(alias_key, policy_layout)
+            resolved = _resolve_column_group_alias(alias_key, rules_layout)
             if resolved:
                 canonical = f"col:{resolved}"
                 if canonical in allowed:
@@ -214,7 +214,7 @@ def resolve_group_by_value(
             if normalized in allowed:
                 return normalized
         else:
-            resolved = _resolve_column_group_alias(alias_key, policy_layout)
+            resolved = _resolve_column_group_alias(alias_key, rules_layout)
             if resolved:
                 canonical = f"col:{resolved}"
                 if canonical in allowed:
@@ -222,57 +222,57 @@ def resolve_group_by_value(
     return ""
 
 
-def parse_policy_group_by(
+def parse_rulebook_rules_group_by(
     request,
     *,
-    policy_layout: list | None = None,
+    rules_layout: list | None = None,
     include_rulebook: bool = False,
 ) -> str:
     raw = (request.GET.get("group_by") or "").strip()
     if not raw:
         return ""
-    if policy_layout is None:
+    if rules_layout is None:
         normalized = _normalize_group_by_value(raw)
         return normalized
     return resolve_group_by_value(
         raw,
-        policy_layout,
+        rules_layout,
         include_rulebook=include_rulebook,
     )
 
 
-def parse_policy_group_levels(
+def parse_rulebook_rules_group_levels(
     request,
     *,
-    policy_layout: list | None = None,
+    rules_layout: list | None = None,
     include_rulebook: bool = False,
 ) -> list[str]:
     """Primary and optional secondary group dimensions (multi-level grouping)."""
-    primary = parse_policy_group_by(
+    primary = parse_rulebook_rules_group_by(
         request,
-        policy_layout=policy_layout,
+        rules_layout=rules_layout,
         include_rulebook=include_rulebook,
     )
     if not primary:
         return []
     secondary_raw = (request.GET.get("group_by_2") or "").strip()
     if not secondary_raw:
-        return [primary][:POLICY_GROUP_MAX_LEVELS]
-    if policy_layout is None:
+        return [primary][:RULES_GROUP_MAX_LEVELS]
+    if rules_layout is None:
         secondary = _normalize_group_by_value(secondary_raw)
     else:
         secondary = resolve_group_by_value(
             secondary_raw,
-            policy_layout,
+            rules_layout,
             include_rulebook=include_rulebook,
         )
     if secondary and secondary != primary:
-        return [primary, secondary][:POLICY_GROUP_MAX_LEVELS]
-    return [primary][:POLICY_GROUP_MAX_LEVELS]
+        return [primary, secondary][:RULES_GROUP_MAX_LEVELS]
+    return [primary][:RULES_GROUP_MAX_LEVELS]
 
 
-def policy_grouping_enabled(request, *, policy_layout: list | None = None) -> bool:
-    return bool(parse_policy_group_by(request, policy_layout=policy_layout))
+def rules_grouping_enabled(request, *, rules_layout: list | None = None) -> bool:
+    return bool(parse_rulebook_rules_group_by(request, rules_layout=rules_layout))
 
 
 def parse_group_by_mode(request, *, param: str = "group_mode") -> str:
@@ -281,7 +281,7 @@ def parse_group_by_mode(request, *, param: str = "group_mode") -> str:
     return GROUP_MODE_SET
 
 
-def parse_policy_group_modes(request) -> tuple[str, str]:
+def parse_rulebook_rules_group_modes(request) -> tuple[str, str]:
     """Primary and secondary grouping modes (both fixed to set / full cell content)."""
     del request
     return GROUP_MODE_SET, GROUP_MODE_SET
@@ -608,7 +608,7 @@ def _assign_by_column(
 ) -> dict[int, list[PolicyGroupBucket]]:
     from netbox_nsm.display_utils import get_display_template_map
 
-    area_slug, type_key = parse_policy_column_key(column_key)
+    area_slug, type_key = parse_rules_column_key(column_key)
     tmpl_map = get_display_template_map()
     result: dict[int, list[PolicyGroupBucket]] = {}
 

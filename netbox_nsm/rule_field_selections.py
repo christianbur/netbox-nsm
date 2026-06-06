@@ -26,12 +26,12 @@ from netbox_nsm.models.rulebook import RulebookFieldKind
 from netbox_nsm.rulebook_field_utils import get_visible_rulebook_fields
 
 
-def parse_policy_column_key(column_key: str) -> tuple[str, str]:
+def parse_rules_column_key(column_key: str) -> tuple[str, str]:
     area_slug, type_key = column_key.split("::", 1)
     return area_slug, type_key
 
 
-def policy_column_keys_for_rulebook(rulebook: Rulebook) -> list[str]:
+def rules_column_keys_for_rulebook(rulebook: Rulebook) -> list[str]:
     """Grid column keys (area::ct_N / area::Groups) for visible object fields."""
     groups_field_slugs: set[str] = set()
     for group in ObjectGroup.objects.only("field_slugs"):
@@ -64,7 +64,7 @@ def _matching_class_map() -> dict[int, str]:
 
 def get_column_selections(rule: Rule, column_key: str) -> list[dict]:
     """Current picker selections for one grid column (field + type slice)."""
-    area_slug, type_key = parse_policy_column_key(column_key)
+    area_slug, type_key = parse_rules_column_key(column_key)
     mc_map = _matching_class_map()
     selections: list[dict] = []
 
@@ -130,7 +130,7 @@ def get_column_selections(rule: Rule, column_key: str) -> list[dict]:
 def get_all_column_selections(rule: Rule, rulebook: Rulebook) -> dict[str, list[dict]]:
     return {
         key: get_column_selections(rule, key)
-        for key in policy_column_keys_for_rulebook(rulebook)
+        for key in rules_column_keys_for_rulebook(rulebook)
     }
 
 
@@ -145,7 +145,7 @@ def save_column_selections(
 def _write_column_selections(
     rule: Rule, column_key: str, selections: list[dict], request=None
 ) -> None:
-    area_slug, type_key = parse_policy_column_key(column_key)
+    area_slug, type_key = parse_rules_column_key(column_key)
     field = (
         branch_aware_manager(RulebookField, rule, request)
         .filter(rulebook=rule.rulebook, slug=area_slug)
@@ -218,7 +218,7 @@ def _write_column_selections(
 def save_all_column_selections(
     rule: Rule, columns: dict[str, list], rulebook: Rulebook, request=None
 ) -> None:
-    valid_keys = set(policy_column_keys_for_rulebook(rulebook))
+    valid_keys = set(rules_column_keys_for_rulebook(rulebook))
     for key, selections in columns.items():
         if key not in valid_keys or not isinstance(selections, list):
             continue
@@ -227,9 +227,9 @@ def save_all_column_selections(
 
 def build_column_cell_payload(rule: Rule, rulebook: Rulebook, column_key: str) -> dict:
     """Render AG Grid cell HTML + filter text for one column after save."""
-    from netbox_nsm.views.rulebook import _render_policy_cell_ag
+    from netbox_nsm.views.rulebook import _render_rules_cell_ag
 
-    area_slug, type_key = parse_policy_column_key(column_key)
+    area_slug, type_key = parse_rules_column_key(column_key)
     field = RulebookField.objects.filter(rulebook=rulebook, slug=area_slug).first()
     if field is None:
         return {
@@ -285,7 +285,7 @@ def build_column_cell_payload(rule: Rule, rulebook: Rulebook, column_key: str) -
 
     max_pills = field.max_visible_pills if field is not None else None
     use_colored = field.show_colored_pills if field is not None else True
-    html = _render_policy_cell_ag(items, max_pills=max_pills, colored=use_colored)
+    html = _render_rules_cell_ag(items, max_pills=max_pills, colored=use_colored)
     filter_text = " ".join(item["name"] for item in items)
     return {"html": html, "filter": filter_text, "column_key": column_key}
 
@@ -293,5 +293,5 @@ def build_column_cell_payload(rule: Rule, rulebook: Rulebook, column_key: str) -
 def build_all_column_cells_payload(rule: Rule, rulebook: Rulebook) -> dict[str, dict]:
     return {
         key: build_column_cell_payload(rule, rulebook, key)
-        for key in policy_column_keys_for_rulebook(rulebook)
+        for key in rules_column_keys_for_rulebook(rulebook)
     }

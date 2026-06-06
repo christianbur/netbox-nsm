@@ -147,7 +147,7 @@ class Migration(migrations.Migration):
                 ('description', models.CharField(blank=True, max_length=200)),
                 ('comments', models.TextField(blank=True)),
                 ('name', models.CharField(max_length=100, unique=True)),
-                ('rulebook_type', models.CharField(default='policy', max_length=20)),
+                ('rulebook_type', models.CharField(default='security_rules', max_length=20)),
                 ('status', models.CharField(default='active', max_length=20)),
                 ('rule_comment_template', models.TextField(blank=True, default='')),
                 ('mgmt_url', models.URLField(blank=True, default='')),

@@ -36,7 +36,7 @@ Interactive UI uses two MIT-licensed libraries (no commercial AG Grid Enterprise
 
 | Library | Views | Notes |
 |---|---|---|
-| **AG Grid Community 33.2.4** | `rulebook_policy`, `rulebook_matrix`, All Rules grid | Vendored under `plugin_assets/vendor/ag-grid-community/` |
+| **AG Grid Community 33.2.4** | `rulebook_rules`, `rulebook_matrix`, All Rules grid | Vendored under `plugin_assets/vendor/ag-grid-community/` |
 | **@xyflow/react 12** | `object_analyzer` | Import map + esm.sh in `object_analyzer.html` |
 
 ---
@@ -110,6 +110,22 @@ without changing the NSM plugin itself.
 
 Model and module names do **not** use an `NSM` prefix (the app label `netbox_nsm` is enough).
 See `scripts/drop_nsm_prefix.py` when migrating legacy names.
+
+### Glossary (one language per layer)
+
+| Layer | Convention | Examples |
+|-------|------------|----------|
+| UI / URL | **Rules** | Tab label „Rules“, route `rulebook_rules`, REST `/rules/` unchanged |
+| Domain | **Security rules** (rulebook type) | `RulebookTypeChoices.SECURITY_RULES` |
+| Grid stack (Python) | `rulebook_rules_grid_*` | `rulebook_rules_grid_service.py`, `RulebookRulesGridApiView` |
+| Grouping | `rulebook_rules_grouping.py` | `build_rulebook_rules_group_options()` |
+| Tab context | `rulebook_rules_tab.py` | `build_rulebook_rules_tab_context()` |
+| Grid API paths | `/api/rulebooks/<pk>/rules-grid/` | validate: `…/rules-grid/validate/` |
+| Cache keys | `nsm:rulebook_rules_grid:…` | — |
+| Grid DOM/CSS (JS) | `nsm-rules-*` | `nsm-rules-ag-grid`, profile key `rules` |
+| Grouped table data key | `rules_layout` | Column/row scaffold for rules grid |
+
+`all_rules_grid_*` and `matrix_grid_*` names are unchanged (virtual / matrix views).
 
 ## Data Model
 

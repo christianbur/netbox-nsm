@@ -22,7 +22,7 @@ from .registry import (
 )
 from ._helpers import (
     nsm_link_edges,
-    policy_item_edges,
+    rule_object_item_edges,
     group_m2m_edges,
     addr_fk_edges,
     inherited_nsm_link_edges,
@@ -56,7 +56,7 @@ def _host_edges(obj, *, iface_model, iface_fk: str) -> list[AnalyzerEdge]:
     edges.extend(nsm_link_edges(obj, ct))
 
     # Rules that reference this host (one edge per rule)
-    edges.extend(policy_item_edges(obj, ct))
+    edges.extend(rule_object_item_edges(obj, ct))
 
     return edges
 
@@ -143,7 +143,7 @@ def _ipaddress(ip):
         pass
 
     ct = ContentType.objects.get_for_model(ip)
-    edges.extend(policy_item_edges(ip, ct))
+    edges.extend(rule_object_item_edges(ip, ct))
     edges.extend(nsm_link_edges(ip, ct))
     edges.extend(addr_fk_edges(ip))
     edges.extend(inherited_nsm_link_edges(ip))
@@ -171,7 +171,7 @@ def _prefix(pfx):
             edges.append(AnalyzerEdge(label, edge_type, node_from_object(val)))
 
     ct = ContentType.objects.get_for_model(pfx)
-    edges.extend(policy_item_edges(pfx, ct))
+    edges.extend(rule_object_item_edges(pfx, ct))
     edges.extend(nsm_link_edges(pfx, ct))
     edges.extend(addr_fk_edges(pfx))
     edges.extend(inherited_nsm_link_edges(pfx))
@@ -241,7 +241,7 @@ def _object_group(grp):
         edges.append(AnalyzerEdge("Field", "in_field", slug))
 
     grp_ct = ContentType.objects.get_for_model(grp)
-    edges.extend(policy_item_edges(grp, grp_ct))
+    edges.extend(rule_object_item_edges(grp, grp_ct))
     edges.extend(nsm_link_edges(grp, grp_ct))
     return edges
 

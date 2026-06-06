@@ -68,7 +68,7 @@ TEXT_REPLACEMENTS = [
     ("RulebookVisualizationView", "RulebookVisualizationView"),
     ("RulebookIPAnalysisView", "RulebookIPAnalysisView"),
     ("RulebookView", "RulebookView"),
-    ("RulebookPolicyColumnsView", "RulebookPolicyColumnsView"),
+    ("RulebookRulesColumnsView", "RulebookRulesColumnsView"),
     ("RulebookRulesView", "RulebookRulesView"),
     ("RulebookListView", "RulebookListView"),
     ("RulebookEditView", "RulebookEditView"),
@@ -234,8 +234,8 @@ FILE_RENAMES = [
     ("static/netbox_nsm/js/visible_when.js", "static/netbox_nsm/js/visible_when.js"),
     # templates
     (
-        "templates/netbox_nsm/rulebook_policy.html",
-        "templates/netbox_nsm/rulebook_policy.html",
+        "templates/netbox_nsm/rulebook_rules.html",
+        "templates/netbox_nsm/rulebook_rules.html",
     ),
     (
         "templates/netbox_nsm/rulebook_list.html",

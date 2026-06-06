@@ -476,7 +476,7 @@ def test_rulebook_crud():
     list_path = "/api/plugins/netbox-nsm/rulebooks/"
 
     # CREATE
-    s, b = _json_request("POST", list_path, {"name": "__test-rulebook", "rulebook_type": "policy"})
+    s, b = _json_request("POST", list_path, {"name": "__test-rulebook", "rulebook_type": "security_rules"})
     rb_id = b.get("id") if isinstance(b, dict) else None
     ok_create = s == 201 and rb_id is not None
     _record("rulebook CREATE", ok_create, f"HTTP {s}, id={rb_id}")
@@ -515,7 +515,7 @@ def test_rule_crud():
     rule_path = "/api/plugins/netbox-nsm/rules/"
 
     # Test-Rulebook anlegen
-    s, rb = _json_request("POST", rb_path, {"name": "__test-rb-for-rule", "rulebook_type": "policy"})
+    s, rb = _json_request("POST", rb_path, {"name": "__test-rb-for-rule", "rulebook_type": "security_rules"})
     if s != 201 or not rb.get("id"):
         _record("rule CREATE", False, f"Rulebook-Anlage fehlgeschlagen: HTTP {s}")
         _record("rule UPDATE", False, "skipped")
@@ -638,7 +638,7 @@ def test_rulebook_fields_workflow():
     rule_path = "/api/plugins/netbox-nsm/rules/"
 
     s, rb = _json_request(
-        "POST", rb_path, {"name": "__test-rb-fields", "rulebook_type": "policy"}
+        "POST", rb_path, {"name": "__test-rb-fields", "rulebook_type": "security_rules"}
     )
     rb_id = rb.get("id") if isinstance(rb, dict) else None
     ok_rb = s == 201 and rb_id is not None

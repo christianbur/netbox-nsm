@@ -77,7 +77,7 @@ class AllRulesRulebookRulesView(_VirtualAllRulesMixin, View):
     def get(self, request):
         import netbox_nsm.views.rulebook as rulebook_views
         from netbox_nsm.all_rules_grid_service import (
-            all_policy_rules_count,
+            all_rules_count,
             build_all_rules_grid_config,
             build_all_rules_grid_scaffold,
         )
@@ -85,12 +85,12 @@ class AllRulesRulebookRulesView(_VirtualAllRulesMixin, View):
         return self.render_virtual(
             request,
             {
-                "all_rules_count": all_policy_rules_count(),
+                "all_rules_count": all_rules_count(),
                 "all_rules_grid_config": build_all_rules_grid_config(
                     request, read_only=True
                 ),
                 "all_rules_grid_payload": build_all_rules_grid_scaffold(rulebook_views),
-                "policy_tab_label": _("Rules"),
+                "rules_tab_label": _("Rules"),
             },
         )
 

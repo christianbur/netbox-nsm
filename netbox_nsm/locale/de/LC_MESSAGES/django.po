@@ -1145,70 +1145,70 @@ msgstr ""
 msgid "all"
 msgstr "Alle"
 
-#: netbox_nsm/policy_grid_payload.py:52
-#: netbox_nsm/policy_grid_payload.py:95
+#: netbox_nsm/rulebook_rules_grid_payload.py:52
+#: netbox_nsm/rulebook_rules_grid_payload.py:95
 #: netbox_nsm/tables/rulebook.py:357
 msgid "On"
 msgstr "Ein"
 
-#: netbox_nsm/policy_grid_payload.py:52
+#: netbox_nsm/rulebook_rules_grid_payload.py:52
 #: netbox_nsm/tables/rulebook.py:361
 msgid "Off"
 msgstr "Aus"
 
-#: netbox_nsm/policy_grid_payload.py:95
+#: netbox_nsm/rulebook_rules_grid_payload.py:95
 msgid "Summary"
 msgstr "Übersicht"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "Delete selected"
 msgstr "Auswahl löschen"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "Delete selected rules"
 msgstr "Ausgewählte Regeln löschen"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "Delete selected rules?"
 msgstr "Ausgewählte Regeln löschen?"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "Add Rule"
 msgstr "Regel hinzufügen"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "Clear filters"
 msgstr "Filter zurücksetzen"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "Clear column filters and NSM query"
 msgstr "Spaltenfilter und NSM-Abfrage zurücksetzen"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "row"
 msgstr "Zeile"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "rows"
 msgstr "Zeilen"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "Loading rules"
 msgstr "Regeln werden geladen"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "Expand groups"
 msgstr "Gruppen öffnen"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "Collapse groups"
 msgstr "Gruppen schließen"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "Expand all column groups (Source, Destination, …)"
 msgstr "Alle Spaltengruppen öffnen (Source, Destination, …)"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "Collapse all column groups to summary columns"
 msgstr "Alle Spaltengruppen auf Übersichtsspalten reduzieren"
 
@@ -2417,23 +2417,23 @@ msgstr "Enterprise-Demo erfolgreich importiert. %(summary)s"
 msgid "Enterprise Demo cannot be imported: IP addresses already exist in the database."
 msgstr "Enterprise-Demo kann nicht importiert werden: IP-Adressen existieren bereits in der Datenbank."
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "FILTER"
 msgstr "FILTER"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "Collapse filter panel"
 msgstr "Filterpanel einklappen"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "Expand filter panel"
 msgstr "Filterpanel ausklappen"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "No filter facets available. Enable Facet Mode on object fields or add rules with values."
 msgstr "Keine Filter-Facetten verfügbar. Facetten-Modus bei Objektfeldern aktivieren oder Regeln mit Werten anlegen."
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+#: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "Filter mode"
 msgstr "Filtermodus"
 

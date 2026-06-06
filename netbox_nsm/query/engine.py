@@ -789,7 +789,7 @@ def global_search(rules_qs, query: Query) -> Dict:
     returns a dict:
     {
         "rulebook_groups": [
-            {"rulebook": <obj>, "count": 15, "policy_url": "..."},
+            {"rulebook": <obj>, "count": 15, "rules_tab_url": "..."},
             ...
         ],
         "total_count": 37,
@@ -825,7 +825,7 @@ def global_search(rules_qs, query: Query) -> Dict:
             continue
 
         try:
-            policy_url = (
+            rules_tab_url = (
                 reverse(
                     "plugins:netbox_nsm:rulebook_rules",
                     args=[rulebook.pk],
@@ -833,13 +833,13 @@ def global_search(rules_qs, query: Query) -> Dict:
                 + f"?nsm_q={query.to_string()}"
             )
         except Exception:
-            policy_url = ""
+            rules_tab_url = ""
 
         result_groups.append(
             {
                 "rulebook": rulebook,
                 "count": len(matched),
-                "policy_url": policy_url,
+                "rules_tab_url": rules_tab_url,
             }
         )
         total_count += len(matched)

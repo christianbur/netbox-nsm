@@ -7,7 +7,7 @@ from django.test import RequestFactory
 from django.urls import reverse
 
 from netbox_nsm.models import Rule, Rulebook
-from netbox_nsm.policy_grid_payload import SCOPED_FILTER_FORMAT_ERROR
+from netbox_nsm.rulebook_rules_grid_payload import SCOPED_FILTER_FORMAT_ERROR
 from netbox_nsm.rulebook_field_utils import ensure_system_rulebook_fields
 from utilities.testing import TestCase
 from netbox_nsm.views.all_rules_grid_api import AllRulesGridApiView
@@ -19,11 +19,11 @@ class AllRulesFilterApiTests(TestCase):
     def setUpTestData(cls):
         cls.rulebook = Rulebook.objects.create(
             name="Prod FW",
-            rulebook_type="policy",
+            rulebook_type="security_rules",
         )
         cls.other_rulebook = Rulebook.objects.create(
             name="Staging FW",
-            rulebook_type="policy",
+            rulebook_type="security_rules",
         )
         ensure_system_rulebook_fields(cls.rulebook)
         ensure_system_rulebook_fields(cls.other_rulebook)
@@ -180,7 +180,7 @@ class AllRulesFilterApiTests(TestCase):
         self.assertTrue(data["valid"])
         self.assertEqual(data["normalized"], "(test-rule)")
 
-    def test_validate_policy_style_still_valid_when_scoped(self):
+    def test_validate_rules_style_still_valid_when_scoped(self):
         status, data = self._get_json(
             AllRulesQueryValidateApiView,
             f"{self.validate_url}?rulebook_id={self.rulebook.pk}&filter_q=Name(test)",

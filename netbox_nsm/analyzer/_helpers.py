@@ -39,7 +39,7 @@ def nsm_link_edges(obj, ct) -> list:
     return edges
 
 
-def policy_item_edges(obj, ct) -> list:
+def rule_object_item_edges(obj, ct) -> list:
     """AnalyzerEdge list from RuleObjectItem (one edge per rule)."""
     from netbox_nsm.models import RuleObjectItem
     from netbox_nsm.analyzer.registry import AnalyzerEdge, node_from_object

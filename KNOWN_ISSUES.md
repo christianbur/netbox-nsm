@@ -76,7 +76,5 @@ with the dev Docker stack before debugging NSM test failures.
 
 ## Planned for 0.3.x (not bugs)
 
-- **Naming:** UI/URL stay **Rules**; Python modules/API paths may rename `policy_*` →
-  `rules_grid_*` with temporary aliases (`/policy-grid/`, `rulebook_policy.html`, …).
 - **Locale `.po`:** stale `#:` comments pointing at removed templates (cosmetic; refresh via
   `makemessages` when touching translations).

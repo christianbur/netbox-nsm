@@ -184,6 +184,10 @@
   min-width: 0;
 }
 
+.nsm-assign-picker-panel {
+  min-width: 0;
+}
+
 .nsm-rule-policy-tabs-layout .nsm-assign-field .form-label {
   font-size: 0.85rem;
 }

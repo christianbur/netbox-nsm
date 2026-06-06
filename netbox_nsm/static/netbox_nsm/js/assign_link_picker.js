@@ -101,7 +101,7 @@
       if (browse.loading) {
         html += "<div class='nsm-drop-msg'>" + esc(msg("searching", "Searching\u2026")) + "</div>";
       } else if (browse.hasMore) {
-        html += "<div class='nsm-browse-more option'>"
+        html += "<div class='nsm-browse-more'>"
           + esc(msg("loadMore", "Load more\u2026"))
           + "</div>";
       }
@@ -187,7 +187,9 @@
 
     var ids = Object.keys(selected);
     if (!ids.length) {
-      selectedWrap.innerHTML = "";
+      selectedWrap.innerHTML = "<div class='nsm-empty'>"
+        + esc(msg("empty", "No selection"))
+        + "</div>";
       if (submitBtn) submitBtn.disabled = true;
       return;
     }
@@ -198,8 +200,7 @@
         + "<button type='button' class='nsm-sel-item-remove' data-remove-id='" + esc(id) + "'"
         + " title='" + esc(msg("remove", "Remove")) + "'"
         + " aria-label='" + esc(msg("remove", "Remove")) + "'>"
-        + "<span class='nsm-sel-item-remove-icon' aria-hidden='true'>\u00d7</span>"
-        + "</button>"
+        + "\u00d7</button>"
         + "</div>";
     }).join("");
 
@@ -260,14 +261,19 @@
     setTimeout(hideBrowseDrop, 200);
   });
 
-  listEl.addEventListener("mousedown", function (e) {
-    var moreEl = e.target.closest(".nsm-browse-more");
-    if (moreEl) {
-      e.preventDefault();
+  function bindBrowseScroll() {
+    if (listEl.dataset.nsmScrollBound === "1") return;
+    listEl.dataset.nsmScrollBound = "1";
+    listEl.addEventListener("scroll", debounce(function () {
+      if (listEl.scrollTop + listEl.clientHeight < listEl.scrollHeight - 48) return;
+      if (browse.loading || !browse.hasMore) return;
       loadBrowse(true);
-      return;
-    }
+    }, 200));
+  }
 
+  bindBrowseScroll();
+
+  listEl.addEventListener("mousedown", function (e) {
     var optionEl = e.target.closest(".option[data-id]");
     if (!optionEl) return;
 
@@ -298,6 +304,8 @@
     currentCtId = typeSelect.value;
     pickerWrap.classList.remove("hidden");
   }
+
+  renderSelected();
 
   if (prefillId && prefillDisplay) {
     selectItem(prefillId, prefillDisplay);

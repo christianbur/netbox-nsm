@@ -8,7 +8,7 @@ Document zones, firewall rules, and object relationships — vendor-agnostic, in
 
 [![NetBox](https://img.shields.io/badge/NetBox-4.6.x-0088cc?style=flat-square)](https://netboxlabs.com/)
 [![Plugin](https://img.shields.io/badge/plugin-0.1.0-2ea043?style=flat-square)](#)
-[![Requires](https://img.shields.io/badge/requires-netbox--custom--objects-orange?style=flat-square)](https://github.com/christianbur/netbox-custom-objects)
+[![Requires](https://img.shields.io/badge/requires-netbox--custom--objects-orange?style=flat-square)](https://github.com/netboxlabs/netbox-custom-objects)
 [![Status](https://img.shields.io/badge/status-work%20in%20progress-yellow?style=flat-square)](#)
 [![Branching](https://img.shields.io/badge/netbox--branching-initial%20tests%20done-blueviolet?style=flat-square)](https://github.com/netboxlabs/netbox-branching)
 
@@ -83,7 +83,7 @@ A device NIC might be in **prod** *and* in a dedicated app zone — both visible
 
 NSM is not limited to the seven built-in types (Zones, Addresses, …):
 
-1. **Need a new security object class?** Define it in **[netbox-custom-objects](https://github.com/christianbur/netbox-custom-objects)** (schema, fields, UI).
+1. **Need a new security object class?** Define it in **[netbox-custom-objects](https://github.com/netboxlabs/netbox-custom-objects)** (schema, fields, UI).
 2. **Register it in NSM** — **Security → Type Config → + Add**: pick the ContentType, set matching class, panel slugs, display template, and which NetBox objects may link it (**Linkable in panel**).
 3. **Use everywhere** — add the TypeConfig to **Rulebook → Fields** (rule columns + picker) and assign instances from any allowed host object via **+ Assign** in the Security Panel.
 

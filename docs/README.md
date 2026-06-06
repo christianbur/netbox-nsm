@@ -128,4 +128,4 @@ Details: [Third-party UI libraries](using_netbox_nsm.md#third-party-ui-libraries
 - **Work in progress** — not for production
 - **Documentation only** — no rule push to firewalls
 - **netbox-branching** — initial homelab tests done; treat as experimental
-- **Requires** [netbox-custom-objects](https://github.com/christianbur/netbox-custom-objects)
+- **Requires** [netbox-custom-objects](https://github.com/netboxlabs/netbox-custom-objects)

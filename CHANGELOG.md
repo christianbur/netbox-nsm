@@ -8,10 +8,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
-- ObjectLink delete no longer raises `SerializerNotFound` when `object_b` is a custom
-  object without a registered REST API serializer. Nested serialization in
-  `ObjectLinkSerializer` falls back to `serialize_object()` (Security Panel and REST
-  API delete).
+- [#17](https://github.com/christianbur/netbox-nsm/issues/17): ObjectLink delete raised
+  `SerializerNotFound` for custom objects (`TableNModel`) as `object_b` — fixed via
+  `serialize_object()` fallback in `ObjectLinkSerializer` (Security Panel and REST API).
 
 ## [0.2.3] - 2026-06-06
 

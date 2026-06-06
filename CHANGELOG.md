@@ -4,7 +4,9 @@ All notable changes to **netbox-nsm** are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [0.2.4] - unreleased
+## [0.2.5] - unreleased
+
+## [0.2.4] - 2026-06-06
 
 ### Fixed
 
@@ -84,3 +86,4 @@ First release in the 0.2.x line.
 [0.2.0]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.2.0
 [0.2.2]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.2.2
 [0.2.3]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.2.3
+[0.2.4]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.2.4

@@ -57,8 +57,25 @@ def _description_cell_html(system: dict) -> str:
     desc = system.get("description") or ""
     if desc == "-":
         desc = ""
-    short = desc if len(desc) <= 21 else desc[:21] + "…"
-    return f'<span title="{escape(desc)}">{escape(short)}</span>'
+    if not desc:
+        return '<span class="nsm-cell-empty">-</span>'
+    parts = re.split(r"\s→\s", desc)
+    if len(parts) >= 2:
+        lines = "".join(
+            f'<span class="nsm-ag-description-part">{escape(part.strip())}</span>'
+            for part in parts
+            if part.strip()
+        )
+        return f'<div class="nsm-ag-description-lines">{lines}</div>'
+    return f'<span class="nsm-ag-description-text">{escape(desc)}</span>'
+
+
+def _description_line_count(desc_raw: str) -> int:
+    text = (desc_raw or "").strip()
+    if not text or text == "-":
+        return 0
+    parts = re.split(r"\s→\s", text)
+    return len(parts) if len(parts) >= 2 else 1
 
 
 def _segment_key(value: str) -> str:
@@ -251,6 +268,8 @@ def build_filter_column_query_map(
 
 def field_path_to_shorthand(field_path: str) -> str:
     """Short display name for a filter column path (e.g. Source.Zones.Name -> Source.Zones)."""
+    if field_path == "Rulebook.Name":
+        return "Rulebook"
     if field_path in ("Index", "Name", "Description", "Status"):
         return field_path
     if field_path.endswith(".Name") and field_path.count(".") >= 2:
@@ -306,6 +325,11 @@ _POLICY_FILTER_QUERY_OPS = frozenset({"=", "!="})
 _UNQUOTED_VALUE_RE = re.compile(r"^[\w\-:.]+$")
 
 SCOPED_FILTER_QUERY_FORMAT = '"Rulebook Name": Name(x) AND ...'
+ALL_RULES_FILTER_QUERY_FORMAT = (
+    'Rulebook("Prod FW" OR Lab) AND (web-server OR db) AND LABEL(prod)'
+)
+ALL_RULES_FILTER_QUERY_CANONICAL_EXAMPLE = ALL_RULES_FILTER_QUERY_FORMAT
+BARE_NAME_FILTER_SHORTHAND = "__bare_name__"
 SCOPED_FILTER_FORMAT_ERROR = f"Invalid scoped filter: use {SCOPED_FILTER_QUERY_FORMAT}"
 
 
@@ -388,7 +412,23 @@ def _serialize_column_filter_shorthand(
     if not parts:
         return None
     inner = parts[0] if len(parts) == 1 else f" {join_op} ".join(parts)
+    if shorthand_name == BARE_NAME_FILTER_SHORTHAND:
+        return f"({inner})"
     return f"{shorthand_name}({inner})"
+
+
+def _sorted_filter_model_col_ids(
+    filter_model: dict,
+    *,
+    column_order: list[str] | None = None,
+) -> list[str]:
+    col_ids = list(filter_model.keys())
+    if not column_order:
+        return sorted(col_ids)
+    priority = {col_id: idx for idx, col_id in enumerate(column_order)}
+    return sorted(
+        col_ids, key=lambda col_id: (priority.get(col_id, len(priority)), col_id)
+    )
 
 
 def serialize_ag_grid_filter_to_nsm_q(
@@ -396,6 +436,7 @@ def serialize_ag_grid_filter_to_nsm_q(
     column_map: dict[str, str],
     *,
     shorthand_names: dict[str, str] | None = None,
+    column_order: list[str] | None = None,
 ) -> str:
     """Serialize AG Grid filter model to shorthand NSM filter query text."""
     if not filter_model or not column_map:
@@ -403,11 +444,14 @@ def serialize_ag_grid_filter_to_nsm_q(
     if shorthand_names is None:
         shorthand_names = build_filter_column_shorthand_names(column_map, [])
     clauses: list[str] = []
-    for col_id in sorted(filter_model.keys()):
+    for col_id in _sorted_filter_model_col_ids(filter_model, column_order=column_order):
         field_path = column_map.get(col_id)
         if not field_path:
             continue
-        shorthand = shorthand_names.get(col_id) or field_path_to_shorthand(field_path)
+        if col_id in shorthand_names:
+            shorthand = shorthand_names[col_id]
+        else:
+            shorthand = field_path_to_shorthand(field_path)
         clause = _serialize_column_filter_shorthand(shorthand, filter_model[col_id])
         if clause:
             clauses.append(clause)
@@ -590,6 +634,84 @@ def _parse_column_filter_part(
     return path, join, conditions, None
 
 
+def _parse_bare_value_column_part(
+    part: str,
+    field_path: str,
+) -> tuple[str | None, str | None, list | None, str | None]:
+    """
+    Parse ``(value OR value)`` shorthand without a field prefix.
+
+    Used for the all-rules canonical Name filter: ``(test AND dd AND d)``.
+    """
+    from netbox_nsm.query.parser import parse_condition
+
+    part = (part or "").strip()
+    if not part.startswith("("):
+        return None, None, None, "Each column filter must be wrapped in parentheses"
+
+    inner = _strip_matching_outer_parens(part)
+    if inner == part.strip():
+        return (
+            None,
+            None,
+            None,
+            "Each column filter must be wrapped in parentheses",
+        )
+
+    or_segments = split_top_level(inner, "OR")
+    and_segments = split_top_level(inner, "AND")
+    has_or = len(or_segments) > 1
+    has_and = len(and_segments) > 1
+    if has_or and has_and:
+        return (
+            None,
+            None,
+            None,
+            "Mixed AND/OR in one column; use only OR or only AND per column",
+        )
+
+    if has_or:
+        segments = or_segments
+        join = "OR"
+    elif has_and:
+        segments = and_segments
+        join = "AND"
+    else:
+        segments = [inner]
+        join = "AND"
+
+    conditions = []
+    for segment in segments:
+        segment = segment.strip()
+        if not segment:
+            continue
+        if parse_condition(segment) is not None:
+            return None, None, None, f"Cannot parse: {part!r}"
+        try:
+            op, value = _parse_shorthand_value_token(segment)
+        except ValueError:
+            return None, None, None, f"Cannot parse: {segment!r}"
+        if op not in _POLICY_FILTER_QUERY_OPS:
+            return None, None, None, f"Unsupported operator {op!r}; use = or !="
+        conditions.append(_condition_from_filter_path(field_path, op, value))
+
+    if not conditions:
+        return None, None, None, f"Cannot parse: {part!r}"
+
+    if len(conditions) > POLICY_FILTER_QUERY_MAX_CONDITIONS:
+        return (
+            None,
+            None,
+            None,
+            f"At most {POLICY_FILTER_QUERY_MAX_CONDITIONS} conditions per column",
+        )
+
+    if len(conditions) == 1:
+        join = "AND"
+
+    return field_path, join, conditions, None
+
+
 def _condition_from_filter_path(path: str, operator: str, value: str):
     from netbox_nsm.query.parser import Condition
 
@@ -767,12 +889,14 @@ def parse_grid_filter_query(
     *,
     column_map: dict[str, str] | None = None,
     policy_layout: list | None = None,
+    extra_aliases: dict[str, str] | None = None,
 ) -> tuple[list[dict] | None, str | None]:
     """
     Parse filter query text into per-column groups for AG Grid filter model.
 
     Top level: AND between columns. Shorthand: ``Name(a OR b)``; legacy verbose
-    ``(Name = "a" OR Name = "b")`` is still accepted.
+    ``(Name = "a" OR Name = "b")`` is still accepted. All-rules also accepts
+    bare Name groups ``(a AND b)``.
     """
     text = (raw or "").strip()
     if not text:
@@ -783,6 +907,11 @@ def parse_grid_filter_query(
         if column_map
         else {}
     )
+    if extra_aliases:
+        for key, alias_path in extra_aliases.items():
+            aliases[(key or "").strip().lower()] = alias_path
+
+    default_name_path = aliases.get("name", "Name")
 
     column_groups: list[dict] = []
     for part in split_top_level(text, "AND"):
@@ -791,6 +920,10 @@ def parse_grid_filter_query(
             continue
         if part.startswith("("):
             path, join, conditions, err = _parse_column_filter_part(part)
+            if err:
+                path, join, conditions, err = _parse_bare_value_column_part(
+                    part, default_name_path
+                )
         else:
             path, join, conditions, err = _parse_shorthand_column_part(part, aliases)
         if err:
@@ -813,17 +946,18 @@ def _nsm_operator_to_ag_type(operator: str) -> str:
     return "equals"
 
 
-def build_ag_grid_filter_model_from_query_text(
+def build_ag_grid_filter_model_from_column_map(
     raw: str,
-    policy_layout: list,
-    context: RulebookContext,
+    column_map: dict[str, str],
+    policy_layout: list | None = None,
+    extra_aliases: dict[str, str] | None = None,
 ) -> tuple[dict | None, str | None]:
-    """Parse editable filter query text into an AG Grid filter model."""
-    column_map = build_filter_column_query_map(policy_layout, context)
+    """Parse filter query text into an AG Grid filter model using a column map."""
     groups, err = parse_grid_filter_query(
         raw,
         column_map=column_map,
-        policy_layout=policy_layout,
+        policy_layout=policy_layout or [],
+        extra_aliases=extra_aliases,
     )
     if err:
         return None, err
@@ -841,7 +975,7 @@ def build_ag_grid_filter_model_from_query_text(
         if len(conditions) == 1:
             cond = conditions[0]
             value = _condition_filter_value(cond)
-            if not value:
+            if not value and cond.operator not in ("exists", "!exists"):
                 return None, f"Missing value for: {path}"
             filter_model[col_id] = {
                 "filterType": "text",
@@ -865,6 +999,16 @@ def build_ag_grid_filter_model_from_query_text(
     return filter_model or {}, None
 
 
+def build_ag_grid_filter_model_from_query_text(
+    raw: str,
+    policy_layout: list,
+    context: RulebookContext,
+) -> tuple[dict | None, str | None]:
+    """Parse editable filter query text into an AG Grid filter model."""
+    column_map = build_filter_column_query_map(policy_layout, context)
+    return build_ag_grid_filter_model_from_column_map(raw, column_map, policy_layout)
+
+
 def _object_column_def(col: dict) -> dict:
     return {
         "colId": col["key"],
@@ -878,6 +1022,65 @@ def _object_column_def(col: dict) -> dict:
             "colored": col.get("show_colored_pills", True),
         },
     }
+
+
+def build_policy_group_column_def(*, header_name: str | None = None) -> dict:
+    """Pinned Group column for AG Grid Community custom grouping."""
+    label = header_name if header_name is not None else str(_("Group"))
+    return {
+        "colId": "_group",
+        "field": "_groupLabel",
+        "headerName": label,
+        "pinned": "left",
+        "lockPosition": "left",
+        "cellRenderer": "policyGroupCell",
+        "width": 280,
+        "minWidth": 160,
+        "maxWidth": 480,
+        "sortable": False,
+        "filter": False,
+        "floatingFilter": False,
+        "resizable": True,
+        "suppressHeaderMenuButton": True,
+        "suppressColumnsToolPanel": True,
+        "suppressFiltersToolPanel": True,
+        "suppressMovable": True,
+        "cellClass": "nsm-policy-group-cell",
+    }
+
+
+def apply_suppress_movable(column_defs: list[dict]) -> list[dict]:
+    """Every leaf column must be non-movable or other columns can shift around it."""
+    out: list[dict] = []
+    for col in column_defs:
+        next_col = dict(col)
+        children = next_col.get("children")
+        if children:
+            next_col["children"] = apply_suppress_movable(children)
+        else:
+            next_col["suppressMovable"] = True
+        out.append(next_col)
+    return out
+
+
+def _ensure_description_column_last(column_defs: list[dict]) -> list[dict]:
+    """Description follows field config (sort_order 100): last data column before _actions."""
+    desc_col = None
+    rest: list[dict] = []
+    for col in column_defs:
+        if col.get("colId") == "description":
+            desc_col = col
+        else:
+            rest.append(col)
+    if desc_col is None:
+        return column_defs
+    insert_at = len(rest)
+    for idx, col in enumerate(rest):
+        if col.get("colId") == "_actions":
+            insert_at = idx
+            break
+    rest.insert(insert_at, desc_col)
+    return rest
 
 
 def build_policy_ag_grid_column_defs(grouped: dict) -> dict:
@@ -944,12 +1147,23 @@ def policy_row_height_for_object_lines(line_count: int) -> int:
     )
 
 
+def policy_group_row_height_for_label(label: str) -> int:
+    text = str(label or "")
+    line_count = max(1, len(text.split("\n")) if text else 1)
+    return max(
+        POLICY_GROUP_ROW_HEIGHT,
+        POLICY_ROW_CELL_PADDING + line_count * POLICY_ROW_ITEM_HEIGHT,
+    )
+
+
 def build_policy_group_row_record(
     bucket,
     *,
     group_key: str,
     rule_count: int = 0,
     request=None,
+    group_level: int = 1,
+    group_field_label: str = "",
 ) -> dict:
     from netbox_nsm.branch_urls import with_branch_query
     from netbox_nsm.policy_rule_grouping import UNGROUPED_GROUP_KEY, UNGROUPED_LABEL
@@ -972,7 +1186,9 @@ def build_policy_group_row_record(
         "_groupUrl": url,
         "_groupColor": color,
         "_ruleCount": rule_count,
-        "_rowHeight": POLICY_GROUP_ROW_HEIGHT,
+        "_groupLevel": max(1, int(group_level or 1)),
+        "_groupFieldLabel": group_field_label or "",
+        "_rowHeight": policy_group_row_height_for_label(label),
     }
 
 
@@ -999,8 +1215,11 @@ def build_policy_ag_grid_row(row: dict) -> dict:
 
     cells_items = row.get("cells_items") or {}
     cells_filter = row.get("cells_filter") or {}
-    line_count = _max_object_items(cells_items)
-    record["_objectLineCount"] = line_count
+    object_lines = _max_object_items(cells_items)
+    desc_lines = _description_line_count(desc_raw)
+    line_count = max(object_lines, desc_lines or 0, 1)
+    record["_objectLineCount"] = object_lines
+    record["_descriptionLineCount"] = desc_lines
     record["_rowHeight"] = policy_row_height_for_object_lines(line_count)
     for key, items in cells_items.items():
         record[key] = items or []
@@ -1081,10 +1300,99 @@ def apply_ag_grid_row_filter(
 def build_policy_ag_grid_payload(grouped: dict) -> dict:
     """
     Build columnDefs + rowData for AG Grid (Community).
-    Object columns use raw item lists; renderers are applied in JS.
+    System columns use raw values; custom renderers/editors are applied in JS.
     """
-    payload = build_policy_ag_grid_column_defs(grouped)
-    payload["rowData"] = [
-        build_policy_ag_grid_row(row) for row in (grouped.get("rows") or [])
-    ]
-    return payload
+    policy_layout = grouped.get("policy_layout") or []
+    rows = grouped.get("rows") or []
+
+    column_defs: list[dict] = []
+
+    for entry in policy_layout:
+        if entry.get("kind") == "system":
+            slug = entry["slug"]
+            spec = _SYSTEM_COLUMN_DEFS.get(slug)
+            if not spec:
+                continue
+            col_def = {
+                "colId": slug,
+                "headerName": entry["label"],
+                **spec,
+            }
+            column_defs.append(col_def)
+            continue
+
+        group = entry.get("group") or {}
+        children = []
+        for col in group.get("columns") or []:
+            children.append(
+                {
+                    "colId": col["key"],
+                    "field": col["key"],
+                    "headerName": col["label"],
+                    "cellRenderer": "htmlCell",
+                    "minWidth": 120,
+                    "width": 140,
+                }
+            )
+        if not children:
+            continue
+        column_defs.append(
+            {
+                "headerName": (entry.get("label") or group.get("label") or "").upper(),
+                "children": children,
+            }
+        )
+
+    column_defs.append(
+        {
+            "colId": "_actions",
+            "field": "_actions",
+            "headerName": "",
+            "cellRenderer": "actionsCell",
+            "pinned": "right",
+            "width": 72,
+            "sortable": False,
+            "filter": False,
+            "suppressHeaderMenuButton": True,
+            "suppressColumnsToolPanel": True,
+            "suppressFiltersToolPanel": True,
+        }
+    )
+
+    row_data = []
+    for row in rows:
+        system = row.get("system") or {}
+        record: dict = {
+            "pk": row["pk"],
+            "_detail_url": system.get("url") or row.get("url") or "",
+            "_edit_url": row.get("edit_url") or "",
+            "_delete_url": row.get("delete_url") or "",
+        }
+        enabled = bool(system.get("enabled"))
+        record["enabled"] = enabled
+        record["enabled__filter"] = _enabled_filter_text(enabled)
+        record["name"] = system.get("name") or row.get("name") or ""
+        record["index"] = system.get("index", row.get("index"))
+        desc_raw = system.get("description") or row.get("description") or ""
+        if desc_raw == "-":
+            desc_raw = ""
+        record["description"] = desc_raw
+        if desc_raw:
+            record["description__filter"] = desc_raw
+
+        cells = row.get("cells_ag") or row.get("cells") or {}
+        cells_filter = row.get("cells_filter") or {}
+        for key, html in cells.items():
+            if html:
+                record[key] = html
+            else:
+                record[key] = '<span class="nsm-cell-empty">-</span>'
+            filter_text = cells_filter.get(key)
+            if filter_text:
+                record[key + "__filter"] = filter_text
+        row_data.append(record)
+
+    return {
+        "columnDefs": column_defs,
+        "rowData": row_data,
+    }

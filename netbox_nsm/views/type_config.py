@@ -10,6 +10,7 @@ from netbox_nsm.models import TypeConfig
 from netbox_nsm.tables import TypeConfigTable
 
 __all__ = (
+    "TypeConfigView",
     "TypeConfigListView",
     "TypeConfigAddView",
     "TypeConfigEditView",
@@ -17,17 +18,26 @@ __all__ = (
 )
 
 
+@register_model_view(TypeConfig)
+class TypeConfigView(generic.ObjectView):
+    queryset = TypeConfig.objects.select_related("content_type")
+
+
+@register_model_view(TypeConfig, "list", path="", detail=False)
 class TypeConfigListView(generic.ObjectListView):
     queryset = TypeConfig.objects.select_related("content_type")
     table = TypeConfigTable
     filterset = TypeConfigFilterSet
 
 
+@register_model_view(TypeConfig, "add", detail=False)
 class TypeConfigAddView(generic.ObjectEditView):
     queryset = TypeConfig.objects.all()
     form = TypeConfigAddForm
 
     def get_return_url(self, request, obj=None):
+        if obj and obj.pk:
+            return obj.get_absolute_url()
         return reverse("plugins:netbox_nsm:typeconfig_list")
 
 
@@ -37,6 +47,8 @@ class TypeConfigEditView(generic.ObjectEditView):
     form = TypeConfigForm
 
     def get_return_url(self, request, obj=None):
+        if obj and obj.pk:
+            return obj.get_absolute_url()
         return reverse("plugins:netbox_nsm:typeconfig_list")
 
 

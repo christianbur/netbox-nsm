@@ -5,22 +5,21 @@
     <span class="nsm-rb-field-line-name fw-semibold" title="{{ field.slug }}">{{ field.name }}</span>
   </td>
   <td class="nsm-rb-col-kind align-middle">
+    <span class="nsm-rb-kind-badges">
     {% if field.is_system_field %}
       <span class="badge text-bg-secondary">{% trans "System" %}</span>
     {% else %}
-      {% if field.is_container_field %}
-        <span class="badge text-bg-secondary">{% trans "Container" %}</span>
-      {% endif %}
       {% if field.placement == "source" %}
-        <span class="badge text-bg-secondary{% if field.is_container_field %} ms-1{% endif %}">{% trans "Source" %}</span>
+        <span class="badge text-bg-secondary">{% trans "Source" %}</span>
       {% elif field.placement == "destination" %}
-        <span class="badge text-bg-secondary{% if field.is_container_field %} ms-1{% endif %}">{% trans "Destination" %}</span>
+        <span class="badge text-bg-secondary">{% trans "Destination" %}</span>
       {% elif field.placement == "fixed" %}
-        <span class="badge text-bg-secondary{% if field.is_container_field %} ms-1{% endif %}">{% trans "Fixed" %}</span>
-      {% else %}
-        <span class="badge text-bg-secondary{% if field.is_container_field %} ms-1{% endif %}">{{ field.get_placement_display }}</span>
+        <span class="badge text-bg-secondary">{% trans "Fixed" %}</span>
+      {% elif field.placement %}
+        <span class="badge text-bg-secondary">{{ field.get_placement_display }}</span>
       {% endif %}
     {% endif %}
+    </span>
   </td>
   <td class="nsm-rb-col-flags align-middle">
     <div class="nsm-rb-field-flags-cell">

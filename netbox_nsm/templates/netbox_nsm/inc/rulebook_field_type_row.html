@@ -8,11 +8,13 @@
     <span class="nsm-rb-subfield-name">{{ tc.name|default:tc.content_type_label }}</span>
   </td>
   <td class="nsm-rb-col-kind align-middle">
+    <span class="nsm-rb-kind-badges">
     {% for label in tc.type_line_kind_parts %}
-      <span class="badge text-bg-secondary{% if not forloop.first %} ms-1{% endif %}">{{ label }}</span>
+      <span class="badge text-bg-secondary" title="{{ label }}">{{ label }}</span>
     {% empty %}
       <span class="text-muted small">—</span>
     {% endfor %}
+    </span>
   </td>
   <td class="nsm-rb-col-flags align-middle">
     <div class="nsm-rb-field-flags-cell">

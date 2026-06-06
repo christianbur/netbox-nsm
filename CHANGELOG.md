@@ -12,6 +12,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - [#18](https://github.com/christianbur/netbox-nsm/issues/18): Assign Link picker dropdown closes on blur even when showing "No results"
 - [#18](https://github.com/christianbur/netbox-nsm/issues/18): Assign Link picker layout and markup aligned with rule editor (assign field structure, pill markup, scroll load-more)
 - [#18](https://github.com/christianbur/netbox-nsm/issues/18): Assign Link form fields unified styling — element search matches native `form-select`, flat layout without nested panel
+- Rulebook Changelog: field layout, rule CRUD, assignments, and TypeConfig panels with readable summaries (UI + REST API)
 - Assign Link picker UX aligned with rule editor (dropdown only on focus)
 - [#17](https://github.com/christianbur/netbox-nsm/issues/17): ObjectLink delete raised
   `SerializerNotFound` for custom objects (`TableNModel`) as `object_b` — fixed via

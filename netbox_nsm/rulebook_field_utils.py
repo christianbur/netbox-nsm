@@ -83,3 +83,36 @@ def rulebook_has_object_field(rulebook, slug):
         field_kind=RulebookFieldKind.OBJECT,
         visible=True,
     ).exists()
+
+
+def serialize_rulebook_fields_layout(rulebook):
+    """Compact field layout for Rulebook changelog snapshots (dict, not list).
+
+    NetBox ``deep_compare_dict`` only recurses into nested dicts. Lists are
+    replaced wholesale in the diff view — use slug/type keys so small edits
+    stay readable.
+    """
+    layout = {}
+    for field in load_rulebook_fields_for_detail(rulebook):
+        type_rows = {}
+        for ft in field.field_type_list:
+            tc_key = str(ft.type_config_id)
+            type_rows[tc_key] = {
+                "sort_order": ft.sort_order,
+                "visible": ft.visible,
+                "max_items": ft.max_items,
+                "name_filter_regex": ft.name_filter_regex or "",
+            }
+        layout[field.slug] = {
+            "name": field.name,
+            "sort_order": field.sort_order,
+            "placement": field.placement,
+            "field_kind": field.field_kind,
+            "visible": field.visible,
+            "searchable": field.searchable,
+            "filterable": field.filterable,
+            "facet_mode": field.facet_mode,
+            "max_visible_pills": field.max_visible_pills,
+            "types": type_rows,
+        }
+    return layout

@@ -988,7 +988,14 @@ class _RulebookRulesTabMixin:
             return HttpResponseForbidden()
         pk_list = [int(pk) for pk in request.POST.getlist("pk") if pk.isdigit()]
         if pk_list:
+            from netbox_nsm.changelog_utils import (
+                record_rulebook_rules_changelog,
+                snapshot_instance,
+            )
+
+            rb_prechange = snapshot_instance(instance)
             Rule.objects.filter(pk__in=pk_list, rulebook=instance).delete()
+            record_rulebook_rules_changelog(instance, request, rb_prechange)
         return redirect(
             reverse(
                 f"plugins:netbox_nsm:{self.rules_tab_route}",
@@ -1979,6 +1986,17 @@ class RuleEditView(generic.ObjectEditView):
 @register_model_view(Rule, "delete")
 class RuleDeleteView(generic.ObjectDeleteView):
     queryset = Rule.objects.all()
+
+    def perform_destroy(self, instance):
+        from netbox_nsm.changelog_utils import (
+            record_rulebook_rules_changelog,
+            snapshot_instance,
+        )
+
+        rulebook = instance.rulebook
+        rb_prechange = snapshot_instance(rulebook)
+        super().perform_destroy(instance)
+        record_rulebook_rules_changelog(rulebook, self.request, rb_prechange)
 
 
 @register_model_view(RulebookAssignment, "list", path="", detail=False)

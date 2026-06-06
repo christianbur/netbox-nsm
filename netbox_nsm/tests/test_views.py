@@ -1,8 +1,12 @@
 """UI functional tests: rulebook, type config, rules, and panel object links."""
 
+from unittest import mock
+
 from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
 from ipam.models import Prefix
+from netbox.api.exceptions import SerializerNotFound
+from utilities.api import get_serializer_for_model as _real_get_serializer_for_model
 
 from netbox_nsm.models import (
     MatchingClassChoices,
@@ -12,8 +16,17 @@ from netbox_nsm.models import (
     TypeConfig,
 )
 from netbox_nsm.models.object_link import LinkPropagationChoices
+from netbox_nsm.tests.object_link_helpers import create_object_link_with_custom_object_b
 from utilities.testing import TestCase
 from utilities.testing.utils import post_data
+
+
+def _get_serializer_raise_for_custom_objects(model, *args, **kwargs):
+    if getattr(model, "_meta", None) and model._meta.app_label == "netbox_custom_objects":
+        raise SerializerNotFound(
+            f"Could not determine serializer for {model._meta.label_lower}"
+        )
+    return _real_get_serializer_for_model(model, *args, **kwargs)
 
 
 def _prefix(value):
@@ -313,6 +326,23 @@ class ObjectLinkPanelViewTests(TestCase):
             object_b_id=self.prefix_b.pk,
             comment="delete me",
         )
+        url = reverse("plugins:netbox_nsm:object_link_delete", args=[link.pk])
+        response = self.client.post(
+            url,
+            {
+                "confirm": True,
+                "return_url": self.return_url,
+            },
+        )
+        self.assertEqual(response.status_code, 302, response.content)
+        self.assertFalse(ObjectLink.objects.filter(pk=link.pk).exists())
+
+    @mock.patch(
+        "netbox_nsm.api.serializers_.object_link.get_serializer_for_model",
+        side_effect=_get_serializer_raise_for_custom_objects,
+    )
+    def test_delete_object_link_custom_object_b_via_panel(self, _mock_get_serializer):
+        link, _custom_instance = create_object_link_with_custom_object_b(self.prefix_a)
         url = reverse("plugins:netbox_nsm:object_link_delete", args=[link.pk])
         response = self.client.post(
             url,

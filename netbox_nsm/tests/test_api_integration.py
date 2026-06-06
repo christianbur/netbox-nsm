@@ -5,9 +5,13 @@ Run inside the NetBox environment, e.g.:
     python manage.py test netbox_nsm.tests.test_api_integration
 """
 
+from unittest import mock
+
 from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
 from rest_framework import status
+from netbox.api.exceptions import SerializerNotFound
+from utilities.api import get_serializer_for_model as _real_get_serializer_for_model
 
 from ipam.models import Prefix
 
@@ -23,6 +27,15 @@ from netbox_nsm.models import (
 from netbox_nsm.models.object_link import LinkPropagationChoices
 from netbox_nsm.rulebook_field_utils import ensure_system_rulebook_fields
 from netbox_nsm.tests.custom import APITestCase
+from netbox_nsm.tests.object_link_helpers import create_object_link_with_custom_object_b
+
+
+def _get_serializer_raise_for_custom_objects(model, *args, **kwargs):
+    if getattr(model, "_meta", None) and model._meta.app_label == "netbox_custom_objects":
+        raise SerializerNotFound(
+            f"Could not determine serializer for {model._meta.label_lower}"
+        )
+    return _real_get_serializer_for_model(model, *args, **kwargs)
 
 
 def _api(name, **kwargs):
@@ -399,6 +412,19 @@ class ObjectLinkAPITest(_RulebookPluginAPITestMixin, APITestCase):
         response = self._delete(detail_url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(ObjectLink.objects.filter(pk=link_id).exists())
+
+    @mock.patch(
+        "netbox_nsm.api.serializers_.object_link.get_serializer_for_model",
+        side_effect=_get_serializer_raise_for_custom_objects,
+    )
+    def test_object_link_delete_custom_object_b_via_api(self, _mock_get_serializer):
+        self._grant(*_API_CRUD_PERMS)
+        link, _custom_instance = create_object_link_with_custom_object_b(self.prefix_a)
+        detail_url = _api("objectlink-detail", pk=link.pk)
+
+        response = self._delete(detail_url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(ObjectLink.objects.filter(pk=link.pk).exists())
 
 
 class RulebookWorkflowAPITest(_RulebookPluginAPITestMixin, APITestCase):

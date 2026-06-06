@@ -4,6 +4,15 @@ All notable changes to **netbox-nsm** are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.2.4] - unreleased
+
+### Fixed
+
+- ObjectLink delete no longer raises `SerializerNotFound` when `object_b` is a custom
+  object without a registered REST API serializer. Nested serialization in
+  `ObjectLinkSerializer` falls back to `serialize_object()` (Security Panel and REST
+  API delete).
+
 ## [0.2.3] - 2026-06-06
 
 ### Changed

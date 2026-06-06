@@ -2,13 +2,30 @@ from django.contrib.contenttypes.models import ContentType
 from drf_spectacular.utils import extend_schema_field
 from rest_framework.serializers import HyperlinkedIdentityField, SerializerMethodField
 from rest_framework.validators import UniqueTogetherValidator
+from netbox.api.exceptions import SerializerNotFound
 from netbox.api.fields import ContentTypeField
 from netbox.api.serializers import NetBoxModelSerializer
 from utilities.api import get_serializer_for_model
+from utilities.serialization import serialize_object
 
 from netbox_nsm.models import ObjectLink
 
-__all__ = ("ObjectLinkSerializer",)
+__all__ = ("ObjectLinkSerializer", "_serialize_linked_object")
+
+
+def _serialize_linked_object(obj, request):
+    """Nested representation for GFK endpoints; tolerate missing API serializers."""
+    if obj is None:
+        return None
+    try:
+        serializer = get_serializer_for_model(obj.__class__)
+    except SerializerNotFound:
+        data = serialize_object(obj)
+        data["id"] = obj.pk
+        data["display"] = str(obj)
+        return data
+    context = {"request": request}
+    return serializer(obj, nested=True, context=context).data
 
 
 class ObjectLinkSerializer(NetBoxModelSerializer):
@@ -59,16 +76,8 @@ class ObjectLinkSerializer(NetBoxModelSerializer):
 
     @extend_schema_field({"type": "object"})
     def get_object_a(self, obj):
-        serializer = get_serializer_for_model(obj.object_a)
-        if serializer is None or obj.object_a is None:
-            return None
-        context = {"request": self.context.get("request")}
-        return serializer(obj.object_a, nested=True, context=context).data
+        return _serialize_linked_object(obj.object_a, self.context.get("request"))
 
     @extend_schema_field({"type": "object"})
     def get_object_b(self, obj):
-        serializer = get_serializer_for_model(obj.object_b)
-        if serializer is None or obj.object_b is None:
-            return None
-        context = {"request": self.context.get("request")}
-        return serializer(obj.object_b, nested=True, context=context).data
+        return _serialize_linked_object(obj.object_b, self.context.get("request"))

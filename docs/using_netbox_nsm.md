@@ -21,7 +21,7 @@
 | **Link inventory** | [Object Links](#nsm-object-links) → [Security Panel](#security-panel) → [TypeConfigs](#typeconfigs) | Prefixes, devices, VMs linked to zones; macro/micro zones |
 | **Document policy** | [Rulebooks](#security-rulebooks) → [Policy](#policy-views) → [IP Analysis](#ip-analysis) | Rules, matrix, cross-rulebook views |
 | **Explore** | [Object Analyzer](#object-analyzer) | Graph walk-through from any NetBox object |
-| **Integrate** | [REST API](#rest-api-reference) · [Branching](#netbox_branching) · [Dev notes](#development-notes) | Automation and development |
+| **Integrate** | [REST API](#rest-api-reference) · [Dev notes](#development-notes) | Automation and development |
 
 ---
 
@@ -76,8 +76,7 @@
 cannot query Custom Object Types (`relation "netbox_custom_objects_customobjecttype"
 does not exist`).
 
-After `netbox_nsm` is listed in `PLUGINS`, use the usual NetBox workflow (as with
-[netbox-branching](https://github.com/netboxlabs/netbox-branching)):
+After `netbox_nsm` is listed in `PLUGINS`, use the usual NetBox workflow:
 
 ```bash
 cd netbox/netbox
@@ -1351,37 +1350,6 @@ Saving in the editor alone is not enough — the old template stays in RAM until
 When you change TypeConfig field values in `builtin_types.py` or `views/setup.py`, run Setup wizard
 **Sync** again to write updates to the database. Existing entries are updated by
 sync (not skipped).
-
-### netbox_branching
-
-> **Status:** Initial integration tests with [netbox-branching](https://github.com/netboxlabs/netbox-branching) were completed in the homelab **netbox-dev** stack — branch-specific rule editing, junction table writes, AG Grid/Matrix page rendering, and Object Analyzer API calls. Until broader validation, treat as **experimental**; report issues on branches early.
-
-Browser-side `fetch()` calls to the **NetBox REST API** must send header `X-NetBox-Branch`
-(schema ID from cookie `active_branch`) when a branch is active. NSM loads
-`static/netbox_nsm/js/nsm_branch_api.js` on Security Panel, Object Analyzer, and related
-pages to set this header automatically.
-
-The **Rule Editor** object picker uses a server-side NSM endpoint instead of the REST API:
-`GET /plugins/netbox-nsm/api/picker-browse/?ct=<content_type_id>&q=…` — branch context
-comes from the Django request (cookie / `?_branch=`), so no branch header is needed in
-`rule_form.js`.
-
-The **Rules** (AG Grid) and **Matrix** tabs do not call the REST API from JavaScript —
-row data is embedded at page render (branch cookie selects the DB schema on the
-server). Internal links (rule detail, matrix cell filter, Add Rule) get
-`?_branch=<schema_id>` via `netbox_nsm.branch_urls.with_branch_query()`.
-
-Matrix cell links to the Rules tab combine branch and `nsm_q` in one query string, e.g.
-`/rulebooks/<id>/rules/?_branch=<schema_id>&nsm_q=…` (not two `?` separators).
-
-NSM registers junction tables (`RuleObjectItem`, `RuleGroupItem`, …) with netbox_branching at
-plugin startup and routes writes through `netbox_nsm.branch_db` when a branch is active. Without this,
-saving a rule on a branch fails with FK errors (parent `Rule` in branch schema,
-child rows in `main`).
-
-After an NSM upgrade on an installation with existing branches, run **Branch → Migrate**
-once on each active branch so the branch schema gets junction tables if they were
-missing.
 
 ### Locale / i18n
 

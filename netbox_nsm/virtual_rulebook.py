@@ -102,6 +102,10 @@ class VirtualAllRulesRulebook:
     def get_rules_tab_url(self):
         return reverse(f"plugins:netbox_nsm:{ALL_RULES_RULES_URL_NAME}")
 
+    @property
+    def is_virtual_all_rules(self):
+        return True
+
     def get_rulebook_type_display(self):
         return str(_("Policy (aggregated)"))
 

@@ -116,6 +116,11 @@ class TypeConfig(NetBoxModel):
         )
         unique_together = [("content_type", "matching_class")]
 
+    @classmethod
+    def queryset_panel_linkable(cls):
+        """TypeConfigs available in the Security Panel assign picker."""
+        return cls.objects.filter(panel_linkable=True)
+
     @property
     def content_type_label(self):
         """Human-readable NetBox model name for UI (e.g. 'Zone')."""

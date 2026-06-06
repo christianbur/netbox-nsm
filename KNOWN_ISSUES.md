@@ -1,6 +1,6 @@
 # Known Issues & Open Items
 
-> Status as of 2025-06 (v0.1.0-dev)
+> Status as of 2025-06 (v0.2.0)
 
 ---
 

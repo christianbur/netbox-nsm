@@ -292,7 +292,11 @@ class RulebookTable(NetBoxTable):
     rule_count = tables.TemplateColumn(
         template_code="""
 {% load i18n %}
+{% if record.is_virtual_all_rules %}
+<a href="{% url 'plugins:netbox_nsm:all_rules_rules' %}"
+{% else %}
 <a href="{% url 'plugins:netbox_nsm:rulebook_rules' record.pk %}"
+{% endif %}
    class="nsm-rule-pill nsm-rule-pill--counter nsm-rulebook-count-pill text-decoration-none"
    title="{% trans 'View rules' %}">
   {% if record.rule_count is not None %}{{ record.rule_count }}{% else %}{{ record.rules.count }}{% endif %}

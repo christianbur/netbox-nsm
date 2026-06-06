@@ -5,7 +5,7 @@
 **Document network security policy inside NetBox**
 
 [![NetBox 4.6.x](https://img.shields.io/badge/NetBox-4.6.x-0088cc?style=flat-square)](https://netboxlabs.com/)
-[![Plugin 0.1.0](https://img.shields.io/badge/plugin-0.1.0-2ea043?style=flat-square)](../README.md)
+[![Plugin 0.2.0](https://img.shields.io/badge/plugin-0.2.0-2ea043?style=flat-square)](../README.md)
 [![WIP](https://img.shields.io/badge/status-work%20in%20progress-yellow?style=flat-square)](../README.md)
 
 [← Project README](../README.md) · [Architecture](../ARCHITECTURE.md)
@@ -73,7 +73,6 @@ labels, and see matching rulebooks.
 | Topic | Doc |
 |---|---|
 | REST API | [REST API Reference](using_netbox_nsm.md#rest-api-reference) |
-| netbox-branching (experimental) | [netbox_branching](using_netbox_nsm.md#netbox_branching) |
 | AG Grid + xyflow licenses | [Third-party UI libraries](using_netbox_nsm.md#third-party-ui-libraries) |
 
 ---
@@ -125,7 +124,6 @@ Details: [Third-party UI libraries](using_netbox_nsm.md#third-party-ui-libraries
 
 ## Status & limitations
 
-- **Work in progress** — not for production
+- **Work in progress** — not for production (0.2.x); see [CHANGELOG](../CHANGELOG.md)
 - **Documentation only** — no rule push to firewalls
-- **netbox-branching** — initial homelab tests done; treat as experimental
 - **Requires** [netbox-custom-objects](https://github.com/netboxlabs/netbox-custom-objects)

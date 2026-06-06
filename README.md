@@ -7,12 +7,11 @@
 Document zones, firewall rules, and object relationships — vendor-agnostic, inside your existing IPAM and DCIM inventory.
 
 [![NetBox](https://img.shields.io/badge/NetBox-4.6.x-0088cc?style=flat-square)](https://netboxlabs.com/)
-[![Plugin](https://img.shields.io/badge/plugin-0.1.0-2ea043?style=flat-square)](#)
+[![Plugin](https://img.shields.io/badge/plugin-0.2.0-2ea043?style=flat-square)](#)
 [![Requires](https://img.shields.io/badge/requires-netbox--custom--objects-orange?style=flat-square)](https://github.com/netboxlabs/netbox-custom-objects)
 [![Status](https://img.shields.io/badge/status-work%20in%20progress-yellow?style=flat-square)](#)
-[![Branching](https://img.shields.io/badge/netbox--branching-initial%20tests%20done-blueviolet?style=flat-square)](https://github.com/netboxlabs/netbox-branching)
 
-[Full user guide](docs/README.md) · [Using netbox-nsm](docs/using_netbox_nsm.md) · [Architecture](ARCHITECTURE.md) · [Database](docs/DATABASE.md)
+[Full user guide](docs/README.md) · [Using netbox-nsm](docs/using_netbox_nsm.md) · [Architecture](ARCHITECTURE.md) · [Database](docs/DATABASE.md) · [Changelog](CHANGELOG.md)
 
 </div>
 
@@ -394,13 +393,7 @@ Setup **Section 4** offers idempotent demos:
 
 | NetBox | Plugin |
 |---|---|
-| 4.6.x | 0.1.0 |
-
-### netbox-branching
-
-Integration with [netbox-branching](https://github.com/netboxlabs/netbox-branching) is **experimental** — **initial tests have already been run** in the homelab stack (branch-aware rule saves, junction-table routing, Security Panel / Object Analyzer API headers, Rules and Matrix tabs). Plugin load order: `netbox_custom_objects` → `netbox_nsm` → `netbox_branching`.
-
-Details: **[Using netbox-nsm § netbox_branching](docs/using_netbox_nsm.md#netbox_branching)**
+| 4.5+ | 0.2.x |
 
 ---
 

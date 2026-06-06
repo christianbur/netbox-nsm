@@ -938,19 +938,31 @@ class RulebookMatrixGridView(generic.ObjectView):
     )
 
     def get_extra_context(self, request, instance):
-        from netbox_nsm.matrix_grid_payload import build_matrix_ag_grid_payload
+        from netbox_nsm.matrix_grid_payload import build_matrix_ag_grid_scaffold
+        from netbox_nsm.matrix_grid_service import build_matrix_grid_config
         from netbox_nsm.matrix_tab_context import build_matrix_tab_context
         import netbox_nsm.views.rulebook as rulebook_views
 
         ctx = build_matrix_tab_context(
-            request, instance, view_helpers=rulebook_views, client_axis_filters=True
+            request,
+            instance,
+            view_helpers=rulebook_views,
+            client_axis_filters=True,
+            lazy_grid=True,
         )
-        ctx["matrix_ag_grid_payload"] = build_matrix_ag_grid_payload(
+        src_count = len(ctx.get("src_zones") or [])
+        ctx["matrix_grid_config"] = build_matrix_grid_config(
+            request,
+            instance,
+            total_rows=src_count,
+        )
+        ctx["matrix_ag_grid_payload"] = build_matrix_ag_grid_scaffold(
             ctx["matrix_rows"],
             ctx["dst_zones"],
             ctx["matrix_mode"],
             zone_content_type_id=ctx.get("selected_ct_id"),
             request=request,
+            matrix_axis_limit=ctx.get("matrix_axis_limit"),
         )
         ctx["matrix_tab_label"] = self.tab.label
         return ctx
@@ -1192,6 +1204,19 @@ class RulebookListView(generic.ObjectListView):
     table = RulebookTable
     template_name = "netbox_nsm/rulebook_list.html"
     actions = (AddObject, BulkDelete)
+
+    def get_table(self, data, request, bulk_actions=True):
+        return super().get_table(
+            self._pin_virtual_rulebook_first(data),
+            request,
+            bulk_actions,
+        )
+
+    @staticmethod
+    def _pin_virtual_rulebook_first(data):
+        from netbox_nsm.virtual_rulebook import build_virtual_all_rules_row
+
+        return [build_virtual_all_rules_row()] + list(data)
 
 
 @register_model_view(Rulebook, "add", detail=False)

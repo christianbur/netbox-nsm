@@ -51,20 +51,13 @@ class ObjectLinkPropagationForm(forms.Form):
         return data
 
 
-def _build_type_choices(source_content_type_id: int | None = None):
-    """NSM types assignable as Object B for Object A of *source_content_type_id*."""
-    if source_content_type_id:
-        configs = list(
-            TypeConfig.queryset_panel_linkable_for(source_content_type_id)
-            .select_related("content_type")
-            .order_by("name", "matching_class")
-        )
-    else:
-        configs = list(
-            TypeConfig.objects.filter(panel_linkable=True)
-            .select_related("content_type")
-            .order_by("name", "matching_class")
-        )
+def _build_type_choices():
+    """NSM types assignable as Object B in the Security Panel assign picker."""
+    configs = list(
+        TypeConfig.queryset_panel_linkable()
+        .select_related("content_type")
+        .order_by("name", "matching_class")
+    )
 
     choices = [("", _("── Select type ──"))]
     for cfg in configs:
@@ -122,14 +115,9 @@ class ObjectLinkAssignForm(ObjectLinkPropagationForm):
         widget=forms.Textarea(attrs={"rows": 3}),
     )
 
-    def __init__(
-        self, *args, source_content_type_id=None, source_object=None, **kwargs
-    ):
-        self.source_content_type_id = source_content_type_id
+    def __init__(self, *args, source_object=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["object_b_type"].choices = _build_type_choices(
-            source_content_type_id
-        )
+        self.fields["object_b_type"].choices = _build_type_choices()
         self._configure_propagation_fields(source_object)
 
     def clean(self):
@@ -139,15 +127,14 @@ class ObjectLinkAssignForm(ObjectLinkPropagationForm):
             self.add_error("object_b_type", _("Please select a type."))
             return data
 
-        if self.source_content_type_id:
-            allowed = TypeConfig.queryset_panel_linkable_for(
-                self.source_content_type_id
-            ).filter(content_type_id=int(ct_pk))
-            if not allowed.exists():
-                self.add_error(
-                    "object_b_type",
-                    _("This type is not linkable from the selected object."),
-                )
+        if not TypeConfig.objects.filter(
+            content_type_id=int(ct_pk),
+            panel_linkable=True,
+        ).exists():
+            self.add_error(
+                "object_b_type",
+                _("This type is not linkable from the Security Panel."),
+            )
 
         return self._clean_propagation_fields(data)
 

@@ -19,6 +19,7 @@ from netbox_nsm.policy_rule_grouping import (
 )
 from netbox_nsm.policy_grid_payload import (
     build_ag_grid_filter_model,
+    build_policy_ag_grid_column_defs,
     build_policy_ag_grid_payload,
     enabled_status_labels,
 )
@@ -127,8 +128,11 @@ def build_rules_grid_config(
     query=None,
     policy_layout=None,
     rulebook_context=None,
+    total_count=None,
 ) -> dict:
     """Client config for the AG Grid Rules tab (filters, bulk actions)."""
+    from netbox_nsm.policy_grid_service import POLICY_GRID_BLOCK_SIZE
+
     cfg = {
         "apiBase": "/api/plugins/netbox-nsm/rules/",
         "rulebookId": instance.pk,
@@ -139,7 +143,26 @@ def build_rules_grid_config(
             "delete": request.user.has_perm("netbox_nsm.delete_rule"),
         },
         "statusLabels": enabled_status_labels(),
+        "gridDataUrl": reverse(
+            "plugins:netbox_nsm:rulebook_policy_grid_api",
+            args=[instance.pk],
+        ),
+        "queryValidateUrl": reverse(
+            "plugins:netbox_nsm:rulebook_policy_query_validate_api",
+            args=[instance.pk],
+        ),
+        "infiniteRowModel": True,
+        "cacheBlockSize": POLICY_GRID_BLOCK_SIZE,
+        "totalCount": int(total_count or 0),
+        "loadRowLimit": resolve_policy_grid_load_target(total_count),
+        "initialLoadLimit": resolve_policy_grid_initial_load_target(total_count),
+        "loadMoreStep": GRID_LOAD_MORE_STEP,
+        "gridLoadSteps": list(PROGRESSIVE_LOAD_STEPS),
+        "gridLoadStepsFine": list(PROGRESSIVE_LOAD_STEPS_FINE),
+        "gridAutoLoadAllMax": GRID_AUTO_LOAD_ALL_MAX,
     }
+    if policy_layout is not None:
+        cfg.update(build_policy_group_grid_config(request, policy_layout))
     if query is not None and policy_layout is not None and rulebook_context is not None:
         filter_model = build_ag_grid_filter_model(
             query, policy_layout, rulebook_context
@@ -187,8 +210,15 @@ def build_policy_tab_context(
     nsm_q_raw = request.GET.get("nsm_q", "").strip()
     query = parse(nsm_q_raw)
     context = RulebookContext(instance)
-    all_rules = prepare_rules(base_rules_qs)
-    filtered_rules = filter_rules(all_rules, query, context)
+
+    if grid_all_rules and not nsm_q_raw:
+        total_count = base_rules_qs.count()
+        filtered_rules = []
+        all_rules = []
+    else:
+        all_rules = prepare_rules(base_rules_qs)
+        filtered_rules = filter_rules(all_rules, query, context)
+        total_count = len(filtered_rules)
 
     config = view_helpers._get_policy_table_config(request, instance)
     selected_columns = config["selected_columns"]
@@ -199,7 +229,6 @@ def build_policy_tab_context(
     custom_keys = [f"custom_column_{idx}" for idx in range(1, len(custom_columns) + 1)]
 
     VALID_PER_PAGE = [25, 50, 100, 250, 500, 1000]
-    total_count = len(filtered_rules)
 
     if grid_all_rules:
         per_page = total_count or 1
@@ -271,7 +300,6 @@ def build_policy_tab_context(
         "nsm_q": nsm_q_raw,
         "nsm_query": query,
         "nsm_query_error": query.parse_error,
-        "nsm_facets_lazy": True,
         "nsm_show_facet_panel": True,
         "nsm_query_help_sections": build_query_help_sections(instance),
         "policy_layout": grouped["policy_layout"],
@@ -285,7 +313,11 @@ def build_policy_tab_context(
         "valid_per_page": VALID_PER_PAGE,
         "total_count": total_count,
         "base_qs_str": base_qs_str,
-        "policy_ag_grid_payload": build_policy_ag_grid_payload(grouped),
+        "policy_ag_grid_payload": (
+            build_policy_ag_grid_column_defs(grouped)
+            if grid_all_rules
+            else build_policy_ag_grid_payload(grouped)
+        ),
     }
     if grid_all_rules:
         ctx["rules_grid_config"] = build_rules_grid_config(
@@ -294,6 +326,7 @@ def build_policy_tab_context(
             query=query,
             policy_layout=grouped["policy_layout"],
             rulebook_context=context,
+            total_count=total_count,
         )
     from urllib.parse import quote
 

@@ -2,15 +2,31 @@
 
 from __future__ import annotations
 
+from django.urls import reverse
+
 from netbox_nsm.matrix_grid_payload import build_matrix_ag_grid_row_records
 from netbox_nsm.matrix_tab_context import build_matrix_tab_context
 
 __all__ = (
     "MATRIX_GRID_BLOCK_SIZE",
+    "build_matrix_grid_config",
     "fetch_matrix_grid_page",
 )
 
 MATRIX_GRID_BLOCK_SIZE = 50
+
+
+def build_matrix_grid_config(request, instance, *, total_rows: int) -> dict:
+    """Client config for lazy matrix AG Grid (infinite row model)."""
+    return {
+        "gridDataUrl": reverse(
+            "plugins:netbox_nsm:rulebook_matrix_grid_api",
+            args=[instance.pk],
+        ),
+        "infiniteRowModel": True,
+        "cacheBlockSize": MATRIX_GRID_BLOCK_SIZE,
+        "totalRows": int(total_rows or 0),
+    }
 
 
 def fetch_matrix_grid_page(

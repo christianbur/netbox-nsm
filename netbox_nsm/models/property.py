@@ -2,7 +2,6 @@ from django.core.validators import RegexValidator
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.functions import Lower
-from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from extras.choices import CustomFieldTypeChoices
@@ -61,7 +60,7 @@ class PropertyType(PrimaryModel):
         return self.display_name
 
     def get_absolute_url(self):
-        return reverse("plugins:netbox_nsm:propertytype", args=[self.pk])
+        return "#"
 
 
 class PropertyField(PrimaryModel):
@@ -110,7 +109,7 @@ class PropertyField(PrimaryModel):
         return self.label or self.name.replace("_", " ").capitalize()
 
     def get_absolute_url(self):
-        return reverse("plugins:netbox_nsm:propertyfield", args=[self.pk])
+        return "#"
 
 
 class Property(PrimaryModel):
@@ -152,7 +151,7 @@ class Property(PrimaryModel):
         return self.name
 
     def get_absolute_url(self):
-        return reverse("plugins:netbox_nsm:property", args=[self.pk])
+        return "#"
 
     @staticmethod
     def _is_empty_value(value):

@@ -176,8 +176,7 @@ TypeConfig
 ├── allow_virtual_groups (BooleanField)
 ├── inherit_links        (BooleanField)
 ├── inherit_stop_on_own  (BooleanField)
-├── panel_linkable       (BooleanField — legacy master switch; kept in sync by the form)
-└── panel_linkable_content_types (M2M → ContentType)
+└── panel_linkable       (BooleanField — Security Panel assign picker master switch)
 ```
 
 **Purpose:** Per-ContentType configuration for NSM behaviour. Unique together:
@@ -189,18 +188,11 @@ TypeConfig
 `display_template` is evaluated in `display_utils.render_object_display()` by substituting
 `{field_name}` placeholders with the object's attributes. Falls back to `str(obj)`.
 
-**Panel assign filter (`panel_linkable_content_types`):** When a user clicks **+ Assign** on a
-NetBox object (Object A), the picker lists NSM types (Object B) allowed for that source type.
-Empty M2M + `panel_linkable=True` means **all** NetBox object types (unrestricted). Non-empty M2M
-restricts to the selected types (e.g. only `dcim.interface`). Implemented in
-`TypeConfig.queryset_panel_linkable_for()`, `forms/object_link.py`, and
-`views/object_link.py` (`source_ct_id` on the type-elements API).
+`panel_linkable` controls whether objects of this type can be linked from the NSM Security Panel
+(**+ Assign**). Implemented in `forms/object_link.py` and `views/object_link.py`.
 
 `inherit_links` / `inherit_stop_on_own` control the Security Panel's inheritance logic in
-`NsmSecurityLinksExtension` (see Template Extensions).
-
-**Migration `0002_initial_panel_linkable_types`:** Adds the M2M table; existing rows with
-`panel_linkable=True` keep an empty M2M (= unrestricted). See `docs/DATABASE.md`.
+`NsmSecurityLinksExtension` (see Template Extensions). See `docs/DATABASE.md`.
 
 ---
 

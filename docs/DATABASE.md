@@ -34,7 +34,6 @@ python manage.py dbshell -c "\dt netbox_nsm_*"
 | `netbox_nsm_rulebookfield` | `RulebookField` | **Field** (policy column): slug, name, placement, visibility, facet settings |
 | `netbox_nsm_rulebookfieldtype` | `RulebookFieldType` | **Type within a field**: links a field to a `TypeConfig`, sort order, max items, name filter |
 | `netbox_nsm_typeconfig` | `TypeConfig` | Global type behaviour: content type, matching class, display template, panel/inheritance flags |
-| `netbox_nsm_typeconfig_panel_linkable_content_types` | M2M | Which NetBox object types may open this NSM type in the Security Panel Assign picker (empty = all types) |
 | `netbox_nsm_rule` | `Rule` | One security rule: index, name, enabled, policy action, virtual groups JSON |
 | `netbox_nsm_ruleobjectitem` | `RuleObjectItem` | Object assigned to a rule field (generic FK to any NetBox/custom object) |
 | `netbox_nsm_rulegroupitem` | `RuleGroupItem` | `ObjectGroup` assigned to a rule field |
@@ -116,8 +115,24 @@ python manage.py migrate netbox_nsm
 
 | Migration | Purpose |
 |-----------|---------|
-| `0001_initial` | Squashed schema (dev: regenerate via `docker/netbox_dev/scripts/generate_nsm_0001.sh` or `makemigrations` with `settings.DEVELOPER = True` on a **writable** `./netbox-nsm` mount) |
-| `0002_initial_panel_linkable_types` | Adds `TypeConfig.panel_linkable_content_types` M2M; legacy `panel_linkable=True` → empty M2M (= all NetBox object types) |
+| `0001_initial` | Full NSM schema (squashed). Fresh installs: `migrate netbox_nsm` only. |
+
+To regenerate after model changes (dev, writable plugin mount):
+
+```bash
+# In netbox-dev — remove numbered migrations, then:
+docker exec -u root netbox-dev bash -c 'cd /opt/netbox/netbox && /opt/netbox/venv/bin/python -c "
+import os, django
+os.environ.setdefault(\"DJANGO_SETTINGS_MODULE\", \"netbox.settings\")
+django.setup()
+from django.conf import settings
+settings.DEVELOPER = True
+from django.core.management import call_command
+call_command(\"makemigrations\", \"netbox_nsm\", name=\"initial\", verbosity=2)
+"'
+```
+
+Or use `docker/netbox_dev/scripts/generate_nsm_0001.sh`.
 
 ---
 

@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
         ('contenttypes', '0002_remove_content_type_name'),
         ('dcim', '0236_moduletype_component_counts'),
         ('extras', '0138_customfieldchoiceset_choice_colors'),
-        ('netbox_custom_objects', '0015_initial'),
+        ('netbox_custom_objects', '0014_fix_mixed_case_field_names'),
         ('users', '0016_default_ordering_indexes'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]

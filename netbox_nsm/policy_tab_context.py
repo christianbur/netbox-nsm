@@ -5,8 +5,18 @@ from __future__ import annotations
 from django.core.paginator import Paginator
 from django.middleware.csrf import get_token
 from django.urls import reverse
+from django.utils.translation import gettext as _
 
 from netbox_nsm.models import Rule
+from netbox_nsm.policy_rule_grouping import (
+    COLLAPSE_ALL,
+    EXPAND_ALL,
+    GROUP_BY_NOT_ALLOWED_MESSAGE,
+    build_policy_group_options,
+    parse_group_default_expanded,
+    parse_policy_group_levels,
+    resolve_group_expansion,
+)
 from netbox_nsm.policy_grid_payload import (
     build_ag_grid_filter_model,
     build_policy_ag_grid_payload,
@@ -19,6 +29,95 @@ from netbox_nsm.query import (
     parse,
 )
 from netbox_nsm.query.engine import prepare_rules
+
+# Staged client download (AG Grid Community, client-side row model).
+PROGRESSIVE_LOAD_STEPS = (
+    10,
+    20,
+    40,
+    80,
+    160,
+    320,
+    640,
+    1280,
+    2560,
+    5120,
+    10240,
+    20480,
+    40960,
+    50000,
+)
+PROGRESSIVE_LOAD_STEPS_FINE = (5, 10, 20, 50, 100, 250)
+POLICY_GRID_CLIENT_MAX = 50000
+GRID_INITIAL_LOAD_LIMIT = POLICY_GRID_CLIENT_MAX
+GRID_LOAD_MORE_STEP = 2000
+DEFAULT_GRID_LOAD_LIMIT = POLICY_GRID_CLIENT_MAX
+GRID_AUTO_LOAD_ALL_MAX = POLICY_GRID_CLIENT_MAX
+
+
+def resolve_policy_grid_load_target(total_count: int | None = None) -> int:
+    """Maximum client-side row count (staged fetch runs until this target)."""
+    if not total_count or total_count <= 0:
+        return DEFAULT_GRID_LOAD_LIMIT
+    return min(int(total_count), POLICY_GRID_CLIENT_MAX)
+
+
+def resolve_policy_grid_initial_load_target(total_count: int | None = None) -> int:
+    """Rows to fetch on first open (full staged load to loadRowLimit)."""
+    return resolve_policy_grid_load_target(total_count)
+
+
+def build_policy_group_grid_config(
+    request,
+    policy_layout: list,
+    *,
+    include_rulebook: bool = False,
+) -> dict:
+    """Client-side row grouping state (Community custom group rows)."""
+    cfg: dict = {
+        "groupByOptions": build_policy_group_options(
+            policy_layout,
+            include_rulebook=include_rulebook,
+        ),
+        "groupByNotAllowedMessage": str(GROUP_BY_NOT_ALLOWED_MESSAGE),
+    }
+    group_levels = parse_policy_group_levels(
+        request,
+        policy_layout=policy_layout,
+        include_rulebook=include_rulebook,
+    )
+    if not group_levels:
+        return cfg
+    group_by = group_levels[0]
+    cfg["groupBy"] = group_by
+    cfg["groupByEnabled"] = True
+    cfg["groupColumnLabel"] = str(_("Group"))
+    cfg["groupDefaultExpanded"] = parse_group_default_expanded(request)
+    if len(group_levels) > 1:
+        cfg["groupBy2"] = group_levels[1]
+    preview_items = [{"kind": "group", "group_key": "preview", "group_level": 1}]
+    if len(group_levels) > 1:
+        preview_items.append(
+            {"kind": "group", "group_key": "preview::nested", "group_level": 2}
+        )
+    expanded_keys, collapsed_keys, _default_level = resolve_group_expansion(
+        request,
+        group_by=group_by,
+        display_items=preview_items,
+    )
+    if expanded_keys is not None:
+        if EXPAND_ALL in expanded_keys:
+            cfg["groupExpansionMode"] = "all_expanded"
+        else:
+            cfg["groupExpansionMode"] = "expanded"
+            cfg["groupExpandedKeys"] = sorted(expanded_keys)
+    elif collapsed_keys is not None:
+        if COLLAPSE_ALL in collapsed_keys:
+            cfg["groupExpansionMode"] = "all_collapsed"
+        else:
+            cfg["groupExpansionMode"] = "collapsed"
+            cfg["groupCollapsedKeys"] = sorted(collapsed_keys)
+    return cfg
 
 
 def build_rules_grid_config(

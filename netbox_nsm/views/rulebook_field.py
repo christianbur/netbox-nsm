@@ -9,6 +9,10 @@ from utilities.views import register_model_view
 
 from netbox_nsm.forms.rulebook_field import RulebookFieldForm, RulebookFieldTypeForm
 from netbox_nsm.models import RulebookField, RulebookFieldType, Rulebook, TypeConfig
+from netbox_nsm.changelog_utils import (
+    record_rulebook_layout_changelog,
+    snapshot_instance,
+)
 
 __all__ = (
     "RulebookFieldAddView",
@@ -18,6 +22,17 @@ __all__ = (
     "RulebookFieldTypeEditView",
     "RulebookFieldTypeDeleteView",
 )
+
+
+def _log_rulebook_fields_change(rulebook, request, *, message=""):
+    prechange = getattr(request, "_nsm_rulebook_fields_prechange", None)
+    if prechange is None:
+        return
+    record_rulebook_layout_changelog(rulebook, request, prechange, message=message)
+
+
+def _begin_rulebook_fields_change(rulebook, request):
+    request._nsm_rulebook_fields_prechange = snapshot_instance(rulebook)
 
 
 class RulebookFieldAddView(View):
@@ -50,6 +65,7 @@ class RulebookFieldAddView(View):
         rulebook = self._get_rulebook(request)
         form = RulebookFieldForm(request.POST)
         if form.is_valid():
+            _begin_rulebook_fields_change(rulebook, request)
             field = form.save(commit=False)
             field.rulebook = rulebook
             field.save()
@@ -62,6 +78,7 @@ class RulebookFieldAddView(View):
                         type_config=tc,
                         defaults={"max_items": max_items},
                     )
+            _log_rulebook_fields_change(rulebook, request)
             messages.success(
                 request, _("Field '%(name)s' was created.") % {"name": field.name}
             )
@@ -111,6 +128,8 @@ class RulebookFieldEditView(View):
         field = self._get_field(pk)
         form = RulebookFieldForm(request.POST, instance=field)
         if form.is_valid():
+            rulebook = field.rulebook
+            _begin_rulebook_fields_change(rulebook, request)
             field = form.save()
             if "type_configs" in form.fields:
                 selected = set(form.cleaned_data.get("type_configs") or [])
@@ -130,6 +149,7 @@ class RulebookFieldEditView(View):
                 for tc, ft in existing_map.items():
                     if tc not in selected:
                         ft.delete()
+            _log_rulebook_fields_change(rulebook, request)
             messages.success(
                 request, _("Field '%(name)s' was saved.") % {"name": field.name}
             )
@@ -193,9 +213,12 @@ class RulebookFieldDeleteView(View):
                     args=[field.rulebook_id],
                 )
             )
+        rulebook = field.rulebook
         rulebook_pk = field.rulebook_id
         field_name = field.name
+        _begin_rulebook_fields_change(rulebook, request)
         field.delete()
+        _log_rulebook_fields_change(rulebook, request)
         messages.success(request, _("Field '%(name)s' deleted.") % {"name": field_name})
         return redirect(reverse("plugins:netbox_nsm:rulebook", args=[rulebook_pk]))
 
@@ -237,9 +260,12 @@ class RulebookFieldTypeAddView(View):
         field = self._get_field(request)
         form = RulebookFieldTypeForm(request.POST)
         if form.is_valid():
+            rulebook = field.rulebook
+            _begin_rulebook_fields_change(rulebook, request)
             ft = form.save(commit=False)
             ft.field = field
             ft.save()
+            _log_rulebook_fields_change(rulebook, request)
             messages.success(
                 request, _("Type added to field '%(name)s'.") % {"name": field.name}
             )
@@ -291,7 +317,10 @@ class RulebookFieldTypeEditView(View):
         ft = get_object_or_404(RulebookFieldType, pk=pk)
         form = RulebookFieldTypeForm(request.POST, instance=ft)
         if form.is_valid():
+            rulebook = ft.field.rulebook
+            _begin_rulebook_fields_change(rulebook, request)
             ft = form.save()
+            _log_rulebook_fields_change(rulebook, request)
             messages.success(
                 request,
                 _("Field type '%(name)s' was saved.") % {"name": str(ft.type_config)},
@@ -340,7 +369,10 @@ class RulebookFieldTypeDeleteView(View):
 
     def post(self, request, pk):
         ft = get_object_or_404(RulebookFieldType, pk=pk)
+        rulebook = ft.field.rulebook
         rulebook_pk = ft.field.rulebook_id
+        _begin_rulebook_fields_change(rulebook, request)
         ft.delete()
+        _log_rulebook_fields_change(rulebook, request)
         messages.success(request, _("Type entry deleted."))
         return redirect(reverse("plugins:netbox_nsm:rulebook", args=[rulebook_pk]))

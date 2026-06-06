@@ -30,7 +30,6 @@
           "name": "comments",
           "type": "longtext",
           "label": "Comments",
-          "group_name": "Comments",
           "weight": 100
         },
         {
@@ -72,7 +71,6 @@
           "name": "comments",
           "type": "longtext",
           "label": "Comments",
-          "group_name": "Comments",
           "weight": 100
         },
         {
@@ -87,7 +85,6 @@
           "name": "protocol",
           "type": "select",
           "label": "Protocol",
-          "group_name": "NSM Service",
           "weight": 10,
           "choice_set": "nsm_services_protocol"
         },
@@ -97,7 +94,6 @@
           "type": "integer",
           "label": "Port",
           "description": "Port 0–65535 (TCP/UDP/SCTP only).",
-          "group_name": "NSM Service",
           "weight": 11,
           "validation_minimum": 0,
           "validation_maximum": 65535
@@ -108,7 +104,6 @@
           "type": "multiobject",
           "label": "Group",
           "description": "Group(s) this service belongs to.",
-          "group_name": "NSM Service",
           "weight": 12,
           "related_object_type": "custom-objects/nsm_services"
         }
@@ -144,7 +139,6 @@
           "name": "comments",
           "type": "longtext",
           "label": "Comments",
-          "group_name": "Comments",
           "weight": 100
         },
         {
@@ -159,7 +153,6 @@
           "name": "ip_address",
           "type": "object",
           "label": "IP Address",
-          "group_name": "NSM Address",
           "weight": 10,
           "related_object_type": "ipam/ipaddress"
         },
@@ -168,8 +161,7 @@
           "name": "range",
           "type": "object",
           "label": "Range",
-          "group_name": "NSM Address",
-          "weight": 20,
+          "weight": 11,
           "related_object_type": "ipam/iprange"
         },
         {
@@ -177,8 +169,7 @@
           "name": "prefix",
           "type": "object",
           "label": "Prefix",
-          "group_name": "NSM Address",
-          "weight": 30,
+          "weight": 12,
           "related_object_type": "ipam/prefix"
         },
         {
@@ -187,8 +178,7 @@
           "type": "multiobject",
           "label": "Group",
           "description": "Group(s) this address belongs to.",
-          "group_name": "NSM Address",
-          "weight": 40,
+          "weight": 13,
           "related_object_type": "custom-objects/nsm_addresses"
         }
       ],
@@ -223,7 +213,6 @@
           "name": "comments",
           "type": "longtext",
           "label": "Comments",
-          "group_name": "Comments",
           "weight": 100
         },
         {
@@ -239,7 +228,6 @@
           "type": "select",
           "label": "Label Type",
           "required": true,
-          "group_name": "NSM Label",
           "weight": 10,
           "choice_set": "nsm_labels_label_type"
         },
@@ -249,16 +237,6 @@
           "type": "text",
           "label": "Custom Type",
           "description": "Required when Label Type = Custom (e.g. 'Department').",
-          "group_name": "NSM Label",
-          "weight": 12
-        },
-        {
-          "id": 102,
-          "name": "display_template",
-          "type": "text",
-          "label": "Display Template",
-          "description": "Template string for display, e.g. {label_type}={name}",
-          "group_name": "NSM Label",
           "weight": 11
         }
       ],
@@ -293,7 +271,6 @@
           "name": "comments",
           "type": "longtext",
           "label": "Comments",
-          "group_name": "Comments",
           "weight": 100
         },
         {
@@ -302,15 +279,6 @@
           "type": "text",
           "label": "Color",
           "weight": 91
-        },
-        {
-          "id": 100,
-          "name": "display_template",
-          "type": "text",
-          "label": "Display Template",
-          "description": "Template string for display, e.g. {name}",
-          "group_name": "NSM Source/Destination",
-          "weight": 10
         }
       ],
       "removed_fields": []
@@ -344,7 +312,6 @@
           "name": "comments",
           "type": "longtext",
           "label": "Comments",
-          "group_name": "Comments",
           "weight": 100
         },
         {
@@ -410,7 +377,6 @@
           "name": "comments",
           "type": "longtext",
           "label": "Comments",
-          "group_name": "Comments",
           "weight": 100
         },
         {

@@ -28,6 +28,11 @@ from netbox_nsm.models import (
     RuleObjectItem,
     RuleGroupItem,
 )
+from netbox_nsm.changelog_utils import (
+    record_rule_assignment_changelog,
+    record_rulebook_rules_changelog,
+    snapshot_instance,
+)
 from netbox_nsm.branch_db import (
     branch_aware_manager,
     branch_aware_related,
@@ -262,6 +267,17 @@ class RuleForm(PrimaryModelForm):
 
     def save(self, commit=True):
         req = self._request
+        rulebook = self.instance.rulebook if self.instance.rulebook_id else None
+        if rulebook is None and hasattr(self, "cleaned_data"):
+            rulebook = self.cleaned_data.get("rulebook")
+        rb_prechange = (
+            snapshot_instance(rulebook)
+            if commit and req and rulebook and rulebook.pk
+            else None
+        )
+        prechange = None
+        if commit and req and self.instance.pk:
+            prechange = snapshot_instance(self.instance)
         with ensure_branch_context(req):
             alias = (
                 router_write_alias(Rule)
@@ -280,8 +296,13 @@ class RuleForm(PrimaryModelForm):
                         if db_alias:
                             instance._state.db = db_alias
                         pin_instance_db_alias(instance, req)
+                        if prechange is None and req and instance.pk:
+                            prechange = snapshot_instance(instance)
                         self._save_area_selections(instance, db_alias=db_alias)
                         self._save_virtual_group_config(instance)
+                        record_rule_assignment_changelog(instance, req, prechange)
+                        if rb_prechange:
+                            record_rulebook_rules_changelog(rulebook, req, rb_prechange)
         return instance
 
     def _save_virtual_group_config(self, instance):

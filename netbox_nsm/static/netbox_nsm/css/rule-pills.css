@@ -330,6 +330,24 @@ span.nsm-rulebook-count-pill {
   padding: 0.12em 0.38em;
 }
 
+.nsm-rb-kind-badges {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 0.15rem;
+  max-width: 100%;
+}
+
+.nsm-rb-kind-badges .badge {
+  flex-shrink: 0;
+}
+
+.nsm-rb-kind-badges .badge .mdi {
+  font-size: 0.85rem;
+  line-height: 1;
+  vertical-align: -0.05em;
+}
+
 .nsm-rb-col-actions .btn-group-sm > .btn {
   line-height: 1;
   padding: 0.12rem 0.28rem;

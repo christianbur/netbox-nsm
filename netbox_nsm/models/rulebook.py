@@ -125,6 +125,16 @@ class Rulebook(ContactsMixin, PrimaryModel):
             if ftc.type_config.matching_class
         }
 
+    def serialize_object(self, exclude=None):
+        data = super().serialize_object(exclude=exclude)
+        if self.pk:
+            from netbox_nsm.rulebook_field_utils import serialize_rulebook_fields_layout
+            from netbox_nsm.rulebook_rules_utils import serialize_rulebook_rules_layout
+
+            data["fields_layout"] = serialize_rulebook_fields_layout(self)
+            data["rules_layout"] = serialize_rulebook_rules_layout(self)
+        return data
+
 
 class _FieldPlacementChoices(models.TextChoices):
     SOURCE = "source", _("Source")
@@ -411,41 +421,42 @@ class Rule(ContactsMixin, PrimaryModel):
         return data
 
 
+def _object_item_changelog_key(field_slug, content_type_id, object_id):
+    return f"{field_slug or ''}:ct_{content_type_id}:{object_id}"
+
+
+def _group_item_changelog_key(field_slug, security_group_id):
+    return f"{field_slug or ''}:grp_{security_group_id}"
+
+
 def _serialize_rule_object_items(rule):
-    rows = []
+    items = {}
     for item in rule.object_items.select_related("field", "content_type"):
-        rows.append(
-            {
-                "field": item.field.slug if item.field_id else None,
-                "content_type": item.content_type_id,
-                "object_id": item.object_id,
-                "exclude": item.exclude,
-            }
+        field_slug = item.field.slug if item.field_id else ""
+        key = _object_item_changelog_key(
+            field_slug, item.content_type_id, item.object_id
         )
-    return sorted(
-        rows,
-        key=lambda row: (
-            row["field"] or "",
-            row["content_type"],
-            row["object_id"],
-        ),
-    )
+        items[key] = {
+            "field": field_slug or None,
+            "content_type": item.content_type_id,
+            "object_id": item.object_id,
+            "exclude": item.exclude,
+        }
+    return items
 
 
 def _serialize_rule_group_items(rule):
-    rows = []
+    items = {}
     for item in rule.group_items.select_related("field", "security_group"):
-        rows.append(
-            {
-                "field": item.field.slug if item.field_id else None,
-                "security_group": item.security_group.name,
-                "exclude": item.exclude,
-            }
-        )
-    return sorted(
-        rows,
-        key=lambda row: (row["field"] or "", row["security_group"]),
-    )
+        field_slug = item.field.slug if item.field_id else ""
+        key = _group_item_changelog_key(field_slug, item.security_group_id)
+        items[key] = {
+            "field": field_slug or None,
+            "security_group": item.security_group.name,
+            "security_group_id": item.security_group_id,
+            "exclude": item.exclude,
+        }
+    return items
 
 
 class _NsmJunctionModel(ChangeLoggingMixin, BaseModel):

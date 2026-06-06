@@ -135,6 +135,10 @@ class TypeConfigForm(NetBoxModelForm):
         instance.panel_linkable_types = self.cleaned_data.get(
             "panel_linkable_types", []
         )
+        if commit and instance.pk and hasattr(instance, "_prechange_snapshot"):
+            from netbox_nsm.changelog_utils import apply_type_config_changelog_message
+
+            apply_type_config_changelog_message(instance)
         if commit:
             instance.save()
         return instance

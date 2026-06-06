@@ -2,6 +2,12 @@ from rest_framework.routers import APIRootView
 from rest_framework.viewsets import GenericViewSet
 from netbox.api.viewsets import NetBoxModelViewSet
 
+from .changelog_mixins import (
+    RuleAssignmentChangelogMixin,
+    RulebookFieldTypeLayoutChangelogMixin,
+    RulebookLayoutChangelogMixin,
+    RuleRulesChangelogMixin,
+)
 from .serializers import (
     RulebookSerializer,
     RuleSerializer,
@@ -53,7 +59,7 @@ class RulebookViewSet(NetBoxModelViewSet):
     filterset_class = RulebookFilterSet
 
 
-class RuleViewSet(NetBoxModelViewSet):
+class RuleViewSet(RuleRulesChangelogMixin, NetBoxModelViewSet):
     queryset = Rule.objects.select_related("rulebook").prefetch_related("tags")
     serializer_class = RuleSerializer
     filterset_class = RuleFilterSet
@@ -97,7 +103,7 @@ class _PlainModelViewSet(NetBoxModelViewSet):
         return self.queryset
 
 
-class RulebookFieldViewSet(_PlainModelViewSet):
+class RulebookFieldViewSet(RulebookLayoutChangelogMixin, _PlainModelViewSet):
     queryset = RulebookField.objects.select_related("rulebook").order_by(
         "rulebook", "sort_order", "slug"
     )
@@ -105,7 +111,9 @@ class RulebookFieldViewSet(_PlainModelViewSet):
     filterset_class = RulebookFieldFilterSet
 
 
-class RulebookFieldTypeViewSet(_PlainModelViewSet):
+class RulebookFieldTypeViewSet(
+    RulebookFieldTypeLayoutChangelogMixin, _PlainModelViewSet
+):
     queryset = RulebookFieldType.objects.select_related(
         "field", "type_config__content_type"
     ).order_by("field", "sort_order")
@@ -113,7 +121,7 @@ class RulebookFieldTypeViewSet(_PlainModelViewSet):
     filterset_class = RulebookFieldTypeFilterSet
 
 
-class RuleObjectItemViewSet(_PlainModelViewSet):
+class RuleObjectItemViewSet(RuleAssignmentChangelogMixin, _PlainModelViewSet):
     queryset = RuleObjectItem.objects.select_related(
         "rule", "field", "content_type"
     ).order_by("pk")
@@ -121,7 +129,7 @@ class RuleObjectItemViewSet(_PlainModelViewSet):
     filterset_class = RuleObjectItemFilterSet
 
 
-class RuleGroupItemViewSet(_PlainModelViewSet):
+class RuleGroupItemViewSet(RuleAssignmentChangelogMixin, _PlainModelViewSet):
     queryset = RuleGroupItem.objects.select_related(
         "rule", "field", "security_group"
     ).order_by("pk")

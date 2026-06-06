@@ -289,4 +289,23 @@ class TypeConfig(NetBoxModel):
         return base
 
     def get_absolute_url(self):
-        return reverse("plugins:netbox_nsm:typeconfig_edit", args=[self.pk])
+        return reverse("plugins:netbox_nsm:typeconfig", args=[self.pk])
+
+    def serialize_object(self, exclude=None):
+        data = super().serialize_object(exclude=exclude)
+        data["panel_slugs"] = _serialize_type_config_panel_slugs(self.panel_slugs)
+        data["panel_linkable_types"] = _serialize_type_config_panel_linkable_types(
+            self.panel_linkable_types
+        )
+        return data
+
+
+def _serialize_type_config_panel_slugs(slugs):
+    return {slug: True for slug in (slugs or [])}
+
+
+def _serialize_type_config_panel_linkable_types(type_ids):
+    ids = type_ids or []
+    if ids == [PANEL_LINKABLE_DISABLED]:
+        return {"__disabled__": True}
+    return {str(int(pk)): int(pk) for pk in ids if int(pk) != PANEL_LINKABLE_DISABLED}

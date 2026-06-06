@@ -13,6 +13,8 @@ from netbox_nsm.picker_browse import (
     serialize_picker_object,
 )
 from django.db.models import Q
+from ipam.models import Prefix
+from utilities.testing import TestCase
 
 
 class PickerBrowseHelperTests(SimpleTestCase):
@@ -76,3 +78,10 @@ class PickerBrowseHelperTests(SimpleTestCase):
         rx = re.compile(pattern)
         self.assertTrue(rx.search("prod-web"))
         self.assertFalse(rx.search("dev-web"))
+
+
+class PickerBrowseQueryTests(TestCase):
+    def test_filter_queryset_by_query_prefix_single_char(self):
+        prefix = Prefix.objects.create(prefix="10.60.0.0/24", status="active")
+        filtered = _filter_queryset_by_query(Prefix.objects.all(), Prefix, "1")
+        self.assertIn(prefix, filtered)

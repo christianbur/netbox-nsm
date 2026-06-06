@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Entfernt redundantes NSM-Präfix aus Modellen, Dateien und Referenzen.
 
-Voraussetzung: leere DB / nur 0001_initial — siehe docs/NAMING.md.
+Voraussetzung: leere DB / nur 0001_initial.
 
 Ausführen im Plugin-Root:
   python3 scripts/drop_nsm_prefix.py
@@ -227,30 +227,81 @@ FILE_RENAMES = [
     ("api/serializers_/nsm_type_config.py", "api/serializers_/type_config.py"),
     # static
     ("static/netbox_nsm/js/rule_form.js", "static/netbox_nsm/js/rule_form.js"),
-    ("static/netbox_nsm/js/object_group_form.js", "static/netbox_nsm/js/object_group_form.js"),
+    (
+        "static/netbox_nsm/js/object_group_form.js",
+        "static/netbox_nsm/js/object_group_form.js",
+    ),
     ("static/netbox_nsm/js/visible_when.js", "static/netbox_nsm/js/visible_when.js"),
     # templates
-    ("templates/netbox_nsm/rulebook_policy.html", "templates/netbox_nsm/rulebook_policy.html"),
-    ("templates/netbox_nsm/rulebook_list.html", "templates/netbox_nsm/rulebook_list.html"),
+    (
+        "templates/netbox_nsm/rulebook_policy.html",
+        "templates/netbox_nsm/rulebook_policy.html",
+    ),
+    (
+        "templates/netbox_nsm/rulebook_list.html",
+        "templates/netbox_nsm/rulebook_list.html",
+    ),
     ("templates/netbox_nsm/rulebook.html", "templates/netbox_nsm/rulebook.html"),
-    ("templates/netbox_nsm/rulebook_matrix.html", "templates/netbox_nsm/rulebook_matrix.html"),
-    ("templates/netbox_nsm/rulebook_ipanalysis.html", "templates/netbox_nsm/rulebook_ipanalysis.html"),
-    ("templates/netbox_nsm/rulebook_visualization.html", "templates/netbox_nsm/rulebook_visualization.html"),
-    ("templates/netbox_nsm/rulebook_bulk_assign.html", "templates/netbox_nsm/rulebook_bulk_assign.html"),
-    ("templates/netbox_nsm/rulebook_analysis.html", "templates/netbox_nsm/rulebook_analysis.html"),
+    (
+        "templates/netbox_nsm/rulebook_matrix.html",
+        "templates/netbox_nsm/rulebook_matrix.html",
+    ),
+    (
+        "templates/netbox_nsm/rulebook_ipanalysis.html",
+        "templates/netbox_nsm/rulebook_ipanalysis.html",
+    ),
+    (
+        "templates/netbox_nsm/rulebook_visualization.html",
+        "templates/netbox_nsm/rulebook_visualization.html",
+    ),
+    (
+        "templates/netbox_nsm/rulebook_bulk_assign.html",
+        "templates/netbox_nsm/rulebook_bulk_assign.html",
+    ),
+    (
+        "templates/netbox_nsm/rulebook_analysis.html",
+        "templates/netbox_nsm/rulebook_analysis.html",
+    ),
     ("templates/netbox_nsm/rule.html", "templates/netbox_nsm/rule.html"),
     ("templates/netbox_nsm/rule_edit.html", "templates/netbox_nsm/rule_edit.html"),
     ("templates/netbox_nsm/objectgroup.html", "templates/netbox_nsm/objectgroup.html"),
-    ("templates/netbox_nsm/objectgroup_list.html", "templates/netbox_nsm/objectgroup_list.html"),
-    ("templates/netbox_nsm/objectgroup_edit.html", "templates/netbox_nsm/objectgroup_edit.html"),
-    ("templates/netbox_nsm/objectgroup_assignments.html", "templates/netbox_nsm/objectgroup_assignments.html"),
-    ("templates/netbox_nsm/objectgroup_area.html", "templates/netbox_nsm/objectgroup_area.html"),
-    ("templates/netbox_nsm/object_link_assign.html", "templates/netbox_nsm/object_link_assign.html"),
-    ("templates/netbox_nsm/object_link_edit.html", "templates/netbox_nsm/object_link_edit.html"),
-    ("templates/netbox_nsm/object_link_delete.html", "templates/netbox_nsm/object_link_delete.html"),
+    (
+        "templates/netbox_nsm/objectgroup_list.html",
+        "templates/netbox_nsm/objectgroup_list.html",
+    ),
+    (
+        "templates/netbox_nsm/objectgroup_edit.html",
+        "templates/netbox_nsm/objectgroup_edit.html",
+    ),
+    (
+        "templates/netbox_nsm/objectgroup_assignments.html",
+        "templates/netbox_nsm/objectgroup_assignments.html",
+    ),
+    (
+        "templates/netbox_nsm/objectgroup_area.html",
+        "templates/netbox_nsm/objectgroup_area.html",
+    ),
+    (
+        "templates/netbox_nsm/object_link_assign.html",
+        "templates/netbox_nsm/object_link_assign.html",
+    ),
+    (
+        "templates/netbox_nsm/object_link_edit.html",
+        "templates/netbox_nsm/object_link_edit.html",
+    ),
+    (
+        "templates/netbox_nsm/object_link_delete.html",
+        "templates/netbox_nsm/object_link_delete.html",
+    ),
     ("templates/netbox_nsm/property.html", "templates/netbox_nsm/property.html"),
-    ("templates/netbox_nsm/propertytype.html", "templates/netbox_nsm/propertytype.html"),
-    ("templates/netbox_nsm/inc/security_links.html", "templates/netbox_nsm/inc/security_links.html"),
+    (
+        "templates/netbox_nsm/propertytype.html",
+        "templates/netbox_nsm/propertytype.html",
+    ),
+    (
+        "templates/netbox_nsm/inc/security_links.html",
+        "templates/netbox_nsm/inc/security_links.html",
+    ),
 ]
 
 DELETE_PATHS = [
@@ -268,7 +319,15 @@ DELETE_PATHS = [
 
 SKIP_DIRS = {".git", "__pycache__", "locale", ".pytest_cache"}
 TEXT_EXTENSIONS = {
-    ".py", ".html", ".md", ".js", ".json", ".po", ".txt", ".yml", ".yaml"
+    ".py",
+    ".html",
+    ".md",
+    ".js",
+    ".json",
+    ".po",
+    ".txt",
+    ".yml",
+    ".yaml",
 }
 
 

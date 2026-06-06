@@ -7,14 +7,19 @@
   <td class="nsm-rb-col-kind align-middle">
     {% if field.is_system_field %}
       <span class="badge text-bg-secondary">{% trans "System" %}</span>
-    {% elif field.placement == "source" %}
-      <span class="badge text-bg-secondary">{% trans "Source" %}</span>
-    {% elif field.placement == "destination" %}
-      <span class="badge text-bg-secondary">{% trans "Destination" %}</span>
-    {% elif field.placement == "fixed" %}
-      <span class="badge text-bg-secondary">{% trans "Fixed" %}</span>
     {% else %}
-      <span class="badge text-bg-secondary">{{ field.get_placement_display }}</span>
+      {% if field.is_container_field %}
+        <span class="badge text-bg-secondary">{% trans "Container" %}</span>
+      {% endif %}
+      {% if field.placement == "source" %}
+        <span class="badge text-bg-secondary{% if field.is_container_field %} ms-1{% endif %}">{% trans "Source" %}</span>
+      {% elif field.placement == "destination" %}
+        <span class="badge text-bg-secondary{% if field.is_container_field %} ms-1{% endif %}">{% trans "Destination" %}</span>
+      {% elif field.placement == "fixed" %}
+        <span class="badge text-bg-secondary{% if field.is_container_field %} ms-1{% endif %}">{% trans "Fixed" %}</span>
+      {% else %}
+        <span class="badge text-bg-secondary{% if field.is_container_field %} ms-1{% endif %}">{{ field.get_placement_display }}</span>
+      {% endif %}
     {% endif %}
   </td>
   <td class="nsm-rb-col-flags align-middle">
@@ -23,6 +28,7 @@
     </div>
   </td>
   <td class="nsm-rb-col-actions align-middle text-end">
+    {% if not rulebook_readonly %}
     <span class="btn-group btn-group-sm noprint">
       {% if not field.is_system_field %}
       <a href="{% url 'plugins:netbox_nsm:rulebookfieldtype_add' %}?field={{ field.pk }}"
@@ -30,17 +36,18 @@
         <i class="mdi mdi-plus-thick"></i>
       </a>
       {% endif %}
-      <a href="{% url 'plugins:netbox_nsm:rulebookfield_edit' field.pk %}"
-         class="btn btn-warning" title="{% trans 'Edit' %}">
-        <i class="mdi mdi-pencil"></i>
-      </a>
       {% if not field.is_system_field %}
       <a href="{% url 'plugins:netbox_nsm:rulebookfield_delete' field.pk %}"
          class="btn btn-danger" title="{% trans 'Delete' %}">
         <i class="mdi mdi-trash-can-outline"></i>
       </a>
       {% endif %}
+      <a href="{% url 'plugins:netbox_nsm:rulebookfield_edit' field.pk %}"
+         class="btn btn-warning" title="{% trans 'Edit' %}">
+        <i class="mdi mdi-pencil"></i>
+      </a>
     </span>
+    {% endif %}
   </td>
 </tr>
 {% if not field.is_system_field %}

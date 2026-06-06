@@ -45,8 +45,12 @@ def custom_objects_db_ready() -> bool:
         return False
 
 
-def _empty_cot_status():
+def empty_cot_status():
     return {slug: None for slug in REQUIRED_COT_SLUGS}
+
+
+def _empty_cot_status():
+    return empty_cot_status()
 
 
 def get_cot_status():

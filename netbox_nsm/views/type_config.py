@@ -18,7 +18,9 @@ __all__ = (
 
 
 class TypeConfigListView(generic.ObjectListView):
-    queryset = TypeConfig.objects.select_related("content_type")
+    queryset = TypeConfig.objects.select_related("content_type").prefetch_related(
+        "panel_linkable_content_types"
+    )
     table = TypeConfigTable
     filterset = TypeConfigFilterSet
 

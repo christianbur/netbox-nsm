@@ -4,3 +4,4 @@ from .object_link import *
 from .rulebook import *
 from .property import *
 from .object_group import *
+from .setup_settings import *

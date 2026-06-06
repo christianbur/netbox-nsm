@@ -1,22 +1,73 @@
 from django import forms
-from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext_lazy as _
 
-from netbox_nsm.models import ObjectLink, TypeConfig
+from netbox_nsm.link_propagation import propagation_choices_for_object
+from netbox_nsm.models import TypeConfig
+from netbox_nsm.models.object_link import LinkPropagationChoices
 
-__all__ = ("ObjectLinkAssignForm",)
+__all__ = ("ObjectLinkAssignForm", "ObjectLinkEditForm")
 
 
-def _build_type_choices():
-    """Return choices for types with panel_linkable=True, using 'Name (matching_class)' labels."""
-    all_configs = list(
-        TypeConfig.objects.filter(panel_linkable=True)
-        .select_related("content_type")
-        .order_by("name", "matching_class")
+class ObjectLinkPropagationForm(forms.Form):
+    """Base form with propagation fields (must subclass forms.Form for Django 4.6+)."""
+
+    propagation = forms.ChoiceField(
+        label=_("Link type"),
+        choices=LinkPropagationChoices.choices,
+        initial=LinkPropagationChoices.DIRECT,
+        widget=forms.Select(attrs={"class": "form-select", "id": "id_propagation"}),
+    )
+    propagate_stop_on_own = forms.BooleanField(
+        label=_("Stop when child has own link of same type"),
+        required=False,
+        initial=False,
+        widget=forms.CheckboxInput(
+            attrs={"class": "form-check-input", "id": "id_propagate_stop_on_own"}
+        ),
     )
 
+    def _configure_propagation_fields(self, source_object):
+        self.source_object = source_object
+        if source_object is not None:
+            self.fields["propagation"].choices = propagation_choices_for_object(
+                source_object
+            )
+        if self.fields["propagation"].choices == [
+            (LinkPropagationChoices.DIRECT, LinkPropagationChoices.DIRECT.label)
+        ]:
+            self.fields["propagate_stop_on_own"].widget = forms.HiddenInput()
+
+    def _clean_propagation_fields(self, data):
+        propagation = data.get("propagation") or LinkPropagationChoices.DIRECT
+        if getattr(self, "source_object", None) is not None:
+            allowed_modes = {
+                value
+                for value, _label in propagation_choices_for_object(self.source_object)
+            }
+            if propagation not in allowed_modes:
+                self.add_error("propagation", _("Invalid link type for this object."))
+        if propagation == LinkPropagationChoices.DIRECT:
+            data["propagate_stop_on_own"] = False
+        return data
+
+
+def _build_type_choices(source_content_type_id: int | None = None):
+    """NSM types assignable as Object B for Object A of *source_content_type_id*."""
+    if source_content_type_id:
+        configs = list(
+            TypeConfig.queryset_panel_linkable_for(source_content_type_id)
+            .select_related("content_type")
+            .order_by("name", "matching_class")
+        )
+    else:
+        configs = list(
+            TypeConfig.objects.filter(panel_linkable=True)
+            .select_related("content_type")
+            .order_by("name", "matching_class")
+        )
+
     choices = [("", _("── Select type ──"))]
-    for cfg in all_configs:
+    for cfg in configs:
         if cfg.name and cfg.matching_class:
             label = f"{cfg.name} ({cfg.matching_class})"
         elif cfg.name:
@@ -25,14 +76,17 @@ def _build_type_choices():
             ct = cfg.content_type
             model_class = ct.model_class()
             if model_class:
-                label = f"{model_class._meta.app_config.verbose_name} → {str(model_class._meta.verbose_name).title()}"
+                label = (
+                    f"{model_class._meta.app_config.verbose_name} → "
+                    f"{str(model_class._meta.verbose_name).title()}"
+                )
             else:
                 label = f"{ct.app_label} → {ct.model}"
         choices.append((cfg.content_type.pk, label))
     return choices
 
 
-class ObjectLinkAssignForm(forms.Form):
+class ObjectLinkAssignForm(ObjectLinkPropagationForm):
     """
     Form shown when the user clicks "Assign" in the Security panel.
 
@@ -45,7 +99,7 @@ class ObjectLinkAssignForm(forms.Form):
 
     object_b_type = forms.ChoiceField(
         label=_("Type (Object B)"),
-        choices=[],  # populated in __init__
+        choices=[],
     )
     object_b_id = forms.IntegerField(
         label=_("Element"),
@@ -56,7 +110,6 @@ class ObjectLinkAssignForm(forms.Form):
         widget=forms.HiddenInput(),
         required=False,
     )
-    # Populated via AJAX – rendered as a select
     object_b_display = forms.CharField(
         label=_("Object"),
         required=False,
@@ -69,14 +122,49 @@ class ObjectLinkAssignForm(forms.Form):
         widget=forms.Textarea(attrs={"rows": 3}),
     )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(
+        self, *args, source_content_type_id=None, source_object=None, **kwargs
+    ):
+        self.source_content_type_id = source_content_type_id
         super().__init__(*args, **kwargs)
-        self.fields["object_b_type"].choices = _build_type_choices()
+        self.fields["object_b_type"].choices = _build_type_choices(
+            source_content_type_id
+        )
+        self._configure_propagation_fields(source_object)
 
     def clean(self):
         data = super().clean()
         ct_pk = data.get("object_b_type")
         if not ct_pk:
             self.add_error("object_b_type", _("Please select a type."))
-        # object_b_id validation is handled in the view (supports multiple IDs)
-        return data
+            return data
+
+        if self.source_content_type_id:
+            allowed = TypeConfig.queryset_panel_linkable_for(
+                self.source_content_type_id
+            ).filter(content_type_id=int(ct_pk))
+            if not allowed.exists():
+                self.add_error(
+                    "object_b_type",
+                    _("This type is not linkable from the selected object."),
+                )
+
+        return self._clean_propagation_fields(data)
+
+
+class ObjectLinkEditForm(ObjectLinkPropagationForm):
+    """Edit propagation and comment on an existing ObjectLink."""
+
+    comment = forms.CharField(
+        label=_("Comment"),
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 3, "class": "form-control"}),
+    )
+
+    def __init__(self, *args, source_object=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._configure_propagation_fields(source_object)
+
+    def clean(self):
+        data = super().clean()
+        return self._clean_propagation_fields(data)

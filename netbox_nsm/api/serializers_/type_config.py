@@ -1,3 +1,4 @@
+from rest_framework import serializers
 from rest_framework.serializers import HyperlinkedIdentityField
 
 from netbox.api.fields import ContentTypeField
@@ -13,6 +14,8 @@ class TypeConfigSerializer(NetBoxModelSerializer):
         view_name="plugins-api:netbox_nsm-api:typeconfig-detail"
     )
     content_type = ContentTypeField(read_only=True)
+    panel_linkable_content_types = ContentTypeField(many=True, read_only=True)
+    panel_linkable = serializers.BooleanField(required=False)
 
     class Meta:
         model = TypeConfig
@@ -26,9 +29,10 @@ class TypeConfigSerializer(NetBoxModelSerializer):
             "display_template",
             "panel_slugs",
             "order_id",
-            "allow_virtual_groups",
             "panel_linkable",
+            "panel_linkable_content_types",
             "inherit_links",
+            "inherit_mode",
             "inherit_stop_on_own",
             "tags",
             "custom_fields",

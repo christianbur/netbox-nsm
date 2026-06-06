@@ -5,7 +5,6 @@ from __future__ import annotations
 __all__ = (
     "branch_schema_id_from_request",
     "with_branch_query",
-    "wrap_policy_row_urls",
     "wrap_matrix_cell_hrefs",
 )
 

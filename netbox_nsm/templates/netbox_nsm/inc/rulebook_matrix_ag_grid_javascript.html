@@ -1,3 +1,4 @@
 <script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/nsm_branch_api.js' %}?v=1"></script>
-<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='vendor/ag-grid-community/dist/ag-grid-community.min.js' %}?v=33.2.4"></script>
-<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/matrix_ag_grid.js' %}?v=20260815"></script>
+{% load ag_grid_vendor %}
+<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='vendor/ag-grid-community/dist/ag-grid-community.min.js' %}?v={% ag_grid_community_version %}"></script>
+<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/matrix_ag_grid.js' %}?v=20260610"></script>

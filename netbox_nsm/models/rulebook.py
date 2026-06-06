@@ -5,7 +5,8 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from dcim.models import Device, Platform, VirtualDeviceContext
-from netbox.models import NetBoxModel, PrimaryModel
+from netbox.models import BaseModel, ChangeLoggedModel, NetBoxModel, PrimaryModel
+from netbox.models.features import ChangeLoggingMixin
 from netbox.models.features import ContactsMixin
 from netbox.search import SearchIndex, register_search
 from virtualization.models import VirtualMachine
@@ -15,6 +16,7 @@ from netbox_nsm.constants import RULESET_ASSIGNMENT_MODELS
 
 __all__ = (
     "RulebookTypeChoices",
+    "RulebookStatusChoices",
     "RulebookFacetMode",
     "Rulebook",
     "RulebookField",
@@ -32,9 +34,16 @@ class RulebookTypeChoices(models.TextChoices):
     POLICY = "policy", _("Security Rules")
 
 
+class RulebookStatusChoices(models.TextChoices):
+    ACTIVE = "active", _("Active")
+    DEPRECATED = "deprecated", _("Deprecated")
+    RESERVED = "reserved", _("Reserved")
+    CONTAINER = "container", _("Container")
+
+
 class RulebookFacetMode(models.TextChoices):
-    VALUE = "value", _("Value")
-    SET = "set", _("Set")
+    VALUE = "value", _("Pro Wert")
+    SET = "set", _("Pro Kombination")
     DISABLED = "disabled", _("Disabled")
 
 
@@ -44,6 +53,12 @@ class Rulebook(ContactsMixin, PrimaryModel):
         max_length=20,
         choices=RulebookTypeChoices.choices,
         default=RulebookTypeChoices.POLICY,
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=RulebookStatusChoices.choices,
+        default=RulebookStatusChoices.ACTIVE,
+        verbose_name=_("Status"),
     )
     rule_comment_template = models.TextField(
         blank=True,
@@ -72,6 +87,15 @@ class Rulebook(ContactsMixin, PrimaryModel):
             "Link to the management interface of the associated firewall or device."
         ),
     )
+    parent = models.ForeignKey(
+        to="self",
+        on_delete=models.SET_NULL,
+        related_name="children",
+        blank=True,
+        null=True,
+        verbose_name=_("Parent rulebook"),
+        help_text=_("Optional parent rulebook for hierarchical grouping."),
+    )
 
     class Meta:
         verbose_name = _("Rulebook")
@@ -86,6 +110,11 @@ class Rulebook(ContactsMixin, PrimaryModel):
 
     def get_rules_tab_url(self):
         return reverse("plugins:netbox_nsm:rulebook_rules", args=[self.pk])
+
+    def hierarchy_depth(self) -> int:
+        from netbox_nsm.rulebook_hierarchy import hierarchy_depth
+
+        return hierarchy_depth(self)
 
     @property
     def matching_classes(self) -> set:
@@ -109,7 +138,7 @@ class RulebookFieldKind(models.TextChoices):
     SYSTEM = "system", _("System")
 
 
-class RulebookField(models.Model):
+class RulebookField(ChangeLoggedModel):
     """A field (column) in a Rulebook's rule editor."""
 
     rulebook = models.ForeignKey(
@@ -174,8 +203,8 @@ class RulebookField(models.Model):
         default=RulebookFacetMode.VALUE,
         verbose_name=_("Facet Mode"),
         help_text=_(
-            "Value: count each value separately. Set: count value combinations. "
-            "Disabled: hide this field from the facet filter panel."
+            "Pro Wert: jeder Wert zählt einzeln. Pro Kombination: Wertekombinationen zählen gemeinsam. "
+            "Deaktiviert: Feld nicht in der Facetten-Leiste anzeigen."
         ),
     )
     facet_weight = models.PositiveIntegerField(
@@ -218,11 +247,27 @@ class RulebookField(models.Model):
         return self.facet_mode != RulebookFacetMode.DISABLED
 
     @property
+    def has_subfield_types(self):
+        return self.type_configs.exists()
+
+    @property
+    def is_container_field(self):
+        """Object field that groups one or more sub-types (TypeConfig rows)."""
+        return not self.is_system_field and self.has_subfield_types
+
+    @property
+    def shows_field_level_facets(self):
+        return self.is_facetable and not self.has_subfield_types
+
+    @property
     def display(self):
         return str(self)
 
+    def get_absolute_url(self):
+        return reverse("plugins:netbox_nsm:rulebook", args=[self.rulebook_id])
 
-class RulebookFieldType(models.Model):
+
+class RulebookFieldType(ChangeLoggedModel):
     field = models.ForeignKey(
         to="netbox_nsm.RulebookField",
         on_delete=models.CASCADE,
@@ -263,6 +308,16 @@ class RulebookFieldType(models.Model):
         verbose_name=_("Visible"),
         help_text=_("Show this type as a column in the policy table."),
     )
+    facet_mode = models.CharField(
+        max_length=10,
+        choices=RulebookFacetMode.choices,
+        default=RulebookFacetMode.VALUE,
+        verbose_name=_("Facet Mode"),
+        help_text=_(
+            "Anzeige in der Facetten-Leiste der Policy-Ansicht. "
+            "Pro Wert zählt jeden Wert einzeln; Pro Kombination zählt Wertekombinationen."
+        ),
+    )
 
     class Meta:
         unique_together = (("field", "type_config"),)
@@ -276,6 +331,13 @@ class RulebookFieldType(models.Model):
     @property
     def display(self):
         return str(self)
+
+    @property
+    def is_facetable(self):
+        return self.facet_mode != RulebookFacetMode.DISABLED
+
+    def get_absolute_url(self):
+        return reverse("plugins:netbox_nsm:rulebook", args=[self.field.rulebook_id])
 
 
 class Rule(ContactsMixin, PrimaryModel):
@@ -298,15 +360,6 @@ class Rule(ContactsMixin, PrimaryModel):
         related_name="%(class)s_destination_users",
     )
     log_enabled = models.BooleanField(default=False)
-    virtual_group_config = models.JSONField(
-        blank=True,
-        default=dict,
-        verbose_name="Virtual Group Config",
-        help_text=(
-            "Stores virtual AND-group configuration per area. "
-            "Format: {area_slug: [[id1,id2],[id3]]} — outer=OR, inner=AND."
-        ),
-    )
 
     class Meta:
         verbose_name = _("Security Rule")
@@ -349,8 +402,59 @@ class Rule(ContactsMixin, PrimaryModel):
         base = reverse("plugins:netbox_nsm:rulebook_rules", args=[self.rulebook_id])
         return f"{base}?nsm_q={quote(q)}"
 
+    def serialize_object(self, exclude=None):
+        data = super().serialize_object(exclude=exclude)
+        if self.pk:
+            data["object_items"] = _serialize_rule_object_items(self)
+            data["group_items"] = _serialize_rule_group_items(self)
+        return data
 
-class RuleObjectItem(models.Model):
+
+def _serialize_rule_object_items(rule):
+    rows = []
+    for item in rule.object_items.select_related("field", "content_type"):
+        rows.append(
+            {
+                "field": item.field.slug if item.field_id else None,
+                "content_type": item.content_type_id,
+                "object_id": item.object_id,
+                "exclude": item.exclude,
+            }
+        )
+    return sorted(
+        rows,
+        key=lambda row: (
+            row["field"] or "",
+            row["content_type"],
+            row["object_id"],
+        ),
+    )
+
+
+def _serialize_rule_group_items(rule):
+    rows = []
+    for item in rule.group_items.select_related("field", "security_group"):
+        rows.append(
+            {
+                "field": item.field.slug if item.field_id else None,
+                "security_group": item.security_group.name,
+                "exclude": item.exclude,
+            }
+        )
+    return sorted(
+        rows,
+        key=lambda row: (row["field"] or "", row["security_group"]),
+    )
+
+
+class _NsmJunctionModel(ChangeLoggingMixin, BaseModel):
+    """Branch-aware junction rows with changelog, without event rules."""
+
+    class Meta:
+        abstract = True
+
+
+class RuleObjectItem(_NsmJunctionModel):
     rule = models.ForeignKey(
         to="netbox_nsm.Rule",
         on_delete=models.CASCADE,
@@ -427,8 +531,11 @@ class RuleObjectItem(models.Model):
     def display(self):
         return str(self)
 
+    def get_absolute_url(self):
+        return reverse("plugins:netbox_nsm:rule", args=[self.rule_id])
 
-class RuleGroupItem(models.Model):
+
+class RuleGroupItem(_NsmJunctionModel):
     rule = models.ForeignKey(
         to="netbox_nsm.Rule",
         on_delete=models.CASCADE,
@@ -467,6 +574,9 @@ class RuleGroupItem(models.Model):
 
     def __str__(self):
         return f"{self.rule} / {self.field} / {self.security_group}"
+
+    def get_absolute_url(self):
+        return reverse("plugins:netbox_nsm:rule", args=[self.rule_id])
 
 
 class RulebookAssignment(NetBoxModel):

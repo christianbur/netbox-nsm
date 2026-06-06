@@ -1,81 +1,117 @@
 {% load i18n %}
 
 <h5 class="d-flex align-items-center gap-2 mb-2 mt-2">
+  <span class="badge text-bg-secondary">4</span>
   <i class="mdi mdi-flask-outline"></i>
-  {% trans "Create demo rulebooks" %}
+  {% trans "Demo" %}
 </h5>
 <div class="card mb-4">
   <div class="card-body">
+    {% if setup_allow_destructive_actions %}
+    {% if not all_tcs_ok %}
+    <p class="text-muted small mb-3">{% trans "Available after section 3 is complete." %}</p>
+    {% endif %}
     <div class="row g-3">
-
-      <div class="col-md-6">
+      <div class="col-md-4">
         <div class="card h-100 border-primary-subtle">
           <div class="card-body">
-            <h6 class="card-title fw-semibold">
-              <i class="mdi mdi-flask-outline me-1 text-primary"></i>{% trans "Starter demo" %}
-            </h6>
-            <p class="card-text text-muted small mb-2">
-              {% blocktrans %}Imports built-in Custom Object Types and TypeConfigs if needed, then creates both small demo rulebooks:{% endblocktrans %}
+            <h6 class="card-title fw-semibold">{% trans "Starter demo" %}</h6>
+            <p class="card-text text-muted small mb-3">
+              {% trans "Zone Matrix + Addresses rulebooks." %}
             </p>
-            <ul class="text-muted small mb-3 ps-3">
-              <li>
-                <strong>{% trans "Demo - Zone Matrix" %}</strong> —
-                {% trans "Source/Destination (zones), Service, Action; 6 example rules when zone objects exist." %}
-              </li>
-              <li>
-                <strong>{% trans "Demo - Addresses" %}</strong> —
-                {% trans "Source/Destination (zones + addresses), Service, Action; no rules." %}
-              </li>
-            </ul>
             <form method="post" class="m-0">
               {% csrf_token %}
               <input type="hidden" name="action" value="create_demo_starter">
-              <button type="submit" class="btn btn-outline-primary btn-sm">
+              <button type="submit" class="btn btn-outline-primary btn-sm"
+                      {% if not can_run_demo %}disabled{% endif %}
+                      title="{% if not all_tcs_ok %}{% trans 'Complete section 3 first' %}{% endif %}">
                 <i class="mdi mdi-plus me-1"></i>{% trans "Create" %}
               </button>
             </form>
           </div>
         </div>
       </div>
-
-      <div class="col-md-6">
+      <div class="col-md-4">
         <div class="card h-100 border-warning-subtle">
           <div class="card-body d-flex flex-column">
-            <h6 class="card-title fw-semibold">
-              <i class="mdi mdi-office-building-cog me-1 text-warning"></i>{% trans "Enterprise DC Demo" %}
-            </h6>
-            <p class="text-muted small mb-2">
-              {% blocktrans %}
-                Full data centre scenario (DCIM, virtualisation, ~516 VMs) and 11 NSM rulebooks
-                (trustsec, firewalls, GCP DMZ, …). Idempotent — safe to re-run.
-              {% endblocktrans %}
-            </p>
-            <p class="text-muted small mb-2">
-              {% trans "11 zones · 19 addresses · ~40 labels · 34 services · 11 rulebooks" %}
+            <h6 class="card-title fw-semibold">{% trans "Enterprise DC Demo" %}</h6>
+            <p class="text-muted small mb-3">
+              {% trans "Full DC scenario and 11 rulebooks (~30–60 s). Requires empty IP database." %}
             </p>
             <div class="mt-auto">
-              {% if enterprise_demo_blocked %}
-                <div class="alert alert-secondary py-2 px-3 mb-0 small">
-                  <i class="mdi mdi-lock-outline me-1"></i>
-                  {% trans "Not available: IP addresses already exist in this database." %}
-                </div>
-              {% else %}
-                <form method="post" class="m-0">
-                  {% csrf_token %}
-                  <input type="hidden" name="action" value="create_demo_enterprise">
-                  <button type="submit" class="btn btn-warning btn-sm">
-                    <i class="mdi mdi-play me-1"></i>{% trans "Import Enterprise Demo" %}
-                  </button>
-                </form>
-                <div class="text-muted small mt-2">
-                  <i class="mdi mdi-clock-outline me-1"></i>{% trans "~30–60 s" %}
-                </div>
+              <form method="post" class="m-0">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create_demo_enterprise">
+                <button type="submit" class="btn btn-warning btn-sm"
+                        {% if not can_run_enterprise_demo %}disabled{% endif %}
+                        title="{% if not all_tcs_ok %}{% trans 'Complete section 3 first' %}{% elif enterprise_demo_blocked %}{% trans 'IP addresses already exist in the database' %}{% endif %}">
+                  <i class="mdi mdi-play me-1"></i>{% trans "Import" %}
+                </button>
+              </form>
+              {% if enterprise_demo_blocked and all_tcs_ok %}
+              <p class="text-muted small mt-2 mb-0">
+                {% trans "Not available: IP addresses already exist." %}
+              </p>
               {% endif %}
             </div>
           </div>
         </div>
       </div>
-
+      <div class="col-md-4">
+        <div class="card h-100 border-danger-subtle">
+          <div class="card-body d-flex flex-column">
+            <h6 class="card-title fw-semibold">{% trans "Scale test" %}</h6>
+            <p class="text-muted small mb-3">
+              {% trans "Zones demo-0001…demo-0300, 12 000 rules with random Permit/Deny (~25–50 s)." %}
+            </p>
+            <div class="mt-auto">
+              <form method="post" class="m-0">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create_demo_scale">
+                <button type="submit" class="btn btn-outline-danger btn-sm"
+                        {% if not can_run_demo %}disabled{% endif %}
+                        title="{% if not all_tcs_ok %}{% trans 'Complete section 3 first' %}{% endif %}">
+                  <i class="mdi mdi-speedometer me-1"></i>{% trans "Create" %}
+                </button>
+              </form>
+              <p class="text-muted small mt-2 mb-0">
+                {% trans "Rulebook: Demo - Scale Test" %}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
+    <div class="row g-3 mt-1">
+      <div class="col-md-6">
+        <div class="card h-100 border-info-subtle">
+          <div class="card-body d-flex flex-column">
+            <h6 class="card-title fw-semibold">{% trans "Addresses demo" %}</h6>
+            <p class="text-muted small mb-3">
+              {% trans "Demo - Addresses: 6 000 rules with 2 zones + 2 matching address objects per source/destination, services, and action (~20–40 s)." %}
+            </p>
+            <div class="mt-auto">
+              <form method="post" class="m-0">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create_demo_addresses_scale">
+                <button type="submit" class="btn btn-outline-info btn-sm"
+                        {% if not can_run_demo %}disabled{% endif %}
+                        title="{% if not all_tcs_ok %}{% trans 'Complete section 3 first' %}{% endif %}">
+                  <i class="mdi mdi-map-marker-multiple me-1"></i>{% trans "Create rules" %}
+                </button>
+              </form>
+              <p class="text-muted small mt-2 mb-0">
+                {% trans "Rulebook: Demo - Addresses" %}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <p class="text-muted small mb-0">
+      {% trans "Demo actions are disabled (setup_allow_destructive_actions)." %}
+    </p>
+    {% endif %}
   </div>
 </div>

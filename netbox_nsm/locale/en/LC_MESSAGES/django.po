@@ -2160,6 +2160,9 @@ msgid "No API endpoint for this type. Check type config or custom objects."
 msgstr "No API endpoint for this type. Check type config or custom objects."
 
 #: netbox_nsm/templates/netbox_nsm/object_link_assign.html
+msgid "Search or browse…"
+msgstr "Search or browse…"
+
 msgid "Search (min. 2 chars or *)…"
 msgstr "Search (min. 2 chars or *)…"
 
@@ -2176,6 +2179,9 @@ msgid "No types configured for this field. Add a type config under Rulebook → 
 msgstr "No types configured for this field. Add a type config under Rulebook → Fields."
 
 #: netbox_nsm/templates/netbox_nsm/rule_edit.html
+msgid "Search or browse…"
+msgstr "Search or browse…"
+
 msgid "Search (min. 2 chars or *)…"
 msgstr "Search (min. 2 chars or *)…"
 
@@ -2212,6 +2218,30 @@ msgstr "Delete selected rules"
 #: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
 msgid "Delete selected rules?"
 msgstr "Delete selected rules?"
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+msgid "Add Rule"
+msgstr "Add Rule"
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+msgid "Clear filters"
+msgstr "Clear filters"
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+msgid "Clear column filters and NSM query"
+msgstr "Clear column filters and NSM query"
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+msgid "row"
+msgstr "row"
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+msgid "rows"
+msgstr "rows"
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+msgid "Loading rules"
+msgstr "Loading rules"
 
 #: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
 msgid "Expand groups"

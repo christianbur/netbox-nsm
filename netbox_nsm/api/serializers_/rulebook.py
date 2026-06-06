@@ -1,5 +1,6 @@
 from django.contrib.contenttypes.models import ContentType
 from drf_spectacular.utils import extend_schema_field
+from rest_framework import serializers
 from rest_framework.serializers import (
     HyperlinkedIdentityField,
     JSONField,
@@ -26,6 +27,11 @@ class RulebookSerializer(PrimaryModelSerializer):
     url = HyperlinkedIdentityField(
         view_name="plugins-api:netbox_nsm-api:rulebook-detail"
     )
+    parent = serializers.PrimaryKeyRelatedField(
+        queryset=Rulebook.objects.all(),
+        allow_null=True,
+        required=False,
+    )
 
     class Meta:
         model = Rulebook
@@ -35,6 +41,8 @@ class RulebookSerializer(PrimaryModelSerializer):
             "display",
             "name",
             "rulebook_type",
+            "status",
+            "parent",
             "platform",
             "mgmt_url",
             "rule_comment_template",
@@ -46,6 +54,18 @@ class RulebookSerializer(PrimaryModelSerializer):
             "last_updated",
         )
         brief_fields = ("id", "url", "display", "name", "rulebook_type")
+
+    def validate(self, attrs):
+        from netbox_nsm.rulebook_hierarchy import validate_parent_choice
+
+        attrs = super().validate(attrs)
+        parent = attrs.get("parent")
+        if "parent" in attrs:
+            instance = getattr(self, "instance", None)
+            error = validate_parent_choice(instance, parent)
+            if error:
+                raise serializers.ValidationError({"parent": error})
+        return attrs
 
 
 class RuleSerializer(PrimaryModelSerializer):

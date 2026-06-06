@@ -1,0 +1,41 @@
+{% load i18n %}
+<div class="nsm-ag-group-panel w-100">
+  <div class="nsm-ag-group-panel-bar d-flex align-items-stretch">
+    <div id="nsm-ag-group-dropzone"
+         class="nsm-ag-group-dropzone flex-grow-1 min-w-0 d-flex flex-wrap align-items-center"
+         aria-label="{% trans 'Ablagebereich für Regelgruppierung' %}">
+      <span id="nsm-ag-group-dropzone-hint"
+            class="nsm-ag-group-dropzone-hint text-muted small mb-0">
+        {% trans "Drag columns here to group (max. 2 columns)" %}
+      </span>
+      <div id="nsm-ag-group-pills"
+           class="nsm-ag-group-pills d-flex flex-wrap align-items-center"></div>
+    </div>
+    <div id="nsm-ag-group-expand-wrap"
+         class="nsm-ag-group-expand-switch d-none flex-shrink-0"
+         role="group"
+         aria-label="{% trans 'Alle Gruppen auf- oder zuklappen' %}">
+      <button type="button"
+              id="nsm-ag-group-expand-all"
+              class="nsm-ag-group-expand-btn"
+              title="{% trans 'Alle Gruppen aufklappen' %}">
+        <span class="mdi mdi-unfold-more-horizontal" aria-hidden="true"></span>
+      </button>
+      <button type="button"
+              id="nsm-ag-group-collapse-all"
+              class="nsm-ag-group-expand-btn"
+              title="{% trans 'Alle Gruppen zuklappen' %}">
+        <span class="mdi mdi-unfold-less-horizontal" aria-hidden="true"></span>
+      </button>
+    </div>
+    <button type="button"
+            id="nsm-ag-group-help"
+            class="nsm-ag-group-help flex-shrink-0"
+            data-bs-toggle="tooltip"
+            data-bs-placement="bottom"
+            title="{% trans 'Spaltenüberschriften hierher ziehen, um Regeln nach vollständigem Zelleninhalt zu gruppieren. Bis zu zwei Ebenen.' %}">
+      <span class="mdi mdi-help-circle-outline" aria-hidden="true"></span>
+      <span class="visually-hidden">{% trans "Hilfe zur Gruppierung" %}</span>
+    </button>
+  </div>
+</div>

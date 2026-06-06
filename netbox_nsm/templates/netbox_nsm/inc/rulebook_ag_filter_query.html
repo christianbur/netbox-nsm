@@ -1,0 +1,45 @@
+{% load i18n %}
+<div id="nsm-ag-filter-query-wrap" class="nsm-ag-filter-query-wrap">
+  <div class="input-group input-group-sm">
+    <span class="input-group-text text-muted"
+          title="{% if filter_query_separated %}{% trans 'Syntax: Rulebook(&quot;Prod FW&quot; OR Lab) AND (web-server OR db) AND LABEL(prod). Klammern ohne Feld = Name. Scope optional: ?rulebook= oder ?rulebook_id=.' %}{% elif filter_query_scoped %}{% trans 'Syntax: &quot;Rulebook-Name&quot;: Feld(wert OR wert) AND Feld2(a AND b). Spalten mit AND; OR oder AND in Klammern pro Spalte.' %}{% else %}{% trans 'Syntax: Feld(wert OR wert) AND Feld2(a AND b). Bei doppelten Labels z. B. Source.Zones oder Destination.Zones.' %}{% endif %}">
+      <i class="mdi mdi-filter-outline" aria-hidden="true"></i>
+    </span>
+    <input type="text"
+           id="nsm-ag-filter-query"
+           class="form-control font-monospace"
+           placeholder="{% if filter_query_separated %}{% trans 'Rulebook(&quot;Prod FW&quot; OR Lab) AND (web-server OR db) AND LABEL(prod)' %}{% elif filter_query_scoped %}{% trans '&quot;Mein Rulebook&quot;: Name(server OR db) AND Source.Zones(dmz)' %}{% else %}{% trans 'Name(server OR db) AND Source.Zones(dmz)' %}{% endif %}"
+           title="{% if filter_query_separated %}{% trans 'Rulebook(…) = Rulebook-Spalte; (…) ohne Feld = Name; LABEL(…) = Labels. Scope: ?rulebook= oder ?rulebook_id=' %}{% elif filter_query_scoped %}{% trans 'Rulebook-Scope: &quot;Rulebook-Name&quot;: Name(x) AND …' %}{% else %}{% trans 'Spaltenfilter: Name(x OR y) AND Source.Zones(z)' %}{% endif %}"
+           aria-label="{% trans 'Spaltenfilter als Abfrage' %}"
+           autocomplete="off"
+           spellcheck="false">
+    <button type="button"
+            id="nsm-ag-filter-query-apply"
+            class="btn btn-outline-primary"
+            title="{% trans 'Filter anwenden' %}">
+      <i class="mdi mdi-check" aria-hidden="true"></i>
+      <span class="visually-hidden">{% trans "Anwenden" %}</span>
+    </button>
+    <button type="button"
+            id="nsm-ag-clear-filters"
+            class="btn btn-outline-secondary text-nowrap d-none"
+            title="{% trans 'Clear column filters' %}"
+            data-clear-label="{% trans 'Clear filters' %}"
+            data-count-row-one="{% trans 'row' %}"
+            data-count-row-many="{% trans 'rows' %}">
+      <i class="mdi mdi-filter-off-outline" aria-hidden="true"></i>
+      {% trans "Clear filters" %}
+      <span id="nsm-ag-filter-match-count" class="nsm-ag-filter-match-count ms-1"></span>
+    </button>
+    <button type="button"
+            id="nsm-ag-filter-query-copy"
+            class="btn btn-outline-secondary"
+            title="{% trans 'Filter-Abfrage in Zwischenablage kopieren' %}">
+      <i class="mdi mdi-content-copy" aria-hidden="true"></i>
+      <span class="visually-hidden">{% trans "Kopieren" %}</span>
+    </button>
+  </div>
+  <div id="nsm-ag-filter-query-error"
+       class="nsm-ag-filter-query-error text-danger small mt-1 d-none"
+       aria-live="polite"></div>
+</div>

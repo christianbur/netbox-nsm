@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
-"""Zeigt den Diff zwischen builtin_types-Schema und der DB (ohne Apply)."""
+"""Zeigt den Diff zwischen portable schema JSON und der DB (ohne Apply)."""
 import django_bootstrap
 
 django_bootstrap.setup()
 
 from netbox_custom_objects.models import CustomObjectType
 from netbox_custom_objects.schema.comparator import diff_document
-from netbox_nsm.builtin_types import BUILTIN_CUSTOM_TYPES
-from netbox_nsm.custom_objects_schema import build_schema_document
+from netbox_nsm.custom_objects_schema import load_portable_schema_document
 
-doc = build_schema_document(BUILTIN_CUSTOM_TYPES)
+doc = load_portable_schema_document()
 
 print("=== Schema document fields ===")
 for t in doc["types"]:

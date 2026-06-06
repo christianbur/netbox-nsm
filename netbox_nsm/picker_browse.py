@@ -18,7 +18,7 @@ __all__ = (
     "serialize_picker_object",
 )
 
-MIN_PICKER_QUERY_LEN = 2
+MIN_PICKER_QUERY_LEN = 1
 MAX_PICKER_LIMIT = 100
 DEFAULT_PICKER_LIMIT = 30
 

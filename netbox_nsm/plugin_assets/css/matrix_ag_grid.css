@@ -2,9 +2,11 @@
 
 .nsm-matrix-ag-theme {
   --nsm-matrix-empty-text: #64748b;
-  --nsm-matrix-grid-line: var(--bs-border-color);
-  --nsm-matrix-grid-header-line: #cbd5e1;
-  --nsm-matrix-grid-axis: #94a3b8;
+  --nsm-matrix-self-border: rgba(251, 191, 36, 0.65);
+  --nsm-matrix-grid-line: #94a3b8;
+  --nsm-matrix-grid-header-line: #64748b;
+  --nsm-matrix-grid-axis: #475569;
+  --nsm-matrix-grid-outer: #64748b;
   --nsm-matrix-cell-size: 48px;
   --nsm-matrix-dst-col-width: 48px;
   --nsm-matrix-row-height: 48px;
@@ -18,9 +20,11 @@
 
 [data-bs-theme="dark"] .nsm-matrix-ag-theme {
   --nsm-matrix-empty-text: #94a3b8;
-  --nsm-matrix-grid-line: rgba(255, 255, 255, 0.14);
-  --nsm-matrix-grid-header-line: #2d3e52;
-  --nsm-matrix-grid-axis: #374a5f;
+  --nsm-matrix-self-border: rgba(251, 191, 36, 0.75);
+  --nsm-matrix-grid-line: rgba(255, 255, 255, 0.22);
+  --nsm-matrix-grid-header-line: rgba(255, 255, 255, 0.28);
+  --nsm-matrix-grid-axis: #64748b;
+  --nsm-matrix-grid-outer: rgba(255, 255, 255, 0.32);
 }
 
 .nsm-matrix-ag-layout {
@@ -32,12 +36,13 @@
 }
 
 .nsm-matrix-ag-wrap {
-  border: 1px solid var(--bs-border-color);
+  border: 2px solid var(--nsm-matrix-grid-outer);
   border-radius: 10px;
   overflow-x: auto;
   overflow-y: hidden;
   width: fit-content;
   max-width: 100%;
+  box-shadow: inset 0 0 0 1px var(--nsm-matrix-grid-line);
 }
 
 .nsm-matrix-ag-grid {
@@ -49,6 +54,10 @@
   --ag-cell-horizontal-border: none;
   --ag-borders: none;
   --ag-wrapper-border-radius: 0;
+}
+
+.nsm-matrix-ag-theme .nsm-matrix-ag-grid .ag-root-wrapper {
+  border: 1px solid var(--nsm-matrix-grid-axis);
 }
 
 /* Full grid mesh — vertical + horizontal lines between all cells */
@@ -63,8 +72,14 @@
 
 .nsm-matrix-ag-theme .nsm-matrix-ag-grid .ag-cell {
   padding: 0 !important;
-  border-right: 1px solid var(--nsm-matrix-grid-line);
-  border-bottom: 1px solid var(--nsm-matrix-grid-line);
+  border-right: 1px solid var(--nsm-matrix-grid-line) !important;
+  border-bottom: 1px solid var(--nsm-matrix-grid-line) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--nsm-matrix-grid-line) 35%, transparent);
+}
+
+/* Same-zone diagonal cells (src == dst) — directed and undirected */
+.nsm-matrix-ag-theme .nsm-matrix-ag-grid .ag-cell.nsm-matrix-self {
+  box-shadow: inset 0 0 0 2px var(--nsm-matrix-self-border) !important;
 }
 
 .nsm-matrix-ag-theme .nsm-matrix-ag-grid .ag-cell[col-id^="dst_"] {
@@ -195,6 +210,11 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-decoration: none;
+}
+
+a.nsm-matrix-axis-zone-label:hover {
+  color: inherit;
 }
 
 .nsm-matrix-axis-zone-label-x {

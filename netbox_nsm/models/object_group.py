@@ -4,7 +4,8 @@ from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from netbox.models import PrimaryModel
+from netbox.models import BaseModel, PrimaryModel
+from netbox.models.features import ChangeLoggingMixin
 from netbox.search import SearchIndex, register_search
 
 __all__ = (
@@ -12,6 +13,11 @@ __all__ = (
     "ObjectGroupMember",
     "ObjectGroupIndex",
 )
+
+
+class _NsmJunctionModel(ChangeLoggingMixin, BaseModel):
+    class Meta:
+        abstract = True
 
 
 class ObjectGroup(PrimaryModel):
@@ -71,7 +77,7 @@ class ObjectGroup(PrimaryModel):
         return data
 
 
-class ObjectGroupMember(models.Model):
+class ObjectGroupMember(_NsmJunctionModel):
     """Links any NetBox object to a ObjectGroup."""
 
     group = models.ForeignKey(
@@ -97,6 +103,9 @@ class ObjectGroupMember(models.Model):
 
     def __str__(self):
         return f"{self.group} / {self.content_type} / {self.object_id}"
+
+    def get_absolute_url(self):
+        return reverse("plugins:netbox_nsm:objectgroup", args=[self.group_id])
 
 
 @register_search

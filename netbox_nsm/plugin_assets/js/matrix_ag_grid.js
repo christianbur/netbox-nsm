@@ -27,6 +27,20 @@
     return div.innerHTML;
   }
 
+  function matrixCellIsSelf(params) {
+    var v = params.value;
+    if (v && typeof v === "object" && v.isSelf) {
+      return true;
+    }
+    var srcPk = params.data && params.data._sourcePk;
+    var colId = params.colDef && params.colDef.colId;
+    if (srcPk == null || !colId || colId.indexOf("dst_") !== 0) {
+      return false;
+    }
+    var dstPk = parseInt(colId.slice(4), 10);
+    return !isNaN(dstPk) && dstPk === srcPk;
+  }
+
   function matrixCellStyle(params) {
     var v = params.value;
     if (!v || typeof v !== "object") {
@@ -40,7 +54,7 @@
       justifyContent: "center",
     };
     if (v.isSelf) {
-      style.boxShadow = "inset 0 0 0 2px rgba(251, 191, 36, 0.65)";
+      style.boxShadow = "inset 0 0 0 2px var(--nsm-matrix-self-border, rgba(251, 191, 36, 0.65))";
     }
     if (v.empty) {
       style.backgroundColor = "transparent";
@@ -135,33 +149,42 @@
     return wrap;
   }
 
-  var matrixAxisFilterState = { sourceTerms: [], gridApi: null };
+  var matrixAxisFilterState = { sourceGroups: [], gridApi: null };
 
-  function parseAxisFilterTerms(query) {
+  function parseAxisFilterGroups(query) {
     var raw = (query || "").trim();
     if (!raw) {
       return [];
     }
     return raw
-      .split(/\s+(?:AND|&&)\s+/i)
-      .map(function (part) {
-        return part.trim().toLowerCase();
+      .split(/\s+OR\s+/i)
+      .map(function (orPart) {
+        return orPart
+          .split(/\s+(?:AND|&&)\s+/i)
+          .map(function (part) {
+            return part.trim().toLowerCase();
+          })
+          .filter(Boolean);
       })
-      .filter(Boolean);
+      .filter(function (group) {
+        return group.length > 0;
+      });
   }
 
-  function matchesAllAxisTerms(text, terms) {
-    if (!terms.length) {
+  function matchesAxisFilterGroups(text, groups) {
+    if (!groups.length) {
       return true;
     }
     var haystack = (text || "").toLowerCase();
-    return terms.every(function (term) {
-      return haystack.indexOf(term) !== -1;
+    return groups.some(function (andTerms) {
+      return andTerms.every(function (term) {
+        return haystack.indexOf(term) !== -1;
+      });
     });
   }
 
   function applySourceRowFilter(api, query) {
-    matrixAxisFilterState.sourceTerms = parseAxisFilterTerms(query);
+    matrixAxisFilterState.sourceGroups = parseAxisFilterGroups(query);
     var gridApi = api || matrixAxisFilterState.gridApi;
     if (!gridApi) {
       return;
@@ -185,7 +208,7 @@
     if (!api) {
       return;
     }
-    var terms = parseAxisFilterTerms(query);
+    var groups = parseAxisFilterGroups(query);
     var cols = typeof api.getColumns === "function" ? api.getColumns() : [];
     cols.forEach(function (col) {
       if (!col || typeof col.getColId !== "function") {
@@ -197,7 +220,7 @@
       }
       var def = typeof col.getColDef === "function" ? col.getColDef() : {};
       var name = def.headerTooltip || def.headerName || "";
-      var show = matchesAllAxisTerms(name, terms);
+      var show = matchesAxisFilterGroups(name, groups);
       if (typeof api.setColumnsVisible === "function") {
         api.setColumnsVisible([colId], show);
       }
@@ -209,14 +232,16 @@
   MatrixDstHeader.prototype.init = function (params) {
     var wrap = document.createElement("div");
     wrap.className = "nsm-matrix-dst-header-inner";
-    var label = document.createElement("span");
-    label.className = "nsm-matrix-axis-zone-label nsm-matrix-axis-zone-label-x";
     var colDef =
       params.column && typeof params.column.getColDef === "function"
         ? params.column.getColDef()
         : {};
     var displayName = params.displayName || colDef.headerName || "";
     var fullName = colDef.headerTooltip || displayName;
+    var headerUrl = colDef.headerUrl || "#";
+    var label = document.createElement("a");
+    label.href = headerUrl;
+    label.className = "nsm-matrix-axis-zone-label nsm-matrix-axis-zone-label-x text-decoration-none";
     label.textContent = displayName;
     label.title = fullName;
     var layoutEl = params.eGridCell && params.eGridCell.closest(".nsm-matrix-ag-theme");
@@ -256,14 +281,14 @@
       '<label class="nsm-matrix-axis-filter-label nsm-matrix-axis-filter-label-dst">' +
       '<span class="visually-hidden">Destination filter</span>' +
       '<input type="search" class="form-control form-control-sm nsm-matrix-axis-filter" ' +
-      'data-axis="x" placeholder="Filter …" autocomplete="off">' +
+      'data-axis="x" placeholder="dmz OR mgmt" autocomplete="off">' +
       "</label>" +
       "</div>" +
       '<div class="nsm-matrix-corner-src-block">' +
       '<label class="nsm-matrix-axis-filter-label nsm-matrix-axis-filter-label-src">' +
       '<span class="visually-hidden">Source filter</span>' +
       '<input type="search" class="form-control form-control-sm nsm-matrix-axis-filter" ' +
-      'data-axis="y" placeholder="Filter …" autocomplete="off">' +
+      'data-axis="y" placeholder="dmz OR mgmt" autocomplete="off">' +
       "</label>" +
       '<span class="nsm-matrix-corner-axis-label">&darr; Source</span>' +
       "</div>";
@@ -462,8 +487,60 @@
     gridEl.style.width = Math.ceil(total) + "px";
   }
 
+  function createMatrixDatasource(config, state) {
+    return {
+      getRows: function (params) {
+        if (!config || !config.gridDataUrl) {
+          params.failCallback();
+          return;
+        }
+        var pageParams = new URLSearchParams(window.location.search);
+        var qs = pageParams.toString();
+        var url =
+          config.gridDataUrl +
+          (qs ? "?" + qs + "&" : "?") +
+          "startRow=" +
+          encodeURIComponent(params.startRow) +
+          "&endRow=" +
+          encodeURIComponent(params.endRow);
+        if (state && state.gridEl) {
+          state.gridEl.classList.add("nsm-ag-grid-loading");
+        }
+        fetch(url, {
+          credentials: "same-origin",
+          headers: { Accept: "application/json" },
+        })
+          .then(function (response) {
+            if (!response.ok) {
+              throw new Error("matrix grid fetch failed");
+            }
+            return response.json();
+          })
+          .then(function (data) {
+            if (state) {
+              state.knownTotalRows =
+                typeof data.lastRow === "number"
+                  ? data.lastRow
+                  : params.endRow;
+            }
+            params.successCallback(data.rowData || [], data.lastRow);
+          })
+          .catch(function (err) {
+            console.error("NSM matrix grid: datasource fetch failed", err);
+            params.failCallback();
+          })
+          .finally(function () {
+            if (state && state.gridEl) {
+              state.gridEl.classList.remove("nsm-ag-grid-loading");
+            }
+          });
+      },
+    };
+  }
+
   function initMatrixAgGrid() {
     var payload = readJsonScript("nsm-matrix-grid-data");
+    var config = readJsonScript("nsm-matrix-grid-config") || {};
     var gridEl = document.getElementById("nsm-matrix-ag-grid");
     if (!payload || !gridEl) {
       return;
@@ -484,7 +561,12 @@
 
     var columnDefs = (payload.columnDefs || []).map(function (col) {
       if (col.field && col.field.indexOf("dst_") === 0) {
-        return Object.assign({}, col, { cellStyle: matrixCellStyle });
+        return Object.assign({}, col, {
+          cellStyle: matrixCellStyle,
+          cellClassRules: {
+            "nsm-matrix-self": matrixCellIsSelf,
+          },
+        });
       }
       if (col.field === "_sourceDisplayLabel") {
         return Object.assign({}, col, {
@@ -540,11 +622,17 @@
       layoutEl.style.setProperty("--nsm-matrix-source-col-width", sourceColWidth + "px");
     }
 
+    var useInfinite = !!(config.infiniteRowModel && config.gridDataUrl);
+    var datasourceState = {
+      gridEl: gridEl,
+      knownTotalRows: config.totalRows || 0,
+    };
+
     var gridOptions = {
       theme: theme || "legacy",
       context: { matrixGridMeta: payload.gridMeta || {} },
       columnDefs: columnDefs,
-      rowData: payload.rowData || [],
+      debounceVerticalScrollbar: true,
       suppressColumnMoveAnimation: true,
       suppressMovableColumns: true,
       suppressDragLeaveHidesColumns: true,
@@ -572,15 +660,39 @@
         fitMatrixGridWidth(gridEl, columnDefs, sourceColWidth, dstColWidth);
       },
       isExternalFilterPresent: function () {
-        return matrixAxisFilterState.sourceTerms.length > 0;
+        return matrixAxisFilterState.sourceGroups.length > 0;
       },
       doesExternalFilterPass: function (node) {
-        return matchesAllAxisTerms(
+        return matchesAxisFilterGroups(
           node.data && node.data._sourceLabel,
-          matrixAxisFilterState.sourceTerms
+          matrixAxisFilterState.sourceGroups
         );
       },
+      onFilterChanged: function (params) {
+        if (
+          useInfinite &&
+          params.api &&
+          typeof params.api.refreshInfiniteCache === "function"
+        ) {
+          params.api.refreshInfiniteCache();
+        }
+      },
     };
+
+    if (useInfinite) {
+      gridOptions.rowModelType = "infinite";
+      gridOptions.cacheBlockSize = config.cacheBlockSize || 50;
+      gridOptions.maxBlocksInCache = 10;
+      gridOptions.infiniteInitialRowCount = 1;
+      gridOptions.datasource = createMatrixDatasource(config, datasourceState);
+      gridOptions.getRowId = function (params) {
+        return String(
+          (params.data && params.data._sourceLabel) || params.data._sourceDisplayLabel
+        );
+      };
+    } else {
+      gridOptions.rowData = payload.rowData || [];
+    }
 
     try {
       agGrid.createGrid(gridEl, gridOptions);

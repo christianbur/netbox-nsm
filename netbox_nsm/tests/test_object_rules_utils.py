@@ -35,10 +35,9 @@ class ObjectFieldRulesFilterUrlTests(SimpleTestCase):
             ct,
             display_template_map={99: "{name}"},
         )
-        nsm_q = unquote(parse_qs(urlparse(url).query)["nsm_q"][0])
+        filter_q = unquote(parse_qs(urlparse(url).query)["filter_q"][0])
         self.assertIn("/rulebooks/5/rules/", url)
-        self.assertIn("Destination.Zones.name", nsm_q)
-        self.assertIn("trust", nsm_q)
+        self.assertEqual(filter_q, "Destination.Zones(trust)")
 
     def test_builds_untyped_field_query(self):
         rulebook = SimpleNamespace(pk=3)
@@ -57,6 +56,5 @@ class ObjectFieldRulesFilterUrlTests(SimpleTestCase):
             ct,
             display_template_map={42: "{name}"},
         )
-        nsm_q = unquote(parse_qs(urlparse(url).query)["nsm_q"][0])
-        self.assertIn("Service.Name", nsm_q)
-        self.assertIn("HTTPS", nsm_q)
+        filter_q = unquote(parse_qs(urlparse(url).query)["filter_q"][0])
+        self.assertEqual(filter_q, "Service(HTTPS)")

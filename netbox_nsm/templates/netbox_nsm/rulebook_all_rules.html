@@ -1,0 +1,24 @@
+{% extends 'netbox_nsm/virtual_rulebook_object.html' %}
+{% load i18n %}
+{% load helpers %}
+
+{% block head %}
+{{ block.super }}
+{% include "netbox_nsm/inc/rulebook_page_head.html" %}
+{% include "netbox_nsm/inc/rulebook_policy_ag_grid_head.html" %}
+{% endblock head %}
+
+{% block breadcrumbs %}
+{% include "netbox_nsm/inc/rulebook_breadcrumbs.html" with active_tab=policy_tab_label %}
+{% endblock breadcrumbs %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body p-0">
+    <div class="p-3">
+      {% include "netbox_nsm/inc/rulebook_all_rules_grid.html" %}
+      {% include "netbox_nsm/inc/rulebook_policy_ag_grid_javascript.html" %}
+    </div>
+  </div>
+</div>
+{% endblock content %}

@@ -19,7 +19,6 @@
     ui: { __activeArea: "", __selectedType: {} },
     browse: {},
     _ctrl: {},
-    vgroups: {},
   };
 
   function getSelectedType(areaSlug, placement) {
@@ -38,7 +37,6 @@
 
   function pickerEl() { return document.getElementById("nsm-rule-picker"); }
   function hiddenEl()  { return document.getElementById("nsm-area-selections"); }
-  function vgroupHiddenEl() { return document.getElementById("nsm-virtual-group-config"); }
 
   function esc(s) {
     return String(s)
@@ -314,18 +312,6 @@
     } catch (_) {}
   }
 
-  function loadInitialVGroups() {
-    var el = document.getElementById("nsm-rule-virtual-groups");
-    if (!el) return;
-    try {
-      var cfg = JSON.parse(el.textContent);
-      if (!cfg || typeof cfg !== "object") return;
-      Object.keys(cfg).forEach(function (areaSlug) {
-        if (cfg[areaSlug] === true) state.vgroups[areaSlug] = true;
-      });
-    } catch (_) {}
-  }
-
   function typeNameFromCatalog(areaSlug, kind, id, fallback) {
     if (kind === "group") {
       return t("groups", "Groups");
@@ -433,8 +419,6 @@
         return { area: s.area, placement: s.placement, kind: s.kind, id: s.id, exclude: !!s.exclude };
       })
     );
-    var vgEl = vgroupHiddenEl();
-    if (vgEl) vgEl.value = JSON.stringify(state.vgroups);
   }
 
   // ── Changelog auto-fill (object picker changes) ───────────────────────────
@@ -457,7 +441,6 @@
   function captureInitialSnapshot() {
     initialSnapshot = {
       selections: JSON.stringify(selectionsPayload(state.selections)),
-      vgroups: JSON.stringify(state.vgroups),
     };
   }
 
@@ -499,7 +482,6 @@
   function buildChangelogSummary() {
     if (!initialSnapshot) return "";
     var diff = diffSelections();
-    var vgChanged = JSON.stringify(state.vgroups) !== initialSnapshot.vgroups;
     var parts = [];
     if (diff.added.length) {
       var addedLabels = diff.added.slice(0, 3).map(labelForSelection).join(", ");
@@ -514,9 +496,6 @@
         removedLabels += " +" + (diff.removed.length - 3);
       }
       parts.push(t("changelog_removed", "Removed") + ": " + removedLabels);
-    }
-    if (vgChanged) {
-      parts.push(t("changelog_vgroups", "Virtual groups updated"));
     }
     if (!parts.length) return "";
     return truncateChangelog(parts.join("; "), 200);
@@ -572,18 +551,6 @@
       });
   }
 
-  // ── VGroup helpers ─────────────────────────────────────────────────────────
-
-  function areaAllowsVGroups(areaSlug) {
-    var area = state.data.areas.find(function (a) { return a.slug === areaSlug; });
-    if (!area) return false;
-    return (area.types || []).some(function (t) { return t.allow_virtual_groups; });
-  }
-
-  function isVGroupActive(areaSlug) {
-    return !!state.vgroups[areaSlug];
-  }
-
   // ── Search state ───────────────────────────────────────────────────────────
 
   function searchKey(area, placement) { return area + ":" + placement; }
@@ -609,14 +576,8 @@
     return _debouncedBrowse[k];
   }
 
-  var MIN_SEARCH_CHARS = 2;
   var BROWSE_LIMIT = 30;
   var GROUP_LIST_CAP = 200;
-
-  function browseQueryReady(query) {
-    if (query === "*") return true;
-    return query.length >= MIN_SEARCH_CHARS;
-  }
 
   function loadBrowse(areaSlug, placement, areaData, append) {
     var k = searchKey(areaSlug, placement);
@@ -666,18 +627,6 @@
     var query = b.query.trim();
     var apiQuery = (query === "*") ? "" : query;
 
-    if (!browseQueryReady(query)) {
-      b.loading = false;
-      b._needsSearch = true;
-      b._pickType = false;
-      if (!append) {
-        b.items = [];
-        b.offset = 0;
-        b.total = 0;
-      }
-      updateBrowseList(areaSlug, placement);
-      return;
-    }
     b._needsSearch = false;
     b._pickType = false;
 
@@ -831,10 +780,6 @@
       return "<div class='nsm-empty'>Keine Auswahl</div>";
     }
 
-    if (areaAllowsVGroups(areaSlug)) {
-      return buildVGroupHtml(areaSlug, sel);
-    }
-
     var html = "";
     sel.forEach(function (s) {
       var pres = selectionItemPresentation(s);
@@ -859,50 +804,6 @@
     return html;
   }
 
-  function buildVGroupHtml(areaSlug, sel) {
-    var isGrouped = isVGroupActive(areaSlug);
-    var html = "<div class='nsm-vgroup-toggle mb-2 p-2 rounded border" + (isGrouped ? " border-primary bg-primary-subtle" : "") + "'>"
-      + "<div class='form-check'>"
-      + "<input class='form-check-input' type='checkbox' id='nsm-vg-" + esc(areaSlug) + "'"
-      + " data-nsm-vg-toggle='1'"
-      + " data-area='" + esc(areaSlug) + "'"
-      + (isGrouped ? " checked" : "") + ">"
-      + "<label class='form-check-label small' for='nsm-vg-" + esc(areaSlug) + "'>"
-      + t('as_group', 'As group') + " <span class='text-muted'>(AND \u2014 display: <em>Label1 | Label2</em>)</span>"
-      + (isGrouped ? " <span class='badge bg-primary'>" + t('active', 'Active') + "</span>" : "")
-      + "</label>"
-      + "</div>"
-      + "</div>";
-
-    if (!sel.length) {
-      html += "<div class='nsm-empty'>" + t('no_selection', 'No selection') + "</div>";
-      return html;
-    }
-
-    // Items list (same as standard mode)
-    var borderClass = isGrouped ? " border-start border-primary ps-2" : "";
-    html += "<ul class='list-group nsm-sel-list" + borderClass + "'>";
-    sel.forEach(function (s) {
-      html += "<li class='list-group-item d-flex justify-content-between align-items-center gap-2 py-1'>"
-        + "<div class='d-flex align-items-center gap-2'>"
-        + "<span>" + esc(s.name) + "</span>"
-        + (displayTypeName(s)
-          ? "<span class='nsm-sel-item-type'>" + esc(displayTypeName(s)) + "</span>"
-          : "")
-        + "</div>"
-        + "<button type='button' class='btn btn-sm btn-link text-danger p-0'"
-        + " data-nsm-remove='1'"
-        + " data-area='" + esc(s.area) + "'"
-        + " data-placement='" + esc(s.placement) + "'"
-        + " data-kind='" + esc(s.kind) + "'"
-        + " data-id='" + esc(s.id) + "'"
-        + " title='" + t('remove', 'Remove') + "'>\u00d7</button>"
-        + "</li>";
-    });
-    html += "</ul>";
-    return html;
-  }
-
   // ── Styles ─────────────────────────────────────────────────────────────────
 
   function ensureStyles() {
@@ -918,7 +819,6 @@
       ".nsm-drop-msg { padding: .5rem .75rem; color: var(--tblr-secondary-color, #6c757d); font-style: italic; font-size: .85rem; }",
       ".nsm-empty { color: var(--tblr-secondary-color, #6c757d); font-style: italic; padding: .4rem 0; font-size: .875rem; }",
       ".nsm-hint-tip { font-size: .72rem; opacity: .7; margin-top: .35rem; color: var(--tblr-secondary-color, #6c757d); }",
-      ".nsm-vgroup-toggle { font-size: .9rem; }",
       ".nsm-browse-more.option { justify-content: center; color: var(--tblr-primary, #0d6efd); font-size: .8rem; }",
       ".nsm-rule-policy-tabs-layout .nsm-rule-policy-tab-content { min-height: 12rem; }",
     ].join("\n");
@@ -1129,8 +1029,8 @@
     var selectedType = getSelectedType(area.slug, placement);
     var pickerOpen = !!selectedType;
     var searchPh = t(
-      "search_min",
-      "Enter at least 2 characters to search (or * for the first page only)."
+      "search_lazy",
+      "Search or browse\u2026"
     );
 
     var html = "<div class='nsm-assign-field' data-area='" + esc(area.slug) + "'>";
@@ -1236,15 +1136,7 @@
   }
 
   function showIdleBrowseState(root) {
-    var areas = state.data.areas || [];
-    areas.forEach(function (area) {
-      var placement = area.placement || _placementForAreaSlug(area.slug);
-      var b = getBrowse(area.slug, placement);
-      if (!b.query) {
-        b._needsSearch = true;
-        hideBrowseDrop(area.slug, placement);
-      }
-    });
+    /* Lazy browse loads on focus; no min-length gate. */
   }
 
   // ── Event binding ──────────────────────────────────────────────────────────
@@ -1321,15 +1213,7 @@
       });
 
       inp.addEventListener("focus", function () {
-        var b = getBrowse(areaSlug, placement);
-        if (browseQueryReady(b.query.trim())) {
-          debouncedFn(areaSlug, placement, area);
-        } else if (b.query.trim().length) {
-          b._needsSearch = true;
-          hideBrowseDrop(areaSlug, placement);
-        } else {
-          hideBrowseDrop(areaSlug, placement);
-        }
+        debouncedFn(areaSlug, placement, area);
       });
 
       inp.addEventListener("blur", function () {
@@ -1343,23 +1227,6 @@
     var root = pickerEl();
     if (!root || root.dataset.nsmDelegate === "1") return;
     root.dataset.nsmDelegate = "1";
-
-    // ── VGroup toggle (change event) ──
-    root.addEventListener("change", function (e) {
-      var toggle = e.target.closest("[data-nsm-vg-toggle]");
-      if (toggle) {
-        var area = toggle.dataset.area;
-        if (toggle.checked) {
-          state.vgroups[area] = true;
-        } else {
-          delete state.vgroups[area];
-        }
-        syncHidden();
-        var placement = _placementForAreaSlug(area);
-        renderSelected(area, placement);
-        return;
-      }
-    });
 
     root.addEventListener("mousedown", function (e) {
       // ── Browse list: select item ──
@@ -1439,7 +1306,6 @@
       state.ui = { __activeArea: "", __selectedType: {} };
       state.browse = {};
       state._ctrl = {};
-      state.vgroups = {};
     } else {
       normalizeSelectionTypeNames();
     }
@@ -1515,12 +1381,10 @@
     state.ui = { __activeArea: "", __selectedType: {} };
     state.browse = {};
     state._ctrl = {};
-    state.vgroups = {};
     state.chipSel = {};
 
     loadInitialSelections();
     normalizeSelectionTypeNames();
-    loadInitialVGroups();
     syncHidden();
     captureInitialSnapshot();
     bindChangelogAutofill();

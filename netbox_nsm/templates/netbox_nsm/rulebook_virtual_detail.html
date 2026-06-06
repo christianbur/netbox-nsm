@@ -1,0 +1,17 @@
+{% extends 'netbox_nsm/virtual_rulebook_object.html' %}
+{% load i18n %}
+{% load helpers %}
+{% load plugins %}
+
+{% block head %}
+{{ block.super }}
+{% include "netbox_nsm/inc/rulebook_page_head.html" %}
+{% endblock head %}
+
+{% block breadcrumbs %}
+{% include "netbox_nsm/inc/rulebook_breadcrumbs.html" %}
+{% endblock breadcrumbs %}
+
+{% block content %}
+{% include "netbox_nsm/inc/rulebook_detail_content.html" %}
+{% endblock content %}

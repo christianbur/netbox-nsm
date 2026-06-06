@@ -1,7 +1,9 @@
 {% load i18n %}
 <tr class="nsm-rb-subfield-row nsm-rb-mc-{{ tc.matching_class_css_slug }}{% if not field.visible or not ft.visible %} nsm-rb-subfield-row--muted{% endif %}">
   <td class="nsm-rb-col-lead" aria-hidden="true"></td>
-  <td class="nsm-rb-col-lane nsm-rb-col-lane--indent" aria-hidden="true"></td>
+  <td class="nsm-rb-col-lane nsm-rb-col-lane--indent" aria-hidden="true">
+    <div class="record-depth nsm-rb-field-depth"><span>•</span></div>
+  </td>
   <td class="nsm-rb-col-name nsm-rb-col-name--subfield align-middle">
     <span class="nsm-rb-subfield-name">{{ tc.name|default:tc.content_type_label }}</span>
   </td>
@@ -18,15 +20,17 @@
     </div>
   </td>
   <td class="nsm-rb-col-actions align-middle text-end">
+    {% if not rulebook_readonly %}
     <span class="btn-group btn-group-sm noprint nsm-rb-type-actions">
-      <a href="{% url 'plugins:netbox_nsm:rulebookfieldtype_edit' ft.pk %}"
-         class="btn btn-warning" title="{% trans 'Edit' %}">
-        <i class="mdi mdi-pencil"></i>
-      </a>
       <a href="{% url 'plugins:netbox_nsm:rulebookfieldtype_delete' ft.pk %}"
          class="btn btn-danger" title="{% trans 'Delete' %}">
         <i class="mdi mdi-trash-can-outline"></i>
       </a>
+      <a href="{% url 'plugins:netbox_nsm:rulebookfieldtype_edit' ft.pk %}"
+         class="btn btn-warning" title="{% trans 'Edit' %}">
+        <i class="mdi mdi-pencil"></i>
+      </a>
     </span>
+    {% endif %}
   </td>
 </tr>

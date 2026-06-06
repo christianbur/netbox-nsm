@@ -8,6 +8,13 @@
     <span class="visually-hidden">{% trans "Visible" %}</span>
   </span>
   {% endif %}
+  {% if ft.is_facetable %}
+  <span class="nsm-rb-opt-pill nsm-rb-opt-pill--facet"
+        title="{% blocktrans with mode=ft.get_facet_mode_display %}Facet filter ({{ mode }}){% endblocktrans %}">
+    <i class="mdi mdi-filter-variant" aria-hidden="true"></i>
+    <span class="visually-hidden">{% trans "Facet filter" %}</span>
+  </span>
+  {% endif %}
   {% if not field.is_system_field %}
   <span class="nsm-rb-opt-pill nsm-rb-opt-pill--meta"
         title="{% blocktrans with n=field.max_visible_pills %}Max visible pills per cell: {{ n }}{% endblocktrans %}">
@@ -32,9 +39,9 @@
   </span>
   {% endif %}
   <span class="nsm-rb-opt-pill nsm-rb-opt-pill--meta nsm-rb-opt-pill--sort-composite"
-        title="{% blocktrans with field_order=field.sort_order type_order=ft.sort_order %}Sort order: field {{ field_order }}, type {{ type_order }}{% endblocktrans %}">
+        title="{% blocktrans with field_order=field.sort_order type_order=ft.sort_order %}Sort order: {{ field_order }}|{{ type_order }}{% endblocktrans %}">
     <i class="mdi mdi-sort-numeric-ascending" aria-hidden="true"></i>
-    <span class="nsm-rb-opt-meta-value">{{ field.sort_order }},{{ ft.sort_order }}</span>
+    <span class="nsm-rb-opt-meta-value">{{ field.sort_order }}|{{ ft.sort_order }}</span>
     <span class="visually-hidden">{% trans "Sort order" %}</span>
   </span>
 </span>

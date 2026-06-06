@@ -7,7 +7,8 @@ from urllib.parse import quote
 from django.urls import reverse
 
 from netbox_nsm.display_utils import get_display_template_map, render_object_display
-from netbox_nsm.query.parser import Condition, conditions_to_query_param
+from netbox_nsm.policy_grid_payload import conditions_to_filter_query
+from netbox_nsm.query.parser import Condition
 
 
 def build_object_field_rules_filter_url(
@@ -68,5 +69,5 @@ def build_object_field_rules_filter_url(
         )
 
     base = reverse("plugins:netbox_nsm:rulebook_rules", args=[rulebook.pk])
-    q = conditions_to_query_param([cond])
-    return f"{base}?nsm_q={quote(q, safe='')}"
+    q = conditions_to_filter_query([cond])
+    return f"{base}?filter_q={quote(q, safe='')}"

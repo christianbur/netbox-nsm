@@ -1111,6 +1111,14 @@ for i, z1 in enumerate(zone_names_ordered):
 
 print(f"     ✓ {rule_count} rules")
 
+from netbox_nsm.demos.trustsec_object_groups import ensure_trustsec_source_object_groups
+
+ensure_trustsec_source_object_groups(
+    zones_by_name=zones_by_name,
+    zone_content_type=zone_ct,
+)
+print("     ✓ trustsec source object groups")
+
 # ── 8b. TrustSec Infra (11 Regeln) ───────────────────────────────────────────
 print("  → trustsec-infra (11 rules)...")
 

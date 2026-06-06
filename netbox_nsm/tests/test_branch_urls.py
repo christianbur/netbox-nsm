@@ -54,4 +54,6 @@ class BranchUrlTests(SimpleTestCase):
 
         cells = [{"fwd_href": "/rules/?nsm_q=a", "add_href": "/rules/add/"}]
         wrap_matrix_cell_hrefs(cells, request)
-        self.assertIn("_branch=hh123456", cells[0]["fwd_href"])
+        self.assertEqual(cells[0]["fwd_href"], "/rules/?nsm_q=a&_branch=hh123456")
+        self.assertEqual(cells[0]["add_href"], "/rules/add/?_branch=hh123456")
+        self.assertEqual(cells[0]["fwd_href"].count("?"), 1)

@@ -21,38 +21,32 @@
           <form method="post" id="nsm-bulk-delete-form">
             {% csrf_token %}
             <div class="nsm-ag-grid-layout nsm-ag-grid-theme nsm-ag-grid-fit">
-              <div class="nsm-ag-toolbar-row d-flex flex-nowrap align-items-center gap-2">
-                <a id="nsm-ag-add-rule"
-                   href="{% if perms.netbox_nsm.add_rule %}{{ nsm_rule_add_url|default:'' }}{% else %}#{% endif %}"
-                   class="btn btn-sm btn-primary text-nowrap{% if not perms.netbox_nsm.add_rule %} disabled{% endif %}"
-                   {% if not perms.netbox_nsm.add_rule %}aria-disabled="true" tabindex="-1"{% endif %}>
-                  <span class="mdi mdi-plus-thick" aria-hidden="true"></span> {% trans "Add Rule" %}
-                </a>
-                <button type="button" id="nsm-ag-clear-filters"
-                        class="btn btn-sm btn-outline-secondary text-nowrap d-none"
-                        title="{% trans 'Clear column filters and NSM query' %}">
-                  <span class="mdi mdi-filter-off-outline" aria-hidden="true"></span>
-                  {% trans "Clear filters" %}
-                </button>
-                {% if perms.netbox_nsm.delete_rule %}
-                <button type="submit" id="nsm-bulk-delete-btn"
-                        class="btn btn-sm btn-danger text-nowrap d-none"
-                        title="{% trans 'Delete selected rules' %}"
-                        data-confirm="{% trans 'Delete selected rules?' %}">
-                  <span class="mdi mdi-delete-outline me-1" aria-hidden="true"></span>
-                  <span id="nsm-selected-count"></span>
-                  {% trans "Delete selected" %}
-                </button>
-                {% endif %}
-              </div>
-              <div class="nsm-policy-ag-grid-wrap">
+              <div class="nsm-ag-grid-chrome">
+                {% include "netbox_nsm/inc/rulebook_ag_chrome_bar.html" with policy_toolbar=True %}
+                <div class="nsm-ag-group-toolbar-row d-flex align-items-stretch">
+                  {% include "netbox_nsm/inc/rulebook_ag_group_by.html" %}
+                </div>
+                <div class="nsm-policy-ag-grid-wrap">
+                <div id="nsm-ag-load-status"
+                     class="nsm-ag-load-status d-none"
+                     data-loading-label="{% trans 'Loading rules' %}"
+                     aria-live="polite">
+                  <span class="nsm-ag-load-spinner mdi mdi-loading mdi-spin" aria-hidden="true"></span>
+                  <div id="nsm-ag-load-track"
+                       class="nsm-ag-load-track"
+                       role="progressbar"
+                       aria-valuemin="0"
+                       aria-valuemax="100"
+                       aria-valuenow="0">
+                    <div id="nsm-ag-load-progress" class="nsm-ag-load-progress"></div>
+                  </div>
+                  <span id="nsm-ag-load-label" class="nsm-ag-load-label"></span>
+                </div>
                 {{ policy_ag_grid_payload|json_script:"nsm-policy-grid-data" }}
                 {% if rules_grid_config %}{{ rules_grid_config|json_script:"nsm-policy-grid-config" }}{% endif %}
                 <div id="nsm-policy-ag-grid" class="nsm-policy-ag-grid nsm-ag-grid-surface"></div>
-              </div>
-              <div class="nsm-ag-status-bar" aria-live="polite">
-                <span id="nsm-ag-row-stats"></span>
-                <span id="nsm-ag-selected-stats" class="ms-3"></span>
+                </div>
+                {% include "netbox_nsm/inc/rulebook_ag_status_bar.html" with row_stats_id="nsm-ag-row-stats" selected_stats_id="nsm-ag-selected-stats" load_more_btn_id="nsm-ag-load-more" %}
               </div>
             </div>
           </form>

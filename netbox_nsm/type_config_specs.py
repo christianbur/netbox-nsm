@@ -21,6 +21,7 @@ TYPECONFIG_SPECS = [
         "panel_slugs": ["source", "destination"],
         "order_id": 10,
         "panel_linkable": True,
+        "panel_linkable_content_types": [],
     },
     {
         "slug": "nsm_addresses",
@@ -30,6 +31,7 @@ TYPECONFIG_SPECS = [
         "panel_slugs": ["source", "destination"],
         "order_id": 20,
         "panel_linkable": True,
+        "panel_linkable_content_types": [],
     },
     {
         "slug": "nsm_labels",
@@ -39,6 +41,7 @@ TYPECONFIG_SPECS = [
         "panel_slugs": ["source", "destination"],
         "order_id": 30,
         "panel_linkable": True,
+        "panel_linkable_content_types": [],
     },
     {
         "slug": "nsm_services",
@@ -48,6 +51,7 @@ TYPECONFIG_SPECS = [
         "panel_slugs": ["services"],
         "order_id": 100,
         "panel_linkable": True,
+        "panel_linkable_content_types": [],
     },
     {
         "slug": "nsm_action",
@@ -57,6 +61,7 @@ TYPECONFIG_SPECS = [
         "panel_slugs": ["action"],
         "order_id": 200,
         "panel_linkable": True,
+        "panel_linkable_content_types": [],
     },
     {
         "slug": "nsm_business_apps",
@@ -66,6 +71,7 @@ TYPECONFIG_SPECS = [
         "panel_slugs": ["info"],
         "order_id": 110,
         "panel_linkable": True,
+        "panel_linkable_content_types": [],
     },
     {
         "slug": "nsm_network_apps",
@@ -75,6 +81,7 @@ TYPECONFIG_SPECS = [
         "panel_slugs": ["services"],
         "order_id": 110,
         "panel_linkable": True,
+        "panel_linkable_content_types": [],
     },
 ]
 

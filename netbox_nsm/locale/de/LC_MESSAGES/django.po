@@ -1173,6 +1173,30 @@ msgid "Delete selected rules?"
 msgstr "Ausgewählte Regeln löschen?"
 
 #: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+msgid "Add Rule"
+msgstr "Regel hinzufügen"
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+msgid "Clear filters"
+msgstr "Filter zurücksetzen"
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+msgid "Clear column filters and NSM query"
+msgstr "Spaltenfilter und NSM-Abfrage zurücksetzen"
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+msgid "row"
+msgstr "Zeile"
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+msgid "rows"
+msgstr "Zeilen"
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
+msgid "Loading rules"
+msgstr "Regeln werden geladen"
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_policy.html
 msgid "Expand groups"
 msgstr "Gruppen öffnen"
 
@@ -2442,6 +2466,9 @@ msgid "No API endpoint for this type. Check type config or custom objects."
 msgstr "Kein API-Endpunkt für diesen Typ. Type Config oder Custom Objects prüfen."
 
 #: netbox_nsm/templates/netbox_nsm/object_link_assign.html
+msgid "Search or browse…"
+msgstr "Suchen oder durchblättern…"
+
 msgid "Search (min. 2 chars or *)…"
 msgstr "Suchen (mind. 2 Zeichen oder *)…"
 
@@ -2458,6 +2485,9 @@ msgid "No types configured for this field. Add a type config under Rulebook → 
 msgstr "Keine Typen für dieses Feld. Type Config unter Rulebook → Fields hinzufügen."
 
 #: netbox_nsm/templates/netbox_nsm/rule_edit.html
+msgid "Search or browse…"
+msgstr "Suchen oder durchblättern…"
+
 msgid "Search (min. 2 chars or *)…"
 msgstr "Suchen (mind. 2 Zeichen oder *)…"
 

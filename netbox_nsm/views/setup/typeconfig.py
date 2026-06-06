@@ -18,6 +18,12 @@ __all__ = (
 )
 
 
+def empty_typeconfig_status():
+    return [
+        {"spec": spec, "cot": None, "typeconfig": None} for spec in TYPECONFIG_SPECS
+    ]
+
+
 def get_typeconfig_status():
     from django.contrib.contenttypes.models import ContentType as DjCT
 

@@ -14,21 +14,17 @@ import django_bootstrap
 django_bootstrap.setup()
 
 from netbox_custom_objects.models import CustomObjectType
-from netbox_nsm.builtin_types import BUILTIN_CUSTOM_TYPES
-from netbox_nsm.custom_objects_schema import build_schema_document
+from netbox_nsm.custom_objects_schema import load_portable_schema_document
 
-doc = build_schema_document(BUILTIN_CUSTOM_TYPES)
-id_maps = {
-    t["slug"]: {f["name"]: f["id"] for f in t["fields"]}
-    for t in doc["types"]
-}
+doc = load_portable_schema_document()
+id_maps = {t["slug"]: {f["name"]: f["id"] for f in t["fields"]} for t in doc["types"]}
 
 updated = 0
 for cot in CustomObjectType.objects.filter(slug__startswith="nsm_").order_by("slug"):
     id_map = id_maps.get(cot.slug)
     print(f"\n=== {cot.slug} ===")
     if not id_map:
-        print("  (kein Eintrag in build_schema_document — übersprungen)")
+        print("  (kein Eintrag in portable schema — übersprungen)")
         continue
 
     max_id = 0

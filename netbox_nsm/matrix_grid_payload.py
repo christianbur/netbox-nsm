@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 MULTI_RULE_COLOR = "#6c757d"
+MATRIX_AXIS_MAX = 250  # max zones per matrix axis (src rows / dst columns)
 MATRIX_CELL_SIZE = 48  # square data cells: dst col width = row height
 MATRIX_AXIS_MAX_TEXT_LEN = 50
 MATRIX_HEADER_PAD_PX = 10
@@ -216,6 +217,73 @@ def _matrix_source_col_width(src_labels: list[str]) -> int:
     return max(from_text, MATRIX_SOURCE_COL_MIN_PX)
 
 
+def build_matrix_ag_grid_row_records(
+    matrix_rows: list,
+    dst_zones: list,
+    matrix_mode: str,
+    *,
+    zone_content_type_id: int | None = None,
+    display_template_map: dict[int, str] | None = None,
+    request=None,
+) -> list[dict]:
+    """Serialize matrix rows only (sparse cells) for lazy API loading."""
+    from netbox_nsm.display_utils import get_display_template_map
+    from netbox_nsm.branch_urls import with_branch_query
+
+    tmpl_map = display_template_map
+    if tmpl_map is None and zone_content_type_id is not None:
+        tmpl_map = get_display_template_map()
+
+    def zone_label(zone) -> str:
+        return matrix_zone_display_label(zone, zone_content_type_id, tmpl_map)
+
+    row_data = []
+    for row in matrix_rows:
+        src = row["source_zone"]
+        full_src = zone_label(src)
+        cells = row.get("cells") or []
+        record: dict = {
+            "_sourceLabel": full_src,
+            "_sourceDisplayLabel": _matrix_display_name(full_src),
+            "_sourceUrl": with_branch_query(_zone_url(src), request),
+            "_sourceColor": _zone_color(src),
+        }
+        for dst, cell in zip(dst_zones, cells):
+            serialized = serialize_matrix_cell(cell, matrix_mode)
+            if serialized.get("empty"):
+                continue
+            record[f"dst_{dst.pk}"] = serialized
+        row_data.append(record)
+    return row_data
+
+
+def build_matrix_ag_grid_scaffold(
+    matrix_rows: list,
+    dst_zones: list,
+    matrix_mode: str,
+    *,
+    zone_content_type_id: int | None = None,
+    display_template_map: dict[int, str] | None = None,
+    request=None,
+    matrix_axis_limit: dict | None = None,
+) -> dict:
+    """Column defs + grid meta without row data (lazy matrix load)."""
+    from netbox_nsm.matrix_tab_context import cap_matrix_axis_zones
+
+    dst_zones, _, _ = cap_matrix_axis_zones(dst_zones)
+    payload = build_matrix_ag_grid_payload(
+        matrix_rows,
+        dst_zones,
+        matrix_mode,
+        zone_content_type_id=zone_content_type_id,
+        display_template_map=display_template_map,
+        request=request,
+        matrix_axis_limit=matrix_axis_limit,
+    )
+    payload["rowData"] = []
+    return payload
+
+
 def build_matrix_ag_grid_payload(
     matrix_rows: list,
     dst_zones: list,
@@ -224,10 +292,14 @@ def build_matrix_ag_grid_payload(
     zone_content_type_id: int | None = None,
     display_template_map: dict[int, str] | None = None,
     request=None,
+    matrix_axis_limit: dict | None = None,
 ) -> dict:
     """Build columnDefs + rowData for the matrix AG Grid."""
     from netbox_nsm.display_utils import get_display_template_map
     from netbox_nsm.branch_urls import with_branch_query
+    from netbox_nsm.matrix_tab_context import cap_matrix_axis_zones
+
+    dst_zones, _, _ = cap_matrix_axis_zones(dst_zones)
 
     tmpl_map = display_template_map
     if tmpl_map is None and zone_content_type_id is not None:
@@ -312,23 +384,28 @@ def build_matrix_ag_grid_payload(
             record[f"dst_{dst.pk}"] = serialize_matrix_cell(cell, matrix_mode)
         row_data.append(record)
 
+    grid_meta = {
+        "headerHeight": header_height,
+        "rowHeight": row_height,
+        "dstColWidth": dst_col_width,
+        "sourceColWidth": source_col_width,
+        "headerPadPx": MATRIX_HEADER_PAD_PX,
+        "axisCharStepPx": MATRIX_AXIS_CHAR_STEP_PX,
+        "axisCharWidthPx": MATRIX_AXIS_CHAR_WIDTH_PX,
+        "axisMaxPx": MATRIX_AXIS_MAX_PX,
+        "cornerHeaderMinPx": MATRIX_CORNER_HEADER_MIN_PX,
+        "cornerFilterMinWidthPx": MATRIX_CORNER_FILTER_MIN_WIDTH_PX,
+        "cornerFilterMinHeightPx": MATRIX_CORNER_FILTER_MIN_HEIGHT_PX,
+        "maxTextLen": MATRIX_AXIS_MAX_TEXT_LEN,
+        "cellSizeMin": MATRIX_CELL_SIZE,
+        "axisMax": MATRIX_AXIS_MAX,
+    }
+    if matrix_axis_limit:
+        grid_meta["axisLimit"] = matrix_axis_limit
+
     return {
         "columnDefs": column_defs,
         "rowData": row_data,
         "matrixMode": matrix_mode,
-        "gridMeta": {
-            "headerHeight": header_height,
-            "rowHeight": row_height,
-            "dstColWidth": dst_col_width,
-            "sourceColWidth": source_col_width,
-            "headerPadPx": MATRIX_HEADER_PAD_PX,
-            "axisCharStepPx": MATRIX_AXIS_CHAR_STEP_PX,
-            "axisCharWidthPx": MATRIX_AXIS_CHAR_WIDTH_PX,
-            "axisMaxPx": MATRIX_AXIS_MAX_PX,
-            "cornerHeaderMinPx": MATRIX_CORNER_HEADER_MIN_PX,
-            "cornerFilterMinWidthPx": MATRIX_CORNER_FILTER_MIN_WIDTH_PX,
-            "cornerFilterMinHeightPx": MATRIX_CORNER_FILTER_MIN_HEIGHT_PX,
-            "maxTextLen": MATRIX_AXIS_MAX_TEXT_LEN,
-            "cellSizeMin": MATRIX_CELL_SIZE,
-        },
+        "gridMeta": grid_meta,
     }

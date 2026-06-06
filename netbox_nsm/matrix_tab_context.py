@@ -8,13 +8,49 @@ from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
 
 from netbox_nsm.models import RulebookFieldType, TypeConfig
-from netbox_nsm.matrix_grid_payload import matrix_zone_display_label
+from netbox_nsm.matrix_grid_payload import MATRIX_AXIS_MAX, matrix_zone_display_label
 from netbox_nsm.display_utils import get_display_template_map
 from netbox_nsm.branch_urls import with_branch_query, wrap_matrix_cell_hrefs
 
 
+def cap_matrix_axis_zones(
+    zones: list, *, limit: int | None = None
+) -> tuple[list, bool, int]:
+    """Return (capped zones, was_truncated, original_count)."""
+    max_count = MATRIX_AXIS_MAX if limit is None else limit
+    total = len(zones)
+    if total <= max_count:
+        return zones, False, total
+    return zones[:max_count], True, total
+
+
+def build_matrix_axis_limit_info(
+    *,
+    src_total: int,
+    dst_total: int,
+    src_truncated: bool,
+    dst_truncated: bool,
+    limit: int = MATRIX_AXIS_MAX,
+) -> dict | None:
+    if not src_truncated and not dst_truncated:
+        return None
+    return {
+        "limit": limit,
+        "src_total": src_total,
+        "dst_total": dst_total,
+        "src_truncated": src_truncated,
+        "dst_truncated": dst_truncated,
+    }
+
+
 def build_matrix_tab_context(
-    request, instance, *, view_helpers, client_axis_filters: bool = False
+    request,
+    instance,
+    *,
+    view_helpers,
+    client_axis_filters: bool = False,
+    lazy_grid: bool = False,
+    src_row_range: tuple[int, int] | None = None,
 ) -> dict:
     """Build matrix_rows, filters, and legend for matrix templates."""
     rules_qs = view_helpers._load_rules_qs(instance)
@@ -123,6 +159,15 @@ def build_matrix_tab_context(
         else all_zones
     )
 
+    src_zones, src_truncated, src_total = cap_matrix_axis_zones(src_zones)
+    dst_zones, dst_truncated, dst_total = cap_matrix_axis_zones(dst_zones)
+    matrix_axis_limit = build_matrix_axis_limit_info(
+        src_total=src_total,
+        dst_total=dst_total,
+        src_truncated=src_truncated,
+        dst_truncated=dst_truncated,
+    )
+
     def _action_color_label(rule):
         for item in rule.object_items.all():
             if not item.field or item.field.slug != "action":
@@ -136,7 +181,8 @@ def build_matrix_tab_context(
         return "#888888", "?"
 
     cell_map = defaultdict(list)
-    if selected_ct_id is not None:
+    build_rows = (not lazy_grid) or (src_row_range is not None)
+    if selected_ct_id is not None and build_rows:
         for rule in rules_qs:
             rule._color, rule._action_label = _action_color_label(rule)
             rule_src_pks = set()
@@ -205,7 +251,11 @@ def build_matrix_tab_context(
     }
 
     matrix_rows = []
-    for src in src_zones:
+    src_iter = src_zones
+    if src_row_range is not None:
+        start, end = src_row_range
+        src_iter = src_zones[start:end]
+    for src in src_iter:
         cells = []
         for dst in dst_zones:
             fwd_rules = cell_map.get((src.pk, dst.pk), [])
@@ -268,4 +318,5 @@ def build_matrix_tab_context(
         "zone_labels": zone_labels,
         "action_legend": action_legend,
         "matrix_mode": matrix_mode,
+        "matrix_axis_limit": matrix_axis_limit,
     }

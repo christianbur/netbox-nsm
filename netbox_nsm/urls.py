@@ -139,11 +139,6 @@ urlpatterns = [
     path("api/analyzer/", AnalyzerAPIView.as_view(), name="analyzer_api"),
     path("api/object-rules/", ObjectRulesApiView.as_view(), name="object_rules_api"),
     path(
-        "api/rulebooks/<int:pk>/policy-facets/",
-        RulebookPolicyFacetsApiView.as_view(),
-        name="rulebook_policy_facets_api",
-    ),
-    path(
         "api/picker-browse/",
         RulePickerBrowseApiView.as_view(),
         name="rule_picker_browse_api",

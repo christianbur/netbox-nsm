@@ -169,7 +169,9 @@ class RuleFieldSelectionsApiView(LoginRequiredMixin, View):
                         rule, body["columns"], rule.rulebook, request=request
                     )
                     record_rule_assignment_changelog(rule, request, prechange)
-                    record_rulebook_rules_changelog(rule.rulebook, request, rb_prechange)
+                    record_rulebook_rules_changelog(
+                        rule.rulebook, request, rb_prechange
+                    )
                     rule = self._load_rule(pk, prefetch=True)
                     return JsonResponse(
                         {

@@ -50,8 +50,10 @@ def describe_rulebook_fields_layout_changes(prechange, postchange):
         for key in sorted(set(old) | set(new)):
             if old.get(key) == new.get(key):
                 continue
-            if key == "types" and isinstance(old.get(key), dict) and isinstance(
-                new.get(key), dict
+            if (
+                key == "types"
+                and isinstance(old.get(key), dict)
+                and isinstance(new.get(key), dict)
             ):
                 for tc_id in sorted(set(old["types"]) | set(new["types"])):
                     old_type = old["types"].get(tc_id)
@@ -59,13 +61,9 @@ def describe_rulebook_fields_layout_changes(prechange, postchange):
                     if old_type == new_type:
                         continue
                     if old_type is None:
-                        lines.append(
-                            f'Field "{label}": added type config {tc_id}'
-                        )
+                        lines.append(f'Field "{label}": added type config {tc_id}')
                     elif new_type is None:
-                        lines.append(
-                            f'Field "{label}": removed type config {tc_id}'
-                        )
+                        lines.append(f'Field "{label}": removed type config {tc_id}')
                     else:
                         for tkey in sorted(set(old_type) | set(new_type)):
                             if old_type.get(tkey) != new_type.get(tkey):
@@ -75,9 +73,7 @@ def describe_rulebook_fields_layout_changes(prechange, postchange):
                                     f"{new_type.get(tkey)!r}"
                                 )
                 continue
-            lines.append(
-                f'Field "{label}": {key} {old.get(key)!r} → {new.get(key)!r}'
-            )
+            lines.append(f'Field "{label}": {key} {old.get(key)!r} → {new.get(key)!r}')
 
     return "; ".join(lines)
 
@@ -133,9 +129,7 @@ def _describe_item_map_changes(pre_map, post_map, *, added_label, removed_label)
             continue
         for attr in sorted(set(old) | set(new)):
             if old.get(attr) != new.get(attr):
-                lines.append(
-                    f"{key}: {attr} {old.get(attr)!r} → {new.get(attr)!r}"
-                )
+                lines.append(f"{key}: {attr} {old.get(attr)!r} → {new.get(attr)!r}")
     return lines
 
 
@@ -161,9 +155,7 @@ def describe_rule_assignment_changes(prechange, postchange):
     pre_vg = (prechange or {}).get("virtual_group_config")
     post_vg = (postchange or {}).get("virtual_group_config")
     if pre_vg != post_vg:
-        lines.append(
-            f"virtual_group_config {pre_vg!r} → {post_vg!r}"
-        )
+        lines.append(f"virtual_group_config {pre_vg!r} → {post_vg!r}")
     return "; ".join(lines)
 
 
@@ -226,9 +218,7 @@ def _describe_rule_items_changes(rule_label, old_items, new_items, *, kind):
         elif new is None:
             lines.append(f'Rule "{rule_label}": removed {label_fn(old)}')
         else:
-            lines.append(
-                f'Rule "{rule_label}": updated {label_fn(new)}'
-            )
+            lines.append(f'Rule "{rule_label}": updated {label_fn(new)}')
     return lines
 
 

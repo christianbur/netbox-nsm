@@ -22,7 +22,10 @@ from utilities.testing.utils import post_data
 
 
 def _get_serializer_raise_for_custom_objects(model, *args, **kwargs):
-    if getattr(model, "_meta", None) and model._meta.app_label == "netbox_custom_objects":
+    if (
+        getattr(model, "_meta", None)
+        and model._meta.app_label == "netbox_custom_objects"
+    ):
         raise SerializerNotFound(
             f"Could not determine serializer for {model._meta.label_lower}"
         )

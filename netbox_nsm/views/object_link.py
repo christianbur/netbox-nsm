@@ -401,6 +401,4 @@ class ObjectTypeElementsApiView(LoginRequiredMixin, View):
             for item in payload["results"]
         ]
         has_more = offset + len(results) < count
-        return JsonResponse(
-            {"results": results, "has_more": has_more, "count": count}
-        )
+        return JsonResponse({"results": results, "has_more": has_more, "count": count})

@@ -308,8 +308,4 @@ def _serialize_type_config_panel_linkable_types(type_ids):
     ids = type_ids or []
     if ids == [PANEL_LINKABLE_DISABLED]:
         return {"__disabled__": True}
-    return {
-        str(int(pk)): int(pk)
-        for pk in ids
-        if int(pk) != PANEL_LINKABLE_DISABLED
-    }
+    return {str(int(pk)): int(pk) for pk in ids if int(pk) != PANEL_LINKABLE_DISABLED}

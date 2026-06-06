@@ -111,7 +111,9 @@ class RulebookFieldViewSet(RulebookLayoutChangelogMixin, _PlainModelViewSet):
     filterset_class = RulebookFieldFilterSet
 
 
-class RulebookFieldTypeViewSet(RulebookFieldTypeLayoutChangelogMixin, _PlainModelViewSet):
+class RulebookFieldTypeViewSet(
+    RulebookFieldTypeLayoutChangelogMixin, _PlainModelViewSet
+):
     queryset = RulebookFieldType.objects.select_related(
         "field", "type_config__content_type"
     ).order_by("field", "sort_order")

@@ -36,7 +36,10 @@ urlpatterns = [
         ObjectGroupAreaView.as_view(),
         name="objectgroup_area",
     ),
-    path("type-config/", include(get_model_urls("netbox_nsm", "typeconfig", detail=False))),
+    path(
+        "type-config/",
+        include(get_model_urls("netbox_nsm", "typeconfig", detail=False)),
+    ),
     path(
         "type-config/<int:pk>/",
         include(get_model_urls("netbox_nsm", "typeconfig")),

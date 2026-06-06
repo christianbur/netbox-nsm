@@ -181,9 +181,7 @@ def browse_picker_objects(
     if not is_picker_browse_allowed(ct_id):
         raise ValueError("Content type not allowed for rule picker")
 
-    payload = browse_content_type_objects(
-        ct_id, q=q, limit=limit, offset=offset
-    )
+    payload = browse_content_type_objects(ct_id, q=q, limit=limit, offset=offset)
     if name_filter_regex:
         payload["results"] = _apply_name_filter_regex(
             payload["results"], name_filter_regex

@@ -302,9 +302,7 @@ class RuleForm(PrimaryModelForm):
                         self._save_virtual_group_config(instance)
                         record_rule_assignment_changelog(instance, req, prechange)
                         if rb_prechange:
-                            record_rulebook_rules_changelog(
-                                rulebook, req, rb_prechange
-                            )
+                            record_rulebook_rules_changelog(rulebook, req, rb_prechange)
         return instance
 
     def _save_virtual_group_config(self, instance):

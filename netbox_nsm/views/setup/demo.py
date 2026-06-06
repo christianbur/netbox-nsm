@@ -73,7 +73,14 @@ _DEMO_MATRIX_RULES = [
     },
 ]
 
-DEMO_ACTIONS = frozenset({"create_demo_starter", "create_demo_enterprise"})
+DEMO_ACTIONS = frozenset(
+    {
+        "create_demo_starter",
+        "create_demo_enterprise",
+        "create_demo_scale",
+        "create_demo_addresses_scale",
+    }
+)
 
 # Object columns shared by starter demos (system columns come from ensure_system_rulebook_fields).
 _SECURITY_RULES_OBJECT_FIELD_SPECS = (
@@ -156,10 +163,17 @@ def _apply_field_types(fields, type_map):
 
 def _ensure_demo_prerequisites():
     """Import built-in Custom Object Types + TypeConfigs if not yet present."""
-    from netbox_custom_objects.models import CustomObjectType
-
-    from .custom_objects import custom_objects_db_ready, import_all_types
-    from .typeconfig import create_all_typeconfigs
+    from .custom_objects import (
+        all_cots_ok,
+        custom_objects_db_ready,
+        get_cot_status,
+        import_all_types,
+    )
+    from .typeconfig import (
+        all_typeconfigs_ok,
+        create_all_typeconfigs,
+        get_typeconfig_status,
+    )
 
     if not custom_objects_db_ready():
         raise RuntimeError(
@@ -167,8 +181,12 @@ def _ensure_demo_prerequisites():
             "(migrate netbox_custom_objects first)."
         )
 
-    if not CustomObjectType.objects.filter(slug="nsm_zones").exists():
+    cot_status = get_cot_status()
+    if not all_cots_ok(cot_status):
         import_all_types()
+
+    tc_status = get_typeconfig_status()
+    if not all_typeconfigs_ok(cot_status, tc_status):
         create_all_typeconfigs()
 
 
@@ -235,6 +253,25 @@ def _create_addresses_rulebook():
     fields = _upsert_object_fields(rb, _SECURITY_RULES_OBJECT_FIELD_SPECS)
     _apply_field_types(fields, _ADDRESSES_FIELD_TYPES)
     return rb
+
+
+def _format_demo_summary(summary: dict) -> str:
+    parts = []
+    if summary.get("skipped"):
+        parts.append(_("already complete"))
+    if summary.get("rules") is not None:
+        parts.append(_("%(count)s rules") % {"count": summary["rules"]})
+    if summary.get("zones") is not None:
+        parts.append(_("%(count)s zones") % {"count": summary["zones"]})
+    if summary.get("pairs") is not None:
+        parts.append(_("%(count)s address pairs") % {"count": summary["pairs"]})
+    if summary.get("object_items") is not None:
+        parts.append(
+            _("%(count)s object items") % {"count": summary["object_items"]}
+        )
+    if summary.get("elapsed_s") is not None:
+        parts.append(_("%(seconds)s s") % {"seconds": summary["elapsed_s"]})
+    return ", ".join(str(part) for part in parts)
 
 
 def create_demo_starter():
@@ -305,4 +342,28 @@ def handle_demo_action(request, action: str):
             )
             return redirect(reverse("plugins:netbox_nsm:setup"))
         run_enterprise_demo(request)
+    elif action == "create_demo_scale":
+        from netbox_nsm.demos.scale_test import create_scale_test_demo
+
+        summary = create_scale_test_demo(recreate=True)
+        messages.success(
+            request,
+            _("Scale test created: '%(name)s' (%(detail)s).")
+            % {
+                "name": summary["rulebook"],
+                "detail": _format_demo_summary(summary),
+            },
+        )
+    elif action == "create_demo_addresses_scale":
+        from netbox_nsm.demos.addresses_scale import create_addresses_scale_demo
+
+        summary = create_addresses_scale_demo(recreate=True)
+        messages.success(
+            request,
+            _("Addresses demo populated: '%(name)s' (%(detail)s).")
+            % {
+                "name": summary["rulebook"],
+                "detail": _format_demo_summary(summary),
+            },
+        )
     return redirect(reverse("plugins:netbox_nsm:setup"))

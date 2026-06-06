@@ -132,6 +132,8 @@ class SetupView(LoginRequiredMixin, View):
                 return typeconfig.handle_typeconfig_action(request, action)
             if demo.handles_action(action):
                 return demo.handle_demo_action(request, action)
+            if action:
+                messages.warning(request, _("Unknown action: %(action)s") % {"action": action})
         except Exception as exc:
             messages.error(request, _("Error: %(error)s") % {"error": exc})
 

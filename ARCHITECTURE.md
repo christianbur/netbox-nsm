@@ -347,6 +347,10 @@ The `SetupView` POST handler dispatches on the `action` form field:
 | `create_all_typeconfigs` | Create all TypeConfigs |
 | `create_demo_starter` | Zone Matrix + Addresses rulebooks (imports COTs/TypeConfigs if needed) |
 | `create_demo_enterprise` | Run Enterprise DC import (blocked if IPs exist) |
+| `create_demo_scale` | `Demo - Scale Test` — 300 zones, 12 000 rules |
+| `create_demo_addresses_scale` | `Demo - Addresses` — 6 000 address-based rules |
+
+All demo actions call `_ensure_demo_prerequisites()` (imports missing COTs **and** TypeConfigs).
 
 ---
 
@@ -426,7 +430,7 @@ The `ObjectLinkSerializer` uses a `ContentTypeField` (writable, accepts
 
 `navigation.py` uses a `DynamicPluginMenu` wrapper around NetBox's `PluginMenu` to defer
 group construction until request time. This is necessary because some menu items reference
-database objects (e.g. hardcoded Rulebook pk=4 for the IP Analysis demo link).
+database objects (e.g. the default IP Analysis rulebook resolved at menu render time).
 
 Menu structure (when `top_level_menu=True`):
 
@@ -435,10 +439,10 @@ Security
 ├── Configuration
 │   ├── Setup
 │   └── Type Config
-├── Security Policies
+├── Rulebooks
 └── Analysis
-    ├── IP Analysis        (hardcoded demo link to rulebook 4)
-    └── Demo – Object Analyzer
+    ├── IP Analysis        (first matching rulebook; config: `ip_analysis_rulebook_id` / `_name`)
+    └── Object Analyzer
 ```
 
 ---

@@ -67,12 +67,10 @@ class TypeConfigFilterSet(NetBoxModelFilterSet):
     matching_class = django_filters.MultipleChoiceFilter(
         choices=MatchingClassChoices.choices,
     )
-    inherit_links = django_filters.BooleanFilter()
-    inherit_stop_on_own = django_filters.BooleanFilter()
 
     class Meta:
         model = TypeConfig
-        fields = ("id", "matching_class", "inherit_links", "inherit_stop_on_own")
+        fields = ("id", "matching_class")
 
     def search(self, queryset, name, value):
         if not value.strip():

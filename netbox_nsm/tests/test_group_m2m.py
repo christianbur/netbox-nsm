@@ -60,8 +60,12 @@ class GroupM2mRelationTests(SimpleTestCase):
         self.assertEqual(len(results), 2)
         self.assertEqual(results[0].related, parent)
         self.assertEqual(results[0].label, GROUP_M2M_LABEL_MEMBER_OF)
+        self.assertEqual(results[0].remove_group, parent)
+        self.assertEqual(results[0].remove_member, obj)
         self.assertEqual(results[1].related, member)
         self.assertEqual(results[1].label, GROUP_M2M_LABEL_MEMBER)
+        self.assertEqual(results[1].remove_group, obj)
+        self.assertEqual(results[1].remove_member, member)
 
     def test_member_also_sees_peer_members(self):
         model = _addr_model()
@@ -69,21 +73,25 @@ class GroupM2mRelationTests(SimpleTestCase):
         peer = SimpleNamespace(pk=21, name="dev-1")
 
         parent.group = MagicMock()
-        parent.group.all.return_value.order_by.return_value = [
-            obj_placeholder := SimpleNamespace(pk=20, name="me"),
-            peer,
-        ]
+        parent.group.all.return_value.order_by.return_value = []
 
-        obj = obj_placeholder
+        obj = model()
+        obj.pk = 20
+        obj.name = "me"
         obj.group = MagicMock()
         model.objects.filter.return_value.order_by.return_value = [parent]
+
+        # Peer enumeration reads members from each parent group.
+        parent.group.all.return_value.order_by.return_value = [obj, peer]
 
         results = list(iter_group_m2m_relations(obj))
 
         self.assertEqual(results[0].label, GROUP_M2M_LABEL_MEMBER_OF)
         self.assertEqual(results[1].related, peer)
         self.assertEqual(results[1].label, GROUP_M2M_LABEL_MEMBER)
-        self.assertEqual(results[1].via, "g-all")
+        self.assertEqual(results[1].via, str(parent))
+        self.assertEqual(results[1].remove_group, parent)
+        self.assertEqual(results[1].remove_member, peer)
 
     def test_skips_self_in_member_list(self):
         model = _addr_model()

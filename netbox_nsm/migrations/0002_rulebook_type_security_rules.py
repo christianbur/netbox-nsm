@@ -5,7 +5,9 @@ from django.db import migrations
 
 def forwards(apps, schema_editor):
     Rulebook = apps.get_model("netbox_nsm", "Rulebook")
-    Rulebook.objects.filter(rulebook_type="policy").update(rulebook_type="security_rules")
+    Rulebook.objects.filter(rulebook_type="policy").update(
+        rulebook_type="security_rules"
+    )
 
 
 class Migration(migrations.Migration):

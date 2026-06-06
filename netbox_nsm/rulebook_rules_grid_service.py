@@ -252,9 +252,7 @@ def _build_grouped_rules_page(
     grouped = view_helpers._build_grouped_rules_table_data(page_rules, rulebook)
     rows_by_pk = {row["pk"]: row for row in grouped.get("rows") or []}
 
-    level_labels = [
-        group_by_field_label(level, rules_layout) for level in group_levels
-    ]
+    level_labels = [group_by_field_label(level, rules_layout) for level in group_levels]
 
     page: list[dict] = []
     for item in page_items:
@@ -433,7 +431,9 @@ def fetch_rulebook_rules_grid_page(
         wrap_rulebook_rules_grid_row_urls(page, request)
     elif filter_model:
         grouped = view_helpers._build_grouped_rules_table_data(rules, rulebook)
-        records = [build_rulebook_rules_grid_row(row) for row in grouped.get("rows") or []]
+        records = [
+            build_rulebook_rules_grid_row(row) for row in grouped.get("rows") or []
+        ]
         wrap_rulebook_rules_grid_row_urls(records, request)
         total = len(records)
         page = records[start_row:end_row]

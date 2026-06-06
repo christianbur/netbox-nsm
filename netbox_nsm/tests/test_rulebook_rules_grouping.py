@@ -177,7 +177,9 @@ class PolicyRuleGroupingTests(SimpleTestCase):
     def test_validate_rulebook_rules_group_request_accepts_configured_column(self):
         layout = self._layout()
         request = RequestFactory().get("/rules/?group_by=col:source::ct_1")
-        self.assertIsNone(validate_rulebook_rules_group_request(request, rules_layout=layout))
+        self.assertIsNone(
+            validate_rulebook_rules_group_request(request, rules_layout=layout)
+        )
 
     def test_validate_rulebook_rules_group_request_rejects_rulebook_without_flag(self):
         layout = self._layout()
@@ -255,7 +257,9 @@ class PolicyRuleGroupingTests(SimpleTestCase):
         )
         self.assertEqual(levels, ["rulebook", "col:source::ct_1"])
 
-    def test_parse_rulebook_rules_group_levels_rulebook_ignores_duplicate_secondary(self):
+    def test_parse_rulebook_rules_group_levels_rulebook_ignores_duplicate_secondary(
+        self,
+    ):
         layout = self._layout()
         request = RequestFactory().get("/rules/?group_by=rulebook&group_by_2=rulebook")
         levels = parse_rulebook_rules_group_levels(

@@ -41,11 +41,16 @@
     return !isNaN(dstPk) && dstPk === srcPk;
   }
 
-  function matrixCellStyle(params) {
+  function matrixCellIsEmpty(params) {
     var v = params.value;
     if (!v || typeof v !== "object") {
-      return null;
+      return true;
     }
+    return !!v.empty;
+  }
+
+  function matrixCellStyle(params) {
+    var v = params.value;
     var style = {
       textAlign: "center",
       padding: "0",
@@ -53,13 +58,13 @@
       alignItems: "center",
       justifyContent: "center",
     };
-    if (v.isSelf) {
-      style.boxShadow = "inset 0 0 0 2px var(--nsm-matrix-self-border, rgba(251, 191, 36, 0.65))";
-    }
-    if (v.empty) {
-      style.backgroundColor = "transparent";
+    if (!v || typeof v !== "object" || v.empty) {
+      style.backgroundColor = "var(--nsm-matrix-empty-bg, #ffffff)";
       style.color = "var(--nsm-matrix-empty-text, #64748b)";
       return style;
+    }
+    if (v.isSelf) {
+      style.boxShadow = "inset 0 0 0 2px var(--nsm-matrix-self-border, rgba(253, 126, 20, 0.72))";
     }
     if (v.bgSecondary && v.bg) {
       style.background = "linear-gradient(to bottom, " + v.bg + " 50%, " + v.bgSecondary + " 50%)";
@@ -73,15 +78,19 @@
     return style;
   }
 
+  function applyMatrixZoneAccent(el, color) {
+    if (!el || !color) {
+      return;
+    }
+    el.classList.add("nsm-matrix-zone-accent");
+    el.style.setProperty("--nsm-matrix-zone-accent", color);
+  }
+
   function matrixSourceCellStyle(params) {
-    var color = params.data && params.data._sourceColor;
-    if (!color) {
+    if (!(params.data && params.data._sourceColor)) {
       return null;
     }
-    return {
-      backgroundColor: color,
-      color: "#fff",
-    };
+    return null;
   }
 
   function matrixCellRenderer(params) {
@@ -89,8 +98,12 @@
     var wrap = document.createElement("div");
     wrap.className = "nsm-matrix-cell-inner w-100 h-100 d-flex align-items-center justify-content-center";
     if (!v || typeof v !== "object") {
+      wrap.classList.add("nsm-matrix-cell-empty");
       wrap.textContent = "-";
       return wrap;
+    }
+    if (v.empty) {
+      wrap.classList.add("nsm-matrix-cell-empty");
     }
 
     if (v.directedLines && v.directedLines.length) {
@@ -134,7 +147,7 @@
     var displayName = params.value == null ? "" : String(params.value);
     var sourceColor = params.data && params.data._sourceColor;
     if (sourceColor) {
-      wrap.style.backgroundColor = sourceColor;
+      applyMatrixZoneAccent(wrap, sourceColor);
     }
     wrap.innerHTML =
       '<a href="' +
@@ -149,7 +162,7 @@
     return wrap;
   }
 
-  var matrixAxisFilterState = { sourceGroups: [], gridApi: null };
+  var matrixAxisFilterState = { sourceGroups: [], sourceQuery: "", gridApi: null };
 
   function parseAxisFilterGroups(query) {
     var raw = (query || "").trim();
@@ -183,10 +196,26 @@
     });
   }
 
+  function refreshInfiniteMatrixCache(gridApi) {
+    if (!gridApi) {
+      return;
+    }
+    if (typeof gridApi.purgeInfiniteCache === "function") {
+      gridApi.purgeInfiniteCache();
+    } else if (typeof gridApi.refreshInfiniteCache === "function") {
+      gridApi.refreshInfiniteCache();
+    }
+  }
+
   function applySourceRowFilter(api, query) {
     matrixAxisFilterState.sourceGroups = parseAxisFilterGroups(query);
+    matrixAxisFilterState.sourceQuery = (query || "").trim();
     var gridApi = api || matrixAxisFilterState.gridApi;
     if (!gridApi) {
+      return;
+    }
+    if (typeof gridApi.refreshInfiniteCache === "function") {
+      refreshInfiniteMatrixCache(gridApi);
       return;
     }
     // Reset rows that may have been hidden by an older setDisplayed() path
@@ -252,7 +281,7 @@
     label.style.maxHeight = labelSpan + "px";
     var headerBg = colDef.headerBackgroundColor;
     if (headerBg) {
-      wrap.style.backgroundColor = headerBg;
+      applyMatrixZoneAccent(wrap, headerBg);
       label.classList.add("nsm-matrix-axis-zone-label-colored");
     }
     wrap.appendChild(label);
@@ -297,8 +326,14 @@
     var xInput = wrap.querySelector('[data-axis="x"]');
     var api = params.api;
 
+    var sourceFilterTimer = null;
     yInput.addEventListener("input", function () {
-      applySourceRowFilter(null, yInput.value);
+      if (sourceFilterTimer) {
+        clearTimeout(sourceFilterTimer);
+      }
+      sourceFilterTimer = setTimeout(function () {
+        applySourceRowFilter(null, yInput.value);
+      }, 300);
     });
     xInput.addEventListener("input", function () {
       applyDestColumnFilter(matrixAxisFilterState.gridApi || api, xInput.value);
@@ -379,7 +414,7 @@
 
   function applyLegacyThemeClass(gridEl, dark) {
     if (!gridEl) {
-      return;
+      return null;
     }
     gridEl.classList.remove("ag-theme-quartz", "ag-theme-quartz-dark");
     gridEl.classList.add(dark ? "ag-theme-quartz-dark" : "ag-theme-quartz");
@@ -475,7 +510,7 @@
 
   function fitMatrixGridWidth(gridEl, columnDefs, sourceColWidth, dstColWidth) {
     if (!gridEl || !columnDefs) {
-      return;
+      return null;
     }
     var dstCount = 0;
     columnDefs.forEach(function (col) {
@@ -487,22 +522,178 @@
     gridEl.style.width = Math.ceil(total) + "px";
   }
 
+  function isEmbeddedRulesMatrix(gridEl) {
+    return !!(gridEl && gridEl.closest(".nsm-rules-matrix-wrap"));
+  }
+
+  function matrixGridMaxHeightPx(gridEl) {
+    if (isEmbeddedRulesMatrix(gridEl)) {
+      return null;
+    }
+    return Math.min(Math.round(window.innerHeight * 0.75), 720);
+  }
+
+  function fitMatrixGridHeight(gridEl, headerHeight, rowHeight, rowCount, maxHeightPx) {
+    if (!gridEl || rowCount < 0) {
+      return;
+    }
+    var contentPx = headerHeight + rowCount * rowHeight;
+    var heightPx =
+      maxHeightPx == null ? contentPx : Math.min(contentPx, maxHeightPx);
+    gridEl.style.height = Math.ceil(heightPx) + "px";
+    gridEl.style.minHeight = "0";
+    gridEl.style.maxHeight = Math.ceil(heightPx) + "px";
+    gridEl.style.overflow = "hidden";
+  }
+
+  function resolveMatrixGridRowCount(state) {
+    if (!state) {
+      return 0;
+    }
+    var rowCount = state.knownTotalRows;
+    if (state.gridApi && typeof state.gridApi.getDisplayedRowCount === "function") {
+      var displayed = state.gridApi.getDisplayedRowCount();
+      if (typeof displayed === "number" && displayed >= 0) {
+        rowCount = displayed;
+      }
+    }
+    return rowCount;
+  }
+
+  function clipMatrixGridBodyToRows(gridEl, rowCount, rowHeight) {
+    if (!gridEl || !(rowCount > 0) || !(rowHeight > 0)) {
+      return;
+    }
+    var bodyPx = Math.ceil(rowCount * rowHeight) + "px";
+    [
+      ".ag-body-viewport",
+      ".ag-center-cols-viewport",
+      ".ag-center-cols-container",
+      ".ag-pinned-left-cols-viewport",
+      ".ag-pinned-left-cols-container",
+    ].forEach(function (sel) {
+      var el = gridEl.querySelector(sel);
+      if (!el) {
+        return;
+      }
+      el.style.height = bodyPx;
+      el.style.maxHeight = bodyPx;
+      el.style.minHeight = bodyPx;
+      el.style.overflow = "hidden";
+    });
+  }
+
+  function applyMatrixGridHeightLayout(state, headerHeight, rowHeight) {
+    if (!state || !state.gridEl) {
+      return;
+    }
+    var rowCount = resolveMatrixGridRowCount(state);
+    if (!(rowCount > 0)) {
+      return;
+    }
+    fitMatrixGridHeight(
+      state.gridEl,
+      headerHeight,
+      rowHeight,
+      rowCount,
+      matrixGridMaxHeightPx(state.gridEl)
+    );
+    clipMatrixGridBodyToRows(state.gridEl, rowCount, rowHeight);
+  }
+
+  function syncMatrixGridHeight(state, headerHeight, rowHeight) {
+    applyMatrixGridHeightLayout(state, headerHeight, rowHeight);
+    if (typeof requestAnimationFrame !== "function") {
+      return;
+    }
+    requestAnimationFrame(function () {
+      applyMatrixGridHeightLayout(state, headerHeight, rowHeight);
+    });
+  }
+
+  function buildMatrixGridFetchUrl(config, startRow, endRow) {
+    if (!config || !config.gridDataUrl) {
+      return null;
+    }
+    var pageParams = new URLSearchParams(window.location.search);
+    var qs = pageParams.toString();
+    var srcQ = matrixAxisFilterState.sourceQuery || "";
+    var url =
+      config.gridDataUrl +
+      (qs ? "?" + qs + "&" : "?") +
+      "startRow=" +
+      encodeURIComponent(startRow) +
+      "&endRow=" +
+      encodeURIComponent(endRow);
+    if (config.objType && !pageParams.has("obj_type")) {
+      url += "&obj_type=" + encodeURIComponent(String(config.objType));
+    }
+    if (srcQ) {
+      url += "&src_q=" + encodeURIComponent(srcQ);
+    }
+    return url;
+  }
+
+  function matrixDstField(col) {
+    if (!col) {
+      return "";
+    }
+    return col.field || col.colId || "";
+  }
+
+  function resolveMatrixDstColumns(state, gridApi) {
+    if (gridApi && typeof gridApi.getAllDisplayedColumns === "function") {
+      var displayed = (gridApi.getAllDisplayedColumns() || []).filter(function (col) {
+        var colId = typeof col.getColId === "function" ? col.getColId() : "";
+        return colId && colId.indexOf("dst_") === 0;
+      });
+      if (displayed.length) {
+        return displayed.map(function (col) {
+          var def = typeof col.getColDef === "function" ? col.getColDef() : {};
+          return {
+            field: def.field || col.getColId(),
+            colId: col.getColId(),
+            headerName: def.headerName,
+            headerTooltip: def.headerTooltip,
+          };
+        });
+      }
+    }
+    var defs =
+      (state && state.columnDefs) ||
+      (state && state.payload && state.payload.columnDefs) ||
+      [];
+    return (defs || [])
+      .filter(function (col) {
+        var field = matrixDstField(col);
+        return field && field.indexOf("dst_") === 0;
+      })
+      .map(function (col) {
+        return Object.assign({}, col, { field: matrixDstField(col) });
+      });
+  }
+
+  function collectMatrixRowsFromGridApi(gridApi) {
+    var rows = [];
+    if (!gridApi || typeof gridApi.forEachNode !== "function") {
+      return rows;
+    }
+    gridApi.forEachNode(function (node) {
+      if (node && node.data) {
+        rows.push(node.data);
+      }
+    });
+    return rows;
+  }
+
   function createMatrixDatasource(config, state) {
     return {
       getRows: function (params) {
-        if (!config || !config.gridDataUrl) {
+        var url = buildMatrixGridFetchUrl(config, params.startRow, params.endRow);
+        if (!url) {
           params.failCallback();
           return;
         }
-        var pageParams = new URLSearchParams(window.location.search);
-        var qs = pageParams.toString();
-        var url =
-          config.gridDataUrl +
-          (qs ? "?" + qs + "&" : "?") +
-          "startRow=" +
-          encodeURIComponent(params.startRow) +
-          "&endRow=" +
-          encodeURIComponent(params.endRow);
         if (state && state.gridEl) {
           state.gridEl.classList.add("nsm-ag-grid-loading");
         }
@@ -522,6 +713,9 @@
                 typeof data.lastRow === "number"
                   ? data.lastRow
                   : params.endRow;
+              if (state.headerHeight != null && state.rowHeight != null) {
+                syncMatrixGridHeight(state, state.headerHeight, state.rowHeight);
+              }
             }
             params.successCallback(data.rowData || [], data.lastRow);
           })
@@ -538,17 +732,15 @@
     };
   }
 
-  function initMatrixAgGrid() {
-    var payload = readJsonScript("nsm-matrix-grid-data");
-    var config = readJsonScript("nsm-matrix-grid-config") || {};
-    var gridEl = document.getElementById("nsm-matrix-ag-grid");
+  function createEmbeddedMatrixAgGrid(gridEl, payload, config) {
     if (!payload || !gridEl) {
-      return;
+      return null;
     }
+    config = config || {};
     if (typeof agGrid === "undefined" || typeof agGrid.createGrid !== "function") {
       gridEl.innerHTML =
         '<p class="text-danger p-3 mb-0">AG Grid konnte nicht geladen werden.</p>';
-      return;
+      return null;
     }
 
     var layoutEl = gridEl.closest(".nsm-matrix-ag-theme");
@@ -565,6 +757,7 @@
           cellStyle: matrixCellStyle,
           cellClassRules: {
             "nsm-matrix-self": matrixCellIsSelf,
+            "nsm-matrix-empty": matrixCellIsEmpty,
           },
         });
       }
@@ -626,13 +819,20 @@
     var datasourceState = {
       gridEl: gridEl,
       knownTotalRows: config.totalRows || 0,
+      columnDefs: columnDefs,
+      payload: payload,
+      headerHeight: headerHeight,
+      rowHeight: rowHeight,
     };
 
     var gridOptions = {
       theme: theme || "legacy",
-      context: { matrixGridMeta: payload.gridMeta || {} },
+      context: {
+        matrixGridMeta: payload.gridMeta || {},
+      },
       columnDefs: columnDefs,
       debounceVerticalScrollbar: true,
+      suppressHorizontalScroll: true,
       suppressColumnMoveAnimation: true,
       suppressMovableColumns: true,
       suppressDragLeaveHidesColumns: true,
@@ -657,27 +857,29 @@
       rowHeight: rowHeight,
       onGridReady: function (params) {
         matrixAxisFilterState.gridApi = params.api;
+        datasourceState.gridApi = params.api;
         fitMatrixGridWidth(gridEl, columnDefs, sourceColWidth, dstColWidth);
+        syncMatrixGridHeight(datasourceState, headerHeight, rowHeight);
+        if (useInfinite && matrixAxisFilterState.sourceQuery) {
+          refreshInfiniteMatrixCache(params.api);
+        }
       },
-      isExternalFilterPresent: function () {
+      onModelUpdated: function () {
+        syncMatrixGridHeight(datasourceState, headerHeight, rowHeight);
+      },
+    };
+
+    if (!useInfinite) {
+      gridOptions.isExternalFilterPresent = function () {
         return matrixAxisFilterState.sourceGroups.length > 0;
-      },
-      doesExternalFilterPass: function (node) {
+      };
+      gridOptions.doesExternalFilterPass = function (node) {
         return matchesAxisFilterGroups(
           node.data && node.data._sourceLabel,
           matrixAxisFilterState.sourceGroups
         );
-      },
-      onFilterChanged: function (params) {
-        if (
-          useInfinite &&
-          params.api &&
-          typeof params.api.refreshInfiniteCache === "function"
-        ) {
-          params.api.refreshInfiniteCache();
-        }
-      },
-    };
+      };
+    }
 
     if (useInfinite) {
       gridOptions.rowModelType = "infinite";
@@ -692,15 +894,18 @@
       };
     } else {
       gridOptions.rowData = payload.rowData || [];
+      datasourceState.knownTotalRows = (payload.rowData || []).length;
+      syncMatrixGridHeight(datasourceState, headerHeight, rowHeight);
     }
 
+    var gridApi;
     try {
-      agGrid.createGrid(gridEl, gridOptions);
+      gridApi = agGrid.createGrid(gridEl, gridOptions);
     } catch (err) {
       console.error("NSM matrix grid: createGrid failed", err);
       gridEl.innerHTML =
         '<p class="text-danger p-3 mb-0">Matrix-Grid Initialisierung fehlgeschlagen.</p>';
-      return;
+      return null;
     }
 
     watchNetBoxColorMode(function () {
@@ -709,7 +914,191 @@
         applyLegacyThemeClass(gridEl, isNetBoxDark());
       }
     });
+
+    return {
+      api: gridApi,
+      state: datasourceState,
+      destroy: function () {
+        if (gridApi && typeof gridApi.destroy === "function") {
+          gridApi.destroy();
+        }
+        gridEl.innerHTML = "";
+        if (matrixAxisFilterState.gridApi === gridApi) {
+          matrixAxisFilterState.gridApi = null;
+        }
+      },
+    };
   }
+
+  function fetchAllMatrixRows(config, state) {
+    var total = (state && state.knownTotalRows) || 0;
+    if (total <= 0) {
+      total = 500;
+    }
+    var url = buildMatrixGridFetchUrl(config, 0, total);
+    if (!url) {
+      return Promise.resolve([]);
+    }
+    return fetch(url, {
+      credentials: "same-origin",
+      headers: { Accept: "application/json" },
+    })
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error("matrix export fetch failed");
+        }
+        return response.json();
+      })
+      .then(function (data) {
+        return data.rowData || [];
+      });
+  }
+
+  function matrixCellCsvValue(cellValue) {
+    if (!cellValue || typeof cellValue !== "object") {
+      return "";
+    }
+    if (cellValue.empty) {
+      return "";
+    }
+    var text = "";
+    if (cellValue.directedLines && cellValue.directedLines.length) {
+      text = cellValue.directedLines
+        .filter(function (line) {
+          return line && !line.empty;
+        })
+        .map(function (line) {
+          return line.label || "";
+        })
+        .join(" / ");
+    } else if (cellValue.label && cellValue.label !== "+") {
+      text = cellValue.label;
+    }
+    var colors = [];
+    if (cellValue.bg) {
+      colors.push(String(cellValue.bg));
+    }
+    if (cellValue.bgSecondary && cellValue.bgSecondary !== cellValue.bg) {
+      colors.push(String(cellValue.bgSecondary));
+    }
+    if (text && colors.length) {
+      return text + " [" + colors.join("|") + "]";
+    }
+    return text;
+  }
+
+  function buildMatrixCsv(dstCols, rows) {
+    dstCols = dstCols || [];
+    var headers = ["Source"].concat(
+      dstCols.map(function (col) {
+        return col.headerTooltip || col.headerName || matrixDstField(col) || "";
+      })
+    );
+    var lines = [headers.map(csvEscapeField).join(",")];
+    (rows || []).forEach(function (row) {
+      var line = [row._sourceLabel || row._sourceDisplayLabel || ""];
+      dstCols.forEach(function (col) {
+        var field = matrixDstField(col);
+        line.push(matrixCellCsvValue(row[field]));
+      });
+      lines.push(line.map(csvEscapeField).join(","));
+    });
+    return lines.join("\n");
+  }
+
+  function csvEscapeField(value) {
+    var text = value == null ? "" : String(value);
+    if (/[",\n\r]/.test(text)) {
+      return '"' + text.replace(/"/g, '""') + '"';
+    }
+    return text;
+  }
+
+  function exportMatrixCsv(config, state, filename) {
+    var gridApi = state && state.gridApi;
+    var dstCols = resolveMatrixDstColumns(state, gridApi);
+    var gridRows = collectMatrixRowsFromGridApi(gridApi);
+    var knownTotal = (state && state.knownTotalRows) || 0;
+
+    function finish(rows) {
+      downloadCsvBlob(buildMatrixCsv(dstCols, rows), filename);
+    }
+
+    if (gridRows.length && (!knownTotal || gridRows.length >= knownTotal)) {
+      finish(gridRows);
+      return Promise.resolve();
+    }
+
+    return fetchAllMatrixRows(config, state)
+      .then(function (rows) {
+        finish(rows.length ? rows : gridRows);
+      })
+      .catch(function (err) {
+        console.error("NSM matrix CSV export failed", err);
+        if (gridRows.length) {
+          finish(gridRows);
+          return;
+        }
+        finish([]);
+      });
+  }
+
+  function downloadCsvBlob(csv, filename) {
+    var blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement("a");
+    link.href = url;
+    link.download = filename || "export.csv";
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  function applyMatrixAxisFilters(api, srcQ, dstQ) {
+    applySourceRowFilter(api, srcQ || "");
+    applyDestColumnFilter(api, dstQ || "");
+  }
+
+  function readMatrixAxisFiltersFromUrl() {
+    if (typeof window === "undefined") {
+      return { srcQ: "", dstQ: "" };
+    }
+    var params = new URLSearchParams(window.location.search);
+    return {
+      srcQ: params.get("src_q") || "",
+      dstQ: params.get("dst_q") || "",
+    };
+  }
+
+  function clearMatrixAxisFilters(api) {
+    applyMatrixAxisFilters(api, "", "");
+  }
+
+  function initMatrixAgGrid() {
+    var payload = readJsonScript("nsm-matrix-grid-data");
+    var config = readJsonScript("nsm-matrix-grid-config") || {};
+    var gridEl = document.getElementById("nsm-matrix-ag-grid");
+    if (!payload || !gridEl) {
+      return;
+    }
+    createEmbeddedMatrixAgGrid(gridEl, payload, config);
+  }
+
+  window.NSM_MATRIX_AG = {
+    createEmbeddedMatrixAgGrid: createEmbeddedMatrixAgGrid,
+    exportMatrixCsv: exportMatrixCsv,
+    downloadCsvBlob: downloadCsvBlob,
+    csvEscapeField: csvEscapeField,
+    buildMatrixCsv: buildMatrixCsv,
+    matrixCellCsvValue: matrixCellCsvValue,
+    resolveMatrixDstColumns: resolveMatrixDstColumns,
+    collectMatrixRowsFromGridApi: collectMatrixRowsFromGridApi,
+    applyMatrixAxisFilters: applyMatrixAxisFilters,
+    readMatrixAxisFiltersFromUrl: readMatrixAxisFiltersFromUrl,
+    clearMatrixAxisFilters: clearMatrixAxisFilters,
+  };
 
   initMatrixAgGrid();
 })();

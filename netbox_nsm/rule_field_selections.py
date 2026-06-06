@@ -258,6 +258,13 @@ def build_column_cell_payload(rule: Rule, rulebook: Rulebook, column_key: str) -
         except (TypeError, ValueError):
             ct_id = None
         if ct_id is not None:
+            from netbox_nsm.models import TypeConfig as _TC
+            from netbox_nsm.views.rulebook import _object_is_addr_analyzable
+
+            matching_class_map = {
+                tc.content_type_id: tc.matching_class
+                for tc in _TC.objects.only("content_type_id", "matching_class")
+            }
             for item in rule.object_items.filter(
                 field=field, content_type_id=ct_id
             ).select_related("content_type"):
@@ -280,6 +287,11 @@ def build_column_cell_payload(rule: Rule, rulebook: Rulebook, column_key: str) -
                         "name": str(display_name),
                         "color": getattr(assigned, "color", "") or "",
                         "excluded": bool(item.exclude),
+                        "ct": item.content_type_id,
+                        "pk": item.object_id,
+                        "addrAnalyzable": _object_is_addr_analyzable(
+                            assigned, item.content_type_id, matching_class_map
+                        ),
                     }
                 )
 

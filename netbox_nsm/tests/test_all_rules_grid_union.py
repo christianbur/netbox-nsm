@@ -3,6 +3,7 @@
 import json
 
 from django.contrib.contenttypes.models import ContentType
+from django.core.cache import cache
 from django.test import RequestFactory
 from django.urls import reverse
 
@@ -24,6 +25,7 @@ from netbox_nsm.models import (
     TypeConfig,
 )
 from netbox_nsm.rulebook_field_utils import ensure_system_rulebook_fields
+from netbox_nsm.rulebook_rules_grid_service import UNION_LAYOUT_CACHE_KEY
 from utilities.testing import TestCase
 from netbox_nsm.views.all_rules_grid_api import AllRulesGridApiView
 
@@ -77,8 +79,12 @@ class AllRulesGridUnionTests(TestCase):
             defaults={"name": "Union Type B"},
         )
 
-        cls.rb_a = Rulebook.objects.create(name="Union RB A", rulebook_type="security_rules")
-        cls.rb_b = Rulebook.objects.create(name="Union RB B", rulebook_type="security_rules")
+        cls.rb_a = Rulebook.objects.create(
+            name="Union RB A", rulebook_type="security_rules"
+        )
+        cls.rb_b = Rulebook.objects.create(
+            name="Union RB B", rulebook_type="security_rules"
+        )
         ensure_system_rulebook_fields(cls.rb_a)
         ensure_system_rulebook_fields(cls.rb_b)
 
@@ -110,6 +116,10 @@ class AllRulesGridUnionTests(TestCase):
 
         cls.rule_a = Rule.objects.create(rulebook=cls.rb_a, name="rule-a", index=10)
         cls.rule_b = Rule.objects.create(rulebook=cls.rb_b, name="rule-b", index=20)
+
+    def setUp(self):
+        super().setUp()
+        cache.delete(UNION_LAYOUT_CACHE_KEY)
 
     def test_union_global_column_key_uses_area_and_label(self):
         key = _union_global_column_key(
@@ -218,7 +228,7 @@ class AllRulesGridUnionTests(TestCase):
 
     def test_remap_grouped_row_maps_local_to_global_keys(self):
         type_a_label = str(self.ct_a.model_class()._meta.verbose_name).capitalize()
-        local_key = f"source::ct_{self.ct_a.content_type_id}"
+        local_key = f"source::ct_{self.ct_a.pk}"
         global_key = f"Source::{type_a_label}"
         remapped = _remap_grouped_row(
             {

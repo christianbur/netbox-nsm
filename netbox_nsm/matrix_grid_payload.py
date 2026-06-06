@@ -134,12 +134,6 @@ def _zone_color(zone) -> str | None:
     return color or None
 
 
-def _matrix_axis_header_style(color: str | None) -> dict:
-    if not color:
-        return {}
-    return {"backgroundColor": color, "color": "#fff"}
-
-
 def matrix_zone_display_label(
     zone,
     zone_content_type_id: int | None,
@@ -363,9 +357,7 @@ def build_matrix_ag_grid_payload(
             "filter": False,
             "suppressHeaderMenuButton": True,
         }
-        header_style = _matrix_axis_header_style(zone_color)
-        if header_style:
-            dst_col["headerStyle"] = header_style
+        if zone_color:
             dst_col["headerBackgroundColor"] = zone_color
         column_defs.append(dst_col)
 

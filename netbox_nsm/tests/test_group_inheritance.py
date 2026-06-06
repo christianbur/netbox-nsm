@@ -41,8 +41,8 @@ class GroupInheritanceTests(SimpleTestCase):
             )
         )
 
-    @patch("netbox_nsm.group_inheritance.ObjectGroupMember")
-    @patch("netbox_nsm.group_inheritance.ContentType")
+    @patch("netbox_nsm.models.ObjectGroupMember")
+    @patch("django.contrib.contenttypes.models.ContentType")
     def test_direct_parent_includes_object_group_membership(
         self, content_type_cls, member_cls
     ):
@@ -77,8 +77,8 @@ class GroupInheritanceTests(SimpleTestCase):
     @patch("netbox_nsm.group_inheritance._type_config_map")
     @patch("netbox_nsm.group_inheritance.direct_nsm_type_keys_for_ipam")
     @patch("netbox_nsm.group_inheritance.ancestor_containers_for_group_inheritance")
-    @patch("netbox_nsm.group_inheritance.ObjectLink")
-    @patch("netbox_nsm.group_inheritance.ContentType")
+    @patch("netbox_nsm.models.ObjectLink")
+    @patch("django.contrib.contenttypes.models.ContentType")
     def test_iter_yields_group_inherited_zone(
         self,
         content_type_cls,
@@ -121,7 +121,7 @@ class GroupInheritanceTests(SimpleTestCase):
 
         object_link_cls.objects.filter.side_effect = _filter_side_effect
 
-        with patch("netbox_nsm.group_inheritance.prefetch_related_objects"):
+        with patch("django.db.models.prefetch_related_objects"):
             items = list(iter_inherited_group_nsm_links(obj))
 
         self.assertEqual(len(items), 1)

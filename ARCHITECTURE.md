@@ -159,10 +159,19 @@ ObjectLink
 ├── object_b_type  (ForeignKey → ContentType)
 ├── object_b_id    (PositiveBigIntegerField)
 ├── object_b       (GenericForeignKey)
+├── propagation    (CharField — LinkPropagationChoices: direct | inherit_ipam | inherit_group)
+├── propagate_stop_on_own  (BooleanField — suppress inheritance when child has direct link of same type)
 └── comment        (TextField, optional)
 ```
 
 **Purpose:** Bidirectional link between any two NetBox objects.
+
+**Link type (`propagation`):** Set on the **Assign Link** form. `direct` — stored on object A,
+visible on both sides, not propagated. `inherit_ipam` — child Prefixes, IP addresses, and IP
+ranges under object A inherit the link in their Security Panel. `inherit_group` — members of a
+group/container inherit the link. All three modes are always offered in the dropdown;
+`ipam_inheritance.py` / `group_inheritance.py` resolve inherited rows at panel load. See
+[Creating an inheriting assignment](docs/using_netbox_nsm.md#creating-an-inheriting-assignment).
 
 **Unique constraint:** `(object_a_type, object_a_id, object_b_type, object_b_id)` — one link
 per pair per direction.
@@ -326,8 +335,9 @@ These are synced to the database via `custom_objects_schema.py` which builds the
 |---|---|---|
 | `views/setup.py` | `SetupView` | `setup/` |
 | `views/nsm_type_config.py` | List / Add / Edit / Delete | `type-config/` |
-| `views/nsm_policy.py` | Rulebook CRUD + Policy / Analysis / ZoneMatrix / IPAnalysis tabs | `rulebooks/` |
+| `views/rulebook.py` | Rulebook CRUD + Rules tab (embedded matrix) | `rulebooks/` |
 | `views/object_link.py` | CRUD for ObjectLink | `object-link/` |
+| `views/ip_analysis.py` | `IPAnalysisView` | `ip-analysis/` |
 | `views/object_analyzer.py` | `ObjectAnalyzerView` | `object-analyzer/` |
 | `views/nsm_object_group.py` | ObjectGroup CRUD | `object-groups/` |
 | `panel_sections.py` | Static panel slugs (source, destination, …) | — |
@@ -429,8 +439,7 @@ The `ObjectLinkSerializer` uses a `ContentTypeField` (writable, accepts
 ## Navigation
 
 `navigation.py` uses a `DynamicPluginMenu` wrapper around NetBox's `PluginMenu` to defer
-group construction until request time. This is necessary because some menu items reference
-database objects (e.g. the default IP Analysis rulebook resolved at menu render time).
+group construction until request time.
 
 Menu structure (when `top_level_menu=True`):
 
@@ -441,8 +450,8 @@ Security
 │   └── Type Config
 ├── Rulebooks
 └── Analysis
-    ├── IP Analysis        (first matching rulebook; config: `ip_analysis_rulebook_id` / `_name`)
-    └── Object Analyzer
+    ├── IP Analysis        → `/plugins/netbox-nsm/ip-analysis/`
+    └── Object Analyzer    → `/plugins/netbox-nsm/object-analyzer/`
 ```
 
 ---

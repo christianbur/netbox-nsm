@@ -43,7 +43,9 @@ class PolicyGridRulesCacheTests(TestCase):
 
     def test_rulebook_rules_grid_rules_cache_key_ignores_grouping(self):
         key_a = rulebook_rules_grid_rules_cache_key(self.rulebook.pk, None)
-        key_b = rulebook_rules_grid_rules_cache_key(self.rulebook.pk, {"name": {"filter": "x"}})
+        key_b = rulebook_rules_grid_rules_cache_key(
+            self.rulebook.pk, {"name": {"filter": "x"}}
+        )
         self.assertNotEqual(key_a, key_b)
         self.assertEqual(
             key_a,
@@ -72,7 +74,9 @@ class PolicyGridRulesCacheTests(TestCase):
         self.assertIsNotNone(cached_pks)
         self.assertEqual(cached_pks, [])
 
-    def test_resolve_rulebook_rules_grid_filtered_rules_use_cached_skips_db_filter(self):
+    def test_resolve_rulebook_rules_grid_filtered_rules_use_cached_skips_db_filter(
+        self,
+    ):
         import netbox_nsm.views.rulebook as rulebook_views
 
         cache_key = rulebook_rules_grid_rules_cache_key(self.rulebook.pk, None)
@@ -113,7 +117,9 @@ class PolicyGridRulesCacheTests(TestCase):
         self.assertIsNotNone(cached_pks)
         self.assertEqual(cached_pks, [])
 
-    def test_resolve_rulebook_rules_grid_filtered_rules_refresh_ignores_use_cached(self):
+    def test_resolve_rulebook_rules_grid_filtered_rules_refresh_ignores_use_cached(
+        self,
+    ):
         import netbox_nsm.views.rulebook as rulebook_views
 
         cache_key = rulebook_rules_grid_rules_cache_key(self.rulebook.pk, None)

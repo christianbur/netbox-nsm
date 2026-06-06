@@ -152,6 +152,25 @@ def _render_rules_cell(items, max_pills=None, *, colored=True):
     return f'<div class="nsm-rule-pills">{"".join(parts)}</div>'
 
 
+def ipa_loupe_button_html(
+    *,
+    ct,
+    pk,
+    name: str = "",
+    title: str = "Objekt analysieren",
+) -> str:
+    """Small magnifier button for the floating IP Analyzer applet."""
+    return (
+        f'<button type="button" class="nsm-ipa-loupe"'
+        f' data-ct="{conditional_escape(str(ct))}"'
+        f' data-pk="{conditional_escape(str(pk))}"'
+        f' data-name="{conditional_escape(name or "")}"'
+        f' title="{conditional_escape(title)}"'
+        f' aria-label="{conditional_escape(title)}">'
+        f'<i class="mdi mdi-magnify" aria-hidden="true"></i></button>'
+    )
+
+
 def _rules_pill_html_ag(item, *, hidden=False, colored=True):
     """AG Grid: colored dot + plain text link (no pill chrome)."""
     color = (item.get("color") or "").strip() if colored else ""
@@ -163,14 +182,35 @@ def _rules_pill_html_ag(item, *, hidden=False, colored=True):
         )
     hidden_class = " nsm-pill-hidden" if hidden else ""
     excluded_class = " nsm-ag-cell-excluded" if item.get("excluded") else ""
+    data_attrs = ""
+    ct = item.get("ct")
+    pk = item.get("pk")
+    if ct is not None and pk is not None:
+        data_attrs = (
+            f' data-ct="{conditional_escape(str(ct))}"'
+            f' data-pk="{conditional_escape(str(pk))}"'
+            f' data-name="{conditional_escape(item.get("name") or "")}"'
+        )
+        if item.get("addrAnalyzable") or item.get("addr_analyzable"):
+            data_attrs += ' data-addr-analyzable="1"'
+    loupe_html = ""
+    if (item.get("addrAnalyzable") or item.get("addr_analyzable")) and (
+        ct is not None and pk is not None
+    ):
+        loupe_html = ipa_loupe_button_html(
+            ct=ct,
+            pk=pk,
+            name=item.get("name") or "",
+            title="Objekt analysieren",
+        )
     return (
-        f'<span class="nsm-ag-cell-item{hidden_class}{excluded_class}">'
+        f'<span class="nsm-ag-cell-item{hidden_class}{excluded_class}"{data_attrs}>'
         f"{dot_html}"
         f'<a href="{conditional_escape(item["url"])}" '
         f' class="nsm-ag-cell-link text-decoration-none"'
         f' title="{conditional_escape(item["name"])}">'
         f"{conditional_escape(item['name'])}"
-        f"</a></span>"
+        f"</a>{loupe_html}</span>"
     )
 
 
@@ -292,6 +332,11 @@ def _build_grouped_rules_table_data(rules, rulebook):
                 col["col_index"] = col_index
                 col_index += 1
 
+    matching_class_map = {
+        tc.content_type_id: tc.matching_class
+        for tc in TypeConfig.objects.only("content_type_id", "matching_class")
+    }
+
     rows = []
     for rule in rules:
         per_key = {col["key"]: [] for col in grouped_columns}
@@ -317,6 +362,12 @@ def _build_grouped_rules_table_data(rules, rulebook):
                     ),
                     "name": str(display_name),
                     "color": getattr(assigned, "color", "") or "",
+                    "excluded": bool(item.exclude),
+                    "ct": item.content_type_id,
+                    "pk": item.object_id,
+                    "addrAnalyzable": _object_is_addr_analyzable(
+                        assigned, item.content_type_id, matching_class_map
+                    ),
                 }
             )
 
@@ -336,6 +387,7 @@ def _build_grouped_rules_table_data(rules, rulebook):
 
         cells = {}
         cells_ag = {}
+        cells_items = {}
         cells_filter = {}
         for k, v in per_key.items():
             area_slug = k.split("::", 1)[0]
@@ -346,6 +398,7 @@ def _build_grouped_rules_table_data(rules, rulebook):
                 else DEFAULT_MAX_VISIBLE_PILLS
             )
             use_colored = field.show_colored_pills if field is not None else True
+            cells_items[k] = v
             cells[k] = _render_rules_cell(v, max_pills=max_pills, colored=use_colored)
             cells_ag[k] = _render_rules_cell_ag(
                 v, max_pills=max_pills, colored=use_colored
@@ -371,6 +424,7 @@ def _build_grouped_rules_table_data(rules, rulebook):
                 },
                 "cells": cells,
                 "cells_ag": cells_ag,
+                "cells_items": cells_items,
                 "cells_filter": cells_filter,
             }
         )
@@ -456,7 +510,7 @@ def _build_security_rule_picker_data(rulebook=None):
                     "ct_id": tc.content_type.pk,
                     "api_url": api_url,
                     "kind": "object",
-                    "allow_virtual_groups": bool(tc.allow_virtual_groups),
+                    "allow_virtual_groups": True,
                     "matching_class": tc.matching_class or "",
                     "name_filter_regex": (ftype.name_filter_regex or "").strip(),
                 }
@@ -651,147 +705,6 @@ def _build_rules_table_class(custom_columns, selected_columns):
     return type("ConfiguredRuleTable", (RuleTable,), attrs)
 
 
-def _build_object_analysis(rulebook):
-    """Count per-area object usage across all rules in a rulebook."""
-    from collections import Counter
-    from netbox_nsm.models import (
-        RuleObjectItem,
-        RuleGroupItem,
-    )
-
-    rule_pks = list(Rule.objects.filter(rulebook=rulebook).values_list("pk", flat=True))
-    total_rules = len(rule_pks)
-
-    # Build a cache: content_type_id → human-readable verbose_name_plural
-    _ct_label_cache: dict[int, str] = {}
-
-    def _ct_label(ct):
-        if ct is None:
-            return "object"
-        if ct.pk not in _ct_label_cache:
-            try:
-                from django.apps import apps as django_apps
-
-                mc = ct.model_class()
-                if mc is not None:
-                    model_name = str(
-                        getattr(mc._meta, "verbose_name", ct.model)
-                    ).capitalize()
-                    try:
-                        app_cfg = django_apps.get_app_config(ct.app_label)
-                        app_name = str(app_cfg.verbose_name)
-                    except LookupError:
-                        app_name = ct.app_label.replace("_", " ").capitalize()
-                    label = f"{app_name} \u203a {model_name}"
-                else:
-                    label = ct.model.capitalize()
-            except Exception:
-                label = ct.model.capitalize()
-            _ct_label_cache[ct.pk] = label
-        return _ct_label_cache[ct.pk]
-
-    areas_qs = RulebookField.objects.filter(rulebook=rulebook).order_by(
-        "sort_order", "slug"
-    )
-    areas = []
-
-    for area in areas_qs:
-        individual = Counter()
-        combos = Counter()
-
-        obj_items = (
-            RuleObjectItem.objects.filter(rule__in=rule_pks, field=area)
-            .select_related("content_type", "rule")
-            .order_by("rule_id")
-        )
-        grp_items = (
-            RuleGroupItem.objects.filter(rule__in=rule_pks, field=area)
-            .select_related("security_group", "rule")
-            .order_by("rule_id")
-        )
-
-        by_rule: dict = {}
-        for item in obj_items:
-            assigned = item.assigned_object
-            name = str(
-                getattr(assigned, "name", None) or item.object_id
-                if assigned
-                else item.object_id
-            )
-            type_label = _ct_label(item.content_type if item.content_type_id else None)
-            by_rule.setdefault(item.rule_id, []).append(name)
-            individual[(name, type_label)] += 1
-        for item in grp_items:
-            by_rule.setdefault(item.rule_id, []).append(item.security_group.name)
-            individual[(item.security_group.name, "Group")] += 1
-
-        for names in by_rule.values():
-            combos[" | ".join(sorted(set(names)))] += 1
-
-        if not individual:
-            continue
-
-        areas.append(
-            {
-                "key": area.slug,
-                "label": area.name,
-                "total_objects": len(individual),
-                "objects": [
-                    {"name": name, "type_name": type_name, "count": count}
-                    for (name, type_name), count in individual.most_common(10)
-                ],
-                "combos": [
-                    {"label": label, "count": count}
-                    for label, count in combos.most_common()
-                ],
-            }
-        )
-
-    return {"total_rules": total_rules, "areas": areas}
-
-
-def _build_object_usage_stats(rulebook):
-    """Count how often each object/group appears across all rules in a rulebook."""
-    from collections import Counter
-    from netbox_nsm.models import (
-        RuleObjectItem,
-        RuleGroupItem,
-    )
-
-    rule_pks = list(Rule.objects.filter(rulebook=rulebook).values_list("pk", flat=True))
-
-    object_counter = Counter()
-    for item in RuleObjectItem.objects.filter(rule__in=rule_pks).select_related(
-        "content_type"
-    ):
-        assigned = item.assigned_object
-        name = str(
-            getattr(assigned, "name", None) or item.object_id
-            if assigned
-            else item.object_id
-        )
-        type_label = str(item.content_type.model) if item.content_type_id else "object"
-        object_counter[(item.object_id, name, type_label)] += 1
-
-    group_counter = Counter()
-    for item in RuleGroupItem.objects.filter(rule__in=rule_pks).select_related(
-        "security_group"
-    ):
-        group_counter[(item.security_group.pk, item.security_group.name)] += 1
-
-    return {
-        "top_objects": [
-            {"pk": pk, "name": name, "type": type_name, "count": count}
-            for (pk, name, type_name), count in object_counter.most_common(10)
-        ],
-        "top_groups": [
-            {"pk": pk, "name": name, "count": count}
-            for (pk, name), count in group_counter.most_common(10)
-        ],
-        "total_rules": len(rule_pks),
-    }
-
-
 __all__ = (
     "RulebookView",
     "RulebookListView",
@@ -822,22 +735,6 @@ def _make_none_zone():
     from types import SimpleNamespace
 
     return SimpleNamespace(pk=_NONE_ZONE_PK, name="(none)")
-
-
-@register_model_view(Rulebook, name="analysis", path="analysis")
-class RulebookAnalysisView(generic.ObjectView):
-    queryset = Rulebook.objects.all()
-    template_name = "netbox_nsm/rulebook_analysis.html"
-    tab = ViewTab(
-        label=_("Policy Analysis"),
-        permission="netbox_nsm.view_rulebook",
-        weight=200,
-    )
-
-    def get_extra_context(self, request, instance):
-        return {
-            "object_analysis": _build_object_analysis(instance),
-        }
 
 
 def _load_rules_qs(instance):
@@ -930,44 +827,23 @@ def _matrix_rules_href(
 
 
 @register_model_view(Rulebook, name="matrix", path="matrix")
-class RulebookMatrixGridView(generic.ObjectView):
+class RulebookMatrixRedirectView(generic.ObjectView):
+    """Legacy matrix tab URL → Rules tab (matrix is embedded in the grid toolbar)."""
+
     queryset = Rulebook.objects.all()
-    template_name = "netbox_nsm/rulebook_matrix_ag.html"
-    tab = ViewTab(
-        label=_("Matrix"),
-        permission="netbox_nsm.view_rulebook",
-        weight=110,
-    )
 
-    def get_extra_context(self, request, instance):
-        from netbox_nsm.matrix_grid_payload import build_matrix_ag_grid_scaffold
-        from netbox_nsm.matrix_grid_service import build_matrix_grid_config
-        from netbox_nsm.matrix_tab_context import build_matrix_tab_context
-        import netbox_nsm.views.rulebook as rulebook_views
+    def get(self, request, *args, **kwargs):
+        instance = self.get_object(**kwargs)
+        from netbox_nsm.branch_urls import with_branch_query
 
-        ctx = build_matrix_tab_context(
-            request,
-            instance,
-            view_helpers=rulebook_views,
-            client_axis_filters=True,
-            lazy_grid=True,
+        rules_url = reverse(
+            "plugins:netbox_nsm:rulebook_rules",
+            args=[instance.pk],
         )
-        src_count = len(ctx.get("src_zones") or [])
-        ctx["matrix_grid_config"] = build_matrix_grid_config(
-            request,
-            instance,
-            total_rows=src_count,
-        )
-        ctx["matrix_ag_grid_payload"] = build_matrix_ag_grid_scaffold(
-            ctx["matrix_rows"],
-            ctx["dst_zones"],
-            ctx["matrix_mode"],
-            zone_content_type_id=ctx.get("selected_ct_id"),
-            request=request,
-            matrix_axis_limit=ctx.get("matrix_axis_limit"),
-        )
-        ctx["matrix_tab_label"] = self.tab.label
-        return ctx
+        query = request.GET.urlencode()
+        if query:
+            rules_url = f"{rules_url}?{query}"
+        return redirect(with_branch_query(rules_url, request), permanent=True)
 
 
 def _build_ip_analysis_groups(rules_qs):
@@ -1016,54 +892,6 @@ def _build_ip_analysis_groups(rules_qs):
         {"type_label": tl, "objects": objs} for tl, objs in sorted(_by_type.items())
     ]
     return groups, _ip_all_objs
-
-
-@register_model_view(Rulebook, name="ipanalysis", path="ipanalysis")
-class RulebookIPAnalysisView(generic.ObjectView):
-    queryset = Rulebook.objects.all()
-    template_name = "netbox_nsm/rulebook_ipanalysis.html"
-    tab = ViewTab(
-        label=_("IP Analysis"),
-        permission="netbox_nsm.view_rulebook",
-        weight=400,
-    )
-
-    def get_extra_context(self, request, instance):
-        # Build searchable types from TypeConfig entries (deduplicated by ct_id)
-        seen_ct_ids = set()
-        ip_api_types = []
-        for tc in TypeConfig.objects.select_related("content_type").order_by(
-            "order_id", "content_type__app_label", "content_type__model"
-        ):
-            if tc.content_type_id in seen_ct_ids:
-                continue
-            mc = tc.content_type.model_class()
-            if not mc:
-                continue
-            api_url = _get_api_url_for_content_type(tc.content_type)
-            if not api_url:
-                continue
-            seen_ct_ids.add(tc.content_type_id)
-            ip_api_types.append(
-                {
-                    "ct_id": tc.content_type.pk,
-                    "api_url": api_url,
-                    "name": str(mc._meta.verbose_name_plural).title(),
-                }
-            )
-
-        ip_selections, ip_addr_analysis = _parse_ipa_column_selections(request, "")
-        ip2_selections, ip2_addr_analysis = _parse_ipa_column_selections(request, "2")
-
-        return {
-            "ip_api_types": ip_api_types,
-            "ip_selections": ip_selections,
-            "ip_addr_analysis": ip_addr_analysis,
-            "ip2_selections": ip2_selections,
-            "ip2_addr_analysis": ip2_addr_analysis,
-        }
-
-    # ─── end of RulebookIPAnalysisView ───────────────────────
 
 
 @register_model_view(Rulebook)
@@ -1379,6 +1207,99 @@ def _collect_ips_from_group(group, visited=None):
     return refs
 
 
+def _addr_node_prefix_cidr(*, obj=None, ip_ref=None):
+    """Return CIDR string for IPv4 IPAM prefixes and host addresses (e.g. /32)."""
+    if ip_ref:
+        ip_ref_type = ip_ref.get("type")
+        cidr = ip_ref.get("str")
+        if ip_ref_type == _FIELD_TYPE_LABELS["prefix"]:
+            return cidr
+        if ip_ref_type == _FIELD_TYPE_LABELS["ip_address"]:
+            if cidr and "/" in cidr:
+                return cidr
+        if not ip_ref_type and cidr and "/" in cidr:
+            return cidr
+    if obj is not None:
+        try:
+            if obj._meta.app_label == "ipam":
+                if obj._meta.model_name == "prefix":
+                    prefix_val = getattr(obj, "prefix", None)
+                    return str(prefix_val) if prefix_val is not None else str(obj)
+                if obj._meta.model_name == "ipaddress":
+                    addr = getattr(obj, "address", None)
+                    cidr = str(addr) if addr is not None else str(obj)
+                    if cidr and "/" in cidr:
+                        return cidr
+        except Exception:
+            pass
+    return None
+
+
+def _attach_addr_node_prefix_display(node, *, obj=None, ip_ref=None):
+    """Attach CIDR/netmask display labels to address-tree nodes for IPv4 prefixes/hosts."""
+    from netbox_nsm.addr_netmask import prefix_display_labels_for_cidr
+
+    cidr = _addr_node_prefix_cidr(obj=obj, ip_ref=ip_ref)
+    if not cidr:
+        return node
+    labels = prefix_display_labels_for_cidr(cidr)
+    if labels:
+        node["prefix_display_cidr"], node["prefix_display_netmask"] = labels
+    return node
+
+
+_IPAM_ADDR_MODEL_NAMES = frozenset({"prefix", "ipaddress", "iprange"})
+_IPAM_PREFIX_CHILDREN_MAX = 250
+
+
+def _is_ipam_addr_object(obj) -> bool:
+    try:
+        return (
+            obj._meta.app_label == "ipam"
+            and obj._meta.model_name in _IPAM_ADDR_MODEL_NAMES
+        )
+    except Exception:
+        return False
+
+
+def _collect_ipam_prefix_children(prefix):
+    """Return analyzable children contained in or linked to an IPAM prefix."""
+    from ipam.models import IPAddress, IPRange, Prefix
+
+    cidr = str(prefix.prefix)
+    limit = _IPAM_PREFIX_CHILDREN_MAX
+    children = []
+
+    for child in (
+        Prefix.objects.filter(prefix__net_contained_or_equal=cidr)
+        .exclude(pk=prefix.pk)
+        .order_by("prefix")[:limit]
+    ):
+        children.append(child)
+
+    for ip in IPAddress.objects.filter(address__net_contained_or_equal=cidr).order_by(
+        "address"
+    )[:limit]:
+        children.append(ip)
+
+    for rng in IPRange.objects.filter(
+        start_address__net_contained_or_equal=cidr,
+        end_address__net_contained_or_equal=cidr,
+    ).order_by("start_address")[:limit]:
+        children.append(rng)
+
+    from netbox_nsm.address_ipam_fk import get_nsm_address_model
+
+    addr_model = get_nsm_address_model()
+    if addr_model is not None:
+        for addr in addr_model.objects.filter(prefix_id=prefix.pk).order_by("name")[
+            :limit
+        ]:
+            children.append(addr)
+
+    return children
+
+
 def _build_addr_tree_node(obj, visited=None):
     """
     Recursively build an address hierarchy tree node for nsm_addresses objects.
@@ -1415,24 +1336,49 @@ def _build_addr_tree_node(obj, visited=None):
         }
 
     if ip_ref is not None:
-        return {
+        node = {
             "name": str(obj.name),
             "url": obj.get_absolute_url(),
             "kind": "leaf",
             "ip_ref": {"str": ip_ref["str"], "url": ip_ref["url"]},
             "children": [],
         }
+        return _attach_addr_node_prefix_display(node, obj=obj, ip_ref=ip_ref)
 
-    # IPAM object or unknown — treat as leaf
+    # IPAM prefix — expand contained IPs, ranges, child prefixes, linked addresses
+    try:
+        if obj._meta.app_label == "ipam" and obj._meta.model_name == "prefix":
+            child_nodes = []
+            for child_obj in _collect_ipam_prefix_children(obj):
+                child = _build_addr_tree_node(child_obj, visited)
+                if child:
+                    child_nodes.append(child)
+            if not child_nodes:
+                return None
+            node = {
+                "name": str(obj),
+                "url": obj.get_absolute_url(),
+                "kind": "group",
+                "ip_ref": None,
+                "children": child_nodes,
+            }
+            return _attach_addr_node_prefix_display(node, obj=obj)
+    except Exception:
+        pass
+
+    # Other IPAM objects — treat as leaf
     try:
         if obj._meta.app_label == "ipam":
-            return {
+            node = {
                 "name": str(obj),
                 "url": obj.get_absolute_url(),
                 "kind": "leaf",
                 "ip_ref": {"str": str(obj), "url": obj.get_absolute_url()},
                 "children": [],
             }
+            return _attach_addr_node_prefix_display(
+                node, obj=obj, ip_ref=node["ip_ref"]
+            )
     except Exception:
         pass
     return {
@@ -1550,6 +1496,28 @@ def _object_supports_addr_analysis(obj):
     return False
 
 
+def _object_is_addr_analyzable(obj, content_type_id, matching_class_map=None):
+    """True when content type is address-class and the object can be IP-analyzed."""
+    if not obj or not content_type_id:
+        return False
+    if not _object_supports_addr_analysis(obj):
+        return False
+    if _is_ipam_addr_object(obj):
+        return True
+    from netbox_nsm.models.type_config import MatchingClassChoices
+
+    if matching_class_map is None:
+        matching_class_map = {
+            tc.content_type_id: tc.matching_class
+            for tc in TypeConfig.objects.only("content_type_id", "matching_class")
+        }
+    try:
+        ct_id = int(content_type_id)
+    except (TypeError, ValueError):
+        return False
+    return matching_class_map.get(ct_id) == MatchingClassChoices.ADDRESS
+
+
 def _build_multi_object_addr_analysis(objs):
     """IP Analysis: merged tree for one or more selected objects."""
     supported = [o for o in objs if o and _object_supports_addr_analysis(o)]
@@ -1574,6 +1542,31 @@ def _build_multi_object_addr_analysis(objs):
             ],
         }
     ]
+
+
+def _leaf_count_for_addr_analysis(sections) -> int:
+    total = 0
+    for section in sections or []:
+        for type_block in section.get("types") or []:
+            total += int(type_block.get("leaf_count") or 0)
+    return total
+
+
+def _build_ipa_object_columns(selections, objs):
+    """IP Analysis: one table column per selected object (name + counter in header)."""
+    columns = []
+    for sel, obj in zip(selections, objs):
+        analysis = _build_multi_object_addr_analysis([obj]) if obj else []
+        columns.append(
+            {
+                "name": sel["name"],
+                "ct": sel["ct"],
+                "pk": sel["pk"],
+                "leaf_count": _leaf_count_for_addr_analysis(analysis),
+                "addr_analysis": analysis,
+            }
+        )
+    return columns
 
 
 def _parse_ipa_column_selections(request, col_suffix=""):
@@ -1616,7 +1609,7 @@ def _parse_ipa_column_selections(request, col_suffix=""):
         except Exception:
             continue
 
-    return selections, _build_multi_object_addr_analysis(objs)
+    return selections, _build_ipa_object_columns(selections, objs)
 
 
 def _build_object_address_analysis(_rulebook, obj, content_type_id):

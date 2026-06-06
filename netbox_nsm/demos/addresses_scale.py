@@ -233,56 +233,54 @@ def create_addresses_scale_demo(*, recreate: bool = True) -> dict:
             raise RuntimeError(f"Rulebook missing fields: {', '.join(missing)}")
 
         pairs = _ensure_zone_address_pairs(zone_model, addr_model, count=PAIR_COUNT)
-        services = _lookup_objects_by_name(svc_model)
-        actions = _lookup_objects_by_name(act_model)
-        netapps = _lookup_objects_by_name(netapp_model) if netapp_model else {}
 
-        svc_https = services.get("https")
-        svc_ssh = services.get("ssh")
-        svc_dns = services.get("dns-udp")
-        act_permit = actions.get("permit")
-        act_deny = actions.get("deny")
-        netapp_web = (
-            netapps.get("web")
-            or netapps.get("ssl")
-            or next(iter(netapps.values()), None)
+    services = _lookup_objects_by_name(svc_model)
+    actions = _lookup_objects_by_name(act_model)
+    netapps = _lookup_objects_by_name(netapp_model) if netapp_model else {}
+
+    svc_https = services.get("https")
+    svc_ssh = services.get("ssh")
+    svc_dns = services.get("dns-udp")
+    act_permit = actions.get("permit")
+    act_deny = actions.get("deny")
+    netapp_web = (
+        netapps.get("web") or netapps.get("ssl") or next(iter(netapps.values()), None)
+    )
+
+    if not all((svc_https, act_permit, act_deny)):
+        raise RuntimeError(
+            "Missing default Services/Action objects. Run Setup → Custom Objects import first."
         )
+    svc_pool = [svc for svc in (svc_https, svc_ssh, svc_dns) if svc]
+    rng = random.Random(ACTION_RANDOM_SEED)
+    rule_actions = [
+        act_permit if rng.random() < 0.55 else act_deny for _ in range(RULE_COUNT)
+    ]
 
-        if not all((svc_https, act_permit, act_deny)):
-            raise RuntimeError(
-                "Missing default Services/Action objects. Run Setup → Custom Objects import first."
-            )
-        svc_pool = [svc for svc in (svc_https, svc_ssh, svc_dns) if svc]
-        rng = random.Random(ACTION_RANDOM_SEED)
-        rule_actions = [
-            act_permit if rng.random() < 0.55 else act_deny for _ in range(RULE_COUNT)
-        ]
+    existing_rules = Rule.objects.filter(rulebook=rb).count()
+    if existing_rules >= RULE_COUNT:
+        elapsed = time.monotonic() - started
+        return {
+            "rulebook": rb.name,
+            "rulebook_id": rb.pk,
+            "pairs": len(pairs),
+            "rules": existing_rules,
+            "object_items": RuleObjectItem.objects.filter(rule__rulebook=rb).count(),
+            "elapsed_s": round(elapsed, 1),
+            "skipped": True,
+        }
 
-        existing_rules = Rule.objects.filter(rulebook=rb).count()
-        if existing_rules >= RULE_COUNT:
-            elapsed = time.monotonic() - started
-            return {
-                "rulebook": rb.name,
-                "rulebook_id": rb.pk,
-                "pairs": len(pairs),
-                "rules": existing_rules,
-                "object_items": RuleObjectItem.objects.filter(
-                    rule__rulebook=rb
-                ).count(),
-                "elapsed_s": round(elapsed, 1),
-                "skipped": True,
-            }
+    field_source = fields["source"]
+    field_dest = fields["destination"]
+    field_service = fields["service"]
+    field_action = fields["action"]
 
-        field_source = fields["source"]
-        field_dest = fields["destination"]
-        field_service = fields["service"]
-        field_action = fields["action"]
+    rules_created = 0
+    items_created = 0
 
-        rules_created = 0
-        items_created = 0
-
-        for batch_start in range(0, RULE_COUNT, BATCH_SIZE):
-            batch_end = min(batch_start + BATCH_SIZE, RULE_COUNT)
+    for batch_start in range(0, RULE_COUNT, BATCH_SIZE):
+        batch_end = min(batch_start + BATCH_SIZE, RULE_COUNT)
+        with transaction.atomic():
             rule_rows = []
             for i in range(batch_start, batch_end):
                 src_count = _object_count_for_side(i, side="source")

@@ -1,4 +1,5 @@
 {% load i18n %}
+{% include "netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html" %}
 <style>
   .nsm-tree-hdr {
     display: flex; align-items: center; gap: 6px;
@@ -39,8 +40,14 @@
     background: var(--bs-tertiary-bg);
     color: var(--bs-body-color);
   }
-  .nsm-link-row:hover .nsm-link-actions { visibility: visible; }
-  .nsm-del-btn { padding: 0 4px; line-height: 1.4; }
+  .nsm-link-table .col-actions .nsm-link-actions.btn-group-sm > .btn {
+    line-height: 1;
+    padding: 0.12rem 0.28rem;
+  }
+  .nsm-link-table .col-actions .nsm-link-actions.btn-group-sm > .btn .mdi {
+    font-size: 0.8rem;
+    line-height: 1;
+  }
   .nsm-link-table {
     table-layout: fixed;
     width: 100%;
@@ -51,44 +58,38 @@
     font-size: 12px;
     vertical-align: middle;
   }
-  .nsm-link-table .col-link-type {
-    width: 11.5rem;
-    font-size: 11px;
-    color: var(--bs-secondary-color);
-    vertical-align: middle;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
   .nsm-link-table .col-comment {
     font-size: 11px;
     color: var(--bs-secondary-color);
     vertical-align: middle;
   }
   .nsm-link-table .col-actions {
-    width: 4.75rem;
+    width: 7.25rem;
     vertical-align: middle;
   }
-  .nsm-link-table thead th {
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    color: var(--bs-secondary-color);
-    border-bottom: 1px solid var(--bs-border-color-translucent);
-    padding-top: 0.2rem;
-    padding-bottom: 0.2rem;
-  }
-  .nsm-link-table thead .col-object { padding-left: 3rem; }
 </style>
 
 <div class="card">
   <h5 class="card-header d-flex justify-content-between align-items-center">
     <span>{{ nsm_panel_label }}{% if nsm_security_badge %} <span class="badge text-bg-secondary ms-1">{{ nsm_security_badge }}</span>{% endif %}</span>
-    <span class="d-flex gap-1">
-      <a href="{{ nsm_analyzer_url }}" class="btn btn-ghost-secondary btn-sm">
-        <i class="mdi mdi-graph-outline"></i> {% trans "Object Analyzer" %}
-      </a>
+    <span class="d-flex gap-1 align-items-center nsm-security-header-actions">
+      <span class="d-inline-flex align-items-center gap-1">
+        <a href="{{ nsm_analyzer_url }}" class="btn btn-ghost-primary btn-sm"
+           title="{% trans 'Object Analyzer' %}"
+           aria-label="{% trans 'Object Analyzer' %}">
+          <i class="mdi mdi-graph-outline" aria-hidden="true"></i>
+        </a>
+        {% if nsm_page_addr_analyzable %}
+        <button type="button" class="btn btn-ghost-primary btn-sm nsm-ipa-loupe"
+                data-ct="{{ nsm_page_object_ct }}"
+                data-pk="{{ nsm_page_object_pk }}"
+                data-name="{{ nsm_page_object_name|escape }}"
+                title="{% trans 'Objekt analysieren' %}"
+                aria-label="{% trans 'Objekt analysieren' %}">
+          <i class="mdi mdi-magnify" aria-hidden="true"></i>
+        </button>
+        {% endif %}
+      </span>
       <a href="{{ nsm_assign_url }}" class="btn btn-ghost-primary btn-sm">
         <i class="mdi mdi-plus-thick"></i> {% trans "Assign" %}
       </a>
@@ -185,16 +186,6 @@
       <div id="nsm-cat-{{ group.type_key }}" class="collapse show">
         <div {% if group.count > 15 %}style="max-height:420px;overflow-y:auto;"{% endif %}>
         <table class="table table-hover table-sm mb-0 nsm-link-table">
-          {% if group.show_link_type or group.show_comment or group.show_actions %}
-          <thead>
-            <tr>
-              <th class="col-object">{% trans "Object" %}</th>
-              {% if group.show_link_type %}<th class="col-link-type">{% trans "Link type" %}</th>{% endif %}
-              {% if group.show_comment %}<th class="col-comment">{% trans "Comment" %}</th>{% endif %}
-              {% if group.show_actions %}<th class="col-actions"></th>{% endif %}
-            </tr>
-          </thead>
-          {% endif %}
           <tbody>
             {% for linked in group.objects %}
             <tr class="nsm-link-row">
@@ -206,16 +197,33 @@
                 </span>
                 {% endif %}
               </td>
-              {% if group.show_link_type %}<td class="col-link-type">{{ linked.link_type|default:"" }}</td>{% endif %}
               {% if group.show_comment %}<td class="col-comment">{{ linked.comment|default:"" }}</td>{% endif %}
-              {% if group.show_actions %}<td class="col-actions pe-2 text-end nsm-link-actions" style="white-space:nowrap;">
-                {% if linked.delete_url %}
-                <a href="{{ linked.edit_url }}" class="btn btn-ghost-secondary btn-sm nsm-del-btn" title="{% trans "Edit link" %}">
-                  <i class="mdi mdi-pencil-outline"></i>
-                </a>
-                <a href="{{ linked.delete_url }}" class="btn btn-ghost-danger btn-sm nsm-del-btn" title="{% trans "Remove assignment" %}">
-                  <i class="mdi mdi-close"></i>
-                </a>
+              {% if group.show_actions %}<td class="col-actions pe-2 text-end" style="white-space:nowrap;">
+                {% if linked.supports_addr_analysis or linked.edit_url or linked.delete_url %}
+                <span class="btn-group btn-group-sm nsm-link-actions" role="group">
+                  {% if linked.supports_addr_analysis %}
+                  <button type="button" class="btn btn-light btn-sm nsm-ipa-loupe"
+                          data-ct="{{ linked.ct_id }}"
+                          data-pk="{{ linked.obj_id }}"
+                          data-name="{{ linked.name|escape }}"
+                          title="{% trans 'Objekt analysieren' %}"
+                          aria-label="{% trans 'Objekt analysieren' %}">
+                    <i class="mdi mdi-magnify text-dark" aria-hidden="true"></i>
+                  </button>
+                  {% endif %}
+                  {% if linked.edit_url %}
+                  <a href="{{ linked.edit_url }}" class="btn btn-warning btn-sm"
+                     title="{% trans 'Edit assignment' %}" aria-label="{% trans 'Edit assignment' %}">
+                    <i class="mdi mdi-pencil" aria-hidden="true"></i>
+                  </a>
+                  {% endif %}
+                  {% if linked.delete_url %}
+                  <a href="{{ linked.delete_url }}" class="btn btn-danger btn-sm"
+                     title="{% trans 'Remove assignment' %}" aria-label="{% trans 'Remove assignment' %}">
+                    <i class="mdi mdi-trash-can-outline" aria-hidden="true"></i>
+                  </a>
+                  {% endif %}
+                </span>
                 {% endif %}
               </td>{% endif %}
             </tr>

@@ -10,9 +10,11 @@ from netbox_nsm.rulebook_rules_tab import (
     PROGRESSIVE_LOAD_STEPS,
     PROGRESSIVE_LOAD_STEPS_FINE,
     build_rulebook_rules_group_grid_config,
+    build_rules_grid_config,
     resolve_rulebook_rules_grid_initial_load_target,
     resolve_rulebook_rules_grid_load_target,
 )
+from unittest.mock import MagicMock
 
 
 def _sample_rules_layout():
@@ -34,7 +36,10 @@ class PolicyGridLoadTargetTests(SimpleTestCase):
 
     def test_caps_at_client_max_when_above(self):
         total = RULEBOOK_RULES_GRID_CLIENT_MAX + 5000
-        self.assertEqual(resolve_rulebook_rules_grid_load_target(total), RULEBOOK_RULES_GRID_CLIENT_MAX)
+        self.assertEqual(
+            resolve_rulebook_rules_grid_load_target(total),
+            RULEBOOK_RULES_GRID_CLIENT_MAX,
+        )
 
     def test_initial_load_matches_full_staged_target(self):
         total = RULEBOOK_RULES_GRID_CLIENT_MAX + 13000
@@ -62,7 +67,9 @@ class PolicyGridLoadTargetTests(SimpleTestCase):
         self.assertEqual(GRID_LOAD_MORE_STEP, 2000)
 
     def test_empty_total_uses_default_cap(self):
-        self.assertEqual(resolve_rulebook_rules_grid_load_target(0), DEFAULT_GRID_LOAD_LIMIT)
+        self.assertEqual(
+            resolve_rulebook_rules_grid_load_target(0), DEFAULT_GRID_LOAD_LIMIT
+        )
         self.assertEqual(
             resolve_rulebook_rules_grid_initial_load_target(0),
             DEFAULT_GRID_LOAD_LIMIT,
@@ -78,6 +85,8 @@ class PolicyGroupGridConfigTests(SimpleTestCase):
         cfg = build_rulebook_rules_group_grid_config(request, _sample_rules_layout())
         self.assertIn("groupByOptions", cfg)
         self.assertIn("groupByNotAllowedMessage", cfg)
+        self.assertIn("groupMainLevelLabel", cfg)
+        self.assertIn("groupSubgroupLevelLabel", cfg)
         self.assertNotIn("groupModeLabels", cfg)
         self.assertNotIn("groupMode", cfg)
         self.assertNotIn("groupBy", cfg)
@@ -203,3 +212,39 @@ class PolicyGroupGridConfigTests(SimpleTestCase):
         request = RequestFactory().get("/rules/?group_by=col:source::ct_1&expanded=all")
         cfg = build_rulebook_rules_group_grid_config(request, _sample_rules_layout())
         self.assertEqual(cfg["groupExpansionMode"], "all_expanded")
+
+    def test_rules_grid_config_includes_filter_column_map(self):
+        from django.contrib.auth.models import AnonymousUser
+
+        request = RequestFactory().get("/rulebooks/1/rules/")
+        request.user = AnonymousUser()
+        ctx = MagicMock()
+        source_field = MagicMock()
+        source_field.name = "Source"
+        ctx.get_field.return_value = source_field
+        layout = [
+            {
+                "kind": "object",
+                "slug": "source",
+                "label": "Source",
+                "group": {
+                    "columns": [
+                        {
+                            "key": "source::ct_1",
+                            "label": "Zones",
+                            "area_slug": "source",
+                        }
+                    ],
+                },
+            }
+        ]
+        instance = MagicMock(pk=1)
+        cfg = build_rules_grid_config(
+            request,
+            instance,
+            rules_layout=layout,
+            rulebook_context=ctx,
+            total_count=0,
+        )
+        self.assertEqual(cfg["filterColumnMap"]["source::ct_1"], "Source.Zones.Name")
+        self.assertEqual(cfg["filterColumnShorthand"]["source::ct_1"], "Source.Zones")

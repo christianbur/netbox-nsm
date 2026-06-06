@@ -9,12 +9,17 @@ from netbox_nsm.rulebook_rules_grid_payload import (
     ALL_RULES_FILTER_QUERY_FORMAT,
     SCOPED_FILTER_FORMAT_ERROR,
     SCOPED_FILTER_QUERY_FORMAT,
+    VIEW_DIRECTIVE_MULTIPLE_ERROR,
     build_ag_grid_filter_model_from_column_map,
     build_ag_grid_filter_model_from_query_text,
     build_filter_column_query_map,
     build_filter_column_shorthand_names,
+    format_filter_query_with_view,
+    normalize_filter_query_view,
     parse_scoped_grid_filter_query,
+    parse_view_directive,
     serialize_ag_grid_filter_to_nsm_q,
+    validate_view_directive_count,
 )
 from netbox_nsm.query import RulebookContext
 
@@ -26,8 +31,10 @@ __all__ = (
     "parse_filter_model_json",
     "resolve_all_rules_filter_model",
     "resolve_rules_filter_model",
+    "parse_view_directive",
     "validate_all_rules_filter_query",
     "validate_rules_filter_query",
+    "VIEW_DIRECTIVE_MULTIPLE_ERROR",
 )
 
 
@@ -113,12 +120,15 @@ def resolve_rules_filter_model(
     ``filter_q`` takes precedence over JSON ``filter`` / ``filterModel``.
     """
     if filter_q_raw:
+        _view, filter_body, view_err = parse_view_directive(filter_q_raw)
+        if view_err:
+            return None, view_err
         if rules_layout is None:
             grouped = view_helpers._build_grouped_rules_table_data([], rulebook)
             rules_layout = grouped.get("rules_layout") or []
         context = RulebookContext(rulebook)
         filter_model, err = build_ag_grid_filter_model_from_query_text(
-            filter_q_raw, rules_layout, context
+            filter_body, rules_layout, context
         )
         if err:
             return None, err
@@ -135,6 +145,10 @@ def validate_rules_filter_query(
 ) -> dict:
     """Validate policy filter_q and return JSON payload fields."""
     raw_q = (raw_q or "").strip()
+    view_err = validate_view_directive_count(raw_q)
+    if view_err:
+        return {"valid": False, "error": view_err}
+    view, filter_body, _ = parse_view_directive(raw_q)
     if not raw_q:
         return {"valid": True, "empty": True, "filterModel": {}}
 
@@ -143,7 +157,7 @@ def validate_rules_filter_query(
         rules_layout = grouped.get("rules_layout") or []
     context = RulebookContext(rulebook)
     filter_model, err = build_ag_grid_filter_model_from_query_text(
-        raw_q, rules_layout, context
+        filter_body, rules_layout, context
     )
     if err:
         return {"valid": False, "error": err}
@@ -155,12 +169,17 @@ def validate_rules_filter_query(
         column_map,
         shorthand_names=shorthand_names,
     )
-    return {
+    if view:
+        normalized = format_filter_query_with_view(normalized, view)
+    payload = {
         "valid": True,
-        "empty": not filter_model,
+        "empty": not filter_model and not filter_body,
         "filterModel": filter_model or {},
         "normalized": normalized,
     }
+    if view:
+        payload["view"] = view
+    return payload
 
 
 def _resolve_all_rules_filter_body(
@@ -232,19 +251,24 @@ def _build_all_rules_validate_payload(
         )
         column_order = list(ALL_RULES_FILTER_QUERY_COLUMN_ORDER)
 
+    view, filter_body_only, _view_err = parse_view_directive(body)
     normalized_body = serialize_ag_grid_filter_to_nsm_q(
         filter_model,
         column_map,
         shorthand_names=shorthand_names,
         column_order=column_order,
     )
+    if view:
+        normalized_body = format_filter_query_with_view(normalized_body, view)
     payload = {
         "valid": True,
-        "empty": not filter_model and not body,
+        "empty": not filter_model and not filter_body_only,
         "filterModel": filter_model or {},
         "filterQ": normalized_body,
         "normalized": normalized_body,
     }
+    if view:
+        payload["view"] = view
     if scoped_rulebook is not None:
         payload["rulebook"] = scoped_rulebook.name
         payload["rulebookId"] = scoped_rulebook.pk
@@ -324,6 +348,21 @@ def validate_all_rules_filter_query(
         return {
             "valid": False,
             "error": scope_err,
+            "expectedFormat": ALL_RULES_FILTER_QUERY_FORMAT,
+        }
+
+    raw_filter_q = ""
+    if request is not None:
+        raw_filter_q = (
+            request.GET.get("filter_q") or request.GET.get("q") or ""
+        ).strip()
+    elif filter_q:
+        raw_filter_q = (filter_q or "").strip()
+    view_err = validate_view_directive_count(raw_filter_q)
+    if view_err:
+        return {
+            "valid": False,
+            "error": view_err,
             "expectedFormat": ALL_RULES_FILTER_QUERY_FORMAT,
         }
 

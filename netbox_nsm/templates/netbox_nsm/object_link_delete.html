@@ -1,12 +1,12 @@
 {% extends 'base/layout.html' %}
 {% load i18n %}
 
-{% block title %}{% trans "Delete Object Link" %}{% endblock %}
+{% block title %}{% trans "Remove assignment" %}{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h1 class="h3 mb-0">
-    <i class="mdi mdi-link-variant-remove me-2 text-danger"></i>{% trans "Delete Object Link" %}
+    <i class="mdi mdi-link-variant-remove me-2 text-danger"></i>{% trans "Remove assignment" %}
   </h1>
   <a href="{{ return_url }}" class="btn btn-outline-secondary btn-sm">
     <i class="mdi mdi-arrow-left me-1"></i>{% trans "Back" %}
@@ -19,7 +19,8 @@
       <div class="card-body">
         <p>
           {% blocktrans with obj_a=link.object_a obj_b=link.object_b %}
-            Are you sure you want to delete the link between <strong>{{ obj_a }}</strong> and <strong>{{ obj_b }}</strong>?
+            Are you sure you want to remove the assignment between <strong>{{ obj_a }}</strong> and <strong>{{ obj_b }}</strong>?
+            The linked objects themselves will not be deleted.
           {% endblocktrans %}
         </p>
         <form method="post">
@@ -27,7 +28,7 @@
           <input type="hidden" name="return_url" value="{{ return_url }}">
           <div class="d-flex gap-2">
             <button type="submit" class="btn btn-danger">
-              <i class="mdi mdi-trash-can-outline me-1"></i>{% trans "Delete" %}
+              <i class="mdi mdi-trash-can-outline me-1"></i>{% trans "Remove assignment" %}
             </button>
             <a href="{{ return_url }}" class="btn btn-outline-secondary">{% trans "Cancel" %}</a>
           </div>

@@ -1,4 +1,4 @@
-"""Tests for InheritedLinksApiView (inherit_links gating)."""
+"""Tests for InheritedLinksApiView."""
 
 import json
 from unittest.mock import MagicMock, patch
@@ -15,10 +15,11 @@ class InheritedLinksApiTests(SimpleTestCase):
         self.factory = RequestFactory()
         self.view = InheritedLinksApiView.as_view()
 
+    @patch("netbox_nsm.views.inherited_links_api.iter_inherited_group_nsm_links")
     @patch("netbox_nsm.views.inherited_links_api.ContentType")
     @patch("netbox_nsm.views.inherited_links_api.iter_inherited_nsm_links")
-    def test_skips_inherited_zone_when_inherit_links_disabled(
-        self, iter_links_fn, content_type_cls
+    def test_returns_empty_when_iterator_yields_nothing(
+        self, iter_links_fn, content_type_cls, group_iter_fn
     ):
         from ipam.models import IPAddress
 
@@ -27,8 +28,10 @@ class InheritedLinksApiTests(SimpleTestCase):
         ip_ct.model_class.return_value = IPAddress
         content_type_cls.objects.get.return_value = ip_ct
 
-        ip_model = ip_ct.model_class.return_value
+        ip_model = MagicMock()
         ip_model.objects.get.return_value = ip
+        ip_ct.model_class.return_value = ip_model
+        group_iter_fn.return_value = iter([])
         iter_links_fn.return_value = iter([])
 
         request = self.factory.get(
@@ -42,9 +45,10 @@ class InheritedLinksApiTests(SimpleTestCase):
         self.assertEqual(data["groups"], [])
         iter_links_fn.assert_called_once_with(ip)
 
-    @patch("netbox_nsm.views.inherited_links_api.render_object_display")
-    @patch("netbox_nsm.views.inherited_links_api.tc_panel_label")
-    @patch("netbox_nsm.views.inherited_links_api.get_display_template_map")
+    @patch("netbox_nsm.views.inherited_links_api.iter_inherited_group_nsm_links")
+    @patch("netbox_nsm.display_utils.render_object_display")
+    @patch("netbox_nsm.display_utils.tc_panel_label")
+    @patch("netbox_nsm.display_utils.get_display_template_map")
     @patch("netbox_nsm.views.inherited_links_api.ContentType")
     @patch("netbox_nsm.views.inherited_links_api.iter_inherited_nsm_links")
     def test_returns_inherited_groups_from_shared_iterator(
@@ -54,6 +58,7 @@ class InheritedLinksApiTests(SimpleTestCase):
         tmpl_map_fn,
         panel_label_fn,
         render_fn,
+        group_iter_fn,
     ):
         from ipam.models import IPAddress, Prefix
 
@@ -65,11 +70,13 @@ class InheritedLinksApiTests(SimpleTestCase):
         zone_ct = MagicMock(pk=99)
 
         ip_ct = MagicMock()
-        ip_ct.model_class.return_value = IPAddress
+        ip_model = MagicMock()
+        ip_model.objects.get.return_value = ip
+        ip_ct.model_class.return_value = ip_model
         content_type_cls.objects.get.return_value = ip_ct
-        ip_ct.model_class.return_value.objects.get.return_value = ip
 
-        zone_tc = MagicMock(inherit_links=True, inherit_stop_on_own=False)
+        zone_tc = MagicMock()
+        group_iter_fn.return_value = iter([])
         iter_links_fn.return_value = [
             InheritedNsmLink(
                 linked=zone,

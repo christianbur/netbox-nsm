@@ -28,10 +28,22 @@ class LinkPropagationTests(SimpleTestCase):
 
         self.assertTrue(supports_group_propagation(MagicMock(spec=ObjectGroup)))
 
-    def test_propagation_choices_for_plain_object(self):
+    def test_propagation_choices_always_include_all_modes(self):
         obj = SimpleNamespace(pk=1)
         values = [v for v, _ in propagation_choices_for_object(obj)]
-        self.assertEqual(values, [LinkPropagationChoices.DIRECT])
+        self.assertEqual(
+            values,
+            [
+                LinkPropagationChoices.DIRECT,
+                LinkPropagationChoices.INHERIT_IPAM,
+                LinkPropagationChoices.INHERIT_GROUP,
+            ],
+        )
+        # Same result without source object (forms always show every mode).
+        self.assertEqual(
+            [v for v, _ in propagation_choices_for_object()],
+            values,
+        )
 
     def test_should_propagate_respects_mode_and_stop_on_own(self):
         link = MagicMock(
@@ -58,11 +70,16 @@ class LinkPropagationTests(SimpleTestCase):
 
     def test_panel_splits_link_type_and_user_comment(self):
         link = MagicMock(
-            get_propagation_display=MagicMock(return_value="Inherit to IPAM children"),
+            get_propagation_display=MagicMock(
+                return_value="Inherit to IPAM children (prefixes, addresses, ranges)"
+            ),
             propagate_stop_on_own=False,
             comment="  edge case  ",
         )
-        self.assertEqual(object_link_panel_link_type(link), "Inherit to IPAM children")
+        self.assertEqual(
+            object_link_panel_link_type(link),
+            "Inherit to IPAM children (prefixes, addresses, ranges)",
+        )
         self.assertEqual(object_link_panel_user_comment(link), "edge case")
 
     def test_direct_propagation_never_inherits(self):

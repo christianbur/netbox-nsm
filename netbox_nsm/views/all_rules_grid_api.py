@@ -101,7 +101,9 @@ class AllRulesGridApiView(LoginRequiredMixin, View):
         group_mode = parse_group_by_mode(request) if group_levels else ""
         group_mode_secondary = ""
         if len(group_levels) > 1:
-            _primary_mode, group_mode_secondary = parse_rulebook_rules_group_modes(request)
+            _primary_mode, group_mode_secondary = parse_rulebook_rules_group_modes(
+                request
+            )
         if group_levels:
             preview_rules = None
             if parse_group_default_expanded(request) == 1:

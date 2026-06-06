@@ -3,6 +3,7 @@
 import json
 
 from django.contrib.contenttypes.models import ContentType
+from django.core.cache import cache
 from django.test import RequestFactory
 from django.urls import reverse
 
@@ -14,6 +15,7 @@ from netbox_nsm.models import (
     TypeConfig,
 )
 from netbox_nsm.rulebook_field_utils import ensure_system_rulebook_fields
+from netbox_nsm.rulebook_rules_grid_service import UNION_LAYOUT_CACHE_KEY
 from netbox_nsm.views.all_rules_grid_api import AllRulesGridApiView
 from netbox_nsm.views.rulebook_rules_grid_api import RulebookRulesGridApiView
 from utilities.testing import TestCase
@@ -46,6 +48,10 @@ class PolicyGridApiGroupValidationTests(TestCase):
             type_config=cls.tc,
             visible=True,
         )
+
+    def setUp(self):
+        super().setUp()
+        cache.delete(UNION_LAYOUT_CACHE_KEY)
 
     def test_rules_grid_api_rejects_unknown_group_by(self):
         self.add_permissions("netbox_nsm.view_rulebook")

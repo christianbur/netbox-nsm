@@ -12,6 +12,11 @@ from netbox_nsm.rulebook_rules_grouping import (
     COLLAPSE_ALL,
     EXPAND_ALL,
     GROUP_BY_NOT_ALLOWED_MESSAGE,
+    GROUP_DUPLICATE_MESSAGE,
+    GROUP_MAIN_LEVEL_LABEL,
+    GROUP_MAX_MESSAGE,
+    GROUP_SUBGROUP_LEVEL_LABEL,
+    TABLE_DRAG_DISABLED_MESSAGE,
     build_rulebook_rules_group_options,
     parse_group_default_expanded,
     parse_rulebook_rules_group_levels,
@@ -19,10 +24,13 @@ from netbox_nsm.rulebook_rules_grouping import (
 )
 from netbox_nsm.rulebook_rules_grid_payload import (
     build_ag_grid_filter_model,
+    build_filter_column_query_map,
+    build_filter_column_shorthand_names,
     build_rulebook_rules_grid_column_defs,
     build_rulebook_rules_grid_payload,
     enabled_status_labels,
 )
+from netbox_nsm.rulebook_rules_matrix import build_rules_matrix_grid_config
 from netbox_nsm.query import (
     RulebookContext,
     build_query_help_sections,
@@ -63,7 +71,9 @@ def resolve_rulebook_rules_grid_load_target(total_count: int | None = None) -> i
     return min(int(total_count), RULEBOOK_RULES_GRID_CLIENT_MAX)
 
 
-def resolve_rulebook_rules_grid_initial_load_target(total_count: int | None = None) -> int:
+def resolve_rulebook_rules_grid_initial_load_target(
+    total_count: int | None = None,
+) -> int:
     """Rows to fetch on first open (full staged load to loadRowLimit)."""
     return resolve_rulebook_rules_grid_load_target(total_count)
 
@@ -81,6 +91,12 @@ def build_rulebook_rules_group_grid_config(
             include_rulebook=include_rulebook,
         ),
         "groupByNotAllowedMessage": str(GROUP_BY_NOT_ALLOWED_MESSAGE),
+        "groupMaxMessage": str(GROUP_MAX_MESSAGE),
+        "groupDuplicateMessage": str(GROUP_DUPLICATE_MESSAGE),
+        "tableDragDisabledMessage": str(TABLE_DRAG_DISABLED_MESSAGE),
+        "removeGroupingLabel": str(_("Remove grouping")),
+        "groupMainLevelLabel": str(GROUP_MAIN_LEVEL_LABEL),
+        "groupSubgroupLevelLabel": str(GROUP_SUBGROUP_LEVEL_LABEL),
     }
     group_levels = parse_rulebook_rules_group_levels(
         request,
@@ -129,6 +145,7 @@ def build_rules_grid_config(
     rules_layout=None,
     rulebook_context=None,
     total_count=None,
+    field_placements=None,
 ) -> dict:
     """Client config for the AG Grid Rules tab (filters, bulk actions)."""
     from netbox_nsm.rulebook_rules_grid_service import RULEBOOK_RULES_GRID_BLOCK_SIZE
@@ -155,7 +172,9 @@ def build_rules_grid_config(
         "cacheBlockSize": RULEBOOK_RULES_GRID_BLOCK_SIZE,
         "totalCount": int(total_count or 0),
         "loadRowLimit": resolve_rulebook_rules_grid_load_target(total_count),
-        "initialLoadLimit": resolve_rulebook_rules_grid_initial_load_target(total_count),
+        "initialLoadLimit": resolve_rulebook_rules_grid_initial_load_target(
+            total_count
+        ),
         "loadMoreStep": GRID_LOAD_MORE_STEP,
         "gridLoadSteps": list(PROGRESSIVE_LOAD_STEPS),
         "gridLoadStepsFine": list(PROGRESSIVE_LOAD_STEPS_FINE),
@@ -163,10 +182,22 @@ def build_rules_grid_config(
     }
     if rules_layout is not None:
         cfg.update(build_rulebook_rules_group_grid_config(request, rules_layout))
-    if query is not None and rules_layout is not None and rulebook_context is not None:
-        filter_model = build_ag_grid_filter_model(
-            query, rules_layout, rulebook_context
+        cfg.update(
+            build_rules_matrix_grid_config(
+                request,
+                instance,
+                rules_layout,
+                field_placements=field_placements or {},
+            )
         )
+    if rules_layout is not None and rulebook_context is not None:
+        column_map = build_filter_column_query_map(rules_layout, rulebook_context)
+        cfg["filterColumnMap"] = column_map
+        cfg["filterColumnShorthand"] = build_filter_column_shorthand_names(
+            column_map, rules_layout
+        )
+    if query is not None and rules_layout is not None and rulebook_context is not None:
+        filter_model = build_ag_grid_filter_model(query, rules_layout, rulebook_context)
         if filter_model:
             cfg["initialFilterModel"] = filter_model
     nsm_q_raw = request.GET.get("nsm_q", "").strip()
@@ -320,6 +351,14 @@ def build_rulebook_rules_tab_context(
         ),
     }
     if grid_all_rules:
+        from netbox_nsm.models import RulebookField
+
+        field_placements = {
+            str(f.slug): str(f.placement)
+            for f in RulebookField.objects.filter(rulebook_id=instance.pk).only(
+                "slug", "placement"
+            )
+        }
         ctx["rules_grid_config"] = build_rules_grid_config(
             request,
             instance,
@@ -327,6 +366,7 @@ def build_rulebook_rules_tab_context(
             rules_layout=grouped["rules_layout"],
             rulebook_context=context,
             total_count=total_count,
+            field_placements=field_placements,
         )
     from urllib.parse import quote
 

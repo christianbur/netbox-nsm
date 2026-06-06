@@ -102,12 +102,13 @@ def create_scale_test_demo(*, recreate: bool = True) -> dict:
     _svc_cot, svc_model, svc_ct = _get_cot_model("nsm_services")
     _act_cot, act_model, act_ct = _get_cot_model("nsm_action")
 
-    with transaction.atomic():
-        if recreate:
+    if recreate:
+        with transaction.atomic():
             for existing in Rulebook.objects.filter(name=RULEBOOK_NAME):
                 Rule.objects.filter(rulebook=existing).delete()
                 existing.delete()
 
+    with transaction.atomic():
         rb, _ = Rulebook.objects.get_or_create(
             name=RULEBOOK_NAME,
             defaults={
@@ -116,54 +117,53 @@ def create_scale_test_demo(*, recreate: bool = True) -> dict:
             },
         )
         fields = _ensure_rulebook_fields(rb)
-
         zones = _ensure_zones(zone_model, count=ZONE_COUNT)
-        if len(zones) < ZONE_COUNT:
-            raise RuntimeError(
-                f"Expected {ZONE_COUNT} zones, got {len(zones)} after bulk create."
-            )
 
-        services = _lookup_objects_by_name(svc_model)
-        actions = _lookup_objects_by_name(act_model)
-        svc_https = services.get("https")
-        svc_ssh = services.get("ssh")
-        svc_dns = services.get("dns-udp")
-        act_permit = actions.get("permit")
-        act_deny = actions.get("deny")
-        if not all((svc_https, svc_ssh, act_permit, act_deny)):
-            raise RuntimeError(
-                "Missing default Services/Action objects. Run Setup → Custom Objects import first."
-            )
-        svc_pool = [svc_https, svc_ssh, svc_dns or svc_https]
-        rng = random.Random(ACTION_RANDOM_SEED)
-        rule_actions = [
-            act_permit if rng.random() < 0.5 else act_deny for _ in range(RULE_COUNT)
-        ]
+    if len(zones) < ZONE_COUNT:
+        raise RuntimeError(
+            f"Expected {ZONE_COUNT} zones, got {len(zones)} after bulk create."
+        )
 
-        existing_rules = Rule.objects.filter(rulebook=rb).count()
-        if existing_rules >= RULE_COUNT:
-            elapsed = time.monotonic() - started
-            return {
-                "rulebook": rb.name,
-                "rulebook_id": rb.pk,
-                "zones": len(zones),
-                "rules": existing_rules,
-                "object_items": RuleObjectItem.objects.filter(
-                    rule__rulebook=rb
-                ).count(),
-                "elapsed_s": round(elapsed, 1),
-                "skipped": True,
-            }
+    services = _lookup_objects_by_name(svc_model)
+    actions = _lookup_objects_by_name(act_model)
+    svc_https = services.get("https")
+    svc_ssh = services.get("ssh")
+    svc_dns = services.get("dns-udp")
+    act_permit = actions.get("permit")
+    act_deny = actions.get("deny")
+    if not all((svc_https, svc_ssh, act_permit, act_deny)):
+        raise RuntimeError(
+            "Missing default Services/Action objects. Run Setup → Custom Objects import first."
+        )
+    svc_pool = [svc_https, svc_ssh, svc_dns or svc_https]
+    rng = random.Random(ACTION_RANDOM_SEED)
+    rule_actions = [
+        act_permit if rng.random() < 0.5 else act_deny for _ in range(RULE_COUNT)
+    ]
 
-        rules_created = 0
-        items_created = 0
-        field_source = fields["source"]
-        field_dest = fields["destination"]
-        field_service = fields["service"]
-        field_action = fields["action"]
+    existing_rules = Rule.objects.filter(rulebook=rb).count()
+    if existing_rules >= RULE_COUNT:
+        elapsed = time.monotonic() - started
+        return {
+            "rulebook": rb.name,
+            "rulebook_id": rb.pk,
+            "zones": len(zones),
+            "rules": existing_rules,
+            "object_items": RuleObjectItem.objects.filter(rule__rulebook=rb).count(),
+            "elapsed_s": round(elapsed, 1),
+            "skipped": True,
+        }
 
-        for batch_start in range(0, RULE_COUNT, BATCH_SIZE):
-            batch_end = min(batch_start + BATCH_SIZE, RULE_COUNT)
+    rules_created = 0
+    items_created = 0
+    field_source = fields["source"]
+    field_dest = fields["destination"]
+    field_service = fields["service"]
+    field_action = fields["action"]
+
+    for batch_start in range(0, RULE_COUNT, BATCH_SIZE):
+        batch_end = min(batch_start + BATCH_SIZE, RULE_COUNT)
+        with transaction.atomic():
             rule_rows = []
             for i in range(batch_start, batch_end):
                 rule_rows.append(

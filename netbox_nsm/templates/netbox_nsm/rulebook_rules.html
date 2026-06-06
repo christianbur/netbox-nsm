@@ -45,6 +45,11 @@
                 {{ rulebook_rules_grid_payload|json_script:"nsm-rulebook-rules-grid-data" }}
                 {% if rules_grid_config %}{{ rules_grid_config|json_script:"nsm-rulebook-rules-grid-config" }}{% endif %}
                 <div id="nsm-rules-ag-grid" class="nsm-rules-ag-grid nsm-ag-grid-surface"></div>
+                <div id="nsm-rules-matrix-wrap"
+                     class="nsm-rules-matrix-wrap nsm-matrix-ag-theme d-none">
+                  <div id="nsm-rules-matrix-ag-grid"
+                       class="nsm-matrix-ag-grid nsm-ag-grid-surface"></div>
+                </div>
                 </div>
                 {% include "netbox_nsm/inc/rulebook_ag_status_bar.html" with row_stats_id="nsm-ag-row-stats" selected_stats_id="nsm-ag-selected-stats" load_more_btn_id="nsm-ag-load-more" %}
               </div>

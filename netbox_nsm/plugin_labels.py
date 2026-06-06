@@ -21,9 +21,22 @@ def _db_settings():
         return None
 
 
+def _configured_db_settings():
+    """Return DB settings only when Setup changed labels away from factory defaults."""
+    db = _db_settings()
+    if not db:
+        return None
+    if (
+        db.menu_label == DEFAULT_MENU_LABEL
+        and db.resolved_panel_label() == DEFAULT_PANEL_LABEL
+    ):
+        return None
+    return db
+
+
 def get_nsm_menu_label():
     """Top-level plugin menu label."""
-    db = _db_settings()
+    db = _configured_db_settings()
     if db and db.menu_label:
         return db.menu_label
     custom = _plugin_config().get("menu_label")
@@ -34,10 +47,13 @@ def get_nsm_menu_label():
 
 def get_nsm_panel_label():
     """Security panel card title on object detail pages."""
-    db = _db_settings()
+    db = _configured_db_settings()
     if db:
         return db.resolved_panel_label()
     custom = _plugin_config().get("panel_label")
     if custom:
         return str(custom)
+    menu_custom = _plugin_config().get("menu_label")
+    if menu_custom:
+        return str(menu_custom)
     return _(DEFAULT_PANEL_LABEL)

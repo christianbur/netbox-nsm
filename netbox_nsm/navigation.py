@@ -84,64 +84,14 @@ assignments_menu_items = (
 )
 
 
-def _resolve_ip_analysis_rulebook():
-    """Rulebook for Security → Analysis → IP Analysis (menu needs a concrete pk)."""
-    from netbox_nsm.models import Rulebook, RulebookTypeChoices
-
-    pk = plugin_settings.get("ip_analysis_rulebook_id")
-    if pk is not None:
-        rulebook = Rulebook.objects.filter(pk=pk).first()
-        if rulebook:
-            return rulebook
-
-    for name in (
-        plugin_settings.get("ip_analysis_rulebook_name"),
-        "Enterprise - TrustSec Infra",
-    ):
-        if not name:
-            continue
-        rulebook = Rulebook.objects.filter(name=name).first()
-        if rulebook:
-            return rulebook
-
-    return (
-        Rulebook.objects.filter(rulebook_type=RulebookTypeChoices.SECURITY_RULES)
-        .order_by("name", "pk")
-        .first()
-    )
-
-
-def _ip_analysis_menu_item():
-    from django.urls import reverse
-
-    rulebook = _resolve_ip_analysis_rulebook()
-    if rulebook is None:
-        return None
-    item = PluginMenuItem(
-        link="plugins:netbox_nsm:rulebook_list",
-        link_text=_("IP Analysis"),
-        permissions=["netbox_nsm.view_rulebook"],
-    )
-    item.url = reverse(
-        "plugins:netbox_nsm:rulebook_ipanalysis",
-        kwargs={"pk": rulebook.pk},
-    )
-    return item
-
-
 def _analysis_menu_items():
-    items = []
-    ip_item = _ip_analysis_menu_item()
-    if ip_item is not None:
-        items.append(ip_item)
-    items.append(
+    return (
         PluginMenuItem(
             link="plugins:netbox_nsm:object_analyzer",
             link_text=_("Object Analyzer"),
             permissions=["netbox_nsm.view_rulebook"],
-        )
+        ),
     )
-    return tuple(items)
 
 
 if plugin_settings.get("top_level_menu"):

@@ -42,7 +42,7 @@ flowchart LR
 | Run migrations | `manage.py migrate` | [Prerequisites](using_netbox_nsm.md#prerequisites--first-start) |
 | Setup Sections 1–3 | Security → Setup | [Setup Wizard](using_netbox_nsm.md#setup-wizard) |
 | Link a prefix to a zone | Prefix → **+ Assign** | [Security Panel](using_netbox_nsm.md#security-panel) |
-| Browse demo rules | Rulebook → Rules | [Policy Table](using_netbox_nsm.md#policy-table) |
+| Browse demo rules | Rulebook → Rules | [Rules grid](using_netbox_nsm.md#rules-grid) |
 
 ### 2 · Core workflow — Security Panel
 
@@ -62,8 +62,8 @@ labels, and see matching rulebooks.
 | Feature | Menu path | Doc |
 |---|---|---|
 | Rulebooks | Security → Rulebooks | [Security Rulebooks](using_netbox_nsm.md#security-rulebooks) |
-| Policy grid (AG Grid) | Rulebook → Rules | [Policy Table](using_netbox_nsm.md#policy-table) |
-| Zone matrix | Rulebook → Matrix | [Zone Matrix](using_netbox_nsm.md#zone-matrix-tab) |
+| Policy grid (AG Grid) | Rulebook → Rules | [Rules grid](using_netbox_nsm.md#rules-grid) |
+| Zone matrix | Rulebook → Rules (matrix toolbar) | [Zone Matrix](using_netbox_nsm.md#zone-matrix) |
 | All Rules (global view) | Rulebooks → **All Rules** | [Rulebook List](using_netbox_nsm.md#all-rules-virtual-rulebook) |
 | IP Analysis | Security → Analysis → IP Analysis | [IP Analysis](using_netbox_nsm.md#ip-analysis) |
 | Object Analyzer | Security → Analysis → Object Analyzer | [Object Analyzer](using_netbox_nsm.md#object-analyzer) |
@@ -86,10 +86,10 @@ All images live in [`docs/img/`](img/). Regenerate with [`make_screenshots.py`](
 | `01-setup.png` | Setup wizard (4 sections) |
 | `02-type-config-list.png` · `03-type-config-detail.png` | Type Config |
 | `05-rulebook-list.png` · `06-rulebook-detail.png` | Rulebooks |
-| `07-policy-rules.png` · `11-rule-add.png` | Rules grid & add form |
-| `07-zone-detail.png` · `12-prefix-security-panel.png` · `17-assign-picker.png` | Security Panel & Assign Link |
+| `07-policy-rules.png` · `07-policy-rules-demo-group.png` · `11-rule-add.png` | Rules grid (Enterprise + Demo Group view) & add form |
+| `07-zone-detail.png` · `12-prefix-security-panel.png` · `17-assign-picker.png` · `17-assign-link-propagation-types.png` | Security Panel & Assign Link (form + Link type propagation dropdown) |
 | `08-builtin-types.png` | Custom Object Types |
-| `09-zone-matrix.png` · `09-matrix-filters.png` | Zone matrix |
+| `09-zone-matrix.png` · `09-zone-matrix-demo-undirected.png` · `09-zone-matrix-demo-directed.png` | Zone matrix (Enterprise + Demo undirected 2×2 subset + Demo full grid) |
 | `10-ip-analysis.png` | IP Analysis |
 | `11-object-analyzer.png` | Object Analyzer |
 

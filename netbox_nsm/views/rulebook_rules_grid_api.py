@@ -52,7 +52,9 @@ class RulebookRulesGridApiView(LoginRequiredMixin, View):
         if request.GET.get("meta") == "1":
             return JsonResponse(
                 {
-                    "columnDefs": rulebook_rules_grid_column_defs(instance, rulebook_views),
+                    "columnDefs": rulebook_rules_grid_column_defs(
+                        instance, rulebook_views
+                    ),
                     "cacheBlockSize": RULEBOOK_RULES_GRID_BLOCK_SIZE,
                 }
             )
@@ -62,7 +64,9 @@ class RulebookRulesGridApiView(LoginRequiredMixin, View):
         except (TypeError, ValueError):
             start_row = 0
         try:
-            end_row = int(request.GET.get("endRow", start_row + RULEBOOK_RULES_GRID_BLOCK_SIZE))
+            end_row = int(
+                request.GET.get("endRow", start_row + RULEBOOK_RULES_GRID_BLOCK_SIZE)
+            )
         except (TypeError, ValueError):
             end_row = start_row + RULEBOOK_RULES_GRID_BLOCK_SIZE
 
@@ -88,11 +92,15 @@ class RulebookRulesGridApiView(LoginRequiredMixin, View):
             return JsonResponse({"error": group_err}, status=400)
 
         group_by = parse_rulebook_rules_group_by(request, rules_layout=rules_layout)
-        group_levels = parse_rulebook_rules_group_levels(request, rules_layout=rules_layout)
+        group_levels = parse_rulebook_rules_group_levels(
+            request, rules_layout=rules_layout
+        )
         group_mode = parse_group_by_mode(request) if group_levels else ""
         group_mode_secondary = ""
         if len(group_levels) > 1:
-            _primary_mode, group_mode_secondary = parse_rulebook_rules_group_modes(request)
+            _primary_mode, group_mode_secondary = parse_rulebook_rules_group_modes(
+                request
+            )
         if group_levels:
             preview_rules = None
             if parse_group_default_expanded(request) == 1:

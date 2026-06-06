@@ -40,26 +40,14 @@ def supports_group_propagation(obj) -> bool:
         return False
 
 
-def propagation_choices_for_object(obj) -> list[tuple[str, str]]:
-    """Allowed propagation values for Assign on *obj*."""
-    choices: list[tuple[str, str]] = [
-        (LinkPropagationChoices.DIRECT, LinkPropagationChoices.DIRECT.label),
-    ]
-    if supports_ipam_propagation(obj):
-        choices.append(
-            (
-                LinkPropagationChoices.INHERIT_IPAM,
-                LinkPropagationChoices.INHERIT_IPAM.label,
-            )
-        )
-    if supports_group_propagation(obj):
-        choices.append(
-            (
-                LinkPropagationChoices.INHERIT_GROUP,
-                LinkPropagationChoices.INHERIT_GROUP.label,
-            )
-        )
-    return choices
+def propagation_choices_for_object(obj=None) -> list[tuple[str, str]]:
+    """Propagation values shown in Assign/Edit forms (always all modes).
+
+    *obj* is accepted for backward compatibility but no longer filters choices.
+    Runtime inheritance still depends on object structure (IPAM containment or
+    group membership); unsupported modes simply have no effect.
+    """
+    return list(LinkPropagationChoices.choices)
 
 
 def object_link_panel_link_type(link) -> str:

@@ -11,6 +11,7 @@ from netbox_nsm.picker_browse import (
     browse_picker_objects,
 )
 from netbox_nsm.branch_db import ensure_branch_context
+from netbox_nsm.changelog_utils import record_object_update, snapshot_instance
 from netbox_nsm.rule_field_selections import (
     build_all_column_cells_payload,
     build_column_cell_payload,
@@ -155,12 +156,14 @@ class RuleFieldSelectionsApiView(LoginRequiredMixin, View):
             return JsonResponse({"detail": "Invalid JSON"}, status=400)
 
         rule = self._load_rule(pk)
+        prechange = snapshot_instance(rule)
         try:
             with ensure_branch_context(request):
                 if isinstance(body.get("columns"), dict):
                     save_all_column_selections(
                         rule, body["columns"], rule.rulebook, request=request
                     )
+                    record_object_update(rule, request, prechange)
                     rule = self._load_rule(pk, prefetch=True)
                     return JsonResponse(
                         {
@@ -181,6 +184,7 @@ class RuleFieldSelectionsApiView(LoginRequiredMixin, View):
                     )
 
                 save_column_selections(rule, column_key, selections, request=request)
+                record_object_update(rule, request, prechange)
             rule = self._load_rule(pk, prefetch=True)
             payload = build_column_cell_payload(rule, rule.rulebook, column_key)
             payload["selections"] = get_column_selections(rule, column_key)

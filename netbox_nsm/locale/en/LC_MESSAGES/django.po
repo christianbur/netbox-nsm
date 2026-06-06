@@ -539,6 +539,40 @@ msgstr ""
 msgid "NSM Object Links"
 msgstr ""
 
+#: netbox_nsm/forms/object_link.py:15 netbox_nsm/models/object_link.py:54
+#: netbox_nsm/templates/netbox_nsm/object_link_assign.html:91
+#: netbox_nsm/templates/netbox_nsm/object_link_edit.html:46
+msgid "Link type"
+msgstr "Link type"
+
+#: netbox_nsm/models/object_link.py:15
+msgid "Direct (bidirectional, visible on both sides)"
+msgstr "Direct (bidirectional, visible on both sides)"
+
+#: netbox_nsm/models/object_link.py:16
+msgid "Inherit to IPAM children (prefixes, addresses, ranges)"
+msgstr "Inherit to IPAM children (prefixes, addresses, ranges)"
+
+#: netbox_nsm/models/object_link.py:19
+msgid "Inherit to group members"
+msgstr "Inherit to group members"
+
+#: netbox_nsm/forms/object_link.py:18 netbox_nsm/models/object_link.py:55
+msgid ""
+"Direct: stored on object A and shown on both A and B; not propagated to "
+"children. Inherit: child objects also see the link in their Security Panel "
+"(same display as direct)."
+msgstr ""
+"Direct: stored on object A and shown on both A and B; not propagated to "
+"children. Inherit: child objects also see the link in their Security Panel "
+"(same display as direct)."
+
+#: netbox_nsm/forms/object_link.py:26 netbox_nsm/models/object_link.py:63
+#: netbox_nsm/templates/netbox_nsm/object_link_assign.html:101
+#: netbox_nsm/templates/netbox_nsm/object_link_edit.html:57
+msgid "Stop when child has own link of same type"
+msgstr "Stop when child has own link of same type"
+
 #: netbox_nsm/models/nsm_section.py:24
 msgid "Unique identifier (e.g. 'source', 'destination', 'services')."
 msgstr ""
@@ -2258,3 +2292,311 @@ msgstr "Expand all column groups (Source, Destination, …)"
 #: netbox_nsm/templates/netbox_nsm/rulebook_rules.html
 msgid "Collapse all column groups to summary columns"
 msgstr "Collapse all column groups to summary columns"
+
+#: netbox_nsm/rulebook_rules_grouping.py
+msgid "Field is not configured for this rulebook."
+msgstr "Field is not configured for this rulebook."
+
+#: netbox_nsm/rulebook_rules_grouping.py
+msgid "Switch to Group or Matrix view to organize rules by drag-and-drop."
+msgstr "Switch to Group or Matrix view to organize rules by drag-and-drop."
+
+#: netbox_nsm/rulebook_rules_grouping.py
+msgid "Maximum of two columns allowed for grouping."
+msgstr "Maximum of two columns allowed for grouping."
+
+#: netbox_nsm/rulebook_rules_grouping.py
+msgid "This column is already in the grouping."
+msgstr "This column is already in the grouping."
+
+#: netbox_nsm/rulebook_rules_grouping.py
+msgid "Main group"
+msgstr "Main group"
+
+#: netbox_nsm/rulebook_rules_grouping.py
+msgid "Subgroup"
+msgstr "Subgroup"
+
+#: netbox_nsm/rulebook_rules_matrix.py
+msgid "Only object columns (e.g. zones) can be used in the matrix."
+msgstr "Only object columns (e.g. zones) can be used in the matrix."
+
+#: netbox_nsm/rulebook_rules_matrix.py
+msgid "Both matrix fields must use the same object type (e.g. both zones)."
+msgstr "Both matrix fields must use the same object type (e.g. both zones)."
+
+#: netbox_nsm/rulebook_rules_matrix.py
+msgid "This column is already in the matrix."
+msgstr "This column is already in the matrix."
+
+#: netbox_nsm/rulebook_rules_matrix.py
+msgid "Row"
+msgstr "Row"
+
+#: netbox_nsm/rulebook_rules_matrix.py
+msgid "Column"
+msgstr "Column"
+
+#: netbox_nsm/rulebook_rules_matrix.py
+msgid "Directed"
+msgstr "Directed"
+
+#: netbox_nsm/rulebook_rules_matrix.py
+msgid "Undirected"
+msgstr "Undirected"
+
+#: netbox_nsm/rulebook_rules_matrix.py
+msgid "Directed: → and ← shown separately"
+msgstr "Directed: → and ← shown separately"
+
+#: netbox_nsm/rulebook_rules_matrix.py
+msgid "Undirected: A↔B merged"
+msgstr "Undirected: A↔B merged"
+
+#: netbox_nsm/rulebook_rules_matrix.py
+msgid "Matrix view mode"
+msgstr "Matrix view mode"
+
+#: netbox_nsm/rulebook_rules_matrix.py
+msgid "Remove matrix field"
+msgstr "Remove matrix field"
+
+#: netbox_nsm/rulebook_rules_tab.py
+msgid "Remove grouping"
+msgstr "Remove grouping"
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Grouping"
+msgstr "Grouping"
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Drop zone for rule grouping"
+msgstr "Drop zone for rule grouping"
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Drag columns here to group (up to 2 columns)"
+msgstr "Drag columns here to group (up to 2 columns)"
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Drop zone for matrix view"
+msgstr "Drop zone for matrix view"
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Drag columns here for matrix view (2 matching object columns)"
+msgstr "Drag columns here for matrix view (2 matching object columns)"
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Expand or collapse all groups"
+msgstr "Expand or collapse all groups"
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Expand all groups"
+msgstr "Expand all groups"
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Collapse all groups"
+msgstr "Collapse all groups"
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Organize rules in a hierarchical list (grouping) or as a source×destination matrix. Drag column headers from the grid into the zones below."
+msgstr "Organize rules in a hierarchical list (grouping) or as a source×destination matrix. Drag column headers from the grid into the zones below."
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Stack up to two columns to nest rule rows. Expand/collapse controls appear once grouping is active."
+msgstr "Stack up to two columns to nest rule rows. Expand/collapse controls appear once grouping is active."
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Pick two matching object columns (same type) for a row×column heatmap — for example Source Zones (row) and Destination Zones (column)."
+msgstr "Pick two matching object columns (same type) for a row×column heatmap — for example Source Zones (row) and Destination Zones (column)."
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Grouping and matrix are mutually exclusive — starting one clears the other."
+msgstr "Grouping and matrix are mutually exclusive — starting one clears the other."
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Learn more"
+msgstr "Learn more"
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Grouping zone (left)"
+msgstr "Grouping zone (left)"
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Drag one or two column headers from the rules grid into the Grouping zone to collapse rows into nested groups. Each pill is a grouping level; remove a pill or drag it away to ungroup that level."
+msgstr "Drag one or two column headers from the rules grid into the Grouping zone to collapse rows into nested groups. Each pill is a grouping level; remove a pill or drag it away to ungroup that level."
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Quick start: grouping"
+msgstr "Quick start: grouping"
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Drag a column header into the Grouping zone (left)."
+msgstr "Drag a column header into the Grouping zone (left)."
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Optionally drag a second column to nest groups deeper (maximum two levels)."
+msgstr "Optionally drag a second column to nest groups deeper (maximum two levels)."
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "When grouping is active, use Expand all / Collapse all at the right edge of the grouping zone."
+msgstr "When grouping is active, use Expand all / Collapse all at the right edge of the grouping zone."
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Click × on a pill to remove a grouping level."
+msgstr "Click × on a pill to remove a grouping level."
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Matrix zone (right)"
+msgstr "Matrix zone (right)"
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "The matrix view needs two object-reference columns of the same type — for example Source / Zones and Destination / Zones. The first drop fills the Row slot; the second fills the Column slot. When both slots are set, the grid switches to a matrix heatmap."
+msgstr "The matrix view needs two object-reference columns of the same type — for example Source / Zones and Destination / Zones. The first drop fills the Row slot; the second fills the Column slot. When both slots are set, the grid switches to a matrix heatmap."
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Quick start: matrix"
+msgstr "Quick start: matrix"
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Drag an object column (e.g. Source Zones) into the Matrix zone — it becomes the Row field."
+msgstr "Drag an object column (e.g. Source Zones) into the Matrix zone — it becomes the Row field."
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Drag a matching object column of the same type (e.g. Destination Zones) into the Column slot."
+msgstr "Drag a matching object column of the same type (e.g. Destination Zones) into the Column slot."
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Use the Directed / Undirected toggle on the right of the matrix zone to choose how traffic direction is shown."
+msgstr "Use the Directed / Undirected toggle on the right of the matrix zone to choose how traffic direction is shown."
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Click × on a pill to clear a matrix field."
+msgstr "Click × on a pill to clear a matrix field."
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Directed vs undirected matrix mode"
+msgstr "Directed vs undirected matrix mode"
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Traffic from row object to column object (→) and the reverse direction (←) are shown in separate cells."
+msgstr "Traffic from row object to column object (→) and the reverse direction (←) are shown in separate cells."
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Bidirectional traffic between A and B is merged into a single cell (A↔B)."
+msgstr "Bidirectional traffic between A and B is merged into a single cell (A↔B)."
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "CSV export"
+msgstr "CSV export"
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Use the CSV export button in the toolbar above the grid to download the currently visible data — either the flat rules list or the active matrix view."
+msgstr "Use the CSV export button in the toolbar above the grid to download the currently visible data — either the flat rules list or the active matrix view."
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_chrome_bar.html
+msgid "Export CSV"
+msgstr "Export CSV"
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Grouping & matrix toolbar"
+msgstr "Grouping & matrix toolbar"
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Dismiss help"
+msgstr "Dismiss help"
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Rules view toolbar"
+msgstr "Rules view toolbar"
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Switch between a flat table, nested groups, or a source×destination matrix. Drag column headers from the grid into the active mode drop zone."
+msgstr "Switch between a flat table, nested groups, or a source×destination matrix. Drag column headers from the grid into the active mode drop zone."
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Table"
+msgstr "Table"
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Group"
+msgstr "Group"
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Default flat rules grid with no grouping or matrix layout."
+msgstr "Default flat rules grid with no grouping or matrix layout."
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Stack up to two columns to nest rule rows. Expand/collapse controls appear in the action rail once grouping is active."
+msgstr "Stack up to two columns to nest rule rows. Expand/collapse controls appear in the action rail once grouping is active."
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Group and matrix are mutually exclusive — starting one clears the other."
+msgstr "Group and matrix are mutually exclusive — starting one clears the other."
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Group mode"
+msgstr "Group mode"
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Select Group in the view mode control, then drag one or two column headers into the drop zone to collapse rows into nested groups. Each pill is a grouping level; remove a pill or drag it away to ungroup that level."
+msgstr "Select Group in the view mode control, then drag one or two column headers into the drop zone to collapse rows into nested groups. Each pill is a grouping level; remove a pill or drag it away to ungroup that level."
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Choose Group in the view mode selector."
+msgstr "Choose Group in the view mode selector."
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Drag a column header into the drop zone."
+msgstr "Drag a column header into the drop zone."
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "When grouping is active, use expand and collapse in the action rail at the right."
+msgstr "When grouping is active, use expand and collapse in the action rail at the right."
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Matrix mode"
+msgstr "Matrix mode"
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Select Matrix in the view mode control. The matrix view needs two object-reference columns of the same type — for example Source / Zones and Destination / Zones. The first drop fills the Row slot; the second fills the Column slot. When both slots are set, the grid switches to a matrix heatmap."
+msgstr "Select Matrix in the view mode control. The matrix view needs two object-reference columns of the same type — for example Source / Zones and Destination / Zones. The first drop fills the Row slot; the second fills the Column slot. When both slots are set, the grid switches to a matrix heatmap."
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Choose Matrix in the view mode selector."
+msgstr "Choose Matrix in the view mode selector."
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Drag an object column (e.g. Source Zones) into the drop zone — it becomes the Row field."
+msgstr "Drag an object column (e.g. Source Zones) into the drop zone — it becomes the Row field."
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Use the Directed / Undirected toggle in the action rail to choose how traffic direction is shown."
+msgstr "Use the Directed / Undirected toggle in the action rail to choose how traffic direction is shown."
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Add view(table), view(group), or view(matrix) to the filter query bar (combined with AND). view(table) is the default flat rules grid. view(group) enables grouping when grouping pills are configured. view(matrix) switches to the matrix heatmap when row and column fields are set."
+msgstr "Add view(table), view(group), or view(matrix) to the filter query bar (combined with AND). view(table) is the default flat rules grid. view(group) enables grouping when grouping pills are configured. view(matrix) switches to the matrix heatmap when row and column fields are set."
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Show rules view toolbar help"
+msgstr "Show rules view toolbar help"
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "View mode"
+msgstr "View mode"
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Table view"
+msgstr "Table view"
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Group view"
+msgstr "Group view"
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Matrix view"
+msgstr "Matrix view"
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
+msgid "Flat rules table — drag-and-drop is disabled. Switch to Group or Matrix to organize rules."
+msgstr "Flat rules table — drag-and-drop is disabled. Switch to Group or Matrix to organize rules."

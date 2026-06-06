@@ -25,6 +25,32 @@ def _api(name, **kwargs):
     return reverse(f"plugins-api:netbox_nsm-api:{name}", kwargs=kwargs)
 
 
+_API_VIEW_PERMS = (
+    "netbox_nsm.view_rulebook",
+    "netbox_nsm.view_rule",
+    "netbox_nsm.view_rulebookassignment",
+    "netbox_nsm.view_rulebookfield",
+    "netbox_nsm.view_rulebookfieldtype",
+    "netbox_nsm.view_ruleobjectitem",
+    "netbox_nsm.view_rulegroupitem",
+)
+
+_API_CRUD_PERMS = _API_VIEW_PERMS + (
+    "netbox_nsm.add_rulebook",
+    "netbox_nsm.change_rulebook",
+    "netbox_nsm.delete_rulebook",
+    "netbox_nsm.add_rule",
+    "netbox_nsm.change_rule",
+    "netbox_nsm.delete_rule",
+    "netbox_nsm.add_rulebookfield",
+    "netbox_nsm.change_rulebookfield",
+    "netbox_nsm.delete_rulebookfield",
+    "netbox_nsm.add_rulebookfieldtype",
+    "netbox_nsm.change_rulebookfieldtype",
+    "netbox_nsm.delete_rulebookfieldtype",
+)
+
+
 class _RulebookPluginAPITestMixin:
     """Grant permissions and use plugin API routes."""
 
@@ -45,12 +71,7 @@ class RulebookAPITest(_RulebookPluginAPITestMixin, APITestCase):
     """CRUD for rulebooks API."""
 
     def test_rulebook_crud(self):
-        self._grant(
-            "netbox_nsm.view_rulebook",
-            "netbox_nsm.add_rulebook",
-            "netbox_nsm.change_rulebook",
-            "netbox_nsm.delete_rulebook",
-        )
+        self._grant(*_API_CRUD_PERMS)
         list_url = _api("rulebook-list")
 
         response = self._post_json(
@@ -59,7 +80,7 @@ class RulebookAPITest(_RulebookPluginAPITestMixin, APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
         rb_id = response.data["id"]
 
-        detail_url = _api("rulebook-detail", kwargs={"pk": rb_id})
+        detail_url = _api("rulebook-detail", pk=rb_id)
         response = self.client.get(detail_url, **self.header)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["name"], "api-test-rulebook")
@@ -86,12 +107,7 @@ class RulebookFieldAPITest(_RulebookPluginAPITestMixin, APITestCase):
         ensure_system_rulebook_fields(cls.rulebook)
 
     def test_rulebook_field_crud(self):
-        self._grant(
-            "netbox_nsm.view_rulebook",
-            "netbox_nsm.add_rulebook",
-            "netbox_nsm.change_rulebook",
-            "netbox_nsm.delete_rulebook",
-        )
+        self._grant(*_API_CRUD_PERMS)
         list_url = _api("rulebookfield-list")
 
         response = self._post_json(
@@ -107,7 +123,7 @@ class RulebookFieldAPITest(_RulebookPluginAPITestMixin, APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
         field_id = response.data["id"]
 
-        detail_url = _api("rulebookfield-detail", kwargs={"pk": field_id})
+        detail_url = _api("rulebookfield-detail", pk=field_id)
         response = self.client.get(detail_url, **self.header)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["slug"], "api_source")
@@ -126,7 +142,9 @@ class RulebookFieldTypeAPITest(_RulebookPluginAPITestMixin, APITestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.rulebook = Rulebook.objects.create(name="api-ft-rb", rulebook_type="security_rules")
+        cls.rulebook = Rulebook.objects.create(
+            name="api-ft-rb", rulebook_type="security_rules"
+        )
         cls.field = RulebookField.objects.create(
             rulebook=cls.rulebook,
             slug="services",
@@ -140,12 +158,7 @@ class RulebookFieldTypeAPITest(_RulebookPluginAPITestMixin, APITestCase):
         )
 
     def test_rulebook_field_type_crud(self):
-        self._grant(
-            "netbox_nsm.view_rulebook",
-            "netbox_nsm.add_rulebook",
-            "netbox_nsm.change_rulebook",
-            "netbox_nsm.delete_rulebook",
-        )
+        self._grant(*_API_CRUD_PERMS)
         list_url = _api("rulebookfieldtype-list")
 
         response = self._post_json(
@@ -159,7 +172,7 @@ class RulebookFieldTypeAPITest(_RulebookPluginAPITestMixin, APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
         ft_id = response.data["id"]
 
-        detail_url = _api("rulebookfieldtype-detail", kwargs={"pk": ft_id})
+        detail_url = _api("rulebookfieldtype-detail", pk=ft_id)
         response = self._patch_json(detail_url, {"max_items": 5})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["max_items"], 5)
@@ -179,12 +192,7 @@ class RuleAPITest(_RulebookPluginAPITestMixin, APITestCase):
         ensure_system_rulebook_fields(cls.rulebook)
 
     def test_rule_crud(self):
-        self._grant(
-            "netbox_nsm.view_rulebook",
-            "netbox_nsm.add_rulebook",
-            "netbox_nsm.change_rulebook",
-            "netbox_nsm.delete_rulebook",
-        )
+        self._grant(*_API_CRUD_PERMS)
         list_url = _api("rule-list")
 
         response = self._post_json(
@@ -199,7 +207,7 @@ class RuleAPITest(_RulebookPluginAPITestMixin, APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
         rule_id = response.data["id"]
 
-        detail_url = _api("rule-detail", kwargs={"pk": rule_id})
+        detail_url = _api("rule-detail", pk=rule_id)
         response = self._patch_json(
             detail_url,
             {"name": "api-test-rule-upd", "enabled": False},
@@ -253,7 +261,7 @@ class RuleFieldSelectionsViewTest(_RulebookPluginAPITestMixin, APITestCase):
                 "plugins:netbox_nsm:rule_field_selections_api",
                 kwargs={"pk": self.rule.pk},
             )
-            + f"?column=source::ct_{self.ct.content_type_id}"
+            + f"?column=source::ct_{self.ct.pk}"
         )
         response = self.client.post(
             url,
@@ -284,7 +292,7 @@ class RuleFieldSelectionsViewTest(_RulebookPluginAPITestMixin, APITestCase):
             "netbox_nsm.change_rule",
         )
         self.client.force_login(self.user)
-        col = f"source::ct_{self.tc.content_type_id}"
+        col = f"source::ct_{self.tc.content_type.pk}"
         url = reverse(
             "plugins:netbox_nsm:rule_field_selections_api",
             kwargs={"pk": self.rule.pk},
@@ -304,12 +312,7 @@ class RulebookWorkflowAPITest(_RulebookPluginAPITestMixin, APITestCase):
     """End-to-end: rulebook → field → field-type → rule → delete."""
 
     def test_full_rulebook_workflow(self):
-        self._grant(
-            "netbox_nsm.view_rulebook",
-            "netbox_nsm.add_rulebook",
-            "netbox_nsm.change_rulebook",
-            "netbox_nsm.delete_rulebook",
-        )
+        self._grant(*_API_CRUD_PERMS)
 
         rb_resp = self._post_json(
             _api("rulebook-list"),
@@ -360,9 +363,9 @@ class RulebookWorkflowAPITest(_RulebookPluginAPITestMixin, APITestCase):
         self.assertEqual(list_rules.status_code, status.HTTP_200_OK)
         self.assertGreaterEqual(list_rules.data["count"], 1)
 
-        self._delete(_api("rule-detail", kwargs={"pk": rule_id}))
-        self._delete(_api("rulebookfield-detail", kwargs={"pk": field_id}))
-        self._delete(_api("rulebook-detail", kwargs={"pk": rb_id}))
+        self._delete(_api("rule-detail", pk=rule_id))
+        self._delete(_api("rulebookfield-detail", pk=field_id))
+        self._delete(_api("rulebook-detail", pk=rb_id))
 
         self.assertFalse(Rulebook.objects.filter(pk=rb_id).exists())
 
@@ -391,7 +394,7 @@ class APIListEndpointsTest(_RulebookPluginAPITestMixin, APITestCase):
     )
 
     def test_all_list_endpoints(self):
-        self._grant("netbox_nsm.view_rulebook")
+        self._grant(*_API_VIEW_PERMS)
         for name in self.endpoints:
             with self.subTest(endpoint=name):
                 response = self.client.get(_api(name), **self.header)

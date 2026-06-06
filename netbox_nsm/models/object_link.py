@@ -12,8 +12,10 @@ __all__ = (
 
 
 class LinkPropagationChoices(models.TextChoices):
-    DIRECT = "direct", _("Direct (this object only)")
-    INHERIT_IPAM = "inherit_ipam", _("Inherit to IPAM children")
+    DIRECT = "direct", _("Direct (bidirectional, visible on both sides)")
+    INHERIT_IPAM = "inherit_ipam", _(
+        "Inherit to IPAM children (prefixes, addresses, ranges)"
+    )
     INHERIT_GROUP = "inherit_group", _("Inherit to group members")
 
 
@@ -51,8 +53,9 @@ class ObjectLink(NetBoxModel):
         default=LinkPropagationChoices.DIRECT,
         verbose_name=_("Link type"),
         help_text=_(
-            "Direct: only object A. Inherit: also applies to IPAM children or "
-            "group members, depending on object A."
+            "Direct: stored on object A and shown on both A and B; not propagated "
+            "to children. Inherit: child objects also see the link in their "
+            "Security Panel (same display as direct)."
         ),
     )
     propagate_stop_on_own = models.BooleanField(

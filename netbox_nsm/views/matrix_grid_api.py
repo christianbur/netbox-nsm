@@ -42,6 +42,18 @@ class RulebookMatrixGridApiView(LoginRequiredMixin, View):
         except (TypeError, ValueError):
             end_row = start_row + MATRIX_GRID_BLOCK_SIZE
 
+        if request.GET.get("scaffold") == "1":
+            from netbox_nsm.matrix_grid_service import fetch_matrix_grid_scaffold
+
+            payload = fetch_matrix_grid_scaffold(
+                request,
+                instance,
+                view_helpers=rulebook_views,
+            )
+            response = JsonResponse(payload)
+            response["Cache-Control"] = "private, max-age=0, no-cache"
+            return response
+
         payload = fetch_matrix_grid_page(
             request,
             instance,

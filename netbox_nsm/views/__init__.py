@@ -7,6 +7,8 @@ from .virtual_all_rules import (
     AllRulesRulebookView,
 )
 from .object_group import *
+from .ip_analysis import IPAnalysisView
+from .ip_analysis_api import IpAnalysisApiView
 from .object_analyzer import ObjectAnalyzerView
 from .custom_objects_sync import SyncBuiltinToCustomObjectsView, SyncTypeConfigsView
 from .type_config import *
@@ -28,5 +30,11 @@ from .object_link import (
     ObjectLinkEditView,
     ObjectLinkDeleteView,
     ObjectTypeElementsApiView,
+)
+from .panel_link_actions import (
+    AddressIpamFkClearView,
+    AddressIpamFkEditView,
+    GroupM2mEditView,
+    GroupM2mRemoveView,
 )
 from .setup import SetupView

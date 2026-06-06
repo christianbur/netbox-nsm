@@ -2,14 +2,14 @@
 <div id="nsm-ag-filter-query-wrap" class="nsm-ag-filter-query-wrap">
   <div class="input-group input-group-sm">
     <span class="input-group-text text-muted"
-          title="{% if filter_query_separated %}{% trans 'Syntax: Rulebook(&quot;Prod FW&quot; OR Lab) AND (web-server OR db) AND LABEL(prod). Klammern ohne Feld = Name. Scope optional: ?rulebook= oder ?rulebook_id=.' %}{% elif filter_query_scoped %}{% trans 'Syntax: &quot;Rulebook-Name&quot;: Feld(wert OR wert) AND Feld2(a AND b). Spalten mit AND; OR oder AND in Klammern pro Spalte.' %}{% else %}{% trans 'Syntax: Feld(wert OR wert) AND Feld2(a AND b). Bei doppelten Labels z. B. Source.Zones oder Destination.Zones.' %}{% endif %}">
+          title="{% if filter_query_separated %}{% trans 'Syntax: Rulebook(&quot;Prod FW&quot; OR Lab) AND (web-server OR db) AND LABEL(prod). Optional view(table|group|matrix). Scope: ?rulebook= or ?rulebook_id=.' %}{% elif filter_query_scoped %}{% trans 'Syntax: &quot;Rulebook-Name&quot;: Feld(wert OR wert) AND Feld2(a AND b). Optional view(table|group|matrix). Spalten mit AND; OR oder AND in Klammern pro Spalte.' %}{% else %}{% trans 'Syntax: Feld(wert OR wert) AND Feld2(a AND b). Optional view(table|group|matrix). Bei doppelten Labels z. B. Source.Zones oder Destination.Zones.' %}{% endif %}">
       <i class="mdi mdi-filter-outline" aria-hidden="true"></i>
     </span>
     <input type="text"
            id="nsm-ag-filter-query"
            class="form-control font-monospace"
-           placeholder="{% if filter_query_separated %}{% trans 'Rulebook(&quot;Prod FW&quot; OR Lab) AND (web-server OR db) AND LABEL(prod)' %}{% elif filter_query_scoped %}{% trans '&quot;Mein Rulebook&quot;: Name(server OR db) AND Source.Zones(dmz)' %}{% else %}{% trans 'Name(server OR db) AND Source.Zones(dmz)' %}{% endif %}"
-           title="{% if filter_query_separated %}{% trans 'Rulebook(…) = Rulebook-Spalte; (…) ohne Feld = Name; LABEL(…) = Labels. Scope: ?rulebook= oder ?rulebook_id=' %}{% elif filter_query_scoped %}{% trans 'Rulebook-Scope: &quot;Rulebook-Name&quot;: Name(x) AND …' %}{% else %}{% trans 'Spaltenfilter: Name(x OR y) AND Source.Zones(z)' %}{% endif %}"
+           placeholder="{% if filter_query_separated %}{% trans 'Rulebook(&quot;Prod FW&quot; OR Lab) AND (web-server OR db) AND view(table)' %}{% elif filter_query_scoped %}{% trans '&quot;Mein Rulebook&quot;: Name(server OR db) AND view(group)' %}{% else %}{% trans 'Name(server OR db) AND Source.Zones(dmz) AND view(matrix)' %}{% endif %}"
+           title="{% if filter_query_separated %}{% trans 'Rulebook(…) = Rulebook column; (…) without field = Name; LABEL(…) = Labels; view(table|group|matrix) = display mode. Scope: ?rulebook= or ?rulebook_id=' %}{% elif filter_query_scoped %}{% trans 'Rulebook scope: &quot;Rulebook-Name&quot;: Name(x) AND …; view(table|group|matrix) switches grid layout' %}{% else %}{% trans 'Column filters: Name(x OR y) AND Source.Zones(z). view(table) = flat grid (default); view(group) = grouped; view(matrix) = matrix heatmap when row/column fields are set' %}{% endif %}"
            aria-label="{% trans 'Spaltenfilter als Abfrage' %}"
            autocomplete="off"
            spellcheck="false">

@@ -190,7 +190,7 @@ class MatrixGridPayloadTests(SimpleTestCase):
         rows = [{"source_zone": zone, "cells": [_cell()]}]
         payload = build_matrix_ag_grid_payload(rows, [zone], "undirected")
         dst_col = next(c for c in payload["columnDefs"] if c["colId"] == "dst_1")
-        self.assertEqual(dst_col["headerStyle"]["backgroundColor"], "#ff5500")
+        self.assertNotIn("headerStyle", dst_col)
         self.assertEqual(dst_col["headerBackgroundColor"], "#ff5500")
         self.assertEqual(payload["rowData"][0]["_sourceColor"], "#ff5500")
 

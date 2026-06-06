@@ -58,8 +58,9 @@ class BranchDbTests(SimpleTestCase):
         instance._state.db = "schema_branch_hh"
         self.assertEqual(db_alias_for_instance(instance), "schema_branch_hh")
 
+    @patch("netbox_nsm.branch_db.router_write_alias", return_value=None)
     @patch("netbox_nsm.branch_db.resolve_db_alias", return_value="schema_from_rule")
-    def test_branch_aware_manager_uses_resolved_alias(self, _alias):
+    def test_branch_aware_manager_uses_resolved_alias(self, _alias, _router):
         request = MagicMock()
         instance = MagicMock()
         mgr = branch_aware_manager(RuleObjectItem, instance, request)
@@ -118,12 +119,15 @@ class BranchDbTests(SimpleTestCase):
         )
         _router.assert_called_once_with(RuleObjectItem)
 
+    @patch("netbox_nsm.branch_db.router_write_alias", return_value=None)
     @patch(
         "netbox_nsm.branch_db.detect_instance_db_alias",
         return_value="schema_branch_only",
     )
     @patch("netbox_nsm.branch_db.resolve_db_alias", return_value=None)
-    def test_required_junction_db_alias_probes_instance(self, _resolve, _detect):
+    def test_required_junction_db_alias_probes_instance(
+        self, _resolve, _detect, _router
+    ):
         from netbox_nsm.branch_db import required_junction_db_alias
 
         instance = MagicMock(pk=210)

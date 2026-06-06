@@ -861,6 +861,85 @@ def format_scoped_filter_query(rulebook_name: str | None, filter_query: str) -> 
     return f'"{escaped}":'
 
 
+_VIEW_DIRECTIVE_PART_RE = re.compile(
+    r"^view\s*\(\s*(matrix|group|table)\s*\)\s*$",
+    re.IGNORECASE,
+)
+
+VIEW_DIRECTIVE_MULTIPLE_ERROR = (
+    "Only one view() directive allowed; use view(table), view(group), or view(matrix)"
+)
+
+
+def count_view_directives(raw: str) -> int:
+    """Return how many top-level ``view(...)`` clauses appear in *raw*."""
+    text = (raw or "").strip()
+    if not text:
+        return 0
+    count = 0
+    for part in split_top_level(text, "AND"):
+        part = part.strip()
+        if part and _VIEW_DIRECTIVE_PART_RE.match(part):
+            count += 1
+    return count
+
+
+def validate_view_directive_count(raw: str) -> str | None:
+    """Return an error when more than one ``view()`` clause is present."""
+    if count_view_directives(raw) > 1:
+        return VIEW_DIRECTIVE_MULTIPLE_ERROR
+    return None
+
+
+def parse_view_directive(raw: str) -> tuple[str | None, str, str | None]:
+    """
+    Extract ``view(matrix)`` / ``view(group)`` / ``view(table)`` from filter text.
+
+    Returns ``(view, filter_without_view, error)`` where *view* is ``matrix``,
+    ``group``, ``table``, or ``None`` (implicit flat table — default).
+
+    When multiple ``view()`` clauses are present, the last one wins and all are
+    stripped from the returned filter body (silent normalization).
+    """
+    text = (raw or "").strip()
+    if not text:
+        return None, "", None
+
+    view_modes: list[str] = []
+    filter_parts: list[str] = []
+    for part in split_top_level(text, "AND"):
+        part = part.strip()
+        if not part:
+            continue
+        match = _VIEW_DIRECTIVE_PART_RE.match(part)
+        if match:
+            view_modes.append(match.group(1).lower())
+            continue
+        filter_parts.append(part)
+
+    view = view_modes[-1] if view_modes else None
+    filter_without = " AND ".join(filter_parts).strip()
+    return view, filter_without, None
+
+
+def normalize_filter_query_view(raw: str) -> str:
+    """Serialize *raw* with at most one ``view()`` clause (last wins)."""
+    view, body, _ = parse_view_directive(raw)
+    return format_filter_query_with_view(body, view)
+
+
+def format_filter_query_with_view(filter_body: str, view: str | None) -> str:
+    """Append a single view directive to serialized filter query text."""
+    _ignored, body, _ = parse_view_directive(filter_body)
+    body = (body or "").strip()
+    if not view or view.lower() == "table":
+        return body
+    directive = f"view({view.lower()})"
+    if not body:
+        return directive
+    return f"{body} AND {directive}"
+
+
 def _merge_column_groups(groups: list[dict]) -> tuple[list[dict] | None, str | None]:
     merged: dict[str, dict] = {}
     for group in groups:
@@ -953,8 +1032,11 @@ def build_ag_grid_filter_model_from_column_map(
     extra_aliases: dict[str, str] | None = None,
 ) -> tuple[dict | None, str | None]:
     """Parse filter query text into an AG Grid filter model using a column map."""
+    _view, filter_body, view_err = parse_view_directive(raw)
+    if view_err:
+        return None, view_err
     groups, err = parse_grid_filter_query(
-        raw,
+        filter_body,
         column_map=column_map,
         rules_layout=rules_layout or [],
         extra_aliases=extra_aliases,
@@ -1020,6 +1102,7 @@ def _object_column_def(col: dict) -> dict:
         "cellRendererParams": {
             "maxPills": col.get("max_visible_pills", 5),
             "colored": col.get("show_colored_pills", True),
+            "addressColumn": col.get("matching_class") == "address",
         },
     }
 

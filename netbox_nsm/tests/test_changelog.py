@@ -23,6 +23,13 @@ def _objectchange_count(model, pk):
     ).count()
 
 
+def _test_prefix():
+    prefix = Prefix.objects.first()
+    if prefix is None:
+        prefix = Prefix.objects.create(prefix="10.0.0.0/24", status="active")
+    return prefix
+
+
 class RuleAssignmentChangelogTest(ModelViewTestCase):
     """Rule assignment changes via policy grid API should appear on Rule changelog."""
 
@@ -43,7 +50,7 @@ class RuleAssignmentChangelogTest(ModelViewTestCase):
             name="Source",
             field_kind=RulebookFieldKind.OBJECT,
         )
-        cls.prefix = Prefix.objects.first()
+        cls.prefix = _test_prefix()
         cls.prefix_ct = ContentType.objects.get_for_model(Prefix)
 
     def test_rules_grid_column_save_creates_rule_objectchange(self):
@@ -140,7 +147,7 @@ class RuleObjectItemChangelogAPITest(APITestCase):
             name="Source",
             field_kind=RulebookFieldKind.OBJECT,
         )
-        cls.prefix = Prefix.objects.first()
+        cls.prefix = _test_prefix()
         cls.prefix_ct = ContentType.objects.get_for_model(Prefix)
 
     def test_rule_object_item_api_create_logs_change(self):
@@ -157,7 +164,7 @@ class RuleObjectItemChangelogAPITest(APITestCase):
             {
                 "rule": self.rule.pk,
                 "field": self.field.pk,
-                "content_type": self.prefix_ct.pk,
+                "content_type": "ipam.prefix",
                 "object_id": self.prefix.pk,
                 "exclude": False,
             },

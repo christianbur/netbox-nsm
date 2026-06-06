@@ -1,31 +1,12 @@
 """Matrix corner axis filter — OR / AND parsing (mirrors matrix_ag_grid.js)."""
 
-import re
-
 from django.test import SimpleTestCase
 
-
-def parse_axis_filter_groups(query: str) -> list[list[str]]:
-    raw = (query or "").strip()
-    if not raw:
-        return []
-    groups = []
-    for or_part in re.split(r"\s+OR\s+", raw, flags=re.IGNORECASE):
-        and_terms = [
-            part.strip().lower()
-            for part in re.split(r"\s+(?:AND|&&)\s+", or_part, flags=re.IGNORECASE)
-            if part.strip()
-        ]
-        if and_terms:
-            groups.append(and_terms)
-    return groups
-
-
-def matches_axis_filter_groups(text: str, groups: list[list[str]]) -> bool:
-    if not groups:
-        return True
-    haystack = (text or "").lower()
-    return any(all(term in haystack for term in and_terms) for and_terms in groups)
+from netbox_nsm.matrix_axis_filter import (
+    filter_objects_by_axis_query,
+    matches_axis_filter_groups,
+    parse_axis_filter_groups,
+)
 
 
 class MatrixAxisFilterTests(SimpleTestCase):

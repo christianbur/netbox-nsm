@@ -14,6 +14,11 @@ __all__ = (
     "EXPAND_ALL",
     "GROUP_BY_RULEBOOK",
     "GROUP_BY_NOT_ALLOWED_MESSAGE",
+    "GROUP_DUPLICATE_MESSAGE",
+    "GROUP_MAIN_LEVEL_LABEL",
+    "GROUP_MAX_MESSAGE",
+    "TABLE_DRAG_DISABLED_MESSAGE",
+    "GROUP_SUBGROUP_LEVEL_LABEL",
     "GROUP_MODE_SET",
     "GROUP_MODE_VALUE",
     "UNGROUPED_GROUP_KEY",
@@ -41,7 +46,14 @@ __all__ = (
 )
 
 GROUP_BY_QUERY_PARAMS = ("group_by", "group_by_2", "group_by_3")
-GROUP_BY_NOT_ALLOWED_MESSAGE = _("Feld ist in diesem Rulebook nicht konfiguriert.")
+GROUP_BY_NOT_ALLOWED_MESSAGE = _("Field is not configured for this rulebook.")
+GROUP_MAX_MESSAGE = _("Maximum of two columns allowed for grouping.")
+GROUP_DUPLICATE_MESSAGE = _("This column is already in the grouping.")
+TABLE_DRAG_DISABLED_MESSAGE = _(
+    "Switch to Group or Matrix view to organize rules by drag-and-drop."
+)
+GROUP_MAIN_LEVEL_LABEL = _("Main group")
+GROUP_SUBGROUP_LEVEL_LABEL = _("Subgroup")
 
 UNGROUPED_GROUP_KEY = "__ungrouped__"
 COLLAPSE_ALL = "__all__"

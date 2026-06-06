@@ -4,10 +4,13 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
 from netbox.forms import NetBoxModelForm
-from utilities.forms.fields import ContentTypeChoiceField
+from utilities.forms.fields import (
+    ContentTypeChoiceField,
+    ContentTypeMultipleChoiceField,
+)
 from utilities.forms.rendering import FieldSet
 
-from netbox_nsm.models import MatchingClassChoices, TypeConfig
+from netbox_nsm.models import MatchingClassChoices, PANEL_LINKABLE_DISABLED, TypeConfig
 from netbox_nsm.panel_sections import get_panel_section_choices
 
 __all__ = ("TypeConfigForm", "TypeConfigAddForm")
@@ -69,14 +72,17 @@ class TypeConfigForm(NetBoxModelForm):
     order_id = forms.IntegerField(
         required=False, min_value=0, initial=100, label=_("Sort order")
     )
-    allow_virtual_groups = forms.BooleanField(
-        required=False, label=_("Allow Virtual Groups")
+    panel_linkable_types = ContentTypeMultipleChoiceField(
+        queryset=ContentType.objects.filter(app_label__in=_NETBOX_APPS).order_by(
+            "app_label", "model"
+        ),
+        required=False,
+        label=_("Linkable in panel"),
+        help_text=_(
+            "NetBox object types that may assign this NSM type via + Assign in the "
+            "Security Panel. Leave empty to allow all object types."
+        ),
     )
-    inherit_links = forms.BooleanField(required=False, label=_("Inherit from parent"))
-    inherit_stop_on_own = forms.BooleanField(
-        required=False, label=_("Stop inheritance if own link present")
-    )
-    panel_linkable = forms.BooleanField(required=False, label=_("Linkable in panel"))
 
     fieldsets = (
         FieldSet("name", name=_("Identity")),
@@ -85,11 +91,9 @@ class TypeConfigForm(NetBoxModelForm):
             "display_template",
             "panel_slugs",
             "order_id",
-            "allow_virtual_groups",
-            "panel_linkable",
+            "panel_linkable_types",
             name=_("Configuration"),
         ),
-        FieldSet("inherit_links", "inherit_stop_on_own", name=_("Inheritance")),
     )
 
     class Meta:
@@ -100,10 +104,7 @@ class TypeConfigForm(NetBoxModelForm):
             "display_template",
             "panel_slugs",
             "order_id",
-            "allow_virtual_groups",
-            "inherit_links",
-            "inherit_stop_on_own",
-            "panel_linkable",
+            "panel_linkable_types",
         )
 
     def __init__(self, *args, **kwargs):
@@ -111,9 +112,32 @@ class TypeConfigForm(NetBoxModelForm):
         instance = kwargs.get("instance")
         if instance and instance.panel_slugs:
             self.initial["panel_slugs"] = instance.panel_slugs
+        if instance and instance.pk:
+            ct_ids = [
+                int(pk)
+                for pk in (instance.panel_linkable_types or [])
+                if int(pk) != PANEL_LINKABLE_DISABLED
+            ]
+            if ct_ids:
+                self.initial["panel_linkable_types"] = ct_ids
 
     def clean_panel_slugs(self):
         return list(self.cleaned_data.get("panel_slugs", []))
+
+    def clean_panel_linkable_types(self):
+        selected = self.cleaned_data.get("panel_linkable_types")
+        if not selected:
+            return []
+        return list(selected.values_list("pk", flat=True))
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.panel_linkable_types = self.cleaned_data.get(
+            "panel_linkable_types", []
+        )
+        if commit:
+            instance.save()
+        return instance
 
 
 class TypeConfigAddForm(TypeConfigForm):
@@ -132,11 +156,9 @@ class TypeConfigAddForm(TypeConfigForm):
             "display_template",
             "panel_slugs",
             "order_id",
-            "allow_virtual_groups",
-            "panel_linkable",
+            "panel_linkable_types",
             name=_("Configuration"),
         ),
-        FieldSet("inherit_links", "inherit_stop_on_own", name=_("Inheritance")),
     )
 
     class Meta(TypeConfigForm.Meta):

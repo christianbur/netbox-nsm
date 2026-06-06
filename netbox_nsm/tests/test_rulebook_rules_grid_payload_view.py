@@ -88,6 +88,24 @@ class PolicyGridPayloadTests(SimpleTestCase):
         self.assertIn("nsm-ag-cell-link", html)
         self.assertNotIn("nsm-rule-pill", html)
 
+    def test_ag_cell_shows_loupe_for_addr_analyzable_object(self):
+        html = _render_rules_cell_ag(
+            [
+                {
+                    "url": "/a/1/",
+                    "name": "addr-1",
+                    "ct": 10,
+                    "pk": 42,
+                    "addrAnalyzable": True,
+                }
+            ],
+            max_pills=5,
+        )
+        self.assertIn("nsm-ipa-loupe", html)
+        self.assertIn('data-ct="10"', html)
+        self.assertIn('data-pk="42"', html)
+        self.assertIn("Objekt analysieren", html)
+
     def test_system_columns_use_raw_values(self):
         payload = build_rulebook_rules_grid_payload(_sample_grouped())
         row = payload["rowData"][0]

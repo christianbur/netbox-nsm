@@ -73,13 +73,40 @@
   var NSM_GROUP_DRAG_MIME = "application/x-nsm-group-by";
   var NSM_FILTER_DRAG_MIME = "application/x-nsm-filter-cell";
   var NSM_GROUP_MAX_LEVELS = 2;
-  var NSM_GROUP_MAX_MESSAGE = "Maximal zwei Spalten zur Gruppierung erlaubt.";
-  var NSM_GROUP_DUPLICATE_MESSAGE =
-    "Diese Spalte ist bereits in der Gruppierung enthalten.";
+  var NSM_GROUP_MAX_MESSAGE_FALLBACK =
+    "Maximum of two columns allowed for grouping.";
+  var NSM_GROUP_DUPLICATE_MESSAGE_FALLBACK =
+    "This column is already in the grouping.";
   var NSM_GROUP_NOT_ALLOWED_FALLBACK =
-    "Feld ist in diesem Rulebook nicht konfiguriert.";
+    "Field is not configured for this rulebook.";
+  var NSM_MATRIX_TYPE_MISMATCH_FALLBACK =
+    "Both matrix fields must use the same object type (e.g. both zones).";
+  var NSM_MATRIX_DUPLICATE_MESSAGE_FALLBACK =
+    "This column is already in the matrix.";
+  var NSM_MATRIX_ROW_SLOT_LABEL_FALLBACK = "Row";
+  var NSM_MATRIX_COL_SLOT_LABEL_FALLBACK = "Column";
+  var NSM_GROUP_MAIN_LEVEL_LABEL_FALLBACK = "Main group";
+  var NSM_GROUP_SUBGROUP_LEVEL_LABEL_FALLBACK = "Subgroup";
+  var NSM_REMOVE_GROUPING_LABEL_FALLBACK = "Remove grouping";
+  var NSM_REMOVE_MATRIX_FIELD_LABEL_FALLBACK = "Remove matrix field";
   var NSM_GROUP_DRAG_SOURCE = null;
   var NSM_GROUP_DRAG_VALUE = null;
+  var NSM_MATRIX_MAX_SLOTS = 2;
+  var NSM_MATRIX_ROW_SLOT = "row";
+  var NSM_MATRIX_COL_SLOT = "col";
+  var NSM_MATRIX_SESSION_KEY_PREFIX = "nsm-rules-matrix-";
+  var NSM_FILTER_VIEW_MATRIX_NOT_READY_FALLBACK =
+    "Matrix view needs row and column fields in the Matrix zone (drag two matching object columns).";
+  var NSM_VIEW_DIRECTIVE_RE = /^view\s*\(\s*(matrix|group|table)\s*\)\s*$/i;
+  var NSM_VIEW_DIRECTIVE_MULTIPLE_ERROR =
+    "Only one view() directive allowed; use view(table), view(group), or view(matrix)";
+  /** Extensible toolbar view modes (sync with filter query view()). */
+  var NSM_TOOLBAR_VIEW_MODES = ["table", "group", "matrix"];
+  var NSM_TOOLBAR_VIEW_MODE_DEFAULT = "table";
+  var NSM_TABLE_DRAG_DISABLED_FALLBACK =
+    "Switch to Group or Matrix view to organize rules by drag-and-drop.";
+  var NSM_TOOLBAR_HELP_VISIBLE = false;
+  var NSM_MATRIX_CTX = null;
   var POLICY_GROUP_COL_ID = "_group";
   var RULES_TAB_CACHE_TTL_MS = 10 * 60 * 1000;
 
@@ -242,13 +269,112 @@
   }
 
   function notifyGroupMaxLevelsReached(dropzone) {
-    showGroupToolbarMessage(NSM_GROUP_MAX_MESSAGE);
+    showGroupToolbarMessage(
+      groupMaxMessage(
+        (NSM_GROUP_NAV_CTX && NSM_GROUP_NAV_CTX.config) ||
+          (NSM_MATRIX_CTX && NSM_MATRIX_CTX.config)
+      )
+    );
     flashGroupDropzoneRejected(dropzone);
   }
 
   function notifyGroupDuplicate(dropzone) {
-    showGroupToolbarMessage(NSM_GROUP_DUPLICATE_MESSAGE);
+    showGroupToolbarMessage(
+      groupDuplicateMessage(
+        (NSM_GROUP_NAV_CTX && NSM_GROUP_NAV_CTX.config) ||
+          (NSM_MATRIX_CTX && NSM_MATRIX_CTX.config)
+      )
+    );
     flashGroupDropzoneRejected(dropzone);
+  }
+
+  function groupMaxMessage(config) {
+    if (config && config.groupMaxMessage) {
+      return String(config.groupMaxMessage);
+    }
+    return NSM_GROUP_MAX_MESSAGE_FALLBACK;
+  }
+
+  function groupDuplicateMessage(config) {
+    if (config && config.groupDuplicateMessage) {
+      return String(config.groupDuplicateMessage);
+    }
+    return NSM_GROUP_DUPLICATE_MESSAGE_FALLBACK;
+  }
+
+  function removeGroupingLabel(config) {
+    if (config && config.removeGroupingLabel) {
+      return String(config.removeGroupingLabel);
+    }
+    return NSM_REMOVE_GROUPING_LABEL_FALLBACK;
+  }
+
+  function removeMatrixFieldLabel(config) {
+    if (config && config.removeMatrixFieldLabel) {
+      return String(config.removeMatrixFieldLabel);
+    }
+    return NSM_REMOVE_MATRIX_FIELD_LABEL_FALLBACK;
+  }
+
+  function matrixRowSlotLabel(config) {
+    if (config && config.matrixRowSlotLabel) {
+      return String(config.matrixRowSlotLabel);
+    }
+    return NSM_MATRIX_ROW_SLOT_LABEL_FALLBACK;
+  }
+
+  function matrixColSlotLabel(config) {
+    if (config && config.matrixColSlotLabel) {
+      return String(config.matrixColSlotLabel);
+    }
+    return NSM_MATRIX_COL_SLOT_LABEL_FALLBACK;
+  }
+
+  function groupLevelRoleLabel(config, level) {
+    if (level === 1) {
+      if (config && config.groupMainLevelLabel) {
+        return String(config.groupMainLevelLabel);
+      }
+      return NSM_GROUP_MAIN_LEVEL_LABEL_FALLBACK;
+    }
+    if (level === 2) {
+      if (config && config.groupSubgroupLevelLabel) {
+        return String(config.groupSubgroupLevelLabel);
+      }
+      return NSM_GROUP_SUBGROUP_LEVEL_LABEL_FALLBACK;
+    }
+    return "";
+  }
+
+  function matrixSlotRoleLabel(config, slot) {
+    if (slot === NSM_MATRIX_ROW_SLOT) {
+      return matrixRowSlotLabel(config);
+    }
+    if (slot === NSM_MATRIX_COL_SLOT) {
+      return matrixColSlotLabel(config);
+    }
+    return "";
+  }
+
+  function buildPillLabelWithRole(roleLabel, nameLabel) {
+    var label = document.createElement("span");
+    label.className = "nsm-ag-group-pill-label";
+    if (roleLabel) {
+      var role = document.createElement("span");
+      role.className = "nsm-ag-group-pill-role";
+      role.textContent = roleLabel;
+      label.appendChild(role);
+    }
+    var name = document.createElement("span");
+    name.className = "nsm-ag-group-pill-name";
+    name.textContent = nameLabel;
+    label.appendChild(name);
+    return label;
+  }
+
+  function resolveMatrixMode(config) {
+    var mode = config && config.matrixMode ? String(config.matrixMode) : "directed";
+    return mode === "undirected" ? "undirected" : "directed";
   }
 
   function groupLevelsContainValue(levels, value) {
@@ -285,11 +411,19 @@
       notifyGroupFieldNotAllowed(dropzone, config);
       return;
     }
+    if (reason === "view_mode") {
+      showGroupToolbarMessage(dropzoneViewModeDisabledMessage(config));
+      flashGroupDropzoneRejected(dropzone);
+      return;
+    }
     showGroupToolbarMessage(groupByNotAllowedMessage(config));
     flashGroupDropzoneRejected(dropzone);
   }
 
   function resolveGroupDropRejectReason(config, dragSource) {
+    if (!isGroupDropzoneEnabled(config)) {
+      return "view_mode";
+    }
     var levels = readGroupLevelsFromConfig(config);
     if (levels.length >= NSM_GROUP_MAX_LEVELS && dragSource !== "pill") {
       return "max";
@@ -315,8 +449,28 @@
     return !!resolveGroupDropRejectReason(config, dragSource);
   }
 
-  function pointerHitsGroupDropzone(clientX, clientY) {
+  function pointerHitsGroupDropzone(clientX, clientY, config) {
+    if (!isGroupDropzoneEnabled(config)) {
+      return false;
+    }
     var dropzone = document.getElementById("nsm-ag-group-dropzone");
+    if (!dropzone) {
+      return false;
+    }
+    var rect = dropzone.getBoundingClientRect();
+    return (
+      clientX >= rect.left &&
+      clientX <= rect.right &&
+      clientY >= rect.top &&
+      clientY <= rect.bottom
+    );
+  }
+
+  function pointerHitsMatrixDropzone(clientX, clientY, config) {
+    if (!isMatrixDropzoneEnabled(config)) {
+      return false;
+    }
+    var dropzone = document.getElementById("nsm-ag-matrix-dropzone");
     if (!dropzone) {
       return false;
     }
@@ -347,6 +501,9 @@
   }
 
   function applyGroupHeaderDrop(config, groupValue) {
+    if (!isGroupDropzoneEnabled(config)) {
+      return;
+    }
     var dropzone = document.getElementById("nsm-ag-group-dropzone");
     var levels = readGroupLevelsFromConfig(config);
     groupValue = normalizeGroupValue(groupValue, config) || groupValue;
@@ -377,7 +534,9 @@
     if (!session) {
       return;
     }
-    if (pointerHitsGroupDropzone(clientX, clientY)) {
+    if (pointerHitsMatrixDropzone(clientX, clientY, session.config)) {
+      applyMatrixHeaderDrop(session.config, session.groupValue, clientX, clientY);
+    } else if (pointerHitsGroupDropzone(clientX, clientY, session.config)) {
       applyGroupHeaderDrop(session.config, session.groupValue);
     }
     if (session.ghost && session.ghost.parentNode) {
@@ -387,6 +546,7 @@
       session.cell.classList.remove("nsm-ag-group-dragging");
     }
     setGroupHeaderDropzoneState(session.dropzone, false, false, false);
+    setMatrixDropzoneState(document.getElementById("nsm-ag-matrix-dropzone"), false, false);
     document.body.classList.remove("nsm-ag-group-header-drag-active");
     NSM_GROUP_DRAG_SOURCE = null;
     NSM_GROUP_DRAG_VALUE = null;
@@ -413,12 +573,36 @@
     cell.classList.add("nsm-ag-group-dragging");
     NSM_GROUP_DRAG_SOURCE = "header";
     NSM_GROUP_DRAG_VALUE = groupValue;
-    setGroupHeaderDropzoneState(
-      dropzone,
-      true,
-      pointerHitsGroupDropzone(clientX, clientY),
-      isGroupDropRejected(config, "header")
-    );
+    var toolbarMode = resolveToolbarViewMode(config);
+    if (toolbarMode === "group") {
+      setGroupHeaderDropzoneState(
+        dropzone,
+        true,
+        pointerHitsGroupDropzone(clientX, clientY, config),
+        isGroupDropRejected(config, "header")
+      );
+    } else if (toolbarMode === "matrix") {
+      var matrixDropzone = document.getElementById("nsm-ag-matrix-dropzone");
+      var levels = readMatrixLevelsFromConfig(config);
+      var targetSlot = levels.length ? NSM_MATRIX_COL_SLOT : NSM_MATRIX_ROW_SLOT;
+      setMatrixDropzoneState(
+        matrixDropzone,
+        !isMatrixDropRejected(
+          config,
+          "header",
+          targetSlot,
+          levels,
+          groupValue
+        ),
+        isMatrixDropRejected(
+          config,
+          "header",
+          targetSlot,
+          levels,
+          groupValue
+        )
+      );
+    }
     document.body.classList.add("nsm-ag-group-header-drag-active");
 
     function onMove(event) {
@@ -427,12 +611,52 @@
       }
       event.preventDefault();
       positionGroupHeaderDragGhost(session.ghost, event.clientX, event.clientY);
-      setGroupHeaderDropzoneState(
-        dropzone,
-        true,
-        pointerHitsGroupDropzone(event.clientX, event.clientY),
-        isGroupDropRejected(config, "header")
-      );
+      var activeMode = resolveToolbarViewMode(config);
+      if (activeMode === "matrix") {
+        var overMatrix = pointerHitsMatrixDropzone(event.clientX, event.clientY, config);
+        if (overMatrix) {
+          var matrixDropzone = document.getElementById("nsm-ag-matrix-dropzone");
+          var matrixLevels = readMatrixLevelsFromConfig(config);
+          var matrixTargetSlot = matrixLevels.length
+            ? NSM_MATRIX_COL_SLOT
+            : NSM_MATRIX_ROW_SLOT;
+          setGroupHeaderDropzoneState(session.dropzone, false, false, false);
+          setMatrixDropzoneState(
+            matrixDropzone,
+            !isMatrixDropRejected(
+              config,
+              "header",
+              matrixTargetSlot,
+              matrixLevels,
+              session.groupValue
+            ),
+            isMatrixDropRejected(
+              config,
+              "header",
+              matrixTargetSlot,
+              matrixLevels,
+              session.groupValue
+            )
+          );
+        } else {
+          setMatrixDropzoneState(
+            document.getElementById("nsm-ag-matrix-dropzone"),
+            false,
+            false
+          );
+        }
+      } else if (activeMode === "group") {
+        setMatrixDropzoneState(document.getElementById("nsm-ag-matrix-dropzone"), false, false);
+        setGroupHeaderDropzoneState(
+          dropzone,
+          true,
+          pointerHitsGroupDropzone(event.clientX, event.clientY, config),
+          isGroupDropRejected(config, "header")
+        );
+      } else {
+        setMatrixDropzoneState(document.getElementById("nsm-ag-matrix-dropzone"), false, false);
+        setGroupHeaderDropzoneState(session.dropzone, false, false, false);
+      }
     }
 
     function onEnd(event) {
@@ -468,12 +692,33 @@
     cell.classList.add("nsm-ag-group-dragging");
     NSM_GROUP_DRAG_SOURCE = "header";
     NSM_GROUP_DRAG_VALUE = groupValue;
-    setGroupHeaderDropzoneState(
-      document.getElementById("nsm-ag-group-dropzone"),
-      true,
-      false,
-      isGroupDropRejected(config, "header")
-    );
+    var toolbarMode = resolveToolbarViewMode(config);
+    if (toolbarMode === "group") {
+      setGroupHeaderDropzoneState(
+        document.getElementById("nsm-ag-group-dropzone"),
+        true,
+        false,
+        isGroupDropRejected(config, "header")
+      );
+    } else if (toolbarMode === "matrix") {
+      setMatrixDropzoneState(
+        document.getElementById("nsm-ag-matrix-dropzone"),
+        !isMatrixDropRejected(
+          config,
+          "header",
+          NSM_MATRIX_ROW_SLOT,
+          readMatrixLevelsFromConfig(config),
+          groupValue
+        ),
+        isMatrixDropRejected(
+          config,
+          "header",
+          NSM_MATRIX_ROW_SLOT,
+          readMatrixLevelsFromConfig(config),
+          groupValue
+        )
+      );
+    }
     return true;
   }
 
@@ -788,6 +1033,8 @@
     params.delete("group_mode_3");
     params.delete("group_obj");
     params.delete("expanded");
+    params.delete("matrix_row");
+    params.delete("matrix_col");
     if (!levels.length) {
       params.delete("collapsed");
       params.delete("group_expanded");
@@ -934,6 +1181,7 @@
 
     if (state.gridEl) {
       scheduleRulesGridWidthFit(gridApi, state.gridEl);
+      syncRulesGroupedGridLayout(gridApi, state);
     }
   }
 
@@ -955,6 +1203,10 @@
       }
     });
     levels = normalizedLevels;
+    if (levels.length > 0) {
+      setToolbarViewMode(config, "group");
+      clearMatrixForGrouping(config);
+    }
     updateConfigFromGroupLevels(config, levels);
     state.groupByEnabled = !!(config.groupBy && config.groupByEnabled);
     resetGroupExpansionForNewGrouping(state);
@@ -973,6 +1225,8 @@
       state,
       function () {
         resetRulesRowHeights(gridApi, state.groupByEnabled);
+        syncRulesGroupedGridLayout(gridApi, state);
+        refreshRulesGroupCells(gridApi);
         if (gridApi._nsmRebindGroupHeaders) {
           scheduleGroupHeaderBind(gridApi._nsmRebindGroupHeaders);
         }
@@ -1023,15 +1277,17 @@
     grip.setAttribute("aria-hidden", "true");
     pill.appendChild(grip);
 
-    var label = document.createElement("span");
-    label.className = "nsm-ag-group-pill-label";
-    label.textContent = groupOptionLabel(config, spec.value);
-    pill.appendChild(label);
+    pill.appendChild(
+      buildPillLabelWithRole(
+        groupLevelRoleLabel(config, level),
+        groupOptionLabel(config, spec.value)
+      )
+    );
 
     var removeBtn = document.createElement("button");
     removeBtn.type = "button";
     removeBtn.className = "nsm-ag-group-pill-remove";
-    removeBtn.setAttribute("aria-label", "Gruppierung entfernen");
+    removeBtn.setAttribute("aria-label", removeGroupingLabel(config));
     removeBtn.innerHTML = '<span class="mdi mdi-close" aria-hidden="true"></span>';
     removeBtn.addEventListener("click", function (event) {
       event.preventDefault();
@@ -1091,6 +1347,7 @@
     if (dropzone) {
       dropzone.classList.toggle("nsm-ag-group-dropzone-active", levels.length > 0);
     }
+    syncGroupToolbarVisibility(config);
   }
 
   function insertGroupLevel(levels, value, insertIndex, config) {
@@ -1168,6 +1425,14 @@
 
     dropzone.addEventListener("dragover", function (event) {
       event.preventDefault();
+      if (!isGroupDropzoneEnabled(config)) {
+        if (event.dataTransfer) {
+          event.dataTransfer.dropEffect = "none";
+        }
+        dropzone.classList.add("nsm-ag-group-dropzone-rejected");
+        dropzone.classList.remove("nsm-ag-group-dropzone-hover");
+        return;
+      }
       var rejected = isGroupDropRejected(config, NSM_GROUP_DRAG_SOURCE);
       if (event.dataTransfer) {
         event.dataTransfer.dropEffect = rejected ? "none" : "move";
@@ -1185,6 +1450,12 @@
       event.preventDefault();
       dropzone.classList.remove("nsm-ag-group-dropzone-hover");
       dropzone.classList.remove("nsm-ag-group-dropzone-rejected");
+      if (!isGroupDropzoneEnabled(config)) {
+        notifyGroupDropRejected(dropzone, "view_mode", config);
+        NSM_GROUP_DRAG_SOURCE = null;
+        NSM_GROUP_DRAG_VALUE = null;
+        return;
+      }
       var pillLevelRaw = event.dataTransfer.getData("application/x-nsm-group-pill-level");
       var pillLevel = pillLevelRaw ? parseInt(pillLevelRaw, 10) : 0;
       var levels = readGroupLevelsFromConfig(config);
@@ -1215,12 +1486,1298 @@
     });
   }
 
-  function syncGroupToolbarVisibility(config) {
-    var expandWrap = document.getElementById("nsm-ag-group-expand-wrap");
-    var grouped = !!(config && config.groupBy);
-    if (expandWrap) {
-      expandWrap.classList.toggle("d-none", !grouped);
+  function matrixColumnMeta(config) {
+    return (config && config.matrixColumnMeta) || {};
+  }
+
+  function matrixNotAllowedMessage(config) {
+    if (config && config.matrixNotAllowedMessage) {
+      return String(config.matrixNotAllowedMessage);
     }
+    return NSM_GROUP_NOT_ALLOWED_FALLBACK;
+  }
+
+  function matrixTypeMismatchMessage(config) {
+    if (config && config.matrixTypeMismatchMessage) {
+      return String(config.matrixTypeMismatchMessage);
+    }
+    return NSM_MATRIX_TYPE_MISMATCH_FALLBACK;
+  }
+
+  function matrixDuplicateMessage(config) {
+    if (config && config.matrixDuplicateMessage) {
+      return String(config.matrixDuplicateMessage);
+    }
+    return NSM_MATRIX_DUPLICATE_MESSAGE_FALLBACK;
+  }
+
+  function isMatrixCompatibleValue(value, config) {
+    value = normalizeGroupValue(value, config) || value;
+    if (!value || value.indexOf("col:") !== 0) {
+      return false;
+    }
+    return !!matrixColumnMeta(config)[value];
+  }
+
+  function readMatrixLevelsFromConfig(config) {
+    var levels = [];
+    if (config && config.matrixRow) {
+      levels.push({ slot: NSM_MATRIX_ROW_SLOT, value: String(config.matrixRow) });
+    }
+    if (config && config.matrixCol) {
+      levels.push({ slot: NSM_MATRIX_COL_SLOT, value: String(config.matrixCol) });
+    }
+    return levels;
+  }
+
+  function matrixLevelsComplete(levels) {
+    return (
+      levels &&
+      levels.length === NSM_MATRIX_MAX_SLOTS &&
+      levels.some(function (item) {
+        return item.slot === NSM_MATRIX_ROW_SLOT;
+      }) &&
+      levels.some(function (item) {
+        return item.slot === NSM_MATRIX_COL_SLOT;
+      })
+    );
+  }
+
+  function validateMatrixPair(rowValue, colValue, config) {
+    rowValue = normalizeGroupValue(rowValue, config) || rowValue;
+    colValue = normalizeGroupValue(colValue, config) || colValue;
+    var meta = matrixColumnMeta(config);
+    if (!meta[rowValue] || !meta[colValue]) {
+      return "field_config";
+    }
+    if (meta[rowValue].contentTypeId !== meta[colValue].contentTypeId) {
+      return "type_mismatch";
+    }
+    return null;
+  }
+
+  function resolveMatrixDropRejectReason(
+    config,
+    dragSource,
+    targetSlot,
+    levels,
+    dragValue
+  ) {
+    if (!isMatrixDropzoneEnabled(config)) {
+      return "view_mode";
+    }
+    var value =
+      dragValue != null && String(dragValue) !== ""
+        ? dragValue
+        : NSM_GROUP_DRAG_VALUE;
+    value = normalizeGroupValue(value, config) || value;
+    if (!value || !isMatrixCompatibleValue(value, config)) {
+      return "field_config";
+    }
+    levels = levels || readMatrixLevelsFromConfig(config);
+    if (dragSource !== "matrix-pill") {
+      var occupied = levels.some(function (item) {
+        return item.value === value;
+      });
+      if (occupied) {
+        return "duplicate";
+      }
+    }
+    if (levels.length >= NSM_MATRIX_MAX_SLOTS && dragSource !== "matrix-pill") {
+      var openSlot = !levels.some(function (item) {
+        return item.slot === targetSlot;
+      });
+      if (!openSlot) {
+        return "max";
+      }
+    }
+    var nextLevels = matrixLevelsAfterDrop(levels, value, targetSlot, dragSource, config);
+    if (matrixLevelsComplete(nextLevels)) {
+      var rowVal = nextLevels.filter(function (item) {
+        return item.slot === NSM_MATRIX_ROW_SLOT;
+      })[0].value;
+      var colVal = nextLevels.filter(function (item) {
+        return item.slot === NSM_MATRIX_COL_SLOT;
+      })[0].value;
+      var pairErr = validateMatrixPair(rowVal, colVal, config);
+      if (pairErr) {
+        return pairErr;
+      }
+    }
+    return null;
+  }
+
+  function isMatrixDropRejected(config, dragSource, targetSlot, levels, dragValue) {
+    return !!resolveMatrixDropRejectReason(
+      config,
+      dragSource,
+      targetSlot,
+      levels,
+      dragValue
+    );
+  }
+
+  function matrixLevelsAfterDrop(levels, value, targetSlot, dragSource, config) {
+    value = normalizeGroupValue(value, config) || value;
+    var next = levels.slice();
+    if (dragSource === "matrix-pill") {
+      next = next.filter(function (item) {
+        return item.slot !== targetSlot;
+      });
+    } else {
+      next = next.filter(function (item) {
+        return item.slot !== targetSlot && item.value !== value;
+      });
+    }
+    next.push({ slot: targetSlot, value: value });
+    next.sort(function (a, b) {
+      if (a.slot === NSM_MATRIX_ROW_SLOT) {
+        return -1;
+      }
+      if (b.slot === NSM_MATRIX_ROW_SLOT) {
+        return 1;
+      }
+      return 0;
+    });
+    return next.slice(0, NSM_MATRIX_MAX_SLOTS);
+  }
+
+  function inferMatrixTargetSlot(event, levels) {
+    var slotEl =
+      event && event.target && typeof event.target.closest === "function"
+        ? event.target.closest("[data-matrix-slot]")
+        : null;
+    if (slotEl) {
+      return slotEl.getAttribute("data-matrix-slot") || NSM_MATRIX_ROW_SLOT;
+    }
+    if (!levels.length) {
+      return NSM_MATRIX_ROW_SLOT;
+    }
+    if (levels.length === 1) {
+      return levels[0].slot === NSM_MATRIX_ROW_SLOT
+        ? NSM_MATRIX_COL_SLOT
+        : NSM_MATRIX_ROW_SLOT;
+    }
+    return NSM_MATRIX_COL_SLOT;
+  }
+
+  function inferMatrixTargetSlotFromPoint(clientX, clientY, levels, dropzone) {
+    if (typeof document.elementFromPoint === "function") {
+      var hit = document.elementFromPoint(clientX, clientY);
+      if (hit && dropzone && dropzone.contains(hit)) {
+        return inferMatrixTargetSlot({ target: hit }, levels);
+      }
+    }
+    return inferMatrixTargetSlot({ target: dropzone || null }, levels);
+  }
+
+  function resolveMatrixToolbarConfig(fallbackConfig) {
+    return (
+      (NSM_MATRIX_CTX && NSM_MATRIX_CTX.config) ||
+      (NSM_GROUP_NAV_CTX && NSM_GROUP_NAV_CTX.config) ||
+      fallbackConfig ||
+      null
+    );
+  }
+
+  function setMatrixDropzoneState(dropzone, hover, rejected) {
+    if (!dropzone) {
+      return;
+    }
+    dropzone.classList.toggle("nsm-ag-group-dropzone-hover", !!hover && !rejected);
+    dropzone.classList.toggle("nsm-ag-group-dropzone-rejected", !!rejected);
+    dropzone.classList.toggle(
+      "nsm-ag-group-dropzone-active",
+      readMatrixLevelsFromConfig(
+        NSM_MATRIX_CTX && NSM_MATRIX_CTX.config ? NSM_MATRIX_CTX.config : null
+      ).length > 0
+    );
+  }
+
+  function notifyMatrixDropRejected(dropzone, reason, config) {
+    if (reason === "duplicate") {
+      showGroupToolbarMessage(matrixDuplicateMessage(config));
+      flashGroupDropzoneRejected(dropzone);
+      return;
+    }
+    if (reason === "type_mismatch") {
+      showGroupToolbarMessage(matrixTypeMismatchMessage(config));
+      flashGroupDropzoneRejected(dropzone);
+      return;
+    }
+    if (reason === "field_config") {
+      showGroupToolbarMessage(matrixNotAllowedMessage(config));
+      flashGroupDropzoneRejected(dropzone);
+      return;
+    }
+    if (reason === "view_mode") {
+      showGroupToolbarMessage(dropzoneViewModeDisabledMessage(config));
+      flashGroupDropzoneRejected(dropzone);
+      return;
+    }
+    showGroupToolbarMessage(matrixNotAllowedMessage(config));
+    flashGroupDropzoneRejected(dropzone);
+  }
+
+  function matrixOptionLabel(config, value) {
+    var meta = matrixColumnMeta(config)[value];
+    if (meta && meta.label) {
+      return meta.label;
+    }
+    return groupOptionLabel(config, value);
+  }
+
+  function buildMatrixPillElement(slot, spec, config) {
+    var pill = document.createElement("div");
+    pill.className = "nsm-ag-group-pill nsm-ag-matrix-pill";
+    pill.draggable = true;
+    pill.setAttribute("data-group-value", spec.value);
+    pill.setAttribute("data-matrix-slot", slot);
+
+    var grip = document.createElement("span");
+    grip.className = "nsm-ag-group-pill-grip mdi mdi-drag";
+    grip.setAttribute("aria-hidden", "true");
+    pill.appendChild(grip);
+
+    pill.appendChild(
+      buildPillLabelWithRole(
+        matrixSlotRoleLabel(config, slot),
+        matrixOptionLabel(config, spec.value)
+      )
+    );
+
+    var removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "nsm-ag-group-pill-remove";
+    removeBtn.setAttribute("aria-label", removeMatrixFieldLabel(config));
+    removeBtn.innerHTML = '<span class="mdi mdi-close" aria-hidden="true"></span>';
+    removeBtn.addEventListener("click", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      var levels = readMatrixLevelsFromConfig(config).filter(function (item) {
+        return item.slot !== slot;
+      });
+      navigateMatrixLevels(levels);
+    });
+    pill.appendChild(removeBtn);
+
+    pill.addEventListener("dragstart", function (event) {
+      event.dataTransfer.setData(NSM_GROUP_DRAG_MIME, spec.value);
+      event.dataTransfer.setData("text/plain", spec.value);
+      event.dataTransfer.setData("application/x-nsm-matrix-slot", slot);
+      event.dataTransfer.effectAllowed = "move";
+      NSM_GROUP_DRAG_SOURCE = "matrix-pill";
+      NSM_GROUP_DRAG_VALUE = spec.value;
+      pill.classList.add("nsm-ag-group-dragging");
+    });
+    pill.addEventListener("dragend", function () {
+      pill.classList.remove("nsm-ag-group-dragging");
+      NSM_GROUP_DRAG_SOURCE = null;
+      NSM_GROUP_DRAG_VALUE = null;
+      setMatrixDropzoneState(document.getElementById("nsm-ag-matrix-dropzone"), false, false);
+    });
+
+    return pill;
+  }
+
+  function renderMatrixPills(config) {
+    var pillsEl = document.getElementById("nsm-ag-matrix-pills");
+    var hintEl = document.getElementById("nsm-ag-matrix-dropzone-hint");
+    var dropzone = document.getElementById("nsm-ag-matrix-dropzone");
+    if (!pillsEl) {
+      return;
+    }
+    var levels = readMatrixLevelsFromConfig(config);
+    var bySlot = {};
+    levels.forEach(function (item) {
+      bySlot[item.slot] = item;
+    });
+    pillsEl.innerHTML = "";
+    [NSM_MATRIX_ROW_SLOT, NSM_MATRIX_COL_SLOT].forEach(function (slot) {
+      if (bySlot[slot]) {
+        pillsEl.appendChild(buildMatrixPillElement(slot, bySlot[slot], config));
+      }
+    });
+    if (hintEl) {
+      hintEl.classList.toggle("d-none", levels.length > 0);
+    }
+    if (dropzone) {
+      dropzone.classList.toggle("nsm-ag-group-dropzone-active", levels.length > 0);
+    }
+    syncGroupToolbarVisibility(config);
+  }
+
+  function matrixLevelValue(levels, slot) {
+    var match = (levels || []).filter(function (item) {
+      return item.slot === slot;
+    })[0];
+    return match && match.value != null ? String(match.value) : "";
+  }
+
+  function updateConfigFromMatrixLevels(config, levels) {
+    if (!config) {
+      return;
+    }
+    delete config.matrixRow;
+    delete config.matrixCol;
+    delete config.matrixEnabled;
+    delete config.matrixContentTypeId;
+    delete config.matrixRowLabel;
+    delete config.matrixColLabel;
+    levels = levels || [];
+    var meta = matrixColumnMeta(config);
+    var rowValue = matrixLevelValue(levels, NSM_MATRIX_ROW_SLOT);
+    var colValue = matrixLevelValue(levels, NSM_MATRIX_COL_SLOT);
+    if (rowValue) {
+      config.matrixRow = rowValue;
+      if (meta[rowValue]) {
+        config.matrixRowLabel = meta[rowValue].label;
+      }
+    }
+    if (colValue) {
+      config.matrixCol = colValue;
+      if (meta[colValue]) {
+        config.matrixColLabel = meta[colValue].label;
+      }
+    }
+    if (!matrixLevelsComplete(levels)) {
+      return;
+    }
+    config.matrixEnabled = true;
+    config.matrixContentTypeId = meta[rowValue].contentTypeId;
+  }
+
+  function buildMatrixUrlParams(levels, config) {
+    var params = new URLSearchParams(window.location.search);
+    params.delete("matrix_row");
+    params.delete("matrix_col");
+    params.delete("obj_type");
+    levels = levels || [];
+    var rowValue = matrixLevelValue(levels, NSM_MATRIX_ROW_SLOT);
+    var colValue = matrixLevelValue(levels, NSM_MATRIX_COL_SLOT);
+    if (rowValue) {
+      params.set("matrix_row", rowValue);
+    }
+    if (colValue) {
+      params.set("matrix_col", colValue);
+    }
+    if (!matrixLevelsComplete(levels)) {
+      params.delete("mode");
+      return params;
+    }
+    var cfg = config || (NSM_MATRIX_CTX && NSM_MATRIX_CTX.config);
+    if (cfg && cfg.matrixContentTypeId) {
+      params.set("obj_type", String(cfg.matrixContentTypeId));
+    }
+    if (cfg && cfg.matrixMode) {
+      params.set("mode", resolveMatrixMode(cfg));
+    }
+    return params;
+  }
+
+  function syncMatrixUrl(params, usePushState) {
+    syncGroupingUrl(params, usePushState);
+  }
+
+  function persistMatrixSession(config) {
+    if (!config || !config.rulebookId || typeof window.sessionStorage === "undefined") {
+      return;
+    }
+    var key = NSM_MATRIX_SESSION_KEY_PREFIX + String(config.rulebookId);
+    if (!config.matrixRow && !config.matrixCol) {
+      window.sessionStorage.removeItem(key);
+      return;
+    }
+    window.sessionStorage.setItem(
+      key,
+      JSON.stringify({
+        matrixRow: config.matrixRow || null,
+        matrixCol: config.matrixCol || null,
+        draft: !config.matrixEnabled,
+      })
+    );
+  }
+
+  function restoreMatrixSession(config) {
+    if (
+      config.matrixEnabled ||
+      !config.rulebookId ||
+      typeof window.sessionStorage === "undefined" ||
+      readGroupLevelsFromConfig(config).length > 0 ||
+      (config.groupBy && config.groupByEnabled !== false)
+    ) {
+      return;
+    }
+    var raw = window.sessionStorage.getItem(
+      NSM_MATRIX_SESSION_KEY_PREFIX + String(config.rulebookId)
+    );
+    if (!raw) {
+      return;
+    }
+    try {
+      var data = JSON.parse(raw);
+      if (!data || (!data.matrixRow && !data.matrixCol)) {
+        return;
+      }
+      var rowValue = data.matrixRow ? String(data.matrixRow) : "";
+      var colValue = data.matrixCol ? String(data.matrixCol) : "";
+      if (rowValue && !isMatrixCompatibleValue(rowValue, config)) {
+        return;
+      }
+      if (colValue && !isMatrixCompatibleValue(colValue, config)) {
+        return;
+      }
+      if (rowValue && colValue && validateMatrixPair(rowValue, colValue, config)) {
+        return;
+      }
+      var meta = matrixColumnMeta(config);
+      if (rowValue) {
+        config.matrixRow = rowValue;
+        if (meta[rowValue]) {
+          config.matrixRowLabel = meta[rowValue].label;
+        }
+      }
+      if (colValue) {
+        config.matrixCol = colValue;
+        if (meta[colValue]) {
+          config.matrixColLabel = meta[colValue].label;
+        }
+      }
+      if (rowValue && colValue && !validateMatrixPair(rowValue, colValue, config)) {
+        config.matrixEnabled = true;
+        config.matrixContentTypeId = meta[rowValue].contentTypeId;
+      }
+    } catch (sessionErr) {
+      /* ignore */
+    }
+  }
+
+  function clearGroupingForMatrix(config, ctx) {
+    if (!config || !config.groupBy) {
+      return;
+    }
+    updateConfigFromGroupLevels(config, []);
+    if (ctx && ctx.state) {
+      ctx.state.groupByEnabled = false;
+      resetGroupExpansionForNewGrouping(ctx.state);
+    }
+    renderGroupPills(config);
+    syncGroupToolbarVisibility(config);
+    if (ctx && ctx.gridApi && ctx.state) {
+      syncRulesGroupColumnDefs(
+        ctx.gridApi,
+        config,
+        ctx.state,
+        ctx.profileKey || "rules"
+      );
+    }
+  }
+
+  function clearMatrixForGrouping(config) {
+    if (!config || !config.matrixEnabled) {
+      return;
+    }
+    updateConfigFromMatrixLevels(config, []);
+    renderMatrixPills(config);
+    exitMatrixMode(config);
+    persistMatrixSession(config);
+  }
+
+  function setRulesViewMode(matrixActive) {
+    var layout = document.querySelector(".nsm-ag-grid-layout");
+    if (layout) {
+      layout.classList.toggle("nsm-ag-view-mode-matrix", !!matrixActive);
+    }
+  }
+
+  function buildEmbeddedMatrixConfig(config) {
+    return {
+      gridDataUrl: config.matrixGridUrl,
+      infiniteRowModel: true,
+      cacheBlockSize: 50,
+      totalRows: 0,
+      objType: config.matrixContentTypeId,
+      matrixMode: resolveMatrixMode(config),
+    };
+  }
+
+  function removeLegacyMatrixGridModeChrome() {
+    var legacy = document.getElementById("nsm-matrix-grid-mode-wrap");
+    if (legacy) {
+      legacy.remove();
+    }
+  }
+
+  function applyMatrixModeChange(config, nextMode) {
+    if (!config) {
+      return Promise.resolve();
+    }
+    config.matrixMode = nextMode === "undirected" ? "undirected" : "directed";
+    var params = buildMatrixUrlParams(readMatrixLevelsFromConfig(config), config);
+    params.set("mode", config.matrixMode);
+    syncMatrixUrl(params, true);
+    if (!config.matrixEnabled) {
+      return Promise.resolve();
+    }
+    return enterMatrixMode(config);
+  }
+
+  function fetchMatrixScaffold(config) {
+    if (!config || !config.matrixGridUrl || !config.matrixContentTypeId) {
+      return Promise.reject(new Error("matrix scaffold url missing"));
+    }
+    var params = new URLSearchParams(window.location.search);
+    params.set("scaffold", "1");
+    params.set("obj_type", String(config.matrixContentTypeId));
+    var url = config.matrixGridUrl + "?" + params.toString();
+    return fetch(url, {
+      credentials: "same-origin",
+      headers: { Accept: "application/json" },
+    }).then(function (response) {
+      if (!response.ok) {
+        throw new Error("matrix scaffold fetch failed");
+      }
+      return response.json();
+    });
+  }
+
+  function destroyEmbeddedMatrix() {
+    if (NSM_MATRIX_CTX && NSM_MATRIX_CTX.matrixHandle) {
+      NSM_MATRIX_CTX.matrixHandle.destroy();
+      NSM_MATRIX_CTX.matrixHandle = null;
+    }
+  }
+
+  function enterMatrixMode(config) {
+    if (!config || !config.matrixEnabled) {
+      exitMatrixMode(config);
+      return Promise.resolve();
+    }
+    if (
+      !window.NSM_MATRIX_AG ||
+      typeof window.NSM_MATRIX_AG.createEmbeddedMatrixAgGrid !== "function"
+    ) {
+      console.error("NSM rules grid: matrix module missing");
+      return Promise.resolve();
+    }
+    var gridEl = document.getElementById("nsm-rules-matrix-ag-grid");
+    if (!gridEl) {
+      return Promise.resolve();
+    }
+    destroyEmbeddedMatrix();
+    removeLegacyMatrixGridModeChrome();
+    setRulesViewMode(true);
+    return fetchMatrixScaffold(config)
+      .then(function (payload) {
+        var matrixConfig = buildEmbeddedMatrixConfig(config);
+        matrixConfig.totalRows =
+          (payload.gridMeta && payload.gridMeta.totalRows) || 0;
+        var handle = window.NSM_MATRIX_AG.createEmbeddedMatrixAgGrid(
+          gridEl,
+          payload,
+          matrixConfig
+        );
+        if (NSM_MATRIX_CTX) {
+          NSM_MATRIX_CTX.matrixHandle = handle;
+          NSM_MATRIX_CTX.matrixConfig = matrixConfig;
+        }
+        syncGroupToolbarVisibility(config);
+      })
+      .catch(function (err) {
+        console.error("NSM rules grid: matrix mode failed", err);
+        setRulesViewMode(false);
+      });
+  }
+
+  function exitMatrixMode(config) {
+    destroyEmbeddedMatrix();
+    setRulesViewMode(false);
+    if (config) {
+      delete config.matrixEnabled;
+    }
+  }
+
+  function applyRulesMatrixLevels(levels, ctx) {
+    if (!ctx || !ctx.config) {
+      return false;
+    }
+    var config = ctx.config;
+    levels = (levels || []).slice(0, NSM_MATRIX_MAX_SLOTS);
+    var normalized = [];
+    levels.forEach(function (spec) {
+      var value = spec && spec.value != null ? String(spec.value) : "";
+      var canonical = normalizeGroupValue(value, config) || value;
+      if (!isMatrixCompatibleValue(canonical, config)) {
+        return;
+      }
+      normalized.push({
+        slot: spec.slot === NSM_MATRIX_COL_SLOT ? NSM_MATRIX_COL_SLOT : NSM_MATRIX_ROW_SLOT,
+        value: canonical,
+      });
+    });
+    if (matrixLevelsComplete(normalized)) {
+      var err = validateMatrixPair(
+        normalized.filter(function (item) {
+          return item.slot === NSM_MATRIX_ROW_SLOT;
+        })[0].value,
+        normalized.filter(function (item) {
+          return item.slot === NSM_MATRIX_COL_SLOT;
+        })[0].value,
+        config
+      );
+      if (err) {
+        notifyMatrixDropRejected(
+          document.getElementById("nsm-ag-matrix-dropzone"),
+          err,
+          config
+        );
+        return false;
+      }
+    }
+    clearGroupingForMatrix(config, ctx);
+    if (normalized.length > 0) {
+      setToolbarViewMode(config, "matrix");
+    }
+    updateConfigFromMatrixLevels(config, normalized);
+    renderMatrixPills(config);
+    persistMatrixSession(config);
+    if (matrixLevelsComplete(normalized)) {
+      syncMatrixUrl(buildMatrixUrlParams(normalized, config), true);
+      return enterMatrixMode(config).then(function () {
+        return true;
+      });
+    }
+    exitMatrixMode(config);
+    var params = buildMatrixUrlParams(normalized, config);
+    params.delete("obj_type");
+    syncMatrixUrl(params, true);
+    return Promise.resolve(true);
+  }
+
+  function navigateMatrixLevels(levels) {
+    applyRulesMatrixLevels(levels, NSM_MATRIX_CTX).then(function (applied) {
+      if (applied) {
+        return;
+      }
+      var params = buildMatrixUrlParams(levels);
+      window.location.search = params.toString();
+    });
+  }
+
+  function applyMatrixHeaderDrop(config, groupValue, clientX, clientY) {
+    if (!isMatrixDropzoneEnabled(config)) {
+      return false;
+    }
+    var dropzone = document.getElementById("nsm-ag-matrix-dropzone");
+    if (!pointerHitsMatrixDropzone(clientX, clientY, config)) {
+      return false;
+    }
+    config = resolveMatrixToolbarConfig(config);
+    if (!config) {
+      return false;
+    }
+    groupValue = normalizeGroupValue(groupValue, config) || groupValue;
+    var levels = readMatrixLevelsFromConfig(config);
+    var targetSlot = inferMatrixTargetSlotFromPoint(
+      clientX,
+      clientY,
+      levels,
+      dropzone
+    );
+    var rejectReason = resolveMatrixDropRejectReason(
+      config,
+      NSM_GROUP_DRAG_SOURCE || "header",
+      targetSlot,
+      levels,
+      groupValue
+    );
+    if (rejectReason) {
+      notifyMatrixDropRejected(dropzone, rejectReason, config);
+      return true;
+    }
+    var next = matrixLevelsAfterDrop(
+      levels,
+      groupValue,
+      targetSlot,
+      NSM_GROUP_DRAG_SOURCE || "header",
+      config
+    );
+    navigateMatrixLevels(next);
+    return true;
+  }
+
+  function bindMatrixDropZone(config) {
+    var dropzone = document.getElementById("nsm-ag-matrix-dropzone");
+    if (!dropzone || dropzone.dataset.nsmMatrixDropBound === "1") {
+      return;
+    }
+    dropzone.dataset.nsmMatrixDropBound = "1";
+
+    function activeMatrixConfig() {
+      return resolveMatrixToolbarConfig(config);
+    }
+
+    dropzone.addEventListener(
+      "dragover",
+      function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        var activeConfig = activeMatrixConfig();
+        if (!activeConfig || !isMatrixDropzoneEnabled(activeConfig)) {
+          if (event.dataTransfer) {
+            event.dataTransfer.dropEffect = "none";
+          }
+          setMatrixDropzoneState(dropzone, false, true);
+          return;
+        }
+        var levels = readMatrixLevelsFromConfig(activeConfig);
+        var targetSlot = inferMatrixTargetSlot(event, levels);
+        var dragValue = readDraggedGroupValue(event) || NSM_GROUP_DRAG_VALUE;
+        var rejected = isMatrixDropRejected(
+          activeConfig,
+          NSM_GROUP_DRAG_SOURCE,
+          targetSlot,
+          levels,
+          dragValue
+        );
+        if (event.dataTransfer) {
+          event.dataTransfer.dropEffect = rejected ? "none" : "copy";
+        }
+        setMatrixDropzoneState(dropzone, !rejected, rejected);
+      },
+      true
+    );
+    dropzone.addEventListener("dragleave", function (event) {
+      if (event.target === dropzone || !dropzone.contains(event.relatedTarget)) {
+        setMatrixDropzoneState(dropzone, false, false);
+      }
+    });
+    dropzone.addEventListener(
+      "drop",
+      function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        setMatrixDropzoneState(dropzone, false, false);
+        var activeConfig = activeMatrixConfig();
+        if (!activeConfig || !isMatrixDropzoneEnabled(activeConfig)) {
+          if (activeConfig) {
+            notifyMatrixDropRejected(dropzone, "view_mode", activeConfig);
+          }
+          NSM_GROUP_DRAG_SOURCE = null;
+          NSM_GROUP_DRAG_VALUE = null;
+          return;
+        }
+        var value = readDraggedGroupValue(event);
+        value = normalizeGroupValue(value, activeConfig) || value;
+        var levels = readMatrixLevelsFromConfig(activeConfig);
+        var pillSlotRaw = event.dataTransfer.getData("application/x-nsm-matrix-slot");
+        var targetSlot = pillSlotRaw || inferMatrixTargetSlot(event, levels);
+        var rejectReason = resolveMatrixDropRejectReason(
+          activeConfig,
+          NSM_GROUP_DRAG_SOURCE,
+          targetSlot,
+          levels,
+          value
+        );
+        if (rejectReason) {
+          notifyMatrixDropRejected(dropzone, rejectReason, activeConfig);
+          NSM_GROUP_DRAG_SOURCE = null;
+          NSM_GROUP_DRAG_VALUE = null;
+          return;
+        }
+        var next = matrixLevelsAfterDrop(
+          levels,
+          value,
+          targetSlot,
+          NSM_GROUP_DRAG_SOURCE,
+          activeConfig
+        );
+        navigateMatrixLevels(next);
+        NSM_GROUP_DRAG_SOURCE = null;
+        NSM_GROUP_DRAG_VALUE = null;
+      },
+      true
+    );
+  }
+
+  function bindCsvExportButton(config, ctx) {
+    var btn = document.getElementById("nsm-ag-csv-export");
+    if (!btn || btn.dataset.nsmCsvExportBound === "1") {
+      return;
+    }
+    btn.dataset.nsmCsvExportBound = "1";
+    btn.addEventListener("click", function () {
+      exportRulesGridCsv(config, ctx);
+    });
+  }
+
+  function buildCsvFilename(config, suffix) {
+    var name = (config && config.rulebookName) || "rules";
+    name = String(name)
+      .trim()
+      .replace(/[^\w\-]+/g, "_")
+      .replace(/_+/g, "_")
+      .replace(/^_|_$/g, "");
+    var stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+    return (name || "rules") + "_" + (suffix || "export") + "_" + stamp + ".csv";
+  }
+
+  function exportRulesGridCsv(config, ctx) {
+    if (config && config.matrixEnabled && NSM_MATRIX_CTX && NSM_MATRIX_CTX.matrixHandle) {
+      var matrixCfg = NSM_MATRIX_CTX.matrixConfig || buildEmbeddedMatrixConfig(config);
+      var matrixState = NSM_MATRIX_CTX.matrixHandle.state;
+      if (window.NSM_MATRIX_AG && window.NSM_MATRIX_AG.exportMatrixCsv) {
+        window.NSM_MATRIX_AG.exportMatrixCsv(
+          matrixCfg,
+          matrixState,
+          buildCsvFilename(config, "matrix")
+        );
+      }
+      return;
+    }
+    if (!ctx || !ctx.gridApi) {
+      return;
+    }
+    var csv = buildRulesGridCsv(ctx.gridApi, ctx.config);
+    if (window.NSM_MATRIX_AG && window.NSM_MATRIX_AG.downloadCsvBlob) {
+      window.NSM_MATRIX_AG.downloadCsvBlob(csv, buildCsvFilename(config, "rules"));
+    }
+  }
+
+  function rulesGridColumnField(col) {
+    var def = typeof col.getColDef === "function" ? col.getColDef() : {};
+    return def.field || col.getColId();
+  }
+
+  function stripRulesGridHtmlText(value) {
+    var text = value == null ? "" : String(value);
+    if (!/<[a-z][\s\S]*>/i.test(text)) {
+      return text;
+    }
+    var tmp = document.createElement("div");
+    tmp.innerHTML = text;
+    return (tmp.textContent || tmp.innerText || "").trim();
+  }
+
+  function rulesGridCellCsvValue(data, col, config) {
+    if (!data || !col) {
+      return "";
+    }
+    var colId = typeof col.getColId === "function" ? col.getColId() : "";
+    var field = rulesGridColumnField(col);
+    var filterKey = field + "__filter";
+    if (data[filterKey] != null && String(data[filterKey]).trim()) {
+      return String(data[filterKey]);
+    }
+    var val = data[field];
+    if (val == null && field !== colId) {
+      val = data[colId];
+    }
+    if (val == null) {
+      return "";
+    }
+    if (typeof val === "boolean" && colId === "status") {
+      var labels = (config && config.statusLabels) || {};
+      return val ? labels.on || "On" : labels.off || "Off";
+    }
+    if (typeof val === "object") {
+      return "";
+    }
+    var text = stripRulesGridHtmlText(val);
+    if (!text || text === "-") {
+      return "";
+    }
+    return text;
+  }
+
+  function buildRulesGridCsv(gridApi, config) {
+    var columns = [];
+    if (typeof gridApi.getAllDisplayedColumns === "function") {
+      columns = gridApi.getAllDisplayedColumns() || [];
+    }
+    columns = columns.filter(function (col) {
+      var colId = typeof col.getColId === "function" ? col.getColId() : "";
+      return colId && colId !== "_actions" && colId !== POLICY_GROUP_COL_ID;
+    });
+    var headers = columns.map(function (col) {
+      var def = typeof col.getColDef === "function" ? col.getColDef() : {};
+      return def.headerName || col.getColId();
+    });
+    var escapeFn =
+      window.NSM_MATRIX_AG && window.NSM_MATRIX_AG.csvEscapeField
+        ? window.NSM_MATRIX_AG.csvEscapeField
+        : function (value) {
+            return String(value == null ? "" : value);
+          };
+    var lines = [headers.map(escapeFn).join(",")];
+    if (typeof gridApi.forEachNodeAfterFilterAndSort === "function") {
+      gridApi.forEachNodeAfterFilterAndSort(function (node) {
+        if (!node || !node.data || node.data._rowType === "group") {
+          return;
+        }
+        var row = columns.map(function (col) {
+          return rulesGridCellCsvValue(node.data, col, config);
+        });
+        lines.push(row.map(escapeFn).join(","));
+      });
+    }
+    return lines.join("\n");
+  }
+
+  function normalizeToolbarViewMode(mode) {
+    var normalized = String(mode || "").toLowerCase();
+    return NSM_TOOLBAR_VIEW_MODES.indexOf(normalized) >= 0
+      ? normalized
+      : NSM_TOOLBAR_VIEW_MODE_DEFAULT;
+  }
+
+  function setToolbarViewMode(config, mode) {
+    if (!config) {
+      return;
+    }
+    mode = normalizeToolbarViewMode(mode);
+    config.toolbarViewMode = mode;
+    config.activeFilterView = mode === "table" ? null : mode;
+  }
+
+  function resolveToolbarViewMode(config) {
+    if (!config) {
+      return NSM_TOOLBAR_VIEW_MODE_DEFAULT;
+    }
+    if (config.toolbarViewMode) {
+      return normalizeToolbarViewMode(config.toolbarViewMode);
+    }
+    if (config.activeFilterView) {
+      return normalizeToolbarViewMode(config.activeFilterView);
+    }
+    if (readGroupLevelsFromConfig(config).length > 0 || config.groupBy) {
+      return "group";
+    }
+    if (config.matrixEnabled || readMatrixLevelsFromConfig(config).length > 0) {
+      return "matrix";
+    }
+    return NSM_TOOLBAR_VIEW_MODE_DEFAULT;
+  }
+
+  function resolveToolbarConfigForDropzones(fallbackConfig) {
+    return (
+      (NSM_GROUP_NAV_CTX && NSM_GROUP_NAV_CTX.config) ||
+      (NSM_MATRIX_CTX && NSM_MATRIX_CTX.config) ||
+      fallbackConfig ||
+      null
+    );
+  }
+
+  function isGroupDropzoneEnabled(config) {
+    config = resolveToolbarConfigForDropzones(config);
+    return !!(config && resolveToolbarViewMode(config) === "group");
+  }
+
+  function isMatrixDropzoneEnabled(config) {
+    config = resolveToolbarConfigForDropzones(config);
+    return !!(config && resolveToolbarViewMode(config) === "matrix");
+  }
+
+  function tableDragDisabledMessage(config) {
+    if (config && config.tableDragDisabledMessage) {
+      return String(config.tableDragDisabledMessage);
+    }
+    return NSM_TABLE_DRAG_DISABLED_FALLBACK;
+  }
+
+  function dropzoneViewModeDisabledMessage(config) {
+    return tableDragDisabledMessage(resolveToolbarConfigForDropzones(config));
+  }
+
+  function syncDropzoneEnabledState(config) {
+    if (!config) {
+      return;
+    }
+    var toolbarMode = resolveToolbarViewMode(config);
+    var groupDropzone = document.getElementById("nsm-ag-group-dropzone");
+    var matrixDropzone = document.getElementById("nsm-ag-matrix-dropzone");
+    var groupEnabled = toolbarMode === "group";
+    var matrixEnabled = toolbarMode === "matrix";
+    if (groupDropzone) {
+      groupDropzone.classList.toggle("nsm-ag-dropzone-disabled", !groupEnabled);
+      groupDropzone.setAttribute("aria-disabled", groupEnabled ? "false" : "true");
+      if (!groupEnabled) {
+        setGroupHeaderDropzoneState(groupDropzone, false, false, false);
+      }
+    }
+    if (matrixDropzone) {
+      matrixDropzone.classList.toggle("nsm-ag-dropzone-disabled", !matrixEnabled);
+      matrixDropzone.setAttribute("aria-disabled", matrixEnabled ? "false" : "true");
+      if (!matrixEnabled) {
+        setMatrixDropzoneState(matrixDropzone, false, false);
+      }
+    }
+  }
+
+  function syncToolbarViewModeSelector(config) {
+    var mode = resolveToolbarViewMode(config);
+    var selector = document.getElementById("nsm-ag-view-mode-selector");
+    if (selector) {
+      selector.querySelectorAll(".nsm-ag-view-mode-btn").forEach(function (btn) {
+        var active = btn.getAttribute("data-view-mode") === mode;
+        btn.classList.toggle("is-active", active);
+        btn.setAttribute("aria-pressed", active ? "true" : "false");
+      });
+    }
+    NSM_TOOLBAR_VIEW_MODES.forEach(function (panelMode) {
+      var panel = document.getElementById("nsm-ag-mode-panel-" + panelMode);
+      if (panel) {
+        panel.classList.toggle("d-none", panelMode !== mode);
+      }
+    });
+    return mode;
+  }
+
+  function syncFilterQueryViewDirective(config, ctx) {
+    if (!config) {
+      return;
+    }
+    var mode = resolveToolbarViewMode(config);
+    var currentQuery = resolveFilterQueryText(ctx && ctx.gridApi, config);
+    var parsed = parseViewDirective(currentQuery);
+    var nextQuery = appendViewDirective(parsed.body, mode === "table" ? null : mode);
+    config.filterQuery = nextQuery;
+    if (config.useServerFilterQ) {
+      config.activeFilterQ = nextQuery;
+      if (hasActiveFilterQuery(config)) {
+        syncAllRulesFilterToUrl(config);
+      } else {
+        stripFilterQueryFromUrl(config);
+      }
+    } else if (nextQuery) {
+      syncRulesFilterQueryToUrl(config, nextQuery);
+    } else if (hasActiveFilterQuery(config)) {
+      stripFilterQueryFromUrl(config);
+    }
+    if (ctx && ctx.gridApi) {
+      updateFilterQueryInput(ctx.gridApi, config, true);
+    }
+  }
+
+  function applyToolbarViewMode(mode, config, ctx) {
+    ctx = ctx || NSM_GROUP_NAV_CTX || NSM_MATRIX_CTX;
+    if (!config) {
+      return Promise.resolve(false);
+    }
+    mode = normalizeToolbarViewMode(mode);
+    setToolbarViewMode(config, mode);
+
+    if (mode === "table") {
+      return applyFilterViewDirective("table", config, ctx, {}).then(function (applied) {
+        syncToolbarViewModeSelector(config);
+        syncFilterQueryViewDirective(config, ctx);
+        syncGroupToolbarVisibility(config);
+        return applied;
+      });
+    }
+
+    if (mode === "group") {
+      clearMatrixForGrouping(config);
+      var levels = readGroupLevelsFromConfig(config);
+      if (levels.length && ctx && ctx.gridApi) {
+        applyRulesGroupingLevels(levels, ctx);
+      } else if (ctx && ctx.gridApi && ctx.state) {
+        updateConfigFromGroupLevels(config, []);
+        ctx.state.groupByEnabled = false;
+        syncRulesGroupColumnDefs(
+          ctx.gridApi,
+          config,
+          ctx.state,
+          ctx.profileKey || "rules"
+        );
+        renderGroupPills(config);
+      }
+      syncToolbarViewModeSelector(config);
+      syncGroupToolbarVisibility(config);
+      syncFilterQueryViewDirective(config, ctx);
+      return Promise.resolve(true);
+    }
+
+    if (mode === "matrix") {
+      if (ctx && ctx.gridApi) {
+        clearGroupingForMatrix(config, ctx);
+      }
+      var matrixLevels = readMatrixLevelsFromConfig(config);
+      if (matrixLevelsComplete(matrixLevels)) {
+        return applyRulesMatrixLevels(matrixLevels, ctx || NSM_MATRIX_CTX).then(
+          function (applied) {
+            syncToolbarViewModeSelector(config);
+            syncGroupToolbarVisibility(config);
+            syncFilterQueryViewDirective(config, ctx);
+            return applied;
+          }
+        );
+      }
+      exitMatrixMode(config);
+      syncToolbarViewModeSelector(config);
+      syncGroupToolbarVisibility(config);
+      syncFilterQueryViewDirective(config, ctx);
+      return Promise.resolve(true);
+    }
+
+    return Promise.resolve(true);
+  }
+
+  function bindToolbarViewModeSelector(config, ctx) {
+    var selector = document.getElementById("nsm-ag-view-mode-selector");
+    if (!selector || selector.dataset.nsmViewModeBound === "1") {
+      return;
+    }
+    selector.dataset.nsmViewModeBound = "1";
+    selector.querySelectorAll(".nsm-ag-view-mode-btn").forEach(function (btn) {
+      btn.addEventListener("click", function (event) {
+        event.preventDefault();
+        var nextMode = btn.getAttribute("data-view-mode");
+        if (!nextMode || nextMode === resolveToolbarViewMode(config)) {
+          return;
+        }
+        applyToolbarViewMode(nextMode, config, ctx);
+      });
+    });
+  }
+
+  function toolbarFeaturesInUse(config) {
+    var groupLevels = readGroupLevelsFromConfig(config);
+    var matrixLevels = readMatrixLevelsFromConfig(config);
+    return (
+      groupLevels.length > 0 ||
+      matrixLevels.length > 0 ||
+      !!(config && config.matrixEnabled)
+    );
+  }
+
+  function syncToolbarHelpVisibility(config) {
+    var banner = document.getElementById("nsm-ag-toolbar-help");
+    var toggleBtn = document.getElementById("nsm-ag-toolbar-help-toggle");
+    if (!banner) {
+      return;
+    }
+    if (toolbarFeaturesInUse(config)) {
+      NSM_TOOLBAR_HELP_VISIBLE = false;
+    }
+    var show = NSM_TOOLBAR_HELP_VISIBLE && !toolbarFeaturesInUse(config);
+    banner.classList.toggle("d-none", !show);
+    if (toggleBtn) {
+      toggleBtn.setAttribute("aria-expanded", show ? "true" : "false");
+      toggleBtn.classList.toggle("is-active", show);
+      var showLabel = "Show rules view toolbar help";
+      var hideLabel = "Hide rules view toolbar help";
+      var label = show ? hideLabel : showLabel;
+      toggleBtn.setAttribute("title", label);
+      toggleBtn.setAttribute("aria-label", label);
+    }
+  }
+
+  function updateMatrixModeToolbarActiveState(config) {
+    var mode = resolveMatrixMode(config);
+    document
+      .querySelectorAll("#nsm-ag-matrix-mode-wrap .nsm-ag-matrix-mode-btn")
+      .forEach(function (btn) {
+        var active = btn.getAttribute("data-mode") === mode;
+        btn.classList.toggle("is-active", active);
+        btn.setAttribute("aria-pressed", active ? "true" : "false");
+      });
+  }
+
+  function groupActionRailControlVisible(config, toolbarMode) {
+    return (
+      toolbarMode === "group" && readGroupLevelsFromConfig(config).length > 0
+    );
+  }
+
+  function matrixActionRailControlVisible(config, toolbarMode) {
+    return toolbarMode === "matrix" && !!(config && config.matrixEnabled);
+  }
+
+  function syncMatrixModeToolbarVisibility(config, toolbarMode) {
+    var wrap = document.getElementById("nsm-ag-matrix-mode-wrap");
+    if (!wrap) {
+      return;
+    }
+    toolbarMode = toolbarMode || resolveToolbarViewMode(config);
+    var showInActionRail = matrixActionRailControlVisible(config, toolbarMode);
+    wrap.classList.toggle("d-none", !showInActionRail);
+    if (showInActionRail) {
+      updateMatrixModeToolbarActiveState(config);
+    }
+  }
+
+  function syncToolbarActionRailVisibility(config, toolbarMode) {
+    var rail = document.getElementById("nsm-ag-toolbar-action-rail");
+    if (!rail) {
+      return;
+    }
+    toolbarMode = toolbarMode || resolveToolbarViewMode(config);
+    var showRail =
+      groupActionRailControlVisible(config, toolbarMode) ||
+      matrixActionRailControlVisible(config, toolbarMode);
+    rail.classList.toggle("d-none", !showRail);
+  }
+
+  function syncGroupToolbarVisibility(config) {
+    var toolbarMode = syncToolbarViewModeSelector(config);
+    var expandWrap = document.getElementById("nsm-ag-group-expand-wrap");
+    var showExpand = groupActionRailControlVisible(config, toolbarMode);
+    if (expandWrap) {
+      expandWrap.classList.toggle("d-none", !showExpand);
+    }
+    syncDropzoneEnabledState(config);
+    syncMatrixModeToolbarVisibility(config, toolbarMode);
+    syncToolbarActionRailVisibility(config, toolbarMode);
+    syncToolbarHelpVisibility(config);
+  }
+
+  function bindToolbarHelpToggle(config) {
+    var toggleBtn = document.getElementById("nsm-ag-toolbar-help-toggle");
+    if (!toggleBtn || toggleBtn.dataset.nsmToolbarHelpToggleBound === "1") {
+      return;
+    }
+    toggleBtn.dataset.nsmToolbarHelpToggleBound = "1";
+    toggleBtn.addEventListener("click", function (event) {
+      event.preventDefault();
+      NSM_TOOLBAR_HELP_VISIBLE = !NSM_TOOLBAR_HELP_VISIBLE;
+      syncToolbarHelpVisibility(config);
+    });
+  }
+
+  function bindToolbarHelpDismiss(config) {
+    var dismissBtn = document.getElementById("nsm-ag-toolbar-help-dismiss");
+    if (!dismissBtn || dismissBtn.dataset.nsmToolbarHelpBound === "1") {
+      return;
+    }
+    dismissBtn.dataset.nsmToolbarHelpBound = "1";
+    dismissBtn.addEventListener("click", function (event) {
+      event.preventDefault();
+      NSM_TOOLBAR_HELP_VISIBLE = false;
+      syncToolbarHelpVisibility(config);
+    });
+  }
+
+  function bindMatrixModeToolbar(config) {
+    var wrap = document.getElementById("nsm-ag-matrix-mode-wrap");
+    if (!wrap || wrap.dataset.nsmMatrixModeBound === "1") {
+      return;
+    }
+    wrap.dataset.nsmMatrixModeBound = "1";
+    wrap.querySelectorAll(".nsm-ag-matrix-mode-btn").forEach(function (btn) {
+      btn.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        var nextMode = btn.getAttribute("data-mode");
+        if (!nextMode || nextMode === resolveMatrixMode(config)) {
+          return;
+        }
+        applyMatrixModeChange(config, nextMode).then(function () {
+          updateMatrixModeToolbarActiveState(config);
+        });
+      });
+    });
+    updateMatrixModeToolbarActiveState(config);
   }
 
   function attachGroupableHeaderDrag(gridApi, gridEl, config, profileKey) {
@@ -1257,14 +2814,19 @@
       );
       cell.addEventListener("dragend", function () {
         cell.classList.remove("nsm-ag-group-dragging");
-        NSM_GROUP_DRAG_SOURCE = null;
-        NSM_GROUP_DRAG_VALUE = null;
         setGroupHeaderDropzoneState(
           document.getElementById("nsm-ag-group-dropzone"),
           false,
           false,
           false
         );
+        setMatrixDropzoneState(
+          document.getElementById("nsm-ag-matrix-dropzone"),
+          false,
+          false
+        );
+        NSM_GROUP_DRAG_SOURCE = null;
+        NSM_GROUP_DRAG_VALUE = null;
       });
 
       cell.addEventListener(
@@ -1495,7 +3057,16 @@
         delete state.collapsedGroups[key];
       });
       syncGroupExpansionUrl(state);
-      reloadRulesGridData(gridApi, config, state, null, { groupingOnly: true });
+      reloadRulesGridData(
+        gridApi,
+        config,
+        state,
+        function () {
+          refreshRulesGroupCells(gridApi);
+          syncRulesGroupedGridLayout(gridApi, state);
+        },
+        { groupingOnly: true }
+      );
     });
     collapseBtn.addEventListener("click", function () {
       if (!state || !state.groupByEnabled) {
@@ -1511,20 +3082,36 @@
         delete state.collapsedGroups[key];
       });
       syncGroupExpansionUrl(state);
-      reloadRulesGridData(gridApi, config, state, null, { groupingOnly: true });
+      reloadRulesGridData(
+        gridApi,
+        config,
+        state,
+        function () {
+          refreshRulesGroupCells(gridApi);
+          syncRulesGroupedGridLayout(gridApi, state);
+        },
+        { groupingOnly: true }
+      );
     });
   }
 
-  function initGroupHelpTooltip() {
-    var helpBtn = document.getElementById("nsm-ag-group-help");
-    if (!helpBtn || typeof bootstrap === "undefined" || !bootstrap.Tooltip) {
-      return;
-    }
-    bootstrap.Tooltip.getOrCreateInstance(helpBtn);
+  function resolveRulesGroupedFetchLimit(config) {
+    return (config && config.gridAutoLoadAllMax) || POLICY_GRID_FETCH_MAX;
   }
 
   function resolveRulesLoadEndRow(config, state) {
     var hardLimit = config.loadRowLimit || POLICY_GRID_FETCH_MAX;
+    if (state && state.groupByEnabled) {
+      var groupedLimit = resolveRulesGroupedFetchLimit(config);
+      if (
+        state &&
+        typeof state.knownTotalRows === "number" &&
+        state.knownTotalRows > 0
+      ) {
+        return Math.min(state.knownTotalRows, groupedLimit);
+      }
+      return hardLimit;
+    }
     var total =
       (state && state.knownTotalRows) ||
       (config && config.totalCount) ||
@@ -1535,16 +3122,59 @@
     return hardLimit;
   }
 
-  function rulesFetchPageExhausted(data, startRow, endRow, loadedCount) {
+  function rulesFetchPageExhausted(data, startRow, endRow, loadedCount, config, state) {
+    if (typeof data.lastRow === "number") {
+      if (state && state.groupByEnabled) {
+        return loadedCount >= data.lastRow;
+      }
+      var target = resolveRulesMaxLoadableRows(state, config);
+      return loadedCount >= Math.min(data.lastRow, target);
+    }
     var rows = (data && data.rowData) || [];
     var pageSize = Math.max(0, endRow - startRow);
     if (pageSize <= 0) {
       return true;
     }
-    if (typeof data.lastRow === "number" && loadedCount >= data.lastRow) {
-      return true;
-    }
     return rows.length < pageSize;
+  }
+
+  function ensureRulesGridFullyLoaded(api, config, state) {
+    if (!api || !config || !state || !config.gridDataUrl) {
+      return Promise.resolve(state ? state.loadedRowCount || 0 : 0);
+    }
+    if (state.autoLoadActive) {
+      return Promise.resolve(state.loadedRowCount || 0);
+    }
+    var loaded =
+      typeof state.loadedRowCount === "number"
+        ? state.loadedRowCount
+        : (state._accumulatedRows || []).length;
+    var total = state.knownTotalRows || 0;
+    var endTarget = resolveRulesMaxLoadableRows(state, config);
+    if (total > 0) {
+      if (state.groupByEnabled) {
+        endTarget = Math.min(total, resolveRulesGroupedFetchLimit(config));
+      } else {
+        endTarget = Math.min(total, endTarget);
+      }
+    }
+    if (loaded >= endTarget) {
+      return Promise.resolve(loaded);
+    }
+    state.autoLoadActive = true;
+    return appendRulesClientRows(api, config, state, loaded, endTarget)
+      .then(function () {
+        state.autoLoadActive = false;
+        var nextLoaded = state.loadedRowCount || 0;
+        if (nextLoaded > loaded && nextLoaded < endTarget) {
+          return ensureRulesGridFullyLoaded(api, config, state);
+        }
+        return nextLoaded;
+      })
+      .catch(function (err) {
+        state.autoLoadActive = false;
+        throw err;
+      });
   }
 
   function resolveRulesInitialLoadTarget(config, state) {
@@ -1553,6 +3183,19 @@
 
   function resolveRulesMaxLoadableRows(state, config) {
     var hardLimit = config.loadRowLimit || POLICY_GRID_FETCH_MAX;
+    if (state && state.groupByEnabled) {
+      var groupedLimit = resolveRulesGroupedFetchLimit(config);
+      var displayTotal =
+        state &&
+        typeof state.knownTotalRows === "number" &&
+        state.knownTotalRows > 0
+          ? state.knownTotalRows
+          : 0;
+      if (displayTotal > 0) {
+        return Math.min(displayTotal, groupedLimit);
+      }
+      return groupedLimit;
+    }
     var total =
       (state && state.knownTotalRows) ||
       (config && config.totalCount) ||
@@ -1788,6 +3431,11 @@
       config.activeRulebookId = null;
       config.activeRulebook = "";
     }
+    if (config) {
+      config.filterQuery = "";
+      config.activeFilterView = null;
+    }
+    applyFilterViewDirective("table", config, NSM_GROUP_NAV_CTX || NSM_MATRIX_CTX, {});
     if (hasActiveFilterQuery(config)) {
       stripFilterQueryFromUrl(config);
     }
@@ -1918,6 +3566,361 @@
   var filterQueryEditing = false;
   var filterQueryValidateTimer = null;
 
+  function splitTopLevelFilterText(text, keyword) {
+    text = text || "";
+    var kw = String(keyword || "").toUpperCase();
+    var kwLen = kw.length;
+    var parts = [];
+    var buf = [];
+    var depth = 0;
+    var i = 0;
+    while (i < text.length) {
+      var ch = text[i];
+      if (ch === "(") {
+        depth += 1;
+        buf.push(ch);
+        i += 1;
+        continue;
+      }
+      if (ch === ")") {
+        depth -= 1;
+        buf.push(ch);
+        i += 1;
+        continue;
+      }
+      if (depth === 0 && text.slice(i, i + kwLen).toUpperCase() === kw) {
+        var before = i > 0 ? text[i - 1] : " ";
+        var after = i + kwLen < text.length ? text[i + kwLen] : " ";
+        if (
+          (/\s/.test(before) || before === "(" || before === ",") &&
+          (/\s/.test(after) || after === "(" || after === ",")
+        ) {
+          var segment = buf.join("").trim();
+          if (segment) {
+            parts.push(segment);
+          }
+          buf = [];
+          i += kwLen;
+          continue;
+        }
+      }
+      buf.push(ch);
+      i += 1;
+    }
+    var tail = buf.join("").trim();
+    if (tail) {
+      parts.push(tail);
+    }
+    return parts;
+  }
+
+  function countViewDirectives(raw) {
+    var text = (raw || "").trim();
+    if (!text) {
+      return 0;
+    }
+    var count = 0;
+    splitTopLevelFilterText(text, "AND").forEach(function (part) {
+      part = part.trim();
+      if (part && NSM_VIEW_DIRECTIVE_RE.test(part)) {
+        count += 1;
+      }
+    });
+    return count;
+  }
+
+  function parseViewDirective(raw) {
+    var text = (raw || "").trim();
+    if (!text) {
+      return { view: null, body: "", error: null };
+    }
+    var viewModes = [];
+    var filterParts = [];
+    splitTopLevelFilterText(text, "AND").forEach(function (part) {
+      part = part.trim();
+      if (!part) {
+        return;
+      }
+      var match = part.match(NSM_VIEW_DIRECTIVE_RE);
+      if (match) {
+        viewModes.push(match[1].toLowerCase());
+        return;
+      }
+      filterParts.push(part);
+    });
+    return {
+      view: viewModes.length ? viewModes[viewModes.length - 1] : null,
+      body: filterParts.join(" AND ").trim(),
+      error: null,
+    };
+  }
+
+  function appendViewDirective(filterBody, view) {
+    var parsed = parseViewDirective(filterBody);
+    var body = parsed.body;
+    if (!view || view === "table") {
+      return body;
+    }
+    var directive = "view(" + String(view).toLowerCase() + ")";
+    if (!body) {
+      return directive;
+    }
+    return body + " AND " + directive;
+  }
+
+  function normalizeFilterQueryView(raw) {
+    var parsed = parseViewDirective(raw);
+    return appendViewDirective(parsed.body, parsed.view);
+  }
+
+  function normalizeFilterQueryConfig(config, queryText) {
+    if (!config) {
+      return (queryText || "").trim();
+    }
+    var normalized = normalizeFilterQueryView(queryText);
+    config.filterQuery = normalized;
+    if (config.useServerFilterQ) {
+      config.activeFilterQ = normalized;
+    }
+    return normalized;
+  }
+
+  function matrixValueToColumnKey(value) {
+    var text = (value || "").trim();
+    if (text.indexOf("col:") === 0) {
+      return text.slice(4);
+    }
+    return null;
+  }
+
+  function agGridColFilterToAxisQuery(colFilter) {
+    if (!colFilter || typeof colFilter !== "object") {
+      return "";
+    }
+    var nested = colFilter.conditions || [];
+    if (nested.length) {
+      var joinOp = String(colFilter.operator || "AND").toUpperCase();
+      if (joinOp !== "AND" && joinOp !== "OR") {
+        joinOp = "AND";
+      }
+      var parts = [];
+      nested.forEach(function (condition) {
+        if (!condition || condition.filter == null) {
+          return;
+        }
+        var raw = String(condition.filter).trim();
+        if (raw) {
+          parts.push(raw);
+        }
+      });
+      if (!parts.length) {
+        return "";
+      }
+      if (parts.length === 1) {
+        return parts[0];
+      }
+      return parts.join(" " + joinOp + " ");
+    }
+    if (colFilter.filter == null) {
+      return "";
+    }
+    return String(colFilter.filter).trim();
+  }
+
+  function extractMatrixAxisQueries(filterModel, rowMatrixValue, colMatrixValue) {
+    var rowKey = matrixValueToColumnKey(rowMatrixValue);
+    var colKey = matrixValueToColumnKey(colMatrixValue);
+    var srcQ = "";
+    var dstQ = "";
+    if (filterModel && rowKey && filterModel[rowKey]) {
+      srcQ = agGridColFilterToAxisQuery(filterModel[rowKey]);
+    }
+    if (filterModel && colKey && filterModel[colKey]) {
+      dstQ = agGridColFilterToAxisQuery(filterModel[colKey]);
+    }
+    return { srcQ: srcQ, dstQ: dstQ };
+  }
+
+  function syncMatrixFilterToUrl(srcQ, dstQ) {
+    var params = new URLSearchParams(window.location.search);
+    if (srcQ) {
+      params.set("src_q", srcQ);
+    } else {
+      params.delete("src_q");
+    }
+    if (dstQ) {
+      params.set("dst_q", dstQ);
+    } else {
+      params.delete("dst_q");
+    }
+    syncGroupingUrl(params, false);
+  }
+
+  function applyMatrixAxisFiltersFromModel(config, filterModel) {
+    if (!config || !config.matrixEnabled) {
+      return;
+    }
+    var levels = readMatrixLevelsFromConfig(config);
+    if (!matrixLevelsComplete(levels)) {
+      return;
+    }
+    var rowValue = matrixLevelValue(levels, NSM_MATRIX_ROW_SLOT);
+    var colValue = matrixLevelValue(levels, NSM_MATRIX_COL_SLOT);
+    var axis = extractMatrixAxisQueries(filterModel, rowValue, colValue);
+    syncMatrixFilterToUrl(axis.srcQ, axis.dstQ);
+    if (
+      window.NSM_MATRIX_AG &&
+      typeof window.NSM_MATRIX_AG.applyMatrixAxisFilters === "function" &&
+      NSM_MATRIX_CTX &&
+      NSM_MATRIX_CTX.matrixHandle &&
+      NSM_MATRIX_CTX.matrixHandle.api
+    ) {
+      window.NSM_MATRIX_AG.applyMatrixAxisFilters(
+        NSM_MATRIX_CTX.matrixHandle.api,
+        axis.srcQ,
+        axis.dstQ
+      );
+    }
+  }
+
+  function clearMatrixViewState(config, ctx) {
+    updateConfigFromMatrixLevels(config, []);
+    renderMatrixPills(config);
+    exitMatrixMode(config);
+    persistMatrixSession(config);
+    var params = buildMatrixUrlParams([], config);
+    params.delete("obj_type");
+    syncMatrixUrl(params, true);
+    if (ctx && ctx.state) {
+      setRulesViewMode(false);
+    }
+  }
+
+  function applyFilterViewDirective(view, config, ctx, filterModel) {
+    ctx = ctx || NSM_GROUP_NAV_CTX || NSM_MATRIX_CTX;
+    if (!config) {
+      return Promise.resolve(false);
+    }
+    var mode = view || "table";
+    setToolbarViewMode(config, mode);
+    config.activeFilterView =
+      view && view !== "table" ? String(view).toLowerCase() : null;
+
+    if (mode === "table") {
+      if (ctx && ctx.gridApi) {
+        applyRulesGroupingLevels([], ctx);
+      }
+      return applyRulesMatrixLevels([], ctx || NSM_MATRIX_CTX).then(function () {
+        setToolbarViewMode(config, "table");
+        syncMatrixFilterToUrl("", "");
+        syncToolbarViewModeSelector(config);
+        syncGroupToolbarVisibility(config);
+        return true;
+      });
+    }
+
+    if (mode === "group") {
+      clearMatrixViewState(config, ctx);
+      var levels = readGroupLevelsFromConfig(config);
+      if (levels.length && ctx && ctx.gridApi) {
+        applyRulesGroupingLevels(levels, ctx);
+      } else if (ctx && ctx.gridApi && ctx.state) {
+        updateConfigFromGroupLevels(config, []);
+        ctx.state.groupByEnabled = false;
+        syncRulesGroupColumnDefs(
+          ctx.gridApi,
+          config,
+          ctx.state,
+          ctx.profileKey || "rules"
+        );
+        renderGroupPills(config);
+        syncGroupToolbarVisibility(config);
+      }
+      syncMatrixFilterToUrl("", "");
+      syncToolbarViewModeSelector(config);
+      return Promise.resolve(true);
+    }
+
+    if (mode === "matrix") {
+      if (ctx && ctx.gridApi) {
+        clearGroupingForMatrix(config, ctx);
+      }
+      var matrixLevels = readMatrixLevelsFromConfig(config);
+      if (matrixLevelsComplete(matrixLevels)) {
+        return applyRulesMatrixLevels(matrixLevels, ctx || NSM_MATRIX_CTX).then(
+          function () {
+            applyMatrixAxisFiltersFromModel(config, filterModel);
+            syncToolbarViewModeSelector(config);
+            return true;
+          }
+        );
+      }
+      showGroupToolbarMessage(
+        config.matrixViewNotReadyMessage || NSM_FILTER_VIEW_MATRIX_NOT_READY_FALLBACK
+      );
+      clearMatrixViewState(config, ctx);
+      setToolbarViewMode(config, "matrix");
+      syncToolbarViewModeSelector(config);
+      return Promise.resolve(false);
+    }
+
+    syncToolbarViewModeSelector(config);
+    return Promise.resolve(true);
+  }
+
+  function applyInitialFilterViewFromQuery(config, ctx, filterModel) {
+    var raw = "";
+    if (config && config.useServerFilterQ && config.activeFilterQ) {
+      raw = String(config.activeFilterQ);
+    } else if (typeof window !== "undefined") {
+      raw =
+        new URLSearchParams(window.location.search).get("filter_q") ||
+        (config && config.filterQuery) ||
+        "";
+    } else if (config && config.filterQuery) {
+      raw = config.filterQuery;
+    }
+    raw = (raw || "").trim();
+    if (!raw) {
+      return Promise.resolve();
+    }
+    var parsed = parseViewDirective(raw);
+    if (countViewDirectives(raw) > 1) {
+      var normalized = normalizeFilterQueryConfig(config, raw);
+      if (config && config.useServerFilterQ) {
+        if (hasActiveFilterQuery(config)) {
+          syncAllRulesFilterToUrl(config);
+        } else {
+          stripFilterQueryFromUrl(config);
+        }
+      } else if (normalized) {
+        syncRulesFilterQueryToUrl(config, normalized);
+      }
+      if (ctx && ctx.gridApi) {
+        updateFilterQueryInput(ctx.gridApi, config, true);
+      }
+    }
+    if (!parsed.view) {
+      return Promise.resolve();
+    }
+    return applyFilterViewDirective(parsed.view, config, ctx, filterModel);
+  }
+
+  function syncRulesFilterQueryToUrl(config, queryText) {
+    if (!config || typeof window === "undefined") {
+      return;
+    }
+    var url = new URL(window.location.href);
+    url.searchParams.delete("filter_q");
+    var body = (queryText || "").trim();
+    if (body) {
+      url.searchParams.set("filter_q", body);
+    }
+    var next = url.pathname + url.search + url.hash;
+    window.history.replaceState(null, "", next);
+    config.filterQuery = body;
+  }
+
   function setFilterQueryValidationState(state, message) {
     var input = document.getElementById("nsm-ag-filter-query");
     var errorEl = document.getElementById("nsm-ag-filter-query-error");
@@ -2016,8 +4019,15 @@
 
   function applyRulesFilterQuery(gridApi, config, filterModel, filterQText, scopeMeta) {
     scopeMeta = scopeMeta || {};
+    var queryText = normalizeFilterQueryView((filterQText || "").trim());
+    var viewParsed = parseViewDirective(queryText);
+    if (config) {
+      config.filterQuery = queryText;
+      config.activeFilterView =
+        viewParsed.view && viewParsed.view !== "table" ? viewParsed.view : null;
+    }
     if (config && config.useServerFilterQ) {
-      config.activeFilterQ = (filterQText || "").trim();
+      config.activeFilterQ = queryText;
       if (scopeMeta.rulebookId != null) {
         config.activeRulebookId = scopeMeta.rulebookId;
         config.activeRulebook = scopeMeta.rulebook || "";
@@ -2039,6 +4049,8 @@
       } else {
         stripFilterQueryFromUrl(config);
       }
+    } else if (queryText) {
+      syncRulesFilterQueryToUrl(config, queryText);
     } else if (hasActiveFilterQuery(config)) {
       stripFilterQueryFromUrl(config);
     }
@@ -2103,6 +4115,12 @@
     var text = (input.value || "").trim();
     if (!text) {
       applyRulesFilterQuery(gridApi, config, {}, "");
+      applyFilterViewDirective(
+        "table",
+        config,
+        NSM_GROUP_NAV_CTX || NSM_MATRIX_CTX,
+        {}
+      );
       return;
     }
     fetchRulesFilterQueryValidation(config, text, function (data) {
@@ -2124,6 +4142,16 @@
           rulebookId: data.rulebookId,
           rulebook: data.rulebook,
         }
+      );
+      var viewMode =
+        data.view != null && data.view !== ""
+          ? String(data.view).toLowerCase()
+          : parseViewDirective(queryText).view;
+      applyFilterViewDirective(
+        viewMode,
+        config,
+        NSM_GROUP_NAV_CTX || NSM_MATRIX_CTX,
+        data.filterModel || {}
       );
     });
   }
@@ -2162,6 +4190,9 @@
     if (config && config.useServerFilterQ && config.activeFilterQ) {
       return String(config.activeFilterQ).trim();
     }
+    if (config && config.filterQuery) {
+      return String(config.filterQuery).trim();
+    }
     var model =
       gridApi && typeof gridApi.getFilterModel === "function"
         ? gridApi.getFilterModel()
@@ -2172,10 +4203,14 @@
       (config && config.filterColumnShorthand) || null,
       (config && config.filterQueryColumnOrder) || null
     );
-    if (!query && config && config.filterQuery) {
-      query = config.filterQuery;
+    if (!query && typeof window !== "undefined") {
+      query = new URLSearchParams(window.location.search).get("filter_q") || "";
     }
-    return (query || "").trim();
+    query = (query || "").trim();
+    var parsed = parseViewDirective(query);
+    var effectiveView =
+      config && config.activeFilterView ? config.activeFilterView : parsed.view;
+    return appendViewDirective(parsed.body, effectiveView);
   }
 
   function primeFilterQueryInput(config) {
@@ -2187,6 +4222,9 @@
     var query = resolveFilterQueryText(null, config);
     if (!query) {
       return;
+    }
+    if (countViewDirectives(query) > 1) {
+      query = normalizeFilterQueryConfig(config, query);
     }
     input.value = query;
     if (wrap) {
@@ -2380,24 +4418,33 @@
           ? gridApi.getValue(colId, rowNode)
           : rowNode.data[colDef.field],
     };
-    var link =
-      event && event.target && event.target.closest
-        ? event.target.closest(".nsm-ag-cell-link")
-        : null;
     var filterValue = "";
     var displayValue = "";
-    if (link) {
-      displayValue = (link.getAttribute("title") || link.textContent || "").trim();
+    var link =
+      event && event.target && event.target.closest
+        ? event.target.closest("a[href]")
+        : null;
+    if (link && cellEl.contains(link)) {
+      displayValue = (
+        link.getAttribute("data-nsm-filter-value") ||
+        link.textContent ||
+        link.getAttribute("title") ||
+        ""
+      ).trim();
       filterValue = displayValue;
-    } else if (colDef.filterValueGetter) {
+    }
+    if (!filterValue && colDef.filterValueGetter) {
       filterValue = String(colDef.filterValueGetter(params) || "").trim();
       displayValue = filterValue;
-    } else if (colDef.field && rowNode.data[colDef.field] != null) {
-      filterValue = String(rowNode.data[colDef.field]).trim();
-      displayValue = filterValue;
-    } else {
-      displayValue = (cellEl.textContent || "").trim();
-      filterValue = displayValue;
+    }
+    if (!filterValue) {
+      if (colDef.field && rowNode.data[colDef.field] != null) {
+        filterValue = String(rowNode.data[colDef.field]).trim();
+        displayValue = filterValue;
+      } else {
+        displayValue = (cellEl.textContent || "").trim();
+        filterValue = displayValue;
+      }
     }
     if (!filterValue) {
       return null;
@@ -2431,6 +4478,67 @@
       }
     }
     return false;
+  }
+
+  function parseFilterCellDropPayload(event) {
+    if (!isFilterCellDragEvent(event) || !event.dataTransfer) {
+      return null;
+    }
+    var raw = event.dataTransfer.getData(NSM_FILTER_DRAG_MIME);
+    if (!raw) {
+      return null;
+    }
+    try {
+      return JSON.parse(raw);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function resolveFloatingFilterHeaderCell(target) {
+    if (!target || typeof target.closest !== "function") {
+      return null;
+    }
+    var headerCell = target.closest(".ag-header-cell[col-id]");
+    if (!headerCell) {
+      return null;
+    }
+    if (
+      headerCell.classList.contains("ag-floating-filter") ||
+      headerCell.querySelector(".ag-floating-filter")
+    ) {
+      return headerCell;
+    }
+    return null;
+  }
+
+  function applyColumnFilterFromCellDrop(gridApi, targetColId, filterValue) {
+    if (!gridApi || !targetColId || typeof gridApi.setFilterModel !== "function") {
+      return;
+    }
+    var text = String(filterValue == null ? "" : filterValue).trim();
+    if (!text) {
+      return;
+    }
+    var model =
+      typeof gridApi.getFilterModel === "function"
+        ? Object.assign({}, gridApi.getFilterModel() || {})
+        : {};
+    model[targetColId] = {
+      filterType: "text",
+      type: "contains",
+      filter: text,
+    };
+    gridApi.setFilterModel(model);
+  }
+
+  function disableNativeLinkDragInCell(cell) {
+    if (!cell) {
+      return;
+    }
+    cell.querySelectorAll("a[href]").forEach(function (anchor) {
+      anchor.setAttribute("draggable", "false");
+    });
   }
 
   function markFilterDropTargetsActive(active) {
@@ -2476,6 +4584,7 @@
           return;
         }
         cell.setAttribute("draggable", "true");
+        disableNativeLinkDragInCell(cell);
       },
       true
     );
@@ -2489,12 +4598,12 @@
         }
         var ctx = resolveCellFilterDragContext(gridApi, cell, event);
         if (!ctx || !config.filterColumnMap[ctx.colId]) {
-          event.preventDefault();
           return;
         }
         if (!event.dataTransfer) {
           return;
         }
+        disableNativeLinkDragInCell(cell);
         event.stopPropagation();
         event.dataTransfer.setData(
           NSM_FILTER_DRAG_MIME,
@@ -2617,6 +4726,83 @@
       input.focus();
       tryApplyFilterQueryInput(gridApi, config);
     });
+  }
+
+  function bindFloatingFilterDropTarget(gridApi, gridEl, config) {
+    if (!gridApi || !gridEl || !config || !config.filterColumnMap) {
+      return;
+    }
+    if (gridEl.dataset.nsmFloatingFilterDropBound === "1") {
+      return;
+    }
+    gridEl.dataset.nsmFloatingFilterDropBound = "1";
+
+    gridEl.addEventListener(
+      "dragover",
+      function (event) {
+        var headerCell = resolveFloatingFilterHeaderCell(event.target);
+        if (!headerCell || !isFilterCellDragEvent(event)) {
+          return;
+        }
+        var colId = headerCell.getAttribute("col-id");
+        if (!colId || !config.filterColumnMap[colId]) {
+          return;
+        }
+        event.preventDefault();
+        if (event.dataTransfer) {
+          event.dataTransfer.dropEffect = "copy";
+        }
+        headerCell.classList.add("nsm-ag-floating-filter-drop-hover");
+      },
+      true
+    );
+
+    gridEl.addEventListener(
+      "dragleave",
+      function (event) {
+        var headerCell = resolveFloatingFilterHeaderCell(event.target);
+        if (
+          headerCell &&
+          (!headerCell.contains(event.relatedTarget) ||
+            !resolveFloatingFilterHeaderCell(event.relatedTarget))
+        ) {
+          headerCell.classList.remove("nsm-ag-floating-filter-drop-hover");
+        }
+      },
+      true
+    );
+
+    gridEl.addEventListener(
+      "drop",
+      function (event) {
+        var headerCell = resolveFloatingFilterHeaderCell(event.target);
+        if (!headerCell) {
+          return;
+        }
+        headerCell.classList.remove("nsm-ag-floating-filter-drop-hover");
+        var payload = parseFilterCellDropPayload(event);
+        if (!payload) {
+          var droppedText =
+            event.dataTransfer && event.dataTransfer.getData
+              ? String(event.dataTransfer.getData("text/plain") || "").trim()
+              : "";
+          if (/^https?:\/\//i.test(droppedText)) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+          return;
+        }
+        var colId = headerCell.getAttribute("col-id");
+        if (!colId || !config.filterColumnMap[colId]) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        markFilterDropTargetsActive(false);
+        applyColumnFilterFromCellDrop(gridApi, colId, payload.filterValue);
+      },
+      true
+    );
   }
 
   function htmlCellFilterValue(params) {
@@ -2978,7 +5164,6 @@
     rowBuffer: RULES_GRID_ROW_BUFFER,
     suppressColumnVirtualisation: false,
     suppressAnimationFrame: true,
-    suppressRowHoverHighlight: true,
   };
 
   function truncateCellText(text, maxLen) {
@@ -3061,6 +5246,7 @@
     options = options || {};
     var enableFilters = options.enableColumnFilters !== false;
     var enableFloating = options.enableFloatingFilters === true;
+    var enableAutoHeight = options.autoHeight !== false;
     (columnDefs || []).forEach(function (col) {
       if (col.children) {
         applyTextColumnFilters(col.children, options);
@@ -3089,7 +5275,7 @@
         }
       } else if (col.cellRenderer === "descriptionCell") {
         if (col.autoHeight == null) {
-          col.autoHeight = true;
+          col.autoHeight = enableAutoHeight;
         }
         if (col.wrapText == null) {
           col.wrapText = true;
@@ -3159,11 +5345,44 @@
     return wrap;
   }
 
+  function itemIsAddrAnalyzable(item) {
+    return !!(item && (item.addrAnalyzable || item.addr_analyzable));
+  }
+
+  function createItemLoupeButton(item) {
+    var title = "Objekt analysieren";
+    var btn;
+    if (window.NsmIpAnalyzerApplet && window.NsmIpAnalyzerApplet.createLoupeButton) {
+      btn = window.NsmIpAnalyzerApplet.createLoupeButton(title, item);
+    } else {
+      btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "nsm-ipa-loupe";
+      btn.setAttribute("aria-label", title);
+      btn.title = title;
+      btn.innerHTML = '<i class="mdi mdi-magnify" aria-hidden="true"></i>';
+      if (item && item.ct != null && item.pk != null) {
+        btn.setAttribute("data-ct", String(item.ct));
+        btn.setAttribute("data-pk", String(item.pk));
+        btn.setAttribute("data-name", item.name != null ? String(item.name) : "");
+      }
+    }
+    return btn;
+  }
+
   function buildObjectCellItem(item, hidden, colored) {
     var span = document.createElement("span");
     span.className = "nsm-ag-cell-item" + (hidden ? " nsm-pill-hidden" : "");
     if (item && item.excluded) {
       span.classList.add("nsm-ag-cell-excluded");
+    }
+    if (item && item.ct != null && item.pk != null) {
+      span.setAttribute("data-ct", String(item.ct));
+      span.setAttribute("data-pk", String(item.pk));
+      span.setAttribute("data-name", item.name != null ? String(item.name) : "");
+      if (itemIsAddrAnalyzable(item)) {
+        span.setAttribute("data-addr-analyzable", "1");
+      }
     }
     if (colored && item && item.color) {
       var dot = document.createElement("span");
@@ -3175,10 +5394,15 @@
     var link = document.createElement("a");
     link.href = (item && item.url) || "#";
     link.className = "nsm-ag-cell-link text-decoration-none";
+    link.setAttribute("draggable", "false");
     var fullName = (item && item.name) || "";
     link.title = fullName;
+    link.setAttribute("data-nsm-filter-value", fullName);
     link.textContent = truncateCellText(fullName);
     span.appendChild(link);
+    if (itemIsAddrAnalyzable(item)) {
+      span.appendChild(createItemLoupeButton(item));
+    }
     return span;
   }
 
@@ -3354,6 +5578,54 @@
     );
   }
 
+  function updateRulesGroupToggleButton(toggle, collapsed) {
+    if (!toggle) {
+      return;
+    }
+    toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    toggle.setAttribute(
+      "aria-label",
+      collapsed ? "Expand group" : "Collapse group"
+    );
+    toggle.classList.toggle("is-expanded", !collapsed);
+  }
+
+  function refreshRulesGroupCells(api) {
+    if (!api || typeof api.refreshCells !== "function") {
+      return;
+    }
+    api.refreshCells({
+      columns: [POLICY_GROUP_COL_ID],
+      force: true,
+    });
+  }
+
+  function syncRulesGroupedGridLayout(api, state) {
+    if (!api || !state || !state.gridEl) {
+      return;
+    }
+    var grouped = !!state.groupByEnabled;
+    state.gridEl.classList.toggle("nsm-rules-ag-grid--grouped", grouped);
+    if (typeof api.setGridOption === "function") {
+      api.setGridOption("domLayout", grouped ? "autoHeight" : "normal");
+    }
+  }
+
+  function refreshRulesGroupedGridHeight(api, state) {
+    if (!api || !state || !state.groupByEnabled) {
+      return;
+    }
+    syncRulesGroupedGridLayout(api, state);
+    resetRulesRowHeights(api, true);
+    window.requestAnimationFrame(function () {
+      syncRulesGroupedGridLayout(api, state);
+      flushRulesGridAsyncTransactions(api);
+      if (typeof api.onRowHeightChanged === "function") {
+        api.onRowHeightChanged();
+      }
+    });
+  }
+
   function createRulesGroupCellContent(params, config, state) {
     var data = params.data || {};
     if (data._rowType !== "group") {
@@ -3373,17 +5645,28 @@
       "aria-label",
       collapsed ? "Expand group" : "Collapse group"
     );
-    toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
     toggle.innerHTML =
-      '<i class="mdi ' +
-      (collapsed ? "mdi-chevron-right" : "mdi-chevron-down") +
-      '" aria-hidden="true"></i>';
+      '<i class="mdi mdi-chevron-right" aria-hidden="true"></i>';
+    updateRulesGroupToggleButton(toggle, collapsed);
     toggle.addEventListener("click", function (event) {
       event.preventDefault();
       event.stopPropagation();
       toggleRulesGroupCollapse(groupKey, state);
+      updateRulesGroupToggleButton(
+        toggle,
+        isRulesGroupCollapsed(groupKey, state)
+      );
       syncGroupExpansionUrl(state);
-      reloadRulesGridData(params.api, config, state, null, { groupingOnly: true });
+      reloadRulesGridData(
+        params.api,
+        config,
+        state,
+        function () {
+          refreshRulesGroupCells(params.api);
+          refreshRulesGroupedGridHeight(params.api, state);
+        },
+        { groupingOnly: true }
+      );
     });
     wrap.appendChild(toggle);
 
@@ -3425,12 +5708,25 @@
 
   function bindNsmGroupToolbar(gridApi, config, state, gridEl, profileKey, columnDefs) {
     normalizeGroupLevelsInConfig(config);
+    restoreMatrixSession(config);
     renderGroupSourceChips(config);
     renderGroupPills(config);
+    renderMatrixPills(config);
     bindGroupDropZone(config);
+    bindMatrixDropZone(config);
     bindGroupExpandCollapseButtons(config, state, gridApi);
+    removeLegacyMatrixGridModeChrome();
+    bindMatrixModeToolbar(config);
+    bindToolbarViewModeSelector(config, {
+      gridApi: gridApi,
+      config: config,
+      state: state,
+      profileKey: profileKey,
+      gridEl: gridEl,
+    });
+    bindToolbarHelpToggle(config);
+    bindToolbarHelpDismiss(config);
     syncGroupToolbarVisibility(config);
-    initGroupHelpTooltip();
     if (gridApi && gridEl) {
       function currentColumnDefs() {
         return gridApi._nsmColumnDefs || columnDefs || [];
@@ -3495,6 +5791,33 @@
       profileKey: profileKey,
       gridEl: gridEl,
     };
+    NSM_MATRIX_CTX = {
+      config: config,
+      state: state,
+      gridApi: gridApi,
+      matrixHandle: null,
+      matrixConfig: null,
+    };
+    bindCsvExportButton(config, NSM_GROUP_NAV_CTX);
+    applyInitialFilterViewFromQuery(
+      config,
+      NSM_GROUP_NAV_CTX,
+      config.initialFilterModel || null
+    ).then(function () {
+      if (!config || !config.matrixEnabled) {
+        return;
+      }
+      return enterMatrixMode(config).then(function () {
+        applyMatrixAxisFiltersFromModel(
+          config,
+          (gridApi && typeof gridApi.getFilterModel === "function"
+            ? gridApi.getFilterModel()
+            : null) ||
+            config.initialFilterModel ||
+            {}
+        );
+      });
+    });
   }
 
   function buildRulesGridCacheKey(config, state) {
@@ -3583,6 +5906,8 @@
       resetRulesRowHeights(api, !!(state && state.groupByEnabled));
       scheduleAutoSizeRulesContentColumns(api, state);
       enableRulesFloatingFilters(api);
+      syncRulesGroupedGridLayout(api, state);
+      refreshRulesGroupCells(api);
     });
     if (typeof done === "function") {
       done(cache.totalCount);
@@ -3940,23 +6265,30 @@
           state.knownTotalRows =
             typeof data.lastRow === "number" ? data.lastRow : rows.length;
           state.loadedRowCount = rows.length;
-          state.progressiveLoadActive = false;
-          state.initialLoadActive = false;
-          notifyRulesRowsLoaded(state, state.knownTotalRows, false);
-          maybePersistRulesTabDataCache(state, config);
-          if (isRulesTabRefreshRequested()) {
-            stripRulesTabRefreshFromUrl();
-          }
         }
         setRulesGridRows(api, rows, state, "set");
-        window.requestAnimationFrame(function () {
-          resetRulesRowHeights(api, state && state.groupByEnabled);
-          scheduleAutoSizeRulesContentColumns(api, state);
+        return ensureRulesGridFullyLoaded(api, config, state).then(function () {
+          if (state) {
+            state.progressiveLoadActive = false;
+            state.initialLoadActive = false;
+            notifyRulesRowsLoaded(state, state.knownTotalRows, false);
+            maybePersistRulesTabDataCache(state, config);
+            if (isRulesTabRefreshRequested()) {
+              stripRulesTabRefreshFromUrl();
+            }
+          }
+          window.requestAnimationFrame(function () {
+            resetRulesRowHeights(api, state && state.groupByEnabled);
+            scheduleAutoSizeRulesContentColumns(api, state);
+            syncRulesGroupedGridLayout(api, state);
+            refreshRulesGroupedGridHeight(api, state);
+            refreshRulesGroupCells(api);
+          });
+          if (typeof done === "function") {
+            done(state ? state.knownTotalRows : rows.length);
+          }
+          return rows;
         });
-        if (typeof done === "function") {
-          done(state ? state.knownTotalRows : rows.length);
-        }
-        return rows;
       })
       .catch(function (err) {
         console.error("NSM rules grid: client row load failed", err);
@@ -4063,17 +6395,33 @@
             data,
             startRow,
             endRow,
-            state.loadedRowCount
+            state.loadedRowCount,
+            config,
+            state
           );
+
+          function finishProgressiveLoad() {
+            return ensureRulesGridFullyLoaded(api, config, state).then(function () {
+              finishLoad();
+            });
+          }
+
+          notifyRulesRowsLoaded(
+            state,
+            state.knownTotalRows,
+            !fetchDone ||
+              state.loadedRowCount <
+                Math.min(
+                  state.knownTotalRows || 0,
+                  resolveRulesMaxLoadableRows(state, config)
+                )
+          );
+
           if (fetchDone) {
-            finishLoad();
-            return rows;
+            return finishProgressiveLoad().then(function () {
+              return rows;
+            });
           }
-          if (isLast) {
-            state.progressiveLoadActive = false;
-            state.initialLoadActive = false;
-          }
-          notifyRulesRowsLoaded(state, state.knownTotalRows, !isLast && !fetchDone);
 
           if (isFirst && state.gridEl) {
             state.gridEl.classList.remove("nsm-ag-grid-loading");
@@ -4087,18 +6435,23 @@
           });
 
           prevEnd = endRow;
-          return new Promise(function (resolve) {
-            if (fetchDone) {
-              resolve(rows);
-              return;
+          return ensureRulesGridFullyLoaded(api, config, state).then(function () {
+            if (
+              state.loadedRowCount >=
+              Math.min(
+                state.knownTotalRows || 0,
+                resolveRulesMaxLoadableRows(state, config)
+              )
+            ) {
+              return finishProgressiveLoad().then(function () {
+                return rows;
+              });
             }
-            if (isLast) {
-              loadStep(stepIndex + 1).then(resolve);
-              return;
-            }
-            window.setTimeout(function () {
-              loadStep(stepIndex + 1).then(resolve);
-            }, 16);
+            return new Promise(function (resolve) {
+              window.setTimeout(function () {
+                loadStep(stepIndex + 1).then(resolve);
+              }, 16);
+            });
           });
         })
         .catch(function (err) {
@@ -4302,6 +6655,9 @@
 
     if (groupingOnly && !forceRefresh && state.groupByEnabled) {
       cancelProgressiveRulesLoad(state);
+      state.knownTotalRows = 0;
+      state.loadedRowCount = 0;
+      state._accumulatedRows = [];
       state.initialLoadActive = true;
       updateRulesLoadStatus(state);
       loadAllRulesClientRows(
@@ -4519,6 +6875,13 @@
     var profile = NSM_GRID_PROFILES.rules;
     var payload = readJsonScript(profile.payloadScript);
     var config = readJsonScript(profile.configScript) || {};
+    if (typeof window !== "undefined") {
+      var urlFilterQ = new URLSearchParams(window.location.search).get("filter_q");
+      if (urlFilterQ && countViewDirectives(urlFilterQ) > 1) {
+        var normalizedUrlFilterQ = normalizeFilterQueryConfig(config, urlFilterQ);
+        syncRulesFilterQueryToUrl(config, normalizedUrlFilterQ);
+      }
+    }
     primeFilterQueryInput(config);
     var gridEl = document.getElementById(profile.gridId);
     if (!payload || !gridEl) {
@@ -4568,9 +6931,11 @@
     applyTextColumnFilters(columnDefs, {
       enableColumnFilters: true,
       enableFloatingFilters: false,
+      autoHeight: !datasourceState.groupByEnabled,
     });
     if (datasourceState.groupByEnabled) {
       columnDefs = prependRulesGroupColumn(columnDefs, config);
+      gridEl.classList.add("nsm-rules-ag-grid--grouped");
     }
     var totalRowCount = useRemoteRows
       ? datasourceState.knownTotalRows
@@ -4621,6 +6986,8 @@
       wrap.innerHTML =
         '<a href="' +
         escapeHtml(url) +
+        '" draggable="false" data-nsm-filter-value="' +
+        escapeHtml(name) +
         '" class="text-body nsm-ag-truncate" title="' +
         escapeHtml(name) +
         '">' +
@@ -4638,6 +7005,8 @@
       wrap.innerHTML =
         '<a href="' +
         escapeHtml(url) +
+        '" draggable="false" data-nsm-filter-value="' +
+        escapeHtml(idx) +
         '" class="nsm-ag-cell-link text-decoration-none" title="' +
         escapeHtml(name) +
         '">' +
@@ -4654,6 +7023,8 @@
       wrap.innerHTML =
         '<a href="' +
         escapeHtml(url) +
+        '" draggable="false" data-nsm-filter-value="' +
+        escapeHtml(name) +
         '" class="text-body nsm-ag-truncate" title="' +
         escapeHtml(name) +
         '">' +
@@ -4729,6 +7100,7 @@
     var gridOptions = {
       theme: theme || "legacy",
       columnDefs: columnDefs,
+      domLayout: datasourceState.groupByEnabled ? "autoHeight" : "normal",
       rowHeight: RULES_ROW_HEIGHT,
       getRowHeight: createRulesGetRowHeight(rulesObjectFields),
       debounceVerticalScrollbar: true,
@@ -4785,6 +7157,7 @@
           });
         }
         enableRulesFloatingFilters(params.api);
+        syncRulesGroupedGridLayout(params.api, datasourceState);
         if (params.api._nsmRebindGroupHeaders) {
           scheduleGroupHeaderBind(params.api._nsmRebindGroupHeaders);
         }
@@ -4797,6 +7170,7 @@
         scheduleRulesGridWidthFit(params.api, gridEl);
         resetRulesRowHeights(params.api, datasourceState.groupByEnabled);
         enableRulesFloatingFilters(params.api);
+        syncRulesGroupedGridLayout(params.api, datasourceState);
         if (params.api._nsmRebindGroupHeaders) {
           scheduleGroupHeaderBind(params.api._nsmRebindGroupHeaders);
         }
@@ -4837,6 +7211,17 @@
     datasourceState.onRowsLoaded = function (total, meta) {
       if (gridApi) {
         updateRowStatsForProfile(gridApi, total, datasourceState, config, profile);
+        if (meta && meta.partial) {
+          ensureRulesGridFullyLoaded(gridApi, config, datasourceState).then(function () {
+            updateRowStatsForProfile(
+              gridApi,
+              datasourceState.knownTotalRows,
+              datasourceState,
+              config,
+              profile
+            );
+          });
+        }
       }
     };
 
@@ -4874,6 +7259,7 @@
     bindFilterQueryInput(gridApi, config);
     bindFilterQueryDropTarget(gridApi, config);
     bindCellFilterDrag(gridApi, gridEl, config);
+    bindFloatingFilterDropTarget(gridApi, gridEl, config);
 
     bindNsmGroupToolbar(gridApi, config, datasourceState, gridEl, "rules", columnDefs);
 
@@ -4963,6 +7349,9 @@
     if (config.activeFilterQ && !config.filterQuery) {
       config.filterQuery = config.activeFilterQ;
     }
+    if (config.activeFilterQ && countViewDirectives(config.activeFilterQ) > 1) {
+      normalizeFilterQueryConfig(config, config.activeFilterQ);
+    }
     primeFilterQueryInput(config);
     var gridEl = document.getElementById(profile.gridId);
     if (!payload || !gridEl) {
@@ -4999,10 +7388,6 @@
     var expandedGroups = {};
     var rulesObjectFields = [];
     collectRulesObjectFields(columnDefs, rulesObjectFields);
-    applyTextColumnFilters(columnDefs, {
-      enableColumnFilters: true,
-      enableFloatingFilters: false,
-    });
     var datasourceState = {
       gridEl: gridEl,
       domProfile: profile,
@@ -5026,8 +7411,14 @@
       invalidateRulesTabDataCache(datasourceState);
     }
     applyRulesGroupConfig(config, datasourceState);
+    applyTextColumnFilters(columnDefs, {
+      enableColumnFilters: true,
+      enableFloatingFilters: false,
+      autoHeight: !datasourceState.groupByEnabled,
+    });
     if (datasourceState.groupByEnabled) {
       columnDefs = prependRulesGroupColumn(columnDefs, config);
+      gridEl.classList.add("nsm-rules-ag-grid--grouped");
     }
     var totalRowCount = datasourceState.knownTotalRows;
 
@@ -5062,6 +7453,8 @@
       wrap.innerHTML =
         '<a href="' +
         escapeHtml(url) +
+        '" draggable="false" data-nsm-filter-value="' +
+        escapeHtml(name) +
         '" class="text-body nsm-ag-truncate" title="' +
         escapeHtml(name) +
         '">' +
@@ -5098,6 +7491,8 @@
         wrap.innerHTML =
           '<a href="' +
           escapeHtml(url) +
+          '" draggable="false" data-nsm-filter-value="' +
+          escapeHtml(name) +
           '" class="text-body nsm-ag-truncate" title="' +
           escapeHtml(name) +
           '">' +
@@ -5166,6 +7561,7 @@
     var gridOptions = {
       theme: theme || "legacy",
       columnDefs: columnDefs,
+      domLayout: datasourceState.groupByEnabled ? "autoHeight" : "normal",
       rowHeight: RULES_ROW_HEIGHT,
       getRowHeight: createRulesGetRowHeight(rulesObjectFields),
       debounceVerticalScrollbar: true,
@@ -5213,6 +7609,7 @@
         scheduleRulesGridWidthFit(params.api, gridEl);
         resetRulesRowHeights(params.api, datasourceState.groupByEnabled);
         enableRulesFloatingFilters(params.api);
+        syncRulesGroupedGridLayout(params.api, datasourceState);
         if (params.api._nsmRebindGroupHeaders) {
           scheduleGroupHeaderBind(params.api._nsmRebindGroupHeaders);
         }
@@ -5246,9 +7643,20 @@
     }
     Object.assign(gridOptions, RULES_GRID_PERF_OPTIONS);
 
-    datasourceState.onRowsLoaded = function (total) {
+    datasourceState.onRowsLoaded = function (total, meta) {
       if (gridApi) {
         updateRowStatsForProfile(gridApi, total, datasourceState, config, profile);
+        if (meta && meta.partial) {
+          ensureRulesGridFullyLoaded(gridApi, config, datasourceState).then(function () {
+            updateRowStatsForProfile(
+              gridApi,
+              datasourceState.knownTotalRows,
+              datasourceState,
+              config,
+              profile
+            );
+          });
+        }
       }
     };
 
@@ -5274,6 +7682,7 @@
     bindFilterQueryInput(gridApi, config);
     bindFilterQueryDropTarget(gridApi, config);
     bindCellFilterDrag(gridApi, gridEl, config);
+    bindFloatingFilterDropTarget(gridApi, gridEl, config);
     bindNsmGroupToolbar(gridApi, config, datasourceState, gridEl, "allRules", columnDefs);
     return gridApi;
   }
@@ -5311,7 +7720,9 @@
           textColor: "#1e293b",
           cellTextColor: "#1e293b",
           chromeBackgroundColor: "#f8fafc",
-          oddRowBackgroundColor: "rgba(0, 0, 0, 0.02)",
+          oddRowBackgroundColor: "#ffffff",
+          rowHoverColor: "#e8f0fa",
+          selectedRowBackgroundColor: "#d1e1f3",
         },
         "light"
       )
@@ -5328,7 +7739,9 @@
           textColor: "#e7ebf1",
           cellTextColor: "#e7ebf1",
           chromeBackgroundColor: "#243044",
-          oddRowBackgroundColor: "rgba(255, 255, 255, 0.03)",
+          oddRowBackgroundColor: "#1a2332",
+          rowHoverColor: "#233348",
+          selectedRowBackgroundColor: "#2c4560",
         },
         "dark"
       );
@@ -5378,6 +7791,9 @@
       return;
     }
     scheduleRulesGridWidthFit(entry.api, entry.gridEl);
+    if (entry.api._nsmDatasourceState) {
+      syncRulesGroupedGridLayout(entry.api, entry.api._nsmDatasourceState);
+    }
     resetRulesRowHeights(entry.api, false);
     if (typeof entry.api.redrawRows === "function") {
       entry.api.redrawRows();

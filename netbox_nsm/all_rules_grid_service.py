@@ -18,6 +18,7 @@ from netbox_nsm.rulebook_rules_grid_payload import (
     build_filter_column_shorthand_names,
     build_rulebook_rules_grid_row,
     build_rulebook_rules_group_row_record,
+    normalize_filter_query_view,
 )
 from netbox_nsm.rulebook_rules_grid_service import (
     RULEBOOK_RULES_GRID_BLOCK_SIZE,
@@ -32,6 +33,7 @@ from netbox_nsm.rulebook_rules_grid_service import (
 from netbox_nsm.rulebook_rules_grouping import (
     GROUP_BY_NOT_ALLOWED_MESSAGE,
     GROUP_MODE_SET,
+    TABLE_DRAG_DISABLED_MESSAGE,
     UNGROUPED_GROUP_KEY,
     assign_rules_to_groups_for_union,
     build_rulebook_rules_group_options,
@@ -68,9 +70,9 @@ def all_rules_count() -> int:
 
 
 def _security_rules_rulebooks_qs():
-    return Rulebook.objects.filter(rulebook_type=RulebookTypeChoices.SECURITY_RULES).order_by(
-        "name"
-    )
+    return Rulebook.objects.filter(
+        rulebook_type=RulebookTypeChoices.SECURITY_RULES
+    ).order_by("name")
 
 
 def _all_rules_base_qs():
@@ -168,7 +170,9 @@ def resolve_rules_rulebook_scope(name: str) -> tuple[Rulebook | None, str | None
     text = (name or "").strip()
     if not text:
         return None, None
-    matches = list(_security_rules_rulebooks_qs().filter(name__iexact=text).order_by("pk")[:3])
+    matches = list(
+        _security_rules_rulebooks_qs().filter(name__iexact=text).order_by("pk")[:3]
+    )
     if not matches:
         return None, f"Unknown rulebook: {text}"
     if len(matches) > 1:
@@ -429,9 +433,7 @@ def _build_grouped_all_rules_page(
         int(rec["pk"]): rec
         for rec in _records_for_rules(page_rules, view_helpers, rb_maps, request)
     }
-    level_labels = [
-        group_by_field_label(level, rules_layout) for level in group_levels
-    ]
+    level_labels = [group_by_field_label(level, rules_layout) for level in group_levels]
 
     page: list[dict] = []
     for item in page_items:
@@ -578,8 +580,9 @@ def build_all_rules_grid_config(request, *, read_only: bool = False) -> dict:
         cfg["activeRulebookId"] = scoped_rulebook.pk
         cfg["activeRulebook"] = scoped_rulebook.name
     if filter_q_body:
-        cfg["activeFilterQ"] = filter_q_body
-        cfg["filterQuery"] = filter_q_body
+        normalized_filter_q = normalize_filter_query_view(filter_q_body)
+        cfg["activeFilterQ"] = normalized_filter_q
+        cfg["filterQuery"] = normalized_filter_q
     if filter_err:
         cfg["filterQueryError"] = filter_err
     cfg["groupByOptions"] = build_rulebook_rules_group_options(
@@ -587,6 +590,7 @@ def build_all_rules_grid_config(request, *, read_only: bool = False) -> dict:
         include_rulebook=True,
     )
     cfg["groupByNotAllowedMessage"] = str(GROUP_BY_NOT_ALLOWED_MESSAGE)
+    cfg["tableDragDisabledMessage"] = str(TABLE_DRAG_DISABLED_MESSAGE)
     group_by = parse_rulebook_rules_group_by(
         request,
         rules_layout=rules_layout,

@@ -19,7 +19,7 @@
 |---|---|---|
 | **First steps** | [Prerequisites](#prerequisites--first-start) → [Setup](#setup-wizard) | Plugin ready, COTs + TypeConfigs imported |
 | **Link inventory** | [Object Links](#nsm-object-links) → [Security Panel](#security-panel) → [TypeConfigs](#typeconfigs) | Prefixes, devices, VMs linked to zones; macro/micro zones |
-| **Document policy** | [Rulebooks](#security-rulebooks) → [Policy](#policy-views) → [IP Analysis](#ip-analysis) | Rules, matrix, cross-rulebook views |
+| **Document policy** | [Rulebooks](#security-rulebooks) → [Rules grid](#rules-grid) → [IP Analysis](#ip-analysis) | Rules, matrix, cross-rulebook views |
 | **Explore** | [Object Analyzer](#object-analyzer) | Graph walk-through from any NetBox object |
 | **Integrate** | [REST API](#rest-api-reference) · [Dev notes](#development-notes) | Automation and development |
 
@@ -57,8 +57,8 @@
    - [AND groups](#and-groups)
    - [Rule actions (enable, delete, reorder)](#rule-actions)
 8. [Policy views](#policy-views)
-   - [Policy table](#policy-table)
-   - [Zone matrix tab](#zone-matrix-tab)
+   - [Rules grid](#rules-grid)
+   - [Zone matrix](#zone-matrix)
    - [IP Analysis](#ip-analysis)
 9. [Object Analyzer](#object-analyzer)
 10. [REST API reference](#rest-api-reference)
@@ -544,11 +544,13 @@ On the **Assign Link** page (**+ Assign** from the panel), choose **Link type**:
 
 | Link type | Effect |
 |---|---|
-| **Direct (this object only)** | ObjectLink applies only to object A — typical for micro zones on an interface or a one-off label on an IP. |
-| **Inherit to IPAM children** | The link is stored on object A (usually a **prefix**) and **propagates downward** to sub-prefixes, IP addresses, and IP ranges within that prefix. |
-| **Inherit to group members** | Propagates to members of a group object (when object A is a group container). |
+| **Direct (bidirectional, visible on both sides)** | Stored on object A and shown on both A and B; **not propagated** to children — typical for micro zones on an interface or a one-off label on an IP. |
+| **Inherit to IPAM children (prefixes, addresses, ranges)** | The link is stored on object A (usually a **prefix**) and **propagates downward** to sub-prefixes, IP addresses, and IP ranges within that prefix. |
+| **Inherit to group members** | Propagates to members of a group or container object (when object A has group members). |
 
-![Assign Link — Link type Direct vs Inherit to IPAM children](img/17-assign-picker.png)
+![Assign Link — Link type dropdown with all propagation modes](img/17-assign-link-propagation-types.png)
+
+*Assign Link on prefix `10.245.58.0/24` — **Link type** dropdown lists all three propagation modes. All modes are always selectable; runtime inheritance depends on object structure (IPAM containment or group membership).*
 
 Example workflow for a **macro zone on a DC container**:
 
@@ -584,7 +586,7 @@ Two mechanisms prevent inherited links from cluttering the panel when a child is
 | Mechanism | Configuration | Behavior |
 |---|---|---|
 | **Stop when child has own link** | ObjectLink (**Assign Link**) or TypeConfig *Stop inheritance if own link present* | If the child already has a **direct** link of the **same NSM type**, inherited links of that type are hidden on the child. Use for a sub-prefix in a **different** zone than the parent. |
-| **Direct-only assignment** | **Direct (this object only)** on Assign Link | Child objects never receive this link via propagation — only object A shows it. |
+| **Direct-only assignment** | **Direct (bidirectional, visible on both sides)** on Assign Link | Child objects never receive this link via propagation — only object A shows it (plus reverse on object B). |
 
 Example: parent `10.0.0.0/8 → trust` (inherit). Child `10.2.0.0/16` gets **direct** zone
 `dmz` with *stop on own* → panel on `/16` shows only **`dmz`**, not `trust`. Sibling
@@ -671,7 +673,7 @@ current NetBox object; you choose NSM type and target on the right.
 |---|---|
 | **Object A (this object)** | The host you came from (prefix, IP, device, interface, VM, …) — read-only. |
 | **Type (Object B)** | NSM security type for the link — only types with **Linkable in panel** allowed in TypeConfig (zones, addresses, labels, custom types, …). |
-| **Link type** | **Direct (this object only)** — link applies only to this object. **Inherit to IPAM children** — sub-prefixes, IP addresses, and IP ranges under this prefix inherit the link (macro zone on parent prefix). |
+| **Link type** | **Direct (bidirectional, visible on both sides)** — link applies only to this object (no child propagation). **Inherit to IPAM children (prefixes, addresses, ranges)** — sub-prefixes, IP addresses, and IP ranges under this prefix inherit the link (macro zone on parent prefix). **Inherit to group members** — members of a group/container inherit the link. See [Creating an inheriting assignment](#creating-an-inheriting-assignment) for the dropdown screenshot. |
 | **Link** | Creates the ObjectLink; **Existing Links** on the right lists current assignments for object A. |
 
 After **Link**, go back via **Back** — the Security Panel shows the new entry under the
@@ -696,7 +698,7 @@ These views would further illustrate the Security Panel workflow:
 | `14-device-security-panel.png` | Device detail — inherited + direct zone links |
 | `13-ipaddress-nsm-panel.png` | IP Address — inherited badges from parent prefix |
 
-Existing assets: `07-zone-detail.png`, `12-prefix-security-panel.png`, `17-assign-picker.png`.
+Existing assets: `07-zone-detail.png`, `12-prefix-security-panel.png`, `17-assign-picker.png`, `17-assign-link-propagation-types.png`.
 
 ---
 ## TypeConfigs
@@ -855,7 +857,7 @@ It aggregates every rule from all policy rulebooks in a single cross-rulebook vi
 - **Description:** *Read-only view across all policy rulebooks.*
 
 Use for global search, filter, and analysis of rules without opening each rulebook individually.
-The Matrix tab is not available for All Rules.
+The zone matrix is not available for All Rules.
 
 #### Hierarchy (parent / container)
 
@@ -882,8 +884,7 @@ The detail page has several tabs:
 | Tab | Purpose |
 |---|---|
 | **Rulebook** | Metadata, field hierarchy (columns), security assignments |
-| **Rules** | Inline rule editor (one row per rule) |
-| **Matrix** | Zone matrix view — **only for normal rulebooks**, not the virtual **All Rules** entry |
+| **Rules** | Policy grid (AG Grid) with embedded zone matrix in the toolbar |
 | **Contacts** | NetBox contacts linked to this rulebook |
 | **Journal** | Journal entries |
 | **Changelog** | Audit history |
@@ -892,7 +893,7 @@ The detail page has several tabs:
 
 The screenshot shows **Enterprise - TrustSec Core** (`netbox_nsm.rulebook:3`) from the
 Enterprise DC demo: type **Security Rules**, status **Active**, parent **group1** (container
-in the rulebook hierarchy). Tabs: **Rulebook**, **Rules**, **Matrix**, **Contacts**,
+in the rulebook hierarchy). Tabs: **Rulebook**, **Rules**, **Contacts**,
 **Journal**, **Changelog**.
 
 A newly created rulebook has no custom fields and no rules yet. Add container and
@@ -969,7 +970,7 @@ Below the Fields card, the **Security** card links this rulebook to NetBox objec
 Rules can be created and edited in two places:
 
 1. **Full-page form** — **+ Add Rule** on the Rules tab (or **Edit** on the rule detail page)
-2. **Inline AG Grid** — click cells in the policy table to open the object picker (see [Policy table](#policy-table))
+2. **Inline AG Grid** — click cells in the policy table to open the object picker (see [Rules grid](#rules-grid))
 
 #### Add / Edit form
 
@@ -1056,37 +1057,129 @@ AND binds tighter than OR — `(A AND B) OR C` means "A and B together, or C alo
 
 ## Policy views
 
-### Policy table
+### Rules grid
 
-The **Rules** tab is the main policy editing surface. Rules are shown in an **AG Grid**
-table using **[AG Grid Community](https://www.ag-grid.com/)** (v **33.2.4**, MIT —
-bundled in the plugin; Enterprise edition is not used) — one row per rule, with container
-columns grouped under **SOURCE**, **DESTINATION**, **SERVICE**, and **ACTION** headers
-(matching the rulebook field layout).
+The **Rules** tab is the main policy editing and analysis surface. Rules are rendered in
+**[AG Grid Community](https://www.ag-grid.com/)** (v **33.2.4**, MIT — bundled in the plugin;
+Enterprise edition is not used). One row per rule; object columns follow the rulebook field
+layout under **SOURCE**, **DESTINATION**, **SERVICE**, and **ACTION** headers.
+
+The same grid supports three **view modes** — **Table**, **Group**, and **Matrix** — plus a
+shared filter query bar, drop zones, and an action rail. Use **Table** for everyday editing;
+**Group** to collapse rules by column values; **Matrix** for a source × destination heatmap
+(see [Zone matrix](#zone-matrix) for matrix-specific details).
+
+The virtual **All Rules** entry (`rulebook:0`) uses the same grid with an extra **Rulebook**
+column and scoped filter syntax. **Matrix** mode is not available for All Rules.
 
 ![Policy Rules — Enterprise - TrustSec Core](img/07-policy-rules.png)
 
-The screenshot shows **Enterprise - TrustSec Core** (`rulebook:3`) from the Enterprise DC
-demo: zone-based columns (**SOURCE Zones**, **DESTINATION Zones**, **SERVICE Services**,
-**ACTION Action**), **+ Add Rule**, and the filter/group toolbar above the grid.
+*Enterprise - TrustSec Core (`rulebook:3`): zone-based columns, filter query bar, view-mode
+selector (Table / Group / Matrix), and **+ Add Rule**.*
 
-#### Columns
+#### Toolbar layout
 
-| Column | Description |
+Two bars sit above the grid:
+
+| Bar | Contents |
 |---|---|
-| **Group** | Appears when row grouping is active — expand/collapse group headers with rule counts (e.g. `dev-2 (7)`). |
-| **Index** | Rule sort order within the rulebook. |
-| **Status** | On/Off toggle — enable or disable rule inline. |
-| **Name** | Rule name (system field). |
-| **SOURCE / DESTINATION / SERVICE / ACTION** | Object columns from the **Rulebook** tab. Each cell shows one or more **pills** (color-coded from the object's `color` field) or plain links for empty values. |
-| **Description** | Optional comment (last column before row actions). |
+| **Chrome bar** (top) | **Filter query** input with Apply, Clear filters, and Copy; **+ Add Rule**; **Delete selected** (when rows are checked); **Export CSV** |
+| **View bar** (below) | **Help** (`?`); **view-mode selector** (Table / Group / Matrix); mode-specific **drop zone**; **action rail** (right) |
 
-Pills are content-sized (not stretched to column width); long names are truncated with ellipsis.
-**DENY** / **PERMIT** action pills use red/green styling.
+Drag-and-drop is disabled in **Table** mode — switch to **Group** or **Matrix** first. The
+inline **Help** panel documents the same workflow (grouping steps, matrix axes, CSV export,
+`view()` syntax).
 
-#### Filter query bar
+**Export CSV** downloads the currently visible data — the flat rules list in Table or Group
+mode, or the active matrix when both row and column fields are set.
 
-Above the grid, the **filter query** input accepts shorthand across columns, e.g.:
+#### View modes
+
+| Mode | Drop zone | Grid layout | When to use |
+|---|---|---|---|
+| **Table** | Disabled (hint only) | Flat list — one row per rule | Default editing, filtering, bulk actions |
+| **Group** | Group drop zone | Nested group rows when columns are dropped; flat list until then | Summarize rules by zone, action, name, … |
+| **Matrix** | Matrix drop zone | Source × destination heatmap when Row + Column slots are filled | Zone (or matching object-type) policy overview |
+
+Switch modes with the **Table / Group / Matrix** buttons, or add `view(table)`,
+`view(group)`, or `view(matrix)` to the [filter query](#filter-query-and-view-directives)
+(combined with rule filters via **AND**). Only one `view()` directive is allowed per query.
+
+##### Table mode
+
+**Table** is the default. Every rule appears as a single row with inline editing (cell click
+opens the object picker), floating column filters, row checkboxes, and status toggles. No
+drop zone is active — the view bar shows a short hint to switch to Group or Matrix for
+drag-and-drop layout.
+
+##### Group mode
+
+Select **Group**, then drag one or two **column headers** from the grid into the **group
+drop zone** (not from a separate chip row). Each dropped column becomes a grouping level;
+active levels appear as **pills** in the drop zone:
+
+| Pill role | Level | Meaning |
+|---|---|---|
+| **Main group** | First column | Top-level group headers (e.g. all rules with the same **SOURCE Zones** value) |
+| **Subgroup** | Second column | Nested groups under the main group (maximum **two** levels total) |
+
+Pills show the role label plus the column name (e.g. *Main group · SOURCE Zones*). Remove a
+level with **×** on its pill, or drag pills to reorder levels. Grouped columns are hidden
+from the flat column area and drive a dedicated **Group** column with expand/collapse
+headers and rule counts (e.g. `dev-2 (7)`).
+
+When at least one grouping pill is set, the **action rail** shows **Expand all** and
+**Collapse all**. You can also expand or collapse individual group rows in the grid.
+Grouping state persists in the URL (`group_by`, `group_by_2`, expansion keys).
+
+`view(group)` selects Group mode in the toolbar. Without grouping pills, the grid stays a
+flat table but the group drop zone is enabled so you can drag columns in.
+
+![Policy Rules — Demo - Zone Matrix (Group view)](img/07-policy-rules-demo-group.png)
+
+*Starter demo (`rulebook:1`) — **Group** toolbar mode with `view(group)` and no grouping
+columns yet: flat rule rows, group drop zone ready.*
+
+##### Matrix mode
+
+Select **Matrix**, then drag two **matching object columns** (same ContentType — e.g.
+**SOURCE Zones** and **DESTINATION Zones**) into the matrix drop zone. The first drop fills
+the **Row** slot; the second fills **Column**. Pills are labeled **Row** and **Column** plus
+the field name. When both slots are set, the grid switches to the embedded heatmap.
+
+Matrix mode is rulebook-only (not All Rules). For cell colors, corner axis filters,
+directed/undirected traffic, axis limits, and walkthrough examples, see
+[Zone matrix](#zone-matrix).
+
+`view(matrix)` selects Matrix mode; the heatmap appears only when Row and Column fields are
+already configured (via drop zone or URL parameters `matrix_row` / `matrix_col`).
+
+#### Mutual exclusivity (Group vs Matrix)
+
+**Group** and **Matrix** layouts cannot be active at the same time:
+
+- Dropping a column into the **group** drop zone clears any matrix row/column configuration.
+- Setting matrix **Row** and **Column** fields clears grouping pills and nested group rows.
+- The toolbar shows **one** drop zone at a time — group drop zone in Group mode, matrix
+  drop zone in Matrix mode; Table mode disables both.
+
+Starting grouping while a matrix is configured (or vice versa) replaces the previous layout.
+
+#### Action rail
+
+The narrow control strip on the right of the view bar appears only when context actions apply:
+
+| Control | Visible when | Purpose |
+|---|---|---|
+| **Expand all / Collapse all** | Group mode **and** at least one grouping pill | Expand or collapse every nested group row |
+| **Directed / Undirected** | Matrix mode **and** both Row and Column fields active | **Directed:** separate **→** (row→column) and **←** lines per cell. **Undirected:** merge A↔B into one cell. |
+
+In **Table** mode, or in Group/Matrix mode before pills or matrix axes are configured, the
+action rail stays hidden.
+
+#### Filter query and view() directives
+
+The **filter query** input (chrome bar) accepts shorthand across columns, e.g.:
 
 ```text
 Name(server OR db) AND Source.Zones(dmz)
@@ -1098,13 +1191,38 @@ Name(server OR db) AND Source.Zones(dmz)
 - The query stays in sync with **floating filters** under each column header — edits in either place update the other.
 - On the virtual **All Rules** rulebook (`/rulebooks/0/rules/`), an optional rulebook scope prefix is supported (e.g. `"Enterprise - TrustSec Core": Name(…) AND …`).
 
-Deep links and matrix cell filters pass the same syntax via `?nsm_q=…` in the URL.
+Append a display-mode directive to the same query (one per query):
 
-#### Row grouping
+| Directive | Effect |
+|---|---|
+| `view(table)` | Flat rules grid (default); clears grouping and matrix layout |
+| `view(group)` | Group toolbar mode; nested rows when grouping pills / `group_by` params are set |
+| `view(matrix)` | Matrix toolbar mode; heatmap when Row and Column fields are set |
 
-Drag column headers into the **group drop zone** above the grid to group rules by full cell content
-(e.g. by **SOURCE Zones**). Up to **two** grouping levels; group pills in the toolbar show active levels. Expand/collapse all or click individual group rows.
-Grouping state is reflected in URL query parameters (`group_by`, `group_by_2`, expansion keys).
+Example deep link combining rule filter and matrix view:
+
+```text
+Destination.Zones(dmz OR mgmt) AND Source.Zones(dmz OR mgmt) AND view(matrix)
+```
+
+Changing the view-mode selector updates the query to include or remove the matching
+`view()` clause. Deep links and matrix cell navigation use the same syntax via `?nsm_q=…`
+(or `filter_q` where configured).
+
+#### Columns
+
+| Column | Description |
+|---|---|
+| **Group** | Appears when row grouping is active — expand/collapse group headers with rule counts (e.g. `dev-2 (7)`). |
+| **Index** | Rule sort order within the rulebook. |
+| **Status** | On/Off toggle — enable or disable rule inline. |
+| **Name** | Rule name (system field). |
+| **SOURCE / DESTINATION / SERVICE / ACTION** | Object columns from the **Rulebook** tab. Each cell shows one or more **pills** (color-coded from the object's `color` field) or plain links for empty values. |
+| **Description** | Optional comment (last column before row actions). |
+| **Rulebook** | All Rules only — which rulebook owns the row. |
+
+Pills are content-sized (not stretched to column width); long names are truncated with ellipsis.
+**DENY** / **PERMIT** action pills use red/green styling.
 
 #### Staged loading
 
@@ -1112,7 +1230,7 @@ Large rulebooks load in **staged steps** (10 → 20 → 40 → … rows) until t
 (limit 50,000 rules). Progress bar during fetch; status bar shows loaded
 vs. total rows. Floating filters and filter query bar operate on the loaded subset.
 
-#### Actions
+#### Row actions
 
 | Action | How |
 |---|---|
@@ -1122,42 +1240,200 @@ vs. total rows. Floating filters and filter query bar operate on the loaded subs
 | Bulk delete | Row checkboxes → **Delete selected** |
 | Reorder | Edit **Index** in rule row |
 
-The same AG Grid layout is used for the virtual **All Rules** entry (`rulebook:0`), with an
-additional **Rulebook** column and rulebook-specific filter syntax.
+### Zone matrix
 
-### Zone matrix tab
+The **Rules Matrix** renders zone (or other object) policy as a **source × destination**
+heatmap on the **Rules** tab — same **AG Grid Community** stack as the policy table (MIT,
+v 33.2.4). Rows are **Source** objects; columns are **Destination** objects. Each cell
+summarizes matching rules (Permit/Deny from the **Action** column) instead of listing every
+rule row.
 
-The **Matrix** tab renders policy as a **source zone × destination zone** grid using the same **AG Grid Community**
-stack (MIT, v 33.2.4) as the Rules tab.
-Available only for normal rulebooks — the virtual **All Rules** entry has no Matrix tab.
+Available only for normal rulebooks — the virtual **All Rules** entry has no matrix mode.
+Legacy bookmarks to `/rulebooks/<pk>/matrix/` redirect to the Rules tab.
+
+#### Example rulebook: Demo - Zone Matrix
+
+The **Starter demo** in Setup (Section 4) creates **Demo - Zone Matrix** with four zones
+(`dmz`, `mgmt`, `trust`, `untrust`) and six example rules. Use it to learn the matrix UI
+without the Enterprise DC dataset.
+
+| Step | Action |
+|---|---|
+| Create demo data | **Security → Setup → Demo → Starter demo** |
+| Open rulebook | **Security → Rulebooks → Demo - Zone Matrix → Rules** |
+| Browse rules | **Table** or **Group** view — see [Group mode](#group-mode) |
+| Switch to matrix | Click **Matrix** in the view-mode selector (Table / Group / Matrix) |
+| Set axes | Drag **Source / Zones** into the drop zone (Row), then **Destination / Zones** (Column) |
+| Deep link | Add `view(matrix)` to the filter query, e.g. `view(matrix)` |
+
+**Recommended doc walkthrough** — undirected mode, rule filter, and corner axis filters together:
+
+![Zone Matrix — Demo - Zone Matrix (undirected, dmz/mgmt subset)](img/09-zone-matrix-demo-undirected.png)
+
+*Demo rulebook from **Starter demo**. Regenerate with [`make_screenshots.py`](img/make_screenshots.py).*
+
+Why this view works well as a documentation example:
+
+| Aspect | What the screenshot shows |
+|---|---|
+| **Filtered subset** | Only zones whose names match `dmz` or `mgmt` appear on both axes — a readable 2×2 focus inside the full 4-zone rulebook. |
+| **Rule filter query** | The filter bar limits which rules load (`1 / 6 rows` in the status line). |
+| **Corner filters** | The top-left cell hosts separate **Source** and **Destination** axis filters (`dmz OR mgmt` on both). |
+| **Undirected merge** | **Undirected** in the action rail merges A↔B into one cell (e.g. **Deny** for dmz↔mgmt instead of separate → / ← lines). |
+
+**Filter query** (rule bar — combine with `view(matrix)` for a deep link):
+
+```text
+Destination.Zones(dmz OR mgmt) AND Source.Zones(dmz OR mgmt)
+```
+
+Only rules that touch `dmz` or `mgmt` on **both** source and destination are shown. Qualify
+`Source.Zones` / `Destination.Zones` when the same label appears in both columns (see
+[Filter query and view() directives](#filter-query-and-view-directives).
+
+**Corner axis filters** (matrix top-left — independent of the rule filter bar):
+
+```text
+dmz OR mgmt
+```
+
+Enter the same expression in both Source and Destination fields to limit rows and columns.
+Syntax: space-separated **OR** groups; **AND** / `&&` within a group (substring match,
+case-insensitive). See [Corner header](#corner-header-source--destination-filters).
+
+Toggle **Undirected** in the action rail or add `mode=undirected` to the URL. Persist axis
+filters via `src_q` and `dst_q` query parameters.
+
+```mermaid
+flowchart TB
+  subgraph toolbar ["Rules toolbar"]
+    VM["View mode: Matrix"]
+    DZ["Row: Source / Zones"]
+    CZ["Column: Destination / Zones"]
+    FQ["Filter: Destination.Zones(dmz OR mgmt) AND Source.Zones(dmz OR mgmt)"]
+  end
+  subgraph rail ["Action rail (right)"]
+    DIR["Undirected — A↔B merged"]
+  end
+  subgraph grid ["Matrix grid"]
+    CORNER["Corner filters: dmz OR mgmt"]
+    CELLS["Cells: Permit green · Deny red"]
+  end
+  VM --> grid
+  DZ --> grid
+  CZ --> grid
+  FQ --> VM
+  DIR --> CELLS
+  CORNER --> CELLS
+```
+
+**Full grid reference** — all four demo zones, `view(matrix)` (before axis subset filters):
+
+![Zone Matrix — Demo - Zone Matrix (full 4×4 grid)](img/09-zone-matrix-demo-directed.png)
+
+*Complete 4×4 heatmap for **Demo - Zone Matrix**. Corner axis filters show `dmz OR mgmt`; all zones
+remain on both axes. Compare with the filtered 2×2 undirected walkthrough below.*
+
+**Directed reference** — all six demo rules, forward **→** only (empty cells show **+**):
+
+| Rule | Source | Destination | Action |
+|---|---|---|---|
+| trust-to-untrust | trust | untrust | permit |
+| trust-to-dmz | trust | dmz | permit |
+| trust-to-mgmt | trust | mgmt | permit |
+| untrust-to-dmz | untrust | dmz | permit |
+| untrust-to-mgmt | untrust | mgmt | deny |
+| dmz-to-mgmt | dmz | mgmt | deny |
+
+| Source ↓ \ Dest → | dmz | mgmt | trust | untrust |
+|---|---|---|---|---|
+| **dmz** | ◆ | → deny | — | — |
+| **mgmt** | — | ◆ | — | — |
+| **trust** | → permit | → permit | ◆ | → permit |
+| **untrust** | → permit | → deny | — | ◆ |
+
+◆ = diagonal. **—** = no rule in that direction.
+
+For a large production-style rulebook, the same UI scales to many zones:
 
 ![Zone Matrix — Enterprise TrustSec Core](img/09-zone-matrix.png)
 
-**Object type** selects which matching class appears on both axes (typically **Zones**).
-**View** toggles between:
+#### Toolbar and view modes
+
+For the shared chrome bar (filter query, CSV export), view-mode selector, drop zones,
+mutual exclusivity between Group and Matrix, and the action rail, see
+[Rules grid](#rules-grid). The summary below focuses on matrix-specific behavior.
+
+Above the grid, the **view-mode selector** switches layout (Group and Matrix are mutually exclusive):
+
+| Mode | Drop zone | Result |
+|---|---|---|
+| **Table** | Disabled | Flat rules grid (default) |
+| **Group** | Drag up to two column headers | Nested group rows; expand/collapse in action rail |
+| **Matrix** | Drag two **matching** object columns (same ContentType) | Source × destination heatmap |
+
+Quick start: choose **Matrix**, drag **Source / Zones** (Row slot), then **Destination / Zones**
+(Column slot). Remove a slot with **×** on its pill. The **?** help button documents the same
+steps inline.
+
+Alternatively, set row/column fields once and persist them in the URL (`matrix_row`, `matrix_col`)
+or add **`view(matrix)`** to the filter query bar (combines with rule filters via **AND**).
+
+#### Action rail
+
+Matrix-specific controls on the right of the view bar (see also [Action rail](#action-rail)
+in Rules grid):
+
+| Control | Visible when | Purpose |
+|---|---|---|
+| **Directed / Undirected** | Matrix mode active | **Directed:** **→** (row→column) and **←** (column→row) in separate lines per cell. **Undirected:** bidirectional traffic merged (A↔B). |
+| **Expand all / Collapse all** | Group mode with grouping pills | Expand or collapse all grouped rows |
+
+In **Directed** mode, arrow labels use the rule **Action** (e.g. Permit, Deny); cell background
+uses the action object's color (green/red). Multiple rules in one direction show a count badge.
+
+#### Corner header (Source / Destination filters)
+
+The top-left **corner cell** labels the axes (**Source ↓** down the rows, **Destination →**
+across the columns) and hosts **axis filters** (see the [Demo walkthrough](#example-rulebook-demo---zone-matrix)):
+
+| Field | Filters |
+|---|---|
+| Source (rows) | Which source zones appear as rows |
+| Destination (columns) | Which destination zones appear as columns |
+
+Syntax: space-separated **OR** groups; within a group, **AND** / `&&` requires all terms to match
+(substring match on zone names, case-insensitive). Example: `dmz OR mgmt` limits both axes to zones
+whose name contains `dmz` or `mgmt`. Combine with AND: `prod AND test`.
+
+#### Cells and interactions
+
+| Element | Meaning |
+|---|---|
+| **Permit / Deny** label | Action from the matching rule(s) |
+| Green / red background | Action object color |
+| **+** | No rule for that direction — click to open a pre-filled **Add Rule** form |
+| **Gold border** | Diagonal — source zone equals destination zone |
+| Cell click (with rules) | Jump to **Table** view with filters for that source/destination pair |
+
+#### Directed vs undirected
 
 | Mode | Behavior |
 |---|---|
-| **Directed** | Each cell shows **→** (source→dest) and **←** (dest→source) separately. Arrow labels use the rule's **Action** (e.g. Permit, Deny); cell background uses the action object's color (green/red). |
+| **Directed** | Each cell shows **→** (source→dest) and **←** (dest→source) separately. |
 | **Undirected** | Traffic between A and B merged in one cell. |
 
-**Diagonal cells** (same zone on source and destination) have a **gold border** and show a
-**+** badge when no rule exists, or the combined action when rules are present.
+Toggle via the action rail or URL parameter `mode=undirected`.
 
-Click any cell to jump to matching rules in the Policy tab, or **+** for a pre-filled new rule.
-
-![Zone Matrix — corner filters (Demo)](img/09-matrix-filters.png)
-
-**Corner filters** in the top-left cell filter rows (Source ↓) and columns (Destination →).
-Syntax: space-separated **OR** groups; within a group, **AND** / `&&` requires all terms to match
-(substring match on zone names, case-insensitive). Example: `dmz OR mgmt` shows only rows/columns
-whose zone name contains `dmz` or `mgmt`. Combine with AND: `prod AND test`.
+#### Limits and best use
 
 **Axis limit:** Each axis shows at most **250** zones (`MATRIX_AXIS_MAX`). If a rulebook
-references more zones, a warning banner appears and only the first 250 source and/or destination zones are shown.
+references more zones, a warning banner appears and only the first 250 source and/or destination
+zones are shown.
 
 Works best for rulebooks with zone objects in Source and Destination fields (Palo Alto, Fortinet,
-Cisco ASA, Check Point, …). For address-based rulebooks, the matrix is less meaningful.
+Cisco ASA, Check Point, …). For address-based rulebooks, the matrix is less meaningful — see
+[KNOWN_ISSUES](../KNOWN_ISSUES.md).
 
 ### IP Analysis
 

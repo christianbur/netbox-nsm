@@ -165,6 +165,8 @@ urlpatterns = [
         include(get_model_urls("netbox_nsm", "rulebookassignment")),
     ),
     path("rules/search/", GlobalRulesSearchView.as_view(), name="global_rules_search"),
+    path("ip-analysis/", IPAnalysisView.as_view(), name="ip_analysis"),
+    path("api/ip-analysis/", IpAnalysisApiView.as_view(), name="ip_analysis_api"),
     path("object-analyzer/", ObjectAnalyzerView.as_view(), name="object_analyzer"),
     path(
         "api/rulebooks/<int:pk>/rules-grid/",
@@ -232,5 +234,25 @@ urlpatterns = [
         "object-link/<int:pk>/delete/",
         ObjectLinkDeleteView.as_view(),
         name="object_link_delete",
+    ),
+    path(
+        "panel-link/address-ipam-fk/<slug:slug>/clear/",
+        AddressIpamFkClearView.as_view(),
+        name="address_ipam_fk_clear",
+    ),
+    path(
+        "panel-link/address-ipam-fk/<slug:slug>/edit/",
+        AddressIpamFkEditView.as_view(),
+        name="address_ipam_fk_edit",
+    ),
+    path(
+        "panel-link/group-m2m/remove/",
+        GroupM2mRemoveView.as_view(),
+        name="group_m2m_remove",
+    ),
+    path(
+        "panel-link/group-m2m/edit/",
+        GroupM2mEditView.as_view(),
+        name="group_m2m_edit",
     ),
 ]

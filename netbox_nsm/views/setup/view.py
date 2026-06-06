@@ -52,10 +52,6 @@ class SetupView(LoginRequiredMixin, View):
             "can_import_cots": co_ready and not cots_ok,
             "can_create_typeconfigs": cots_ok and not tcs_ok,
             "can_run_demo": tcs_ok and setup_allow_destructive_actions(),
-            "enterprise_demo_blocked": IPAddress.objects.exists(),
-            "can_run_enterprise_demo": tcs_ok
-            and setup_allow_destructive_actions()
-            and not IPAddress.objects.exists(),
             "setup_allow_destructive_actions": setup_allow_destructive_actions(),
             "ui_settings": ui_settings.get_ui_settings(),
         }
@@ -116,7 +112,7 @@ class SetupView(LoginRequiredMixin, View):
                     _("Complete section 3 (TypeConfig) before running demos."),
                 )
                 return redirect(reverse("plugins:netbox_nsm:setup"))
-            if action == "create_demo_enterprise" and ctx["enterprise_demo_blocked"]:
+            if action == "create_demo_enterprise" and IPAddress.objects.exists():
                 messages.error(
                     request,
                     _("Enterprise demo requires an empty IP address database."),
@@ -133,7 +129,9 @@ class SetupView(LoginRequiredMixin, View):
             if demo.handles_action(action):
                 return demo.handle_demo_action(request, action)
             if action:
-                messages.warning(request, _("Unknown action: %(action)s") % {"action": action})
+                messages.warning(
+                    request, _("Unknown action: %(action)s") % {"action": action}
+                )
         except Exception as exc:
             messages.error(request, _("Error: %(error)s") % {"error": exc})
 

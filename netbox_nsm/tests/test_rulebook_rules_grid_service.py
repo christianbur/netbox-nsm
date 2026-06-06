@@ -183,7 +183,9 @@ class PolicyGridServiceTests(SimpleTestCase):
         self.assertNotIn("_groupLabel", rule)
 
     def test_build_group_column_def(self):
-        from netbox_nsm.rulebook_rules_grid_payload import build_rulebook_rules_group_column_def
+        from netbox_nsm.rulebook_rules_grid_payload import (
+            build_rulebook_rules_group_column_def,
+        )
 
         col = build_rulebook_rules_group_column_def()
         self.assertEqual(col["colId"], "_group")

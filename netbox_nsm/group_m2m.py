@@ -27,6 +27,8 @@ class GroupM2mRelation:
     related: object
     label: str
     via: str | None = None
+    remove_group: object | None = None
+    remove_member: object | None = None
 
 
 def group_m2m_panel_type_key(base_type_key: str, label: str) -> str:
@@ -61,7 +63,12 @@ def iter_group_m2m_relations(obj):
     try:
         parents = list(Model.objects.filter(group=obj).order_by("name"))
         for parent in parents:
-            yield GroupM2mRelation(parent, GROUP_M2M_LABEL_MEMBER_OF)
+            yield GroupM2mRelation(
+                parent,
+                GROUP_M2M_LABEL_MEMBER_OF,
+                remove_group=parent,
+                remove_member=obj,
+            )
     except Exception:
         pass
 
@@ -72,7 +79,12 @@ def iter_group_m2m_relations(obj):
             if member.pk in seen_member_pks:
                 continue
             seen_member_pks.add(member.pk)
-            yield GroupM2mRelation(member, GROUP_M2M_LABEL_MEMBER)
+            yield GroupM2mRelation(
+                member,
+                GROUP_M2M_LABEL_MEMBER,
+                remove_group=obj,
+                remove_member=member,
+            )
     except Exception:
         pass
 
@@ -87,6 +99,8 @@ def iter_group_m2m_relations(obj):
                     peer,
                     GROUP_M2M_LABEL_MEMBER,
                     via=str(parent),
+                    remove_group=parent,
+                    remove_member=peer,
                 )
     except Exception:
         pass

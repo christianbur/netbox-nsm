@@ -90,6 +90,9 @@
           <div class="mb-3">
             <label for="id_propagation" class="form-label fw-semibold">{% trans "Link type" %}</label>
             {{ form.propagation }}
+            {% if form.propagation.help_text %}
+              <div class="form-text text-muted small">{{ form.propagation.help_text }}</div>
+            {% endif %}
             {% if form.propagation.errors %}
               <div class="invalid-feedback d-block">{{ form.propagation.errors|join:", " }}</div>
             {% endif %}
@@ -373,6 +376,12 @@
   if (typeSelect.value) {
     currentCtId = typeSelect.value;
     pickerWrap.style.display = '';
+  }
+
+  var prefillId = '{{ prefill_object_b_id|default:""|escapejs }}';
+  var prefillDisplay = '{{ prefill_object_b_display|default:""|escapejs }}';
+  if (prefillId && prefillDisplay) {
+    selectItem(prefillId, prefillDisplay);
   }
 
   var propagationSelect = document.getElementById('id_propagation');

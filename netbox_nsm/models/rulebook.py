@@ -360,6 +360,7 @@ class Rule(ContactsMixin, PrimaryModel):
         related_name="%(class)s_destination_users",
     )
     log_enabled = models.BooleanField(default=False)
+    virtual_group_config = models.JSONField(default=dict, blank=True)
 
     class Meta:
         verbose_name = _("Security Rule")

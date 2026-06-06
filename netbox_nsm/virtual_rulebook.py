@@ -74,9 +74,7 @@ class VirtualAllRulesRulebook:
     id = VIRTUAL_ALL_RULES_PK
 
     def __init__(self, *, rule_count: int | None = None):
-        self.rule_count = (
-            rule_count if rule_count is not None else all_rules_count()
-        )
+        self.rule_count = rule_count if rule_count is not None else all_rules_count()
         self.name = str(_("All Rules"))
         self.status = "virtual"
         self.parent = None

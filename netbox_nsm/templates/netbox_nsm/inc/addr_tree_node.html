@@ -1,7 +1,8 @@
 {% load i18n %}
 {% comment %}
 Renders one node of the address tree.
-  node  = { name, url, kind: 'group'|'leaf', ip_ref: {str,url}|None, children: [...] }
+  node  = { name, url, kind: 'group'|'leaf', ip_ref: {str,url}|None,
+            netmask_tooltip: dotted-decimal netmask for IPv4 prefixes, children: [...] }
   depth = current nesting depth (0 = top-level)
   prefix = 'src' or 'dst'  (for unique HTML IDs)
   forloop_counter = parent forloop.counter (for unique IDs)
@@ -35,9 +36,15 @@ Renders one node of the address tree.
 {% else %}
   {# Leaf node #}
   <div class="nsm-addr-leaf">
-    <a href="{{ node.url }}" class="nsm-addr-obj-link">{{ node.name }}</a>
+    <a href="{{ node.url }}" class="nsm-addr-obj-link">
+      {% if node.prefix_display_cidr and not node.ip_ref %}
+      <span class="nsm-addr-prefix-text" data-cidr="{{ node.prefix_display_cidr }}" data-netmask="{{ node.prefix_display_netmask }}">{{ node.prefix_display_cidr }}</span>
+      {% else %}
+      {{ node.name }}
+      {% endif %}
+    </a>
     {% if node.ip_ref %}
-      <span class="nsm-addr-ip">→ <a href="{{ node.ip_ref.url }}" class="text-muted">{{ node.ip_ref.str }}</a></span>
+      <span class="nsm-addr-ip">→ <a href="{{ node.ip_ref.url }}" class="text-muted">{% if node.prefix_display_cidr %}<span class="nsm-addr-prefix-text" data-cidr="{{ node.prefix_display_cidr }}" data-netmask="{{ node.prefix_display_netmask }}">{{ node.prefix_display_cidr }}</span>{% else %}{{ node.ip_ref.str }}{% endif %}</a></span>
     {% endif %}
     {% if show_copy and node.copy_lines %}
     <button type="button" class="btn btn-sm btn-ghost-secondary py-0 px-1 ms-auto" title="{% trans 'Copy CSV paths' %}"

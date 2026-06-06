@@ -58,6 +58,9 @@ class RulebookSerializer(PrimaryModelSerializer):
     def validate(self, attrs):
         from netbox_nsm.rulebook_hierarchy import validate_parent_choice
 
+        if isinstance(attrs, Rulebook):
+            return attrs
+
         attrs = super().validate(attrs)
         parent = attrs.get("parent")
         if "parent" in attrs:

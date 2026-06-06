@@ -179,7 +179,7 @@ def _sync_type_configs_and_sections(builtin_types):
                 ),
                 "order_id": int((spec or typedef).get("order_id", 100) or 100),
                 "panel_slugs": panel_slugs,
-                "panel_linkable": (spec or {}).get("panel_linkable", True),
+                "panel_linkable_types": (spec or {}).get("panel_linkable_types", []),
             },
         )
         configs_touched += 1

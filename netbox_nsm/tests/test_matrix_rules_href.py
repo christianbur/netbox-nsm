@@ -27,8 +27,8 @@ class MatrixRulesHrefTests(SimpleTestCase):
         nsm_q = unquote(qs["nsm_q"][0])
         self.assertIn("PROD:dmz", nsm_q)
         self.assertIn("LAN:app", nsm_q)
-        self.assertIn("Source.Zones(PROD:dmz)", nsm_q)
-        self.assertIn("Destination.Zones(LAN:app)", nsm_q)
+        self.assertIn('Source.Zones.name == "PROD:dmz"', nsm_q)
+        self.assertIn('Destination.Zones.name == "LAN:app"', nsm_q)
 
     def test_href_appends_nsm_q_with_ampersand_when_base_has_query(self):
         zone_a = SimpleNamespace(name="dmz")

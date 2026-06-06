@@ -8,6 +8,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
 
 from netbox_nsm.models import RulebookFieldType, TypeConfig
+from netbox_nsm.matrix_axis_filter import filter_objects_by_axis_query
 from netbox_nsm.matrix_grid_payload import MATRIX_AXIS_MAX, matrix_zone_display_label
 from netbox_nsm.display_utils import get_display_template_map
 from netbox_nsm.branch_urls import with_branch_query, wrap_matrix_cell_hrefs
@@ -142,6 +143,11 @@ def build_matrix_tab_context(
 
     all_zones = sorted(used_zones_by_pk.values(), key=lambda z: zone_label(z).lower())
     zone_labels = {z.pk: zone_label(z) for z in all_zones}
+
+    if client_axis_filters:
+        src_q = request.GET.get("src_q", "").strip()
+        if src_q:
+            all_zones = filter_objects_by_axis_query(all_zones, src_q, zone_label)
 
     src_filter_pks = set()
     dst_filter_pks = set()

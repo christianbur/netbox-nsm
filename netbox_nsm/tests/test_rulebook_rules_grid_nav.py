@@ -4,7 +4,10 @@ from pathlib import Path
 import unittest
 
 _JS_PATH = (
-    Path(__file__).resolve().parents[1] / "plugin_assets" / "js" / "rulebook_rules_grid.js"
+    Path(__file__).resolve().parents[1]
+    / "plugin_assets"
+    / "js"
+    / "rulebook_rules_grid.js"
 )
 
 
@@ -140,8 +143,21 @@ class RulebookRulesGridNavTests(unittest.TestCase):
     def test_grouped_fetch_respects_server_last_row(self):
         fn = self.js_source.split("function resolveRulesLoadEndRow(", 1)[1]
         fn = fn.split("function rulesFetchPageExhausted(", 1)[0]
-        self.assertNotIn("if (state && state.groupByEnabled)", fn)
+        self.assertIn("if (state && state.groupByEnabled)", fn)
         self.assertIn("state.knownTotalRows", fn)
+        self.assertIn("return hardLimit", fn)
+
+    def test_grouped_expand_refreshes_grid_height(self):
+        self.assertIn("function refreshRulesGroupedGridHeight(", self.js_source)
+        toggle_block = self.js_source.split('toggle.addEventListener("click"', 1)[1]
+        toggle_block = toggle_block.split("wrap.appendChild(toggle);", 1)[0]
+        self.assertIn("refreshRulesGroupedGridHeight(params.api, state)", toggle_block)
+
+    def test_grouped_max_loadable_uses_display_total(self):
+        fn = self.js_source.split("function resolveRulesMaxLoadableRows(", 1)[1]
+        fn = fn.split("function canLoadMoreRulesRows(", 1)[0]
+        self.assertIn("state.groupByEnabled", fn)
+        self.assertIn("displayTotal", fn)
 
     def test_grouped_initial_load_uses_single_fetch_when_collapsed(self):
         fn = self.js_source.split("function loadRulesClientRows(", 1)[1]
@@ -174,7 +190,6 @@ class RulebookRulesGridNavTests(unittest.TestCase):
         perf_block = self.js_source.split("var RULES_GRID_PERF_OPTIONS = {", 1)[1]
         perf_block = perf_block.split("};", 1)[0]
         self.assertIn("rowBuffer: RULES_GRID_ROW_BUFFER", perf_block)
-        self.assertIn("suppressRowHoverHighlight: true", perf_block)
         self.assertIn("var RULES_GRID_ROW_BUFFER = 5;", self.js_source)
 
     def test_get_row_height_uses_variable_object_cell_height(self):
@@ -206,15 +221,11 @@ class RulebookRulesGridNavTests(unittest.TestCase):
         self.assertIn("enableFloatingFilters: false", rules_block)
         self.assertIn("enableColumnFilters: true", rules_block)
         self.assertIn("enableRulesFloatingFilters(params.api)", rules_block)
-        self.assertNotIn(
-            "scheduleEnableRulesFloatingFilters(params.api)", rules_block
-        )
+        self.assertNotIn("scheduleEnableRulesFloatingFilters(params.api)", rules_block)
         self.assertIn("enableFloatingFilters: false", all_rules_block)
         self.assertIn("enableColumnFilters: true", all_rules_block)
         self.assertIn("enableRulesFloatingFilters(params.api)", all_rules_block)
-        self.assertIn(
-            "scheduleEnableRulesFloatingFilters(params.api)", all_rules_block
-        )
+        self.assertIn("scheduleEnableRulesFloatingFilters(params.api)", all_rules_block)
         self.assertNotIn(
             "filter: false,\n        floatingFilter: false", all_rules_block
         )
@@ -319,9 +330,7 @@ class RulebookRulesGridNavTests(unittest.TestCase):
         self.assertIn(
             "api.autoSizeColumns({ colIds: colIds, skipHeader: false })", self.js_source
         )
-        self.assertIn(
-            "scheduleAutoSizeRulesContentColumns(api, state)", self.js_source
-        )
+        self.assertIn("scheduleAutoSizeRulesContentColumns(api, state)", self.js_source)
 
     def test_object_cell_list_does_not_force_full_width(self):
         fn = self.js_source.split("function buildObjectCellDom(", 1)[1]

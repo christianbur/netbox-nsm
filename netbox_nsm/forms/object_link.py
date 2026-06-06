@@ -1,7 +1,6 @@
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
-from netbox_nsm.link_propagation import propagation_choices_for_object
 from netbox_nsm.models import TypeConfig
 from netbox_nsm.models.object_link import LinkPropagationChoices
 
@@ -15,6 +14,11 @@ class ObjectLinkPropagationForm(forms.Form):
         label=_("Link type"),
         choices=LinkPropagationChoices.choices,
         initial=LinkPropagationChoices.DIRECT,
+        help_text=_(
+            "Direct: stored on object A and shown on both A and B; not propagated "
+            "to children. Inherit modes also show the link on child objects in "
+            "their Security Panel (IPAM children or group members, when applicable)."
+        ),
         widget=forms.Select(attrs={"class": "form-select", "id": "id_propagation"}),
     )
     propagate_stop_on_own = forms.BooleanField(
@@ -28,36 +32,32 @@ class ObjectLinkPropagationForm(forms.Form):
 
     def _configure_propagation_fields(self, source_object):
         self.source_object = source_object
-        if source_object is not None:
-            self.fields["propagation"].choices = propagation_choices_for_object(
-                source_object
-            )
-        if self.fields["propagation"].choices == [
-            (LinkPropagationChoices.DIRECT, LinkPropagationChoices.DIRECT.label)
-        ]:
-            self.fields["propagate_stop_on_own"].widget = forms.HiddenInput()
+        self.fields["propagation"].choices = LinkPropagationChoices.choices
 
     def _clean_propagation_fields(self, data):
         propagation = data.get("propagation") or LinkPropagationChoices.DIRECT
-        if getattr(self, "source_object", None) is not None:
-            allowed_modes = {
-                value
-                for value, _label in propagation_choices_for_object(self.source_object)
-            }
-            if propagation not in allowed_modes:
-                self.add_error("propagation", _("Invalid link type for this object."))
+        allowed_modes = {value for value, _label in LinkPropagationChoices.choices}
+        if propagation not in allowed_modes:
+            self.add_error("propagation", _("Invalid link type."))
         if propagation == LinkPropagationChoices.DIRECT:
             data["propagate_stop_on_own"] = False
         return data
 
 
-def _build_type_choices():
+def _build_type_choices(source_content_type_id=None):
     """NSM types assignable as Object B in the Security Panel assign picker."""
-    configs = list(
-        TypeConfig.queryset_panel_linkable()
-        .select_related("content_type")
-        .order_by("name", "matching_class")
-    )
+    if source_content_type_id is not None:
+        configs = list(
+            TypeConfig.queryset_assignable_from(int(source_content_type_id))
+            .select_related("content_type")
+            .order_by("name", "matching_class")
+        )
+    else:
+        configs = list(
+            TypeConfig.queryset_panel_linkable()
+            .select_related("content_type")
+            .order_by("name", "matching_class")
+        )
 
     choices = [("", _("── Select type ──"))]
     for cfg in configs:
@@ -117,8 +117,28 @@ class ObjectLinkAssignForm(ObjectLinkPropagationForm):
 
     def __init__(self, *args, source_object=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["object_b_type"].choices = _build_type_choices()
+        source_ct_id = self._resolve_source_content_type_id(
+            source_object,
+            data=self.data if self.is_bound else None,
+            initial=self.initial,
+        )
+        self.fields["object_b_type"].choices = _build_type_choices(source_ct_id)
         self._configure_propagation_fields(source_object)
+
+    @staticmethod
+    def _resolve_source_content_type_id(source_object, data=None, initial=None):
+        if source_object is not None:
+            from django.contrib.contenttypes.models import ContentType
+
+            return ContentType.objects.get_for_model(source_object).pk
+        for source in (data or {}, initial or {}):
+            raw = source.get("object_a_type_id")
+            if raw not in (None, ""):
+                try:
+                    return int(raw)
+                except (TypeError, ValueError):
+                    pass
+        return None
 
     def clean(self):
         data = super().clean()
@@ -127,10 +147,21 @@ class ObjectLinkAssignForm(ObjectLinkPropagationForm):
             self.add_error("object_b_type", _("Please select a type."))
             return data
 
-        if not TypeConfig.objects.filter(
-            content_type_id=int(ct_pk),
-            panel_linkable=True,
-        ).exists():
+        object_a_type_id = data.get("object_a_type_id")
+        if object_a_type_id is None:
+            self.add_error(
+                "object_b_type",
+                _("This type is not linkable from the Security Panel."),
+            )
+            return data
+
+        if (
+            not TypeConfig.queryset_assignable_from(int(object_a_type_id))
+            .filter(
+                content_type_id=int(ct_pk),
+            )
+            .exists()
+        ):
             self.add_error(
                 "object_b_type",
                 _("This type is not linkable from the Security Panel."),

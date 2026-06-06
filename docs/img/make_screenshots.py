@@ -5,13 +5,18 @@ Alle Funktionen — vollständige Abdeckung aller Plugin-Seiten.
 Konfigurierte Object-IDs (Stand: 2026-06):
   typeconfig_pk  = 5
   rulebook_zone  = 4   (TrustSec Infra — zone-based, 11 rules, gute Feldstruktur)
-  rulebook_big   = 3   (TrustSec Core — 48 rules, für Policy/Analysis)
-  rulebook_addr  = 6   (fw-dc-inter-zone — address+zone, für IP-Analysis)
-  rulebook_demo  = 1   (Demo Zone Matrix — 6 rules, für Zone-Matrix)
+  rulebook_big   = 3   (TrustSec Core — 48 rules, für Policy Rules)
+  rulebook_addr  = 6   (fw-dc-inter-zone — address+zone)
+  rulebook_demo  = 1   (Demo Zone Matrix — 6 rules, für Matrix-Filter-Demo)
+  rulebook_demo_addr = 2  (Demo - Addresses — Starter-Demo, address-based)
+  addr_ct_id     = 234  (nsm_addresses ContentType — Enterprise DC demo)
+  addr_g4_pk     = 103  (address group g4)
+  addr_g3_pk     = 102  (address group g3)
   rule_rich      = 13  (prod-to-integration-1, meiste Objekte)
-  prefix_pk      = 6   (10.1.0.0/16 — hat NSM-Link)
+  prefix_pk      = 6   (10.1.0.0/16 — prod direct, trust inherited from 10.0.0.0/8)
   ip_pk          = 501 (10.0.0.10/24)
   device_pk      = 29  (HV-DEV2-01 — hat NSM-Link)
+  zone_pk        = 1   (prod — Security Panel mit Rulebooks, Prefix, VMs)
   pfx_ct_id      = 95
 """
 
@@ -27,17 +32,18 @@ RB_ZONE     = 4
 RB_BIG      = 3
 RB_ADDR     = 6
 RB_DEMO     = 1
+RB_DEMO_ADDR = 2
+ADDR_CT_ID  = 234
+ADDR_G4_PK  = 103
+ADDR_G3_PK  = 102
 RULE_PK     = 13
 PREFIX_PK   = 6
 IP_PK       = 501
 DEVICE_PK   = 29
+ZONE_PK     = 1
 PFX_CT_ID   = 95
+VM_NAME     = "app-01-test-1"   # Enterprise DC demo — zone test-1
 # ─────────────────────────────────────────────────────────────────────────────
-
-IP_ANALYSIS = (
-    f"?ip_ct={PFX_CT_ID}&ip_pk={PREFIX_PK}&ip_name=10.1.0.0%2F16"
-    f"&ip_ct_b={PFX_CT_ID}&ip_pk_b={PREFIX_PK}&ip_name_b=10.1.0.0%2F16"
-)
 
 PAGES = [
     # ── Navigation & Konfiguration ──────────────────────────────────────────
@@ -47,7 +53,7 @@ PAGES = [
 
     ("01-setup.png",
      f"{BASE}/plugins/netbox-nsm/setup/",
-     "Setup-Wizard"),
+     "Setup — 4 Sections (Menu, COTs, TypeConfig, Demo)"),
 
     ("02-type-config-list.png",
      f"{BASE}/plugins/netbox-nsm/type-config/",
@@ -70,48 +76,51 @@ PAGES = [
      f"{BASE}/plugins/custom-objects/nsm_zones/",
      "nsm_zones — Zonen-Liste"),
 
-    ("07-object-group-detail.png",
-     f"{BASE}/plugins/custom-objects/nsm_zones/1/",
-     "nsm_zones — Zonen-Detail"),
+    ("07-zone-detail.png",
+     f"{BASE}/plugins/custom-objects/nsm_zones/{ZONE_PK}/",
+     "nsm_zones — Zonen-Detail (prod) mit Security Panel"),
 
     ("08-builtin-types.png",
      f"{BASE}/plugins/custom-objects/custom-object-types/",
      "Custom Object Types — Übersicht aller Built-in Types"),
 
-    ("09-yaml-bundle.png",
-     f"{BASE}/plugins/netbox-nsm/setup/",
-     "Setup — Schema-Bundle / YAML-Import"),
-
     # ── Security Policies ───────────────────────────────────────────────────
     ("05-rulebook-list.png",
      f"{BASE}/plugins/netbox-nsm/rulebooks/",
-     "Rulebook-Liste"),
+     "Rulebook-Liste — All Rules (read-only), Hierarchie, Spalten"),
 
     ("06-rulebook-detail.png",
-     f"{BASE}/plugins/netbox-nsm/rulebooks/{RB_ZONE}/",
-     "Rulebook-Detail — Felder & Konfiguration"),
+     f"{BASE}/plugins/netbox-nsm/rulebooks/{RB_BIG}/",
+     "Rulebook-Detail — Enterprise - TrustSec Core, Fields-Hierarchie"),
 
     ("07-policy-rules.png",
-     f"{BASE}/plugins/netbox-nsm/rulebooks/{RB_BIG}/rules/",
-     "Rules-Tab — Regeln mit farbigen Pills"),
-
-    ("08-policy-analysis.png",
-     f"{BASE}/plugins/netbox-nsm/rulebooks/{RB_BIG}/analysis/",
-     "Analysis-Tab — Statistiken"),
+     f"{BASE}/plugins/netbox-nsm/rulebooks/{RB_BIG}/rules/"
+     "?group_by=col:Source::Zones&nsm_q=Name(server+OR+db)+AND+Source.Zones(dmz)",
+     "Rules-Tab — AG Grid, Gruppierung Source.Zones, Filter-Query, Pills"),
 
     ("09-zone-matrix.png",
-     f"{BASE}/plugins/netbox-nsm/rulebooks/{RB_DEMO}/matrix/",
-     "Matrix-Tab (AG Grid)"),
+     f"{BASE}/plugins/netbox-nsm/rulebooks/{RB_BIG}/matrix/",
+     "Matrix-Tab — Enterprise TrustSec Core (AG Grid)"),
 
-    ("10-ip-analysis.png",
-     f"{BASE}/plugins/netbox-nsm/rulebooks/{RB_ADDR}/ipanalysis/{IP_ANALYSIS}",
-     "IP-Analysis — Copy & CSV-Export"),
+    ("09-matrix-filters.png",
+     f"{BASE}/plugins/netbox-nsm/rulebooks/{RB_DEMO}/matrix/",
+     "Matrix-Tab — Demo Zone Matrix mit Eck-Filtern"),
 
     ("10-security-policy-address.png",
      f"{BASE}/plugins/netbox-nsm/rulebooks/{RB_ADDR}/rules/",
      "Rules mit Address-Objekten"),
 
-    # ── Security Rule Detail ────────────────────────────────────────────────
+    ("10-ip-analysis.png",
+     f"{BASE}/plugins/netbox-nsm/rulebooks/{RB_ZONE}/ipanalysis/"
+     f"?ip_ct={ADDR_CT_ID}&ip_pk={ADDR_G4_PK}&ip_name=g4"
+     f"&ip2_ct={ADDR_CT_ID}&ip2_pk={ADDR_G3_PK}&ip2_name=g3",
+     "IP Analysis — TrustSec Infra, g4 vs g3, CSV copy paths"),
+
+    # ── Security Rule Add / Detail ──────────────────────────────────────────
+    ("11-rule-add.png",
+     f"{BASE}/plugins/netbox-nsm/rules/add/?rulebook={RB_DEMO_ADDR}",
+     "Add Security Rule — Demo - Addresses, Objects tabs, Type/Elements picker"),
+
     ("11-security-rule-detail.png",
      f"{BASE}/plugins/netbox-nsm/rules/{RULE_PK}/",
      "Security Rule Detail — Source/Dest Trees, CSV-Export"),
@@ -119,24 +128,17 @@ PAGES = [
     # ── Object Analyzer ─────────────────────────────────────────────────────
     ("11-object-analyzer.png",
      f"{BASE}/plugins/netbox-nsm/object-analyzer/",
-     "Object Analyzer — leer"),
+     f"Object Analyzer — VM {VM_NAME}, Links/Zone/Rulebooks (interaktiv)"),
 
     # ── Security Panel auf IPAM/DCIM-Objekten ───────────────────────────────
-    ("12-prefix-nsm-panel.png",
+    # Prefix 10.1.0.0/16 (PK 6): prod (direct zone + address FK), trust (inherited from 10.0.0.0/8)
+    ("12-prefix-security-panel.png",
      f"{BASE}/ipam/prefixes/{PREFIX_PK}/",
-     "Prefix — Security Panel"),
-
-    ("12b-prefix-security-linked.png",
-     f"{BASE}/ipam/prefixes/{PREFIX_PK}/",
-     "Prefix — Security Panel mit Link"),
-
-    ("14-prefix-security-panel-filled.png",
-     f"{BASE}/ipam/prefixes/{PREFIX_PK}/",
-     "Prefix — Security Panel gefüllt"),
+     "Prefix 10.1.0.0/16 — Security Panel (direct + inherited)"),
 
     ("15-prefix-security-tab.png",
      f"{BASE}/ipam/prefixes/{PREFIX_PK}/",
-     "Prefix — Security-Tab mit Links"),
+     "Prefix 10.1.0.0/16 — Security-Tab (gleiches Bild wie 12-prefix-security-panel)"),
 
     ("13-ipaddress-nsm-panel.png",
      f"{BASE}/ipam/ip-addresses/{IP_PK}/",
@@ -170,13 +172,45 @@ def login(page):
     print("  [login] OK")
 
 
+def _capture_object_analyzer(page, vm_name):
+    """Search VM, run Analyse, expand prefix + zone for the doc screenshot."""
+    page.goto(f"{BASE}/plugins/netbox-nsm/object-analyzer/")
+    page.wait_for_load_state("networkidle")
+    page.fill("#nsm-oa-search", vm_name)
+    time.sleep(1.2)
+    item = page.query_selector(".nsm-oa-drop-item")
+    if item:
+        item.click()
+        time.sleep(0.4)
+    page.click("button[type=submit].btn-primary")
+    page.wait_for_selector(".react-flow__node", timeout=15000)
+    time.sleep(1.5)
+    # Expand prefix (interfaces/label) and zone (rulebooks) if visible
+    for label in ("10.0.1.0/24", "test-1"):
+        node = page.query_selector(f".react-flow__node:has-text('{label}')")
+        if node:
+            node.click()
+            time.sleep(0.8)
+    zone_grp = page.query_selector(".react-flow__node:has-text('Zone ·')")
+    if zone_grp:
+        zone_grp.click()
+        time.sleep(0.6)
+    rb = page.query_selector(".react-flow__node:has-text('Rulebook')")
+    if rb:
+        rb.click()
+        time.sleep(0.6)
+
+
 def screenshot(page, filename, url, description=""):
     if not url:
         print(f"  [{filename}] SKIP (no URL)")
         return
     print(f"  [{filename}] {description}")
-    page.goto(url)
-    page.wait_for_load_state("networkidle")
+    if filename == "11-object-analyzer.png":
+        _capture_object_analyzer(page, VM_NAME)
+    else:
+        page.goto(url)
+        page.wait_for_load_state("networkidle")
     time.sleep(0.8)
     # Aufklappen von Navigation-Accordion falls nötig (Security-Menü)
     try:

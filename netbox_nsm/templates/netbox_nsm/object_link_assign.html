@@ -6,7 +6,7 @@
 
 {% block head %}
 {{ block.super }}
-<link rel="stylesheet" href="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='css/nsm_lazy_picker.css' %}?v=20260610">
+<link rel="stylesheet" href="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='css/nsm_lazy_picker.css' %}?v=20260611">
 {% endblock head %}
 
 {% block content %}
@@ -58,50 +58,48 @@
           <input type="hidden" name="return_url" value="{{ return_url }}">
           {# object_b_id hidden inputs are added dynamically by JS #}
 
-          <div class="border rounded p-3 bg-body mb-3 nsm-assign-picker-panel">
-            <div class="nsm-assign-field">
-              {# Type selector #}
-              <div class="mb-3">
-                <label for="id_object_b_type" class="form-label fw-semibold">
-                  {% trans "Type (Object B)" %} <span class="text-danger">*</span>
-                </label>
-                <select name="object_b_type" id="id_object_b_type" class="form-select nsm-type-select">
-                  {% for val, label in form.fields.object_b_type.choices %}
-                  <option value="{{ val }}"
-                    {% if form.object_b_type.value == val|stringformat:"s" %}selected{% endif %}>
-                    {{ label }}
-                  </option>
-                  {% endfor %}
-                </select>
-                {% if form.object_b_type.errors %}
-                  <div class="invalid-feedback d-block">{{ form.object_b_type.errors|join:", " }}</div>
-                {% endif %}
-              </div>
-
-              {# Element picker: TomSelect-style search + browse dropdown #}
-              <div class="mb-3 nsm-element-picker-wrap hidden" id="element-picker-wrap">
-                <label class="form-label fw-semibold">
-                  {% trans "Element (Objekt B)" %} <span class="text-danger">*</span>
-                </label>
-
-                <div class="ts-wrapper form-select single" id="element-ts-wrap">
-                  <div class="ts-control">
-                    <input type="text"
-                           id="element-search"
-                           class="nsm-search-input"
-                           autocomplete="off"
-                           placeholder="{% trans 'Search or browse…' %}">
-                  </div>
-                  <div class="ts-dropdown single nsm-browse-drop" id="element-drop" hidden>
-                    <div class="ts-dropdown-content nsm-browse-list" id="element-browse-list"></div>
-                  </div>
-                </div>
-
-                <div id="element-error" class="invalid-feedback d-block"></div>
-              </div>
-
-              <div id="element-selected" class="nsm-selected mt-2"></div>
+          <div class="nsm-assign-field mb-3">
+            {# Type selector #}
+            <div class="mb-3">
+              <label for="id_object_b_type" class="form-label fw-semibold">
+                {% trans "Type (Object B)" %} <span class="text-danger">*</span>
+              </label>
+              <select name="object_b_type" id="id_object_b_type" class="form-select nsm-type-select">
+                {% for val, label in form.fields.object_b_type.choices %}
+                <option value="{{ val }}"
+                  {% if form.object_b_type.value == val|stringformat:"s" %}selected{% endif %}>
+                  {{ label }}
+                </option>
+                {% endfor %}
+              </select>
+              {% if form.object_b_type.errors %}
+                <div class="invalid-feedback d-block">{{ form.object_b_type.errors|join:", " }}</div>
+              {% endif %}
             </div>
+
+            {# Element picker — styled like form-select #}
+            <div class="mb-0 nsm-element-picker-wrap hidden" id="element-picker-wrap">
+              <label class="form-label fw-semibold">
+                {% trans "Element (Objekt B)" %} <span class="text-danger">*</span>
+              </label>
+
+              <div class="ts-wrapper form-select single" id="element-ts-wrap">
+                <div class="ts-control">
+                  <input type="text"
+                         id="element-search"
+                         class="nsm-search-input"
+                         autocomplete="off"
+                         placeholder="{% trans 'Search or browse…' %}">
+                </div>
+                <div class="ts-dropdown single nsm-browse-drop" id="element-drop" hidden>
+                  <div class="ts-dropdown-content nsm-browse-list" id="element-browse-list"></div>
+                </div>
+              </div>
+
+              <div id="element-error" class="invalid-feedback d-block"></div>
+            </div>
+
+            <div id="element-selected" class="nsm-selected mt-2"></div>
           </div>
 
           {# Link type / propagation #}
@@ -204,5 +202,5 @@
 </div>
 
 <script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/nsm_branch_api.js' %}?v=1"></script>
-<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/assign_link_picker.js' %}?v=20260610"></script>
+<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/assign_link_picker.js' %}?v=20260611"></script>
 {% endblock %}

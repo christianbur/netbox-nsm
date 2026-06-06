@@ -187,9 +187,7 @@
 
     var ids = Object.keys(selected);
     if (!ids.length) {
-      selectedWrap.innerHTML = "<div class='nsm-empty'>"
-        + esc(msg("empty", "No selection"))
-        + "</div>";
+      selectedWrap.innerHTML = "";
       if (submitBtn) submitBtn.disabled = true;
       return;
     }

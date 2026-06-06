@@ -5,7 +5,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from django.db.models import Q
+from django.db.models import CharField, Q
+from django.db.models.functions import Cast
 from django.contrib.contenttypes.models import ContentType
 
 from netbox_nsm.display_utils import get_display_template_map, render_object_display
@@ -47,10 +48,59 @@ def _is_inet_like_field(field) -> bool:
     return type(field).__name__ in _INET_FIELD_TYPES
 
 
-def _string_search_q(lookup_path: str, field, q: str) -> Q:
-    if _is_inet_like_field(field):
-        return Q(**{f"{lookup_path}__iregex": f".*{re.escape(q)}.*"})
-    return Q(**{f"{lookup_path}__icontains": q})
+def _filter_queryset_by_query(qs, model_class, q: str):
+    if not q:
+        return qs
+    text_clauses = Q()
+    inet_paths: list[str] = []
+    matched = False
+
+    for field_name in _NAME_SEARCH_FIELDS:
+        try:
+            field = model_class._meta.get_field(field_name)
+        except Exception:
+            continue
+        if _is_inet_like_field(field):
+            inet_paths.append(field_name)
+        else:
+            text_clauses |= Q(**{f"{field_name}__icontains": q})
+        matched = True
+
+    try:
+        model_class._meta.get_field("field_data")
+        text_clauses |= Q(**{"field_data__icontains": q})
+        matched = True
+    except Exception:
+        pass
+
+    for lookup in _FK_SEARCH_LOOKUPS:
+        fk_name = lookup.split("__", 1)[0]
+        try:
+            fk_field = model_class._meta.get_field(fk_name)
+            if not getattr(fk_field, "is_relation", False):
+                continue
+            field = _resolve_field(model_class, lookup)
+        except Exception:
+            continue
+        if _is_inet_like_field(field):
+            inet_paths.append(lookup)
+        else:
+            text_clauses |= Q(**{f"{lookup}__icontains": q})
+        matched = True
+
+    if not matched:
+        return qs.none()
+
+    inet_clauses = Q()
+    annotations = {}
+    for index, path in enumerate(inet_paths):
+        alias = f"_nsm_inet_search_{index}"
+        annotations[alias] = Cast(path, CharField())
+        inet_clauses |= Q(**{f"{alias}__icontains": q})
+
+    if annotations:
+        qs = qs.annotate(**annotations)
+    return qs.filter(text_clauses | inet_clauses)
 
 
 def is_picker_browse_allowed(ct_id: int) -> bool:
@@ -91,38 +141,6 @@ def serialize_picker_object(
         "display": display,
         "color": _object_color(obj),
     }
-
-
-def _filter_queryset_by_query(qs, model_class, q: str):
-    if not q:
-        return qs
-    clauses = Q()
-    matched = False
-    for field_name in _NAME_SEARCH_FIELDS:
-        try:
-            field = model_class._meta.get_field(field_name)
-        except Exception:
-            continue
-        clauses |= _string_search_q(field_name, field, q)
-        matched = True
-    try:
-        model_class._meta.get_field("field_data")
-        clauses |= Q(**{"field_data__icontains": q})
-        matched = True
-    except Exception:
-        pass
-    for lookup in _FK_SEARCH_LOOKUPS:
-        fk_name = lookup.split("__", 1)[0]
-        try:
-            model_class._meta.get_field(fk_name)
-            field = _resolve_field(model_class, lookup)
-        except Exception:
-            continue
-        clauses |= _string_search_q(lookup, field, q)
-        matched = True
-    if not matched:
-        return qs.none()
-    return qs.filter(clauses)
 
 
 def _order_queryset(qs, model_class):

@@ -10,11 +10,11 @@ from netbox_nsm.picker_browse import (
     _apply_name_filter_regex,
     _filter_queryset_by_query,
     _resolve_short_name,
-    _string_search_q,
     serialize_picker_object,
 )
 from django.db.models import Q
 from ipam.models import Prefix
+from utilities.testing import TestCase
 
 
 class PickerBrowseHelperTests(SimpleTestCase):
@@ -73,15 +73,15 @@ class PickerBrowseHelperTests(SimpleTestCase):
         filtered = _filter_queryset_by_query(qs, model, "x")
         self.assertIs(filtered, qs.none.return_value)
 
-    def test_string_search_q_uses_iregex_for_prefix_field(self):
-        field = Prefix._meta.get_field("prefix")
-        q_obj = _string_search_q("prefix", field, "10.60")
-        lookup, pattern = q_obj.children[0]
-        self.assertEqual(lookup, "prefix__iregex")
-        self.assertEqual(pattern, r".*10\.60.*")
-
     def test_name_filter_regex_compiles_like_js(self):
         pattern = "^prod"
         rx = re.compile(pattern)
         self.assertTrue(rx.search("prod-web"))
         self.assertFalse(rx.search("dev-web"))
+
+
+class PickerBrowseQueryTests(TestCase):
+    def test_filter_queryset_by_query_prefix_single_char(self):
+        prefix = Prefix.objects.create(prefix="10.60.0.0/24", status="active")
+        filtered = _filter_queryset_by_query(Prefix.objects.all(), Prefix, "1")
+        self.assertIn(prefix, filtered)

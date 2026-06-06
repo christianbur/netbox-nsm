@@ -17,7 +17,6 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 from .parser import Condition, Query
 
-
 # ---------------------------------------------------------------------------
 # RulebookContext — field registry for a single rulebook
 # ---------------------------------------------------------------------------

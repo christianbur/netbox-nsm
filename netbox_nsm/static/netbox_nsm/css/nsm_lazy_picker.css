@@ -191,3 +191,34 @@
 .nsm-rule-policy-tabs-layout .nsm-sel-item {
   font-size: 0.8125rem;
 }
+
+.nsm-element-picker-wrap.hidden {
+  display: none !important;
+}
+
+.nsm-drop-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1 1 auto;
+}
+
+.nsm-drop-msg {
+  padding: 0.5rem 0.75rem;
+  color: var(--tblr-secondary-color, #6c757d);
+  font-style: italic;
+  font-size: 0.85rem;
+}
+
+.nsm-empty {
+  color: var(--tblr-secondary-color, #6c757d);
+  font-style: italic;
+  padding: 0.4rem 0;
+  font-size: 0.875rem;
+}
+
+.nsm-browse-more.option {
+  justify-content: center;
+  color: var(--tblr-primary, #0d6efd);
+  font-size: 0.8rem;
+}

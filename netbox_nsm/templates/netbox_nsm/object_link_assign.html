@@ -6,7 +6,7 @@
 
 {% block head %}
 {{ block.super }}
-<link rel="stylesheet" href="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='css/nsm_lazy_picker.css' %}?v=20260607">
+<link rel="stylesheet" href="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='css/nsm_lazy_picker.css' %}?v=20260608">
 {% endblock head %}
 
 {% block content %}
@@ -39,51 +39,66 @@
           </div>
         </div>
 
-        <form method="post" id="assign-form" class="nsm-lazy-picker">
+        <form method="post"
+              id="assign-form"
+              class="nsm-lazy-picker"
+              data-api-base="{% url 'plugins:netbox_nsm:object_type_elements_api' %}"
+              data-assigner-ct-id="{{ form.object_a_type_id.value|default:'' }}"
+              data-prefill-id="{{ prefill_object_b_id|default:'' }}"
+              data-prefill-display="{{ prefill_object_b_display|default:'' }}"
+              data-msg-searching="{% filter escapejs %}{% trans 'Searching…' %}{% endfilter %}"
+              data-msg-no-results="{% filter escapejs %}{% trans 'No results' %}{% endfilter %}"
+              data-msg-error="{% filter escapejs %}{% trans 'Error loading' %}{% endfilter %}"
+              data-msg-load-more="{% filter escapejs %}{% trans 'Load more…' %}{% endfilter %}"
+              data-msg-remove="{% filter escapejs %}{% trans 'Remove' %}{% endfilter %}">
           {% csrf_token %}
           <input type="hidden" name="object_a_type_id" value="{{ form.object_a_type_id.value }}">
           <input type="hidden" name="object_a_id" value="{{ form.object_a_id.value }}">
           <input type="hidden" name="return_url" value="{{ return_url }}">
           {# object_b_id hidden inputs are added dynamically by JS #}
 
-          {# Type selector #}
-          <div class="mb-3">
-            <label for="id_object_b_type" class="form-label fw-semibold">
-              {% trans "Type (Object B)" %} <span class="text-danger">*</span>
-            </label>
-            <select name="object_b_type" id="id_object_b_type" class="form-select">
-              {% for val, label in form.fields.object_b_type.choices %}
-              <option value="{{ val }}"
-                {% if form.object_b_type.value == val|stringformat:"s" %}selected{% endif %}>
-                {{ label }}
-              </option>
-              {% endfor %}
-            </select>
-            {% if form.object_b_type.errors %}
-              <div class="invalid-feedback d-block">{{ form.object_b_type.errors|join:", " }}</div>
-            {% endif %}
-          </div>
-
-          {# Element picker: TomSelect-style search + selected list #}
-          <div class="mb-3" id="element-picker-wrap" style="display:none;">
-            <label class="form-label fw-semibold">
-              {% trans "Element (Objekt B)" %} <span class="text-danger">*</span>
-            </label>
-
-            {# Search input styled as TomSelect control #}
-            <div class="ts-wrapper form-select single" id="element-ts-wrap">
-              <div class="ts-control">
-                <input type="text" id="element-search"
-                       autocomplete="off" placeholder="{% trans 'Search or browse…' %}">
-              </div>
-              <div class="ts-dropdown single" id="element-drop" hidden>
-                <div class="ts-dropdown-content" id="element-drop-content"></div>
-              </div>
+          <div class="nsm-assign-field">
+            {# Type selector #}
+            <div class="mb-3">
+              <label for="id_object_b_type" class="form-label fw-semibold">
+                {% trans "Type (Object B)" %} <span class="text-danger">*</span>
+              </label>
+              <select name="object_b_type" id="id_object_b_type" class="form-select nsm-type-select">
+                {% for val, label in form.fields.object_b_type.choices %}
+                <option value="{{ val }}"
+                  {% if form.object_b_type.value == val|stringformat:"s" %}selected{% endif %}>
+                  {{ label }}
+                </option>
+                {% endfor %}
+              </select>
+              {% if form.object_b_type.errors %}
+                <div class="invalid-feedback d-block">{{ form.object_b_type.errors|join:", " }}</div>
+              {% endif %}
             </div>
 
-            {# Selected items #}
-            <div id="element-selected" class="mt-2 nsm-sel-pills"></div>
-            <div id="element-error" class="invalid-feedback d-block"></div>
+            {# Element picker: TomSelect-style search + browse dropdown #}
+            <div class="mb-3 nsm-element-picker-wrap hidden" id="element-picker-wrap">
+              <label class="form-label fw-semibold">
+                {% trans "Element (Objekt B)" %} <span class="text-danger">*</span>
+              </label>
+
+              <div class="ts-wrapper form-select single" id="element-ts-wrap">
+                <div class="ts-control">
+                  <input type="text"
+                         id="element-search"
+                         class="nsm-search-input"
+                         autocomplete="off"
+                         placeholder="{% trans 'Search or browse…' %}">
+                </div>
+                <div class="ts-dropdown single nsm-browse-drop" id="element-drop" hidden>
+                  <div class="ts-dropdown-content nsm-browse-list" id="element-browse-list"></div>
+                </div>
+              </div>
+
+              <div id="element-error" class="invalid-feedback d-block"></div>
+            </div>
+
+            <div id="element-selected" class="nsm-selected mt-2"></div>
           </div>
 
           {# Link type / propagation #}
@@ -186,221 +201,5 @@
 </div>
 
 <script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/nsm_branch_api.js' %}?v=1"></script>
-
-<script>
-(function () {
-  var typeSelect = document.getElementById('id_object_b_type');
-  var pickerWrap = document.getElementById('element-picker-wrap');
-  var searchInput = document.getElementById('element-search');
-  var dropEl = document.getElementById('element-drop');
-  var dropContent = document.getElementById('element-drop-content');
-  var selectedWrap = document.getElementById('element-selected');
-  var submitBtn = document.getElementById('submit-btn');
-  var errorEl = document.getElementById('element-error');
-  var form = document.getElementById('assign-form');
-
-  var apiBase = '{% url "plugins:netbox_nsm:object_type_elements_api" %}';
-  var sourceCtId = '{{ form.object_a_type_id.value|default:"" }}';
-  var PAGE_SIZE = 30;
-  var currentCtId = null;
-  var debounceTimer = null;
-  var browseOffset = 0;
-  var browseHasMore = false;
-  var browseQuery = '';
-  // { id → display }
-  var selected = {};
-
-  function hideDrop() { dropEl.hidden = true; dropContent.innerHTML = ''; }
-
-  function showDropMessage(msg) {
-    dropContent.innerHTML = '<div class="option" style="opacity:.65;cursor:default;">' + escHtml(msg) + '</div>';
-    dropEl.hidden = false;
-  }
-
-  function showDrop(items, append) {
-    if (!append) dropContent.innerHTML = '';
-    if (!items.length && !append) {
-      showDropMessage('{% trans "No results" %}');
-      return;
-    }
-    items.forEach(function (item) {
-      var el = document.createElement('div');
-      el.className = 'option';
-      el.dataset.id = String(item.id);
-      el.textContent = item.display;
-      el.addEventListener('mouseenter', function () {
-        dropContent.querySelectorAll('.option.active').forEach(function (a) { a.classList.remove('active'); });
-        el.classList.add('active');
-      });
-      el.addEventListener('mouseleave', function () { el.classList.remove('active'); });
-      el.addEventListener('mousedown', function (e) {
-        e.preventDefault();
-        selectItem(el.dataset.id, el.textContent.trim());
-        hideDrop();
-        searchInput.value = '';
-        browseQuery = '';
-      });
-      dropContent.appendChild(el);
-    });
-    if (browseHasMore) {
-      var more = document.createElement('div');
-      more.className = 'option text-primary text-center';
-      more.style.cursor = 'pointer';
-      more.textContent = '{% trans "Load more…" %}';
-      more.addEventListener('mousedown', function (e) {
-        e.preventDefault();
-        loadElements(currentCtId, browseQuery, true);
-      });
-      dropContent.appendChild(more);
-    }
-    dropEl.hidden = false;
-  }
-
-  function loadElements(ctId, q, append) {
-    q = (q || '').trim();
-    if (!append) {
-      browseOffset = 0;
-      browseQuery = q;
-    }
-    showDropMessage('{% trans "Loading…" %}');
-    var apiQ = (q === '*') ? '' : q;
-    var fetchFn = (window.NSM_BRANCH_API && window.NSM_BRANCH_API.fetch) || fetch;
-    var apiUrl = apiBase + '?ct_id=' + ctId + '&q=' + encodeURIComponent(apiQ)
-      + '&limit=' + PAGE_SIZE + '&offset=' + browseOffset;
-    if (sourceCtId) {
-      apiUrl += '&source_ct_id=' + encodeURIComponent(sourceCtId);
-    }
-    fetchFn(apiUrl,
-      { headers: (window.NSM_BRANCH_API && NSM_BRANCH_API.mergeBranchHeaders({ 'X-Requested-With': 'XMLHttpRequest' })) || { 'X-Requested-With': 'XMLHttpRequest' } })
-      .then(function (r) { return r.json(); })
-      .then(function (data) {
-        browseHasMore = !!data.has_more;
-        browseOffset += (data.results || []).length;
-        var filtered = (data.results || []).filter(function (i) { return !selected[i.id]; });
-        showDrop(filtered, append);
-      })
-      .catch(function () {
-        showDropMessage('{% trans "Error loading" %}');
-      });
-  }
-
-  // ── Selected list ─────────────────────────────────────────────────────────
-
-  function renderSelected() {
-    // Remove existing hidden inputs
-    form.querySelectorAll('input[name="object_b_id"]').forEach(function (el) { el.remove(); });
-
-    var ids = Object.keys(selected);
-    if (!ids.length) {
-      selectedWrap.innerHTML = '';
-      submitBtn.disabled = true;
-      return;
-    }
-
-    selectedWrap.innerHTML = ids.map(function (id) {
-      return '<div class="nsm-sel-item nsm-sel-item-muted" data-sel-id="' + id + '">'
-        + '<span class="nsm-sel-item-name">' + escHtml(selected[id]) + '</span>'
-        + '<button type="button" class="nsm-sel-item-remove" data-remove-id="' + id + '"'
-        + ' title="{% trans "Remove" %}" aria-label="{% trans "Remove" %}">'
-        + '<span class="nsm-sel-item-remove-icon" aria-hidden="true">\u00d7</span>'
-        + '</button>'
-        + '</div>';
-    }).join('');
-
-    selectedWrap.querySelectorAll('[data-remove-id]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        delete selected[btn.dataset.removeId];
-        renderSelected();
-      });
-    });
-
-    // Add hidden inputs
-    ids.forEach(function (id) {
-      var inp = document.createElement('input');
-      inp.type = 'hidden';
-      inp.name = 'object_b_id';
-      inp.value = id;
-      form.appendChild(inp);
-    });
-
-    submitBtn.disabled = false;
-    errorEl.textContent = '';
-  }
-
-  function selectItem(id, display) {
-    selected[id] = display;
-    renderSelected();
-  }
-
-  // ── Type selector change ──────────────────────────────────────────────────
-
-  typeSelect.addEventListener('change', function () {
-    currentCtId = this.value;
-    selected = {};
-    renderSelected();
-    hideDrop();
-    searchInput.value = '';
-    browseQuery = '';
-    browseOffset = 0;
-    errorEl.textContent = '';
-    if (!currentCtId) {
-      pickerWrap.style.display = 'none';
-      return;
-    }
-    pickerWrap.style.display = '';
-    loadElements(currentCtId, '', false);
-  });
-
-  // ── Search input ──────────────────────────────────────────────────────────
-
-  searchInput.addEventListener('input', function () {
-    clearTimeout(debounceTimer);
-    var q = this.value;
-    debounceTimer = setTimeout(function () {
-      if (!currentCtId) return;
-      loadElements(currentCtId, q, false);
-    }, 250);
-  });
-
-  searchInput.addEventListener('focus', function () {
-    if (!currentCtId) return;
-    loadElements(currentCtId, searchInput.value.trim(), false);
-  });
-
-  searchInput.addEventListener('blur', function () {
-    setTimeout(hideDrop, 200);
-  });
-
-  // ── Restore state ─────────────────────────────────────────────────────────
-
-  if (typeSelect.value) {
-    currentCtId = typeSelect.value;
-    pickerWrap.style.display = '';
-  }
-
-  var prefillId = '{{ prefill_object_b_id|default:""|escapejs }}';
-  var prefillDisplay = '{{ prefill_object_b_display|default:""|escapejs }}';
-  if (prefillId && prefillDisplay) {
-    selectItem(prefillId, prefillDisplay);
-  }
-
-  var propagationSelect = document.getElementById('id_propagation');
-  var propagateStopWrap = document.getElementById('propagate-stop-wrap');
-  function syncPropagationUi() {
-    if (!propagationSelect || !propagateStopWrap) return;
-    var isDirect = propagationSelect.value === 'direct';
-    propagateStopWrap.style.display = isDirect ? 'none' : '';
-  }
-  if (propagationSelect) {
-    propagationSelect.addEventListener('change', syncPropagationUi);
-    syncPropagationUi();
-  }
-
-  // ── Helpers ───────────────────────────────────────────────────────────────
-
-  function escHtml(str) {
-    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-})();
-</script>
+<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/assign_link_picker.js' %}?v=20260608"></script>
 {% endblock %}

@@ -15,7 +15,7 @@ class SecurityConfig(PluginConfig):
     base_url = "netbox-nsm"
     required_settings = []
     min_version = "4.5.0"
-    max_version = "4.6.0"
+    max_version = "4.6.99"
     default_settings = {
         "top_level_menu": True,
         "assignments_menu": False,

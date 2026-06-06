@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 
+from netbox_nsm.tests.branching_stubs import ensure_netbox_branching_stubs
 from netbox_nsm.branch_db import (
     branch_aware_manager,
     branch_db_alias,
@@ -20,6 +21,11 @@ from netbox_nsm.models import RuleObjectItem
 
 
 class BranchDbTests(SimpleTestCase):
+    @classmethod
+    def setUpClass(cls):
+        ensure_netbox_branching_stubs()
+        super().setUpClass()
+
     def test_branch_db_alias_without_branching(self):
         self.assertIsNone(branch_db_alias())
 

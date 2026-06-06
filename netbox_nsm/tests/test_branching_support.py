@@ -2,6 +2,7 @@
 
 from django.test import SimpleTestCase
 
+from netbox_nsm.tests.branching_stubs import ensure_netbox_branching_stubs
 from netbox_nsm.branching_support import (
     NSM_BRANCHING_INCLUDE_MODELS,
     register_branching_models,
@@ -9,6 +10,11 @@ from netbox_nsm.branching_support import (
 
 
 class BranchingSupportTests(SimpleTestCase):
+    @classmethod
+    def setUpClass(cls):
+        ensure_netbox_branching_stubs()
+        super().setUpClass()
+
     def test_register_extends_include_models(self):
         import netbox_branching.constants as bc
         import netbox_branching.utilities as bu

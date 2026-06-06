@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from django.test import SimpleTestCase, RequestFactory
 
+from netbox_nsm.tests.branching_stubs import ensure_netbox_branching_stubs
 from netbox_nsm.branch_urls import (
     branch_schema_id_from_request,
     with_branch_query,
@@ -13,6 +14,11 @@ from netbox_nsm.branch_urls import (
 
 
 class BranchUrlTests(SimpleTestCase):
+    @classmethod
+    def setUpClass(cls):
+        ensure_netbox_branching_stubs()
+        super().setUpClass()
+
     def test_without_branch_cookie_url_unchanged(self):
         request = RequestFactory().get("/")
         self.assertIsNone(branch_schema_id_from_request(request))

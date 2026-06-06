@@ -1,12 +1,9 @@
 {# Via {% block modals %} in rule_edit.html — outside #form_fields; assets via plugin_asset (no collectstatic). #}
 {% load i18n %}
 {{ nsm_rule_picker_catalog|json_script:"nsm-rule-picker-catalog" }}
-{{ nsm_policy_slots|json_script:"nsm-policy-slots" }}
+{{ nsm_rule_slots|json_script:"nsm-rule-slots" }}
 {% if nsm_rule_selections %}
 {{ nsm_rule_selections|json_script:"nsm-rule-selections" }}
-{% endif %}
-{% if nsm_rule_virtual_groups %}
-{{ nsm_rule_virtual_groups|json_script:"nsm-rule-virtual-groups" }}
 {% endif %}
 <script>
 window.NSM_I18N = {
@@ -18,8 +15,6 @@ window.NSM_I18N = {
   "remove": "{% filter escapejs %}{% trans 'Remove' %}{% endfilter %}",
   "searching": "{% filter escapejs %}{% trans 'Searching…' %}{% endfilter %}",
   "no_results": "{% filter escapejs %}{% trans 'No results' %}{% endfilter %}",
-  "as_group": "{% filter escapejs %}{% trans 'As group' %}{% endfilter %}",
-  "active": "{% filter escapejs %}{% trans 'Active' %}{% endfilter %}",
   "no_selection": "{% filter escapejs %}{% trans 'No selection' %}{% endfilter %}",
   "search_tip": "{% filter escapejs %}{% trans 'Tip: type * to show all' %}{% endfilter %}",
   "type": "{% filter escapejs %}{% trans 'Type' %}{% endfilter %}",
@@ -29,18 +24,17 @@ window.NSM_I18N = {
   "no_object_fields": "{% filter escapejs %}{% trans 'No visible object fields in this rulebook. Add fields and type configs under Rulebook → Fields.' %}{% endfilter %}",
   "pick_type": "{% filter escapejs %}{% trans 'Select a type first.' %}{% endfilter %}",
   "search_min": "{% filter escapejs %}{% trans 'Enter at least 2 characters to search (or * for the first page only).' %}{% endfilter %}",
-  "search_lazy": "{% filter escapejs %}{% trans 'Server-side search: type at least 2 characters. Large lists are loaded in pages only.' %}{% endfilter %}",
+  "search_lazy": "{% filter escapejs %}{% trans 'Search or browse…' %}{% endfilter %}",
   "load_more": "{% filter escapejs %}{% trans 'Load more' %}{% endfilter %}",
   "no_api": "{% filter escapejs %}{% trans 'No object type configured for this field. Add a type config under Rulebook → Fields.' %}{% endfilter %}",
   "no_types_field": "{% filter escapejs %}{% trans 'No types configured for this field. Add a type config under Rulebook → Fields.' %}{% endfilter %}",
-  "search_min_chars": "{% filter escapejs %}{% trans 'Search (min. 2 chars or *)…' %}{% endfilter %}",
+  "search_min_chars": "{% filter escapejs %}{% trans 'Search or browse…' %}{% endfilter %}",
   "changelog_added": "{% filter escapejs %}{% trans 'Added' %}{% endfilter %}",
   "changelog_removed": "{% filter escapejs %}{% trans 'Removed' %}{% endfilter %}",
-  "changelog_vgroups": "{% filter escapejs %}{% trans 'Virtual groups updated' %}{% endfilter %}",
   "additional_fields": "{% filter escapejs %}{% trans 'Additional fields' %}{% endfilter %}"
 };
 window.NSM_PICKER_BROWSE_URL = "{% url 'plugins:netbox_nsm:rule_picker_browse_api' %}";
 {% if nsm_active_branch %}window.NSM_ACTIVE_BRANCH = "{{ nsm_active_branch|escapejs }}";{% endif %}
 </script>
 <script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/nsm_branch_api.js' %}?v=1"></script>
-<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/rule_form.js' %}?v=20260613"></script>
+<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/rule_form.js' %}?v=20260606"></script>

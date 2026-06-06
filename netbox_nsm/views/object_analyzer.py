@@ -13,6 +13,7 @@ from netbox_nsm.models import TypeConfig
 
 __all__ = ("ObjectAnalyzerView",)
 
+
 def _extra_analyzer_types():
     return [
         {
@@ -54,7 +55,9 @@ class ObjectAnalyzerView(LoginRequiredMixin, View):
     def get(self, request):
         from django.contrib.contenttypes.models import ContentType
 
-        from netbox_nsm.api_urls import get_api_url_for_content_type as _get_api_url_for_content_type
+        from netbox_nsm.api_urls import (
+            get_api_url_for_content_type as _get_api_url_for_content_type,
+        )
 
         sel_ct = request.GET.get("ct", "")
         sel_pk = request.GET.get("pk", "")

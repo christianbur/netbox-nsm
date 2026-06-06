@@ -25,9 +25,20 @@ __all__ = (
 
 @register_filterset
 class RulebookFilterSet(PrimaryModelFilterSet):
+    parent_id = django_filters.ModelMultipleChoiceFilter(
+        queryset=Rulebook.objects.all(),
+        field_name="parent",
+        to_field_name="id",
+        label=_("Parent rulebook"),
+    )
+    status = django_filters.MultipleChoiceFilter(
+        choices=Rulebook._meta.get_field("status").choices,
+        label=_("Status"),
+    )
+
     class Meta:
         model = Rulebook
-        fields = ("id", "name", "rulebook_type", "description")
+        fields = ("id", "name", "rulebook_type", "status", "parent_id", "description")
 
     def search(self, queryset, name, value):
         if not value.strip():

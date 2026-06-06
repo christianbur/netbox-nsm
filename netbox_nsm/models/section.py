@@ -1,5 +1,4 @@
 from django.db import models
-from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from netbox.models import PrimaryModel
@@ -43,4 +42,4 @@ class Section(PrimaryModel):
         return self.name
 
     def get_absolute_url(self):
-        return reverse("plugins:netbox_nsm:section", args=[self.pk])
+        return "#"

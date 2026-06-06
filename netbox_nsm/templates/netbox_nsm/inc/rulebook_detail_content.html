@@ -1,0 +1,119 @@
+{% load i18n %}
+{% load helpers %}
+{% load plugins %}
+<div class="row">
+  <div class="col col-md-6">
+    <div class="card">
+      <h5 class="card-header">{% trans "Security Policy" %}</h5>
+      <table class="table table-hover attr-table">
+        <tr>
+          <th scope="row">{% trans "Name" %}</th>
+          <td>{{ object.name }}</td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "Type" %}</th>
+          <td>{{ object.get_rulebook_type_display }}</td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "Status" %}</th>
+          <td>{% include "netbox_nsm/inc/rulebook_status_badge.html" with rulebook=object %}</td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "Parent rulebook" %}</th>
+          <td>{{ object.parent|linkify|placeholder }}</td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "Platform" %}</th>
+          <td>{{ object.platform|linkify|placeholder }}</td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "Management URL" %}</th>
+          <td>
+            {% if object.mgmt_url %}
+            <a href="{{ object.mgmt_url }}">{{ object.mgmt_url }}</a>
+            {% else %}
+            {{ ''|placeholder }}
+            {% endif %}
+          </td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "Description" %}</th>
+          <td>{{ object.description|placeholder }}</td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "Rule Comment Template" %}</th>
+          <td>
+            {% if object.rule_comment_template %}
+            <pre class="mb-0 small" style="white-space:pre-wrap">{{ object.rule_comment_template }}</pre>
+            {% else %}
+            {{ ''|placeholder }}
+            {% endif %}
+          </td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "Assigned Objects" %}</th>
+          <td>
+            {% for assignment in assignments %}
+            {% with obj=assignment.assigned_object %}
+            {% if obj %}
+            <a href="{{ obj.get_absolute_url }}" class="badge text-bg-secondary text-decoration-none me-1">
+              <i class="mdi mdi-server me-1"></i>{{ obj }}
+            </a>
+            {% endif %}
+            {% endwith %}
+            {% empty %}
+            {{ ''|placeholder }}
+            {% endfor %}
+          </td>
+        </tr>
+      </table>
+    </div>
+    {% if not rulebook_readonly %}
+    {% include 'inc/panels/custom_fields.html' %}
+    {% endif %}
+    {% if rulebook_readonly %}
+    <div class="card">
+      <h2 class="card-header">{% trans "Tags" %}</h2>
+      <div class="card-body">
+        <span class="text-muted">{% trans "No tags assigned" %}</span>
+      </div>
+    </div>
+    {% else %}
+    {% include 'inc/panels/tags.html' %}
+    {% endif %}
+    {% include 'inc/panels/comments.html' %}
+
+    {% plugin_left_page object %}
+  </div>
+  <div class="col-md-6">
+
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">{% trans "Fields" %}</h5>
+        {% if not rulebook_readonly %}
+        <a href="{% url 'plugins:netbox_nsm:rulebookfield_add' %}?rulebook={{ object.pk }}"
+           class="btn btn-sm btn-primary">
+          <i class="mdi mdi-plus-thick me-1"></i>{% trans "Add Field" %}
+        </a>
+        {% endif %}
+      </div>
+      <div class="card-body p-2">
+        {% if rulebook_fields %}
+        <div class="nsm-rb-fields">
+          {% include "netbox_nsm/inc/rulebook_fields_table.html" with fields=rulebook_fields rulebook_readonly=rulebook_readonly %}
+        </div>
+        {% else %}
+          <p class="text-muted mb-0">
+            {% trans "Noch keine Fields konfiguriert." %}
+            {% if not rulebook_readonly %}
+            <a href="{% url 'plugins:netbox_nsm:rulebookfield_add' %}?rulebook={{ object.pk }}">{% trans "Add now." %}</a>
+            {% endif %}
+          </p>
+        {% endif %}
+      </div>
+    </div>
+
+    {% plugin_right_page object %}
+  </div>
+</div>
+{% plugin_full_width_page object %}

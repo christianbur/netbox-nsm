@@ -5,7 +5,6 @@ from __future__ import annotations
 __all__ = (
     "branch_schema_id_from_request",
     "with_branch_query",
-    "wrap_policy_row_urls",
     "wrap_matrix_cell_hrefs",
 )
 
@@ -43,7 +42,7 @@ def with_branch_query(url: str, request) -> str:
     return f"{url}{sep}{QUERY_PARAM}={schema_id}"
 
 
-def wrap_policy_row_urls(rows: list, request) -> None:
+def wrap_rules_row_urls(rows: list, request) -> None:
     """Mutate AG Grid policy row dicts in place — detail/edit/delete links."""
     for row in rows or []:
         for key in ("url", "edit_url", "delete_url"):

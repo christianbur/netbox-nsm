@@ -73,7 +73,7 @@ a.nsm-rule-pill--counter:hover {
 }
 
 /* Policy toolbar: rule count pill (not table cell pills) */
-.nsm-policy-rules-count.nsm-rule-pills {
+.nsm-rules-count.nsm-rule-pills {
   display: inline-flex;
   flex-wrap: nowrap;
   gap: 0;
@@ -82,7 +82,7 @@ a.nsm-rule-pill--counter:hover {
   max-width: none;
 }
 
-.nsm-policy-rules-count .nsm-rule-pill--counter {
+.nsm-rules-count .nsm-rule-pill--counter {
   border-radius: 999px;
 }
 
@@ -278,6 +278,23 @@ span.nsm-rulebook-count-pill {
   width: auto;
 }
 
+.nsm-rb-col-lane--indent .nsm-rb-field-depth {
+  left: 0.45rem;
+  line-height: 1;
+  margin: 0;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  user-select: none;
+  z-index: 1;
+}
+
+.nsm-rb-col-lane--indent .nsm-rb-field-depth span {
+  display: inline-block;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
 .table.nsm-rb-fields-table thead th.nsm-rb-col-name,
 .table.nsm-rb-fields-table tbody td.nsm-rb-col-name {
   overflow: hidden;
@@ -358,7 +375,7 @@ span.nsm-rulebook-count-pill {
   align-items: center;
   display: inline-flex;
   flex-flow: row nowrap;
-  gap: 0.35rem;
+  gap: 0.22rem;
   line-height: 1;
   vertical-align: middle;
   white-space: nowrap;
@@ -376,26 +393,26 @@ span.nsm-rulebook-count-pill {
   display: inline-flex;
   flex: 0 0 auto;
   flex-shrink: 0;
-  gap: 0.12rem;
-  height: 1.4rem;
+  gap: 0.06rem;
+  height: 1.2rem;
   justify-content: center;
   line-height: 1;
-  min-width: 1.4rem;
-  padding: 0 0.34rem;
+  min-width: 1.2rem;
+  padding: 0 0.18rem;
 }
 
 .table.nsm-rb-fields-table .nsm-rb-opt-pill .mdi {
   color: #fff;
   display: block;
   flex-shrink: 0;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   line-height: 1;
 }
 
 .table.nsm-rb-fields-table .nsm-rb-opt-meta-value {
   color: inherit;
   flex-shrink: 0;
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   font-weight: 700;
   line-height: 1;
 }
@@ -954,4 +971,9 @@ span.nsm-rulebook-count-pill {
 .nsm-rb-type-actions .btn .mdi {
   font-size: 0.85rem;
   line-height: 1;
+}
+
+/* Rulebook list — name link next to NetBox record-depth bullets */
+.nsm-rb-name-link {
+  vertical-align: middle;
 }

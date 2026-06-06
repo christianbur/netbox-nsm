@@ -17,7 +17,9 @@ _SLUG_LABELS = {s["slug"]: str(s["name"]) for s in get_panel_sections()}
 class ObjectGroupTable(NetBoxTable):
     name = tables.Column(linkify=True)
     field_slugs = tables.Column(verbose_name=_("Field slugs"), orderable=False)
-    sub_groups = tables.Column(verbose_name=_("Sub-Groups"), orderable=False, accessor=tables.A("pk"))
+    sub_groups = tables.Column(
+        verbose_name=_("Sub-Groups"), orderable=False, accessor=tables.A("pk")
+    )
     tags = TagColumn(url_name="plugins:netbox_nsm:objectgroup_list")
 
     class Meta(NetBoxTable.Meta):
@@ -55,5 +57,8 @@ class ObjectGroupTable(NetBoxTable):
         return format_html_join(
             ", ",
             '<a href="{}">{}</a>',
-            ((g.get_absolute_url(), g.name) for g in sorted(groups, key=lambda g: g.name)),
+            (
+                (g.get_absolute_url(), g.name)
+                for g in sorted(groups, key=lambda g: g.name)
+            ),
         )

@@ -55,15 +55,10 @@ class TypeConfigTable(NetBoxTable):
     display_template = tables.Column(verbose_name=_("Display Template"))
     panel_slugs = tables.Column(verbose_name=_("Panel slugs"), orderable=False)
     order_id = tables.Column(verbose_name=_("Sort order"))
-    allow_virtual_groups = tables.Column(
-        verbose_name=_("Virtual groups"), orderable=False
-    )
-    inherit_links = tables.Column(verbose_name=_("Inheritance"), orderable=True)
-    inherit_stop_on_own = tables.Column(
-        verbose_name=_("Stop on own link"), orderable=True
-    )
-    panel_linkable = tables.Column(
-        verbose_name=_("Panel"), orderable=True
+    panel_linkable_types = tables.Column(
+        verbose_name=_("Panel"),
+        orderable=False,
+        accessor="panel_linkable_types",
     )
     actions = tables.TemplateColumn(
         template_code=_ACTIONS_TEMPLATE,
@@ -118,37 +113,16 @@ class TypeConfigTable(NetBoxTable):
             return "—"
         return ", ".join(_SLUG_LABELS.get(s, s) for s in slugs)
 
-    def render_allow_virtual_groups(self, value):
-        if value:
+    def render_panel_linkable_types(self, record):
+        if record.is_panel_linkable_disabled():
+            return mark_safe('<span class="text-muted">—</span>')
+        labels = record.panel_linkable_type_labels()
+        if not labels:
             return format_html(
-                '<span class="badge bg-secondary text-white">{}</span>',
-                _("Yes"),
+                '<span class="badge bg-primary text-white">{}</span>',
+                _("All types"),
             )
-        return mark_safe('<span class="text-muted">—</span>')
-
-    def render_inherit_links(self, value):
-        if value:
-            return format_html(
-                '<span class="badge bg-success text-white"><i class="mdi mdi-arrow-up-circle-outline"></i> {}</span>',
-                _("On"),
-            )
-        return mark_safe('<span class="text-muted">—</span>')
-
-    def render_inherit_stop_on_own(self, value):
-        if value:
-            return format_html(
-                '<span class="badge bg-warning text-white">{}</span>',
-                _("Stop on own link"),
-            )
-        return mark_safe('<span class="text-muted">—</span>')
-
-    def render_panel_linkable(self, value):
-        if value:
-            return format_html(
-                '<span class="badge bg-primary text-white"><i class="mdi mdi-link-variant"></i> {}</span>',
-                _("Yes"),
-            )
-        return mark_safe('<span class="text-muted">—</span>')
+        return ", ".join(labels)
 
     class Meta(NetBoxTable.Meta):
         model = TypeConfig
@@ -159,10 +133,7 @@ class TypeConfigTable(NetBoxTable):
             "display_template",
             "panel_slugs",
             "order_id",
-            "allow_virtual_groups",
-            "inherit_links",
-            "inherit_stop_on_own",
-            "panel_linkable",
+            "panel_linkable_types",
             "actions",
         )
         default_columns = (
@@ -172,6 +143,6 @@ class TypeConfigTable(NetBoxTable):
             "panel_slugs",
             "order_id",
             "display_template",
-            "panel_linkable",
+            "panel_linkable_types",
             "actions",
         )

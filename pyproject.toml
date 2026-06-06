@@ -1,6 +1,6 @@
 [project]
 name = "netbox-nsm"
-version = "0.1.0"
+version = "0.2.0"
 description = "A NetBox plugin for network security management, including object groups and security policies"
 authors = [
     {name="Christian Burmeister"},
@@ -26,10 +26,16 @@ requires = ['setuptools >= 64']
 build-backend = 'setuptools.build_meta'
 
 [tool.setuptools.packages.find]
-exclude = ["examples*", "media*", "*.tests*"]
+#exclude = ["examples*", "media*", "*.tests*"]
 
 [tool.setuptools.package-data]
-"netbox_nsm" = ["templates/**/*.html", "static/**/*", "plugin_assets/**/*"]
+"netbox_nsm" = [
+    "templates/**/*.html",
+    "static/**/*",
+    "plugin_assets/**/*",
+    "schema/*.json",
+    "locale/**/*.po",
+]
 
 [tool.black]
 target-version = ["py312"]

@@ -19,12 +19,16 @@
   .nsm-addr-ip { font-size: .78rem; }
   .nsm-addr-section-title { font-size: .95rem; font-weight: 600; }
   .nsm-addr-type-title { font-size: .8rem; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; color: var(--bs-secondary-color); }
+  .nsm-addr-prefix-format .btn { font-size: .68rem; line-height: 1.2; min-width: 2.4rem; }
 </style>
 <script>
 function nsmCopyPaths(btn) {
   var raw = btn.getAttribute('data-lines') || '';
   if (!raw) return;
   var text = raw.replace(/&#10;/g, '\n');
+  if (window.nsmFormatAddrCopyLines) {
+    text = window.nsmFormatAddrCopyLines(text, btn);
+  }
   navigator.clipboard.writeText(text).then(function() {
     var icon = btn.querySelector('i');
     if (!icon) return;
@@ -33,4 +37,106 @@ function nsmCopyPaths(btn) {
     setTimeout(function() { icon.className = orig; }, 1200);
   });
 }
+
+(function () {
+  'use strict';
+  var STORAGE_KEY = 'nsm-addr-prefix-format';
+
+  function getFormat() {
+    try {
+      var stored = localStorage.getItem(STORAGE_KEY);
+      return stored === 'netmask' ? 'netmask' : 'cidr';
+    } catch (_) {
+      return 'cidr';
+    }
+  }
+
+  function buildPrefixFormatMap(root) {
+    var map = {};
+    (root || document).querySelectorAll('.nsm-addr-prefix-text').forEach(function (el) {
+      var cidr = el.getAttribute('data-cidr') || '';
+      var netmask = el.getAttribute('data-netmask') || '';
+      if (cidr && netmask) {
+        map[cidr] = netmask;
+      }
+    });
+    return map;
+  }
+
+  function applyPrefixFormatToCopyLines(text, format, root) {
+    if (format !== 'netmask' || !text) {
+      return text;
+    }
+    var map = buildPrefixFormatMap(root);
+    var cidrs = Object.keys(map);
+    if (!cidrs.length) {
+      return text;
+    }
+    cidrs.sort(function (a, b) { return b.length - a.length; });
+    return text.split('\n').map(function (line) {
+      for (var i = 0; i < cidrs.length; i++) {
+        var cidr = cidrs[i];
+        if (line.indexOf(cidr) !== -1) {
+          line = line.split(cidr).join(map[cidr]);
+        }
+      }
+      return line;
+    }).join('\n');
+  }
+
+  function copyLinesScope(btn) {
+    if (!btn || !btn.closest) {
+      return document;
+    }
+    return btn.closest('.nsm-addr-top') || document;
+  }
+
+  function applyFormat(root, format) {
+    var scope = root || document;
+    scope.querySelectorAll('.nsm-addr-prefix-text').forEach(function (el) {
+      var cidr = el.getAttribute('data-cidr') || '';
+      var netmask = el.getAttribute('data-netmask') || '';
+      el.textContent = format === 'netmask' && netmask ? netmask : cidr;
+    });
+    scope.querySelectorAll('.nsm-addr-prefix-format-input').forEach(function (input) {
+      input.checked = input.value === format;
+    });
+  }
+
+  function bindToggleGroup(group) {
+    if (!group || group.dataset.nsmAddrPrefixBound === '1') {
+      return;
+    }
+    group.dataset.nsmAddrPrefixBound = '1';
+    group.querySelectorAll('.nsm-addr-prefix-format-input').forEach(function (input) {
+      input.addEventListener('change', function () {
+        if (!input.checked) {
+          return;
+        }
+        try {
+          localStorage.setItem(STORAGE_KEY, input.value);
+        } catch (_) {}
+        applyFormat(document, input.value);
+      });
+    });
+  }
+
+  window.nsmFormatAddrCopyLines = function (text, btn) {
+    return applyPrefixFormatToCopyLines(text, getFormat(), copyLinesScope(btn));
+  };
+
+  window.nsmInitAddrPrefixToggle = function (root) {
+    var format = getFormat();
+    applyFormat(root || document, format);
+    (root || document).querySelectorAll('.nsm-addr-prefix-format').forEach(bindToggleGroup);
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () {
+      window.nsmInitAddrPrefixToggle(document);
+    });
+  } else {
+    window.nsmInitAddrPrefixToggle(document);
+  }
+})();
 </script>

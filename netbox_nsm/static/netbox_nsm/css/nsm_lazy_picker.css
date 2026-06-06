@@ -46,22 +46,35 @@
   background-color: rgba(var(--tblr-secondary-rgb, 108, 117, 125), 0.08);
 }
 
-.nsm-lazy-picker .nsm-sel-item {
+.nsm-lazy-picker .nsm-sel-pills,
+.nsm-lazy-picker .nsm-selected {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
   align-items: center;
-  padding: 0.4rem 0.65rem;
-  border-radius: 6px;
-  margin-bottom: 0.35rem;
-  background: rgba(var(--tblr-secondary-rgb, 108, 117, 125), 0.1);
-  border: 1px solid rgba(var(--tblr-secondary-rgb, 108, 117, 125), 0.16);
+  gap: 0.35rem;
+}
+
+.nsm-lazy-picker .nsm-sel-item {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 0;
+  max-width: 100%;
+  padding: 0;
+  border-radius: 999px;
+  margin-bottom: 0;
+  background: var(--tblr-secondary-bg, #eef2f7);
+  border: 1px solid var(--tblr-border-color, #b8c2cf);
   color: var(--tblr-body-color, inherit);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 [data-bs-theme="dark"] .nsm-lazy-picker .nsm-sel-item:not(.nsm-sel-item-colored):not(.nsm-sel-item-muted) {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: #2a3344;
+  border-color: #5b6776;
 }
 
 .nsm-lazy-picker .nsm-sel-item-muted {
@@ -90,13 +103,15 @@
 }
 
 .nsm-lazy-picker .nsm-sel-item-name {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
+  max-width: 18rem;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-weight: 500;
-  display: flex;
+  font-weight: inherit;
+  display: inline-flex;
   align-items: center;
+  padding: 0.2rem 0.45rem 0.2rem 0.65rem;
 }
 
 .nsm-lazy-picker .nsm-sel-item-type {
@@ -106,13 +121,41 @@
 }
 
 .nsm-lazy-picker .nsm-sel-item-remove {
-  background: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  align-self: stretch;
+  margin: 0;
+  padding: 0 0.5rem;
   border: none;
-  padding: 0 0 0 0.5rem;
-  color: var(--tblr-danger, #d63939);
+  border-left: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  border-radius: 0 999px 999px 0;
+  background: transparent;
+  color: inherit;
   cursor: pointer;
-  font-size: 1rem;
+  font: inherit;
   line-height: 1;
+  opacity: 0.72;
+  transition: background-color 0.12s ease, color 0.12s ease, opacity 0.12s ease;
+}
+
+.nsm-lazy-picker .nsm-sel-item-remove-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.nsm-lazy-picker .nsm-sel-item-remove:hover,
+.nsm-lazy-picker .nsm-sel-item-remove:focus-visible {
+  opacity: 1;
+  background: color-mix(in srgb, var(--tblr-danger, #d63939) 16%, transparent);
+  color: var(--tblr-danger, #d63939);
+  border-left-color: color-mix(in srgb, var(--tblr-danger, #d63939) 24%, transparent);
+  outline: none;
 }
 
 .nsm-rule-picker-host .nav-tabs {

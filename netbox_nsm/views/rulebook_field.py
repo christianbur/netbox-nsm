@@ -65,9 +65,7 @@ class RulebookFieldAddView(View):
             messages.success(
                 request, _("Field '%(name)s' was created.") % {"name": field.name}
             )
-            return redirect(
-                reverse("plugins:netbox_nsm:rulebook", args=[rulebook.pk])
-            )
+            return redirect(reverse("plugins:netbox_nsm:rulebook", args=[rulebook.pk]))
         from django.template.response import TemplateResponse
 
         return TemplateResponse(
@@ -199,9 +197,7 @@ class RulebookFieldDeleteView(View):
         field_name = field.name
         field.delete()
         messages.success(request, _("Field '%(name)s' deleted.") % {"name": field_name})
-        return redirect(
-            reverse("plugins:netbox_nsm:rulebook", args=[rulebook_pk])
-        )
+        return redirect(reverse("plugins:netbox_nsm:rulebook", args=[rulebook_pk]))
 
 
 class RulebookFieldTypeAddView(View):
@@ -347,6 +343,4 @@ class RulebookFieldTypeDeleteView(View):
         rulebook_pk = ft.field.rulebook_id
         ft.delete()
         messages.success(request, _("Type entry deleted."))
-        return redirect(
-            reverse("plugins:netbox_nsm:rulebook", args=[rulebook_pk])
-        )
+        return redirect(reverse("plugins:netbox_nsm:rulebook", args=[rulebook_pk]))

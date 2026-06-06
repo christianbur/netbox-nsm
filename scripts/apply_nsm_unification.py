@@ -47,7 +47,10 @@ TEXT_REPLACEMENTS = [
     ("rulebooks/", "rulebooks/"),
     ("rules/", "rules/"),
     ("netbox_nsm/rulebook_security_policy.html", "netbox_nsm/rulebook_policy.html"),
-    ("netbox_nsm/rulebook_visualization.html", "netbox_nsm/rulebook_visualization.html"),
+    (
+        "netbox_nsm/rulebook_visualization.html",
+        "netbox_nsm/rulebook_visualization.html",
+    ),
     ("netbox_nsm/rulebook_ipanalysis.html", "netbox_nsm/rulebook_ipanalysis.html"),
     ("netbox_nsm/rulebook_analysis.html", "netbox_nsm/rulebook_analysis.html"),
     ("netbox_nsm/rulebook_bulk_assign.html", "netbox_nsm/rulebook_bulk_assign.html"),
@@ -56,7 +59,10 @@ TEXT_REPLACEMENTS = [
     ("netbox_nsm/rulebook.html", "netbox_nsm/rulebook.html"),
     ("netbox_nsm/rule_edit.html", "netbox_nsm/rule_edit.html"),
     ("netbox_nsm/rule.html", "netbox_nsm/rule.html"),
-    ("netbox_nsm/objectgroup_assignments.html", "netbox_nsm/objectgroup_assignments.html"),
+    (
+        "netbox_nsm/objectgroup_assignments.html",
+        "netbox_nsm/objectgroup_assignments.html",
+    ),
     ("netbox_nsm/objectgroup_area.html", "netbox_nsm/objectgroup_area.html"),
     ("netbox_nsm/objectgroup_list.html", "netbox_nsm/objectgroup_list.html"),
     ("netbox_nsm/objectgroup_edit.html", "netbox_nsm/objectgroup_edit.html"),

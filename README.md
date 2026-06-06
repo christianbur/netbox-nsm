@@ -7,12 +7,11 @@
 Document zones, firewall rules, and object relationships — vendor-agnostic, inside your existing IPAM and DCIM inventory.
 
 [![NetBox](https://img.shields.io/badge/NetBox-4.6.x-0088cc?style=flat-square)](https://netboxlabs.com/)
-[![Plugin](https://img.shields.io/badge/plugin-0.1.0-2ea043?style=flat-square)](#)
-[![Requires](https://img.shields.io/badge/requires-netbox--custom--objects-orange?style=flat-square)](https://github.com/christianbur/netbox-custom-objects)
+[![Plugin](https://img.shields.io/badge/plugin-0.2.0-2ea043?style=flat-square)](#)
+[![Requires](https://img.shields.io/badge/requires-netbox--custom--objects-orange?style=flat-square)](https://github.com/netboxlabs/netbox-custom-objects)
 [![Status](https://img.shields.io/badge/status-work%20in%20progress-yellow?style=flat-square)](#)
-[![Branching](https://img.shields.io/badge/netbox--branching-initial%20tests%20done-blueviolet?style=flat-square)](https://github.com/netboxlabs/netbox-branching)
 
-[Full user guide](docs/README.md) · [Using netbox-nsm](docs/using_netbox_nsm.md) · [Architecture](ARCHITECTURE.md) · [Database](docs/DATABASE.md)
+[Full user guide](docs/README.md) · [Using netbox-nsm](docs/using_netbox_nsm.md) · [Architecture](ARCHITECTURE.md) · [Database](docs/DATABASE.md) · [Changelog](CHANGELOG.md)
 
 </div>
 
@@ -27,7 +26,7 @@ Document zones, firewall rules, and object relationships — vendor-agnostic, in
 |---|---|
 | **Security Panel** | Injected on every Prefix, IP, Device, VM, and Custom Object — assign zones, addresses, labels; see policy impact instantly |
 | **Rulebooks** | Flexible column layout: zone-based, address-based, label-based, or mixed — side by side in one NetBox |
-| **Policy grid** | [AG Grid Community](https://www.ag-grid.com/) — grouping, filter syntax, staged load (50k+ rules) |
+| **Policy grid** | [AG Grid Community](https://www.ag-grid.com/) — Table / Group / Matrix views, filter syntax, staged load (50k+ rules). See [Rules grid](docs/using_netbox_nsm.md#rules-grid). |
 | **Zone matrix** | AG Grid Community — source × destination heatmap |
 | **IP Analysis** | Compare IP resolution across objects in two columns — with CSV export |
 | **Object Analyzer** | [@xyflow/react](https://xyflow.com/) graph from any NetBox object to zones, links, and rulebooks |
@@ -83,7 +82,7 @@ A device NIC might be in **prod** *and* in a dedicated app zone — both visible
 
 NSM is not limited to the seven built-in types (Zones, Addresses, …):
 
-1. **Need a new security object class?** Define it in **[netbox-custom-objects](https://github.com/christianbur/netbox-custom-objects)** (schema, fields, UI).
+1. **Need a new security object class?** Define it in **[netbox-custom-objects](https://github.com/netboxlabs/netbox-custom-objects)** (schema, fields, UI).
 2. **Register it in NSM** — **Security → Type Config → + Add**: pick the ContentType, set matching class, panel slugs, display template, and which NetBox objects may link it (**Linkable in panel**).
 3. **Use everywhere** — add the TypeConfig to **Rulebook → Fields** (rule columns + picker) and assign instances from any allowed host object via **+ Assign** in the Security Panel.
 
@@ -253,7 +252,7 @@ PLUGINS = [
 | 1 | Menu & panel title | Labels for sidebar and Security card |
 | 2 | Custom Objects | **Add all Custom Object Types** (7 built-in COTs) |
 | 3 | TypeConfig | **Add all TypeConfigs** (matching, panels, display) |
-| 4 | Demo | Optional Enterprise DC, scale test, or starter demo |
+| 4 | Demo | **[Starter demo](#starter-demo-recommended)** (recommended) — or Enterprise DC when the IP database is empty |
 
 ### 3. First links
 
@@ -262,7 +261,7 @@ Open the **Zone** object → see the reverse view (prefixes, VMs, matching rules
 
 ### 4. First rulebook
 
-**Security → Rulebooks → + Add** — or import the Enterprise DC demo from Setup.
+**Security → Rulebooks → + Add** — or run the **[Starter demo](#starter-demo-recommended)** from Setup (Section 4) for ready-made sample rulebooks.
 
 ---
 
@@ -314,7 +313,7 @@ Links each ContentType to NSM (built-in COTs or **your own** Custom Object Types
 
 - **All Rules** (`/rulebooks/0/`) — read-only aggregate across all rulebooks  
 - **Rulebook detail** — configurable field hierarchy (zone-based, address-based, …)  
-- **Rules tab** — AG Grid with filter syntax, grouping, staged load  
+- **Rules tab** — AG Grid with Table / Group / Matrix views, filter syntax, staged load — [Rules grid](docs/using_netbox_nsm.md#rules-grid)
 - **Add rule** — Source / Destination / Service / Action tabs with object picker  
 
 ![Rulebook list](docs/img/05-rulebook-list.png)
@@ -332,7 +331,7 @@ Links each ContentType to NSM (built-in COTs or **your own** Custom Object Types
 
 Corner filters (`dmz OR mgmt`), diagonal self-cells, axis limit 250 zones.
 
-[Zone Matrix →](docs/using_netbox_nsm.md#zone-matrix-tab)
+[Zone Matrix →](docs/using_netbox_nsm.md#zone-matrix)
 
 </details>
 
@@ -382,11 +381,28 @@ Portable schema: `POST /api/plugins/custom-objects/schema/apply/` with bundled `
 
 ## Demo data
 
-Setup **Section 4** offers idempotent demos:
+After Setup sections **1–3**, use **Section 4 (Demo)** to load sample rulebooks. Requires `setup_allow_destructive_actions: True` in `PLUGINS_CONFIG`.
 
-- **Starter** — zones, addresses, labels  
-- **Enterprise DC** — full multi-zone datacenter (disabled when IP addresses already exist)  
-- **Scale test** — 12k+ rules for UI performance testing  
+### Starter demo (recommended)
+
+The **Starter demo** is the primary entry point for exploring netbox-nsm. It runs **synchronously** in the browser (no RQ worker) and is always available at **Security → Configuration → Setup → Demo → Create** once section 3 is complete.
+
+| Created | Details |
+|---|---|
+| Prerequisites | Imports built-in Custom Object Types and TypeConfigs if missing; seeds default zones (`trust`, `untrust`, `dmz`, `mgmt`), actions (`Permit`, `Deny`), and services (`HTTPS`, `SSH`) |
+| **Demo - Zone Matrix** | Zone-based rulebook with six example rules — use it for the [Rules grid](docs/using_netbox_nsm.md#rules-grid), grouping, and [Zone matrix](docs/using_netbox_nsm.md#zone-matrix) |
+| **Demo - Addresses** | Address-based rulebook layout (zones + addresses in source/destination columns) — schema only, no pre-filled rules |
+
+**Typical workflow:** run Starter demo → open **Security → Rulebooks → Demo - Zone Matrix** → switch Table / Group / Matrix views → assign zones from any Prefix via the Security Panel.
+
+Step-by-step matrix walkthrough: [Demo - Zone Matrix example](docs/using_netbox_nsm.md#example-rulebook-demo---zone-matrix) in the user guide.
+
+### Other demos
+
+| Demo | Availability |
+|---|---|
+| **Enterprise DC** | Visible in Setup; full DC scenario (DCIM + IPAM + 11 rulebooks, ~30–60 s). Disabled when IP addresses already exist |
+| **Scale test** / **Addresses demo** | Not shown in the Setup UI — high-volume performance tests (~12k / ~6k rules, background RQ queue, ~1–2 min). CLI scripts under `scripts/` if needed |
 
 ---
 
@@ -394,13 +410,7 @@ Setup **Section 4** offers idempotent demos:
 
 | NetBox | Plugin |
 |---|---|
-| 4.6.x | 0.1.0 |
-
-### netbox-branching
-
-Integration with [netbox-branching](https://github.com/netboxlabs/netbox-branching) is **experimental** — **initial tests have already been run** in the homelab stack (branch-aware rule saves, junction-table routing, Security Panel / Object Analyzer API headers, Rules and Matrix tabs). Plugin load order: `netbox_custom_objects` → `netbox_nsm` → `netbox_branching`.
-
-Details: **[Using netbox-nsm § netbox_branching](docs/using_netbox_nsm.md#netbox_branching)**
+| 4.5+ | 0.2.x |
 
 ---
 

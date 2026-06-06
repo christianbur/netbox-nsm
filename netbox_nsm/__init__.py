@@ -22,6 +22,9 @@ class SecurityConfig(PluginConfig):
         "setup_menu": True,
         # Setup: full sync, demo custom types, demo rulebooks (default: on)
         "setup_allow_destructive_actions": True,
+        # Top-level menu and object-detail panel title (default: "Security")
+        "menu_label": "",
+        "panel_label": "",
     }
 
     def ready(self):
@@ -40,10 +43,17 @@ class SecurityConfig(PluginConfig):
             nsm_object_link_saved,
             nsm_object_link_deleted,
         )
-        post_save.connect(nsm_object_link_saved, sender=ObjectLink,
-                          dispatch_uid="nsm_object_link_saved_for_object_b")
-        post_delete.connect(nsm_object_link_deleted, sender=ObjectLink,
-                            dispatch_uid="nsm_object_link_deleted_for_object_b")
+
+        post_save.connect(
+            nsm_object_link_saved,
+            sender=ObjectLink,
+            dispatch_uid="nsm_object_link_saved_for_object_b",
+        )
+        post_delete.connect(
+            nsm_object_link_deleted,
+            sender=ObjectLink,
+            dispatch_uid="nsm_object_link_deleted_for_object_b",
+        )
 
     @staticmethod
     def _patch_color_field_widget():
@@ -53,7 +63,11 @@ class SecurityConfig(PluginConfig):
         ColorSelectTextWidget (picker + hex text input) instead of
         a plain CharField.
         """
-        from netbox_custom_objects.field_types import TextFieldType
+        try:
+            from netbox_custom_objects.field_types import TextFieldType
+        except ImportError:
+            return
+
         from netbox_nsm.forms.widgets import ColorSelectTextWidget
 
         _original = TextFieldType.get_form_field

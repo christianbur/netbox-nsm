@@ -1,0 +1,33 @@
+{% load i18n %}
+<div class="nsm-ag-chrome-bar">
+  <div class="nsm-ag-chrome-bar-row d-flex align-items-start gap-2">
+    {% include "netbox_nsm/inc/rulebook_ag_filter_query.html" %}
+    <div class="nsm-ag-toolbar-actions nsm-ag-toolbar-actions-end d-flex flex-nowrap align-items-center gap-2 flex-shrink-0">
+      {% if policy_toolbar %}
+      <a id="nsm-ag-add-rule"
+         href="{% if perms.netbox_nsm.add_rule %}{{ nsm_rule_add_url|default:'' }}{% else %}#{% endif %}"
+         class="btn btn-sm btn-primary text-nowrap{% if not perms.netbox_nsm.add_rule %} disabled{% endif %}"
+         {% if not perms.netbox_nsm.add_rule %}aria-disabled="true" tabindex="-1"{% endif %}>
+        <span class="mdi mdi-plus-thick" aria-hidden="true"></span> {% trans "Add Rule" %}
+      </a>
+      {% if perms.netbox_nsm.delete_rule %}
+      <button type="submit" id="nsm-bulk-delete-btn"
+              class="btn btn-sm btn-danger text-nowrap d-none"
+              title="{% trans 'Delete selected rules' %}"
+              data-confirm="{% trans 'Delete selected rules?' %}">
+        <span class="mdi mdi-delete-outline me-1" aria-hidden="true"></span>
+        <span id="nsm-selected-count"></span>
+        {% trans "Delete selected" %}
+      </button>
+      {% endif %}
+      {% endif %}
+      <button type="button"
+              id="nsm-ag-csv-export"
+              class="btn btn-sm btn-outline-secondary text-nowrap"
+              title="{% trans 'Export visible data as CSV' %}">
+        <span class="mdi mdi-download" aria-hidden="true"></span>
+        {% trans "Export CSV" %}
+      </button>
+    </div>
+  </div>
+</div>

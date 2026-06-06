@@ -1,4 +1,6 @@
 import inspect
+
+from django.test import override_settings
 from utilities.testing.api import APITestCase as NetBoxAPITestCase
 from utilities.testing.views import ModelViewTestCase as NetBoxModelViewTestCase
 from django.urls import reverse
@@ -98,6 +100,12 @@ class ModelViewTestCase(NetBoxModelViewTestCase):
         )
 
 
+_TEST_API_TOKEN_PEPPERS = {
+    1: "TEST-VALUE-DO-NOT-USE-TEST-VALUE-DO-NOT-USE-TEST-VALUE-DO-NOT-USE",
+}
+
+
+@override_settings(API_TOKEN_PEPPERS=_TEST_API_TOKEN_PEPPERS)
 class APITestCase(NetBoxAPITestCase):
     def _get_view_namespace(self):
         return "netbox_nsm-api"

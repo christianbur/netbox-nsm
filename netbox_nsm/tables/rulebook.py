@@ -268,9 +268,7 @@ class AssignedObjectsColumn(tables.Column):
         shown = items[:max_visible]
         hidden = items[max_visible:]
 
-        parts = [
-            self._assignment_badge(url, name) for url, name in shown
-        ]
+        parts = [self._assignment_badge(url, name) for url, name in shown]
         for url, name in hidden:
             parts.append(self._assignment_badge(url, name, hidden=True))
 
@@ -278,7 +276,7 @@ class AssignedObjectsColumn(tables.Column):
             parts.append(
                 f'<button type="button" class="badge text-bg-secondary border-0 nsm-assigned-more me-1"'
                 f' style="cursor:pointer;"'
-                f' onclick="var w=this.closest(\'.nsm-assigned-wrap\');'
+                f" onclick=\"var w=this.closest('.nsm-assigned-wrap');"
                 f"w.querySelectorAll('.nsm-assigned-hidden').forEach(function(e){{e.style.display='';}});"
                 f'this.remove();">+{len(hidden)}</button>'
             )
@@ -294,7 +292,11 @@ class RulebookTable(NetBoxTable):
     rule_count = tables.TemplateColumn(
         template_code="""
 {% load i18n %}
+{% if record.is_virtual_all_rules %}
+<a href="{% url 'plugins:netbox_nsm:all_rules_rules' %}"
+{% else %}
 <a href="{% url 'plugins:netbox_nsm:rulebook_rules' record.pk %}"
+{% endif %}
    class="nsm-rule-pill nsm-rule-pill--counter nsm-rulebook-count-pill text-decoration-none"
    title="{% trans 'View rules' %}">
   {% if record.rule_count is not None %}{{ record.rule_count }}{% else %}{{ record.rules.count }}{% endif %}
@@ -335,6 +337,7 @@ class RulebookTable(NetBoxTable):
             "assigned_objects",
             "description",
         )
+
 
 class RuleTable(NetBoxTable):
     index = tables.TemplateColumn(

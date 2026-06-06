@@ -161,9 +161,13 @@ class Command(BaseCommand):
             default = (cursor.fetchone() or [None])[0]
             if default and "nextval" in str(default):
                 return
-            sql = f"ALTER TABLE {schema}.{table} ALTER COLUMN id SET DEFAULT nextval(%s)"
+            sql = (
+                f"ALTER TABLE {schema}.{table} ALTER COLUMN id SET DEFAULT nextval(%s)"
+            )
         if dry_run:
-            self.stdout.write(f"  would set id default on {schema}.{table} → {sequence_name}")
+            self.stdout.write(
+                f"  would set id default on {schema}.{table} → {sequence_name}"
+            )
             return
         with connection.cursor() as cursor:
             cursor.execute(sql, [sequence_name])
@@ -175,9 +179,7 @@ class Command(BaseCommand):
         self, schema: str, table: str, main_schema: str, *, dry_run: bool
     ) -> None:
         sql_truncate = f"TRUNCATE {schema}.{table}"
-        sql_insert = (
-            f"INSERT INTO {schema}.{table} SELECT * FROM {main_schema}.{table}"
-        )
+        sql_insert = f"INSERT INTO {schema}.{table} SELECT * FROM {main_schema}.{table}"
         if dry_run:
             self.stdout.write(f"  would run: {sql_truncate}")
             self.stdout.write(f"  would run: {sql_insert}")

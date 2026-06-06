@@ -1,9 +1,13 @@
 {% extends 'base/layout.html' %}
 {% load i18n %}
 {% load helpers %}
-{% load static %}
 
 {% block title %}{% trans "Assign Link" %}{% endblock %}
+
+{% block head %}
+{{ block.super }}
+<link rel="stylesheet" href="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='css/nsm_lazy_picker.css' %}?v=20260607">
+{% endblock head %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -70,7 +74,7 @@
             <div class="ts-wrapper form-select single" id="element-ts-wrap">
               <div class="ts-control">
                 <input type="text" id="element-search"
-                       autocomplete="off" placeholder="{% trans 'Search (min. 2 chars or *)…' %}">
+                       autocomplete="off" placeholder="{% trans 'Search or browse…' %}">
               </div>
               <div class="ts-dropdown single" id="element-drop" hidden>
                 <div class="ts-dropdown-content" id="element-drop-content"></div>
@@ -78,8 +82,28 @@
             </div>
 
             {# Selected items #}
-            <div id="element-selected" class="mt-2"></div>
+            <div id="element-selected" class="mt-2 nsm-sel-pills"></div>
             <div id="element-error" class="invalid-feedback d-block"></div>
+          </div>
+
+          {# Link type / propagation #}
+          <div class="mb-3">
+            <label for="id_propagation" class="form-label fw-semibold">{% trans "Link type" %}</label>
+            {{ form.propagation }}
+            {% if form.propagation.help_text %}
+              <div class="form-text text-muted small">{{ form.propagation.help_text }}</div>
+            {% endif %}
+            {% if form.propagation.errors %}
+              <div class="invalid-feedback d-block">{{ form.propagation.errors|join:", " }}</div>
+            {% endif %}
+          </div>
+          <div class="mb-3" id="propagate-stop-wrap">
+            <div class="form-check">
+              {{ form.propagate_stop_on_own }}
+              <label class="form-check-label" for="id_propagate_stop_on_own">
+                {% trans "Stop when child has own link of same type" %}
+              </label>
+            </div>
           </div>
 
           {# Comment #}
@@ -108,6 +132,7 @@
             <tr>
               <th class="ps-3">{% trans "Typ" %}</th>
               <th>{% trans "Element" %}</th>
+              <th>{% trans "Link type" %}</th>
               <th>{% trans "Comment" %}</th>
               <th></th>
             </tr>
@@ -125,6 +150,12 @@
                   {% endif %}
                 {% else %}
                   <span class="text-muted">–</span>
+                {% endif %}
+              </td>
+              <td class="text-muted small">
+                {{ link.get_propagation_display }}
+                {% if link.propagate_stop_on_own %}
+                <span class="badge text-bg-secondary ms-1">{% trans "stop on own" %}</span>
                 {% endif %}
               </td>
               <td class="text-muted small">{{ link.comment|default:"–" }}</td>
@@ -154,7 +185,6 @@
 
 </div>
 
-<link rel="stylesheet" href="{% static 'netbox_nsm/css/nsm_lazy_picker.css' %}">
 <script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/nsm_branch_api.js' %}?v=1"></script>
 
 <script>
@@ -170,7 +200,7 @@
   var form = document.getElementById('assign-form');
 
   var apiBase = '{% url "plugins:netbox_nsm:object_type_elements_api" %}';
-  var MIN_SEARCH_CHARS = 2;
+  var sourceCtId = '{{ form.object_a_type_id.value|default:"" }}';
   var PAGE_SIZE = 30;
   var currentCtId = null;
   var debounceTimer = null;
@@ -179,11 +209,6 @@
   var browseQuery = '';
   // { id → display }
   var selected = {};
-
-  function queryReady(q) {
-    q = (q || '').trim();
-    return q === '*' || q.length >= MIN_SEARCH_CHARS;
-  }
 
   function hideDrop() { dropEl.hidden = true; dropContent.innerHTML = ''; }
 
@@ -233,10 +258,6 @@
 
   function loadElements(ctId, q, append) {
     q = (q || '').trim();
-    if (!queryReady(q)) {
-      showDropMessage('{% trans "Enter at least 2 characters to search (or * for the first page only)." %}');
-      return;
-    }
     if (!append) {
       browseOffset = 0;
       browseQuery = q;
@@ -244,8 +265,12 @@
     showDropMessage('{% trans "Loading…" %}');
     var apiQ = (q === '*') ? '*' : q;
     var fetchFn = (window.NSM_BRANCH_API && window.NSM_BRANCH_API.fetch) || fetch;
-    fetchFn(apiBase + '?ct_id=' + ctId + '&q=' + encodeURIComponent(apiQ)
-      + '&limit=' + PAGE_SIZE + '&offset=' + browseOffset,
+    var apiUrl = apiBase + '?ct_id=' + ctId + '&q=' + encodeURIComponent(apiQ)
+      + '&limit=' + PAGE_SIZE + '&offset=' + browseOffset;
+    if (sourceCtId) {
+      apiUrl += '&source_ct_id=' + encodeURIComponent(sourceCtId);
+    }
+    fetchFn(apiUrl,
       { headers: (window.NSM_BRANCH_API && NSM_BRANCH_API.mergeBranchHeaders({ 'X-Requested-With': 'XMLHttpRequest' })) || { 'X-Requested-With': 'XMLHttpRequest' } })
       .then(function (r) { return r.json(); })
       .then(function (data) {
@@ -273,9 +298,12 @@
     }
 
     selectedWrap.innerHTML = ids.map(function (id) {
-      return '<div class="nsm-sel-item" data-sel-id="' + id + '">'
+      return '<div class="nsm-sel-item nsm-sel-item-muted" data-sel-id="' + id + '">'
         + '<span class="nsm-sel-item-name">' + escHtml(selected[id]) + '</span>'
-        + '<button type="button" class="nsm-sel-item-remove" data-remove-id="' + id + '" title="{% trans "Remove" %}">×</button>'
+        + '<button type="button" class="nsm-sel-item-remove" data-remove-id="' + id + '"'
+        + ' title="{% trans "Remove" %}" aria-label="{% trans "Remove" %}">'
+        + '<span class="nsm-sel-item-remove-icon" aria-hidden="true">\u00d7</span>'
+        + '</button>'
         + '</div>';
     }).join('');
 
@@ -320,6 +348,7 @@
       return;
     }
     pickerWrap.style.display = '';
+    loadElements(currentCtId, '', false);
   });
 
   // ── Search input ──────────────────────────────────────────────────────────
@@ -329,18 +358,13 @@
     var q = this.value;
     debounceTimer = setTimeout(function () {
       if (!currentCtId) return;
-      if (queryReady(q)) loadElements(currentCtId, q, false);
-      else if (q.length) showDropMessage('{% trans "Enter at least 2 characters to search (or * for the first page only)." %}');
-      else hideDrop();
+      loadElements(currentCtId, q, false);
     }, 250);
   });
 
   searchInput.addEventListener('focus', function () {
     if (!currentCtId) return;
-    var q = searchInput.value.trim();
-    if (queryReady(q)) loadElements(currentCtId, q, false);
-    else if (!q.length) hideDrop();
-    else showDropMessage('{% trans "Enter at least 2 characters to search (or * for the first page only)." %}');
+    loadElements(currentCtId, searchInput.value.trim(), false);
   });
 
   searchInput.addEventListener('blur', function () {
@@ -352,6 +376,24 @@
   if (typeSelect.value) {
     currentCtId = typeSelect.value;
     pickerWrap.style.display = '';
+  }
+
+  var prefillId = '{{ prefill_object_b_id|default:""|escapejs }}';
+  var prefillDisplay = '{{ prefill_object_b_display|default:""|escapejs }}';
+  if (prefillId && prefillDisplay) {
+    selectItem(prefillId, prefillDisplay);
+  }
+
+  var propagationSelect = document.getElementById('id_propagation');
+  var propagateStopWrap = document.getElementById('propagate-stop-wrap');
+  function syncPropagationUi() {
+    if (!propagationSelect || !propagateStopWrap) return;
+    var isDirect = propagationSelect.value === 'direct';
+    propagateStopWrap.style.display = isDirect ? 'none' : '';
+  }
+  if (propagationSelect) {
+    propagationSelect.addEventListener('change', syncPropagationUi);
+    syncPropagationUi();
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────

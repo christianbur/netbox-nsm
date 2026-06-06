@@ -128,6 +128,24 @@
           {% endif %}
 
           {% if not object or not object.is_system_field %}
+          {% if form.facet_mode %}
+          <div class="mb-3">
+            <label class="form-label" for="{{ form.facet_mode.id_for_label }}">
+              {% trans "Facet filter" %}
+            </label>
+            {{ form.facet_mode }}
+            {% if form.facet_mode.errors %}
+              <div class="text-danger small mt-1">{{ form.facet_mode.errors }}</div>
+            {% endif %}
+            <div class="form-text">
+              {% trans "Only for fields without sub-types. After adding a type, configure facets on each type row." %}
+            </div>
+          </div>
+          {% elif object and object.has_subfield_types %}
+          <div class="alert alert-secondary py-2 small mb-3">
+            {% trans "Facet filters are configured on each sub-type (type row), not on this parent field." %}
+          </div>
+          {% endif %}
           <div class="mb-3">
             <label class="form-label" for="{{ form.max_visible_pills.id_for_label }}">
               {% trans "Max visible pills" %}
@@ -137,7 +155,11 @@
               <div class="text-danger small mt-1">{{ form.max_visible_pills.errors }}</div>
             {% endif %}
             <div class="form-text">
-              {% trans "How many object pills to show per cell in the policy table. Further values are hidden behind +X until clicked." %}
+              {% if object and object.is_container_field %}
+                {% trans "Applies to each sub-type column; shown on the type rows in the fields table." %}
+              {% else %}
+                {% trans "How many object pills to show per cell in the policy table. Further values are hidden behind +X until clicked." %}
+              {% endif %}
             </div>
           </div>
           {% endif %}

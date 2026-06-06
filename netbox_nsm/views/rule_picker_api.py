@@ -11,12 +11,13 @@ from netbox_nsm.picker_browse import (
     browse_picker_objects,
 )
 from netbox_nsm.branch_db import ensure_branch_context
+from netbox_nsm.changelog_utils import record_object_update, snapshot_instance
 from netbox_nsm.rule_field_selections import (
     build_all_column_cells_payload,
     build_column_cell_payload,
     get_all_column_selections,
     get_column_selections,
-    policy_column_keys_for_rulebook,
+    rules_column_keys_for_rulebook,
     save_all_column_selections,
     save_column_selections,
 )
@@ -90,7 +91,7 @@ class RulebookPickerDataApiView(LoginRequiredMixin, View):
             return JsonResponse({"detail": "Forbidden"}, status=403)
 
         rulebook = get_object_or_404(Rulebook, pk=pk)
-        if rulebook.rulebook_type != RulebookTypeChoices.POLICY:
+        if rulebook.rulebook_type != RulebookTypeChoices.SECURITY_RULES:
             return JsonResponse({"detail": "Not found"}, status=404)
 
         return JsonResponse(_build_security_rule_picker_data(rulebook=rulebook))
@@ -128,7 +129,7 @@ class RuleFieldSelectionsApiView(LoginRequiredMixin, View):
             columns = get_all_column_selections(rule, rule.rulebook)
             return JsonResponse(
                 {
-                    "column_keys": policy_column_keys_for_rulebook(rule.rulebook),
+                    "column_keys": rules_column_keys_for_rulebook(rule.rulebook),
                     "columns": columns,
                 }
             )
@@ -155,17 +156,21 @@ class RuleFieldSelectionsApiView(LoginRequiredMixin, View):
             return JsonResponse({"detail": "Invalid JSON"}, status=400)
 
         rule = self._load_rule(pk)
+        prechange = snapshot_instance(rule)
         try:
             with ensure_branch_context(request):
                 if isinstance(body.get("columns"), dict):
                     save_all_column_selections(
                         rule, body["columns"], rule.rulebook, request=request
                     )
+                    record_object_update(rule, request, prechange)
                     rule = self._load_rule(pk, prefetch=True)
                     return JsonResponse(
                         {
                             "columns": get_all_column_selections(rule, rule.rulebook),
-                            "cells": build_all_column_cells_payload(rule, rule.rulebook),
+                            "cells": build_all_column_cells_payload(
+                                rule, rule.rulebook
+                            ),
                         }
                     )
 
@@ -174,9 +179,12 @@ class RuleFieldSelectionsApiView(LoginRequiredMixin, View):
 
                 selections = body.get("selections")
                 if not isinstance(selections, list):
-                    return JsonResponse({"detail": "selections must be a list"}, status=400)
+                    return JsonResponse(
+                        {"detail": "selections must be a list"}, status=400
+                    )
 
                 save_column_selections(rule, column_key, selections, request=request)
+                record_object_update(rule, request, prechange)
             rule = self._load_rule(pk, prefetch=True)
             payload = build_column_cell_payload(rule, rule.rulebook, column_key)
             payload["selections"] = get_column_selections(rule, column_key)

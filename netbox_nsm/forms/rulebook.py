@@ -201,9 +201,7 @@ class RuleForm(PrimaryModelForm):
         initial="1",
     )
     name = forms.CharField(max_length=100, required=True)
-    rulebook = DynamicModelChoiceField(
-        queryset=Rulebook.objects.all(), required=True
-    )
+    rulebook = DynamicModelChoiceField(queryset=Rulebook.objects.all(), required=True)
     area_selections = forms.CharField(
         widget=forms.HiddenInput(attrs={"id": "nsm-area-selections"}),
         required=False,
@@ -278,9 +276,7 @@ class RuleForm(PrimaryModelForm):
                 if commit:
                     # super().save() may clear active_branch; re-activate for junction rows.
                     with ensure_branch_context(req):
-                        db_alias = required_junction_db_alias(
-                            instance, req, hint=alias
-                        )
+                        db_alias = required_junction_db_alias(instance, req, hint=alias)
                         if db_alias:
                             instance._state.db = db_alias
                         pin_instance_db_alias(instance, req)
@@ -305,7 +301,9 @@ class RuleForm(PrimaryModelForm):
         if clean == current:
             return
         instance.virtual_group_config = clean
-        branch_save_instance(instance, request=self._request, update_fields=["virtual_group_config"])
+        branch_save_instance(
+            instance, request=self._request, update_fields=["virtual_group_config"]
+        )
 
     def _save_area_selections(self, instance, db_alias=None):
         """Parse area_selections JSON and create/update RuleObjectItem and RuleGroupItem."""

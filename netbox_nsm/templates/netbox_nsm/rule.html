@@ -55,19 +55,19 @@
         </tr>
         <tr>
           <th scope="row">{% trans "Source" %}</th>
-          <td>{% if vgroup_source and source_objects %}<span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-normal">{{ vgroup_source_label }}</span>{% else %}{% for item in source_objects %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}{% endif %}</td>
+          <td>{% for item in source_objects %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>
         </tr>
         <tr>
           <th scope="row">{% trans "Destination" %}</th>
-          <td>{% if vgroup_destination and destination_objects %}<span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-normal">{{ vgroup_destination_label }}</span>{% else %}{% for item in destination_objects %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}{% endif %}</td>
+          <td>{% for item in destination_objects %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>
         </tr>
         <tr>
           <th scope="row">{% trans "Service" %}</th>
-          <td>{% if vgroup_services and service_objects %}<span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-normal">{{ vgroup_services_label }}</span>{% else %}{% for item in service_objects %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}{% endif %}</td>
+          <td>{% for item in service_objects %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>
         </tr>
         <tr>
           <th scope="row">Action</th>
-          <td>{% if vgroup_action and action_objects %}<span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-normal">{{ vgroup_action_label }}</span>{% else %}{% for item in action_objects %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}{% endif %}</td>
+          <td>{% for item in action_objects %}{{ item|linkify }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">-</span>{% endfor %}</td>
         </tr>
         {% if object.description %}
         <tr>

@@ -65,9 +65,7 @@ class RulebookFieldSerializer(ModelSerializer):
         view_name="plugins-api:netbox_nsm-api:rulebookfield-detail"
     )
     display = serializers.CharField(read_only=True)
-    rulebook = serializers.PrimaryKeyRelatedField(
-        queryset=Rulebook.objects.all()
-    )
+    rulebook = serializers.PrimaryKeyRelatedField(queryset=Rulebook.objects.all())
 
     class Meta:
         model = RulebookField
@@ -135,9 +133,7 @@ class RuleObjectItemSerializer(ModelSerializer):
         view_name="plugins-api:netbox_nsm-api:ruleobjectitem-detail"
     )
     display = serializers.CharField(read_only=True)
-    rule = serializers.PrimaryKeyRelatedField(
-        queryset=Rule.objects.all()
-    )
+    rule = serializers.PrimaryKeyRelatedField(queryset=Rule.objects.all())
     field = serializers.PrimaryKeyRelatedField(
         queryset=RulebookField.objects.all(), allow_null=True, required=False
     )
@@ -184,9 +180,7 @@ class RuleGroupItemSerializer(ModelSerializer):
         view_name="plugins-api:netbox_nsm-api:rulegroupitem-detail"
     )
     display = serializers.CharField(read_only=True)
-    rule = serializers.PrimaryKeyRelatedField(
-        queryset=Rule.objects.all()
-    )
+    rule = serializers.PrimaryKeyRelatedField(queryset=Rule.objects.all())
     field = serializers.PrimaryKeyRelatedField(
         queryset=RulebookField.objects.all(), allow_null=True, required=False
     )

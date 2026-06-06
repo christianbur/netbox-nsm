@@ -37,6 +37,12 @@ jobs:
             with:
                 path: netbox-nsm
 
+          - name: Checkout netbox-custom-objects
+            uses: actions/checkout@main
+            with:
+                repository: netboxlabs/netbox-custom-objects
+                path: netbox-custom-objects
+
           - name: Set up Python ${{ matrix.python-version }}
             uses: actions/setup-python@main
             with:
@@ -49,23 +55,27 @@ jobs:
                 path: netbox
                 ref: main
 
-          - name: Install NetBox NSM
-            working-directory: netbox-nsm
+          - name: Install plugins
             run: |
-                # include tests directory for test
-                sed -i 's/exclude/#exclude/g' pyproject.toml
-                pip install .
+                python -m pip install --upgrade pip
+                python -m pip install tblib
+                # include tests directories for test discovery
+                sed -i 's/exclude/#exclude/g' netbox-nsm/pyproject.toml
+                if [ -f netbox-custom-objects/pyproject.toml ]; then
+                  sed -i 's/exclude/#exclude/g' netbox-custom-objects/pyproject.toml
+                fi
+                pip install ./netbox-custom-objects
+                pip install ./netbox-nsm
 
           - name: Set up configuration
             working-directory: netbox
             run: |
                 ln -s $(pwd)/../netbox-nsm/media/configuration.testing.py netbox/netbox/configuration.py
-
-                python -m pip install --upgrade pip
-                python -m pip install tblib
                 pip install -r requirements.txt -U
 
           - name: Run tests
             working-directory: netbox
             run: |
+                python netbox/manage.py migrate netbox_custom_objects --no-input
+                python netbox/manage.py migrate netbox_nsm --no-input
                 python netbox/manage.py test netbox_nsm.tests --parallel -v2

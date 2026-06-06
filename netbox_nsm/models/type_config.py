@@ -5,7 +5,14 @@ from django.utils.translation import gettext_lazy as _
 
 from netbox.models import NetBoxModel
 
-__all__ = ("MatchingClassChoices", "TypeConfig")
+__all__ = (
+    "MatchingClassChoices",
+    "PANEL_LINKABLE_DISABLED",
+    "TypeConfig",
+)
+
+# Sentinel stored in panel_linkable_types to represent legacy panel_linkable=False.
+PANEL_LINKABLE_DISABLED = 0
 
 
 class MatchingClassChoices(models.TextChoices):
@@ -29,7 +36,9 @@ class TypeConfig(NetBoxModel):
     name = models.CharField(
         max_length=100,
         verbose_name=_("Name"),
-        help_text=_("Display name used as column header and type label throughout NSM."),
+        help_text=_(
+            "Display name used as column header and type label throughout NSM."
+        ),
     )
     content_type = models.ForeignKey(
         to="contenttypes.ContentType",
@@ -95,11 +104,13 @@ class TypeConfig(NetBoxModel):
             "type, inherited links of that type are suppressed."
         ),
     )
-    panel_linkable = models.BooleanField(
-        default=True,
+    panel_linkable_types = models.JSONField(
+        default=list,
+        blank=True,
         verbose_name=_("Linkable in panel"),
         help_text=_(
-            "If enabled, objects of this type can be linked from the NSM Security Panel."
+            "NetBox object types that may assign this NSM type via + Assign in the "
+            "Security Panel. Leave empty to allow all object types."
         ),
     )
 
@@ -113,6 +124,52 @@ class TypeConfig(NetBoxModel):
             "matching_class",
         )
         unique_together = [("content_type", "matching_class")]
+
+    @classmethod
+    def queryset_panel_linkable(cls):
+        """TypeConfigs that may appear as Object B in the Security Panel assign picker."""
+        return cls.objects.exclude(panel_linkable_types=[PANEL_LINKABLE_DISABLED])
+
+    @classmethod
+    def queryset_assignable_from(cls, assigner_content_type_id):
+        """TypeConfigs assignable from a given NetBox object type (Object A)."""
+        from django.db.models import Q
+
+        return cls.queryset_panel_linkable().filter(
+            Q(panel_linkable_types=[])
+            | Q(panel_linkable_types__contains=[assigner_content_type_id])
+        )
+
+    def is_panel_linkable_disabled(self) -> bool:
+        return self.panel_linkable_types == [PANEL_LINKABLE_DISABLED]
+
+    def is_assignable_from_content_type(self, content_type_id) -> bool:
+        if self.is_panel_linkable_disabled():
+            return False
+        allowed = self.panel_linkable_types or []
+        if not allowed:
+            return True
+        return int(content_type_id) in allowed
+
+    def panel_linkable_type_labels(self) -> list[str]:
+        """Human-readable labels for restricted assigner object types."""
+        allowed = [
+            int(pk)
+            for pk in (self.panel_linkable_types or [])
+            if int(pk) != PANEL_LINKABLE_DISABLED
+        ]
+        if not allowed:
+            return []
+        labels: list[str] = []
+        for ct in ContentType.objects.filter(pk__in=allowed).order_by(
+            "app_label", "model"
+        ):
+            mc = ct.model_class()
+            if mc:
+                labels.append(str(mc._meta.verbose_name).title())
+            else:
+                labels.append(ct.model.replace("_", " ").title())
+        return labels
 
     @property
     def content_type_label(self):
@@ -183,7 +240,9 @@ class TypeConfig(NetBoxModel):
             label = (label or "").strip()
             if not label:
                 continue
-            if any(self._label_dedup_key(label) == self._label_dedup_key(p) for p in parts):
+            if any(
+                self._label_dedup_key(label) == self._label_dedup_key(p) for p in parts
+            ):
                 continue
             parts.append(label)
         return parts

@@ -1,0 +1,18 @@
+{% extends 'netbox_nsm/virtual_rulebook_object.html' %}
+{% load render_table from django_tables2 %}
+{% load i18n %}
+
+{% block breadcrumbs %}
+{% include "netbox_nsm/inc/rulebook_breadcrumbs.html" with active_tab=feature_tab_label %}
+{% endblock breadcrumbs %}
+
+{% block content %}
+<div class="card">
+  <div class="table-responsive">
+    {% render_table table 'inc/table.html' %}
+  </div>
+</div>
+<div class="text-muted">
+  {% trans "Change log retention" %}: {% if config.CHANGELOG_RETENTION %}{{ config.CHANGELOG_RETENTION }} {% trans "days" %}{% if config.CHANGELOG_RETAIN_CREATE_LAST_UPDATE %} ({% trans "retaining create & last update records for non-deleted objects" %}){% endif %}{% else %}{% trans "Indefinite" %}{% endif %}
+</div>
+{% endblock content %}

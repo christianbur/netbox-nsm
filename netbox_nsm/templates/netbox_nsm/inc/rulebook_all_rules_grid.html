@@ -1,0 +1,32 @@
+{% load i18n %}
+<div class="nsm-rules-grid-only">
+  <div class="nsm-ag-grid-layout nsm-ag-grid-theme nsm-ag-grid-fit">
+    <div class="nsm-ag-grid-chrome">
+      {% include "netbox_nsm/inc/rulebook_ag_chrome_bar.html" with filter_query_separated=True %}
+      <div class="nsm-ag-group-toolbar-row d-flex align-items-stretch">
+        {% include "netbox_nsm/inc/rulebook_ag_group_by.html" %}
+      </div>
+      <div class="nsm-rules-ag-grid-wrap">
+      <div id="nsm-all-rules-load-status"
+           class="nsm-ag-load-status d-none"
+           data-loading-label="{% trans 'Loading rules' %}"
+           aria-live="polite">
+        <span class="nsm-ag-load-spinner mdi mdi-loading mdi-spin" aria-hidden="true"></span>
+        <div id="nsm-all-rules-load-track"
+             class="nsm-ag-load-track"
+             role="progressbar"
+             aria-valuemin="0"
+             aria-valuemax="100"
+             aria-valuenow="0">
+          <div id="nsm-all-rules-load-progress" class="nsm-ag-load-progress"></div>
+        </div>
+        <span id="nsm-all-rules-load-label" class="nsm-ag-load-label"></span>
+      </div>
+      {% if all_rules_grid_payload %}{{ all_rules_grid_payload|json_script:"nsm-all-rules-grid-data" }}{% endif %}
+      {% if all_rules_grid_config %}{{ all_rules_grid_config|json_script:"nsm-all-rules-grid-config" }}{% endif %}
+      <div id="nsm-all-rules-ag-grid" class="nsm-rules-ag-grid nsm-ag-grid-surface"></div>
+      </div>
+      {% include "netbox_nsm/inc/rulebook_ag_status_bar.html" with row_stats_id="nsm-all-rules-row-stats" load_more_btn_id="nsm-all-rules-load-more" %}
+    </div>
+  </div>
+</div>

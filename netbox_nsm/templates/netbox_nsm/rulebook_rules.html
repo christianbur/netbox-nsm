@@ -1,0 +1,65 @@
+{% extends 'generic/object.html' %}
+{% load i18n %}
+{% load helpers %}
+
+{% block head %}
+{{ block.super }}
+{% include "netbox_nsm/inc/rulebook_page_head.html" %}
+{% include "netbox_nsm/inc/rulebook_rules_grid_head.html" %}
+{% endblock head %}
+
+{% block breadcrumbs %}
+{% include "netbox_nsm/inc/rulebook_breadcrumbs.html" with active_tab=rules_tab_label %}
+{% endblock breadcrumbs %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body p-0">
+    <div class="p-3">
+      {% if is_nsm_rules %}
+        <div class="nsm-rules-grid-only">
+          <form method="post" id="nsm-bulk-delete-form">
+            {% csrf_token %}
+            <div class="nsm-ag-grid-layout nsm-ag-grid-theme nsm-ag-grid-fit">
+              <div class="nsm-ag-grid-chrome">
+                {% include "netbox_nsm/inc/rulebook_ag_chrome_bar.html" with policy_toolbar=True %}
+                <div class="nsm-ag-group-toolbar-row d-flex align-items-stretch">
+                  {% include "netbox_nsm/inc/rulebook_ag_group_by.html" %}
+                </div>
+                <div class="nsm-rules-ag-grid-wrap">
+                <div id="nsm-ag-load-status"
+                     class="nsm-ag-load-status d-none"
+                     data-loading-label="{% trans 'Loading rules' %}"
+                     aria-live="polite">
+                  <span class="nsm-ag-load-spinner mdi mdi-loading mdi-spin" aria-hidden="true"></span>
+                  <div id="nsm-ag-load-track"
+                       class="nsm-ag-load-track"
+                       role="progressbar"
+                       aria-valuemin="0"
+                       aria-valuemax="100"
+                       aria-valuenow="0">
+                    <div id="nsm-ag-load-progress" class="nsm-ag-load-progress"></div>
+                  </div>
+                  <span id="nsm-ag-load-label" class="nsm-ag-load-label"></span>
+                </div>
+                {{ rulebook_rules_grid_payload|json_script:"nsm-rulebook-rules-grid-data" }}
+                {% if rules_grid_config %}{{ rules_grid_config|json_script:"nsm-rulebook-rules-grid-config" }}{% endif %}
+                <div id="nsm-rules-ag-grid" class="nsm-rules-ag-grid nsm-ag-grid-surface"></div>
+                <div id="nsm-rules-matrix-wrap"
+                     class="nsm-rules-matrix-wrap nsm-matrix-ag-theme d-none">
+                  <div id="nsm-rules-matrix-ag-grid"
+                       class="nsm-matrix-ag-grid nsm-ag-grid-surface"></div>
+                </div>
+                </div>
+                {% include "netbox_nsm/inc/rulebook_ag_status_bar.html" with row_stats_id="nsm-ag-row-stats" selected_stats_id="nsm-ag-selected-stats" load_more_btn_id="nsm-ag-load-more" %}
+              </div>
+            </div>
+          </form>
+          {# Scripts here: generic/object.html does not expose {% block javascript %} to base.html #}
+          {% include "netbox_nsm/inc/rulebook_rules_grid_javascript.html" %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

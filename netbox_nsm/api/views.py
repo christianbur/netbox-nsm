@@ -82,7 +82,9 @@ class ObjectLinkViewSet(NetBoxModelViewSet):
 
 
 class TypeConfigViewSet(NetBoxModelViewSet):
-    queryset = TypeConfig.objects.select_related("content_type").prefetch_related("tags")
+    queryset = TypeConfig.objects.select_related("content_type").prefetch_related(
+        "tags"
+    )
     serializer_class = TypeConfigSerializer
     filterset_class = TypeConfigFilterSet
 

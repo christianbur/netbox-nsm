@@ -46,9 +46,7 @@ class ObjectRulesApiView(View):
             return HttpResponseBadRequest("Invalid ct_id")
 
         qs = (
-            RuleObjectItem.objects.filter(
-                content_type=ct, object_id=obj_id
-            )
+            RuleObjectItem.objects.filter(content_type=ct, object_id=obj_id)
             .select_related("rule", "rule__rulebook", "field")
             .order_by("rule__rulebook__name", "field__sort_order", "rule__index")
         )

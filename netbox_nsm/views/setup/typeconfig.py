@@ -18,6 +18,12 @@ __all__ = (
 )
 
 
+def empty_typeconfig_status():
+    return [
+        {"spec": spec, "cot": None, "typeconfig": None} for spec in TYPECONFIG_SPECS
+    ]
+
+
 def get_typeconfig_status():
     from django.contrib.contenttypes.models import ContentType as DjCT
 
@@ -73,7 +79,7 @@ def create_typeconfig_for_slug(slug: str) -> None:
             "display_template": spec["display_template"],
             "panel_slugs": spec["panel_slugs"],
             "order_id": spec.get("order_id", 100),
-            "panel_linkable": spec.get("panel_linkable", True),
+            "panel_linkable_types": spec.get("panel_linkable_types", []),
         },
     )
 

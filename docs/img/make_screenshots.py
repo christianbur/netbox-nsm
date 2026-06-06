@@ -7,13 +7,14 @@ Konfigurierte Object-IDs (Stand: 2026-06):
   rulebook_zone  = 4   (TrustSec Infra — zone-based, 11 rules, gute Feldstruktur)
   rulebook_big   = 3   (TrustSec Core — 48 rules, für Policy Rules)
   rulebook_addr  = 6   (fw-dc-inter-zone — address+zone)
-  rulebook_demo  = 1   (Demo Zone Matrix — 6 rules, für Matrix-Filter-Demo)
+  rulebook_demo  = 1   (Demo Zone Matrix — 6 rules, 4 zones, matrix doc example)
   rulebook_demo_addr = 2  (Demo - Addresses — Starter-Demo, address-based)
   addr_ct_id     = 234  (nsm_addresses ContentType — Enterprise DC demo)
   addr_g4_pk     = 103  (address group g4)
   addr_g3_pk     = 102  (address group g3)
   rule_rich      = 13  (prod-to-integration-1, meiste Objekte)
   prefix_pk      = 6   (10.1.0.0/16 — prod direct, trust inherited from 10.0.0.0/8)
+  assign_pfx_pk  = 6   (Assign Link screenshots — same prefix; propagation dropdown)
   ip_pk          = 501 (10.0.0.10/24)
   device_pk      = 29  (HV-DEV2-01 — hat NSM-Link)
   zone_pk        = 1   (prod — Security Panel mit Rulebooks, Prefix, VMs)
@@ -38,6 +39,7 @@ ADDR_G4_PK  = 103
 ADDR_G3_PK  = 102
 RULE_PK     = 13
 PREFIX_PK   = 6
+ASSIGN_PFX_PK = 6
 IP_PK       = 501
 DEVICE_PK   = 29
 ZONE_PK     = 1
@@ -98,13 +100,27 @@ PAGES = [
      "?group_by=col:Source::Zones&nsm_q=Name(server+OR+db)+AND+Source.Zones(dmz)",
      "Rules-Tab — AG Grid, Gruppierung Source.Zones, Filter-Query, Pills"),
 
+    ("07-policy-rules-demo-group.png",
+     f"{BASE}/plugins/netbox-nsm/rulebooks/{RB_DEMO}/rules/"
+     "?nsm_q=view(group)",
+     "Rules — Demo Zone Matrix, Group view (view(group), 7 rules)"),
+
     ("09-zone-matrix.png",
      f"{BASE}/plugins/netbox-nsm/rulebooks/{RB_BIG}/matrix/",
      "Matrix-Tab — Enterprise TrustSec Core (AG Grid)"),
 
-    ("09-matrix-filters.png",
-     f"{BASE}/plugins/netbox-nsm/rulebooks/{RB_DEMO}/matrix/",
-     "Matrix-Tab — Demo Zone Matrix mit Eck-Filtern"),
+    ("09-zone-matrix-demo-undirected.png",
+     f"{BASE}/plugins/netbox-nsm/rulebooks/{RB_DEMO}/rules/"
+     "?nsm_q=Destination.Zones(dmz+OR+mgmt)+AND+Source.Zones(dmz+OR+mgmt)+AND+view(matrix)"
+     "&matrix_row=col:Source::Zones&matrix_col=col:Destination::Zones"
+     "&mode=undirected&src_q=dmz+OR+mgmt&dst_q=dmz+OR+mgmt",
+     "Matrix — Demo Zone Matrix (undirected, dmz/mgmt 2×2 subset — primary doc example)"),
+
+    ("09-zone-matrix-demo-directed.png",
+     f"{BASE}/plugins/netbox-nsm/rulebooks/{RB_DEMO}/rules/"
+     "?nsm_q=view(matrix)&matrix_row=col:Source::Zones&matrix_col=col:Destination::Zones"
+     "&src_q=dmz+OR+mgmt&dst_q=dmz+OR+mgmt",
+     "Matrix — Demo Zone Matrix (full 4×4 grid, view(matrix) — doc reference)"),
 
     ("10-security-policy-address.png",
      f"{BASE}/plugins/netbox-nsm/rulebooks/{RB_ADDR}/rules/",
@@ -147,6 +163,16 @@ PAGES = [
     ("16-ipaddress-security-tab.png",
      f"{BASE}/ipam/ip-addresses/{IP_PK}/",
      "IP-Adresse — Security-Tab"),
+
+    ("17-assign-picker.png",
+     f"{BASE}/plugins/netbox-nsm/object-link/assign/"
+     f"?ct_id={PFX_CT_ID}&obj_id={ASSIGN_PFX_PK}&return_url=/ipam/prefixes/{ASSIGN_PFX_PK}/",
+     "Assign Link — New Link form (Link type closed)"),
+
+    ("17-assign-link-propagation-types.png",
+     f"{BASE}/plugins/netbox-nsm/object-link/assign/"
+     f"?ct_id={PFX_CT_ID}&obj_id={ASSIGN_PFX_PK}&return_url=/ipam/prefixes/{ASSIGN_PFX_PK}/",
+     "Assign Link — Link type dropdown (all propagation modes)"),
 
     ("14-device-security-panel.png",
      f"{BASE}/dcim/devices/{DEVICE_PK}/",
@@ -201,6 +227,17 @@ def _capture_object_analyzer(page, vm_name):
         time.sleep(0.6)
 
 
+def _capture_assign_link_propagation(page, url):
+    """Open Assign Link page and expand Link type dropdown for doc screenshot."""
+    page.goto(url)
+    page.wait_for_load_state("networkidle")
+    time.sleep(0.5)
+    sel = page.locator("#id_propagation")
+    if sel.count():
+        sel.click()
+        time.sleep(0.4)
+
+
 def screenshot(page, filename, url, description=""):
     if not url:
         print(f"  [{filename}] SKIP (no URL)")
@@ -208,6 +245,8 @@ def screenshot(page, filename, url, description=""):
     print(f"  [{filename}] {description}")
     if filename == "11-object-analyzer.png":
         _capture_object_analyzer(page, VM_NAME)
+    elif filename == "17-assign-link-propagation-types.png":
+        _capture_assign_link_propagation(page, url)
     else:
         page.goto(url)
         page.wait_for_load_state("networkidle")

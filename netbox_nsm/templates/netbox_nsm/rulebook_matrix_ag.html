@@ -47,10 +47,28 @@
   {% endif %}
 
   <div class="card-body p-3">
-    {% if matrix_rows %}
+    {% if matrix_axis_limit %}
+    <div class="alert alert-warning py-2 px-3 mb-3 small" role="status">
+      {% if matrix_axis_limit.src_truncated and matrix_axis_limit.dst_truncated %}
+        {% blocktrans with limit=matrix_axis_limit.limit src_total=matrix_axis_limit.src_total dst_total=matrix_axis_limit.dst_total %}
+        Die Matrix zeigt höchstens {{ limit }} Einträge pro Achse. In den Regeln sind {{ src_total }} Quellen und {{ dst_total }} Ziele vorhanden; es werden jeweils die ersten {{ limit }} angezeigt.
+        {% endblocktrans %}
+      {% elif matrix_axis_limit.src_truncated %}
+        {% blocktrans with limit=matrix_axis_limit.limit src_total=matrix_axis_limit.src_total %}
+        Die Matrix zeigt höchstens {{ limit }} Quellen. In den Regeln sind {{ src_total }} Quellen vorhanden; es werden die ersten {{ limit }} angezeigt.
+        {% endblocktrans %}
+      {% else %}
+        {% blocktrans with limit=matrix_axis_limit.limit dst_total=matrix_axis_limit.dst_total %}
+        Die Matrix zeigt höchstens {{ limit }} Ziele. In den Regeln sind {{ dst_total }} Ziele vorhanden; es werden die ersten {{ limit }} angezeigt.
+        {% endblocktrans %}
+      {% endif %}
+    </div>
+    {% endif %}
+    {% if matrix_rows or matrix_grid_config.totalRows %}
       <div class="nsm-matrix-ag-layout nsm-matrix-ag-theme nsm-ag-grid-fit">
         <div class="nsm-matrix-ag-wrap">
           {{ matrix_ag_grid_payload|json_script:"nsm-matrix-grid-data" }}
+          {% if matrix_grid_config %}{{ matrix_grid_config|json_script:"nsm-matrix-grid-config" }}{% endif %}
           <div id="nsm-matrix-ag-grid" class="nsm-matrix-ag-grid"></div>
         </div>
       </div>

@@ -1,0 +1,7 @@
+{# Quartz + withParams (light); see AG Grid Theming: Colours. Legacy fallback below. #}
+{% load i18n static ag_grid_vendor %}
+<link rel="stylesheet" href="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='vendor/ag-grid-community/styles/ag-theme-quartz.min.css' %}?v={% ag_grid_community_version %}" disabled id="nsm-ag-legacy-theme-css">
+<link rel="stylesheet" href="{% static 'netbox_nsm/css/nsm_lazy_picker.css' %}">
+{% include "netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html" %}
+<link rel="stylesheet" href="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='css/rulebook_rules_grid.css' %}?v=202606126">
+<link rel="stylesheet" href="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='css/matrix_ag_grid.css' %}?v=202606126">

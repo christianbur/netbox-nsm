@@ -1,6 +1,6 @@
 # Known Issues & Open Items
 
-> Status as of 2025-06 (v0.1.0-dev)
+> Status as of 2025-06 (v0.2.0)
 
 ---
 
@@ -62,3 +62,19 @@ Consider auto-loading inherited links for objects that have no direct links at a
 The Zone Matrix view is only useful for rulebooks that use Zone objects in Source and
 Destination. For address-based or label-based rulebooks, the matrix shows no meaningful data.
 A "not applicable" notice should be shown when no zone-typed fields exist.
+
+---
+
+## Integration tests (`test_netbox` / CI)
+
+NSM tests run inside a full NetBox stack. Errors such as missing `custom_objects_*`
+tables or `_cable_peer_id` columns usually mean **plugin version skew** in the test
+environment (especially `netbox_custom_objects`), not NSM logic. Align plugin versions
+with the dev Docker stack before debugging NSM test failures.
+
+---
+
+## Planned for 0.3.x (not bugs)
+
+- **Locale `.po`:** stale `#:` comments pointing at removed templates (cosmetic; refresh via
+  `makemessages` when touching translations).

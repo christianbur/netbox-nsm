@@ -36,7 +36,7 @@ Interactive UI uses two MIT-licensed libraries (no commercial AG Grid Enterprise
 
 | Library | Views | Notes |
 |---|---|---|
-| **AG Grid Community 33.2.4** | `rulebook_policy`, `rulebook_matrix`, All Rules grid | Vendored under `plugin_assets/vendor/ag-grid-community/` |
+| **AG Grid Community 33.2.4** | `rulebook_rules`, `rulebook_matrix`, All Rules grid | Vendored under `plugin_assets/vendor/ag-grid-community/` |
 | **@xyflow/react 12** | `object_analyzer` | Import map + esm.sh in `object_analyzer.html` |
 
 ---
@@ -111,6 +111,22 @@ without changing the NSM plugin itself.
 Model and module names do **not** use an `NSM` prefix (the app label `netbox_nsm` is enough).
 See `scripts/drop_nsm_prefix.py` when migrating legacy names.
 
+### Glossary (one language per layer)
+
+| Layer | Convention | Examples |
+|-------|------------|----------|
+| UI / URL | **Rules** | Tab label „Rules“, route `rulebook_rules`, REST `/rules/` unchanged |
+| Domain | **Security rules** (rulebook type) | `RulebookTypeChoices.SECURITY_RULES` |
+| Grid stack (Python) | `rulebook_rules_grid_*` | `rulebook_rules_grid_service.py`, `RulebookRulesGridApiView` |
+| Grouping | `rulebook_rules_grouping.py` | `build_rulebook_rules_group_options()` |
+| Tab context | `rulebook_rules_tab.py` | `build_rulebook_rules_tab_context()` |
+| Grid API paths | `/api/rulebooks/<pk>/rules-grid/` | validate: `…/rules-grid/validate/` |
+| Cache keys | `nsm:rulebook_rules_grid:…` | — |
+| Grid DOM/CSS (JS) | `nsm-rules-*` | `nsm-rules-ag-grid`, profile key `rules` |
+| Grouped table data key | `rules_layout` | Column/row scaffold for rules grid |
+
+`all_rules_grid_*` and `matrix_grid_*` names are unchanged (virtual / matrix views).
+
 ## Data Model
 
 ### Database tables (PostgreSQL)
@@ -143,10 +159,19 @@ ObjectLink
 ├── object_b_type  (ForeignKey → ContentType)
 ├── object_b_id    (PositiveBigIntegerField)
 ├── object_b       (GenericForeignKey)
+├── propagation    (CharField — LinkPropagationChoices: direct | inherit_ipam | inherit_group)
+├── propagate_stop_on_own  (BooleanField — suppress inheritance when child has direct link of same type)
 └── comment        (TextField, optional)
 ```
 
 **Purpose:** Bidirectional link between any two NetBox objects.
+
+**Link type (`propagation`):** Set on the **Assign Link** form. `direct` — stored on object A,
+visible on both sides, not propagated. `inherit_ipam` — child Prefixes, IP addresses, and IP
+ranges under object A inherit the link in their Security Panel. `inherit_group` — members of a
+group/container inherit the link. All three modes are always offered in the dropdown;
+`ipam_inheritance.py` / `group_inheritance.py` resolve inherited rows at panel load. See
+[Creating an inheriting assignment](docs/using_netbox_nsm.md#creating-an-inheriting-assignment).
 
 **Unique constraint:** `(object_a_type, object_a_id, object_b_type, object_b_id)` — one link
 per pair per direction.
@@ -176,8 +201,7 @@ TypeConfig
 ├── allow_virtual_groups (BooleanField)
 ├── inherit_links        (BooleanField)
 ├── inherit_stop_on_own  (BooleanField)
-├── panel_linkable       (BooleanField — legacy master switch; kept in sync by the form)
-└── panel_linkable_content_types (M2M → ContentType)
+└── panel_linkable       (BooleanField — Security Panel assign picker master switch)
 ```
 
 **Purpose:** Per-ContentType configuration for NSM behaviour. Unique together:
@@ -189,18 +213,11 @@ TypeConfig
 `display_template` is evaluated in `display_utils.render_object_display()` by substituting
 `{field_name}` placeholders with the object's attributes. Falls back to `str(obj)`.
 
-**Panel assign filter (`panel_linkable_content_types`):** When a user clicks **+ Assign** on a
-NetBox object (Object A), the picker lists NSM types (Object B) allowed for that source type.
-Empty M2M + `panel_linkable=True` means **all** NetBox object types (unrestricted). Non-empty M2M
-restricts to the selected types (e.g. only `dcim.interface`). Implemented in
-`TypeConfig.queryset_panel_linkable_for()`, `forms/object_link.py`, and
-`views/object_link.py` (`source_ct_id` on the type-elements API).
+`panel_linkable` controls whether objects of this type can be linked from the NSM Security Panel
+(**+ Assign**). Implemented in `forms/object_link.py` and `views/object_link.py`.
 
 `inherit_links` / `inherit_stop_on_own` control the Security Panel's inheritance logic in
-`NsmSecurityLinksExtension` (see Template Extensions).
-
-**Migration `0002_initial_panel_linkable_types`:** Adds the M2M table; existing rows with
-`panel_linkable=True` keep an empty M2M (= unrestricted). See `docs/DATABASE.md`.
+`NsmSecurityLinksExtension` (see Template Extensions). See `docs/DATABASE.md`.
 
 ---
 
@@ -318,8 +335,9 @@ These are synced to the database via `custom_objects_schema.py` which builds the
 |---|---|---|
 | `views/setup.py` | `SetupView` | `setup/` |
 | `views/nsm_type_config.py` | List / Add / Edit / Delete | `type-config/` |
-| `views/nsm_policy.py` | Rulebook CRUD + Policy / Analysis / ZoneMatrix / IPAnalysis tabs | `rulebooks/` |
+| `views/rulebook.py` | Rulebook CRUD + Rules tab (embedded matrix) | `rulebooks/` |
 | `views/object_link.py` | CRUD for ObjectLink | `object-link/` |
+| `views/ip_analysis.py` | `IPAnalysisView` | `ip-analysis/` |
 | `views/object_analyzer.py` | `ObjectAnalyzerView` | `object-analyzer/` |
 | `views/nsm_object_group.py` | ObjectGroup CRUD | `object-groups/` |
 | `panel_sections.py` | Static panel slugs (source, destination, …) | — |
@@ -339,6 +357,10 @@ The `SetupView` POST handler dispatches on the `action` form field:
 | `create_all_typeconfigs` | Create all TypeConfigs |
 | `create_demo_starter` | Zone Matrix + Addresses rulebooks (imports COTs/TypeConfigs if needed) |
 | `create_demo_enterprise` | Run Enterprise DC import (blocked if IPs exist) |
+| `create_demo_scale` | `Demo - Scale Test` — 300 zones, 12 000 rules |
+| `create_demo_addresses_scale` | `Demo - Addresses` — 6 000 address-based rules |
+
+All demo actions call `_ensure_demo_prerequisites()` (imports missing COTs **and** TypeConfigs).
 
 ---
 
@@ -417,8 +439,7 @@ The `ObjectLinkSerializer` uses a `ContentTypeField` (writable, accepts
 ## Navigation
 
 `navigation.py` uses a `DynamicPluginMenu` wrapper around NetBox's `PluginMenu` to defer
-group construction until request time. This is necessary because some menu items reference
-database objects (e.g. hardcoded Rulebook pk=4 for the IP Analysis demo link).
+group construction until request time.
 
 Menu structure (when `top_level_menu=True`):
 
@@ -427,10 +448,10 @@ Security
 ├── Configuration
 │   ├── Setup
 │   └── Type Config
-├── Security Policies
+├── Rulebooks
 └── Analysis
-    ├── IP Analysis        (hardcoded demo link to rulebook 4)
-    └── Demo – Object Analyzer
+    ├── IP Analysis        → `/plugins/netbox-nsm/ip-analysis/`
+    └── Object Analyzer    → `/plugins/netbox-nsm/object-analyzer/`
 ```
 
 ---

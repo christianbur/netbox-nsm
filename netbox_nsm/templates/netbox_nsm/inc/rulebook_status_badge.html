@@ -1,0 +1,18 @@
+{% load i18n %}
+{% if rulebook %}
+  {% with status=rulebook.status %}
+    {% if status == "active" %}
+      <span class="badge text-bg-success">{% trans "Active" %}</span>
+    {% elif status == "deprecated" %}
+      <span class="badge text-bg-warning">{% trans "Deprecated" %}</span>
+    {% elif status == "reserved" %}
+      <span class="badge text-bg-info">{% trans "Reserved" %}</span>
+    {% elif status == "container" %}
+      <span class="badge text-bg-secondary">{% trans "Container" %}</span>
+    {% elif status == "virtual" %}
+      <span class="badge text-bg-secondary">{% trans "Read-only" %}</span>
+    {% else %}
+      <span class="badge text-bg-secondary">{{ rulebook.get_status_display }}</span>
+    {% endif %}
+  {% endwith %}
+{% endif %}

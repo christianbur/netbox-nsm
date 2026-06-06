@@ -22,7 +22,7 @@ SYSTEM_FIELD_SLUGS = frozenset(spec["slug"] for spec in SYSTEM_RULEBOOK_FIELD_DE
 
 def ensure_system_rulebook_fields(rulebook):
     """Create default system columns (Index, Status, Name, Description) if missing."""
-    if rulebook.rulebook_type != RulebookTypeChoices.POLICY:
+    if rulebook.rulebook_type != RulebookTypeChoices.SECURITY_RULES:
         return
     for spec in SYSTEM_RULEBOOK_FIELD_DEFAULTS:
         RulebookField.objects.get_or_create(
@@ -68,11 +68,11 @@ def load_rulebook_fields_for_detail(rulebook):
     return fields
 
 
-def get_policy_column_slugs(rulebook):
+def get_rules_column_slugs(rulebook):
     return [field.slug for field in get_visible_rulebook_fields(rulebook)]
 
 
-def get_policy_column_labels(rulebook):
+def get_rules_column_labels(rulebook):
     return {field.slug: field.name for field in get_visible_rulebook_fields(rulebook)}
 
 

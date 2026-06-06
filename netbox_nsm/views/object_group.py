@@ -120,9 +120,8 @@ class ObjectGroupEditView(generic.ObjectEditView):
             for section in get_panel_sections()
         }
 
-        for tc in (
-            TypeConfig.objects.select_related("content_type")
-            .order_by("order_id", "content_type__app_label", "content_type__model")
+        for tc in TypeConfig.objects.select_related("content_type").order_by(
+            "order_id", "content_type__app_label", "content_type__model"
         ):
             model_class = tc.content_type.model_class()
             if model_class is None:

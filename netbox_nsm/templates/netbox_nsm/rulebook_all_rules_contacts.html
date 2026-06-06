@@ -1,0 +1,15 @@
+{% extends 'netbox_nsm/virtual_rulebook_object.html' %}
+{% load render_table from django_tables2 %}
+{% load i18n %}
+
+{% block breadcrumbs %}
+{% include "netbox_nsm/inc/rulebook_breadcrumbs.html" with active_tab=feature_tab_label %}
+{% endblock breadcrumbs %}
+
+{% block content %}
+<div class="card">
+  <div class="table-responsive">
+    {% render_table table 'inc/table.html' %}
+  </div>
+</div>
+{% endblock content %}

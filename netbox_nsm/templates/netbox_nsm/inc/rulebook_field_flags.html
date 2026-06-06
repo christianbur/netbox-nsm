@@ -10,7 +10,14 @@
     <span class="visually-hidden">{% trans "Visible" %}</span>
   </span>
   {% endif %}
-  {% if not field.is_system_field %}
+  {% if not field.is_system_field and field.shows_field_level_facets %}
+  <span class="nsm-rb-opt-pill nsm-rb-opt-pill--facet"
+        title="{% blocktrans with mode=field.get_facet_mode_display %}Facet filter ({{ mode }}){% endblocktrans %}">
+    <i class="mdi mdi-filter-variant" aria-hidden="true"></i>
+    <span class="visually-hidden">{% trans "Facet filter" %}</span>
+  </span>
+  {% endif %}
+  {% if not field.is_system_field and not field.is_container_field %}
   <span class="nsm-rb-opt-pill nsm-rb-opt-pill--meta"
         title="{% blocktrans with n=field.max_visible_pills %}Max visible pills per cell: {{ n }}{% endblocktrans %}">
     <i class="mdi mdi-dots-horizontal-circle-outline" aria-hidden="true"></i>

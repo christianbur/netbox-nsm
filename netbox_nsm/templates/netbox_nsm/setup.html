@@ -18,37 +18,10 @@
     </div>
     {% endif %}
 
-    {% if custom_objects_db_ready %}
-    <div class="d-flex flex-wrap gap-2 mb-4">
-      <form method="post" class="m-0">
-        {% csrf_token %}
-        <input type="hidden" name="action" value="import_all_types">
-        <button type="submit" class="btn btn-primary"{% if all_cots_ok %} disabled{% endif %}>
-          <i class="mdi mdi-plus-circle-multiple me-1"></i>{% trans "1. Add all Custom Object Types" %}
-        </button>
-      </form>
-      <form method="post" class="m-0">
-        {% csrf_token %}
-        <input type="hidden" name="action" value="create_all_typeconfigs">
-        <button type="submit" class="btn btn-primary"{% if not all_cots_ok or all_tcs_ok %} disabled{% endif %}>
-          <i class="mdi mdi-plus-circle-multiple me-1"></i>{% trans "2. Add all TypeConfigs" %}
-        </button>
-      </form>
-    </div>
-    <p class="text-muted small mb-4">
-      {% trans "Step 1 adds Custom Object Types from the built-in schema. Step 2 adds NSM TypeConfigs (after step 1)." %}
-    </p>
-    {% endif %}
-
+    {% include 'netbox_nsm/inc/setup_ui_labels.html' %}
     {% include 'netbox_nsm/inc/setup_custom_objects.html' %}
-
-    {% if plugin_installed %}
     {% include 'netbox_nsm/inc/setup_typeconfig.html' %}
-
-    {% if setup_allow_destructive_actions %}
     {% include 'netbox_nsm/inc/setup_demo.html' %}
-    {% endif %}
-    {% endif %}
 
   </div>
 </div>

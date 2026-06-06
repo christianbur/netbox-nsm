@@ -45,9 +45,9 @@ def _cell(
         "fwd": badge(fwd_count),
         "rev": badge(rev_count),
         "combined": badge(combined_count or max(fwd_count, rev_count)),
-        "fwd_href": "/policy/?fwd=1",
-        "rev_href": "/policy/?rev=1",
-        "both_href": "/policy/?both=1",
+        "fwd_href": "/rules/?fwd=1",
+        "rev_href": "/rules/?rev=1",
+        "both_href": "/rules/?both=1",
         "add_href": "/rules/add/",
         "is_self": is_self,
     }
@@ -100,7 +100,9 @@ class MatrixGridPayloadTests(SimpleTestCase):
         self.assertEqual(payload["rowData"][0]["_sourceDisplayLabel"], "Internet")
         self.assertEqual(payload["rowData"][0]["dst_10"]["bg"], "#336699")
         self.assertTrue(payload["rowData"][0]["dst_20"]["empty"])
-        self.assertEqual(payload["gridMeta"]["headerHeight"], MATRIX_CORNER_HEADER_MIN_PX)
+        self.assertEqual(
+            payload["gridMeta"]["headerHeight"], MATRIX_CORNER_HEADER_MIN_PX
+        )
         self.assertEqual(
             payload["gridMeta"]["headerHeight"],
             payload["gridMeta"]["sourceColWidth"],
@@ -188,7 +190,7 @@ class MatrixGridPayloadTests(SimpleTestCase):
         rows = [{"source_zone": zone, "cells": [_cell()]}]
         payload = build_matrix_ag_grid_payload(rows, [zone], "undirected")
         dst_col = next(c for c in payload["columnDefs"] if c["colId"] == "dst_1")
-        self.assertEqual(dst_col["headerStyle"]["backgroundColor"], "#ff5500")
+        self.assertNotIn("headerStyle", dst_col)
         self.assertEqual(dst_col["headerBackgroundColor"], "#ff5500")
         self.assertEqual(payload["rowData"][0]["_sourceColor"], "#ff5500")
 

@@ -72,6 +72,19 @@
             {% endif %}
           </div>
 
+          {% if form.facet_mode %}
+          <div class="mb-3">
+            <label class="form-label" for="{{ form.facet_mode.id_for_label }}">
+              {% trans "Facet filter" %}
+            </label>
+            {{ form.facet_mode }}
+            {% if form.facet_mode.errors %}
+              <div class="text-danger small mt-1">{{ form.facet_mode.errors }}</div>
+            {% endif %}
+            <div class="form-text">{{ form.facet_mode.help_text }}</div>
+          </div>
+          {% endif %}
+
           <div class="mb-3">
             <label class="form-label" for="{{ form.max_items.id_for_label }}">
               {% trans "Max Items" %}

@@ -33,6 +33,8 @@ class ObjectLinkSerializer(NetBoxModelSerializer):
             "object_b_id",
             "object_b",
             "comment",
+            "propagation",
+            "propagate_stop_on_own",
             "tags",
             "custom_fields",
             "created",

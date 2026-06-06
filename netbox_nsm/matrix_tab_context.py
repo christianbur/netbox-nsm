@@ -8,13 +8,50 @@ from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
 
 from netbox_nsm.models import RulebookFieldType, TypeConfig
-from netbox_nsm.matrix_grid_payload import matrix_zone_display_label
+from netbox_nsm.matrix_axis_filter import filter_objects_by_axis_query
+from netbox_nsm.matrix_grid_payload import MATRIX_AXIS_MAX, matrix_zone_display_label
 from netbox_nsm.display_utils import get_display_template_map
 from netbox_nsm.branch_urls import with_branch_query, wrap_matrix_cell_hrefs
 
 
+def cap_matrix_axis_zones(
+    zones: list, *, limit: int | None = None
+) -> tuple[list, bool, int]:
+    """Return (capped zones, was_truncated, original_count)."""
+    max_count = MATRIX_AXIS_MAX if limit is None else limit
+    total = len(zones)
+    if total <= max_count:
+        return zones, False, total
+    return zones[:max_count], True, total
+
+
+def build_matrix_axis_limit_info(
+    *,
+    src_total: int,
+    dst_total: int,
+    src_truncated: bool,
+    dst_truncated: bool,
+    limit: int = MATRIX_AXIS_MAX,
+) -> dict | None:
+    if not src_truncated and not dst_truncated:
+        return None
+    return {
+        "limit": limit,
+        "src_total": src_total,
+        "dst_total": dst_total,
+        "src_truncated": src_truncated,
+        "dst_truncated": dst_truncated,
+    }
+
+
 def build_matrix_tab_context(
-    request, instance, *, view_helpers, client_axis_filters: bool = False
+    request,
+    instance,
+    *,
+    view_helpers,
+    client_axis_filters: bool = False,
+    lazy_grid: bool = False,
+    src_row_range: tuple[int, int] | None = None,
 ) -> dict:
     """Build matrix_rows, filters, and legend for matrix templates."""
     rules_qs = view_helpers._load_rules_qs(instance)
@@ -46,7 +83,7 @@ def build_matrix_tab_context(
         key=lambda x: x["name"],
     )
 
-    policy_url_base = with_branch_query(
+    rules_url_base = with_branch_query(
         reverse(
             "plugins:netbox_nsm:rulebook_rules",
             args=[instance.pk],
@@ -104,10 +141,13 @@ def build_matrix_tab_context(
     def zone_label(zone) -> str:
         return matrix_zone_display_label(zone, selected_ct_id, display_template_map)
 
-    all_zones = sorted(
-        used_zones_by_pk.values(), key=lambda z: zone_label(z).lower()
-    )
+    all_zones = sorted(used_zones_by_pk.values(), key=lambda z: zone_label(z).lower())
     zone_labels = {z.pk: zone_label(z) for z in all_zones}
+
+    if client_axis_filters:
+        src_q = request.GET.get("src_q", "").strip()
+        if src_q:
+            all_zones = filter_objects_by_axis_query(all_zones, src_q, zone_label)
 
     src_filter_pks = set()
     dst_filter_pks = set()
@@ -115,10 +155,23 @@ def build_matrix_tab_context(
         src_filter_pks = {int(v) for v in request.GET.getlist("src_id") if v.isdigit()}
         dst_filter_pks = {int(v) for v in request.GET.getlist("dst_id") if v.isdigit()}
     src_zones = (
-        [z for z in all_zones if z.pk in src_filter_pks] if src_filter_pks else all_zones
+        [z for z in all_zones if z.pk in src_filter_pks]
+        if src_filter_pks
+        else all_zones
     )
     dst_zones = (
-        [z for z in all_zones if z.pk in dst_filter_pks] if dst_filter_pks else all_zones
+        [z for z in all_zones if z.pk in dst_filter_pks]
+        if dst_filter_pks
+        else all_zones
+    )
+
+    src_zones, src_truncated, src_total = cap_matrix_axis_zones(src_zones)
+    dst_zones, dst_truncated, dst_total = cap_matrix_axis_zones(dst_zones)
+    matrix_axis_limit = build_matrix_axis_limit_info(
+        src_total=src_total,
+        dst_total=dst_total,
+        src_truncated=src_truncated,
+        dst_truncated=dst_truncated,
     )
 
     def _action_color_label(rule):
@@ -134,7 +187,8 @@ def build_matrix_tab_context(
         return "#888888", "?"
 
     cell_map = defaultdict(list)
-    if selected_ct_id is not None:
+    build_rows = (not lazy_grid) or (src_row_range is not None)
+    if selected_ct_id is not None and build_rows:
         for rule in rules_qs:
             rule._color, rule._action_label = _action_color_label(rule)
             rule_src_pks = set()
@@ -203,7 +257,11 @@ def build_matrix_tab_context(
     }
 
     matrix_rows = []
-    for src in src_zones:
+    src_iter = src_zones
+    if src_row_range is not None:
+        start, end = src_row_range
+        src_iter = src_zones[start:end]
+    for src in src_iter:
         cells = []
         for dst in dst_zones:
             fwd_rules = cell_map.get((src.pk, dst.pk), [])
@@ -213,24 +271,24 @@ def build_matrix_tab_context(
                     "fwd": _badge(fwd_rules),
                     "rev": _badge(rev_rules),
                     "combined": _combined_badge(fwd_rules, rev_rules),
-                    "fwd_href": view_helpers._matrix_policy_href(
-                        policy_url_base,
+                    "fwd_href": view_helpers._matrix_rules_href(
+                        rules_url_base,
                         src_field_name,
                         dst_field_name,
                         src,
                         dst,
                         **matrix_href_kwargs,
                     ),
-                    "rev_href": view_helpers._matrix_policy_href(
-                        policy_url_base,
+                    "rev_href": view_helpers._matrix_rules_href(
+                        rules_url_base,
                         src_field_name,
                         dst_field_name,
                         dst,
                         src,
                         **matrix_href_kwargs,
                     ),
-                    "both_href": view_helpers._matrix_policy_href(
-                        policy_url_base,
+                    "both_href": view_helpers._matrix_rules_href(
+                        rules_url_base,
                         src_field_name,
                         dst_field_name,
                         src,
@@ -243,7 +301,7 @@ def build_matrix_tab_context(
                             f"{add_url_base}?rulebook={instance.pk}"
                             f"&prefill_src_ct={selected_ct_id}&prefill_src_obj={src.pk}"
                             f"&prefill_dst_ct={selected_ct_id}&prefill_dst_obj={dst.pk}"
-                            f"&return_url={policy_url_base}"
+                            f"&return_url={rules_url_base}"
                         ),
                         request,
                     ),
@@ -266,4 +324,5 @@ def build_matrix_tab_context(
         "zone_labels": zone_labels,
         "action_legend": action_legend,
         "matrix_mode": matrix_mode,
+        "matrix_axis_limit": matrix_axis_limit,
     }

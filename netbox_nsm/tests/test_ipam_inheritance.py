@@ -42,9 +42,7 @@ class IpamInheritanceTests(SimpleTestCase):
 
         result = ancestor_prefixes_for_ipam(obj)
 
-        prefix_objects.filter.assert_called_once_with(
-            prefix__net_contains="10.0.0.1"
-        )
+        prefix_objects.filter.assert_called_once_with(prefix__net_contains="10.0.0.1")
         qs.filter.assert_called_once_with(prefix__net_contains="10.0.0.50")
         qs.order_by.assert_called_once()
         self.assertEqual(result, [])

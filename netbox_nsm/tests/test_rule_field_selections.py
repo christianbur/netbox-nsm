@@ -2,16 +2,11 @@
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.rule_field_selections import parse_policy_column_key
+from netbox_nsm.rule_field_selections import parse_rules_column_key
 
 
 class RuleFieldSelectionsTests(SimpleTestCase):
-    def test_parse_policy_column_key_object(self):
-        area, type_key = parse_policy_column_key("source::ct_12")
+    def test_parse_rules_column_key_object(self):
+        area, type_key = parse_rules_column_key("source::ct_12")
         self.assertEqual(area, "source")
         self.assertEqual(type_key, "ct_12")
-
-    def test_parse_policy_column_key_groups(self):
-        area, type_key = parse_policy_column_key("destination::Groups")
-        self.assertEqual(area, "destination")
-        self.assertEqual(type_key, "Groups")

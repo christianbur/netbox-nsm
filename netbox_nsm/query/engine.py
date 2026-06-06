@@ -17,7 +17,6 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 from .parser import Condition, Query
 
-
 # ---------------------------------------------------------------------------
 # RulebookContext — field registry for a single rulebook
 # ---------------------------------------------------------------------------
@@ -388,9 +387,12 @@ def _evaluate_condition(rule, condition: Condition, context: RulebookContext) ->
 
     condition = _resolve_object_condition(condition, context, rb_field)
 
-    if condition.type_segment and context.resolve_type_content_type_id(
-        rb_field, condition.type_segment
-    ) is None and not _group_matches_type_segment(condition.type_segment):
+    if (
+        condition.type_segment
+        and context.resolve_type_content_type_id(rb_field, condition.type_segment)
+        is None
+        and not _group_matches_type_segment(condition.type_segment)
+    ):
         return False
 
     values = _get_field_values(
@@ -519,11 +521,7 @@ def _make_facet_entries(
         active = query_has_condition(query, qval) if query_active else False
         available = (not query_active) or count_filtered > 0 or active
         if available:
-            href = (
-                qval
-                if not query_active
-                else query_and_condition(query, qval)
-            )
+            href = qval if not query_active else query_and_condition(query, qval)
         else:
             href = query_replace_all(qval)
         entries.append(
@@ -602,9 +600,7 @@ def compute_facets(
     if _system_field_facet_visible(context, "status"):
         if not status_all:
             status_all = Counter({"Enabled": 0, "Disabled": 0})
-        status_entries = _make_status_entries(
-            status_all, status_filtered, query=query
-        )
+        status_entries = _make_status_entries(status_all, status_filtered, query=query)
         facets.append(
             {
                 "field_slug": "_status",
@@ -793,7 +789,7 @@ def global_search(rules_qs, query: Query) -> Dict:
     returns a dict:
     {
         "rulebook_groups": [
-            {"rulebook": <obj>, "count": 15, "policy_url": "..."},
+            {"rulebook": <obj>, "count": 15, "rules_tab_url": "..."},
             ...
         ],
         "total_count": 37,
@@ -829,7 +825,7 @@ def global_search(rules_qs, query: Query) -> Dict:
             continue
 
         try:
-            policy_url = (
+            rules_tab_url = (
                 reverse(
                     "plugins:netbox_nsm:rulebook_rules",
                     args=[rulebook.pk],
@@ -837,13 +833,13 @@ def global_search(rules_qs, query: Query) -> Dict:
                 + f"?nsm_q={query.to_string()}"
             )
         except Exception:
-            policy_url = ""
+            rules_tab_url = ""
 
         result_groups.append(
             {
                 "rulebook": rulebook,
                 "count": len(matched),
-                "policy_url": policy_url,
+                "rules_tab_url": rules_tab_url,
             }
         )
         total_count += len(matched)

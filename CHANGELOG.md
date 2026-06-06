@@ -8,6 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- [#18](https://github.com/christianbur/netbox-nsm/issues/18): Assign Link element picker loads first page on focus without typing `*` (aligned with rule editor browse)
 - [#17](https://github.com/christianbur/netbox-nsm/issues/17): ObjectLink delete raised
   `SerializerNotFound` for custom objects (`TableNModel`) as `object_b` — fixed via
   `serialize_object()` fallback in `ObjectLinkSerializer` (Security Panel and REST API).

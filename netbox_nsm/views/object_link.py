@@ -11,6 +11,7 @@ from netbox.views import generic
 from netbox_nsm.forms import ObjectLinkAssignForm, ObjectLinkEditForm
 from netbox_nsm.models import ObjectLink, TypeConfig
 from netbox_nsm.models.object_link import LinkPropagationChoices
+from netbox_nsm.picker_browse import MIN_PICKER_QUERY_LEN, browse_content_type_objects
 
 __all__ = (
     "ObjectLinkAssignView",
@@ -366,14 +367,9 @@ class ObjectTypeElementsApiView(LoginRequiredMixin, View):
                 )
 
         q_raw = request.GET.get("q", "").strip()
-        model_class = ct.model_class()
-        if model_class is None:
-            return JsonResponse({"results": [], "has_more": False, "count": 0})
-
-        min_q_len = 2
         wildcard = q_raw == "*"
         q = "" if wildcard else q_raw
-        if not wildcard and len(q) < min_q_len:
+        if q and len(q) < MIN_PICKER_QUERY_LEN:
             return JsonResponse(
                 {
                     "results": [],
@@ -392,25 +388,19 @@ class ObjectTypeElementsApiView(LoginRequiredMixin, View):
         except (TypeError, ValueError):
             offset = 0
 
-        qs = model_class.objects.all()
-        if q:
-            filtered = False
-            for field_name in ("name", "display", "prefix", "address"):
-                try:
-                    qs = model_class.objects.filter(**{f"{field_name}__icontains": q})
-                    filtered = True
-                    break
-                except Exception:
-                    continue
-            if not filtered:
-                return JsonResponse({"results": [], "has_more": False, "count": 0})
+        try:
+            payload = browse_content_type_objects(
+                ct_id, q=q, limit=limit, offset=offset
+            )
+        except ValueError as exc:
+            return HttpResponseBadRequest(str(exc))
 
-        total = qs.count() if q else None
-        page = list(qs[offset : offset + limit])
-        results = [{"id": obj.pk, "display": str(obj)} for obj in page]
-        has_more = len(page) >= limit
-
-        payload = {"results": results, "has_more": has_more}
-        if total is not None:
-            payload["count"] = total
-        return JsonResponse(payload)
+        count = payload["count"]
+        results = [
+            {"id": item["id"], "display": item["display"]}
+            for item in payload["results"]
+        ]
+        has_more = offset + len(results) < count
+        return JsonResponse(
+            {"results": results, "has_more": has_more, "count": count}
+        )

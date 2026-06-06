@@ -263,7 +263,7 @@
       browseQuery = q;
     }
     showDropMessage('{% trans "Loading…" %}');
-    var apiQ = (q === '*') ? '*' : q;
+    var apiQ = (q === '*') ? '' : q;
     var fetchFn = (window.NSM_BRANCH_API && window.NSM_BRANCH_API.fetch) || fetch;
     var apiUrl = apiBase + '?ct_id=' + ctId + '&q=' + encodeURIComponent(apiQ)
       + '&limit=' + PAGE_SIZE + '&offset=' + browseOffset;

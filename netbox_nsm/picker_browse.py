@@ -13,6 +13,7 @@ from netbox_nsm.query.engine import _object_attribute
 
 __all__ = (
     "MIN_PICKER_QUERY_LEN",
+    "browse_content_type_objects",
     "browse_picker_objects",
     "is_picker_browse_allowed",
     "serialize_picker_object",
@@ -126,27 +127,23 @@ def _apply_name_filter_regex(items: list[dict], pattern: str | None) -> list[dic
     ]
 
 
-def browse_picker_objects(
+def browse_content_type_objects(
     ct_id: int,
     *,
     q: str = "",
     limit: int = DEFAULT_PICKER_LIMIT,
     offset: int = 0,
-    name_filter_regex: str | None = None,
 ) -> dict:
     """
-    Return ``{count, results}`` for rule picker browse.
+    Return ``{count, results}`` for object browse by content type.
 
-    ``q`` empty with no wildcard semantics is handled by the view (min length).
-    When ``q`` is empty after wildcard normalization, returns the first page.
+    No rulebook picker permission check — callers enforce their own policy.
+    When ``q`` is empty, returns the first page.
     """
     try:
         ct = ContentType.objects.get(pk=ct_id)
     except ContentType.DoesNotExist as exc:
         raise ValueError("Invalid content type") from exc
-
-    if not is_picker_browse_allowed(ct_id):
-        raise ValueError("Content type not allowed for rule picker")
 
     model_class = ct.model_class()
     if model_class is None:
@@ -165,3 +162,31 @@ def browse_picker_objects(
     tmpl_map = get_display_template_map()
     results = [serialize_picker_object(obj, ct_id, tmpl_map) for obj in page]
     return {"count": total, "results": results}
+
+
+def browse_picker_objects(
+    ct_id: int,
+    *,
+    q: str = "",
+    limit: int = DEFAULT_PICKER_LIMIT,
+    offset: int = 0,
+    name_filter_regex: str | None = None,
+) -> dict:
+    """
+    Return ``{count, results}`` for rule picker browse.
+
+    ``q`` empty with no wildcard semantics is handled by the view (min length).
+    When ``q`` is empty after wildcard normalization, returns the first page.
+    """
+    if not is_picker_browse_allowed(ct_id):
+        raise ValueError("Content type not allowed for rule picker")
+
+    payload = browse_content_type_objects(
+        ct_id, q=q, limit=limit, offset=offset
+    )
+    if name_filter_regex:
+        payload["results"] = _apply_name_filter_regex(
+            payload["results"], name_filter_regex
+        )
+        payload["count"] = len(payload["results"])
+    return payload

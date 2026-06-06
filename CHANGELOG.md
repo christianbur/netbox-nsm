@@ -9,6 +9,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 
 - [#18](https://github.com/christianbur/netbox-nsm/issues/18): Assign Link element picker loads first page on focus without typing `*` (aligned with rule editor browse)
+- [#18](https://github.com/christianbur/netbox-nsm/issues/18): Assign Link picker dropdown closes on blur even when showing "No results"
 - Assign Link picker UX aligned with rule editor (dropdown only on focus)
 - [#17](https://github.com/christianbur/netbox-nsm/issues/17): ObjectLink delete raised
   `SerializerNotFound` for custom objects (`TableNModel`) as `object_b` — fixed via

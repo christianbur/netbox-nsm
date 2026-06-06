@@ -74,6 +74,14 @@
     if (dropWrap) dropWrap.hidden = true;
   }
 
+  function isSearchFocused() {
+    return document.activeElement === searchInput;
+  }
+
+  function syncDropVisibility(html) {
+    if (dropWrap) dropWrap.hidden = !(isSearchFocused() && (html || browse.loading));
+  }
+
   function updateBrowseList() {
     var available = browse.items.filter(function (item) {
       return !selected[item.id];
@@ -109,9 +117,7 @@
       el.addEventListener("mouseleave", function () { el.classList.remove("active"); });
     });
 
-    if (dropWrap) {
-      dropWrap.hidden = !(html || browse.loading);
-    }
+    syncDropVisibility(html);
   }
 
   function loadBrowse(append) {
@@ -168,7 +174,7 @@
         browse.loading = false;
         browse.items = [];
         listEl.innerHTML = "<div class='nsm-drop-msg'>" + esc(msg("error", "Error loading")) + "</div>";
-        if (dropWrap) dropWrap.hidden = false;
+        syncDropVisibility(listEl.innerHTML);
       });
   }
 
@@ -228,6 +234,7 @@
     renderSelected();
     resetBrowse();
     hideBrowseDrop();
+    listEl.innerHTML = "";
     searchInput.value = "";
     if (errorEl) errorEl.textContent = "";
 

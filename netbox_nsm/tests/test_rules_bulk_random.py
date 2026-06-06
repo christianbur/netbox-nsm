@@ -103,3 +103,5 @@ class RulesBulkRandomStressTest(_RulebookPluginAPITestMixin, APITestCase):
         )
         self.assertEqual(list_resp.status_code, status.HTTP_200_OK)
         self.assertEqual(list_resp.data["count"], remaining_count)
+
+        Rulebook.objects.filter(pk=rb_id).delete()

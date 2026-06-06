@@ -43,10 +43,17 @@ class SecurityConfig(PluginConfig):
             nsm_object_link_saved,
             nsm_object_link_deleted,
         )
-        post_save.connect(nsm_object_link_saved, sender=ObjectLink,
-                          dispatch_uid="nsm_object_link_saved_for_object_b")
-        post_delete.connect(nsm_object_link_deleted, sender=ObjectLink,
-                            dispatch_uid="nsm_object_link_deleted_for_object_b")
+
+        post_save.connect(
+            nsm_object_link_saved,
+            sender=ObjectLink,
+            dispatch_uid="nsm_object_link_saved_for_object_b",
+        )
+        post_delete.connect(
+            nsm_object_link_deleted,
+            sender=ObjectLink,
+            dispatch_uid="nsm_object_link_deleted_for_object_b",
+        )
 
     @staticmethod
     def _patch_color_field_widget():

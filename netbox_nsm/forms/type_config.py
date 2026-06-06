@@ -66,8 +66,12 @@ class TypeConfigForm(NetBoxModelForm):
         label=_("Panel slugs"),
         widget=PlacementToggleWidget,
     )
-    order_id = forms.IntegerField(required=False, min_value=0, initial=100, label=_("Sort order"))
-    allow_virtual_groups = forms.BooleanField(required=False, label=_("Allow Virtual Groups"))
+    order_id = forms.IntegerField(
+        required=False, min_value=0, initial=100, label=_("Sort order")
+    )
+    allow_virtual_groups = forms.BooleanField(
+        required=False, label=_("Allow Virtual Groups")
+    )
     inherit_links = forms.BooleanField(required=False, label=_("Inherit from parent"))
     inherit_stop_on_own = forms.BooleanField(
         required=False, label=_("Stop inheritance if own link present")

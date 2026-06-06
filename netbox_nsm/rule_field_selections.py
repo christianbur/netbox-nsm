@@ -9,8 +9,19 @@ from netbox_nsm.display_utils import (
     render_object_display,
     type_name_for_field_content_type,
 )
-from netbox_nsm.branch_db import branch_aware_manager, branch_aware_related, junction_transaction
-from netbox_nsm.models import ObjectGroup, Rule, Rulebook, RulebookField, RuleGroupItem, RuleObjectItem
+from netbox_nsm.branch_db import (
+    branch_aware_manager,
+    branch_aware_related,
+    junction_transaction,
+)
+from netbox_nsm.models import (
+    ObjectGroup,
+    Rule,
+    Rulebook,
+    RulebookField,
+    RuleGroupItem,
+    RuleObjectItem,
+)
 from netbox_nsm.models.rulebook import RulebookFieldKind
 from netbox_nsm.rulebook_field_utils import get_visible_rulebook_fields
 
@@ -135,16 +146,20 @@ def _write_column_selections(
     rule: Rule, column_key: str, selections: list[dict], request=None
 ) -> None:
     area_slug, type_key = parse_policy_column_key(column_key)
-    field = branch_aware_manager(RulebookField, rule, request).filter(
-        rulebook=rule.rulebook, slug=area_slug
-    ).first()
+    field = (
+        branch_aware_manager(RulebookField, rule, request)
+        .filter(rulebook=rule.rulebook, slug=area_slug)
+        .first()
+    )
     if field is None:
         raise ValueError(f"Unknown field slug: {area_slug}")
 
     cleaned = [sel for sel in selections if isinstance(sel, dict)]
 
     if type_key == "Groups":
-        branch_aware_related(rule.group_items, rule, request).filter(field=field).delete()
+        branch_aware_related(rule.group_items, rule, request).filter(
+            field=field
+        ).delete()
         for sel in cleaned:
             if str(sel.get("kind", "")).strip() != "group":
                 continue
@@ -152,7 +167,11 @@ def _write_column_selections(
                 group_pk = int(sel.get("id"))
             except (TypeError, ValueError):
                 continue
-            if not branch_aware_manager(ObjectGroup, rule, request).filter(pk=group_pk).exists():
+            if (
+                not branch_aware_manager(ObjectGroup, rule, request)
+                .filter(pk=group_pk)
+                .exists()
+            ):
                 continue
             branch_aware_manager(RuleGroupItem, rule, request).get_or_create(
                 rule_id=rule.pk,
@@ -222,7 +241,9 @@ def build_column_cell_payload(rule: Rule, rulebook: Rulebook, column_key: str) -
     items: list[dict] = []
 
     if type_key == "Groups":
-        for item in rule.group_items.filter(field=field).select_related("security_group"):
+        for item in rule.group_items.filter(field=field).select_related(
+            "security_group"
+        ):
             items.append(
                 {
                     "url": item.security_group.get_absolute_url(),

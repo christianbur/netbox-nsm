@@ -307,9 +307,7 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
         # ── Security rules that reference this object ─────────────────────
         FIRST_PAGE = 30
         qs = (
-            RuleObjectItem.objects.filter(
-                content_type=ct, object_id=obj.pk
-            )
+            RuleObjectItem.objects.filter(content_type=ct, object_id=obj.pk)
             .select_related("rule", "rule__rulebook", "field")
             .prefetch_related("field__type_configs__type_config__content_type")
             .order_by("rule__rulebook__name", "rule__index", "field__sort_order")

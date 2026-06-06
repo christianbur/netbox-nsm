@@ -104,9 +104,7 @@ def build_matrix_tab_context(
     def zone_label(zone) -> str:
         return matrix_zone_display_label(zone, selected_ct_id, display_template_map)
 
-    all_zones = sorted(
-        used_zones_by_pk.values(), key=lambda z: zone_label(z).lower()
-    )
+    all_zones = sorted(used_zones_by_pk.values(), key=lambda z: zone_label(z).lower())
     zone_labels = {z.pk: zone_label(z) for z in all_zones}
 
     src_filter_pks = set()
@@ -115,10 +113,14 @@ def build_matrix_tab_context(
         src_filter_pks = {int(v) for v in request.GET.getlist("src_id") if v.isdigit()}
         dst_filter_pks = {int(v) for v in request.GET.getlist("dst_id") if v.isdigit()}
     src_zones = (
-        [z for z in all_zones if z.pk in src_filter_pks] if src_filter_pks else all_zones
+        [z for z in all_zones if z.pk in src_filter_pks]
+        if src_filter_pks
+        else all_zones
     )
     dst_zones = (
-        [z for z in all_zones if z.pk in dst_filter_pks] if dst_filter_pks else all_zones
+        [z for z in all_zones if z.pk in dst_filter_pks]
+        if dst_filter_pks
+        else all_zones
     )
 
     def _action_color_label(rule):

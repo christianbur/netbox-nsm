@@ -35,7 +35,9 @@ def _badge_label(badge: dict, *, prefix: str = "") -> str:
     return f"{prefix}{count}"
 
 
-def _directed_line(badge: dict, href: str | None, add_href: str | None, arrow: str) -> dict:
+def _directed_line(
+    badge: dict, href: str | None, add_href: str | None, arrow: str
+) -> dict:
     if badge.get("count", 0) == 0:
         return {
             "label": arrow,
@@ -99,7 +101,9 @@ def serialize_matrix_cell(cell: dict, matrix_mode: str) -> dict:
     if fwd.get("count", 0) > 0 and rev.get("count", 0) > 0:
         meta["bg"] = fwd_bg
         meta["bgSecondary"] = rev_bg
-        meta["title"] = f"{meta['directedLines'][0]['title']} · {meta['directedLines'][1]['title']}"
+        meta["title"] = (
+            f"{meta['directedLines'][0]['title']} · {meta['directedLines'][1]['title']}"
+        )
         return meta
 
     if fwd.get("count", 0) > 0:

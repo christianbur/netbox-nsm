@@ -96,12 +96,8 @@ def build_policy_tab_context(
     custom_columns = config["custom_columns"]
 
     all_columns = [name for name, _ in view_helpers.SECURITY_RULES_COLUMNS]
-    excluded_columns = [
-        name for name in all_columns if name not in selected_columns
-    ]
-    custom_keys = [
-        f"custom_column_{idx}" for idx in range(1, len(custom_columns) + 1)
-    ]
+    excluded_columns = [name for name in all_columns if name not in selected_columns]
+    custom_keys = [f"custom_column_{idx}" for idx in range(1, len(custom_columns) + 1)]
 
     VALID_PER_PAGE = [25, 50, 100, 250, 500, 1000]
     total_count = len(filtered_rules)

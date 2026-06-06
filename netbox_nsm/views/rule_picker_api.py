@@ -165,7 +165,9 @@ class RuleFieldSelectionsApiView(LoginRequiredMixin, View):
                     return JsonResponse(
                         {
                             "columns": get_all_column_selections(rule, rule.rulebook),
-                            "cells": build_all_column_cells_payload(rule, rule.rulebook),
+                            "cells": build_all_column_cells_payload(
+                                rule, rule.rulebook
+                            ),
                         }
                     )
 
@@ -174,7 +176,9 @@ class RuleFieldSelectionsApiView(LoginRequiredMixin, View):
 
                 selections = body.get("selections")
                 if not isinstance(selections, list):
-                    return JsonResponse({"detail": "selections must be a list"}, status=400)
+                    return JsonResponse(
+                        {"detail": "selections must be a list"}, status=400
+                    )
 
                 save_column_selections(rule, column_key, selections, request=request)
             rule = self._load_rule(pk, prefetch=True)

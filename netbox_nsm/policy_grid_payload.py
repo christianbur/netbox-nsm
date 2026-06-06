@@ -114,9 +114,7 @@ def _columns_for_condition(condition, columns: list[dict], context: RulebookCont
 
     if condition.type_segment:
         seg = _segment_key(condition.type_segment)
-        typed = [
-            c for c in candidates if _segment_key(c["label"]) == seg
-        ]
+        typed = [c for c in candidates if _segment_key(c["label"]) == seg]
         if typed:
             return typed
 

@@ -114,9 +114,7 @@ class PolicyGridPayloadTests(SimpleTestCase):
 
     def test_index_column_is_read_only(self):
         payload = build_policy_ag_grid_payload(_sample_grouped())
-        index_col = next(
-            c for c in payload["columnDefs"] if c.get("colId") == "index"
-        )
+        index_col = next(c for c in payload["columnDefs"] if c.get("colId") == "index")
         self.assertEqual(index_col["field"], "index")
         self.assertEqual(index_col["cellRenderer"], "indexLinkCell")
         self.assertNotIn("cellEditor", index_col)
@@ -152,9 +150,7 @@ class PolicyGridPayloadTests(SimpleTestCase):
     def test_object_groups_have_detail_columns(self):
         payload = build_policy_ag_grid_payload(_sample_grouped())
         source_group = next(
-            c
-            for c in payload["columnDefs"]
-            if c.get("headerName") == "SOURCE"
+            c for c in payload["columnDefs"] if c.get("headerName") == "SOURCE"
         )
         self.assertEqual(len(source_group["children"]), 1)
         self.assertEqual(source_group["children"][0]["field"], "source::ct_1")

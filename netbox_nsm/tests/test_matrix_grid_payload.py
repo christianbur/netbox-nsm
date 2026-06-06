@@ -100,7 +100,9 @@ class MatrixGridPayloadTests(SimpleTestCase):
         self.assertEqual(payload["rowData"][0]["_sourceDisplayLabel"], "Internet")
         self.assertEqual(payload["rowData"][0]["dst_10"]["bg"], "#336699")
         self.assertTrue(payload["rowData"][0]["dst_20"]["empty"])
-        self.assertEqual(payload["gridMeta"]["headerHeight"], MATRIX_CORNER_HEADER_MIN_PX)
+        self.assertEqual(
+            payload["gridMeta"]["headerHeight"], MATRIX_CORNER_HEADER_MIN_PX
+        )
         self.assertEqual(
             payload["gridMeta"]["headerHeight"],
             payload["gridMeta"]["sourceColWidth"],

@@ -84,9 +84,7 @@ class ObjectGroupForm(PrimaryModelForm):
         q = Q()
         for slug in field_slugs:
             q |= Q(field_slugs__contains=[slug])
-        self.fields["sub_groups"].queryset = ObjectGroup.objects.filter(
-            q
-        ).distinct()
+        self.fields["sub_groups"].queryset = ObjectGroup.objects.filter(q).distinct()
 
     def clean_sub_groups(self):
         sub_groups = self.cleaned_data.get("sub_groups", [])

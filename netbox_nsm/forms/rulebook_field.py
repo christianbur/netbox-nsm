@@ -134,9 +134,7 @@ class RulebookFieldForm(forms.ModelForm):
             slug = cleaned.get("slug")
             rulebook_pk = self.data.get("rulebook")
             if slug and rulebook_pk:
-                qs = RulebookField.objects.filter(
-                    rulebook_id=rulebook_pk, slug=slug
-                )
+                qs = RulebookField.objects.filter(rulebook_id=rulebook_pk, slug=slug)
                 if self.instance and self.instance.pk:
                     qs = qs.exclude(pk=self.instance.pk)
                 if qs.exists():
@@ -180,7 +178,13 @@ class RulebookFieldTypeForm(forms.ModelForm):
 
     class Meta:
         model = RulebookFieldType
-        fields = ("type_config", "sort_order", "visible", "max_items", "name_filter_regex")
+        fields = (
+            "type_config",
+            "sort_order",
+            "visible",
+            "max_items",
+            "name_filter_regex",
+        )
         widgets = {
             "sort_order": forms.NumberInput(attrs={"min": 0}),
             "max_items": forms.NumberInput(attrs={"min": 1}),

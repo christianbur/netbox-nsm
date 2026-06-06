@@ -29,12 +29,48 @@ __all__ = (
 )
 
 _DEMO_MATRIX_RULES = [
-    {"name": "trust-to-untrust", "src": "trust", "dst": "untrust", "svc": "HTTPS", "action": "permit"},
-    {"name": "trust-to-dmz", "src": "trust", "dst": "dmz", "svc": "HTTPS", "action": "permit"},
-    {"name": "trust-to-mgmt", "src": "trust", "dst": "mgmt", "svc": "SSH", "action": "permit"},
-    {"name": "untrust-to-dmz", "src": "untrust", "dst": "dmz", "svc": "HTTPS", "action": "permit"},
-    {"name": "untrust-to-mgmt", "src": "untrust", "dst": "mgmt", "svc": "SSH", "action": "deny"},
-    {"name": "dmz-to-mgmt", "src": "dmz", "dst": "mgmt", "svc": "SSH", "action": "deny"},
+    {
+        "name": "trust-to-untrust",
+        "src": "trust",
+        "dst": "untrust",
+        "svc": "HTTPS",
+        "action": "permit",
+    },
+    {
+        "name": "trust-to-dmz",
+        "src": "trust",
+        "dst": "dmz",
+        "svc": "HTTPS",
+        "action": "permit",
+    },
+    {
+        "name": "trust-to-mgmt",
+        "src": "trust",
+        "dst": "mgmt",
+        "svc": "SSH",
+        "action": "permit",
+    },
+    {
+        "name": "untrust-to-dmz",
+        "src": "untrust",
+        "dst": "dmz",
+        "svc": "HTTPS",
+        "action": "permit",
+    },
+    {
+        "name": "untrust-to-mgmt",
+        "src": "untrust",
+        "dst": "mgmt",
+        "svc": "SSH",
+        "action": "deny",
+    },
+    {
+        "name": "dmz-to-mgmt",
+        "src": "dmz",
+        "dst": "mgmt",
+        "svc": "SSH",
+        "action": "deny",
+    },
 ]
 
 DEMO_ACTIONS = frozenset({"create_demo_starter", "create_demo_enterprise"})
@@ -42,7 +78,12 @@ DEMO_ACTIONS = frozenset({"create_demo_starter", "create_demo_enterprise"})
 # Object columns shared by starter demos (system columns come from ensure_system_rulebook_fields).
 _POLICY_OBJECT_FIELD_SPECS = (
     {"slug": "source", "name": "Source", "sort_order": 10, "placement": "source"},
-    {"slug": "destination", "name": "Destination", "sort_order": 20, "placement": "destination"},
+    {
+        "slug": "destination",
+        "name": "Destination",
+        "sort_order": 20,
+        "placement": "destination",
+    },
     {"slug": "service", "name": "Service", "sort_order": 30, "placement": "fixed"},
     {"slug": "action", "name": "Action", "sort_order": 40, "placement": "fixed"},
 )
@@ -207,7 +248,10 @@ def create_demo_starter():
 
 def run_enterprise_demo(request):
     script_path = (
-        Path(__file__).resolve().parent.parent.parent / "demos" / "enterprise_dc" / "import.py"
+        Path(__file__).resolve().parent.parent.parent
+        / "demos"
+        / "enterprise_dc"
+        / "import.py"
     )
     if not script_path.exists():
         raise FileNotFoundError(f"Import script not found: {script_path}")

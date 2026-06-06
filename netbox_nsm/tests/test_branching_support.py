@@ -2,7 +2,10 @@
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.branching_support import NSM_BRANCHING_INCLUDE_MODELS, register_branching_models
+from netbox_nsm.branching_support import (
+    NSM_BRANCHING_INCLUDE_MODELS,
+    register_branching_models,
+)
 
 
 class BranchingSupportTests(SimpleTestCase):

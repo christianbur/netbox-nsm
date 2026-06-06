@@ -69,9 +69,7 @@ def group_m2m_edges(obj) -> list:
     for related, label in iter_group_m2m_relations(obj):
         if len(edges) >= _MAX:
             break
-        edges.append(
-            AnalyzerEdge(label, edge_kinds[label], node_from_object(related))
-        )
+        edges.append(AnalyzerEdge(label, edge_kinds[label], node_from_object(related)))
     return edges
 
 
@@ -101,7 +99,11 @@ def addr_fk_edges(obj) -> list:
         fk_field = fk_map.get(model_name)
         if fk_field:
             for addr_obj in _AddrModel.objects.filter(**{fk_field: obj.pk})[:_MAX]:
-                edges.append(AnalyzerEdge("Address Object", "referenced_by", node_from_object(addr_obj)))
+                edges.append(
+                    AnalyzerEdge(
+                        "Address Object", "referenced_by", node_from_object(addr_obj)
+                    )
+                )
     except Exception:
         pass
 
@@ -156,4 +158,3 @@ def inherited_nsm_link_edges(obj) -> list:
         pass
 
     return edges
-

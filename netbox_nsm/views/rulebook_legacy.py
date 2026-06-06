@@ -33,9 +33,7 @@ class RulebookVisualizationView(generic.ObjectView):
         from netbox_nsm.matrix_tab_context import build_matrix_tab_context
         import netbox_nsm.views.rulebook as rulebook_views
 
-        return build_matrix_tab_context(
-            request, instance, view_helpers=rulebook_views
-        )
+        return build_matrix_tab_context(request, instance, view_helpers=rulebook_views)
 
 
 class RulebookRulesView(generic.ObjectView):

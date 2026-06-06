@@ -63,9 +63,6 @@ def _context():
     return ctx
 
 
-        )
-
-
 class PolicyGridFilterTests(SimpleTestCase):
     def test_name_query_maps_to_name_column(self):
         query = parse('name == "infra-to-dev-2"')
@@ -88,7 +85,9 @@ class PolicyGridFilterTests(SimpleTestCase):
         )
 
     def test_typed_zone_query_maps_to_zone_columns(self):
-        query = parse('Source.Zones.Name == "PROD:dmz" AND Destination.Zones.Name == "LAN:app"')
+        query = parse(
+            'Source.Zones.Name == "PROD:dmz" AND Destination.Zones.Name == "LAN:app"'
+        )
         model = build_ag_grid_filter_model(query, _policy_layout(), _context())
         self.assertEqual(
             model["source::ct_1"],

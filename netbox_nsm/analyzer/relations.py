@@ -20,7 +20,14 @@ from .registry import (
     node_from_object,
     registry,
 )
-from ._helpers import nsm_link_edges, policy_item_edges, group_m2m_edges, addr_fk_edges, inherited_nsm_link_edges, _MAX
+from ._helpers import (
+    nsm_link_edges,
+    policy_item_edges,
+    group_m2m_edges,
+    addr_fk_edges,
+    inherited_nsm_link_edges,
+    _MAX,
+)
 
 # ── Shared host helpers ─────────────────────────────────────────────────────
 

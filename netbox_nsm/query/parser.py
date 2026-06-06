@@ -30,8 +30,12 @@ from typing import Optional, List, Union
 @dataclass
 class Condition:
     field: str  # e.g. "Source", "Action", "Name"  (x: section)
-    type_segment: Optional[str] = None  # e.g. "Zones", "Services"  (y: sub-column / type)
-    sub_field: Optional[str] = None  # e.g. "name", "prefix", "port"  (z: object property)
+    type_segment: Optional[str] = (
+        None  # e.g. "Zones", "Services"  (y: sub-column / type)
+    )
+    sub_field: Optional[str] = (
+        None  # e.g. "name", "prefix", "port"  (z: object property)
+    )
     operator: str = "="  # "=", "!=", "contains", "exists", "!exists", "in", "notin"
     value: Union[str, List[str], None] = None  # None for exists/!exists
 
@@ -290,9 +294,7 @@ def query_has_condition(query: Query, condition_text: str) -> bool:
     cond = parse_condition(condition_text)
     if cond is None or not query.is_active:
         return False
-    return any(
-        condition_matches(c, cond) for c in _query_conditions_list(query)
-    )
+    return any(condition_matches(c, cond) for c in _query_conditions_list(query))
 
 
 def query_and_condition(query: Query, condition_text: str) -> str:

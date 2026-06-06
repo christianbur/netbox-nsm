@@ -125,7 +125,9 @@ def use_db_alias(alias: str | None):
         _forced_db_alias.reset(token)
 
 
-def resolve_db_alias(instance=None, request=None, *, forced_alias: str | None = None) -> str | None:
+def resolve_db_alias(
+    instance=None, request=None, *, forced_alias: str | None = None
+) -> str | None:
     """
     Resolve the PostgreSQL schema alias for junction-table writes.
 
@@ -251,15 +253,15 @@ def branch_save_instance(instance, request=None, **kwargs):
 
 
 @contextmanager
-def junction_transaction(instance=None, request=None, *, forced_alias: str | None = None):
+def junction_transaction(
+    instance=None, request=None, *, forced_alias: str | None = None
+):
     """Run junction-table writes on the same DB alias as the parent Rule."""
     alias = required_junction_db_alias(
         instance=instance, request=request, hint=forced_alias
     )
     if not alias:
-        raise RuntimeError(
-            "Cannot write NSM junction tables without a branch DB alias"
-        )
+        raise RuntimeError("Cannot write NSM junction tables without a branch DB alias")
     with transaction.atomic(using=alias):
         yield alias
 

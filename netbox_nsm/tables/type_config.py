@@ -62,9 +62,7 @@ class TypeConfigTable(NetBoxTable):
     inherit_stop_on_own = tables.Column(
         verbose_name=_("Stop on own link"), orderable=True
     )
-    panel_linkable = tables.Column(
-        verbose_name=_("Panel"), orderable=True
-    )
+    panel_linkable = tables.Column(verbose_name=_("Panel"), orderable=True)
     actions = tables.TemplateColumn(
         template_code=_ACTIONS_TEMPLATE,
         verbose_name="",

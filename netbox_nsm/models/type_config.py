@@ -29,7 +29,9 @@ class TypeConfig(NetBoxModel):
     name = models.CharField(
         max_length=100,
         verbose_name=_("Name"),
-        help_text=_("Display name used as column header and type label throughout NSM."),
+        help_text=_(
+            "Display name used as column header and type label throughout NSM."
+        ),
     )
     content_type = models.ForeignKey(
         to="contenttypes.ContentType",
@@ -183,7 +185,9 @@ class TypeConfig(NetBoxModel):
             label = (label or "").strip()
             if not label:
                 continue
-            if any(self._label_dedup_key(label) == self._label_dedup_key(p) for p in parts):
+            if any(
+                self._label_dedup_key(label) == self._label_dedup_key(p) for p in parts
+            ):
                 continue
             parts.append(label)
         return parts

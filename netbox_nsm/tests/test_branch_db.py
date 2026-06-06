@@ -71,7 +71,9 @@ class BranchDbTests(SimpleTestCase):
         instance = MagicMock()
         request = MagicMock()
         branch_save_instance(instance, request=request, update_fields=["name"])
-        instance.save.assert_called_once_with(using="schema_test", update_fields=["name"])
+        instance.save.assert_called_once_with(
+            using="schema_test", update_fields=["name"]
+        )
         self.assertEqual(instance._state.db, "schema_test")
 
     def test_pin_instance_db_alias(self):
@@ -83,9 +85,7 @@ class BranchDbTests(SimpleTestCase):
         self.assertEqual(instance._state.db, "schema_branch_k11eb2ac")
 
     @patch("netbox_branching.utilities.activate_branch")
-    def test_ensure_branch_context_always_activates_from_request(
-        self, activate_branch
-    ):
+    def test_ensure_branch_context_always_activates_from_request(self, activate_branch):
         branch = MagicMock()
         request = MagicMock(active_branch=branch)
         cm = MagicMock()
@@ -118,7 +118,10 @@ class BranchDbTests(SimpleTestCase):
         )
         _router.assert_called_once_with(RuleObjectItem)
 
-    @patch("netbox_nsm.branch_db.detect_instance_db_alias", return_value="schema_branch_only")
+    @patch(
+        "netbox_nsm.branch_db.detect_instance_db_alias",
+        return_value="schema_branch_only",
+    )
     @patch("netbox_nsm.branch_db.resolve_db_alias", return_value=None)
     def test_required_junction_db_alias_probes_instance(self, _resolve, _detect):
         from netbox_nsm.branch_db import required_junction_db_alias
@@ -137,7 +140,7 @@ class BranchDbTests(SimpleTestCase):
         instance.__class__ = MagicMock()
         instance.__class__.objects.using.return_value.filter.return_value.exists.side_effect = [
             False,  # default
-            True,   # schema_branch_hh
+            True,  # schema_branch_hh
         ]
 
         with patch("netbox_branching.models.Branch") as Branch:

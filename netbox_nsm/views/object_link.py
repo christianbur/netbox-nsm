@@ -216,6 +216,7 @@ class ObjectLinkDeleteView(LoginRequiredMixin, View):
         link = get_object_or_404(ObjectLink, pk=pk)
         return_url = request.GET.get("return_url", "/")
         from django.shortcuts import render
+
         return render(
             request,
             "netbox_nsm/object_link_delete.html",
@@ -250,7 +251,9 @@ class ObjectTypeElementsApiView(LoginRequiredMixin, View):
 
         # Only allow TypeConfig-configured types with panel_linkable=True
         if not TypeConfig.objects.filter(content_type=ct, panel_linkable=True).exists():
-            return HttpResponseBadRequest("Type not configured as panel-linkable in NSM")
+            return HttpResponseBadRequest(
+                "Type not configured as panel-linkable in NSM"
+            )
 
         q_raw = request.GET.get("q", "").strip()
         model_class = ct.model_class()

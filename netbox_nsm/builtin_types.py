@@ -327,16 +327,86 @@ BUILTIN_CUSTOM_TYPES = [
             },
         ],
         "default_objects": [
-            {"name": "dns", "field_data": {"app_category": "networking", "app_risk": "1", "default_ports": "udp/53,tcp/53"}},
-            {"name": "http", "field_data": {"app_category": "general-internet", "app_risk": "2", "default_ports": "tcp/80"}},
-            {"name": "ssl", "field_data": {"app_category": "networking", "app_risk": "2", "default_ports": "tcp/443"}},
-            {"name": "ssh", "field_data": {"app_category": "remote-access", "app_risk": "2", "default_ports": "tcp/22"}},
-            {"name": "rdp", "field_data": {"app_category": "remote-access", "app_risk": "3", "default_ports": "tcp/3389"}},
-            {"name": "smtp", "field_data": {"app_category": "email", "app_risk": "3", "default_ports": "tcp/25"}},
-            {"name": "smb", "field_data": {"app_category": "file-sharing", "app_risk": "4", "default_ports": "tcp/445"}},
-            {"name": "onedrive", "field_data": {"app_category": "storage", "app_risk": "2", "default_ports": "tcp/443"}},
-            {"name": "teams", "field_data": {"app_category": "collaboration", "app_risk": "2", "default_ports": "tcp/443"}},
-            {"name": "zoom", "field_data": {"app_category": "voip-video", "app_risk": "2", "default_ports": "tcp/443,udp/8801"}},
+            {
+                "name": "dns",
+                "field_data": {
+                    "app_category": "networking",
+                    "app_risk": "1",
+                    "default_ports": "udp/53,tcp/53",
+                },
+            },
+            {
+                "name": "http",
+                "field_data": {
+                    "app_category": "general-internet",
+                    "app_risk": "2",
+                    "default_ports": "tcp/80",
+                },
+            },
+            {
+                "name": "ssl",
+                "field_data": {
+                    "app_category": "networking",
+                    "app_risk": "2",
+                    "default_ports": "tcp/443",
+                },
+            },
+            {
+                "name": "ssh",
+                "field_data": {
+                    "app_category": "remote-access",
+                    "app_risk": "2",
+                    "default_ports": "tcp/22",
+                },
+            },
+            {
+                "name": "rdp",
+                "field_data": {
+                    "app_category": "remote-access",
+                    "app_risk": "3",
+                    "default_ports": "tcp/3389",
+                },
+            },
+            {
+                "name": "smtp",
+                "field_data": {
+                    "app_category": "email",
+                    "app_risk": "3",
+                    "default_ports": "tcp/25",
+                },
+            },
+            {
+                "name": "smb",
+                "field_data": {
+                    "app_category": "file-sharing",
+                    "app_risk": "4",
+                    "default_ports": "tcp/445",
+                },
+            },
+            {
+                "name": "onedrive",
+                "field_data": {
+                    "app_category": "storage",
+                    "app_risk": "2",
+                    "default_ports": "tcp/443",
+                },
+            },
+            {
+                "name": "teams",
+                "field_data": {
+                    "app_category": "collaboration",
+                    "app_risk": "2",
+                    "default_ports": "tcp/443",
+                },
+            },
+            {
+                "name": "zoom",
+                "field_data": {
+                    "app_category": "voip-video",
+                    "app_risk": "2",
+                    "default_ports": "tcp/443,udp/8801",
+                },
+            },
         ],
     },
 ]

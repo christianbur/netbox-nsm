@@ -126,9 +126,7 @@ class RulebookFieldTypeAPITest(_RulebookPluginAPITestMixin, APITestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.rulebook = Rulebook.objects.create(
-            name="api-ft-rb", rulebook_type="policy"
-        )
+        cls.rulebook = Rulebook.objects.create(name="api-ft-rb", rulebook_type="policy")
         cls.field = RulebookField.objects.create(
             rulebook=cls.rulebook,
             slug="services",

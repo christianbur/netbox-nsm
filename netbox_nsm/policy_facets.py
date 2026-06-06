@@ -9,7 +9,9 @@ from django.http import HttpRequest
 from netbox_nsm.models import Rule, Rulebook
 
 
-def compute_policy_facets(request: HttpRequest, instance: Rulebook) -> Tuple[str, List[Dict[str, Any]]]:
+def compute_policy_facets(
+    request: HttpRequest, instance: Rulebook
+) -> Tuple[str, List[Dict[str, Any]]]:
     """
     Load all rules for the rulebook, apply nsm_q filter, return facet sidebar data.
 
@@ -36,7 +38,5 @@ def compute_policy_facets(request: HttpRequest, instance: Rulebook) -> Tuple[str
     )
     all_rules = prepare_rules(base_rules_qs)
     filtered_rules = filter_rules(all_rules, query, context)
-    facets = compute_facets(
-        filtered_rules, context, all_rules=all_rules, query=query
-    )
+    facets = compute_facets(filtered_rules, context, all_rules=all_rules, query=query)
     return nsm_q_raw, facets

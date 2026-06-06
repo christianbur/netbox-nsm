@@ -166,9 +166,7 @@ def _sync_type_configs_and_sections(builtin_types):
 
         spec = TYPECONFIG_SPEC_BY_SLUG.get(slug)
         panel_slugs = (
-            spec["panel_slugs"]
-            if spec
-            else section_slugs_to_panel_slugs(areas)
+            spec["panel_slugs"] if spec else section_slugs_to_panel_slugs(areas)
         )
         matching_class = spec["matching_class"] if spec else ""
         TypeConfig.objects.update_or_create(
@@ -179,9 +177,7 @@ def _sync_type_configs_and_sections(builtin_types):
                 "display_template": str(
                     (spec or typedef).get("display_template", "") or ""
                 ),
-                "order_id": int(
-                    (spec or typedef).get("order_id", 100) or 100
-                ),
+                "order_id": int((spec or typedef).get("order_id", 100) or 100),
                 "panel_slugs": panel_slugs,
                 "panel_linkable": (spec or {}).get("panel_linkable", True),
             },

@@ -388,9 +388,12 @@ def _evaluate_condition(rule, condition: Condition, context: RulebookContext) ->
 
     condition = _resolve_object_condition(condition, context, rb_field)
 
-    if condition.type_segment and context.resolve_type_content_type_id(
-        rb_field, condition.type_segment
-    ) is None and not _group_matches_type_segment(condition.type_segment):
+    if (
+        condition.type_segment
+        and context.resolve_type_content_type_id(rb_field, condition.type_segment)
+        is None
+        and not _group_matches_type_segment(condition.type_segment)
+    ):
         return False
 
     values = _get_field_values(
@@ -519,11 +522,7 @@ def _make_facet_entries(
         active = query_has_condition(query, qval) if query_active else False
         available = (not query_active) or count_filtered > 0 or active
         if available:
-            href = (
-                qval
-                if not query_active
-                else query_and_condition(query, qval)
-            )
+            href = qval if not query_active else query_and_condition(query, qval)
         else:
             href = query_replace_all(qval)
         entries.append(
@@ -602,9 +601,7 @@ def compute_facets(
     if _system_field_facet_visible(context, "status"):
         if not status_all:
             status_all = Counter({"Enabled": 0, "Disabled": 0})
-        status_entries = _make_status_entries(
-            status_all, status_filtered, query=query
-        )
+        status_entries = _make_status_entries(status_all, status_filtered, query=query)
         facets.append(
             {
                 "field_slug": "_status",

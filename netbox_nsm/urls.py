@@ -42,7 +42,9 @@ urlpatterns = [
         "type-config/<int:pk>/",
         include(get_model_urls("netbox_nsm", "typeconfig")),
     ),
-    path("rulebook-field/add/", RulebookFieldAddView.as_view(), name="rulebookfield_add"),
+    path(
+        "rulebook-field/add/", RulebookFieldAddView.as_view(), name="rulebookfield_add"
+    ),
     path(
         "rulebook-field/<int:pk>/edit/",
         RulebookFieldEditView.as_view(),

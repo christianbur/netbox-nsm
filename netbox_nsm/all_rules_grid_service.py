@@ -111,8 +111,14 @@ def _build_union_layout(view_helpers) -> tuple[list[dict], dict[int, dict[str, s
     """
     cached = cache.get(UNION_LAYOUT_CACHE_KEY)
     if cached is not None:
-        rb_maps = {int(rb_id): mapping for rb_id, mapping in cached["rb_maps"].items()}
-        return cached["layout"], rb_maps
+        layout = cached.get("layout") or []
+        # Ignore stale empty unions (parallel tests / shared Redis may cache before
+        # object rulebook fields exist on another worker).
+        if layout:
+            rb_maps = {
+                int(rb_id): mapping for rb_id, mapping in cached["rb_maps"].items()
+            }
+            return layout, rb_maps
 
     union_cols: dict[str, dict] = {}
     rb_maps: dict[int, dict[str, str]] = {}

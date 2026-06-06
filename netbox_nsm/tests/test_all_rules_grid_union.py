@@ -4,7 +4,7 @@ import json
 
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
-from django.test import RequestFactory
+from django.test import RequestFactory, override_settings
 from django.urls import reverse
 
 import netbox_nsm.views.rulebook as rulebook_views
@@ -25,9 +25,15 @@ from netbox_nsm.models import (
     TypeConfig,
 )
 from netbox_nsm.rulebook_field_utils import ensure_system_rulebook_fields
-from netbox_nsm.rulebook_rules_grid_service import UNION_LAYOUT_CACHE_KEY
 from utilities.testing import TestCase
 from netbox_nsm.views.all_rules_grid_api import AllRulesGridApiView
+
+_UNION_GRID_CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "netbox_nsm_all_rules_grid_union_tests",
+    }
+}
 
 
 def _leaf_column_defs(column_defs):
@@ -65,6 +71,7 @@ def _column_def_order(scaffold: dict) -> list[str]:
     return order
 
 
+@override_settings(CACHES=_UNION_GRID_CACHES)
 class AllRulesGridUnionTests(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -119,7 +126,7 @@ class AllRulesGridUnionTests(TestCase):
 
     def setUp(self):
         super().setUp()
-        cache.delete(UNION_LAYOUT_CACHE_KEY)
+        cache.clear()
 
     def test_union_global_column_key_uses_area_and_label(self):
         key = _union_global_column_key(

@@ -46,7 +46,7 @@ __all__ = (
 
 RULEBOOK_RULES_GRID_BLOCK_SIZE = 100
 RULEBOOK_RULES_GRID_RULES_CACHE_TTL = 600
-UNION_LAYOUT_CACHE_KEY = "nsm:all_rules:union_layout_v1"
+UNION_LAYOUT_CACHE_KEY = "nsm:all_rules:union_layout_v2"
 UNION_LAYOUT_CACHE_TTL = 600
 
 

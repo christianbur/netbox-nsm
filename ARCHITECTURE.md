@@ -1,5 +1,7 @@
 # netbox-nsm — Architecture Reference
 
+[Documentation home](docs/README.md) · [Using netbox-nsm](docs/using_netbox_nsm.md)
+
 This document describes the internal structure of the plugin for developers who want to
 understand, extend or contribute to `netbox-nsm`.
 
@@ -25,6 +27,17 @@ understand, extend or contribute to `netbox-nsm`.
 9. [Signals](#signals)
 10. [Demo Data](#demo-data)
 11. [Testing](#testing)
+
+---
+
+## Front-end dependencies
+
+Interactive UI uses two MIT-licensed libraries (no commercial AG Grid Enterprise):
+
+| Library | Views | Notes |
+|---|---|---|
+| **AG Grid Community 33.2.4** | `rulebook_policy`, `rulebook_matrix`, All Rules grid | Vendored under `plugin_assets/vendor/ag-grid-community/` |
+| **@xyflow/react 12** | `object_analyzer` | Import map + esm.sh in `object_analyzer.html` |
 
 ---
 
@@ -67,6 +80,7 @@ netbox-nsm/
 │   └── urls.py               URL patterns
 ├── docs/
 │   ├── DATABASE.md           PostgreSQL table reference
+│   ├── using_netbox_nsm.md   Operator guide
 │   └── img/                  Screenshots for documentation
 ├── nsm-schema.json           Portable COT schema (apply via API)
 ├── pyproject.toml
@@ -95,7 +109,7 @@ without changing the NSM plugin itself.
 ## Naming
 
 Model and module names do **not** use an `NSM` prefix (the app label `netbox_nsm` is enough).
-See [docs/NAMING.md](docs/NAMING.md) and `scripts/drop_nsm_prefix.py` when migrating legacy names.
+See `scripts/drop_nsm_prefix.py` when migrating legacy names.
 
 ## Data Model
 
@@ -153,17 +167,21 @@ rev = ObjectLink.objects.filter(object_b_type=ct, object_b_id=obj.pk)
 
 ```
 TypeConfig
-├── content_type       (OneToOneField → ContentType)
-├── matching_class     (CharField, choices: MatchingClassChoices)
-├── display_template   (CharField, default: "{name}")
-├── panel_slugs        (JSONField, panel section slugs)
-├── order_id           (PositiveIntegerField)
+├── name                 (CharField)
+├── content_type         (FK → ContentType)
+├── matching_class       (CharField, choices: MatchingClassChoices)
+├── display_template     (CharField, default: "{name}")
+├── panel_slugs          (JSONField, panel section slugs)
+├── order_id             (PositiveIntegerField)
 ├── allow_virtual_groups (BooleanField)
-├── inherit_links      (BooleanField)
-└── inherit_stop_on_own (BooleanField)
+├── inherit_links        (BooleanField)
+├── inherit_stop_on_own  (BooleanField)
+├── panel_linkable       (BooleanField — legacy master switch; kept in sync by the form)
+└── panel_linkable_content_types (M2M → ContentType)
 ```
 
-**Purpose:** Per-ContentType configuration for NSM behaviour.
+**Purpose:** Per-ContentType configuration for NSM behaviour. Unique together:
+`(content_type, matching_class)`.
 
 `matching_class` values: `address`, `zone`, `label`, `trust`, `service`, `action`, `info`, `user`,
 `application`, `group`, `other`.
@@ -171,8 +189,18 @@ TypeConfig
 `display_template` is evaluated in `display_utils.render_object_display()` by substituting
 `{field_name}` placeholders with the object's attributes. Falls back to `str(obj)`.
 
+**Panel assign filter (`panel_linkable_content_types`):** When a user clicks **+ Assign** on a
+NetBox object (Object A), the picker lists NSM types (Object B) allowed for that source type.
+Empty M2M + `panel_linkable=True` means **all** NetBox object types (unrestricted). Non-empty M2M
+restricts to the selected types (e.g. only `dcim.interface`). Implemented in
+`TypeConfig.queryset_panel_linkable_for()`, `forms/object_link.py`, and
+`views/object_link.py` (`source_ct_id` on the type-elements API).
+
 `inherit_links` / `inherit_stop_on_own` control the Security Panel's inheritance logic in
 `NsmSecurityLinksExtension` (see Template Extensions).
+
+**Migration `0002_initial_panel_linkable_types`:** Adds the M2M table; existing rows with
+`panel_linkable=True` keep an empty M2M (= unrestricted). See `docs/DATABASE.md`.
 
 ---
 
@@ -329,13 +357,33 @@ Registered in `template_content.py` as `template_extensions = [...]`:
 1. **ObjectLink** records (forward and reverse) — explicit NSM assignments with edit/delete actions.
 2. **nsm_addresses FK** — Custom Object rows pointing at this IPAM object via `prefix_id`, `ip_address_id`, or `range_id`.
 3. **group M2M** — via `group_m2m.iter_group_m2m_relations()` (parent groups as *Member of*, contained objects as *Member*).
-4. **Inherited links** — lazy-loaded via `InheritedLinksApiView` for IPAddress, IPRange, and Prefix.
+4. **Inherited links** — resolved at page load for IPAddress, IPRange, and Prefix (via `iter_inherited_nsm_links`).
 
 Header actions: **Object Analyzer** (all objects), **IP Analysis** (address-matching TypeConfig only), **Assign** (ObjectLink picker).
 
+#### Macro vs micro zones (operational convention)
+
+NSM stores every zone as the same `nsm_zones` Custom Object type. **Macro** and **micro** zone
+are not separate models or TypeConfigs — operators express them by assigning **multiple direct
+zone ObjectLinks** to one host (typically a Prefix or Interface). A macro zone (e.g. `prod`)
+documents DC/trust segmentation; a micro zone (e.g. `app-x`) documents application-level
+segmentation inside that macro context. The Security Panel lists each link as its own row under
+**Zones**; the zone object's reverse panel aggregates every linked Prefix, Device, Interface,
+and VM. Inheritance from parent Prefixes (see below) applies to macro assignments at subnet
+level; micro zones are usually direct on Interfaces or specific prefixes.
+
+#### Extensible object types (TypeConfig)
+
+Rule columns and Security Panel assignments both flow through **TypeConfig** → ContentType.
+Built-in COTs ship with TypeConfigs from Setup; additional types are added by creating a
+Custom Object Type (`netbox-custom-objects`) and a matching TypeConfig, then wiring
+**RulebookFieldType** rows on the Rulebook **Fields** card. No NSM code changes required for
+a new security object class.
+
 ### Inheritance Resolution
 
-Inherited links are **not** computed at page load. The panel exposes `nsm_inherited_api_url`; the client fetches
+Inherited links are computed at page load (same `iter_inherited_nsm_links` logic as the API). The panel merges them into
+the type groups with a `(from <prefix>)` suffix. The JSON endpoint `inherited-links/` remains for API consumers; the client no longer fetches
 `GET /plugins/netbox-nsm/api/inherited-links/?ct_id=&obj_id=` on demand.
 
 For a child IPAM object (IP Address, IP Range, sub-Prefix), `ipam_inheritance.ancestor_prefixes_for_ipam()` finds

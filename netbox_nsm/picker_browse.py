@@ -30,6 +30,27 @@ _FK_SEARCH_LOOKUPS = (
     "range__start_address",
     "range__end_address",
 )
+_INET_FIELD_TYPES = frozenset({"IPNetworkField", "IPAddressField"})
+
+
+def _resolve_field(model_class, lookup_path: str):
+    model = model_class
+    field = None
+    for part in lookup_path.split("__"):
+        field = model._meta.get_field(part)
+        if getattr(field, "is_relation", False) and field.related_model is not None:
+            model = field.related_model
+    return field
+
+
+def _is_inet_like_field(field) -> bool:
+    return type(field).__name__ in _INET_FIELD_TYPES
+
+
+def _string_search_q(lookup_path: str, field, q: str) -> Q:
+    if _is_inet_like_field(field):
+        return Q(**{f"{lookup_path}__iregex": f".*{re.escape(q)}.*"})
+    return Q(**{f"{lookup_path}__icontains": q})
 
 
 def is_picker_browse_allowed(ct_id: int) -> bool:
@@ -79,10 +100,10 @@ def _filter_queryset_by_query(qs, model_class, q: str):
     matched = False
     for field_name in _NAME_SEARCH_FIELDS:
         try:
-            model_class._meta.get_field(field_name)
+            field = model_class._meta.get_field(field_name)
         except Exception:
             continue
-        clauses |= Q(**{f"{field_name}__icontains": q})
+        clauses |= _string_search_q(field_name, field, q)
         matched = True
     try:
         model_class._meta.get_field("field_data")
@@ -94,9 +115,10 @@ def _filter_queryset_by_query(qs, model_class, q: str):
         fk_name = lookup.split("__", 1)[0]
         try:
             model_class._meta.get_field(fk_name)
+            field = _resolve_field(model_class, lookup)
         except Exception:
             continue
-        clauses |= Q(**{f"{lookup}__icontains": q})
+        clauses |= _string_search_q(lookup, field, q)
         matched = True
     if not matched:
         return qs.none()

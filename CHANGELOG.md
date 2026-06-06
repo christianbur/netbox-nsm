@@ -6,6 +6,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [0.2.6] - unreleased
 
+### Added
+
+- Bench script `scripts/create_addresses_million_scale.py`: nested `nsm_addresses`
+  (1M hosts default) and 13k policy rules on an existing rulebook — **not** part of Setup
+  wizard. See `docs/bench_addresses_million_scale.md`.
+
 ## [0.2.5] - 2026-06-06
 
 ### Fixed

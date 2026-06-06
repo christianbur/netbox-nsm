@@ -360,6 +360,9 @@ The `SetupView` POST handler dispatches on the `action` form field:
 | `create_demo_scale` | `Demo - Scale Test` — 300 zones, 12 000 rules |
 | `create_demo_addresses_scale` | `Demo - Addresses` — 6 000 address-based rules |
 
+**Not in Setup:** `scripts/create_addresses_million_scale.py` — bench load (1M nested
+`nsm_addresses`, 13k rules). See [docs/bench_addresses_million_scale.md](docs/bench_addresses_million_scale.md).
+
 All demo actions call `_ensure_demo_prerequisites()` (imports missing COTs **and** TypeConfigs).
 
 ---

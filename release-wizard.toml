@@ -10,11 +10,13 @@ url = "https://github.com/christianbur/netbox-nsm"
 
 [changelog]
 file = "CHANGELOG.md"
+import_unreleased = true
 
 [commit]
 files = [
     "pyproject.toml",
     "netbox_nsm/version.py",
+    "netbox_nsm/__init__.py",
     "netbox-plugin.yaml",
     "CHANGELOG.md",
 ]
@@ -34,14 +36,7 @@ replace = '__version__ = "{version}"'
 
 [netbox_plugin]
 file = "netbox-plugin.yaml"
-
-[[watch]]
-name = "Portable schema"
-files = [
-    "netbox_nsm/schema/nsm_portable_schema.json",
-    "netbox_nsm/schema/nsm_choice_sets.json",
-]
-reminder = "Schema changed: re-run Setup → Custom Objects in NetBox (or `python3 scripts/sync_builtin.py` in the dev environment)."
+init_file = "netbox_nsm/__init__.py"
 
 [reminders]
 pypi_note = "PyPI publish typically runs via the GitHub release pipeline (if configured in the repo)."

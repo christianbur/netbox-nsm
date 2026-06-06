@@ -11,6 +11,9 @@ SSH keys match (same pattern as ``tools/github-push.sh``).
 Without a config file, defaults apply: ``pyproject.toml`` version, ``CHANGELOG.md``,
 and the git ``origin`` remote URL.
 
+If ``CHANGELOG.md`` starts with ``## [X.Y.Z] - unreleased``, that section is imported
+automatically (preserving formatting); a new unreleased section is prepended on release.
+
 Examples::
 
     python3 scripts/release_wizard.py
@@ -67,6 +70,23 @@ class WatchGroup:
 
 
 @dataclass
+class ParsedChangelogSection:
+    version: str
+    date_label: str
+    sections: dict[str, list[str]]
+    header_start: int
+    header_end: int
+
+    @property
+    def is_unreleased(self) -> bool:
+        return self.date_label.lower() == "unreleased"
+
+    @property
+    def entry_count(self) -> int:
+        return sum(len(items) for items in self.sections.values())
+
+
+@dataclass
 class ReleaseConfig:
     root: Path
     project_name: str
@@ -74,10 +94,12 @@ class ReleaseConfig:
     repo_url: str
     changelog_path: Path
     changelog_sections: tuple[str, ...]
+    changelog_import_unreleased: bool
     version_sources: list[VersionSource]
     commit_files: list[str]
     watch_groups: list[WatchGroup]
     netbox_plugin_path: Path | None
+    netbox_plugin_init_file: Path | None
     manual_push_hint: str
     pypi_note: str
     config_path: Path | None = None
@@ -139,6 +161,7 @@ def _default_config(root: Path) -> ReleaseConfig:
         repo_url=_detect_repo_url(root),
         changelog_path=root / "CHANGELOG.md",
         changelog_sections=DEFAULT_CHANGELOG_SECTIONS,
+        changelog_import_unreleased=True,
         version_sources=[
             VersionSource(
                 file=pyproject,
@@ -151,6 +174,7 @@ def _default_config(root: Path) -> ReleaseConfig:
         commit_files=["pyproject.toml", "CHANGELOG.md"],
         watch_groups=[],
         netbox_plugin_path=None,
+        netbox_plugin_init_file=None,
         manual_push_hint="",
         pypi_note="",
     )
@@ -187,8 +211,11 @@ def _load_config(root: Path, config_path: Path | None) -> ReleaseConfig:
 
     netbox_plugin = data.get("netbox_plugin")
     netbox_plugin_path = None
+    netbox_plugin_init_file = None
     if netbox_plugin:
         netbox_plugin_path = root / netbox_plugin["file"]
+        if netbox_plugin.get("init_file"):
+            netbox_plugin_init_file = root / netbox_plugin["init_file"]
 
     watch_groups: list[WatchGroup] = []
     for group in data.get("watch", []):
@@ -206,6 +233,8 @@ def _load_config(root: Path, config_path: Path | None) -> ReleaseConfig:
         commit_files = list({src.file.relative_to(root).as_posix() for src in version_sources})
         if netbox_plugin_path:
             commit_files.append(netbox_plugin_path.relative_to(root).as_posix())
+        if netbox_plugin_init_file:
+            commit_files.append(netbox_plugin_init_file.relative_to(root).as_posix())
         commit_files.append(changelog.get("file", "CHANGELOG.md"))
         commit_files = sorted(set(commit_files))
 
@@ -216,10 +245,12 @@ def _load_config(root: Path, config_path: Path | None) -> ReleaseConfig:
         repo_url=repo.get("url") or defaults.repo_url,
         changelog_path=root / changelog.get("file", "CHANGELOG.md"),
         changelog_sections=changelog_sections,
+        changelog_import_unreleased=changelog.get("import_unreleased", True),
         version_sources=version_sources or defaults.version_sources,
         commit_files=commit_files,
         watch_groups=watch_groups,
         netbox_plugin_path=netbox_plugin_path,
+        netbox_plugin_init_file=netbox_plugin_init_file,
         manual_push_hint=reminders.get("manual_push_hint", ""),
         pypi_note=reminders.get("pypi_note", ""),
         config_path=path,
@@ -256,6 +287,113 @@ def _ask_text(prompt: str, default: str | None = None) -> str:
 class ReleaseWizard:
     def __init__(self, config: ReleaseConfig) -> None:
         self.config = config
+        self._use_changelog_import = False
+
+    def _parse_changelog_top_section(self, text: str) -> ParsedChangelogSection | None:
+        match = re.search(r"^## \[([^\]]+)\] - (.+)$", text, re.MULTILINE)
+        if not match:
+            return None
+
+        version = match.group(1).strip()
+        date_label = match.group(2).strip()
+        body_start = match.end()
+        next_section = text.find("\n## [", body_start)
+        body = text[body_start:next_section if next_section != -1 else len(text)]
+
+        sections: dict[str, list[str]] = {name: [] for name in self.config.changelog_sections}
+        current: str | None = None
+        current_bullet: list[str] = []
+
+        def flush_bullet() -> None:
+            nonlocal current_bullet
+            if current and current_bullet:
+                sections[current].append(" ".join(part.strip() for part in current_bullet).strip())
+            current_bullet = []
+
+        for line in body.splitlines():
+            header = re.match(r"^### (.+)$", line.strip())
+            if header:
+                flush_bullet()
+                name = header.group(1).strip()
+                current = name if name in sections else None
+                continue
+            bullet = re.match(r"^- (.+)$", line.strip())
+            if bullet:
+                flush_bullet()
+                if current:
+                    current_bullet = [bullet.group(1)]
+                continue
+            if current and line.startswith(("  ", "\t")) and current_bullet:
+                current_bullet.append(line.strip())
+                continue
+            if not line.strip():
+                flush_bullet()
+
+        flush_bullet()
+        return ParsedChangelogSection(
+            version=version,
+            date_label=date_label,
+            sections=sections,
+            header_start=match.start(),
+            header_end=match.end(),
+        )
+
+    def _read_changelog_import(self) -> ParsedChangelogSection | None:
+        path = self.config.changelog_path
+        if not path.is_file():
+            return None
+        parsed = self._parse_changelog_top_section(path.read_text(encoding="utf-8"))
+        if parsed is None or not parsed.is_unreleased:
+            return None
+        if parsed.entry_count == 0:
+            return None
+        return parsed
+
+    def _print_changelog_import_preview(self, parsed: ParsedChangelogSection) -> None:
+        print(f"Found in {self.config.changelog_path.name}: [{parsed.version}] - {parsed.date_label}")
+        for name in self.config.changelog_sections:
+            bullets = parsed.sections.get(name, [])
+            if not bullets:
+                continue
+            print(f"  ### {name} ({len(bullets)} entries)")
+            for bullet in bullets[:3]:
+                preview = bullet if len(bullet) <= 90 else f"{bullet[:87]}..."
+                print(f"    - {preview}")
+            if len(bullets) > 3:
+                print(f"    - ... {len(bullets) - 3} more")
+
+    def _collect_changelog_sections(
+        self,
+        interactive: bool,
+        *,
+        allow_import: bool,
+    ) -> dict[str, list[str]]:
+        sections: dict[str, list[str]] = {name: [] for name in self.config.changelog_sections}
+        self._use_changelog_import = False
+
+        if allow_import and self.config.changelog_import_unreleased:
+            parsed = self._read_changelog_import()
+            if parsed:
+                if interactive:
+                    print()
+                    self._print_changelog_import_preview(parsed)
+                    if _ask_yes_no("Use these entries from CHANGELOG.md?", default=True):
+                        self._use_changelog_import = True
+                        return parsed.sections
+                else:
+                    self._use_changelog_import = True
+                    return parsed.sections
+
+        if not interactive:
+            return sections
+
+        print()
+        print("Changelog entries per category (Keep a Changelog).")
+        print("Skip empty categories.")
+        for name in self.config.changelog_sections:
+            if _ask_yes_no(f'Add entries for "{name}"?', default=False):
+                sections[name] = self._read_multiline_bullets(name)
+        return sections
 
     def _running_as_git_user(self) -> bool:
         return os.environ.get("USER", os.environ.get("LOGNAME", "")) == self.config.git_user
@@ -369,19 +507,6 @@ class ReleaseWizard:
             bullets.append(line)
         return bullets
 
-    def _collect_changelog_sections(self, interactive: bool) -> dict[str, list[str]]:
-        sections: dict[str, list[str]] = {name: [] for name in self.config.changelog_sections}
-        if not interactive:
-            return sections
-
-        print()
-        print("Changelog entries per category (Keep a Changelog).")
-        print("Skip empty categories.")
-        for name in self.config.changelog_sections:
-            if _ask_yes_no(f'Add entries for "{name}"?', default=False):
-                sections[name] = self._read_multiline_bullets(name)
-        return sections
-
     def _render_changelog_section(self, version: str, release_date: str, sections: dict[str, list[str]]) -> str:
         lines = [f"## [{version}] - {release_date}", ""]
         has_content = False
@@ -414,6 +539,38 @@ class ReleaseWizard:
                 updated = updated.rstrip() + "\n" + link_line + "\n"
         return updated
 
+    def _finalize_changelog_from_file(self, version: str, release_date: str) -> str:
+        text = self.config.changelog_path.read_text(encoding="utf-8")
+        parsed = self._parse_changelog_top_section(text)
+        if parsed is None or not parsed.is_unreleased:
+            raise RuntimeError(
+                f"{self.config.changelog_path.name}: expected top section "
+                f'"## [X.Y.Z] - unreleased" for import'
+            )
+
+        updated, count = re.subn(
+            r"^## \[([^\]]+)\] - [^\n]+$",
+            f"## [{version}] - {release_date}",
+            text,
+            count=1,
+            flags=re.MULTILINE,
+        )
+        if count != 1:
+            raise RuntimeError(f"{self.config.changelog_path.name}: could not update release header")
+
+        next_version = self._suggest_next_version(version)
+        insert = f"## [{next_version}] - unreleased\n\n"
+        idx = updated.find("\n## [")
+        if idx == -1:
+            raise RuntimeError(f"{self.config.changelog_path.name}: could not find version section")
+        updated = updated[: idx + 1] + insert + updated[idx + 1 :]
+
+        if self.config.repo_url:
+            link_line = f"[{version}]: {self.config.repo_url}/releases/tag/v{version}"
+            if link_line not in updated:
+                updated = updated.rstrip() + "\n" + link_line + "\n"
+        return updated
+
     def _read_latest_compatibility_block(self) -> str:
         path = self.config.netbox_plugin_path
         if path is None:
@@ -427,39 +584,86 @@ class ReleaseWizard:
             raise RuntimeError(f"Could not parse compatibility block from {path.name}")
         return match.group(1)
 
-    def _update_plugin_yaml(self, version: str) -> str:
+    def _parse_compatibility_limits(self, block: str) -> tuple[str, str]:
+        min_match = re.search(r"netbox_min:\s*(\S+)", block)
+        max_match = re.search(r"netbox_max:\s*(\S+)", block)
+        if not min_match or not max_match:
+            raise RuntimeError("Could not read netbox_min/netbox_max from compatibility block")
+        return min_match.group(1), max_match.group(1)
+
+    def _update_plugin_init(self, netbox_min: str, netbox_max: str) -> str:
+        path = self.config.netbox_plugin_init_file
+        if path is None:
+            raise RuntimeError("netbox_plugin init_file not configured")
+        text = path.read_text(encoding="utf-8")
+        updated, min_count = re.subn(
+            r'min_version\s*=\s*"[^"]+"',
+            f'min_version = "{netbox_min}"',
+            text,
+            count=1,
+        )
+        if min_count != 1:
+            raise RuntimeError(f"Could not update min_version in {path.name}")
+
+        if re.search(r'max_version\s*=\s*"[^"]+"', updated):
+            updated, max_count = re.subn(
+                r'max_version\s*=\s*"[^"]+"',
+                f'max_version = "{netbox_max}"',
+                updated,
+                count=1,
+            )
+            if max_count != 1:
+                raise RuntimeError(f"Could not update max_version in {path.name}")
+        else:
+            updated, insert_count = re.subn(
+                r'(min_version\s*=\s*"[^"]+"\n)',
+                rf'\1    max_version = "{netbox_max}"\n',
+                updated,
+                count=1,
+            )
+            if insert_count != 1:
+                raise RuntimeError(f"Could not insert max_version in {path.name}")
+        return updated
+
+    def _update_plugin_yaml(self, version: str) -> tuple[str, str, str]:
         path = self.config.netbox_plugin_path
         if path is None:
             raise RuntimeError("netbox_plugin handler not configured")
         text = path.read_text(encoding="utf-8")
-        if re.search(rf"^\s*-\s*release:\s*{re.escape(version)}\s*$", text, re.MULTILINE):
-            return text
-
         template = self._read_latest_compatibility_block()
-        min_match = re.search(r"netbox_min:\s*(\S+)", template)
-        max_match = re.search(r"netbox_max:\s*(\S+)", template)
-        if not min_match or not max_match:
-            raise RuntimeError(f"Could not read netbox_min/netbox_max from {path.name}")
+        netbox_min, netbox_max = self._parse_compatibility_limits(template)
+
+        if re.search(rf"^\s*-\s*release:\s*{re.escape(version)}\s*$", text, re.MULTILINE):
+            return text, netbox_min, netbox_max
 
         new_block = (
             f"  - release: {version}\n"
-            f"    netbox_min: {min_match.group(1)}\n"
-            f"    netbox_max: {max_match.group(1)}"
+            f"    netbox_min: {netbox_min}\n"
+            f"    netbox_max: {netbox_max}"
         )
         compat_marker = "compatibility:\n"
         idx = text.find(compat_marker)
         if idx == -1:
             raise RuntimeError(f"compatibility: section not found in {path.name}")
         insert_at = idx + len(compat_marker)
-        return text[:insert_at] + new_block + "\n" + text[insert_at:]
+        updated = text[:insert_at] + new_block + "\n" + text[insert_at:]
+        return updated, netbox_min, netbox_max
 
     def _apply_file_updates(self, version: str, release_date: str, sections: dict[str, list[str]], dry_run: bool) -> None:
         updates: dict[Path, str] = {}
         for source in self.config.version_sources:
             updates[source.file] = source.write(version)
         if self.config.netbox_plugin_path:
-            updates[self.config.netbox_plugin_path] = self._update_plugin_yaml(version)
-        updates[self.config.changelog_path] = self._update_changelog(version, release_date, sections)
+            plugin_yaml, netbox_min, netbox_max = self._update_plugin_yaml(version)
+            updates[self.config.netbox_plugin_path] = plugin_yaml
+            if self.config.netbox_plugin_init_file:
+                updates[self.config.netbox_plugin_init_file] = self._update_plugin_init(
+                    netbox_min, netbox_max
+                )
+        if self._use_changelog_import:
+            updates[self.config.changelog_path] = self._finalize_changelog_from_file(version, release_date)
+        else:
+            updates[self.config.changelog_path] = self._update_changelog(version, release_date, sections)
 
         for path, content in updates.items():
             rel = path.relative_to(self.config.root)
@@ -642,14 +846,26 @@ class ReleaseWizard:
             return 1
 
         _print_header("Step 4 — CHANGELOG")
+        allow_import = not args.no_changelog_import and not args.changelog
         if args.changelog:
             sections = self._parse_sections_arg(args.changelog)
-        elif interactive:
-            sections = self._collect_changelog_sections(interactive=True)
         else:
-            sections = self._collect_changelog_sections(interactive=False)
+            sections = self._collect_changelog_sections(
+                interactive,
+                allow_import=allow_import,
+            )
+            if self._use_changelog_import:
+                parsed = self._read_changelog_import()
+                if parsed and parsed.version != new_version:
+                    print()
+                    print(
+                        f"NOTE: CHANGELOG unreleased section is [{parsed.version}], "
+                        f"release version is [{new_version}] — header will use {new_version}."
+                    )
 
         print()
+        if self._use_changelog_import:
+            print("Using CHANGELOG.md unreleased section (header/date will be finalized on write).")
         print("CHANGELOG section preview:")
         print("-" * 40)
         print(self._render_changelog_section(new_version, release_date, sections).rstrip())
@@ -661,7 +877,10 @@ class ReleaseWizard:
             print(f"  - {source.label}")
         if config.netbox_plugin_path:
             rel = config.netbox_plugin_path.relative_to(config.root)
-            print(f"  - {rel} (new compatibility entry)")
+            print(f"  - {rel} (compatibility release {new_version})")
+        if config.netbox_plugin_init_file:
+            rel = config.netbox_plugin_init_file.relative_to(config.root)
+            print(f"  - {rel} (min_version / max_version)")
         print(f"  - {config.changelog_path.relative_to(config.root)}")
 
         apply_ok = args.yes or args.dry_run
@@ -740,8 +959,11 @@ class ReleaseWizard:
 def _resolve_root(explicit: str | None) -> Path:
     if explicit:
         return Path(explicit).resolve()
+    project_root = SCRIPT_DIR.parent
+    if (project_root / "release-wizard.toml").is_file() or (project_root / "netbox-plugin.yaml").is_file():
+        return project_root
     git_root = _detect_git_root(SCRIPT_DIR)
-    return git_root or SCRIPT_DIR.parent
+    return git_root or project_root
 
 
 def _build_arg_parser() -> argparse.ArgumentParser:
@@ -759,6 +981,11 @@ def _build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--changelog",
         help="Changelog text (categories as 'Added:' etc., bullet points with '-')",
+    )
+    parser.add_argument(
+        "--no-changelog-import",
+        action="store_true",
+        help="Do not read the unreleased section from CHANGELOG.md",
     )
     parser.add_argument("--yes", "-y", action="store_true", help="Answer all confirmations with yes")
     parser.add_argument("--commit", action="store_true", help="Create git commit")

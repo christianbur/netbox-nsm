@@ -148,14 +148,17 @@ def _build_union_layout(view_helpers) -> tuple[list[dict], dict[int, dict[str, s
     layout_groups = [
         {"area": area, "columns": columns_by_area[area]} for area in area_order
     ]
-    cache.set(
-        UNION_LAYOUT_CACHE_KEY,
-        {
-            "layout": layout_groups,
-            "rb_maps": {str(rb_id): mapping for rb_id, mapping in rb_maps.items()},
-        },
-        UNION_LAYOUT_CACHE_TTL,
-    )
+    # Do not cache an empty union: parallel tests may populate rulebooks after
+    # an early miss and would otherwise read a stale empty layout from Redis.
+    if layout_groups:
+        cache.set(
+            UNION_LAYOUT_CACHE_KEY,
+            {
+                "layout": layout_groups,
+                "rb_maps": {str(rb_id): mapping for rb_id, mapping in rb_maps.items()},
+            },
+            UNION_LAYOUT_CACHE_TTL,
+        )
     return layout_groups, rb_maps
 
 

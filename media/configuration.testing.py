@@ -36,6 +36,15 @@ REDIS = {
     },
 }
 
+# Parallel `manage.py test --parallel` workers must not share Redis cache entries
+# (e.g. all-rules union layout); LocMemCache is per process.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "netbox-nsm-tests",
+    }
+}
+
 SECRET_KEY = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 API_TOKEN_PEPPERS = {
     1: "TEST-VALUE-DO-NOT-USE-TEST-VALUE-DO-NOT-USE-TEST-VALUE-DO-NOT-USE",

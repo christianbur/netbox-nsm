@@ -201,9 +201,13 @@ class RulebookRulesMatrixUiTests(unittest.TestCase):
         matrix_pill_fn = matrix_pill_fn.split("function renderMatrixPills(", 1)[0]
         self.assertIn("matrixSlotRoleLabel(config, slot)", matrix_pill_fn)
         self.assertIn("buildPillLabelWithRole(", matrix_pill_fn)
+        from importlib.resources import files
+
         de_po = (
-            Path(__file__).resolve().parents[1] / "locale/de/LC_MESSAGES/django.po"
-        ).read_text(encoding="utf-8")
+            files("netbox_nsm")
+            .joinpath("locale/de/LC_MESSAGES/django.po")
+            .read_text(encoding="utf-8")
+        )
         self.assertIn('msgid "Main group"', de_po)
         self.assertIn('msgstr "Hauptgruppenobjekt"', de_po)
         self.assertIn('msgid "Subgroup"', de_po)

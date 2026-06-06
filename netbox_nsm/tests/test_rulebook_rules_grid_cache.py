@@ -4,7 +4,7 @@ import json
 from unittest.mock import patch
 
 from django.core.cache import cache
-from django.test import RequestFactory
+from django.test import RequestFactory, override_settings
 from django.urls import reverse
 
 from netbox_nsm.rulebook_rules_grid_service import (
@@ -17,7 +17,15 @@ from netbox_nsm.views.all_rules_grid_api import AllRulesGridApiView
 from netbox_nsm.views.rulebook_rules_grid_api import RulebookRulesGridApiView
 from utilities.testing import TestCase
 
+_LOC_MEM_CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "netbox_nsm_policy_grid_rules_cache_tests",
+    }
+}
 
+
+@override_settings(CACHES=_LOC_MEM_CACHES)
 class PolicyGridRulesCacheTests(TestCase):
     @classmethod
     def setUpTestData(cls):

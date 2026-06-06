@@ -26,10 +26,16 @@ requires = ['setuptools >= 64']
 build-backend = 'setuptools.build_meta'
 
 [tool.setuptools.packages.find]
-exclude = ["examples*", "media*", "*.tests*"]
+#exclude = ["examples*", "media*", "*.tests*"]
 
 [tool.setuptools.package-data]
-"netbox_nsm" = ["templates/**/*.html", "static/**/*", "plugin_assets/**/*", "schema/*.json"]
+"netbox_nsm" = [
+    "templates/**/*.html",
+    "static/**/*",
+    "plugin_assets/**/*",
+    "schema/*.json",
+    "locale/**/*.po",
+]
 
 [tool.black]
 target-version = ["py312"]

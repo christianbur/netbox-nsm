@@ -95,6 +95,8 @@ Rule columns reference **TypeConfig** records, not hard-coded COT names — so c
 
 ## Screenshots
 
+Current demo environment (2026-06). Full walkthrough: **[Using netbox-nsm](docs/using_netbox_nsm.md)** · **[Documentation home](docs/README.md)**
+
 <table>
 <tr>
 <td width="50%" valign="top">
@@ -102,6 +104,38 @@ Rule columns reference **TypeConfig** records, not hard-coded COT names — so c
 **Setup wizard** — four sections, idempotent imports
 
 <img src="docs/img/01-setup.png" alt="Setup wizard" width="100%">
+
+</td>
+<td width="50%" valign="top">
+
+**Type Config list** — matching class, panel slugs, linkable types
+
+<img src="docs/img/02-type-config-list.png" alt="Type Config list" width="100%">
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+**Type Config detail** — Zones example
+
+<img src="docs/img/03-type-config-detail.png" alt="Type Config detail" width="100%">
+
+</td>
+<td width="50%" valign="top">
+
+**Rulebook list** — All Rules + named rulebooks
+
+<img src="docs/img/05-rulebook-list.png" alt="Rulebook list" width="100%">
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+**Rulebook detail** — Enterprise TrustSec Core, field hierarchy
+
+<img src="docs/img/06-rulebook-detail.png" alt="Rulebook detail" width="100%">
 
 </td>
 <td width="50%" valign="top">
@@ -115,22 +149,77 @@ Rule columns reference **TypeConfig** records, not hard-coded COT names — so c
 <tr>
 <td width="50%" valign="top">
 
+**Add rule** — Source / Destination / Service / Action tabs
+
+<img src="docs/img/11-rule-add.png" alt="Add rule" width="100%">
+
+</td>
+<td width="50%" valign="top">
+
 **Zone matrix** — directed Permit/Deny
 
 <img src="docs/img/09-zone-matrix.png" alt="Zone matrix" width="100%">
 
 </td>
+</tr>
+<tr>
 <td width="50%" valign="top">
 
-**Object Analyzer** — xyflow graph
+**Matrix filters** — corner query (`dmz OR mgmt`)
+
+<img src="docs/img/09-matrix-filters.png" alt="Matrix filters" width="100%">
+
+</td>
+<td width="50%" valign="top">
+
+**Custom Object Types** — seven built-in NSM COTs
+
+<img src="docs/img/08-builtin-types.png" alt="Custom Object Types" width="100%">
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+**Prefix Security Panel** — direct and inherited zones
+
+<img src="docs/img/12-prefix-security-panel.png" alt="Prefix Security Panel" width="100%">
+
+</td>
+<td width="50%" valign="top">
+
+**Assign Link** — Direct vs Inherit to IPAM children
+
+<img src="docs/img/17-assign-picker.png" alt="Assign Link picker" width="100%">
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+**Zone detail** — reverse view, expandable rulebook tree
+
+<img src="docs/img/07-zone-detail.png" alt="Zone detail Security Panel" width="100%">
+
+</td>
+<td width="50%" valign="top">
+
+**IP Analysis** — two columns, CSV path export
+
+<img src="docs/img/10-ip-analysis.png" alt="IP Analysis" width="100%">
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top" colspan="2">
+
+**Object Analyzer** — xyflow graph from any NetBox object
 
 <img src="docs/img/11-object-analyzer.png" alt="Object Analyzer" width="100%">
 
 </td>
 </tr>
 </table>
-
-More detail: **[Documentation home](docs/README.md)** · **[Using netbox-nsm](docs/using_netbox_nsm.md)**
 
 ---
 

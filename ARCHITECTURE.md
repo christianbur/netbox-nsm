@@ -483,20 +483,6 @@ If either check fails, the script exits with a descriptive error message.
 
 ## Testing
 
-Integration tests live in `netbox_nsm/tests/integration_test.py`.
+Integration and unit tests live under `netbox_nsm/tests/` (~400 cases). Run them via NetBox’s Django test runner — not pytest.
 
-Run via:
-
-```bash
-docker exec netbox-dev python /app/netbox/netbox/manage.py test \
-  netbox_nsm --verbosity=2
-```
-
-The test suite covers:
-- ObjectLink CRUD via REST API (88 tests)
-- TypeConfig CRUD
-- Rulebook / Rule / Assignment CRUD
-- UniqueTogetherValidator on ObjectLink
-- Inheritance resolution in the Security Panel
-
-All 88 tests pass on NetBox 4.6.1.
+See **[docs/TESTING.md](docs/TESTING.md)** for dev-container commands, CI parity, and Black.

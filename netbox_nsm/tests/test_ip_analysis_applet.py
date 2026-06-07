@@ -168,7 +168,7 @@ class RulesCellLoupeTests(SimpleTestCase):
             ]
         )
         self.assertEqual(html.count("nsm-ipa-loupe"), 1)
-        self.assertEqual(html.count('data-addr-analyzable="1"'), 2)
+        self.assertEqual(html.count("nsm-ag-cell-item--probe"), 2)
 
     def test_cell_loupe_skipped_for_non_analyzable_object(self):
         html = _render_rules_cell_ag(

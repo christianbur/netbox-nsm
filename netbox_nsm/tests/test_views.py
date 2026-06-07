@@ -16,6 +16,7 @@ from netbox_nsm.models import (
     TypeConfig,
 )
 from netbox_nsm.models.object_link import LinkPropagationChoices
+from netbox_nsm.tests.form_helpers import rulebook_post_data
 from netbox_nsm.tests.object_link_helpers import create_object_link_with_custom_object_b
 from utilities.testing import TestCase
 from utilities.testing.utils import post_data
@@ -54,14 +55,10 @@ class RulebookViewCrudTests(TestCase):
         url = reverse("plugins:netbox_nsm:rulebook_add")
         response = self.client.post(
             url,
-            post_data(
-                {
-                    "name": "ui-new-rulebook",
-                    "rulebook_type": "security_rules",
-                    "matrix_tab_enabled": "1",
-                    "description": "created in UI test",
-                    "comments": "",
-                }
+            rulebook_post_data(
+                name="ui-new-rulebook",
+                matrix_tab_enabled="1",
+                description="created in UI test",
             ),
         )
         self.assertEqual(response.status_code, 302, response.content)
@@ -73,14 +70,9 @@ class RulebookViewCrudTests(TestCase):
         url = reverse("plugins:netbox_nsm:rulebook_edit", args=[self.rulebook.pk])
         response = self.client.post(
             url,
-            post_data(
-                {
-                    "name": "ui-crud-rulebook-renamed",
-                    "rulebook_type": "security_rules",
-                    "matrix_tab_enabled": "1",
-                    "description": "updated",
-                    "comments": "",
-                }
+            rulebook_post_data(
+                name="ui-crud-rulebook-renamed",
+                description="updated",
             ),
         )
         self.assertEqual(response.status_code, 302, response.content)
@@ -115,14 +107,9 @@ class RulebookViewCrudTests(TestCase):
         url = reverse("plugins:netbox_nsm:rulebook_edit", args=[self.rulebook.pk])
         response = self.client.post(
             url,
-            post_data(
-                {
-                    "name": self.rulebook.name,
-                    "rulebook_type": "security_rules",
-                    "matrix_tab_enabled": "0",
-                    "description": "",
-                    "comments": "",
-                }
+            rulebook_post_data(
+                name=self.rulebook.name,
+                matrix_tab_enabled="0",
             ),
         )
         self.assertEqual(response.status_code, 302, response.content)

@@ -23,6 +23,7 @@
 | **[How rule data is stored](RULE_DATA_STORAGE.md)** | Operators, integrators    | Layer model, ER diagrams, UI vs database  |
 | **[Database tables](DATABASE.md)**                  | Admins, integrators       | PostgreSQL schema reference               |
 | **[Architecture](../ARCHITECTURE.md)**              | Developers                | Code layout, models, extension points     |
+| **[Testing](TESTING.md)**                           | Developers                | Local test runs, CI, Black, dev container |
 
 
 ---

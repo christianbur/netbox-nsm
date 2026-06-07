@@ -26,6 +26,7 @@ from netbox_nsm.models import (
     TypeConfig,
 )
 from netbox_nsm.tests.custom import APITestCase, ModelViewTestCase
+from netbox_nsm.tests.form_helpers import rulebook_post_data
 from utilities.testing.utils import post_data
 
 
@@ -524,14 +525,10 @@ class RulebookMetadataChangelogTest(ModelViewTestCase):
         url = reverse("plugins:netbox_nsm:rulebook_edit", args=[self.rulebook.pk])
         response = self.client.post(
             url,
-            post_data(
-                {
-                    "name": "metadata-changelog-rb",
-                    "rulebook_type": "security_rules",
-                    "matrix_tab_enabled": "0",
-                    "description": "updated metadata",
-                    "comments": "",
-                }
+            rulebook_post_data(
+                name="metadata-changelog-rb",
+                matrix_tab_enabled="0",
+                description="updated metadata",
             ),
         )
         self.assertEqual(response.status_code, 302, response.content)

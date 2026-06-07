@@ -95,8 +95,15 @@ $ /opt/netbox/venv/bin/black netbox_nsm
 
 ## Running the Tests
 
-Go to the NetBox directory and run
+Tests use Django’s `manage.py test` runner (label: `netbox_nsm.tests`). See **[docs/TESTING.md](docs/TESTING.md)** for:
+
+* homelab **dev container** commands (`docker/netbox_dev`, bind mount `/opt/netbox-nsm`)
+* matching **GitHub CI** (`--parallel`, fresh DB vs `--keepdb`)
+* **Black** checks and resetting a broken `test_netbox` database
+
+Quick reference (standalone NetBox at `/opt/netbox`):
 
 ```bash
-$ /opt/netbox/netbox/manage.py test netbox_nsm.tests
+$ cd /opt/netbox/netbox
+$ python manage.py test netbox_nsm.tests --parallel -v2
 ```

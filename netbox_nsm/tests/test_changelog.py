@@ -236,6 +236,58 @@ class RulebookRulesLayoutChangelogTest(ModelViewTestCase):
         self.assertNotIn(str(self.rule.pk), post_rules)
         self.assertEqual(len(pre_rules), 1)
 
+    def test_rules_tab_bulk_delete_records_delta_on_rulebook(self):
+        rule_b = Rule.objects.create(
+            rulebook=self.rulebook,
+            name="rules-layout-rule-b",
+            index=20,
+        )
+        self.add_permissions(
+            "netbox_nsm.view_rulebook",
+            "netbox_nsm.view_rule",
+            "netbox_nsm.delete_rule",
+        )
+        rb_ct = ContentType.objects.get_for_model(Rulebook)
+        before = ObjectChange.objects.filter(
+            changed_object_type=rb_ct,
+            changed_object_id=self.rulebook.pk,
+        ).count()
+        url = reverse("plugins:netbox_nsm:rulebook_rules", args=[self.rulebook.pk])
+        response = self.client.post(
+            url,
+            post_data(
+                {
+                    "_delete": "1",
+                    "pk": [self.rule.pk, rule_b.pk],
+                }
+            ),
+        )
+        self.assertEqual(response.status_code, 302, response.content)
+        self.assertFalse(Rule.objects.filter(pk__in=[self.rule.pk, rule_b.pk]).exists())
+        self.assertGreater(
+            ObjectChange.objects.filter(
+                changed_object_type=rb_ct,
+                changed_object_id=self.rulebook.pk,
+            ).count(),
+            before,
+        )
+        latest = (
+            ObjectChange.objects.filter(
+                changed_object_type=rb_ct,
+                changed_object_id=self.rulebook.pk,
+            )
+            .order_by("-time")
+            .first()
+        )
+        self.assertEqual(latest.action, ObjectChangeActionChoices.ACTION_DELETE)
+        self.assertIn("Removed rule", latest.message)
+        pre_rules = latest.prechange_data.get("rules_layout") or {}
+        post_rules = latest.postchange_data.get("rules_layout") or {}
+        self.assertIn(str(self.rule.pk), pre_rules)
+        self.assertIn(str(rule_b.pk), pre_rules)
+        self.assertNotIn(str(self.rule.pk), post_rules)
+        self.assertNotIn(str(rule_b.pk), post_rules)
+
     def test_rules_layout_changelog_slice_keeps_only_changed_rules(self):
         pre = {
             "rules_layout": {

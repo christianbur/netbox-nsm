@@ -34,6 +34,11 @@ from netbox_nsm.changelog_utils import (
     record_rulebook_rules_changelog,
     snapshot_instance,
 )
+from netbox_nsm.rulebook_copy import (
+    COPY_SCHEMA_PARAM,
+    copy_rulebook_fields_layout,
+    populate_rulebook_form_from_source,
+)
 from netbox_nsm.branch_db import (
     branch_aware_manager,
     branch_aware_related,
@@ -144,6 +149,14 @@ class RulebookForm(PrimaryModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        copy_from_pk = None
+        if not self.instance.pk:
+            raw_copy_from = self.initial.get(COPY_SCHEMA_PARAM)
+            if raw_copy_from not in (None, ""):
+                try:
+                    copy_from_pk = int(raw_copy_from)
+                except (TypeError, ValueError):
+                    copy_from_pk = None
         parent_qs = Rulebook.objects.all()
         if self.instance and self.instance.pk:
             from netbox_nsm.rulebook_hierarchy import invalid_parent_pks
@@ -176,6 +189,16 @@ class RulebookForm(PrimaryModelForm):
             )
             self.initial["matrix_tab_enabled"] = tab_choice
             self.fields["matrix_tab_enabled"].initial = tab_choice
+        elif copy_from_pk:
+            source = Rulebook.objects.filter(pk=copy_from_pk).first()
+            if source is not None:
+                populate_rulebook_form_from_source(self, source)
+                self.fields[COPY_SCHEMA_PARAM] = forms.IntegerField(
+                    widget=forms.HiddenInput(),
+                    required=False,
+                )
+                self.fields[COPY_SCHEMA_PARAM].initial = copy_from_pk
+                self.initial[COPY_SCHEMA_PARAM] = copy_from_pk
 
     def clean_parent(self):
         from django.core.exceptions import ValidationError
@@ -191,9 +214,15 @@ class RulebookForm(PrimaryModelForm):
         return self.cleaned_data.get("matrix_tab_enabled") == MATRIX_TAB_SHOW
 
     def save(self, commit=True):
+        copy_from_pk = self.cleaned_data.pop(COPY_SCHEMA_PARAM, None)
         instance = super().save(commit=commit)
         if commit:
             self._save_assignments(instance)
+            if copy_from_pk and not getattr(self, "_schema_copied", False):
+                source = Rulebook.objects.filter(pk=copy_from_pk).first()
+                if source is not None:
+                    copy_rulebook_fields_layout(source, instance)
+                    self._schema_copied = True
         return instance
 
     def _save_assignments(self, instance):

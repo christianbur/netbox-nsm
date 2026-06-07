@@ -4,6 +4,7 @@ from django.utils.html import format_html, mark_safe
 from django.utils.translation import gettext_lazy as _
 
 from netbox.tables import NetBoxTable
+from netbox.tables.columns import ActionsColumn
 
 from netbox_nsm.models import TypeConfig
 from netbox_nsm.panel_sections import get_panel_sections
@@ -11,18 +12,6 @@ from netbox_nsm.panel_sections import get_panel_sections
 __all__ = ("TypeConfigTable",)
 
 _SLUG_LABELS = {s["slug"]: str(s["name"]) for s in get_panel_sections()}
-
-_ACTIONS_TEMPLATE = """
-<a href="{% url 'plugins:netbox_nsm:typeconfig_edit' record.pk %}"
-   class="btn btn-sm btn-warning" title="Edit">
-  <i class="mdi mdi-pencil"></i>
-</a>
-<a href="{% url 'plugins:netbox_nsm:typeconfig_delete' record.pk %}"
-   class="btn btn-sm btn-danger" title="Delete">
-  <i class="mdi mdi-trash-can-outline"></i>
-</a>
-"""
-
 
 _MATCHING_CLASS_BADGE = {
     "address": ("bg-info", "text-white"),
@@ -60,11 +49,7 @@ class TypeConfigTable(NetBoxTable):
         orderable=False,
         accessor="panel_linkable_types",
     )
-    actions = tables.TemplateColumn(
-        template_code=_ACTIONS_TEMPLATE,
-        verbose_name="",
-        orderable=False,
-    )
+    actions = ActionsColumn(actions=("edit", "delete"))
 
     def render_content_type(self, value):
         if not value:

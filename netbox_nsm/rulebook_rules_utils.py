@@ -66,3 +66,27 @@ def serialize_rulebook_rules_layout(rulebook):
     for rule in rules:
         layout[str(rule.pk)] = serialize_rule_layout_entry(rule)
     return layout
+
+
+def delete_rules_with_rulebook_changelog(*, rulebook, request, pk_list) -> int:
+    """Delete selected rules and write a rules_layout delta on the parent rulebook."""
+    if not pk_list:
+        return 0
+
+    from netbox_nsm.branch_db import ensure_branch_context
+    from netbox_nsm.changelog_utils import record_rulebook_rules_changelog
+
+    with ensure_branch_context(request):
+        rules_qs = Rule.objects.filter(pk__in=pk_list, rulebook=rulebook)
+        deleted_count = rules_qs.count()
+        if not deleted_count:
+            return 0
+        rb_prechange = snapshot_rules_layout_entries(rules_qs)
+        rules_qs.delete()
+        record_rulebook_rules_changelog(
+            rulebook,
+            request,
+            rb_prechange,
+            postchange={"rules_layout": {}},
+        )
+    return deleted_count

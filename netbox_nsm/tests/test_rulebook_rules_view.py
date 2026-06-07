@@ -124,8 +124,13 @@ class RulebookRulesViewTests(TestCase):
         self.assertNotIn("Open AG Grid", content)
         self.assertIn("Per Page", content)
         self.assertIn("sticky-actions", content)
-        self.assertIn("Edit Selected", content)
+        self.assertNotIn("Edit Selected", content)
         self.assertIn("Delete Selected", content)
+        self.assertNotIn(
+            reverse("plugins:netbox_nsm:rule_bulk_delete"),
+            content,
+        )
+        self.assertIn('name="_delete"', content)
         self.assertIn('class="w-1"', content)
         self.assertIn('name="pk"', content)
         self.assertIn("Destination", content)

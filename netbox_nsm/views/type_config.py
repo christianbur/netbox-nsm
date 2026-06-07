@@ -1,6 +1,7 @@
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
+from netbox.object_actions import AddObject
 from netbox.views import generic
 from utilities.views import register_model_view
 
@@ -28,6 +29,10 @@ class TypeConfigListView(generic.ObjectListView):
     queryset = TypeConfig.objects.select_related("content_type")
     table = TypeConfigTable
     filterset = TypeConfigFilterSet
+    actions = (AddObject,)
+
+    def get_table(self, data, request, bulk_actions=False):
+        return super().get_table(data, request, False)
 
 
 @register_model_view(TypeConfig, "add", detail=False)

@@ -1,3 +1,4 @@
+from django.contrib import messages
 from django.contrib.contenttypes.models import ContentType
 from django.http import Http404
 from django.shortcuts import get_object_or_404
@@ -7,7 +8,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.html import escape, conditional_escape
 from django.db.models import Count, Max, Q
 from django.views import View
-from netbox.object_actions import AddObject, BulkDelete
+from netbox.object_actions import AddObject, BulkDelete, DeleteObject
 import json
 
 import markdown
@@ -1103,6 +1104,12 @@ class RulebookView(generic.ObjectView):
         "assignments__assigned_object_type",
     ).select_related("platform")
 
+    def get_permitted_actions(self, user, model=None):
+        actions = super().get_permitted_actions(user, model=model)
+        if model is not None and model.delete_blocked_message():
+            actions = tuple(action for action in actions if action is not DeleteObject)
+        return actions
+
     def get_extra_context(self, request, instance):
         # Assigned objects
         assignments = list(
@@ -1184,33 +1191,49 @@ class _RulebookRulesTabMixin:
 
     def post(self, request, *args, **kwargs):
         """Handle bulk-delete of rules from the rules table."""
+        from django.contrib import messages
+        from django.http import HttpResponseForbidden
+        from django.utils.translation import ngettext
+
+        from netbox_nsm.branch_urls import with_branch_query
+        from netbox_nsm.rulebook_rules_utils import delete_rules_with_rulebook_changelog
+
+        if "_delete" not in request.POST:
+            return HttpResponseForbidden()
+
         instance = self.get_object(**kwargs)
         if not request.user.has_perm("netbox_nsm.delete_rule"):
-            from django.http import HttpResponseForbidden
-
             return HttpResponseForbidden()
-        pk_list = [int(pk) for pk in request.POST.getlist("pk") if pk.isdigit()]
-        if pk_list:
-            from netbox_nsm.branch_db import ensure_branch_context
-            from netbox_nsm.changelog_utils import record_rulebook_rules_changelog
-            from netbox_nsm.rulebook_rules_utils import snapshot_rules_layout_entries
 
-            with ensure_branch_context(request):
-                rules_qs = Rule.objects.filter(pk__in=pk_list, rulebook=instance)
-                rb_prechange = snapshot_rules_layout_entries(rules_qs)
-                rules_qs.delete()
-                record_rulebook_rules_changelog(
-                    instance,
-                    request,
-                    rb_prechange,
-                    postchange={"rules_layout": {}},
-                )
-        return redirect(
-            reverse(
-                f"plugins:netbox_nsm:{self.rules_tab_route}",
-                args=[instance.pk],
-            )
+        pk_list = [int(pk) for pk in request.POST.getlist("pk") if pk.isdigit()]
+        deleted_count = delete_rules_with_rulebook_changelog(
+            rulebook=instance,
+            request=request,
+            pk_list=pk_list,
         )
+        if deleted_count:
+            messages.success(
+                request,
+                ngettext(
+                    "Deleted %(count)s rule",
+                    "Deleted %(count)s rules",
+                    deleted_count,
+                )
+                % {"count": deleted_count},
+            )
+        else:
+            messages.warning(
+                request,
+                _("No rules were selected."),
+            )
+
+        redirect_url = reverse(
+            f"plugins:netbox_nsm:{self.rules_tab_route}",
+            args=[instance.pk],
+        )
+        if request.GET:
+            redirect_url = f"{redirect_url}?{request.GET.urlencode()}"
+        return redirect(with_branch_query(redirect_url, request))
 
     def get_extra_context(self, request, instance):
         from netbox_nsm.rulebook_rules_tab import build_rulebook_rules_tab_context
@@ -1267,9 +1290,9 @@ class RulebookListView(generic.ObjectListView):
     filterset_form = RulebookFilterForm
     table = RulebookTable
     template_name = "netbox_nsm/rulebook_list.html"
-    actions = (AddObject, BulkDelete)
+    actions = (AddObject,)
 
-    def get_table(self, data, request, bulk_actions=True):
+    def get_table(self, data, request, bulk_actions=False):
         from netbox_nsm.rulebook_hierarchy import hierarchy_depth, rulebook_tree_order
 
         data_list = list(data)
@@ -1295,6 +1318,30 @@ class RulebookEditView(generic.ObjectEditView):
 @register_model_view(Rulebook, "delete")
 class RulebookDeleteView(generic.ObjectDeleteView):
     queryset = Rulebook.objects.all()
+
+    def _redirect_if_delete_blocked(self, request, obj):
+        blocked = obj.delete_blocked_message()
+        if not blocked:
+            return None
+        messages.error(request, blocked)
+        return_url = request.GET.get("return_url") or request.POST.get("return_url")
+        if return_url and return_url.startswith("/"):
+            return redirect(return_url)
+        return redirect(obj.get_absolute_url())
+
+    def get(self, request, *args, **kwargs):
+        obj = self.get_object(**kwargs)
+        blocked = self._redirect_if_delete_blocked(request, obj)
+        if blocked is not None:
+            return blocked
+        return super().get(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        obj = self.get_object(**kwargs)
+        blocked = self._redirect_if_delete_blocked(request, obj)
+        if blocked is not None:
+            return blocked
+        return super().post(request, *args, **kwargs)
 
 
 @register_model_view(Rulebook, "bulk_edit", path="edit", detail=False)
@@ -2067,7 +2114,22 @@ class RuleEditView(generic.ObjectEditView):
 
     def alter_object(self, instance, request, args, kwargs):
         """Pre-fill index and comments from rulebook template when creating a new rule."""
+        from netbox_nsm.rule_copy import COPY_RULE_PARAM
+
         if not instance.pk:
+            copy_from_pk = request.GET.get(COPY_RULE_PARAM)
+            if copy_from_pk and str(copy_from_pk).isdigit():
+                try:
+                    source = Rule.objects.get(pk=int(copy_from_pk))
+                    if not instance.rulebook_id:
+                        instance.rulebook_id = source.rulebook_id
+                    result = Rule.objects.filter(
+                        rulebook_id=instance.rulebook_id
+                    ).aggregate(max_index=Max("index"))
+                    instance.index = (result.get("max_index") or 0) + 1
+                    return instance
+                except Rule.DoesNotExist:
+                    pass
             rulebook_pk = request.GET.get("rulebook")
             if rulebook_pk and str(rulebook_pk).isdigit():
                 try:
@@ -2102,10 +2164,20 @@ class RuleEditView(generic.ObjectEditView):
     def get_extra_context(self, request, instance):
         from netbox_nsm.branch_urls import branch_schema_id_from_request
         from netbox_nsm.display_utils import type_name_for_field_content_type
+        from netbox_nsm.rule_copy import COPY_RULE_PARAM
 
-        # Build current selections JSON for pre-populating the picker on edit
+        # Build current selections JSON for pre-populating the picker on edit/clone
         selections = []
-        if instance.pk:
+        selection_source = instance if instance.pk else None
+        if selection_source is None:
+            copy_from_pk = request.GET.get(COPY_RULE_PARAM)
+            if copy_from_pk and str(copy_from_pk).isdigit():
+                try:
+                    selection_source = Rule.objects.get(pk=int(copy_from_pk))
+                except Rule.DoesNotExist:
+                    selection_source = None
+
+        if selection_source is not None and selection_source.pk:
             from netbox_nsm.models import TypeConfig as _TC
 
             _mc_map = {
@@ -2113,7 +2185,7 @@ class RuleEditView(generic.ObjectEditView):
                 for tc in _TC.objects.only("content_type_id", "matching_class")
             }
 
-            for item in instance.object_items.select_related(
+            for item in selection_source.object_items.select_related(
                 "field", "content_type"
             ).prefetch_related("field__type_configs__type_config__content_type"):
                 assigned = item.assigned_object
@@ -2138,7 +2210,7 @@ class RuleEditView(generic.ObjectEditView):
                         "exclude": bool(item.exclude),
                     }
                 )
-            for item in instance.group_items.select_related(
+            for item in selection_source.group_items.select_related(
                 "field", "security_group"
             ).all():
                 selections.append(
@@ -2158,6 +2230,8 @@ class RuleEditView(generic.ObjectEditView):
                 rulebook = Rulebook.objects.get(pk=instance.rulebook_id)
             except Rulebook.DoesNotExist:
                 pass
+        if rulebook is None and selection_source is not None:
+            rulebook = selection_source.rulebook
         if rulebook is None and not instance.pk:
             rulebook_pk = request.GET.get("rulebook") or request.POST.get("rulebook")
             if rulebook_pk and str(rulebook_pk).isdigit():
@@ -2225,7 +2299,13 @@ class RuleEditView(generic.ObjectEditView):
             "nsm_active_branch": branch_schema_id_from_request(request),
             "nsm_rule_selections": selections,
             "nsm_rule_virtual_groups": (
-                instance.virtual_group_config if instance.pk else {}
+                instance.virtual_group_config
+                if instance.pk
+                else (
+                    selection_source.virtual_group_config
+                    if selection_source is not None and selection_source.pk
+                    else {}
+                )
             ),
             "nsm_rule_slots": _build_rule_edit_rule_slots(rulebook),
         }
@@ -2292,11 +2372,13 @@ class RuleDeleteView(generic.ObjectDeleteView):
 class RuleBulkEditView(generic.BulkEditView):
     queryset = Rule.objects.all()
     form = RuleBulkEditForm
+    table = RuleTable
 
 
 @register_model_view(Rule, "bulk_delete", path="delete", detail=False)
 class RuleBulkDeleteView(generic.BulkDeleteView):
     queryset = Rule.objects.all()
+    table = RuleTable
 
     def post(self, request, *args, **kwargs):
         rulebook_snapshots = None

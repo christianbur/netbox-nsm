@@ -10,7 +10,7 @@
         {% for ft in field.field_type_list %}
           {% with tc=ft.type_config %}
           <div class="nsm-rb-cell-stack__line nsm-rb-cell-stack__line--sub">
-            <span class="record-depth nsm-rb-field-depth" aria-hidden="true"><span>•</span></span>
+            <div class="record-depth" aria-hidden="true"><span>•</span></div>
             <span class="nsm-rb-subfield-name">{{ tc.name|default:tc.content_type_label }}</span>
           </div>
           {% endwith %}
@@ -81,17 +81,20 @@
         <span class="btn-group btn-group-sm noprint">
           {% if not field.is_system_field %}
           <a href="{% url 'plugins:netbox_nsm:rulebookfieldtype_add' %}?field={{ field.pk }}"
-             class="btn btn-primary" title="{% trans 'Add type' %}">
-            <i class="mdi mdi-plus-thick"></i>
+             class="btn btn-sm btn-primary" type="button"
+             title="{% trans 'Add type' %}" aria-label="{% trans 'Add type' %}">
+            <i class="mdi mdi-plus-thick" aria-hidden="true"></i>
           </a>
           <a href="{% url 'plugins:netbox_nsm:rulebookfield_delete' field.pk %}"
-             class="btn btn-danger" title="{% trans 'Delete' %}">
-            <i class="mdi mdi-trash-can-outline"></i>
+             class="btn btn-sm btn-danger" type="button"
+             title="{% trans 'Delete' %}" aria-label="{% trans 'Delete' %}">
+            <i class="mdi mdi-trash-can-outline" aria-hidden="true"></i>
           </a>
           {% endif %}
           <a href="{% url 'plugins:netbox_nsm:rulebookfield_edit' field.pk %}"
-             class="btn btn-warning" title="{% trans 'Edit' %}">
-            <i class="mdi mdi-pencil"></i>
+             class="btn btn-sm btn-warning" type="button"
+             title="{% trans 'Edit' %}" aria-label="{% trans 'Edit' %}">
+            <i class="mdi mdi-pencil" aria-hidden="true"></i>
           </a>
         </span>
         {% endif %}
@@ -102,12 +105,14 @@
           <div class="nsm-rb-cell-stack__line nsm-rb-cell-stack__line--sub">
             <span class="btn-group btn-group-sm noprint nsm-rb-type-actions">
               <a href="{% url 'plugins:netbox_nsm:rulebookfieldtype_delete' ft.pk %}"
-                 class="btn btn-danger" title="{% trans 'Delete' %}">
-                <i class="mdi mdi-trash-can-outline"></i>
+                 class="btn btn-sm btn-danger" type="button"
+                 title="{% trans 'Delete' %}" aria-label="{% trans 'Delete' %}">
+                <i class="mdi mdi-trash-can-outline" aria-hidden="true"></i>
               </a>
               <a href="{% url 'plugins:netbox_nsm:rulebookfieldtype_edit' ft.pk %}"
-                 class="btn btn-warning" title="{% trans 'Edit' %}">
-                <i class="mdi mdi-pencil"></i>
+                 class="btn btn-sm btn-warning" type="button"
+                 title="{% trans 'Edit' %}" aria-label="{% trans 'Edit' %}">
+                <i class="mdi mdi-pencil" aria-hidden="true"></i>
               </a>
             </span>
           </div>

@@ -6,6 +6,33 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [0.3.1] - unreleased
 
+### Added
+
+- **Rules tab** — **Clone** action in the Edit split-button dropdown; opens the add form with
+  `copy_from` pre-filling metadata, object/group assignments, virtual groups, and the next free
+  index (name left empty)
+- **Rulebook list** — **Copy schema** action in the actions dropdown; creates a new rulebook from
+  the add form with cloned metadata and field layout (`copy_schema_from`)
+- **Setup** — **Hide Setup menu** control (section 5); dismiss is stored in `NsmUiSettings` and
+  restored when `PLUGINS_CONFIG["netbox_nsm"]["setup_menu"]` goes from `false` back to `true`
+- Tests for rule clone, rulebook schema copy, setup menu dismiss/restore, and TypeConfig list UI
+
+### Changed
+
+- **Rulebook list** — hierarchy marker uses NetBox `record-depth` bullets instead of a custom dot
+- **Rulebook detail** — Edit/Delete header buttons only on the primary tab (not Rules or Matrix)
+- **Rulebook Fields tab** — subfield rows use `record-depth`; action buttons use standard NetBox
+  warning/danger/primary styles
+- **TypeConfig list** — standard NetBox split Edit button; bulk Edit/Delete and row selection
+  checkboxes removed
+- **Rules tab** — bulk **Edit Selected** removed (Delete Selected unchanged)
+
+### Migration
+
+- **`0002_nsmuisettings_setup_menu_state`** — adds `setup_menu_dismissed` and
+  `setup_menu_config_enabled` on `NsmUiSettings`. Run:
+  `python manage.py migrate netbox_nsm`
+
 ## [0.3.0] - 2026-06-07
 
 Major UI refresh: server-rendered **Rules** table and dedicated **Matrix** tab replace the

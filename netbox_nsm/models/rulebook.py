@@ -3,6 +3,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
+from django.utils.translation import ngettext
 
 from dcim.models import Device, Platform, VirtualDeviceContext
 from netbox.models import BaseModel, ChangeLoggedModel, NetBoxModel, PrimaryModel
@@ -11,6 +12,8 @@ from netbox.models.features import ContactsMixin
 from netbox.search import SearchIndex, register_search
 from virtualization.models import VirtualMachine
 from users.models import User
+
+from utilities.exceptions import AbortRequest
 
 from netbox_nsm.constants import RULESET_ASSIGNMENT_MODELS
 
@@ -102,6 +105,18 @@ class Rulebook(ContactsMixin, PrimaryModel):
         help_text=_("Show the zone matrix tab for this rulebook."),
     )
 
+    clone_fields = (
+        "rulebook_type",
+        "status",
+        "parent",
+        "platform",
+        "mgmt_url",
+        "matrix_tab_enabled",
+        "description",
+        "rule_comment_template",
+        "comments",
+    )
+
     class Meta:
         verbose_name = _("Rulebook")
         verbose_name_plural = _("Rulebooks")
@@ -116,10 +131,34 @@ class Rulebook(ContactsMixin, PrimaryModel):
     def get_rules_tab_url(self):
         return reverse("plugins:netbox_nsm:rulebook_rules", args=[self.pk])
 
+    def delete_blocked_message(self) -> str | None:
+        """Return an error message when delete is blocked, else None."""
+        rule_count = self.rules.count()
+        if not rule_count:
+            return None
+        return ngettext(
+            "This rulebook cannot be deleted because it still contains %(count)s rule. "
+            "Delete all rules first.",
+            "This rulebook cannot be deleted because it still contains %(count)s rules. "
+            "Delete all rules first.",
+            rule_count,
+        ) % {"count": rule_count}
+
+    def delete(self, *args, **kwargs):
+        blocked = self.delete_blocked_message()
+        if blocked:
+            raise AbortRequest(blocked)
+        return super().delete(*args, **kwargs)
+
     def hierarchy_depth(self) -> int:
         from netbox_nsm.rulebook_hierarchy import hierarchy_depth
 
         return hierarchy_depth(self)
+
+    def clone(self):
+        attrs = super().clone()
+        attrs["matrix_tab_enabled"] = "1" if self.matrix_tab_enabled else "0"
+        return attrs
 
     @property
     def matching_classes(self) -> set:
@@ -404,6 +443,15 @@ class Rule(ContactsMixin, PrimaryModel):
     log_enabled = models.BooleanField(default=False)
     virtual_group_config = models.JSONField(default=dict, blank=True)
 
+    clone_fields = (
+        "rulebook",
+        "enabled",
+        "description",
+        "comments",
+        "log_enabled",
+        "virtual_group_config",
+    )
+
     class Meta:
         verbose_name = _("Security Rule")
         verbose_name_plural = _("Security Rules")
@@ -433,6 +481,11 @@ class Rule(ContactsMixin, PrimaryModel):
 
     def get_absolute_url(self):
         return reverse("plugins:netbox_nsm:rule", args=[self.pk])
+
+    def clone(self):
+        attrs = super().clone()
+        attrs["enabled"] = "1" if self.enabled else "0"
+        return attrs
 
     def get_rules_grid_filter_url(self):
         """Rules tab with Name column quick filter pre-applied."""

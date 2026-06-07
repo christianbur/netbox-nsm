@@ -573,35 +573,71 @@ def _render_description_cell_html(description: str) -> str:
 def _render_actions_cell_html(
     edit_url: str,
     delete_url: str,
+    clone_url: str | None = None,
     *,
     can_change: bool,
     can_delete: bool,
+    can_add: bool = False,
 ) -> str:
+    toggle_text = _("Toggle Dropdown")
+    dropdown_links = []
+
+    if can_delete:
+        dropdown_links.append(
+            f'<li><a class="dropdown-item nsm-ag-action-delete"'
+            f' href="{conditional_escape(delete_url)}">'
+            f'<i class="mdi mdi-trash-can-outline"></i> Delete</a></li>'
+        )
+    if can_add and clone_url:
+        dropdown_links.append(
+            f'<li><a class="dropdown-item nsm-ag-action-clone"'
+            f' href="{conditional_escape(clone_url)}">'
+            f'<i class="mdi mdi-content-copy"></i> Clone</a></li>'
+        )
+
     if can_change:
         edit_btn = (
-            f'<a class="btn btn-warning nsm-ag-action-edit" href="{conditional_escape(edit_url)}"'
-            f' title="Edit" aria-label="Edit"><i class="mdi mdi-pencil"></i></a>'
+            f'<a class="btn btn-sm btn-warning nsm-ag-action-edit"'
+            f' href="{conditional_escape(edit_url)}" type="button"'
+            f' title="Edit" aria-label="Edit">'
+            f'<i class="mdi mdi-pencil" aria-hidden="true"></i></a>'
         )
     else:
         edit_btn = (
-            '<button type="button" class="btn btn-warning" disabled aria-disabled="true"'
-            ' title="Edit"><i class="mdi mdi-pencil"></i></button>'
+            '<button type="button" class="btn btn-sm btn-warning" disabled'
+            ' aria-disabled="true" title="Edit" aria-label="Edit">'
+            '<i class="mdi mdi-pencil" aria-hidden="true"></i></button>'
         )
-    if can_delete:
-        delete_btn = (
-            f'<a class="btn btn-danger nsm-ag-action-delete" href="{conditional_escape(delete_url)}"'
-            f' title="Delete" aria-label="Delete"><i class="mdi mdi-trash-can-outline"></i></a>'
+
+    if edit_btn and dropdown_links:
+        html = (
+            f'<span class="btn-group dropdown">'
+            f"  {edit_btn}"
+            f'  <a class="btn btn-sm btn-warning dropdown-toggle" type="button"'
+            f' data-bs-toggle="dropdown" style="padding-left: 2px">'
+            f'  <span class="visually-hidden">{toggle_text}</span></a>'
+            f'  <ul class="dropdown-menu">{"".join(dropdown_links)}</ul>'
+            f"</span>"
+        )
+    elif edit_btn:
+        html = (
+            f'<span class="btn-group btn-group-sm" role="group">{edit_btn}</span>'
+        )
+    elif dropdown_links:
+        html = (
+            f'<span class="btn-group dropdown">'
+            f'  <a class="btn btn-sm btn-secondary dropdown-toggle" type="button"'
+            f' data-bs-toggle="dropdown">'
+            f'  <span class="visually-hidden">{toggle_text}</span></a>'
+            f'  <ul class="dropdown-menu">{"".join(dropdown_links)}</ul>'
+            f"</span>"
         )
     else:
-        delete_btn = (
-            '<button type="button" class="btn btn-danger" disabled aria-disabled="true"'
-            ' title="Delete"><i class="mdi mdi-trash-can-outline"></i></button>'
+        html = (
+            f'<span class="btn-group btn-group-sm" role="group">{edit_btn}</span>'
         )
-    return (
-        f'<div class="text-end text-nowrap">'
-        f'<span class="btn-group btn-group-sm" role="group">{edit_btn}{delete_btn}</span>'
-        f"</div>"
-    )
+
+    return f'<div class="text-end text-nowrap">{html}</div>'
 
 
 def _object_line_count(row: dict) -> int:
@@ -632,6 +668,7 @@ def _build_rules_cell_html(
     request,
     can_change: bool,
     can_delete: bool,
+    can_add: bool = False,
     object_fields_by_slug: dict,
     cell_mode: str = CELL_MODE_DEFAULT,
 ) -> str:
@@ -692,11 +729,27 @@ def _build_rules_cell_html(
             with_branch_query(row.get("delete_url") or "", request),
             return_path,
         )
+        clone_url = None
+        if can_add and row.get("pk"):
+            from netbox_nsm.rule_copy import rule_clone_add_url
+
+            clone_url = append_return_url(
+                with_branch_query(
+                    rule_clone_add_url(
+                        int(row["pk"]),
+                        return_url=return_path,
+                    ),
+                    request,
+                ),
+                return_path,
+            )
         return _render_actions_cell_html(
             edit_url,
             delete_url,
+            clone_url,
             can_change=can_change,
             can_delete=can_delete,
+            can_add=can_add,
         )
 
     return '<span class="nsm-cell-empty">-</span>'
@@ -709,6 +762,7 @@ def _attach_rules_cells(
     request,
     can_change: bool,
     can_delete: bool,
+    can_add: bool = False,
     object_fields_by_slug: dict,
     cell_mode: str = CELL_MODE_DEFAULT,
 ) -> None:
@@ -726,6 +780,7 @@ def _attach_rules_cells(
                     request=request,
                     can_change=can_change,
                     can_delete=can_delete,
+                    can_add=can_add,
                     object_fields_by_slug=object_fields_by_slug,
                     cell_mode=cell_mode,
                 ),
@@ -852,16 +907,10 @@ def build_rulebook_rules_tab_context(
     }
     can_change = not readonly and request.user.has_perm("netbox_nsm.change_rule")
     can_delete = not readonly and request.user.has_perm("netbox_nsm.delete_rule")
-    from netbox.object_actions import BulkDelete, BulkEdit
+    can_add = not readonly and request.user.has_perm("netbox_nsm.add_rule")
     from urllib.parse import quote
 
     from django.urls import reverse
-
-    bulk_actions = []
-    if can_change:
-        bulk_actions.append(BulkEdit)
-    if can_delete:
-        bulk_actions.append(BulkDelete)
     return_path = with_branch_query(request.path, request)
     nsm_rule_add_url = ""
     if not readonly:
@@ -876,6 +925,7 @@ def build_rulebook_rules_tab_context(
         request=request,
         can_change=can_change,
         can_delete=can_delete,
+        can_add=can_add,
         object_fields_by_slug=object_fields_by_slug,
         cell_mode=cell_mode,
     )
@@ -913,8 +963,6 @@ def build_rulebook_rules_tab_context(
         "rules_cell_mode": cell_mode,
         "rules_show_selection_column": not readonly,
         "rules_show_add_rule": not readonly,
-        "rules_bulk_actions": tuple(bulk_actions),
-        "rules_bulk_action_model": Rule,
         "rules_chrome_config": {
             "queryValidateUrl": (
                 ""

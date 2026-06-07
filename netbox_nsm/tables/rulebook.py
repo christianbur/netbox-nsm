@@ -1,11 +1,15 @@
 import django_tables2 as tables
 from collections import OrderedDict
+from django.contrib.auth.models import AnonymousUser
 from django.urls import reverse
-from django.utils.html import conditional_escape, format_html, mark_safe
+from django.utils.html import conditional_escape, escape, format_html, mark_safe
 from django.utils.translation import gettext_lazy as _
+from urllib.parse import quote
 
 from netbox.tables import NetBoxTable
 from netbox.tables.columns import ActionsColumn, TagColumn
+from utilities.permissions import get_permission_for_model
+from utilities.views import get_action_url
 
 from netbox_nsm.models import (
     Rule,
@@ -13,12 +17,14 @@ from netbox_nsm.models import (
     RulebookAssignment,
     RulebookStatusChoices,
 )
+from netbox_nsm.rulebook_copy import COPY_SCHEMA_LABEL, rulebook_schema_copy_add_url
 from netbox_nsm.rulebook_hierarchy import render_hierarchy_marker, rulebook_list_depth
 from netbox_nsm.rulebook_status import rulebook_status_badge_html
 from netbox_nsm.virtual_rulebook import is_virtual_all_rules_rulebook
 
 __all__ = (
     "RulebookTable",
+    "RulebookActionsColumn",
     "RuleTable",
     "RulebookAssignmentTable",
 )
@@ -311,11 +317,7 @@ class RulebookNameColumn(tables.Column):
         depth = rulebook_list_depth(record)
         marker = render_hierarchy_marker(depth)
         if marker:
-            return format_html(
-                '<span class="nsm-rb-name-cell">{}{}</span>',
-                mark_safe(marker),
-                link,
-            )
+            return format_html("{}{}", mark_safe(marker), link)
         return link
 
 
@@ -333,11 +335,108 @@ class RulebookStatusColumn(tables.Column):
         return mark_safe(rulebook_status_badge_html(record.status))
 
 
+class RulebookActionsColumn(ActionsColumn):
+    """Hide delete when the rulebook still contains rules; offer schema copy."""
+
+    def _has_rules(self, record) -> bool:
+        rule_count = getattr(record, "rule_count", None)
+        if rule_count is None:
+            return record.rules.exists()
+        return rule_count > 0
+
+    def _action_names(self, record):
+        names = list(self.actions.keys())
+        if self._has_rules(record) and "delete" in names:
+            names.remove("delete")
+        return names
+
+    def render(self, record, table, **kwargs):
+        model = table.Meta.model
+        if not isinstance(record, model) or not getattr(record, "pk", None):
+            return ""
+
+        request = getattr(table, "context", {}).get("request")
+        if request:
+            return_url = request.GET.get("return_url", request.get_full_path())
+            url_appendix = f"?return_url={quote(return_url)}"
+        else:
+            url_appendix = ""
+
+        user = getattr(request, "user", AnonymousUser())
+        action_names = self._action_names(record)
+        button = None
+        dropdown_class = "secondary"
+        dropdown_links = []
+
+        for idx, action in enumerate(action_names):
+            attrs = self.actions[action]
+            permission = get_permission_for_model(model, attrs.permission)
+            if attrs.permission is not None and not user.has_perm(permission):
+                continue
+            url = get_action_url(model, action=action, kwargs={"pk": record.pk})
+            if len(action_names) == 1 or (self.split_actions and idx == 0):
+                dropdown_class = attrs.css_class
+                button = (
+                    f'<a class="btn btn-sm btn-{attrs.css_class}" href="{url}{url_appendix}" type="button" '
+                    f'aria-label="{attrs.title}">'
+                    f'<i class="mdi mdi-{attrs.icon}"></i></a>'
+                )
+            else:
+                dropdown_links.append(
+                    f'<li><a class="dropdown-item" href="{url}{url_appendix}">'
+                    f'<i class="mdi mdi-{attrs.icon}"></i> {attrs.title}</a></li>'
+                )
+
+        if user.has_perm("netbox_nsm.add_rulebook"):
+            copy_url = rulebook_schema_copy_add_url(
+                record,
+                return_url=request.get_full_path() if request else None,
+            )
+            dropdown_links.append(
+                f'<li><a class="dropdown-item" href="{escape(copy_url)}">'
+                f'<i class="mdi mdi-content-copy"></i> {COPY_SCHEMA_LABEL}</a></li>'
+            )
+
+        toggle_text = _("Toggle Dropdown")
+        html = ""
+        if self.extra_buttons:
+            from django.template import Context, Template
+
+            template = Template(self.extra_buttons)
+            context = getattr(table, "context", Context())
+            context.update({"record": record})
+            html = template.render(context)
+
+        if button and dropdown_links:
+            html += (
+                f'<span class="btn-group dropdown">'
+                f"  {button}"
+                f'  <a class="btn btn-sm btn-{dropdown_class} dropdown-toggle" type="button" data-bs-toggle="dropdown" '
+                f'style="padding-left: 2px">'
+                f'  <span class="visually-hidden">{toggle_text}</span></a>'
+                f'  <ul class="dropdown-menu">{"".join(dropdown_links)}</ul>'
+                f"</span>"
+            )
+        elif button:
+            html += button
+        elif dropdown_links:
+            html += (
+                f'<span class="btn-group dropdown">'
+                f'  <a class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">'
+                f'  <span class="visually-hidden">{toggle_text}</span></a>'
+                f'  <ul class="dropdown-menu">{"".join(dropdown_links)}</ul>'
+                f"</span>"
+            )
+
+        return mark_safe(html)
+
+
 class RulebookTable(NetBoxTable):
     name = RulebookNameColumn(
         linkify=False,
         verbose_name=_("Name"),
         orderable=True,
+        attrs={"td": {"class": "text-nowrap"}},
     )
     status = RulebookStatusColumn(
         verbose_name=_("Status"),
@@ -378,7 +477,7 @@ class RulebookTable(NetBoxTable):
     )
     assigned_objects = AssignedObjectsColumn(accessor="assignments")
     tags = TagColumn(url_name="plugins:netbox_nsm:rulebook_list")
-    actions = ActionsColumn(actions=("edit", "delete"))
+    actions = RulebookActionsColumn(actions=("edit", "delete"))
 
     class Meta(NetBoxTable.Meta):
         model = Rulebook

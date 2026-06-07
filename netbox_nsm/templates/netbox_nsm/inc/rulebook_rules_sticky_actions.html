@@ -1,10 +1,11 @@
-{% load buttons %}
 {% load i18n %}
 
-{% if rules_bulk_actions %}
+{% if rules_can_delete %}
 <div class="card btn-list sticky-actions d-print-none" data-sticky-position="right" data-sticky-when="selection">
   <div class="btn-list bulk-action-buttons">
-    {% action_buttons rules_bulk_actions rules_bulk_action_model multi=True return_url=rules_return_url %}
+    <button type="submit" name="_delete" class="btn btn-red">
+      <i class="mdi mdi-trash-can-outline" aria-hidden="true"></i> {% trans "Delete Selected" %}
+    </button>
   </div>
 </div>
 {% endif %}

@@ -47,7 +47,7 @@ $ git clone https://github.com/YOUR-GITHUB-USERNAME/netbox-nsm.git
 
 ```bash
 $ cd netbox-nsm
-$ git remote add upstream https://github.com/andy-shady-org/netbox-nsm.git
+$ git remote add upstream https://github.com/christianbur/netbox-nsm.git
 ```
 
 * Install NetBox. Please see the [NetBox Installation Guide](https://github.com/netbox-community/netbox/blob/develop/docs/installation/index.md). The following steps assume that you followed that documentation and installed NetBox in `/opt/netbox` and the virtual environment in `/opt/netbox/venv`.

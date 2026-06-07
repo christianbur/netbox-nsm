@@ -195,7 +195,7 @@
     if (event && event.target && event.target.closest) {
       if (
         event.target.closest(
-          ".nsm-ag-action-edit, .nsm-ag-action-delete, .form-check-input, .nsm-ipa-loupe"
+          ".nsm-ag-action-edit, .nsm-ag-action-delete, .nsm-ag-action-clone, .form-check-input, .nsm-ipa-loupe"
         )
       ) {
         return null;

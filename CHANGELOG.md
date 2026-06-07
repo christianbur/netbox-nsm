@@ -4,7 +4,49 @@ All notable changes to **netbox-nsm** are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [0.3.1] - unreleased
+## [0.3.2] - unreleased
+
+## [0.3.1] - 2026-06-05
+
+### Added
+
+- **Rules tab** — **Clone** action in the Edit split-button dropdown; opens the add form with
+  `copy_from` pre-filling metadata, object/group assignments, virtual groups, and the next free
+  index (name left empty)
+- **Rulebook list** — **Copy schema** action in the actions dropdown; creates a new rulebook from
+  the add form with cloned metadata and field layout (`copy_schema_from`)
+- **Setup** — **Hide Setup menu** control (section 5); dismiss is stored in `NsmUiSettings` and
+  restored when `PLUGINS_CONFIG["netbox_nsm"]["setup_menu"]` goes from `false` back to `true`
+- Tests for rule clone, rulebook schema copy, setup menu dismiss/restore, TypeConfig list UI,
+  rules bulk-delete HTMX modal, and rulebook list delete dropdown
+
+### Changed
+
+- **Rulebook list** — hierarchy marker uses NetBox `record-depth` bullets instead of a custom dot;
+  **Delete** moves into the Edit split-button dropdown when the rulebook has no rules
+- **Rulebook detail** — Edit/Delete header buttons only on the primary tab (not Rules or Matrix)
+- **Rulebook Fields tab** — subfield rows use `record-depth`; row actions use standard Edit button
+  with **Add type** / **Delete** in the dropdown (system fields: Edit only)
+- **TypeConfig list** — standard NetBox split Edit button; bulk Edit/Delete and row selection
+  checkboxes removed
+- **Rules tab** — bulk **Edit Selected** removed; **Delete Selected** opens an HTMX confirmation
+  modal (dependent objects) instead of redirecting to the bulk-delete page; row actions use Edit
+  with **Clone** / **Delete** in the dropdown
+
+### Fixed
+
+- **Rulebook Copy schema** — `copy_schema_from` is preserved on form submit so field layout is
+  cloned correctly
+- **Rules bulk delete modal** — dependent-object lookup uses `django.db.router` (fixes empty modal
+  on HTMX confirmation)
+- **Tests** — NetBox 4.6 compatibility (`SimpleTestCase` import), copy-schema list URL with
+  `return_url`, delete hidden on detail when the rulebook has rules
+
+### Migration
+
+- **`0002_nsmuisettings_setup_menu_state`** — adds `setup_menu_dismissed` and
+  `setup_menu_config_enabled` on `NsmUiSettings`. Run:
+  `python manage.py migrate netbox_nsm`
 
 ## [0.3.0] - 2026-06-07
 
@@ -148,5 +190,6 @@ First release in the 0.2.x line.
 
 - Documentation-only plugin — no firewall push or policy enforcement
 - See [KNOWN_ISSUES.md](KNOWN_ISSUES.md) for open items
+[0.3.1]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.3.1
 [0.3.0]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.3.0
 [0.2.5]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.2.5

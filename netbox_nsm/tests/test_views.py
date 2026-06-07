@@ -127,6 +127,81 @@ class RulebookViewCrudTests(TestCase):
         self.assertEqual(response.status_code, 302, response.content)
         self.assertFalse(Rulebook.objects.filter(pk=rb.pk).exists())
 
+    def test_delete_rulebook_with_rules_is_blocked(self):
+        rb = Rulebook.objects.create(
+            name="ui-del-rulebook-blocked",
+            rulebook_type="security_rules",
+        )
+        Rule.objects.create(rulebook=rb, name="blocking-rule", index=10)
+        list_url = reverse("plugins:netbox_nsm:rulebook_list")
+        self.add_permissions("netbox_nsm.view_rulebook", "netbox_nsm.delete_rulebook")
+        delete_url = (
+            reverse("plugins:netbox_nsm:rulebook_delete", args=[rb.pk])
+            + f"?return_url={list_url}"
+        )
+        response = self.client.get(delete_url, follow=True)
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertTrue(Rulebook.objects.filter(pk=rb.pk).exists())
+        content = response.content.decode()
+        self.assertIn("cannot be deleted", content)
+        self.assertIn("1 rule", content)
+
+    def test_rulebook_detail_hides_delete_when_rules_present(self):
+        rb = Rulebook.objects.create(
+            name="ui-detail-del-blocked",
+            rulebook_type="security_rules",
+        )
+        Rule.objects.create(rulebook=rb, name="keep-rulebook", index=10)
+        self.add_permissions("netbox_nsm.view_rulebook", "netbox_nsm.delete_rulebook")
+        url = reverse("plugins:netbox_nsm:rulebook", args=[rb.pk])
+        content = self.client.get(url).content.decode()
+        delete_url = reverse("plugins:netbox_nsm:rulebook_delete", args=[rb.pk])
+        self.assertNotIn(delete_url, content)
+
+    def test_rulebook_detail_shows_delete_when_empty(self):
+        rb = Rulebook.objects.create(
+            name="ui-detail-del-allowed",
+            rulebook_type="security_rules",
+        )
+        self.add_permissions("netbox_nsm.view_rulebook", "netbox_nsm.delete_rulebook")
+        url = reverse("plugins:netbox_nsm:rulebook", args=[rb.pk])
+        content = self.client.get(url).content.decode()
+        delete_url = reverse("plugins:netbox_nsm:rulebook_delete", args=[rb.pk])
+        self.assertIn(delete_url, content)
+
+    def test_rulebook_header_actions_only_on_primary_tab(self):
+        rb = Rulebook.objects.create(
+            name="ui-tab-actions",
+            rulebook_type="security_rules",
+        )
+        Rule.objects.create(rulebook=rb, name="tab-action-rule", index=10)
+        self.add_permissions(
+            "netbox_nsm.view_rulebook",
+            "netbox_nsm.view_rule",
+            "netbox_nsm.change_rulebook",
+            "netbox_nsm.delete_rulebook",
+        )
+        edit_url = reverse("plugins:netbox_nsm:rulebook_edit", args=[rb.pk])
+        delete_url = reverse("plugins:netbox_nsm:rulebook_delete", args=[rb.pk])
+
+        detail = self.client.get(
+            reverse("plugins:netbox_nsm:rulebook", args=[rb.pk])
+        ).content.decode()
+        self.assertIn(edit_url, detail)
+        self.assertNotIn(delete_url, detail)
+
+        rules = self.client.get(
+            reverse("plugins:netbox_nsm:rulebook_rules", args=[rb.pk])
+        ).content.decode()
+        self.assertNotIn(edit_url, rules)
+        self.assertNotIn(delete_url, rules)
+
+        matrix = self.client.get(
+            reverse("plugins:netbox_nsm:rulebook_matrix", args=[rb.pk])
+        ).content.decode()
+        self.assertNotIn(edit_url, matrix)
+        self.assertNotIn(delete_url, matrix)
+
 
 class TypeConfigViewCrudTests(TestCase):
     """Create, edit, and delete TypeConfig entries via the plugin UI."""
@@ -141,6 +216,16 @@ class TypeConfigViewCrudTests(TestCase):
             display_template="{name}",
             panel_slugs=["source"],
         )
+
+    def test_list_hides_bulk_actions(self):
+        self.add_permissions("netbox_nsm.view_typeconfig")
+        response = self.client.get(reverse("plugins:netbox_nsm:typeconfig_list"))
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn("UI Test Zones", content)
+        self.assertNotIn('aria-label="Select all"', content)
+        self.assertNotIn("Edit Selected", content)
+        self.assertNotIn("Delete Selected", content)
 
     def test_create_typeconfig_via_ui(self):
         self.add_permissions("netbox_nsm.view_typeconfig", "netbox_nsm.add_typeconfig")
@@ -289,6 +374,41 @@ class RuleViewCrudTests(TestCase):
         self.assertEqual(
             response.url,
             reverse("plugins:netbox_nsm:rulebook_rules", args=[self.rulebook.pk]),
+        )
+
+    def test_bulk_delete_rules_confirmation_page(self):
+        rule_a = Rule.objects.create(
+            rulebook=self.rulebook,
+            name="ui-bulk-del-a",
+            index=40,
+        )
+        rule_b = Rule.objects.create(
+            rulebook=self.rulebook,
+            name="ui-bulk-del-b",
+            index=50,
+        )
+        self.add_permissions(
+            "netbox_nsm.view_rulebook",
+            "netbox_nsm.view_rule",
+            "netbox_nsm.delete_rule",
+        )
+        url = reverse("plugins:netbox_nsm:rule_bulk_delete")
+        return_url = reverse(
+            "plugins:netbox_nsm:rulebook_rules", args=[self.rulebook.pk]
+        )
+        response = self.client.post(
+            url,
+            post_data(
+                {
+                    "pk": [rule_a.pk, rule_b.pk],
+                    "return_url": return_url,
+                }
+            ),
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertTrue(
+            Rule.objects.filter(pk__in=[rule_a.pk, rule_b.pk]).count(),
+            2,
         )
 
 

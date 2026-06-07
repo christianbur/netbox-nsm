@@ -22,6 +22,22 @@ class NsmUiSettings(models.Model):
         verbose_name=_("Panel label"),
         help_text=_("Security card title on object detail pages."),
     )
+    setup_menu_dismissed = models.BooleanField(
+        default=False,
+        verbose_name=_("Setup menu dismissed"),
+        help_text=_(
+            "When True, the Setup menu entry stays hidden until restored via "
+            "plugin configuration."
+        ),
+    )
+    setup_menu_config_enabled = models.BooleanField(
+        default=True,
+        verbose_name=_("Last seen setup_menu config"),
+        help_text=_(
+            "Tracks the last observed PLUGINS_CONFIG setup_menu value for restore "
+            "after toggling false → true."
+        ),
+    )
 
     class Meta:
         verbose_name = _("NSM UI settings")

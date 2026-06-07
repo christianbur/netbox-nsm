@@ -153,6 +153,16 @@ body.nsm-rules-column-resizing {
   white-space: nowrap;
 }
 
+#rules .table.nsm-rules-table .nsm-rules-td--actions .btn-group-sm > .btn {
+  line-height: 1;
+  padding: 0.12rem 0.28rem;
+}
+
+#rules .table.nsm-rules-table .nsm-rules-td--actions .btn-group-sm > .btn .mdi {
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
 #rules .table.object-list thead th.orderable .nsm-rules-sort-header {
   align-items: center;
   display: inline-flex;

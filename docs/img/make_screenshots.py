@@ -86,7 +86,7 @@ PAGES = [
      f"{BASE}/plugins/custom-objects/custom-object-types/",
      "Custom Object Types — Übersicht aller Built-in Types"),
 
-    # ── Security Policies ───────────────────────────────────────────────────
+    # ── Rulebooks ───────────────────────────────────────────────────────────
     ("05-rulebook-list.png",
      f"{BASE}/plugins/netbox-nsm/rulebooks/",
      "Rulebook-Liste — All Rules (read-only), Hierarchie, Spalten"),

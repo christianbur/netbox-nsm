@@ -45,10 +45,11 @@ class RulebookHierarchyTests(SimpleTestCase):
 
     def test_render_hierarchy_marker_depths(self):
         self.assertEqual(render_hierarchy_marker(0), "")
-        self.assertIn("nsm-rb-hierarchy-dot", render_hierarchy_marker(1))
-        self.assertEqual(render_hierarchy_marker(1).count("nsm-rb-hierarchy-dot"), 1)
-        self.assertEqual(render_hierarchy_marker(2).count("nsm-rb-hierarchy-dot"), 2)
-        self.assertEqual(render_hierarchy_marker(3).count("nsm-rb-hierarchy-dot"), 3)
+        marker = render_hierarchy_marker(1)
+        self.assertIn('class="record-depth"', marker)
+        self.assertEqual(marker.count("<span>•</span>"), 1)
+        self.assertEqual(render_hierarchy_marker(2).count("<span>•</span>"), 2)
+        self.assertEqual(render_hierarchy_marker(3).count("<span>•</span>"), 3)
 
     def test_rulebook_tree_order(self):
         root = _rb(1, name="A")

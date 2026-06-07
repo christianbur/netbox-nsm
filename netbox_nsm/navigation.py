@@ -5,6 +5,7 @@ from netbox.plugins import PluginMenuButton, PluginMenuItem, PluginMenu
 from netbox.navigation.menu import MenuGroup
 
 from netbox_nsm.plugin_labels import get_nsm_menu_label
+from netbox_nsm.setup_flags import setup_menu_enabled
 
 plugin_settings = settings.PLUGINS_CONFIG.get("netbox_nsm", {})
 
@@ -16,7 +17,7 @@ def _build_object_groups():
     try:
         groups = []
         config_items = []
-        if plugin_settings.get("setup_menu", True):
+        if setup_menu_enabled():
             config_items.append(
                 PluginMenuItem(
                     link="plugins:netbox_nsm:setup",

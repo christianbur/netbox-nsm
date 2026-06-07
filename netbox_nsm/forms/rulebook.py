@@ -34,6 +34,11 @@ from netbox_nsm.changelog_utils import (
     record_rulebook_rules_changelog,
     snapshot_instance,
 )
+from netbox_nsm.rulebook_copy import (
+    COPY_SCHEMA_PARAM,
+    copy_rulebook_fields_layout,
+    populate_rulebook_form_from_source,
+)
 from netbox_nsm.branch_db import (
     branch_aware_manager,
     branch_aware_related,
@@ -142,8 +147,36 @@ class RulebookForm(PrimaryModelForm):
             "tags",
         )
 
+    def _schema_copy_source_pk(self):
+        """Resolve ``copy_schema_from`` from POST (submit) or GET initial (add form)."""
+        if self.instance.pk:
+            return None
+        raw = None
+        if self.is_bound:
+            raw = self.data.get(COPY_SCHEMA_PARAM)
+        if raw in (None, ""):
+            raw = self.initial.get(COPY_SCHEMA_PARAM)
+        if raw in (None, ""):
+            return None
+        try:
+            return int(raw)
+        except (TypeError, ValueError):
+            return None
+
+    def _ensure_copy_schema_field(self, copy_from_pk: int) -> None:
+        if COPY_SCHEMA_PARAM in self.fields:
+            return
+        self.fields[COPY_SCHEMA_PARAM] = forms.IntegerField(
+            widget=forms.HiddenInput(),
+            required=False,
+        )
+        self.fields[COPY_SCHEMA_PARAM].initial = copy_from_pk
+        if not self.is_bound:
+            self.initial[COPY_SCHEMA_PARAM] = copy_from_pk
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        copy_from_pk = self._schema_copy_source_pk()
         parent_qs = Rulebook.objects.all()
         if self.instance and self.instance.pk:
             from netbox_nsm.rulebook_hierarchy import invalid_parent_pks
@@ -176,6 +209,11 @@ class RulebookForm(PrimaryModelForm):
             )
             self.initial["matrix_tab_enabled"] = tab_choice
             self.fields["matrix_tab_enabled"].initial = tab_choice
+        elif copy_from_pk:
+            source = Rulebook.objects.filter(pk=copy_from_pk).first()
+            if source is not None:
+                populate_rulebook_form_from_source(self, source)
+                self._ensure_copy_schema_field(copy_from_pk)
 
     def clean_parent(self):
         from django.core.exceptions import ValidationError
@@ -191,9 +229,15 @@ class RulebookForm(PrimaryModelForm):
         return self.cleaned_data.get("matrix_tab_enabled") == MATRIX_TAB_SHOW
 
     def save(self, commit=True):
+        copy_from_pk = self.cleaned_data.pop(COPY_SCHEMA_PARAM, None)
         instance = super().save(commit=commit)
         if commit:
             self._save_assignments(instance)
+            if copy_from_pk and not getattr(self, "_schema_copied", False):
+                source = Rulebook.objects.filter(pk=copy_from_pk).first()
+                if source is not None:
+                    copy_rulebook_fields_layout(source, instance)
+                    self._schema_copied = True
         return instance
 
     def _save_assignments(self, instance):

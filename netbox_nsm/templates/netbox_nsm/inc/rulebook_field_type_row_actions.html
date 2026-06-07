@@ -1,0 +1,23 @@
+{% load i18n %}
+{% if not rulebook_readonly %}
+{% url 'plugins:netbox_nsm:rulebookfieldtype_edit' ft.pk as type_edit_url %}
+{% url 'plugins:netbox_nsm:rulebookfieldtype_delete' ft.pk as type_delete_url %}
+<span class="btn-group btn-group-sm noprint nsm-rb-type-actions dropdown">
+  <a href="{{ type_edit_url }}"
+     class="btn btn-sm btn-warning" type="button"
+     title="{% trans 'Edit' %}" aria-label="{% trans 'Edit' %}">
+    <i class="mdi mdi-pencil" aria-hidden="true"></i>
+  </a>
+  <a class="btn btn-sm btn-warning dropdown-toggle" type="button"
+     data-bs-toggle="dropdown" style="padding-left: 2px">
+    <span class="visually-hidden">{% trans "Toggle Dropdown" %}</span>
+  </a>
+  <ul class="dropdown-menu">
+    <li>
+      <a class="dropdown-item" href="{{ type_delete_url }}">
+        <i class="mdi mdi-trash-can-outline" aria-hidden="true"></i> {% trans "Delete" %}
+      </a>
+    </li>
+  </ul>
+</span>
+{% endif %}

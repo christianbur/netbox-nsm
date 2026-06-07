@@ -1,10 +1,10 @@
-{% extends 'generic/object.html' %}
+{% extends 'netbox_nsm/rulebook.html' %}
 {% load i18n %}
 {% load helpers %}
 
 {% block head %}
 {{ block.super }}
-<link rel="stylesheet" href="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='css/rulebook_rules.css' %}?v=20260608">
+<link rel="stylesheet" href="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='css/rulebook_rules.css' %}?v=20260609">
 {% include "netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html" %}
 {% endblock head %}
 

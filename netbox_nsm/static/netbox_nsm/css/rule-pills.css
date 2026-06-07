@@ -254,45 +254,9 @@ span.nsm-rulebook-count-pill {
   max-width: 2rem;
   min-width: 2rem;
   padding: 0 !important;
-  position: relative;
+  text-align: center;
+  vertical-align: middle;
   width: 2rem;
-}
-
-.nsm-rb-col-lane--indent::before {
-  border-left: 2px solid var(--tblr-border-color, #c5cdd8);
-  bottom: 50%;
-  content: "";
-  left: 0.85rem;
-  position: absolute;
-  top: 0;
-  width: 0;
-}
-
-.nsm-rb-col-lane--indent::after {
-  border-top: 2px solid var(--tblr-border-color, #c5cdd8);
-  content: "";
-  left: 0.85rem;
-  position: absolute;
-  right: 0.25rem;
-  top: 50%;
-  width: auto;
-}
-
-.nsm-rb-col-lane--indent .nsm-rb-field-depth {
-  left: 0.45rem;
-  line-height: 1;
-  margin: 0;
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  user-select: none;
-  z-index: 1;
-}
-
-.nsm-rb-col-lane--indent .nsm-rb-field-depth span {
-  display: inline-block;
-  font-size: 0.75rem;
-  line-height: 1;
 }
 
 .table.nsm-rb-fields-table thead th.nsm-rb-col-name,
@@ -1031,49 +995,6 @@ span.nsm-rulebook-count-pill {
 .nsm-rb-type-actions .btn .mdi {
   font-size: 0.85rem;
   line-height: 1;
-}
-
-/* Rulebook list — child indent via filled hierarchy dots */
-.nsm-rb-name-cell {
-  align-items: center;
-  display: inline-flex;
-  gap: 0.35rem;
-  max-width: 100%;
-}
-
-.nsm-rb-hierarchy-markers {
-  align-items: center;
-  color: var(--bs-secondary-color, #6b7280);
-  display: inline-flex;
-  flex-shrink: 0;
-  gap: 0.25rem;
-  line-height: 1;
-}
-
-.nsm-rb-hierarchy-dot {
-  background-color: currentColor;
-  border-radius: 50%;
-  display: inline-block;
-  flex-shrink: 0;
-  height: 0.55rem;
-  opacity: 0.55;
-  width: 0.55rem;
-}
-
-table.object-list .nsm-rb-name-cell {
-  align-items: center;
-  display: inline-flex;
-  gap: 0.4rem;
-  max-width: 100%;
-}
-
-table.object-list .nsm-rb-hierarchy-dot {
-  height: 0.55rem;
-  width: 0.55rem;
-}
-
-[data-bs-theme="dark"] .nsm-rb-hierarchy-markers {
-  color: var(--bs-secondary-color, #9ca3af);
 }
 
 .nsm-rb-name-link {

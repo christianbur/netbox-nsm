@@ -45,7 +45,7 @@ def _test_prefix():
 
 
 class RuleAssignmentChangelogTest(ModelViewTestCase):
-    """Rule assignment changes via policy grid API should appear on Rule changelog."""
+    """Rule assignment changes via rules grid API should appear on Rule changelog."""
 
     @classmethod
     def setUpTestData(cls):
@@ -235,6 +235,74 @@ class RulebookRulesLayoutChangelogTest(ModelViewTestCase):
         self.assertIn(str(self.rule.pk), pre_rules)
         self.assertNotIn(str(self.rule.pk), post_rules)
         self.assertEqual(len(pre_rules), 1)
+
+    def test_rules_tab_bulk_delete_records_delta_on_rulebook(self):
+        rule_b = Rule.objects.create(
+            rulebook=self.rulebook,
+            name="rules-layout-rule-b",
+            index=20,
+        )
+        self.add_permissions(
+            "netbox_nsm.view_rulebook",
+            "netbox_nsm.view_rule",
+            "netbox_nsm.delete_rule",
+        )
+        rb_ct = ContentType.objects.get_for_model(Rulebook)
+        before = ObjectChange.objects.filter(
+            changed_object_type=rb_ct,
+            changed_object_id=self.rulebook.pk,
+        ).count()
+        url = reverse("plugins:netbox_nsm:rulebook_rules", args=[self.rulebook.pk])
+        return_url = url
+        bulk_delete_url = reverse("plugins:netbox_nsm:rule_bulk_delete")
+        response = self.client.post(
+            bulk_delete_url,
+            post_data(
+                {
+                    "_delete": "1",
+                    "pk": [self.rule.pk, rule_b.pk],
+                    "return_url": return_url,
+                }
+            ),
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertIn("Confirm Bulk Deletion", response.content.decode())
+        response = self.client.post(
+            bulk_delete_url,
+            post_data(
+                {
+                    "_confirm": True,
+                    "confirm": True,
+                    "pk": [self.rule.pk, rule_b.pk],
+                    "return_url": return_url,
+                }
+            ),
+        )
+        self.assertEqual(response.status_code, 302, response.content)
+        self.assertFalse(Rule.objects.filter(pk__in=[self.rule.pk, rule_b.pk]).exists())
+        self.assertGreater(
+            ObjectChange.objects.filter(
+                changed_object_type=rb_ct,
+                changed_object_id=self.rulebook.pk,
+            ).count(),
+            before,
+        )
+        latest = (
+            ObjectChange.objects.filter(
+                changed_object_type=rb_ct,
+                changed_object_id=self.rulebook.pk,
+            )
+            .order_by("-time")
+            .first()
+        )
+        self.assertEqual(latest.action, ObjectChangeActionChoices.ACTION_DELETE)
+        self.assertIn("Removed rule", latest.message)
+        pre_rules = latest.prechange_data.get("rules_layout") or {}
+        post_rules = latest.postchange_data.get("rules_layout") or {}
+        self.assertIn(str(self.rule.pk), pre_rules)
+        self.assertIn(str(rule_b.pk), pre_rules)
+        self.assertNotIn(str(self.rule.pk), post_rules)
+        self.assertNotIn(str(rule_b.pk), post_rules)
 
     def test_rules_layout_changelog_slice_keeps_only_changed_rules(self):
         pre = {

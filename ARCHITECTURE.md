@@ -149,7 +149,7 @@ Full table list, M2M tables, and SQL examples: **[docs/DATABASE.md](docs/DATABAS
 
 ---
 
-### ObjectLink (formerly ObjectLink)
+### ObjectLink
 
 ```
 ObjectLink

@@ -26,10 +26,24 @@ def get_ui_settings() -> NsmUiSettings:
 
 
 def handles_action(action: str) -> bool:
-    return action == "save_ui_settings"
+    return action in ("save_ui_settings", "hide_setup_menu")
 
 
 def handle_ui_settings_action(request, action: str):
+    if action == "hide_setup_menu":
+        settings_obj = NsmUiSettings.get_solo()
+        settings_obj.setup_menu_dismissed = True
+        settings_obj.save(update_fields=["setup_menu_dismissed"])
+        messages.success(
+            request,
+            _(
+                "Setup has been hidden from the menu. To show it again, set "
+                '"setup_menu": true in PLUGINS_CONFIG["netbox_nsm"] after toggling '
+                "it to false and restarting NetBox."
+            ),
+        )
+        return redirect(reverse("plugins:netbox_nsm:rulebook_list"))
+
     if action != "save_ui_settings":
         return redirect(reverse("plugins:netbox_nsm:setup"))
 

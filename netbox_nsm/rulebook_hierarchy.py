@@ -101,24 +101,16 @@ def rulebook_list_depth(rulebook) -> int:
 
 def render_hierarchy_marker(depth: int) -> str:
     """
-    Visual depth marker for the rulebook list.
+    Visual depth marker for the rulebook list (NetBox prefix list style).
 
-    One filled dot per hierarchy level (child = one dot, grandchild = two, …).
+    One bullet per hierarchy level (child = one dot, grandchild = two, …).
     """
     if depth <= 0:
         return ""
 
-    dots = mark_safe(
-        "".join(
-            '<span class="nsm-rb-hierarchy-dot"'
-            ' style="display:inline-block;width:0.55rem;height:0.55rem;'
-            "border-radius:50%;background:currentColor;opacity:0.55;"
-            'flex-shrink:0;"></span>'
-            for _ in range(depth)
-        )
-    )
+    dots = mark_safe("".join("<span>•</span>" for _ in range(depth)))
     return format_html(
-        '<span class="nsm-rb-hierarchy-markers" aria-hidden="true">{}</span>',
+        '<div class="record-depth" aria-hidden="true">{}</div>',
         dots,
     )
 

@@ -16,6 +16,7 @@ from netbox_nsm.models import (
     Rule,
 )
 from netbox_nsm.panel_sections import get_default_panel_slug, get_panel_sections
+from netbox_nsm.setup_flags import setup_menu_enabled
 from netbox_nsm.tables import ObjectGroupTable
 
 __all__ = (
@@ -44,12 +45,15 @@ def _build_main_tabs():
             "label": str(_("Groups")),
             "href": "/plugins/netbox-nsm/object/groups/",
         },
-        {
-            "slug": "setup",
-            "label": str(_("Setup")),
-            "href": "/plugins/netbox-nsm/setup/",
-        },
     ]
+    if setup_menu_enabled():
+        tabs.append(
+            {
+                "slug": "setup",
+                "label": str(_("Setup")),
+                "href": "/plugins/netbox-nsm/setup/",
+            }
+        )
     return tabs
 
 

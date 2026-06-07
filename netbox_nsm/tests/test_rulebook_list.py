@@ -2,7 +2,7 @@
 
 from django.urls import reverse
 
-from netbox_nsm.models import Rulebook, RulebookStatusChoices, RulebookTypeChoices
+from netbox_nsm.models import Rule, Rulebook, RulebookStatusChoices, RulebookTypeChoices
 from netbox_nsm.rulebook_field_utils import ensure_system_rulebook_fields
 from utilities.testing import TestCase
 
@@ -33,6 +33,32 @@ class RulebookListViewTests(TestCase):
         self.assertIn("nsm-rule-pill--counter", content)
         self.assertIn("Branch FW", content)
         self.assertIn("Corp Policy", content)
+        self.assertNotIn('aria-label="Select all"', content)
+        self.assertNotIn("Delete Selected", content)
+
+    def test_list_hides_delete_action_when_rulebook_has_rules(self):
+        rb = Rulebook.objects.create(
+            name="list-del-blocked",
+            rulebook_type="security_rules",
+        )
+        Rule.objects.create(rulebook=rb, name="blocking-rule", index=10)
+        self.add_permissions("netbox_nsm.view_rulebook", "netbox_nsm.delete_rulebook")
+        response = self.client.get(reverse("plugins:netbox_nsm:rulebook_list"))
+        content = response.content.decode()
+        delete_url = reverse("plugins:netbox_nsm:rulebook_delete", args=[rb.pk])
+        self.assertNotIn(f'href="{delete_url}', content)
+
+    def test_list_shows_delete_in_dropdown_when_rulebook_empty(self):
+        rb = Rulebook.objects.create(
+            name="list-del-empty",
+            rulebook_type="security_rules",
+        )
+        self.add_permissions("netbox_nsm.view_rulebook", "netbox_nsm.delete_rulebook")
+        response = self.client.get(reverse("plugins:netbox_nsm:rulebook_list"))
+        content = response.content.decode()
+        delete_url = reverse("plugins:netbox_nsm:rulebook_delete", args=[rb.pk])
+        self.assertIn(f'href="{delete_url}', content)
+        self.assertIn("dropdown-item", content)
 
     def test_list_orders_parent_before_child(self):
         self.add_permissions("netbox_nsm.view_rulebook")
@@ -47,7 +73,7 @@ class RulebookListViewTests(TestCase):
         self.add_permissions("netbox_nsm.view_rulebook")
         response = self.client.get(reverse("plugins:netbox_nsm:rulebook_list"))
         content = response.content.decode()
-        self.assertIn("nsm-rb-hierarchy-dot", content)
+        self.assertIn('class="record-depth"', content)
         child_pos = content.index("Branch FW")
-        dot_pos = content.rfind("nsm-rb-hierarchy-dot", 0, child_pos)
-        self.assertGreater(dot_pos, -1)
+        depth_pos = content.rfind('class="record-depth"', 0, child_pos)
+        self.assertGreater(depth_pos, -1)

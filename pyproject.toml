@@ -1,15 +1,15 @@
 [project]
 name = "netbox-nsm"
-version = "0.3.0"
-description = "A NetBox plugin for network security management, including object groups and security policies"
+version = "0.3.1"
+description = "A NetBox plugin for documenting network security policy: rulebooks, zones, and NSM object links"
 authors = [
-    {name="Christian Burmeister"},
+    {name = "Christian Burmeister"},
 ]
 license-files = ["LICENSE"]
 readme = "README.md"
 keywords = ["netbox", "netbox-plugin", "security"]
 classifiers = [
-    "Development Status :: 3 - Alpha"
+    "Development Status :: 3 - Alpha",
 ]
 dependencies = [
 ]
@@ -22,11 +22,11 @@ Repository = "https://github.com/christianbur/netbox-nsm"
 Issues = "https://github.com/christianbur/netbox-nsm/issues"
 
 [build-system]
-requires = ['setuptools >= 64']
-build-backend = 'setuptools.build_meta'
+requires = ["setuptools >= 64"]
+build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-#exclude = ["examples*", "media*", "*.tests*"]
+exclude = ["examples*", "media*", "*.tests*"]
 
 [tool.setuptools.package-data]
 "netbox_nsm" = [

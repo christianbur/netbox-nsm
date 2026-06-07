@@ -7,7 +7,7 @@
 Document zones, firewall rules, and object relationships — vendor-agnostic, inside your existing IPAM and DCIM inventory.
 
 [![NetBox](https://img.shields.io/badge/NetBox-4.6.x-0088cc?style=flat-square)](https://netboxlabs.com/)
-[![Plugin](https://img.shields.io/badge/plugin-0.3.0-2ea043?style=flat-square)](#)
+[![Plugin](https://img.shields.io/badge/plugin-0.3.1-2ea043?style=flat-square)](#)
 [![Requires](https://img.shields.io/badge/requires-netbox--custom--objects-orange?style=flat-square)](https://github.com/netboxlabs/netbox-custom-objects)
 [![Status](https://img.shields.io/badge/status-work%20in%20progress-yellow?style=flat-square)](#)
 
@@ -26,7 +26,7 @@ Document zones, firewall rules, and object relationships — vendor-agnostic, in
 |---|---|
 | **Security Panel** | Injected on every Prefix, IP, Device, VM, and Custom Object — assign zones, addresses, labels; see policy impact instantly |
 | **Rulebooks** | Flexible column layout: zone-based, address-based, label-based, or mixed — side by side in one NetBox |
-| **Policy grid** | Server-rendered rules table — Table / Group / Matrix views, filter query, cell display modes. See [Rules grid](docs/using_netbox_nsm.md#rules-grid). |
+| **Rules grid** | Server-rendered rules table — Table / Group / Matrix views, filter query, cell display modes. See [Rules grid](docs/using_netbox_nsm.md#rules-grid). |
 | **Zone matrix** | Source × destination heatmap on the Matrix tab |
 | **IP Analysis** | Compare address resolution — **Security Panel** loupe (🔍) on analyzable objects; optional full page `/plugins/netbox-nsm/ip-analysis/` |
 | **Object Analyzer** | [@xyflow/react](https://xyflow.com/) graph from any NetBox object to zones, links, and rulebooks |

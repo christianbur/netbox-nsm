@@ -23,8 +23,12 @@ msgid "NetBox NSM - Network Security Management"
 msgstr "NetBox NSM - Netzwerk-Sicherheitsmanagement"
 
 #: netbox_nsm/__init__.py:10
-msgid "A NetBox plugin for network security management, including object groups and security policies."
+msgid ""
+"Document network security policy in NetBox: rulebooks, zones, NSM links, "
+"and the Security Panel (requires netbox-custom-objects)."
 msgstr ""
+"Dokumentiert Netzwerk-Sicherheitsrichtlinien in NetBox: Regelbücher, "
+"Zonen, NSM-Links und das Security Panel (benötigt netbox-custom-objects)."
 
 #: netbox_nsm/choices/security_policy_choices.py:16
 msgid "Permit"
@@ -2170,10 +2174,8 @@ msgstr "Modell"
 msgid "No objects defined."
 msgstr "Keine Objekte definiert."
 
-#: netbox_nsm/templates/netbox_nsm/securitypolicyrule.html:9
-#: netbox_nsm/templates/netbox_nsm/securitypolicyrule.html:16
-msgid "Security Policies"
-msgstr "Sicherheitsrichtlinien"
+#~ msgid "Security Policies"
+#~ msgstr "Sicherheitsrichtlinien"
 
 #: netbox_nsm/templates/netbox_nsm/securitypolicyrule_edit.html:65
 msgid "Remove selected"

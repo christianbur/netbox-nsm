@@ -39,3 +39,7 @@ class NetBoxSecurityConfig(AppConfig):
             sender=Rulebook,
             dispatch_uid="netbox_nsm_ensure_system_rulebook_fields",
         )
+
+        from netbox_nsm.setup_flags import sync_setup_menu_config_state
+
+        sync_setup_menu_config_state()

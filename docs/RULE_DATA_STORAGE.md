@@ -202,7 +202,7 @@ flowchart TB
 | URL | Purpose |
 |-----|---------|
 | `/plugins/netbox-nsm/rules/` | NetBox object list of all `Rule` records; fixed column set in `RuleTable` |
-| `/plugins/netbox-nsm/rulebooks/<pk>/rules/` | Policy grid for one rulebook; columns match that rulebook's fields |
+| `/plugins/netbox-nsm/rulebooks/<pk>/rules/` | Rules grid for one rulebook; columns match that rulebook's fields |
 | `/plugins/netbox-nsm/rulebooks/0/rules/` | Aggregated read-only view across all security rulebooks |
 
 Prefer the rulebook Rules tab (or All Rules) for day-to-day policy work. The global `/rules/`

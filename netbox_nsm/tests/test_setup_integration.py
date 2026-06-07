@@ -59,6 +59,17 @@ class SetupIntegrationTests(TestCase):
         self.assertEqual(settings_obj.menu_label, "Test Menu")
         self.assertEqual(settings_obj.panel_label, "Test Panel")
 
+    def test_hide_setup_menu_dismisses_entry(self):
+        self.add_permissions("netbox_nsm.view_typeconfig")
+        url = reverse("plugins:netbox_nsm:setup")
+        response = self.client.post(url, {"action": "hide_setup_menu"})
+        self.assertEqual(response.status_code, 302, response.content)
+        settings_obj = NsmUiSettings.get_solo()
+        self.assertTrue(settings_obj.setup_menu_dismissed)
+        from netbox_nsm.setup_flags import setup_menu_enabled
+
+        self.assertFalse(setup_menu_enabled())
+
 
 class SetupHiddenTests(TestCase):
     @patch("netbox_nsm.views.setup.view.setup_menu_enabled", return_value=False)

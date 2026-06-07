@@ -45,7 +45,9 @@ _RULEBOOK_FIELD_TYPE_ATTRS = (
 )
 
 
-def rulebook_schema_copy_add_url(source: Rulebook, *, return_url: str | None = None) -> str:
+def rulebook_schema_copy_add_url(
+    source: Rulebook, *, return_url: str | None = None
+) -> str:
     """Build the rulebook add URL with cloned metadata and schema source pk."""
     params = prepare_cloned_fields(source)
     params[COPY_SCHEMA_PARAM] = str(source.pk)
@@ -99,8 +101,7 @@ def copy_rulebook_fields_layout(source: Rulebook, target: Rulebook) -> None:
                 field=tgt_field,
                 type_config=src_type.type_config,
                 **{
-                    attr: getattr(src_type, attr)
-                    for attr in _RULEBOOK_FIELD_TYPE_ATTRS
+                    attr: getattr(src_type, attr) for attr in _RULEBOOK_FIELD_TYPE_ATTRS
                 },
             )
 

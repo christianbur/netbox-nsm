@@ -15,7 +15,10 @@ from netbox_nsm.models import (
     TypeConfig,
 )
 from netbox_nsm.rulebook_copy import COPY_SCHEMA_PARAM, rulebook_schema_copy_add_url
-from netbox_nsm.rulebook_field_utils import ensure_system_rulebook_fields, load_rulebook_fields_for_detail
+from netbox_nsm.rulebook_field_utils import (
+    ensure_system_rulebook_fields,
+    load_rulebook_fields_for_detail,
+)
 from netbox_nsm.tests.form_helpers import rulebook_post_data
 from utilities.testing import TestCase
 

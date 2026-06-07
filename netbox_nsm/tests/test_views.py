@@ -135,9 +135,10 @@ class RulebookViewCrudTests(TestCase):
         Rule.objects.create(rulebook=rb, name="blocking-rule", index=10)
         list_url = reverse("plugins:netbox_nsm:rulebook_list")
         self.add_permissions("netbox_nsm.view_rulebook", "netbox_nsm.delete_rulebook")
-        delete_url = reverse(
-            "plugins:netbox_nsm:rulebook_delete", args=[rb.pk]
-        ) + f"?return_url={list_url}"
+        delete_url = (
+            reverse("plugins:netbox_nsm:rulebook_delete", args=[rb.pk])
+            + f"?return_url={list_url}"
+        )
         response = self.client.get(delete_url, follow=True)
         self.assertEqual(response.status_code, 200, response.content)
         self.assertTrue(Rulebook.objects.filter(pk=rb.pk).exists())

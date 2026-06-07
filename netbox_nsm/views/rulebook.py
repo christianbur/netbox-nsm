@@ -2364,9 +2364,7 @@ class RuleBulkDeleteView(generic.BulkDeleteView):
         from utilities.views import get_action_url
 
         model = self.queryset.model
-        pk_list = [
-            int(pk) for pk in request.POST.getlist("pk") if str(pk).isdigit()
-        ]
+        pk_list = [int(pk) for pk in request.POST.getlist("pk") if str(pk).isdigit()]
         return_url = self.get_return_url(request)
 
         if not pk_list:

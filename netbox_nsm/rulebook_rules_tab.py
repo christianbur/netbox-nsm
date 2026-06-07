@@ -628,9 +628,7 @@ def _render_actions_cell_html(
             f"</span>"
         )
     elif edit_btn:
-        html = (
-            f'<span class="btn-group btn-group-sm" role="group">{edit_btn}</span>'
-        )
+        html = f'<span class="btn-group btn-group-sm" role="group">{edit_btn}</span>'
     elif dropdown_links:
         html = (
             f'<span class="btn-group btn-group-sm dropdown">'
@@ -920,6 +918,7 @@ def build_rulebook_rules_tab_context(
     from urllib.parse import quote
 
     from django.urls import reverse
+
     return_path = with_branch_query(request.path, request)
     nsm_rule_add_url = ""
     if not readonly:

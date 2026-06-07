@@ -18,9 +18,7 @@ class SetupMenuStateTests(TestCase):
         solo = NsmUiSettings.get_solo()
         solo.setup_menu_dismissed = True
         solo.setup_menu_config_enabled = True
-        solo.save(
-            update_fields=["setup_menu_dismissed", "setup_menu_config_enabled"]
-        )
+        solo.save(update_fields=["setup_menu_dismissed", "setup_menu_config_enabled"])
         self.assertFalse(setup_menu_enabled())
 
     @override_settings(
@@ -33,9 +31,7 @@ class SetupMenuStateTests(TestCase):
         solo = NsmUiSettings.get_solo()
         solo.setup_menu_dismissed = False
         solo.setup_menu_config_enabled = True
-        solo.save(
-            update_fields=["setup_menu_dismissed", "setup_menu_config_enabled"]
-        )
+        solo.save(update_fields=["setup_menu_dismissed", "setup_menu_config_enabled"])
         self.assertFalse(setup_menu_enabled())
 
     @override_settings(
@@ -48,9 +44,7 @@ class SetupMenuStateTests(TestCase):
         solo = NsmUiSettings.get_solo()
         solo.setup_menu_dismissed = True
         solo.setup_menu_config_enabled = False
-        solo.save(
-            update_fields=["setup_menu_dismissed", "setup_menu_config_enabled"]
-        )
+        solo.save(update_fields=["setup_menu_dismissed", "setup_menu_config_enabled"])
         sync_setup_menu_config_state()
         solo.refresh_from_db()
         self.assertFalse(solo.setup_menu_dismissed)

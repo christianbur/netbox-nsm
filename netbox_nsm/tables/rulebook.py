@@ -250,7 +250,7 @@ class AssignedObjectsColumn(tables.Column):
 
     def __init__(self, *args, **kwargs):
         kwargs.setdefault("orderable", False)
-        kwargs.setdefault("verbose_name", _("Assigned Objects"))
+        kwargs.setdefault("verbose_name", _("Target of enforcement targets"))
         super().__init__(*args, **kwargs)
 
     def _assignment_badge(self, url, name, *, hidden=False):

@@ -60,22 +60,6 @@
             {% endif %}
           </td>
         </tr>
-        <tr>
-          <th scope="row">{% trans "Assigned Objects" %}</th>
-          <td>
-            {% for assignment in assignments %}
-            {% with obj=assignment.assigned_object %}
-            {% if obj %}
-            <a href="{{ obj.get_absolute_url }}" class="badge text-bg-secondary text-decoration-none me-1">
-              <i class="mdi mdi-server me-1"></i>{{ obj }}
-            </a>
-            {% endif %}
-            {% endwith %}
-            {% empty %}
-            {{ ''|placeholder }}
-            {% endfor %}
-          </td>
-        </tr>
       </table>
     </div>
     {% if not rulebook_readonly %}
@@ -122,6 +106,8 @@
         {% endif %}
       </div>
     </div>
+
+    {% include "netbox_nsm/inc/rulebook_assigned_objects_panel.html" %}
 
     {% plugin_right_page object %}
   </div>

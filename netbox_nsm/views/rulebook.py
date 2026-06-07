@@ -1111,9 +1111,16 @@ class RulebookView(generic.ObjectView):
         return actions
 
     def get_extra_context(self, request, instance):
-        # Assigned objects
+        from netbox_nsm.rulebook_assigned_objects import (
+            build_rulebook_assigned_objects_panel,
+        )
+
+        # Assigned objects (Security Panel links, grouped on detail panel)
         assignments = list(
             instance.assignments.select_related("assigned_object_type").all()
+        )
+        assigned_objects_panel = build_rulebook_assigned_objects_panel(
+            instance, request
         )
 
         # Fields + Matching Strategy (always available)
@@ -1126,6 +1133,7 @@ class RulebookView(generic.ObjectView):
         if instance.rulebook_type != RulebookTypeChoices.SECURITY_RULES:
             return {
                 "assignments": assignments,
+                "assigned_objects_panel": assigned_objects_panel,
                 "rulebook_fields": rulebook_fields,
                 "rulebook_fields_system": rulebook_fields_system,
                 "rulebook_fields_object": rulebook_fields_object,
@@ -1141,6 +1149,7 @@ class RulebookView(generic.ObjectView):
 
         return {
             "assignments": assignments,
+            "assigned_objects_panel": assigned_objects_panel,
             "security_rules_columns": SECURITY_RULES_COLUMNS,
             "selected_security_rules_columns": selected_columns,
             "selected_security_rules_columns_set": selected_set,
@@ -2505,10 +2514,15 @@ class RulebookBulkAssignView(generic.ObjectView):
     queryset = Rulebook.objects.all()
     template_name = "netbox_nsm/rulebook_bulk_assign.html"
 
+    def get_extra_context(self, request, instance):
+        form = getattr(self, "_bulk_assign_form", None)
+        if form is None:
+            form = RulebookBulkAssignForm()
+        return {"form": form}
+
     def get(self, request, *args, **kwargs):
-        instance = self.get_object(**kwargs)
-        form = RulebookBulkAssignForm()
-        return self.render_to_response({"object": instance, "form": form})
+        self._bulk_assign_form = RulebookBulkAssignForm()
+        return super().get(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
         instance = self.get_object(**kwargs)
@@ -2518,46 +2532,45 @@ class RulebookBulkAssignView(generic.ObjectView):
             skipped = 0
             for device in form.cleaned_data.get("devices") or []:
                 ct = ContentType.objects.get_for_model(device)
-                _, c = RulebookAssignment.objects.get_or_create(
+                _assignment, was_created = RulebookAssignment.objects.get_or_create(
                     rulebook=instance,
                     assigned_object_type=ct,
                     assigned_object_id=device.pk,
                 )
-                if c:
+                if was_created:
                     created += 1
                 else:
                     skipped += 1
             for vm in form.cleaned_data.get("virtual_machines") or []:
                 ct = ContentType.objects.get_for_model(vm)
-                _, c = RulebookAssignment.objects.get_or_create(
+                _assignment, was_created = RulebookAssignment.objects.get_or_create(
                     rulebook=instance,
                     assigned_object_type=ct,
                     assigned_object_id=vm.pk,
                 )
-                if c:
+                if was_created:
                     created += 1
                 else:
                     skipped += 1
             for vdc in form.cleaned_data.get("virtual_device_contexts") or []:
                 ct = ContentType.objects.get_for_model(vdc)
-                _, c = RulebookAssignment.objects.get_or_create(
+                _assignment, was_created = RulebookAssignment.objects.get_or_create(
                     rulebook=instance,
                     assigned_object_type=ct,
                     assigned_object_id=vdc.pk,
                 )
-                if c:
+                if was_created:
                     created += 1
                 else:
                     skipped += 1
-            from django.contrib import messages as dj_messages
-
-            dj_messages.success(
+            messages.success(
                 request,
                 _("%(created)d assignment(s) created, %(skipped)d already existed.")
                 % {"created": created, "skipped": skipped},
             )
             return redirect(instance.get_absolute_url())
-        return self.render_to_response({"object": instance, "form": form})
+        self._bulk_assign_form = form
+        return super().get(request, *args, **kwargs)
 
 
 class GlobalRulesSearchView(View):

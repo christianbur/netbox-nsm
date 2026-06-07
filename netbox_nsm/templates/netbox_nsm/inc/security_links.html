@@ -285,7 +285,7 @@
     </div>
     {% endfor %}
 
-    {# ── Enforced Rulebooks (Device / VM / VDC only) ───────────────────── #}
+    {# ── Rulebooks assigned to this object (Device / VM / VDC only) ────── #}
     {% if nsm_enforcer_assignments %}
     <div class="border-bottom">
       <button class="nsm-tree-hdr"
@@ -293,17 +293,25 @@
               data-bs-target="#nsm-cat-enforced"
               aria-expanded="true">
         <i class="mdi mdi-chevron-right nsm-chev"></i>
-        <span>{% trans "Enforced Rulebooks" %}</span>
+        <span>{% trans "Rulebooks" %}</span>
         <span class="badge text-bg-secondary ms-1">{{ nsm_enforcer_assignments|length }}</span>
+        {% if nsm_enforcer_add_url %}
+        <a href="{{ nsm_enforcer_add_url }}"
+           class="btn btn-sm btn-ghost-primary ms-auto py-0"
+           onclick="event.stopPropagation();"
+           title="{% trans 'Assign rulebook' %}"
+           aria-label="{% trans 'Assign rulebook' %}">
+          <i class="mdi mdi-plus-thick" aria-hidden="true"></i>
+        </a>
+        {% endif %}
       </button>
       <div id="nsm-cat-enforced" class="collapse show">
-        <table class="table table-hover table-sm mb-0">
+        <table class="table table-hover table-sm mb-0 nsm-link-table">
           <tbody>
             {% for assignment in nsm_enforcer_assignments %}
             <tr>
-              <td class="ps-5" style="font-size:12px;">
+              <td class="col-object">
                 <a href="{{ assignment.rulebook.get_absolute_url }}">{{ assignment.rulebook.name }}</a>
-                <span class="badge text-bg-secondary ms-1" style="font-size:10px;">{{ assignment.rulebook.get_rulebook_type_display }}</span>
               </td>
             </tr>
             {% endfor %}

@@ -1,0 +1,207 @@
+{% load i18n %}
+<style>
+  .nsm-rb-assigned-host-hdr {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    width: 100%;
+    text-align: left;
+    color: inherit;
+  }
+  .nsm-rb-assigned-host-hdr .nsm-tree-toggle .nsm-chev {
+    font-size: 9px;
+    transition: transform .15s;
+    color: var(--bs-secondary-color);
+  }
+  .nsm-rb-assigned-host-hdr .nsm-tree-toggle[aria-expanded="true"] .nsm-chev {
+    transform: rotate(90deg);
+  }
+  .nsm-rb-assigned-iface-row {
+    font-size: 12px;
+    padding: 0.2rem 12px 0.2rem 3.25rem;
+  }
+  .nsm-rb-assigned-iface-name {
+    font-weight: 500;
+    min-width: 6rem;
+    display: inline-block;
+  }
+  .nsm-rb-assigned-link-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15rem;
+    margin-right: 0.35rem;
+    margin-bottom: 0.15rem;
+  }
+  .nsm-rb-assigned-link-pill .btn-group-sm > .btn {
+    line-height: 1;
+    padding: 0.1rem 0.25rem;
+  }
+  .nsm-rb-assigned-link-pill .btn-group-sm > .btn .mdi {
+    font-size: 0.75rem;
+  }
+  .nsm-rb-assigned-host:not(.nsm-rb-show-all-ifaces) .nsm-rb-assigned-iface-row.nsm-rb-assigned-iface-unlinked {
+    display: none !important;
+  }
+  .nsm-rb-assigned-host:not(.nsm-rb-show-all-ifaces) .nsm-rb-assigned-iface-filter-empty {
+    display: block;
+  }
+  .nsm-rb-assigned-iface-filter-empty {
+    display: none;
+  }
+  .nsm-rb-show-all-ifaces-label {
+    font-size: 11px;
+    font-weight: 400;
+    white-space: nowrap;
+  }
+  .nsm-rb-show-all-ifaces-label .form-check-input {
+    margin-top: 0.15rem;
+  }
+</style>
+
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">{% trans "Enforcement targets" %}</h5>
+    {% if assigned_objects_panel.add_url and not rulebook_readonly %}
+    <a href="{{ assigned_objects_panel.add_url }}" class="btn btn-sm btn-primary">
+      <i class="mdi mdi-plus-thick me-1"></i>{% trans "Add" %}
+    </a>
+    {% endif %}
+  </div>
+  <div class="card-body p-0">
+    {% if assigned_objects_panel.is_empty %}
+    <p class="text-muted small mb-0 p-3">
+      {% trans "No devices or virtual machines assigned to this rulebook." %}
+      {% if assigned_objects_panel.add_url and not rulebook_readonly %}
+      <a href="{{ assigned_objects_panel.add_url }}">{% trans "Assign now." %}</a>
+      {% endif %}
+    </p>
+    {% else %}
+    {% for host in assigned_objects_panel.hosts %}
+    <div class="border-bottom nsm-rb-assigned-host">
+      <div class="nsm-rb-assigned-host-hdr">
+        <button type="button"
+                class="nsm-tree-toggle"
+                data-bs-toggle="collapse"
+                data-bs-target="#nsm-rb-host-{{ host.assignment_id }}"
+                aria-expanded="true">
+          <i class="mdi mdi-chevron-right nsm-chev"></i>
+        </button>
+        {% if host.host_url %}
+        <a href="{{ host.host_url }}" class="text-decoration-none flex-grow-1 text-truncate">
+          <span class="badge text-bg-secondary me-1 fw-normal" style="font-size:10px;">
+            <i class="mdi {{ host.host_type_icon }} me-1" aria-hidden="true"></i>{{ host.host_type_label }}
+          </span>{{ host.host_name }}
+        </a>
+        {% else %}
+        <span class="flex-grow-1 text-truncate">
+          <span class="badge text-bg-secondary me-1 fw-normal" style="font-size:10px;">
+            <i class="mdi {{ host.host_type_icon }} me-1" aria-hidden="true"></i>{{ host.host_type_label }}
+          </span>{{ host.host_name }}
+        </span>
+        {% endif %}
+        {% if host.has_unlinked_interfaces %}
+        <label class="form-check form-check-inline mb-0 nsm-rb-show-all-ifaces-label"
+               title="{% trans 'Show all interfaces on this object' %}">
+          <input type="checkbox"
+                 class="form-check-input nsm-rb-show-all-ifaces-cb">
+          <span class="form-check-label text-muted">{% trans "All interfaces" %}</span>
+        </label>
+        {% endif %}
+        {% if host.remove_url and not rulebook_readonly %}
+        <a href="{{ host.remove_url }}"
+           class="btn btn-sm btn-danger py-0 px-1"
+           title="{% trans 'Remove assignment' %}"
+           aria-label="{% trans 'Remove assignment' %}">
+          <i class="mdi mdi-trash-can-outline" aria-hidden="true"></i>
+        </a>
+        {% endif %}
+      </div>
+      <div id="nsm-rb-host-{{ host.assignment_id }}" class="collapse show">
+        {% if host.has_unlinked_interfaces and not host.linked_interface_count %}
+        <div class="nsm-rb-assigned-iface-row nsm-rb-assigned-iface-filter-empty text-muted fst-italic">
+          {% trans "No linked interfaces. Enable “All interfaces” to assign links." %}
+        </div>
+        {% endif %}
+        {% for iface in host.interfaces %}
+        <div class="nsm-rb-assigned-iface-row d-flex flex-wrap align-items-start gap-2{% if not iface.has_links %} nsm-rb-assigned-iface-unlinked{% endif %}">
+          <span class="nsm-rb-assigned-iface-name">
+            {% if iface.url %}
+            <a href="{{ iface.url }}" class="text-decoration-none">{{ iface.name }}</a>
+            {% else %}
+            {{ iface.name }}
+            {% endif %}
+          </span>
+          <span class="flex-grow-1">
+            {% for link in iface.link_rows %}
+            <span class="nsm-rb-assigned-link-pill">
+              <span class="text-muted">{{ link.type_label }}:</span>
+              {% if link.url %}
+              <a href="{{ link.url }}">{{ link.name|safe }}</a>
+              {% else %}
+              <span>{{ link.name|safe }}</span>
+              {% endif %}
+              {% if link.edit_url or link.delete_url %}
+              <span class="btn-group btn-group-sm ms-1" role="group">
+                {% if link.edit_url %}
+                <a href="{{ link.edit_url }}"
+                   class="btn btn-warning btn-sm"
+                   title="{% trans 'Edit assignment' %}"
+                   aria-label="{% trans 'Edit assignment' %}">
+                  <i class="mdi mdi-pencil" aria-hidden="true"></i>
+                </a>
+                {% endif %}
+                {% if link.delete_url %}
+                <a href="{{ link.delete_url }}"
+                   class="btn btn-danger btn-sm"
+                   title="{% trans 'Remove assignment' %}"
+                   aria-label="{% trans 'Remove assignment' %}">
+                  <i class="mdi mdi-trash-can-outline" aria-hidden="true"></i>
+                </a>
+                {% endif %}
+              </span>
+              {% endif %}
+            </span>
+            {% empty %}
+            <span class="text-muted"
+                  title="{% trans 'No zone or label links assigned' %}"
+                  aria-label="{% trans 'No zone or label links assigned' %}">
+              <i class="mdi mdi-link-off" aria-hidden="true"></i>
+            </span>
+            {% endfor %}
+          </span>
+          {% if iface.assign_url and not rulebook_readonly %}
+          <a href="{{ iface.assign_url }}"
+             class="btn btn-sm btn-ghost-primary py-0"
+             title="{% trans 'Assign link' %}"
+             aria-label="{% trans 'Assign link' %}">
+            <i class="mdi mdi-plus-thick" aria-hidden="true"></i>
+          </a>
+          {% endif %}
+        </div>
+        {% empty %}
+        <div class="nsm-rb-assigned-iface-row text-muted fst-italic">
+          {% trans "No interfaces on this object." %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+  </div>
+</div>
+
+<script>
+(function () {
+  document.querySelectorAll(".nsm-rb-show-all-ifaces-cb").forEach(function (cb) {
+    cb.addEventListener("change", function () {
+      var host = cb.closest(".nsm-rb-assigned-host");
+      if (host) {
+        host.classList.toggle("nsm-rb-show-all-ifaces", cb.checked);
+      }
+    });
+  });
+})();
+</script>

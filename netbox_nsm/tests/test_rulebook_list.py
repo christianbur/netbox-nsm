@@ -2,7 +2,7 @@
 
 from django.urls import reverse
 
-from netbox_nsm.models import Rulebook, RulebookStatusChoices, RulebookTypeChoices
+from netbox_nsm.models import Rule, Rulebook, RulebookStatusChoices, RulebookTypeChoices
 from netbox_nsm.rulebook_field_utils import ensure_system_rulebook_fields
 from utilities.testing import TestCase
 
@@ -47,6 +47,18 @@ class RulebookListViewTests(TestCase):
         content = response.content.decode()
         delete_url = reverse("plugins:netbox_nsm:rulebook_delete", args=[rb.pk])
         self.assertNotIn(f'href="{delete_url}', content)
+
+    def test_list_shows_delete_in_dropdown_when_rulebook_empty(self):
+        rb = Rulebook.objects.create(
+            name="list-del-empty",
+            rulebook_type="security_rules",
+        )
+        self.add_permissions("netbox_nsm.view_rulebook", "netbox_nsm.delete_rulebook")
+        response = self.client.get(reverse("plugins:netbox_nsm:rulebook_list"))
+        content = response.content.decode()
+        delete_url = reverse("plugins:netbox_nsm:rulebook_delete", args=[rb.pk])
+        self.assertIn(f'href="{delete_url}', content)
+        self.assertIn("dropdown-item", content)
 
     def test_list_orders_parent_before_child(self):
         self.add_permissions("netbox_nsm.view_rulebook")

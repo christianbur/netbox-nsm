@@ -27,29 +27,7 @@
     </div>
   </td>
   <td class="nsm-rb-col-actions align-middle text-end">
-    {% if not rulebook_readonly %}
-    <span class="btn-group btn-group-sm noprint">
-      {% if not field.is_system_field %}
-      <a href="{% url 'plugins:netbox_nsm:rulebookfieldtype_add' %}?field={{ field.pk }}"
-         class="btn btn-sm btn-primary" type="button"
-         title="{% trans 'Add type' %}" aria-label="{% trans 'Add type' %}">
-        <i class="mdi mdi-plus-thick" aria-hidden="true"></i>
-      </a>
-      {% endif %}
-      {% if not field.is_system_field %}
-      <a href="{% url 'plugins:netbox_nsm:rulebookfield_delete' field.pk %}"
-         class="btn btn-sm btn-danger" type="button"
-         title="{% trans 'Delete' %}" aria-label="{% trans 'Delete' %}">
-        <i class="mdi mdi-trash-can-outline" aria-hidden="true"></i>
-      </a>
-      {% endif %}
-      <a href="{% url 'plugins:netbox_nsm:rulebookfield_edit' field.pk %}"
-         class="btn btn-sm btn-warning" type="button"
-         title="{% trans 'Edit' %}" aria-label="{% trans 'Edit' %}">
-        <i class="mdi mdi-pencil" aria-hidden="true"></i>
-      </a>
-    </span>
-    {% endif %}
+    {% include "netbox_nsm/inc/rulebook_field_row_actions.html" %}
   </td>
 </tr>
 {% if not field.is_system_field %}

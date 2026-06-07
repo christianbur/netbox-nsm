@@ -1182,58 +1182,12 @@ class RulebookRulesColumnsView(generic.ObjectView):
 
 
 class _RulebookRulesTabMixin:
-    """Bulk-delete and HTML rules table."""
+    """HTML rules table; bulk delete uses RuleBulkDeleteView confirmation flow."""
 
     queryset = Rulebook.objects.all().prefetch_related("rules")
     template_name = "netbox_nsm/rulebook_rules.html"
     rules_tab_route = "rulebook_rules"
     rules_tab_key = "rules"
-
-    def post(self, request, *args, **kwargs):
-        """Handle bulk-delete of rules from the rules table."""
-        from django.contrib import messages
-        from django.http import HttpResponseForbidden
-        from django.utils.translation import ngettext
-
-        from netbox_nsm.branch_urls import with_branch_query
-        from netbox_nsm.rulebook_rules_utils import delete_rules_with_rulebook_changelog
-
-        if "_delete" not in request.POST:
-            return HttpResponseForbidden()
-
-        instance = self.get_object(**kwargs)
-        if not request.user.has_perm("netbox_nsm.delete_rule"):
-            return HttpResponseForbidden()
-
-        pk_list = [int(pk) for pk in request.POST.getlist("pk") if pk.isdigit()]
-        deleted_count = delete_rules_with_rulebook_changelog(
-            rulebook=instance,
-            request=request,
-            pk_list=pk_list,
-        )
-        if deleted_count:
-            messages.success(
-                request,
-                ngettext(
-                    "Deleted %(count)s rule",
-                    "Deleted %(count)s rules",
-                    deleted_count,
-                )
-                % {"count": deleted_count},
-            )
-        else:
-            messages.warning(
-                request,
-                _("No rules were selected."),
-            )
-
-        redirect_url = reverse(
-            f"plugins:netbox_nsm:{self.rules_tab_route}",
-            args=[instance.pk],
-        )
-        if request.GET:
-            redirect_url = f"{redirect_url}?{request.GET.urlencode()}"
-        return redirect(with_branch_query(redirect_url, request))
 
     def get_extra_context(self, request, instance):
         from netbox_nsm.rulebook_rules_tab import build_rulebook_rules_tab_context
@@ -2380,8 +2334,93 @@ class RuleBulkDeleteView(generic.BulkDeleteView):
     queryset = Rule.objects.all()
     table = RuleTable
 
+    def _bulk_dependent_objects(self, queryset):
+        from collections import defaultdict
+
+        from django.db import router
+        from django.db.models.deletion import Collector
+
+        roots = list(queryset)
+        root_set = set(roots)
+        using = router.db_for_write(queryset.model)
+        collector = Collector(using=using)
+        collector.collect(roots)
+
+        dependent_objects = defaultdict(list)
+        for model, instance in collector.instances_with_model():
+            if model._meta.auto_created:
+                continue
+            if instance in root_set:
+                continue
+            dependent_objects[model].append(instance)
+        return dict(dependent_objects)
+
+    def _htmx_bulk_delete_confirmation(self, request):
+        from django.contrib import messages
+        from django.http import HttpResponse
+        from django.shortcuts import render
+        from django.utils.translation import gettext_lazy as _
+        from utilities.forms import BulkDeleteForm
+        from utilities.views import get_action_url
+
+        model = self.queryset.model
+        pk_list = [
+            int(pk) for pk in request.POST.getlist("pk") if str(pk).isdigit()
+        ]
+        return_url = self.get_return_url(request)
+
+        if not pk_list:
+            messages.warning(
+                request,
+                _("No {object_type} were selected.").format(
+                    object_type=model._meta.verbose_name_plural
+                ),
+            )
+            if return_url:
+                return HttpResponse(headers={"HX-Redirect": return_url})
+            return HttpResponse(status=204)
+
+        queryset = self.queryset.filter(pk__in=pk_list)
+        table = self.table(queryset, orderable=False)
+        if not table.rows:
+            messages.warning(
+                request,
+                _("No {object_type} were selected.").format(
+                    object_type=model._meta.verbose_name_plural
+                ),
+            )
+            if return_url:
+                return HttpResponse(headers={"HX-Redirect": return_url})
+            return HttpResponse(status=204)
+
+        form = BulkDeleteForm(
+            model,
+            initial={
+                "pk": pk_list,
+                "return_url": return_url,
+            },
+        )
+        return render(
+            request,
+            "netbox_nsm/htmx/bulk_delete_form.html",
+            {
+                "model": model,
+                "form": form,
+                "table": table,
+                "form_url": get_action_url(model, action="bulk_delete"),
+                "return_url": return_url,
+                "dependent_objects": self._bulk_dependent_objects(queryset),
+                "object_count": len(pk_list),
+            },
+        )
+
     def post(self, request, *args, **kwargs):
+        from utilities.htmx import htmx_partial
+
         rulebook_snapshots = None
+        if "_confirm" not in request.POST and htmx_partial(request):
+            return self._htmx_bulk_delete_confirmation(request)
+
         if "_confirm" in request.POST:
             pk_list = [pk for pk in request.POST.getlist("pk") if str(pk).isdigit()]
             if pk_list:

@@ -147,16 +147,36 @@ class RulebookForm(PrimaryModelForm):
             "tags",
         )
 
+    def _schema_copy_source_pk(self):
+        """Resolve ``copy_schema_from`` from POST (submit) or GET initial (add form)."""
+        if self.instance.pk:
+            return None
+        raw = None
+        if self.is_bound:
+            raw = self.data.get(COPY_SCHEMA_PARAM)
+        if raw in (None, ""):
+            raw = self.initial.get(COPY_SCHEMA_PARAM)
+        if raw in (None, ""):
+            return None
+        try:
+            return int(raw)
+        except (TypeError, ValueError):
+            return None
+
+    def _ensure_copy_schema_field(self, copy_from_pk: int) -> None:
+        if COPY_SCHEMA_PARAM in self.fields:
+            return
+        self.fields[COPY_SCHEMA_PARAM] = forms.IntegerField(
+            widget=forms.HiddenInput(),
+            required=False,
+        )
+        self.fields[COPY_SCHEMA_PARAM].initial = copy_from_pk
+        if not self.is_bound:
+            self.initial[COPY_SCHEMA_PARAM] = copy_from_pk
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        copy_from_pk = None
-        if not self.instance.pk:
-            raw_copy_from = self.initial.get(COPY_SCHEMA_PARAM)
-            if raw_copy_from not in (None, ""):
-                try:
-                    copy_from_pk = int(raw_copy_from)
-                except (TypeError, ValueError):
-                    copy_from_pk = None
+        copy_from_pk = self._schema_copy_source_pk()
         parent_qs = Rulebook.objects.all()
         if self.instance and self.instance.pk:
             from netbox_nsm.rulebook_hierarchy import invalid_parent_pks
@@ -193,12 +213,7 @@ class RulebookForm(PrimaryModelForm):
             source = Rulebook.objects.filter(pk=copy_from_pk).first()
             if source is not None:
                 populate_rulebook_form_from_source(self, source)
-                self.fields[COPY_SCHEMA_PARAM] = forms.IntegerField(
-                    widget=forms.HiddenInput(),
-                    required=False,
-                )
-                self.fields[COPY_SCHEMA_PARAM].initial = copy_from_pk
-                self.initial[COPY_SCHEMA_PARAM] = copy_from_pk
+                self._ensure_copy_schema_field(copy_from_pk)
 
     def clean_parent(self):
         from django.core.exceptions import ValidationError

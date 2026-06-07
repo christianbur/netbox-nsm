@@ -1,0 +1,31 @@
+{% load i18n %}
+{% if not rulebook_readonly %}
+{% url 'plugins:netbox_nsm:rulebookfield_edit' field.pk as field_edit_url %}
+<span class="btn-group btn-group-sm noprint{% if not field.is_system_field %} dropdown{% endif %}">
+  <a href="{{ field_edit_url }}"
+     class="btn btn-sm btn-warning" type="button"
+     title="{% trans 'Edit' %}" aria-label="{% trans 'Edit' %}">
+    <i class="mdi mdi-pencil" aria-hidden="true"></i>
+  </a>
+  {% if not field.is_system_field %}
+  <a class="btn btn-sm btn-warning dropdown-toggle" type="button"
+     data-bs-toggle="dropdown" style="padding-left: 2px">
+    <span class="visually-hidden">{% trans "Toggle Dropdown" %}</span>
+  </a>
+  <ul class="dropdown-menu">
+    <li>
+      <a class="dropdown-item"
+         href="{% url 'plugins:netbox_nsm:rulebookfieldtype_add' %}?field={{ field.pk }}">
+        <i class="mdi mdi-plus-thick" aria-hidden="true"></i> {% trans "Add type" %}
+      </a>
+    </li>
+    <li>
+      <a class="dropdown-item"
+         href="{% url 'plugins:netbox_nsm:rulebookfield_delete' field.pk %}">
+        <i class="mdi mdi-trash-can-outline" aria-hidden="true"></i> {% trans "Delete" %}
+      </a>
+    </li>
+  </ul>
+  {% endif %}
+</span>
+{% endif %}

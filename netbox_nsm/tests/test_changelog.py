@@ -253,12 +253,28 @@ class RulebookRulesLayoutChangelogTest(ModelViewTestCase):
             changed_object_id=self.rulebook.pk,
         ).count()
         url = reverse("plugins:netbox_nsm:rulebook_rules", args=[self.rulebook.pk])
+        return_url = url
+        bulk_delete_url = reverse("plugins:netbox_nsm:rule_bulk_delete")
         response = self.client.post(
-            url,
+            bulk_delete_url,
             post_data(
                 {
                     "_delete": "1",
                     "pk": [self.rule.pk, rule_b.pk],
+                    "return_url": return_url,
+                }
+            ),
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertIn("Confirm Bulk Deletion", response.content.decode())
+        response = self.client.post(
+            bulk_delete_url,
+            post_data(
+                {
+                    "_confirm": True,
+                    "confirm": True,
+                    "pk": [self.rule.pk, rule_b.pk],
+                    "return_url": return_url,
                 }
             ),
         )

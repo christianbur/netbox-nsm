@@ -1,11 +1,12 @@
 """Rule clone URL and rules-table action menu."""
 
+from django.test import SimpleTestCase
 from django.urls import reverse
 
 from netbox_nsm.models import Rule, Rulebook, RulebookTypeChoices
 from netbox_nsm.rule_copy import COPY_RULE_PARAM, rule_clone_add_url
 from netbox_nsm.rulebook_rules_tab import _render_actions_cell_html
-from utilities.testing import SimpleTestCase, TestCase
+from utilities.testing import TestCase
 
 
 class RuleCloneUrlTests(TestCase):
@@ -32,7 +33,7 @@ class RuleCloneUrlTests(TestCase):
 
 
 class RuleActionsCellHtmlTests(SimpleTestCase):
-    def test_renders_split_edit_with_dropdown_clone_delete(self):
+    def test_renders_edit_with_dropdown_clone_delete(self):
         html = _render_actions_cell_html(
             "/edit/",
             "/delete/",
@@ -43,9 +44,11 @@ class RuleActionsCellHtmlTests(SimpleTestCase):
         )
         self.assertIn("btn btn-sm btn-warning nsm-ag-action-edit", html)
         self.assertIn("dropdown-toggle", html)
+        self.assertIn("dropdown-menu", html)
         self.assertIn("nsm-ag-action-delete", html)
         self.assertIn("nsm-ag-action-clone", html)
         self.assertNotIn("btn btn-danger nsm-ag-action-delete", html)
+        self.assertNotIn("btn btn-primary nsm-ag-action-clone", html)
 
     def test_edit_only_when_no_dropdown_actions(self):
         html = _render_actions_cell_html(

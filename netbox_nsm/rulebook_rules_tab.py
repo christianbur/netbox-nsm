@@ -583,39 +583,47 @@ def _render_actions_cell_html(
     dropdown_links = []
 
     if can_delete:
+        delete_label = _("Delete")
         dropdown_links.append(
             f'<li><a class="dropdown-item nsm-ag-action-delete"'
             f' href="{conditional_escape(delete_url)}">'
-            f'<i class="mdi mdi-trash-can-outline"></i> Delete</a></li>'
+            f'<i class="mdi mdi-trash-can-outline" aria-hidden="true"></i> '
+            f"{conditional_escape(delete_label)}</a></li>"
         )
     if can_add and clone_url:
+        clone_label = _("Clone")
         dropdown_links.append(
             f'<li><a class="dropdown-item nsm-ag-action-clone"'
             f' href="{conditional_escape(clone_url)}">'
-            f'<i class="mdi mdi-content-copy"></i> Clone</a></li>'
+            f'<i class="mdi mdi-content-copy" aria-hidden="true"></i> '
+            f"{conditional_escape(clone_label)}</a></li>"
         )
 
     if can_change:
+        edit_label = _("Edit")
         edit_btn = (
             f'<a class="btn btn-sm btn-warning nsm-ag-action-edit"'
             f' href="{conditional_escape(edit_url)}" type="button"'
-            f' title="Edit" aria-label="Edit">'
+            f' title="{conditional_escape(edit_label)}"'
+            f' aria-label="{conditional_escape(edit_label)}">'
             f'<i class="mdi mdi-pencil" aria-hidden="true"></i></a>'
         )
     else:
+        edit_label = _("Edit")
         edit_btn = (
-            '<button type="button" class="btn btn-sm btn-warning" disabled'
-            ' aria-disabled="true" title="Edit" aria-label="Edit">'
-            '<i class="mdi mdi-pencil" aria-hidden="true"></i></button>'
+            f'<button type="button" class="btn btn-sm btn-warning" disabled'
+            f' aria-disabled="true" title="{conditional_escape(edit_label)}"'
+            f' aria-label="{conditional_escape(edit_label)}">'
+            f'<i class="mdi mdi-pencil" aria-hidden="true"></i></button>'
         )
 
     if edit_btn and dropdown_links:
         html = (
-            f'<span class="btn-group dropdown">'
+            f'<span class="btn-group btn-group-sm dropdown">'
             f"  {edit_btn}"
             f'  <a class="btn btn-sm btn-warning dropdown-toggle" type="button"'
             f' data-bs-toggle="dropdown" style="padding-left: 2px">'
-            f'  <span class="visually-hidden">{toggle_text}</span></a>'
+            f'  <span class="visually-hidden">{conditional_escape(toggle_text)}</span></a>'
             f'  <ul class="dropdown-menu">{"".join(dropdown_links)}</ul>'
             f"</span>"
         )
@@ -625,17 +633,18 @@ def _render_actions_cell_html(
         )
     elif dropdown_links:
         html = (
-            f'<span class="btn-group dropdown">'
+            f'<span class="btn-group btn-group-sm dropdown">'
             f'  <a class="btn btn-sm btn-secondary dropdown-toggle" type="button"'
             f' data-bs-toggle="dropdown">'
-            f'  <span class="visually-hidden">{toggle_text}</span></a>'
+            f'  <span class="visually-hidden">{conditional_escape(toggle_text)}</span></a>'
             f'  <ul class="dropdown-menu">{"".join(dropdown_links)}</ul>'
             f"</span>"
         )
     else:
-        html = (
-            f'<span class="btn-group btn-group-sm" role="group">{edit_btn}</span>'
-        )
+        html = ""
+
+    if not html:
+        return '<div class="text-end text-nowrap"></div>'
 
     return f'<div class="text-end text-nowrap">{html}</div>'
 

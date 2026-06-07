@@ -345,10 +345,34 @@ class RulebookActionsColumn(ActionsColumn):
         return rule_count > 0
 
     def _action_names(self, record):
+        """Edit is the split button; delete is added to the dropdown separately."""
         names = list(self.actions.keys())
-        if self._has_rules(record) and "delete" in names:
+        if "delete" in names:
             names.remove("delete")
         return names
+
+    def _append_delete_dropdown_link(
+        self,
+        *,
+        record,
+        model,
+        user,
+        url_appendix: str,
+        dropdown_links: list[str],
+    ) -> None:
+        if self._has_rules(record):
+            return
+        attrs = self.actions.get("delete")
+        if not attrs:
+            return
+        permission = get_permission_for_model(model, attrs.permission)
+        if attrs.permission is not None and not user.has_perm(permission):
+            return
+        url = get_action_url(model, action="delete", kwargs={"pk": record.pk})
+        dropdown_links.append(
+            f'<li><a class="dropdown-item" href="{url}{url_appendix}">'
+            f'<i class="mdi mdi-{attrs.icon}"></i> {attrs.title}</a></li>'
+        )
 
     def render(self, record, table, **kwargs):
         model = table.Meta.model
@@ -386,6 +410,14 @@ class RulebookActionsColumn(ActionsColumn):
                     f'<li><a class="dropdown-item" href="{url}{url_appendix}">'
                     f'<i class="mdi mdi-{attrs.icon}"></i> {attrs.title}</a></li>'
                 )
+
+        self._append_delete_dropdown_link(
+            record=record,
+            model=model,
+            user=user,
+            url_appendix=url_appendix,
+            dropdown_links=dropdown_links,
+        )
 
         if user.has_perm("netbox_nsm.add_rulebook"):
             copy_url = rulebook_schema_copy_add_url(

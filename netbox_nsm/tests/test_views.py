@@ -187,7 +187,7 @@ class RulebookViewCrudTests(TestCase):
             reverse("plugins:netbox_nsm:rulebook", args=[rb.pk])
         ).content.decode()
         self.assertIn(edit_url, detail)
-        self.assertIn(delete_url, detail)
+        self.assertNotIn(delete_url, detail)
 
         rules = self.client.get(
             reverse("plugins:netbox_nsm:rulebook_rules", args=[rb.pk])

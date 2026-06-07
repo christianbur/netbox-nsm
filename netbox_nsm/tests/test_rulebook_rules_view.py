@@ -2,10 +2,12 @@
 
 from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
+from ipam.models import Prefix
 from urllib.parse import quote
 
 from netbox_nsm.models import (
     Rule,
+    RuleObjectItem,
     Rulebook,
     RulebookField,
     RulebookFieldKind,
@@ -15,6 +17,7 @@ from netbox_nsm.models import (
 from netbox_nsm.rulebook_rules_tab import RULES_HTML_ROW_LIMIT
 from netbox_nsm.rulebook_field_utils import ensure_system_rulebook_fields
 from utilities.testing import TestCase
+from utilities.testing.utils import post_data
 
 
 class RulebookRulesViewTests(TestCase):
@@ -126,15 +129,64 @@ class RulebookRulesViewTests(TestCase):
         self.assertIn("sticky-actions", content)
         self.assertNotIn("Edit Selected", content)
         self.assertIn("Delete Selected", content)
-        self.assertNotIn(
+        self.assertIn(
             reverse("plugins:netbox_nsm:rule_bulk_delete"),
             content,
         )
+        self.assertIn('hx-target="#htmx-modal-content"', content)
+        self.assertIn('data-bs-target="#htmx-modal"', content)
         self.assertIn('name="_delete"', content)
         self.assertIn('class="w-1"', content)
         self.assertIn('name="pk"', content)
         self.assertIn("Destination", content)
         self.assertIn("data-col-id=", content)
+
+    def test_bulk_delete_selected_opens_confirmation_modal(self):
+        rule_a = self.rulebook.rules.first()
+        rule_b = Rule.objects.create(
+            rulebook=self.rulebook,
+            name="bulk-modal-rule-b",
+            index=20,
+        )
+        ct = ContentType.objects.get_for_model(Prefix)
+        assigned = Prefix.objects.create(prefix="10.99.0.0/24", status="active")
+        for rule in (rule_a, rule_b):
+            RuleObjectItem.objects.create(
+                rule=rule,
+                field=self.object_field,
+                content_type=ct,
+                object_id=assigned.pk,
+            )
+        self.add_permissions(
+            "netbox_nsm.view_rulebook",
+            "netbox_nsm.view_rule",
+            "netbox_nsm.delete_rule",
+        )
+        return_url = reverse(
+            "plugins:netbox_nsm:rulebook_rules", args=[self.rulebook.pk]
+        )
+        response = self.client.post(
+            reverse("plugins:netbox_nsm:rule_bulk_delete"),
+            post_data(
+                {
+                    "pk": [rule_a.pk, rule_b.pk],
+                    "return_url": return_url,
+                }
+            ),
+            HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+        content = response.content.decode()
+        self.assertIn("Confirm Deletion", content)
+        self.assertIn(
+            "The following objects will be deleted as a result of this action.",
+            content,
+        )
+        self.assertIn('name="_confirm"', content)
+        self.assertTrue(
+            Rule.objects.filter(pk__in=[rule_a.pk, rule_b.pk]).count(),
+            2,
+        )
 
     def test_delete_action_includes_return_url_to_rules_tab(self):
         self.add_permissions(

@@ -2,6 +2,7 @@
 
 from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
+from django.utils.html import escape
 from ipam.models import Prefix
 
 from netbox_nsm.models import (
@@ -61,10 +62,11 @@ class RulebookSchemaCopyTests(TestCase):
         self.assertEqual(response.status_code, 200)
         content = response.content.decode()
         self.assertIn("Copy schema", content)
-        self.assertIn(
-            rulebook_schema_copy_add_url(self.source),
-            content,
+        copy_url = rulebook_schema_copy_add_url(
+            self.source,
+            return_url=reverse("plugins:netbox_nsm:rulebook_list"),
         )
+        self.assertIn(escape(copy_url), content)
 
     def test_add_form_prefills_metadata_but_not_name(self):
         self.add_permissions("netbox_nsm.view_rulebook", "netbox_nsm.add_rulebook")
@@ -77,6 +79,15 @@ class RulebookSchemaCopyTests(TestCase):
         self.assertIn("https://fw.example.test/", content)
         self.assertIn(COPY_SCHEMA_PARAM, content)
         self.assertNotIn('value="schema-source"', content)
+
+    def test_add_form_includes_hidden_copy_schema_field(self):
+        self.add_permissions("netbox_nsm.view_rulebook", "netbox_nsm.add_rulebook")
+        url = rulebook_schema_copy_add_url(self.source)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn(f'name="{COPY_SCHEMA_PARAM}"', content)
+        self.assertIn(f'value="{self.source.pk}"', content)
 
     def test_create_rulebook_copies_field_layout(self):
         self.add_permissions(

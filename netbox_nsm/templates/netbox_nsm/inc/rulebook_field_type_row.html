@@ -22,19 +22,6 @@
     </div>
   </td>
   <td class="nsm-rb-col-actions align-middle text-end">
-    {% if not rulebook_readonly %}
-    <span class="btn-group btn-group-sm noprint nsm-rb-type-actions">
-      <a href="{% url 'plugins:netbox_nsm:rulebookfieldtype_delete' ft.pk %}"
-         class="btn btn-sm btn-danger" type="button"
-         title="{% trans 'Delete' %}" aria-label="{% trans 'Delete' %}">
-        <i class="mdi mdi-trash-can-outline" aria-hidden="true"></i>
-      </a>
-      <a href="{% url 'plugins:netbox_nsm:rulebookfieldtype_edit' ft.pk %}"
-         class="btn btn-sm btn-warning" type="button"
-         title="{% trans 'Edit' %}" aria-label="{% trans 'Edit' %}">
-        <i class="mdi mdi-pencil" aria-hidden="true"></i>
-      </a>
-    </span>
-    {% endif %}
+    {% include "netbox_nsm/inc/rulebook_field_type_row_actions.html" %}
   </td>
 </tr>

@@ -1,4 +1,4 @@
-"""Large-scale demo: 300 zones and 12 000 policy rules."""
+"""Large-scale demo: 100×100 zone matrix with 10 000 policy rules (one per cell)."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ from netbox_nsm.models.rulebook import Rule, Rulebook, RuleObjectItem
 from netbox_nsm.rulebook_field_utils import ensure_system_rulebook_fields
 
 __all__ = (
+    "GRID_SIZE",
     "RULE_COUNT",
     "RULEBOOK_NAME",
     "ZONE_COUNT",
@@ -21,8 +22,9 @@ __all__ = (
 )
 
 RULEBOOK_NAME = "Demo - Scale Test"
-ZONE_COUNT = 300
-RULE_COUNT = 12000
+GRID_SIZE = 100
+ZONE_COUNT = GRID_SIZE
+RULE_COUNT = GRID_SIZE * GRID_SIZE
 ZONE_NAME_PREFIX = "demo-"
 ACTION_RANDOM_SEED = 42
 BATCH_SIZE = 2500
@@ -60,7 +62,7 @@ def _ensure_zones(zone_model, *, count: int) -> list:
         num = i + 1
         to_create.append(
             zone_model(
-                name=f"{ZONE_NAME_PREFIX}{num:04d}",  # demo-0001 … demo-0300
+                name=f"{ZONE_NAME_PREFIX}{num:04d}",
                 color=_zone_color(i),
             )
         )
@@ -87,10 +89,18 @@ def _ensure_rulebook_fields(rb):
     return fields
 
 
+def _matrix_indices(rule_index: int) -> tuple[int, int]:
+    """Map rule index 0..9999 to a full GRID_SIZE×GRID_SIZE source/destination pair."""
+    src_idx = rule_index // GRID_SIZE
+    dst_idx = rule_index % GRID_SIZE
+    return src_idx, dst_idx
+
+
 def create_scale_test_demo(*, recreate: bool = True) -> dict:
     """
     Create ``Demo - Scale Test`` with *ZONE_COUNT* zones and *RULE_COUNT* rules.
 
+    Each rule maps to one matrix cell (source row × destination column).
     Returns a summary dict with counts and elapsed seconds.
     """
     from netbox_nsm.views.setup.demo import _ensure_demo_prerequisites
@@ -113,7 +123,7 @@ def create_scale_test_demo(*, recreate: bool = True) -> dict:
             name=RULEBOOK_NAME,
             defaults={
                 "rulebook_type": "security_rules",
-                "description": "Performance / UI scale test",
+                "description": "100×100 matrix performance / UI scale test",
             },
         )
         fields = _ensure_rulebook_fields(rb)
@@ -147,6 +157,7 @@ def create_scale_test_demo(*, recreate: bool = True) -> dict:
         return {
             "rulebook": rb.name,
             "rulebook_id": rb.pk,
+            "grid_size": GRID_SIZE,
             "zones": len(zones),
             "rules": existing_rules,
             "object_items": RuleObjectItem.objects.filter(rule__rulebook=rb).count(),
@@ -166,10 +177,11 @@ def create_scale_test_demo(*, recreate: bool = True) -> dict:
         with transaction.atomic():
             rule_rows = []
             for i in range(batch_start, batch_end):
+                src_idx, dst_idx = _matrix_indices(i)
                 rule_rows.append(
                     Rule(
                         rulebook=rb,
-                        name=f"scale-{i + 1:05d}",
+                        name=f"matrix-{src_idx + 1:03d}x{dst_idx + 1:03d}",
                         index=(i + 1) * 10,
                         enabled=True,
                     )
@@ -180,8 +192,8 @@ def create_scale_test_demo(*, recreate: bool = True) -> dict:
             created_rules = list(
                 Rule.objects.filter(
                     rulebook=rb,
-                    name__gte=f"scale-{batch_start + 1:05d}",
-                    name__lte=f"scale-{batch_end:05d}",
+                    index__gte=(batch_start + 1) * 10,
+                    index__lte=batch_end * 10,
                 ).order_by("index")
             )
             if len(created_rules) != len(rule_rows):
@@ -190,10 +202,7 @@ def create_scale_test_demo(*, recreate: bool = True) -> dict:
             item_rows = []
             for offset, rule in enumerate(created_rules):
                 i = batch_start + offset
-                src_idx = i % ZONE_COUNT
-                dst_idx = (i * 17 + 42) % ZONE_COUNT
-                if dst_idx == src_idx:
-                    dst_idx = (dst_idx + 1) % ZONE_COUNT
+                src_idx, dst_idx = _matrix_indices(i)
                 src_zone = zones[src_idx]
                 dst_zone = zones[dst_idx]
                 svc = svc_pool[i % len(svc_pool)]
@@ -238,6 +247,7 @@ def create_scale_test_demo(*, recreate: bool = True) -> dict:
     return {
         "rulebook": rb.name,
         "rulebook_id": rb.pk,
+        "grid_size": GRID_SIZE,
         "zones": len(zones),
         "rules": rules_created,
         "object_items": items_created,

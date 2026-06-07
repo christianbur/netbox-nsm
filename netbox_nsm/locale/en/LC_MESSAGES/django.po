@@ -367,6 +367,46 @@ msgstr ""
 msgid "Rule Defaults"
 msgstr ""
 
+#: netbox_nsm/forms/rulebook.py
+msgid "Show"
+msgstr ""
+
+#: netbox_nsm/forms/rulebook.py
+msgid "Hide"
+msgstr ""
+
+#: netbox_nsm/forms/rulebook.py netbox_nsm/models/rulebook.py
+msgid "Matrix tab"
+msgstr ""
+
+#: netbox_nsm/forms/rulebook.py netbox_nsm/models/rulebook.py
+msgid "Show the zone matrix tab for this rulebook."
+msgstr ""
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_matrix.html
+msgid "Matrix"
+msgstr ""
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_matrix.html
+msgid "Object type"
+msgstr ""
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_matrix.html
+msgid "Source (Rows)"
+msgstr ""
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_matrix.html
+msgid "Destination (Columns)"
+msgstr ""
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_matrix.html
+msgid "Apply"
+msgstr ""
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_matrix.html
+msgid "Apply filters"
+msgstr ""
+
 #: netbox_nsm/forms/security_policy.py:103
 msgid "Status (on/off)"
 msgstr ""
@@ -2226,6 +2266,12 @@ msgstr "Search (min. 2 chars)…"
 #: netbox_nsm/templates/netbox_nsm/rule_edit.html
 msgid "Select a rulebook first, then assign zones, addresses, services, and other objects per field."
 msgstr "Select a rulebook first, then assign zones, addresses, services, and other objects per field."
+
+#: netbox_nsm/rulebook_rules_cell_html.py
+msgid "%(count)s object"
+msgid_plural "%(count)s objects"
+msgstr[0] "%(count)s object"
+msgstr[1] "%(count)s objects"
 
 #: netbox_nsm/rulebook_rules_grid_payload.py:52
 #: netbox_nsm/tables/rulebook.py:357

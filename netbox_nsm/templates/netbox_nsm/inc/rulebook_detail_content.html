@@ -37,6 +37,16 @@
           </td>
         </tr>
         <tr>
+          <th scope="row">{% trans "Matrix tab" %}</th>
+          <td>
+            {% if object.matrix_tab_enabled %}
+            {% trans "Show" %}
+            {% else %}
+            {% trans "Hide" %}
+            {% endif %}
+          </td>
+        </tr>
+        <tr>
           <th scope="row">{% trans "Description" %}</th>
           <td>{{ object.description|placeholder }}</td>
         </tr>

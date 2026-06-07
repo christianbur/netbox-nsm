@@ -1,8 +1,7 @@
-"""Matrix dropzone validation and client config for the Rules AG Grid tab."""
+"""Matrix dropzone validation and client config for Rules view modes."""
 
 from __future__ import annotations
 
-from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from netbox_nsm.rule_field_selections import parse_rules_column_key
@@ -11,11 +10,6 @@ __all__ = (
     "MATRIX_COL_QUERY_PARAM",
     "MATRIX_COL_SLOT_LABEL",
     "MATRIX_DUPLICATE_MESSAGE",
-    "MATRIX_MODE_DIRECTED_LABEL",
-    "MATRIX_MODE_DIRECTED_TITLE",
-    "MATRIX_MODE_QUERY_PARAM",
-    "MATRIX_MODE_UNDIRECTED_LABEL",
-    "MATRIX_MODE_UNDIRECTED_TITLE",
     "MATRIX_NOT_ALLOWED_MESSAGE",
     "MATRIX_ROW_SLOT_LABEL",
     "MATRIX_ROW_QUERY_PARAM",
@@ -37,11 +31,6 @@ MATRIX_TYPE_MISMATCH_MESSAGE = _(
 MATRIX_DUPLICATE_MESSAGE = _("This column is already in the matrix.")
 MATRIX_ROW_SLOT_LABEL = _("Row")
 MATRIX_COL_SLOT_LABEL = _("Column")
-MATRIX_MODE_DIRECTED_LABEL = _("Directed")
-MATRIX_MODE_UNDIRECTED_LABEL = _("Undirected")
-MATRIX_MODE_DIRECTED_TITLE = _("Directed: → and ← shown separately")
-MATRIX_MODE_UNDIRECTED_TITLE = _("Undirected: A↔B merged")
-MATRIX_MODE_QUERY_PARAM = "mode"
 
 
 def _matrix_group_value(column_key: str) -> str:
@@ -56,14 +45,6 @@ def _content_type_id_from_column_key(column_key: str) -> int | None:
         return int(type_key[3:])
     except (TypeError, ValueError):
         return None
-
-
-def parse_matrix_mode(request) -> str:
-    """Return directed or undirected from the matrix mode query param."""
-    raw = (request.GET.get(MATRIX_MODE_QUERY_PARAM) or "directed").strip()
-    if raw not in ("undirected", "directed"):
-        return "directed"
-    return raw
 
 
 def build_matrix_column_meta(
@@ -143,20 +124,15 @@ def build_rules_matrix_grid_config(
     *,
     field_placements: dict[str, str] | None = None,
 ) -> dict:
-    """Client config for embedded matrix mode in the Rules tab."""
+    """Client config for embedded matrix mode (dropzone + axis metadata)."""
     meta = build_matrix_column_meta(rules_layout, field_placements)
     cfg: dict = {
         "matrixColumnMeta": meta,
-        "matrixGridUrl": reverse(
-            "plugins:netbox_nsm:rulebook_matrix_grid_api",
-            args=[instance.pk],
-        ),
         "matrixNotAllowedMessage": str(MATRIX_NOT_ALLOWED_MESSAGE),
         "matrixTypeMismatchMessage": str(MATRIX_TYPE_MISMATCH_MESSAGE),
         "matrixDuplicateMessage": str(MATRIX_DUPLICATE_MESSAGE),
         "matrixRowSlotLabel": str(MATRIX_ROW_SLOT_LABEL),
         "matrixColSlotLabel": str(MATRIX_COL_SLOT_LABEL),
-        "matrixMode": parse_matrix_mode(request),
         "removeMatrixFieldLabel": str(_("Remove matrix field")),
         "rulebookName": str(getattr(instance, "name", "") or f"rulebook-{instance.pk}"),
     }

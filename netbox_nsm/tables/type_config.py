@@ -119,7 +119,8 @@ class TypeConfigTable(NetBoxTable):
         labels = record.panel_linkable_type_labels()
         if not labels:
             return format_html(
-                '<span class="badge bg-primary text-white">{}</span>',
+                '<span class="badge bg-primary-subtle text-primary-emphasis'
+                ' border border-primary-subtle">{}</span>',
                 _("All types"),
             )
         return ", ".join(labels)

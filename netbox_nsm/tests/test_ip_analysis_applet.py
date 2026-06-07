@@ -1,11 +1,15 @@
 """Tests for IP Analyzer applet helpers."""
 
+import re
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 
 from netbox_nsm.models.type_config import MatchingClassChoices
+from netbox_nsm.rulebook_rules_cell_html import (
+    render_rules_cell_ag as _render_rules_cell_ag,
+)
 from netbox_nsm.views.rulebook import (
     _build_addr_tree_node,
     _build_multi_object_addr_analysis,
@@ -13,7 +17,6 @@ from netbox_nsm.views.rulebook import (
     _object_is_addr_analyzable,
     _object_supports_addr_analysis,
     ipa_loupe_button_html,
-    _render_rules_cell_ag,
 )
 
 _PLUGIN_ROOT = Path(__file__).resolve().parents[1]
@@ -123,7 +126,7 @@ class IpamPrefixTreeTests(SimpleTestCase):
 
 
 class RulesCellLoupeTests(SimpleTestCase):
-    def test_item_loupe_rendered_for_analyzable_object(self):
+    def test_cell_loupe_once_for_analyzable_objects(self):
         html = _render_rules_cell_ag(
             [
                 {
@@ -136,12 +139,38 @@ class RulesCellLoupeTests(SimpleTestCase):
                 }
             ]
         )
-        self.assertIn("nsm-ipa-loupe", html)
+        self.assertEqual(html.count("nsm-ipa-loupe"), 1)
+        self.assertIn("nsm-ipa-cell-loupe", html)
         self.assertIn('data-addr-analyzable="1"', html)
-        self.assertIn('data-ct="1"', html)
-        self.assertIn('data-pk="2"', html)
+        loupe_tag = re.search(r"<button[^>]*nsm-ipa-cell-loupe[^>]*>", html)
+        self.assertIsNotNone(loupe_tag)
+        self.assertNotIn("data-ct", loupe_tag.group(0))
 
-    def test_item_loupe_skipped_for_non_analyzable_object(self):
+    def test_cell_loupe_collects_all_objects_in_cell(self):
+        html = _render_rules_cell_ag(
+            [
+                {
+                    "url": "/a/1/",
+                    "name": "net-a",
+                    "color": "",
+                    "ct": 1,
+                    "pk": 2,
+                    "addrAnalyzable": True,
+                },
+                {
+                    "url": "/a/2/",
+                    "name": "net-b",
+                    "color": "",
+                    "ct": 1,
+                    "pk": 3,
+                    "addrAnalyzable": True,
+                },
+            ]
+        )
+        self.assertEqual(html.count("nsm-ipa-loupe"), 1)
+        self.assertEqual(html.count("nsm-ag-cell-item--probe"), 2)
+
+    def test_cell_loupe_skipped_for_non_analyzable_object(self):
         html = _render_rules_cell_ag(
             [{"url": "/a/1/", "name": "net-a", "color": "", "ct": 1, "pk": 2}]
         )
@@ -173,4 +202,4 @@ class IpAnalyzerMergeAssetsTests(SimpleTestCase):
             _PLUGIN_ROOT / "templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html"
         ).read_text(encoding="utf-8")
         self.assertIn("nsm_ip_analyzer_applet.js", assets)
-        self.assertIn("?v=202606072", assets)
+        self.assertIn("?v=202606073", assets)

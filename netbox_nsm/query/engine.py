@@ -32,9 +32,18 @@ class RulebookContext:
 
         if rulebook:
             try:
-                fields_qs = rulebook.fields.prefetch_related(
-                    "type_configs__type_config__content_type"
-                ).all()
+                from netbox_nsm.virtual_rulebook import is_virtual_all_rules_rulebook
+
+                if is_virtual_all_rules_rulebook(rulebook):
+                    from netbox_nsm.rulebook_field_utils import (
+                        get_visible_virtual_all_rules_fields,
+                    )
+
+                    fields_qs = get_visible_virtual_all_rules_fields()
+                else:
+                    fields_qs = rulebook.fields.prefetch_related(
+                        "type_configs__type_config__content_type"
+                    ).all()
                 for f in fields_qs:
                     self._by_slug[f.slug.lower()] = f
                     self._by_name[f.name.lower()] = f

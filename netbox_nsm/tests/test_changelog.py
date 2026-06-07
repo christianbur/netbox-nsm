@@ -7,8 +7,11 @@ from django.urls import reverse
 from ipam.models import Prefix
 from rest_framework import status
 
+from core.choices import ObjectChangeActionChoices
 from core.models import ObjectChange
 from netbox_nsm.changelog_utils import (
+    _infer_rules_layout_changelog_action,
+    _rules_layout_changelog_slice,
     describe_rule_assignment_changes,
     describe_rulebook_fields_layout_changes,
     describe_rulebook_rules_changes,
@@ -23,6 +26,7 @@ from netbox_nsm.models import (
     TypeConfig,
 )
 from netbox_nsm.tests.custom import APITestCase, ModelViewTestCase
+from netbox_nsm.tests.form_helpers import rulebook_post_data
 from utilities.testing.utils import post_data
 
 
@@ -194,6 +198,91 @@ class RulebookRulesLayoutChangelogTest(ModelViewTestCase):
         self.assertIn(str(self.rule.pk), rules_layout)
         self.assertTrue(latest.message)
         self.assertIn("rules-layout-rule-renamed", latest.message.lower())
+
+    def test_rule_delete_records_delta_on_rulebook(self):
+        self.add_permissions(
+            "netbox_nsm.view_rulebook",
+            "netbox_nsm.view_rule",
+            "netbox_nsm.delete_rule",
+        )
+        rb_ct = ContentType.objects.get_for_model(Rulebook)
+        before = ObjectChange.objects.filter(
+            changed_object_type=rb_ct,
+            changed_object_id=self.rulebook.pk,
+        ).count()
+        url = reverse("plugins:netbox_nsm:rule_delete", args=[self.rule.pk])
+        response = self.client.post(url, post_data({"confirm": True}))
+        self.assertEqual(response.status_code, 302, response.content)
+        self.assertGreater(
+            ObjectChange.objects.filter(
+                changed_object_type=rb_ct,
+                changed_object_id=self.rulebook.pk,
+            ).count(),
+            before,
+        )
+        latest = (
+            ObjectChange.objects.filter(
+                changed_object_type=rb_ct,
+                changed_object_id=self.rulebook.pk,
+            )
+            .order_by("-time")
+            .first()
+        )
+        self.assertIn("Removed rule", latest.message)
+        self.assertEqual(latest.action, ObjectChangeActionChoices.ACTION_DELETE)
+        pre_rules = latest.prechange_data.get("rules_layout") or {}
+        post_rules = latest.postchange_data.get("rules_layout") or {}
+        self.assertIn(str(self.rule.pk), pre_rules)
+        self.assertNotIn(str(self.rule.pk), post_rules)
+        self.assertEqual(len(pre_rules), 1)
+
+    def test_rules_layout_changelog_slice_keeps_only_changed_rules(self):
+        pre = {
+            "rules_layout": {
+                "1": {"name": "a", "index": 1, "enabled": True},
+                "2": {"name": "b", "index": 2, "enabled": True},
+            }
+        }
+        post = {
+            "rules_layout": {
+                "1": {"name": "a", "index": 1, "enabled": True},
+                "2": {"name": "b-renamed", "index": 2, "enabled": True},
+            }
+        }
+        pre_slice, post_slice = _rules_layout_changelog_slice(pre, post)
+        self.assertEqual(set(pre_slice), {"2"})
+        self.assertEqual(set(post_slice), {"2"})
+        self.assertEqual(pre_slice["2"]["name"], "b")
+        self.assertEqual(post_slice["2"]["name"], "b-renamed")
+
+    def test_infer_rules_layout_changelog_action(self):
+        delete_pre = {"1": {"name": "removed"}}
+        delete_post = {}
+        self.assertEqual(
+            _infer_rules_layout_changelog_action(delete_pre, delete_post),
+            ObjectChangeActionChoices.ACTION_DELETE,
+        )
+
+        create_pre = {}
+        create_post = {"2": {"name": "added"}}
+        self.assertEqual(
+            _infer_rules_layout_changelog_action(create_pre, create_post),
+            ObjectChangeActionChoices.ACTION_CREATE,
+        )
+
+        update_pre = {"3": {"name": "old"}}
+        update_post = {"3": {"name": "new"}}
+        self.assertEqual(
+            _infer_rules_layout_changelog_action(update_pre, update_post),
+            ObjectChangeActionChoices.ACTION_UPDATE,
+        )
+
+        mixed_pre = {"1": {"name": "removed"}, "2": {"name": "old"}}
+        mixed_post = {"2": {"name": "new"}}
+        self.assertEqual(
+            _infer_rules_layout_changelog_action(mixed_pre, mixed_post),
+            ObjectChangeActionChoices.ACTION_UPDATE,
+        )
 
 
 class TypeConfigChangelogTest(ModelViewTestCase):
@@ -411,7 +500,53 @@ class RulebookFieldsLayoutChangelogTest(ModelViewTestCase):
         self.assertIn("fields_layout", latest.postchange_data or {})
         self.assertIsInstance(latest.postchange_data.get("fields_layout"), dict)
         self.assertIn("source", latest.postchange_data["fields_layout"])
+        self.assertNotIn("rules_layout", latest.prechange_data or {})
+        self.assertNotIn("rules_layout", latest.postchange_data or {})
         self.assertTrue(latest.message)
+
+
+class RulebookMetadataChangelogTest(ModelViewTestCase):
+    """Metadata edits via the rulebook form must not snapshot all rules."""
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.rulebook = Rulebook.objects.create(
+            name="metadata-changelog-rb",
+            rulebook_type="security_rules",
+        )
+        Rule.objects.create(
+            rulebook=cls.rulebook, name="metadata-changelog-rule", index=10
+        )
+
+    def test_rulebook_edit_omits_layout_snapshots_from_changelog(self):
+        self.add_permissions("netbox_nsm.view_rulebook", "netbox_nsm.change_rulebook")
+        rb_ct = ContentType.objects.get_for_model(Rulebook)
+        url = reverse("plugins:netbox_nsm:rulebook_edit", args=[self.rulebook.pk])
+        response = self.client.post(
+            url,
+            rulebook_post_data(
+                name="metadata-changelog-rb",
+                matrix_tab_enabled="0",
+                description="updated metadata",
+            ),
+        )
+        self.assertEqual(response.status_code, 302, response.content)
+        latest = (
+            ObjectChange.objects.filter(
+                changed_object_type=rb_ct,
+                changed_object_id=self.rulebook.pk,
+            )
+            .order_by("-time")
+            .first()
+        )
+        post = latest.postchange_data or {}
+        self.assertNotIn("rules_layout", post)
+        self.assertNotIn("fields_layout", post)
+        self.assertFalse(post.get("matrix_tab_enabled"))
+        pre = latest.prechange_data or {}
+        self.assertNotIn("rules_layout", pre)
+        self.assertNotIn("fields_layout", pre)
 
 
 class RuleEditorAssignmentChangelogTest(ModelViewTestCase):
@@ -688,3 +823,53 @@ class TypeConfigApiChangelogTest(APITestCase):
         self.assertIsInstance(latest.postchange_data.get("panel_slugs"), dict)
         self.assertTrue(latest.message)
         self.assertIn("destination", latest.message.lower())
+
+
+class ChangelogContentTypeLabelTest(ModelViewTestCase):
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.prefix_ct = ContentType.objects.get_for_model(Prefix)
+        cls.type_config = TypeConfig.objects.create(
+            name="Addresses",
+            content_type=cls.prefix_ct,
+            panel_slugs=["source"],
+        )
+        cls.rulebook = Rulebook.objects.create(
+            name="changelog-label-rb",
+            rulebook_type="security_rules",
+        )
+        cls.field = RulebookField.objects.create(
+            rulebook=cls.rulebook,
+            slug="destination",
+            name="Destination",
+            field_kind=RulebookFieldKind.OBJECT,
+            placement="destination",
+        )
+        cls.rule = Rule.objects.create(
+            rulebook=cls.rulebook,
+            name="changelog-label-rule",
+            index=10,
+        )
+        cls.prefix = _test_prefix()
+        RuleObjectItem.objects.create(
+            rule=cls.rule,
+            field=cls.field,
+            content_type=cls.prefix_ct,
+            object_id=cls.prefix.pk,
+        )
+
+    def test_rules_layout_uses_friendly_content_type_label(self):
+        from netbox_nsm.display_utils import changelog_content_type_label
+        from netbox_nsm.models.rulebook import _serialize_rule_object_items
+
+        label = changelog_content_type_label(self.prefix_ct.id)
+        self.assertIn("Addresses", label)
+        self.assertNotIn("ipam.prefix", label)
+        self.assertIn("›", label)
+
+        items = _serialize_rule_object_items(self.rule)
+        key = f"destination:ct_{self.prefix_ct.id}:{self.prefix.pk}"
+        row = items[key]
+        self.assertEqual(row["content_type_label"], label)
+        self.assertEqual(row["object"], str(self.prefix))

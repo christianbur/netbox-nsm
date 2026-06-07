@@ -516,6 +516,48 @@ span.nsm-rulebook-count-pill {
   vertical-align: middle;
 }
 
+/* Fields card — rules layout: one row per field, stacked sub-lines in cells */
+.table.nsm-rb-fields-table--rules > tbody.nsm-rb-field-group > tr.nsm-rb-field-row--multiline > td {
+  vertical-align: top;
+}
+
+.table.nsm-rb-fields-table--rules .nsm-rb-cell-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.38rem;
+  min-width: 0;
+}
+
+.table.nsm-rb-fields-table--rules .nsm-rb-cell-stack__line {
+  align-items: center;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.25rem;
+  min-height: 1.35rem;
+}
+
+.table.nsm-rb-fields-table--rules .nsm-rb-cell-stack__line--sub {
+  padding-left: 0.15rem;
+}
+
+.table.nsm-rb-fields-table--rules .nsm-rb-cell-stack--actions {
+  align-items: flex-end;
+}
+
+.table.nsm-rb-fields-table--rules .nsm-rb-cell-stack--actions .nsm-rb-cell-stack__line {
+  justify-content: flex-end;
+}
+
+.table.nsm-rb-fields-table--rules > tbody.nsm-rb-field-group > tr:only-child > td {
+  border-bottom: 1px solid var(--nsm-rb-field-frame);
+  border-top: 1px solid var(--nsm-rb-field-frame);
+}
+
+.table.nsm-rb-fields-table--rules > tbody.nsm-rb-field-group > tr.nsm-rb-field-row + tr > td {
+  border-top: 0;
+}
+
+
 .nsm-rb-col-kind .nsm-rb-type-meta-pill {
   margin-right: 0.15rem;
 }
@@ -991,7 +1033,50 @@ span.nsm-rulebook-count-pill {
   line-height: 1;
 }
 
-/* Rulebook list — name link next to NetBox record-depth bullets */
+/* Rulebook list — child indent via filled hierarchy dots */
+.nsm-rb-name-cell {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.35rem;
+  max-width: 100%;
+}
+
+.nsm-rb-hierarchy-markers {
+  align-items: center;
+  color: var(--bs-secondary-color, #6b7280);
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 0.25rem;
+  line-height: 1;
+}
+
+.nsm-rb-hierarchy-dot {
+  background-color: currentColor;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+  height: 0.55rem;
+  opacity: 0.55;
+  width: 0.55rem;
+}
+
+table.object-list .nsm-rb-name-cell {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.4rem;
+  max-width: 100%;
+}
+
+table.object-list .nsm-rb-hierarchy-dot {
+  height: 0.55rem;
+  width: 0.55rem;
+}
+
+[data-bs-theme="dark"] .nsm-rb-hierarchy-markers {
+  color: var(--bs-secondary-color, #9ca3af);
+}
+
 .nsm-rb-name-link {
+  min-width: 0;
   vertical-align: middle;
 }

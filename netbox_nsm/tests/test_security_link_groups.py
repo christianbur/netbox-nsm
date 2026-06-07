@@ -1,5 +1,7 @@
 """Tests for Security Panel link table group metadata."""
 
+from types import SimpleNamespace
+
 from django.template.loader import render_to_string
 from django.test import SimpleTestCase
 
@@ -125,6 +127,68 @@ class FinalizeLinkTypeGroupTests(SimpleTestCase):
         self.assertEqual([g["type_key"] for g in groups], ["a", "b"])
         self.assertTrue(groups[0]["show_actions"])
         self.assertFalse(groups[1]["show_actions"])
+
+
+class SecurityRulebookTreeTemplateTests(SimpleTestCase):
+    def test_renders_rulebook_field_rule_hierarchy(self):
+        rb = SimpleNamespace(
+            pk=5,
+            name="Firewall",
+            get_absolute_url=lambda: "/rulebooks/5/",
+            get_rules_tab_url=lambda: "/rulebooks/5/rules/",
+        )
+        field = SimpleNamespace(pk=9, slug="source", name="Source")
+        rule = SimpleNamespace(
+            name="rule1",
+            get_absolute_url=lambda: "/rules/1/",
+            nsm_panel_filter_url="/rulebooks/5/rules/?f_name=rule1",
+        )
+        html = render_to_string(
+            "netbox_nsm/inc/security_links.html",
+            {
+                "nsm_panel_label": "Security",
+                "nsm_security_badge": 1,
+                "nsm_unique_rules_total": 1,
+                "nsm_analyzer_url": "/analyzer/",
+                "nsm_assign_url": "/assign/",
+                "nsm_page_addr_analyzable": False,
+                "nsm_rulebook_groups": [
+                    {
+                        "rulebook": rb,
+                        "unique_count": 1,
+                        "rules_tab_url": "/rulebooks/5/rules/",
+                        "field_groups": [
+                            {
+                                "field": field,
+                                "rule_count": 1,
+                                "rules": [rule],
+                            }
+                        ],
+                    }
+                ],
+                "nsm_link_type_groups": [],
+                "nsm_enforcer_assignments": [],
+                "nsm_api_url": "/api/",
+                "nsm_next_offset": 1,
+                "nsm_has_more": False,
+            },
+        )
+        self.assertIn('id="nsm-cat-rulebook"', html)
+        self.assertIn(">Rulebooks<", html)
+        self.assertIn("nsm-rb-hdr", html)
+        self.assertIn('data-rb-pk="5"', html)
+        self.assertIn(">Firewall<", html)
+        self.assertIn("/rulebooks/5/rules/", html)
+        self.assertIn('id="nsm-rb-5-f-9"', html)
+        self.assertIn(">Source<", html)
+        self.assertNotIn("f_source__ct_", html)
+        self.assertIn("nsm-rb-field-count", html)
+        self.assertIn('class="nsm-rb-rule-list', html)
+        self.assertIn('href="/rulebooks/5/rules/?f_name=rule1"', html)
+        self.assertIn(">rule1<", html)
+        self.assertIn('data-detail-url="/rules/1/"', html)
+        self.assertIn('class="collapse show"', html)
+        self.assertNotIn("nsm-security-rulebook-header-links", html)
 
 
 class SecurityPanelHeaderActionsTemplateTests(SimpleTestCase):

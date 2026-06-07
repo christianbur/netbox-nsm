@@ -171,29 +171,9 @@ urlpatterns = [
     path("api/ip-analysis/", IpAnalysisApiView.as_view(), name="ip_analysis_api"),
     path("object-analyzer/", ObjectAnalyzerView.as_view(), name="object_analyzer"),
     path(
-        "api/rulebooks/<int:pk>/rules-grid/",
-        RulebookRulesGridApiView.as_view(),
-        name="rulebook_rules_grid_api",
-    ),
-    path(
         "api/rulebooks/<int:pk>/rules-grid/validate/",
         RulebookRulesGridValidateApiView.as_view(),
         name="rulebook_rules_grid_validate_api",
-    ),
-    path(
-        "api/rulebooks/<int:pk>/matrix-grid/",
-        RulebookMatrixGridApiView.as_view(),
-        name="rulebook_matrix_grid_api",
-    ),
-    path(
-        "api/rules/all-grid/",
-        AllRulesGridApiView.as_view(),
-        name="all_rules_grid_api",
-    ),
-    path(
-        "api/rules/all-query-validate/",
-        AllRulesQueryValidateApiView.as_view(),
-        name="all_rules_query_validate_api",
     ),
     path("api/analyzer/", AnalyzerAPIView.as_view(), name="analyzer_api"),
     path("api/object-rules/", ObjectRulesApiView.as_view(), name="object_rules_api"),

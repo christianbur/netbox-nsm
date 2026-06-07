@@ -1,0 +1,82 @@
+{% load i18n %}
+<tr class="nsm-rules-head-row nsm-rules-head-row--primary">
+  {% if rules_show_selection_column %}
+  <th scope="col"
+      class="w-1"
+      aria-label="{% trans 'Select all' %}">
+    <input type="checkbox"
+           class="toggle form-check-input"
+           title="{% trans 'Toggle all' %}"
+           aria-label="{% trans 'Toggle all' %}">
+  </th>
+  {% endif %}
+  {% for col in rules_column_defs %}
+    {% if col.children %}
+      {% for child in col.children %}
+        <th scope="col"
+            class="nsm-rules-th nsm-rules-th--type orderable{% if rules_draggable_headers %} nsm-rules-col-draggable{% endif %}{% if child.rules_meta.sort_active %} {{ child.rules_meta.sort_order }}{% endif %}"
+            {% if rules_draggable_headers and child.rules_meta.group_value %}data-group-value="{{ child.rules_meta.group_value }}" draggable="true"{% endif %}>
+          {% if child.rules_meta %}
+            {% include "netbox_nsm/inc/rulebook_rules_sort_header.html" with meta=child.rules_meta label=child.display_label %}
+          {% else %}
+            {{ child.display_label }}
+          {% endif %}
+        </th>
+      {% endfor %}
+    {% elif col.colId == "_actions" %}
+      <th scope="col"
+          class="nsm-rules-th nsm-rules-th--actions"
+          aria-label="{% trans 'Actions' %}"></th>
+    {% elif col.colId and col.rules_meta %}
+      <th scope="col"
+          class="nsm-rules-th nsm-rules-th--system nsm-rules-th--{{ col.colId }} orderable{% if col.rules_meta.sort_active %} {{ col.rules_meta.sort_order }}{% endif %}">
+        {% include "netbox_nsm/inc/rulebook_rules_sort_header.html" with meta=col.rules_meta label=col.headerName %}
+      </th>
+    {% endif %}
+  {% endfor %}
+</tr>
+<tr class="nsm-rules-head-row nsm-rules-head-row--filter">
+  {% if rules_show_selection_column %}
+  <th scope="col" class="nsm-rules-th nsm-rules-th--filter w-1"></th>
+  {% endif %}
+  {% for col in rules_flat_columns %}
+    <th scope="col"
+        class="nsm-rules-th nsm-rules-th--filter nsm-rules-th--resizable{% if col.kind %} nsm-rules-th--{{ col.kind }}{% endif %}"
+        data-col-id="{{ col.col_id }}"
+        data-default-width="{{ col.default_width_px }}"
+        data-min-width="{{ col.min_width_px }}">
+      {% if col.sort_field %}
+      <input type="search"
+             class="form-control form-control-sm nsm-rules-filter-input"
+             form="rules-quicksearch"
+             name="{{ col.filter_param }}"
+             value="{{ col.filter_value }}"
+             data-col-id="{{ col.col_id }}"
+             placeholder="{% trans 'Search: a OR b … a AND b' %}"
+             title="{% trans 'Search: a OR b … a AND b' %}"
+             autocomplete="off"
+             aria-label="{{ col.display_label }}">
+      {% elif col.kind == "actions" %}
+      <div class="nsm-rules-filter-actions d-flex gap-1 justify-content-end">
+        <button type="button"
+                class="btn btn-sm btn-primary nsm-rules-filter-apply"
+                title="{% trans 'Apply filters' %}">
+          <i class="mdi mdi-magnify" aria-hidden="true"></i>
+        </button>
+        {% if rules_filter_active %}
+        <a href="{{ rules_clear_filters_url }}"
+           class="btn btn-sm btn-outline-secondary"
+           title="{% trans 'Clear filters' %}">
+          <i class="mdi mdi-filter-off-outline" aria-hidden="true"></i>
+        </a>
+        {% endif %}
+      </div>
+      {% endif %}
+      <span class="nsm-rules-col-resize-handle"
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="{% trans 'Resize column' %}"
+            tabindex="-1"></span>
+    </th>
+  {% endfor %}
+</tr>

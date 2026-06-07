@@ -7,11 +7,12 @@ from netbox_nsm.changelog_utils import (
     snapshot_instance,
 )
 from netbox_nsm.models import Rule
+from netbox_nsm.rulebook_rules_utils import snapshot_rule_layout_entry
 
 
 class RulebookLayoutChangelogMixin:
     def _snapshot_rulebook(self, rulebook):
-        return snapshot_instance(rulebook)
+        return snapshot_instance(rulebook, fields_layout=True)
 
     def perform_create(self, serializer):
         rulebook = serializer.validated_data["rulebook"]
@@ -35,19 +36,19 @@ class RulebookLayoutChangelogMixin:
 class RulebookFieldTypeLayoutChangelogMixin:
     def perform_create(self, serializer):
         rulebook = serializer.validated_data["field"].rulebook
-        prechange = snapshot_instance(rulebook)
+        prechange = snapshot_instance(rulebook, fields_layout=True)
         super().perform_create(serializer)
         record_rulebook_layout_changelog(rulebook, self.request, prechange)
 
     def perform_update(self, serializer):
         rulebook = serializer.instance.field.rulebook
-        prechange = snapshot_instance(rulebook)
+        prechange = snapshot_instance(rulebook, fields_layout=True)
         super().perform_update(serializer)
         record_rulebook_layout_changelog(rulebook, self.request, prechange)
 
     def perform_destroy(self, instance):
         rulebook = instance.field.rulebook
-        prechange = snapshot_instance(rulebook)
+        prechange = snapshot_instance(rulebook, fields_layout=True)
         super().perform_destroy(instance)
         record_rulebook_layout_changelog(rulebook, self.request, prechange)
 
@@ -65,44 +66,73 @@ class RuleAssignmentChangelogMixin:
 
     def perform_create(self, serializer):
         rule = serializer.validated_data["rule"]
-        rb_prechange = snapshot_instance(rule.rulebook)
         prechange = self._snapshot_rule(rule)
         super().perform_create(serializer)
         record_rule_assignment_changelog(rule, self.request, prechange)
-        record_rulebook_rules_changelog(rule.rulebook, self.request, rb_prechange)
+        record_rulebook_rules_changelog(
+            rule.rulebook,
+            self.request,
+            {"rules_layout": {}},
+            postchange=snapshot_rule_layout_entry(rule),
+        )
 
     def perform_update(self, serializer):
         rule = serializer.instance.rule
-        rb_prechange = snapshot_instance(rule.rulebook)
+        rb_prechange = snapshot_rule_layout_entry(rule)
         prechange = self._snapshot_rule(rule)
         super().perform_update(serializer)
         record_rule_assignment_changelog(rule, self.request, prechange)
-        record_rulebook_rules_changelog(rule.rulebook, self.request, rb_prechange)
+        record_rulebook_rules_changelog(
+            rule.rulebook,
+            self.request,
+            rb_prechange,
+            postchange=snapshot_rule_layout_entry(rule),
+        )
 
     def perform_destroy(self, instance):
         rule = instance.rule
-        rb_prechange = snapshot_instance(rule.rulebook)
+        rb_prechange = snapshot_rule_layout_entry(rule)
         prechange = self._snapshot_rule(rule)
         super().perform_destroy(instance)
         record_rule_assignment_changelog(rule, self.request, prechange)
-        record_rulebook_rules_changelog(rule.rulebook, self.request, rb_prechange)
+        record_rulebook_rules_changelog(
+            rule.rulebook,
+            self.request,
+            rb_prechange,
+            postchange={"rules_layout": {}},
+        )
 
 
 class RuleRulesChangelogMixin:
     def perform_create(self, serializer):
         rulebook = serializer.validated_data["rulebook"]
-        rb_prechange = snapshot_instance(rulebook)
         super().perform_create(serializer)
-        record_rulebook_rules_changelog(rulebook, self.request, rb_prechange)
+        record_rulebook_rules_changelog(
+            rulebook,
+            self.request,
+            {"rules_layout": {}},
+            postchange=snapshot_rule_layout_entry(serializer.instance),
+        )
 
     def perform_update(self, serializer):
-        rulebook = serializer.instance.rulebook
-        rb_prechange = snapshot_instance(rulebook)
+        rule = serializer.instance
+        rulebook = rule.rulebook
+        rb_prechange = snapshot_rule_layout_entry(rule)
         super().perform_update(serializer)
-        record_rulebook_rules_changelog(rulebook, self.request, rb_prechange)
+        record_rulebook_rules_changelog(
+            rulebook,
+            self.request,
+            rb_prechange,
+            postchange=snapshot_rule_layout_entry(rule),
+        )
 
     def perform_destroy(self, instance):
         rulebook = instance.rulebook
-        rb_prechange = snapshot_instance(rulebook)
+        rb_prechange = snapshot_rule_layout_entry(instance)
         super().perform_destroy(instance)
-        record_rulebook_rules_changelog(rulebook, self.request, rb_prechange)
+        record_rulebook_rules_changelog(
+            rulebook,
+            self.request,
+            rb_prechange,
+            postchange={"rules_layout": {}},
+        )

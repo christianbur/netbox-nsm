@@ -1,4 +1,4 @@
-"""OR/AND text filters for matrix axis search (mirrors matrix_ag_grid.js)."""
+"""OR/AND text filters for matrix axis search."""
 
 from __future__ import annotations
 

@@ -388,6 +388,46 @@ msgstr "Zugewiesene Objekte"
 msgid "Rule Defaults"
 msgstr "Regel-Standardwerte"
 
+#: netbox_nsm/forms/rulebook.py
+msgid "Show"
+msgstr "Anzeigen"
+
+#: netbox_nsm/forms/rulebook.py
+msgid "Hide"
+msgstr "Ausblenden"
+
+#: netbox_nsm/forms/rulebook.py netbox_nsm/models/rulebook.py
+msgid "Matrix tab"
+msgstr "Matrix-Tab"
+
+#: netbox_nsm/forms/rulebook.py netbox_nsm/models/rulebook.py
+msgid "Show the zone matrix tab for this rulebook."
+msgstr "Matrix-Tab für dieses Regelbuch anzeigen."
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_matrix.html
+msgid "Matrix"
+msgstr "Matrix"
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_matrix.html
+msgid "Object type"
+msgstr "Objekttyp"
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_matrix.html
+msgid "Source (Rows)"
+msgstr "Quelle (Zeilen)"
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_matrix.html
+msgid "Destination (Columns)"
+msgstr "Ziel (Spalten)"
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_matrix.html
+msgid "Apply"
+msgstr "Anwenden"
+
+#: netbox_nsm/templates/netbox_nsm/rulebook_matrix.html
+msgid "Apply filters"
+msgstr "Filter anwenden"
+
 #: netbox_nsm/forms/security_policy.py:77
 #, fuzzy
 #| msgid "Display name"
@@ -2840,6 +2880,12 @@ msgstr "Suchen (mind. 2 Zeichen)…"
 #: netbox_nsm/templates/netbox_nsm/rule_edit.html
 msgid "Select a rulebook first, then assign zones, addresses, services, and other objects per field."
 msgstr "Zuerst ein Regelbuch wählen, dann Zonen, Adressen, Dienste und weitere Objekte je Feld zuweisen."
+
+#: netbox_nsm/rulebook_rules_cell_html.py
+msgid "%(count)s object"
+msgid_plural "%(count)s objects"
+msgstr[0] "%(count)s Objekt"
+msgstr[1] "%(count)s Objekte"
 
 #~ msgid "Traffic-Richtung für dieses Feld."
 #~ msgstr "Traffic-Richtung für dieses Feld."

@@ -7,7 +7,7 @@
 Document zones, firewall rules, and object relationships — vendor-agnostic, inside your existing IPAM and DCIM inventory.
 
 [![NetBox](https://img.shields.io/badge/NetBox-4.6.x-0088cc?style=flat-square)](https://netboxlabs.com/)
-[![Plugin](https://img.shields.io/badge/plugin-0.2.0-2ea043?style=flat-square)](#)
+[![Plugin](https://img.shields.io/badge/plugin-0.3.0-2ea043?style=flat-square)](#)
 [![Requires](https://img.shields.io/badge/requires-netbox--custom--objects-orange?style=flat-square)](https://github.com/netboxlabs/netbox-custom-objects)
 [![Status](https://img.shields.io/badge/status-work%20in%20progress-yellow?style=flat-square)](#)
 
@@ -26,9 +26,9 @@ Document zones, firewall rules, and object relationships — vendor-agnostic, in
 |---|---|
 | **Security Panel** | Injected on every Prefix, IP, Device, VM, and Custom Object — assign zones, addresses, labels; see policy impact instantly |
 | **Rulebooks** | Flexible column layout: zone-based, address-based, label-based, or mixed — side by side in one NetBox |
-| **Policy grid** | [AG Grid Community](https://www.ag-grid.com/) — Table / Group / Matrix views, filter syntax, staged load (50k+ rules). See [Rules grid](docs/using_netbox_nsm.md#rules-grid). |
-| **Zone matrix** | AG Grid Community — source × destination heatmap |
-| **IP Analysis** | Compare IP resolution across objects in two columns — with CSV export |
+| **Policy grid** | Server-rendered rules table — Table / Group / Matrix views, filter query, cell display modes. See [Rules grid](docs/using_netbox_nsm.md#rules-grid). |
+| **Zone matrix** | Source × destination heatmap on the Matrix tab |
+| **IP Analysis** | Compare address resolution — **Security Panel** loupe (🔍) on analyzable objects; optional full page `/plugins/netbox-nsm/ip-analysis/` |
 | **Object Analyzer** | [@xyflow/react](https://xyflow.com/) graph from any NetBox object to zones, links, and rulebooks |
 
 ---
@@ -47,36 +47,43 @@ Your network inventory already lives in NetBox. Security policy should live ther
 
 ## Security Panel — the hub
 
-The **Security Panel** is the core workflow for NSM. From any NetBox object detail page, use **+ Assign** to open the **Assign Link** page — pick an NSM type, set **Direct** or **Inherit to IPAM children**, and create the ObjectLink.
+The **Security Panel** is the core workflow for NSM. Once NSM types exist, **any supported
+NetBox object** can be linked to **any allowed NSM object** via **+ Assign** — prefixes,
+interfaces, VMs, zones, services, … Rulebook references appear **automatically** when an NSM
+object is used in a rule column.
 
-**Macro vs. micro zones** — a single interface can carry multiple zone links:
+**Inheritance** (e.g. **Inherit to IPAM children** on a parent prefix) propagates macro zones
+to child prefixes and addresses without repeating **+ Assign** on every object.
+
+**Macro vs. micro zones** — different segmentation products on the same inventory:
 
 | Layer | Example | Purpose |
 |---|---|---|
-| **Macro zone** | `prod` | Datacenter segment, environment, TrustSec macro-segment |
-| **Micro zone** | `app-payroll`, `web-tier` | Application or tier within the macro segment |
+| **Macro zone (product A)** | `prod`, `untrust` on a **prefix** with IPAM inheritance | Site segment, trust boundary |
+| **Micro zone (product B)** | `app-payroll` **direct** on a VM **interface** | Application tier within the macro segment |
 
-A device NIC might be in **prod** *and* in a dedicated app zone — both visible in the Security Panel without duplicating IPAM data.
-
-<p align="center">
-  <img src="docs/img/12-prefix-security-panel.png" alt="Prefix Security Panel — direct and inherited zones" width="720">
-  <br>
-  <em>Prefix <code>10.1.0.0/16</code> — <code>prod</code> direct, <code>trust</code> inherited from <code>10.0.0.0/8</code></em>
-</p>
-
-<p align="center">
-  <img src="docs/img/17-assign-picker.png" alt="Assign Link — Direct vs Inherit to IPAM children" width="720">
-  <br>
-  <em>Assign Link — choose <strong>Inherit to IPAM children</strong> for macro zones on parent prefixes</em>
-</p>
+The **same zone object** linked on an interface is the **same object** used in rulebook columns
+(`Source.Zones`, `Destination.Zones`, …).
 
 <p align="center">
   <img src="docs/img/07-zone-detail.png" alt="Zone Security Panel — reverse view" width="720">
   <br>
-  <em>Zone <code>prod</code> — reverse view: rulebooks, prefixes, groups, VMs (expandable rule tree)</em>
+  <em>Zone <code>untrust</code> (Starter demo) — rulebook references + bidirectional service link</em>
 </p>
 
-[Security Panel deep dive →](docs/using_netbox_nsm.md#security-panel)
+<p align="center">
+  <img src="docs/img/17-assign-link-propagation-types.png" alt="Assign Link — link type dropdown" width="720">
+  <br>
+  <em>Assign Link — <strong>Direct</strong>, <strong>Inherit to IPAM children</strong>, or <strong>Inherit to group members</strong></em>
+</p>
+
+<p align="center">
+  <img src="docs/img/18-service-security-panel-bidirectional.png" alt="Service Security Panel — zone link" width="720">
+  <br>
+  <em>Service <code>SNMP-Trap</code> — reverse link to zone <code>untrust</code> after a bidirectional Direct assignment</em>
+</p>
+
+[Universal linking →](docs/using_netbox_nsm.md#universal-linking--any-netbox-object--nsm) · [Security Panel deep dive →](docs/using_netbox_nsm.md#security-panel)
 
 ### Extend with your own object types
 
@@ -94,84 +101,20 @@ Rule columns reference **TypeConfig** records, not hard-coded COT names — so c
 
 ## Screenshots
 
-Current demo environment (2026-06). Full walkthrough: **[Using netbox-nsm](docs/using_netbox_nsm.md)** · **[Documentation home](docs/README.md)**
+Starter demo environment (**2026-06-07**). Full walkthrough: **[Using netbox-nsm](docs/using_netbox_nsm.md)** · **[Documentation home](docs/README.md)**
 
 <table>
 <tr>
 <td width="50%" valign="top">
 
-**Setup wizard** — four sections, idempotent imports
+**Setup wizard** — sections 1–4 complete, Starter demo
 
 <img src="docs/img/01-setup.png" alt="Setup wizard" width="100%">
 
 </td>
 <td width="50%" valign="top">
 
-**Type Config list** — matching class, panel slugs, linkable types
-
-<img src="docs/img/02-type-config-list.png" alt="Type Config list" width="100%">
-
-</td>
-</tr>
-<tr>
-<td width="50%" valign="top">
-
-**Type Config detail** — Zones example
-
-<img src="docs/img/03-type-config-detail.png" alt="Type Config detail" width="100%">
-
-</td>
-<td width="50%" valign="top">
-
-**Rulebook list** — All Rules + named rulebooks
-
-<img src="docs/img/05-rulebook-list.png" alt="Rulebook list" width="100%">
-
-</td>
-</tr>
-<tr>
-<td width="50%" valign="top">
-
-**Rulebook detail** — Enterprise TrustSec Core, field hierarchy
-
-<img src="docs/img/06-rulebook-detail.png" alt="Rulebook detail" width="100%">
-
-</td>
-<td width="50%" valign="top">
-
-**Policy grid** — grouping, filter query, pills
-
-<img src="docs/img/07-policy-rules.png" alt="Policy rules AG Grid" width="100%">
-
-</td>
-</tr>
-<tr>
-<td width="50%" valign="top">
-
-**Add rule** — Source / Destination / Service / Action tabs
-
-<img src="docs/img/11-rule-add.png" alt="Add rule" width="100%">
-
-</td>
-<td width="50%" valign="top">
-
-**Zone matrix** — directed Permit/Deny
-
-<img src="docs/img/09-zone-matrix.png" alt="Zone matrix" width="100%">
-
-</td>
-</tr>
-<tr>
-<td width="50%" valign="top">
-
-**Matrix filters** — corner query (`dmz OR mgmt`)
-
-<img src="docs/img/09-matrix-filters.png" alt="Matrix filters" width="100%">
-
-</td>
-<td width="50%" valign="top">
-
-**Custom Object Types** — seven built-in NSM COTs
+**Custom Object Types** — seven built-in `nsm_*` types
 
 <img src="docs/img/08-builtin-types.png" alt="Custom Object Types" width="100%">
 
@@ -180,39 +123,126 @@ Current demo environment (2026-06). Full walkthrough: **[Using netbox-nsm](docs/
 <tr>
 <td width="50%" valign="top">
 
-**Prefix Security Panel** — direct and inherited zones
+**Type Config list** — matching class, panel slugs, *All types*
 
-<img src="docs/img/12-prefix-security-panel.png" alt="Prefix Security Panel" width="100%">
+<img src="docs/img/02-type-config-list.png" alt="Type Config list" width="100%">
 
 </td>
 <td width="50%" valign="top">
 
-**Assign Link** — Direct vs Inherit to IPAM children
+**Type Config edit** — Zones, panel slugs, Linkable in panel
 
-<img src="docs/img/17-assign-picker.png" alt="Assign Link picker" width="100%">
+<img src="docs/img/03-type-config-detail.png" alt="Type Config detail" width="100%">
 
 </td>
 </tr>
 <tr>
 <td width="50%" valign="top">
 
-**Zone detail** — reverse view, expandable rulebook tree
+**Rulebook list** — Demo - Zone Matrix, Demo - Addresses
 
-<img src="docs/img/07-zone-detail.png" alt="Zone detail Security Panel" width="100%">
+<img src="docs/img/05-rulebook-list.png" alt="Rulebook list" width="100%">
 
 </td>
 <td width="50%" valign="top">
 
-**IP Analysis** — two columns, CSV path export
+**Rulebook detail** — Fields hierarchy (Source / Destination / Service / Action)
 
-<img src="docs/img/10-ip-analysis.png" alt="IP Analysis" width="100%">
+<img src="docs/img/06-rulebook-detail.png" alt="Rulebook detail" width="100%">
 
 </td>
 </tr>
 <tr>
-<td width="50%" valign="top" colspan="2">
+<td width="50%" valign="top">
 
-**Object Analyzer** — xyflow graph from any NetBox object
+**Edit rulebook** — metadata, Matrix tab, parent rulebook
+
+<img src="docs/img/06-rulebook-edit.png" alt="Edit rulebook" width="100%">
+
+</td>
+<td width="50%" valign="top">
+
+**Add field** — container column under Source
+
+<img src="docs/img/06-rulebook-field-add.png" alt="Add rulebook field" width="100%">
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+**Add field type** — TypeConfig picker (Zones, Services, …)
+
+<img src="docs/img/06-rulebook-field-type-add.png" alt="Add field type" width="100%">
+
+</td>
+<td width="50%" valign="top">
+
+**Rulebook changelog** — rule CRUD audit trail
+
+<img src="docs/img/06-rulebook-changelog.png" alt="Rulebook changelog" width="100%">
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+**Policy rules** — Table view, zone/service pills, filter bar
+
+<img src="docs/img/07-policy-rules-demo-table.png" alt="Policy rules table" width="100%">
+
+</td>
+<td width="50%" valign="top">
+
+**Add rule** — Demo - Zone Matrix, Source tab
+
+<img src="docs/img/11-rule-add.png" alt="Add rule" width="100%">
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+**Rule detail** — trust-to-untrust, zone/service columns
+
+<img src="docs/img/11-rule-detail.png" alt="Rule detail" width="100%">
+
+</td>
+<td width="50%" valign="top">
+
+**Zone matrix** — 4×4 grid, Permit / Deny cells
+
+<img src="docs/img/09-zone-matrix-demo-directed.png" alt="Zone matrix" width="100%">
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+**Zone untrust** — rulebook references + service link
+
+<img src="docs/img/07-zone-detail.png" alt="Zone Security Panel" width="100%">
+
+</td>
+<td width="50%" valign="top">
+
+**Assign Link** — link type dropdown (Direct / IPAM / group)
+
+<img src="docs/img/17-assign-link-propagation-types.png" alt="Assign Link propagation types" width="100%">
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+**Service SNMP-Trap** — bidirectional zone link (reverse view)
+
+<img src="docs/img/18-service-security-panel-bidirectional.png" alt="Service Security Panel" width="100%">
+
+</td>
+<td width="50%" valign="top">
+
+**Object Analyzer** — zone `dmz` → Demo - Zone Matrix → rules
 
 <img src="docs/img/11-object-analyzer.png" alt="Object Analyzer" width="100%">
 
@@ -313,7 +343,7 @@ Links each ContentType to NSM (built-in COTs or **your own** Custom Object Types
 
 - **All Rules** (`/rulebooks/0/`) — read-only aggregate across all rulebooks  
 - **Rulebook detail** — configurable field hierarchy (zone-based, address-based, …)  
-- **Rules tab** — AG Grid with Table / Group / Matrix views, filter syntax, staged load — [Rules grid](docs/using_netbox_nsm.md#rules-grid)
+- **Rules tab** — server-rendered table with Table / Group / Matrix views and filter query — [Rules grid](docs/using_netbox_nsm.md#rules-grid)
 - **Add rule** — Source / Destination / Service / Action tabs with object picker  
 
 ![Rulebook list](docs/img/05-rulebook-list.png)
@@ -338,11 +368,10 @@ Corner filters (`dmz OR mgmt`), diagonal self-cells, axis limit 250 zones.
 <details>
 <summary><strong>IP Analysis</strong> — two-column IP resolution + CSV paths</summary>
 
-**Security → Analysis → IP Analysis**
+**Security Panel** — loupe icon (address-analyzable objects only)
 
-![IP Analysis](docs/img/10-ip-analysis.png)
-
-Add objects per column, **Analyze**, copy CSV paths from the tree.
+Opens the **IP Analysis** overlay (same API as `/plugins/netbox-nsm/ip-analysis/`). Compare
+prefix trees side by side and copy CSV paths from the tree.
 
 [IP Analysis →](docs/using_netbox_nsm.md#ip-analysis)
 
@@ -351,7 +380,7 @@ Add objects per column, **Analyze**, copy CSV paths from the tree.
 <details>
 <summary><strong>Object Analyzer</strong> — explore links and rulebooks from any object</summary>
 
-**Security → Analysis → Demo – Object Analyzer**
+**Security → Analysis → Object Analyzer**
 
 Pick Device, VM, IP, Prefix, or Zone → **Analyse** → expand the graph.
 
@@ -410,23 +439,17 @@ Step-by-step matrix walkthrough: [Demo - Zone Matrix example](docs/using_netbox_
 
 | NetBox | Plugin |
 |---|---|
-| 4.5+ | 0.2.x |
+| 4.5+ | 0.3.x |
 
 ---
 
-## Third-party UI libraries
+## Third-party UI
 
-NSM embeds two open-source front-end libraries for interactive views:
+| Library | License | Used in |
+|---|---|---|
+| [@xyflow/react 12](https://github.com/xyflow/xyflow) | MIT | Object Analyzer (CDN via esm.sh) |
 
-| Library | Used for | Version | License | Delivery |
-|---|---|---|---|---|
-| **[AG Grid Community](https://github.com/ag-grid/ag-grid)** | Rules tab, All Rules grid, Zone Matrix | **33.2.4** | [MIT](https://github.com/ag-grid/ag-grid/blob/master/LICENSE.txt) | Vendored under `netbox_nsm/plugin_assets/vendor/ag-grid-community/` (offline, no Enterprise features) |
-| **[@xyflow/react](https://github.com/xyflow/xyflow)** (React Flow) | Object Analyzer graph | **12.x** | [MIT](https://github.com/xyflow/xyflow/blob/main/LICENSE) | Loaded from [esm.sh](https://esm.sh/) on the Object Analyzer page only |
-
-Only **AG Grid Community** (MIT) is bundled — **not** AG Grid Enterprise (commercial).  
-The plugin itself is [MIT licensed](LICENSE); third-party notices above apply to the embedded UI components.
-
----
+Details: [Third-party UI libraries](docs/using_netbox_nsm.md#third-party-ui-libraries)
 
 ## License
 

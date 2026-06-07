@@ -1,6 +1,6 @@
 # NSM Database Tables
 
-[← Documentation home](README.md) · [Using netbox-nsm](using_netbox_nsm.md) · [Architecture](../ARCHITECTURE.md)
+[← Documentation home](README.md) · [How rule data is stored](RULE_DATA_STORAGE.md) · [Using netbox-nsm](using_netbox_nsm.md) · [Architecture](../ARCHITECTURE.md)
 
 NSM persists its own data in the **NetBox PostgreSQL database**. Django uses the app label
 `netbox_nsm`; table names follow the pattern `netbox_nsm_<model_name>` (lowercase).
@@ -115,11 +115,11 @@ python manage.py migrate netbox_nsm
 
 | Migration | Purpose |
 |-----------|---------|
-| `0001_initial` | Full NSM schema (squashed). Fresh installs: `migrate netbox_nsm` only. Depends on `netbox_custom_objects` through `0014_fix_mixed_case_field_names`. |
+| `0001_initial` | Full NSM schema (squashed for 0.3.0). Fresh installs: `migrate netbox_nsm` only. Depends on `netbox_custom_objects` through `0014_fix_mixed_case_field_names`. Includes `matrix_tab_enabled`, `virtual_group_config`, `panel_linkable_types`. |
 
 ### Existing database after a squash (dev)
 
-If NSM already had migrations `0002`–`0011` applied, reset the app schema before applying the squashed `0001`:
+If NSM already had migrations `0002`–`0005` (or older numbered migrations) applied, reset the app schema before applying the squashed `0001`:
 
 ```bash
 docker exec netbox-dev bash -c 'cd /opt/netbox/netbox && /opt/netbox/venv/bin/python manage.py migrate netbox_nsm zero'
@@ -151,5 +151,6 @@ Or use `docker/netbox_dev/scripts/generate_nsm_0001.sh`.
 
 ## See also
 
+- [RULE_DATA_STORAGE.md](RULE_DATA_STORAGE.md) — layer model, diagrams, global `/rules/` vs rulebook Rules tab
 - [ARCHITECTURE.md](../ARCHITECTURE.md) — field-level model diagrams and relationships
 - [using_netbox_nsm.md](using_netbox_nsm.md) — operator guide (rulebooks, fields, policy UI)

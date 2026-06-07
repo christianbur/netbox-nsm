@@ -820,15 +820,17 @@
       e.preventDefault();
       e.stopPropagation();
 
+      var cell = loupe.closest(".nsm-ag-cell-list");
       var objects = [];
-      if (loupe.hasAttribute("data-ct") && loupe.hasAttribute("data-pk")) {
+      if (loupe.classList.contains("nsm-ipa-cell-loupe") && cell) {
+        objects = collectCellObjects(cell);
+      } else if (loupe.hasAttribute("data-ct") && loupe.hasAttribute("data-pk")) {
         objects.push({
           ct: loupe.getAttribute("data-ct"),
           pk: loupe.getAttribute("data-pk"),
           name: loupe.getAttribute("data-name") || "",
         });
-      } else {
-        var cell = loupe.closest(".nsm-ag-cell-list");
+      } else if (cell) {
         objects = collectCellObjects(cell);
       }
       if (objects.length) {

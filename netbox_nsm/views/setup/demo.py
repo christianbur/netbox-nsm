@@ -81,6 +81,7 @@ DEMO_ACTIONS = frozenset(
         "create_demo_starter",
         "create_demo_enterprise",
         "create_demo_addresses_scale",
+        "create_demo_scale",
     }
 )
 
@@ -480,5 +481,13 @@ def handle_demo_action(request, action: str):
             import_path="netbox_nsm.demos.addresses_scale.create_addresses_scale_demo",
             label=_("Addresses demo"),
             rulebook_name="Demo - Addresses",
+        )
+    elif action == "create_demo_scale":
+        _ensure_demo_prerequisites()
+        _queue_demo_import(
+            request,
+            import_path="netbox_nsm.demos.scale_test.create_scale_test_demo",
+            label=_("Matrix scale test"),
+            rulebook_name="Demo - Scale Test",
         )
     return redirect(reverse("plugins:netbox_nsm:setup"))

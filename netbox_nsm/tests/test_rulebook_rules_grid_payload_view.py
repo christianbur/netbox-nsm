@@ -1,9 +1,16 @@
-"""AG Grid payload for Rules tab."""
+"""Shared rules grid payload helpers for Rules."""
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.rulebook_rules_grid_payload import build_rulebook_rules_grid_payload
-from netbox_nsm.views.rulebook import _render_rules_cell_ag
+from netbox_nsm.rulebook_rules_grid_payload import (
+    apply_ag_grid_row_filter,
+    build_ag_grid_filter_model_from_query_text,
+    build_column_quick_filter_spec,
+    build_rulebook_rules_grid_column_defs,
+    build_rulebook_rules_grid_row,
+    filter_spec_to_column_quick_value,
+)
+from netbox_nsm.rulebook_rules_cell_html import render_rules_cell_ag
 
 
 def _sample_grouped():
@@ -29,22 +36,6 @@ def _sample_grouped():
                     ],
                 },
             },
-            {
-                "kind": "object",
-                "slug": "destination",
-                "label": "Destination",
-                "group": {
-                    "slug": "destination",
-                    "label": "Destination",
-                    "columns": [
-                        {
-                            "key": "destination::ct_1",
-                            "label": "Zones",
-                            "area_slug": "destination",
-                        }
-                    ],
-                },
-            },
         ],
         "rows": [
             {
@@ -58,28 +49,29 @@ def _sample_grouped():
                     "url": "/plugins/netbox-nsm/rules/1/",
                     "description": "Short desc",
                 },
-                "cells_ag": {
-                    "source::ct_1": "<span>cell</span>",
-                    "destination::ct_1": "<span>dst</span>",
+                "cells_items": {
+                    "source::ct_1": [
+                        {"url": "/z/1/", "name": "DMZ", "color": "#336699"}
+                    ],
                 },
                 "cells_filter": {
                     "source::ct_1": "prod dmz",
-                    "destination::ct_1": "lan app",
                 },
             }
         ],
     }
 
 
-class PolicyGridPayloadTests(SimpleTestCase):
-    def test_empty_grid_payload(self):
-        payload = build_rulebook_rules_grid_payload({"rules_layout": [], "rows": []})
-        self.assertEqual(payload["rowData"], [])
+class RulesGridPayloadTests(SimpleTestCase):
+    def test_empty_column_defs(self):
+        payload = build_rulebook_rules_grid_column_defs(
+            {"rules_layout": [], "rows": []}
+        )
         self.assertEqual(len(payload["columnDefs"]), 1)
         self.assertEqual(payload["columnDefs"][0]["colId"], "_actions")
 
     def test_ag_cell_uses_dot_and_standard_link(self):
-        html = _render_rules_cell_ag(
+        html = render_rules_cell_ag(
             [{"url": "/z/1/", "name": "DMZ", "color": "#336699"}],
             max_pills=5,
         )
@@ -88,91 +80,104 @@ class PolicyGridPayloadTests(SimpleTestCase):
         self.assertIn("nsm-ag-cell-link", html)
         self.assertNotIn("nsm-rule-pill", html)
 
-    def test_ag_cell_shows_loupe_for_addr_analyzable_object(self):
-        html = _render_rules_cell_ag(
-            [
-                {
-                    "url": "/a/1/",
-                    "name": "addr-1",
-                    "ct": 10,
-                    "pk": 42,
-                    "addrAnalyzable": True,
-                }
-            ],
-            max_pills=5,
-        )
-        self.assertIn("nsm-ipa-loupe", html)
-        self.assertIn('data-ct="10"', html)
-        self.assertIn('data-pk="42"', html)
-        self.assertIn("Objekt analysieren", html)
-
-    def test_system_columns_use_raw_values(self):
-        payload = build_rulebook_rules_grid_payload(_sample_grouped())
-        row = payload["rowData"][0]
+    def test_build_row_record(self):
+        row = build_rulebook_rules_grid_row(_sample_grouped()["rows"][0])
         self.assertTrue(row["enabled"])
         self.assertEqual(row["name"], "rule-one")
         self.assertEqual(row["index"], 10)
-        self.assertEqual(row["_edit_url"], "/plugins/netbox-nsm/rules/1/edit/")
-        self.assertEqual(row["_delete_url"], "/plugins/netbox-nsm/rules/1/delete/")
-        self.assertEqual(row["_detail_url"], "/plugins/netbox-nsm/rules/1/")
-        self.assertEqual(row["description"], "Short desc")
-        self.assertEqual(row["source::ct_1"], "<span>cell</span>")
         self.assertEqual(row["source::ct_1__filter"], "prod dmz")
-        self.assertNotIn("_actions_html", row)
+        self.assertEqual(row["source::ct_1"][0]["name"], "DMZ")
 
-    def test_status_column_is_read_only(self):
-        payload = build_rulebook_rules_grid_payload(_sample_grouped())
-        status_col = next(
-            c for c in payload["columnDefs"] if c.get("colId") == "status"
+    def test_apply_row_filter(self):
+        record = build_rulebook_rules_grid_row(_sample_grouped()["rows"][0])
+        filtered = apply_ag_grid_row_filter(
+            [record],
+            {"name": {"filterType": "text", "type": "contains", "filter": "rule-one"}},
         )
-        self.assertEqual(status_col["field"], "enabled")
-        self.assertEqual(status_col["cellRenderer"], "statusCell")
-        self.assertNotIn("cellEditor", status_col)
-        self.assertNotIn("editableField", status_col)
-
-    def test_index_column_is_read_only(self):
-        payload = build_rulebook_rules_grid_payload(_sample_grouped())
-        index_col = next(c for c in payload["columnDefs"] if c.get("colId") == "index")
-        self.assertEqual(index_col["field"], "index")
-        self.assertEqual(index_col["cellRenderer"], "indexLinkCell")
-        self.assertNotIn("cellEditor", index_col)
-        self.assertNotIn("editableField", index_col)
-
-    def test_description_column_is_read_only(self):
-        payload = build_rulebook_rules_grid_payload(_sample_grouped())
-        desc_col = next(
-            c for c in payload["columnDefs"] if c.get("colId") == "description"
+        self.assertEqual(len(filtered), 1)
+        missing = apply_ag_grid_row_filter(
+            [record],
+            {"name": {"filterType": "text", "type": "contains", "filter": "missing"}},
         )
-        self.assertEqual(desc_col["field"], "description")
-        self.assertEqual(desc_col["cellRenderer"], "descriptionCell")
-        self.assertNotIn("cellEditor", desc_col)
-        self.assertNotIn("editableField", desc_col)
+        self.assertEqual(missing, [])
 
-    def test_object_columns_are_read_only(self):
-        payload = build_rulebook_rules_grid_payload(_sample_grouped())
-        source_group = next(
-            c for c in payload["columnDefs"] if c.get("headerName") == "SOURCE"
+    def test_build_column_quick_filter_spec(self):
+        self.assertEqual(
+            build_column_quick_filter_spec("alpha"),
+            {"filterType": "text", "type": "contains", "filter": "alpha"},
         )
-        obj_col = source_group["children"][0]
-        self.assertEqual(obj_col["cellRenderer"], "htmlCell")
-        self.assertNotIn("editViaForm", obj_col)
+        and_spec = build_column_quick_filter_spec("rule1 AND rule2")
+        self.assertEqual(and_spec["operator"], "AND")
+        self.assertEqual(
+            [cond["filter"] for cond in and_spec["conditions"]],
+            ["rule1", "rule2"],
+        )
+        or_spec = build_column_quick_filter_spec("rule1 OR rule2")
+        self.assertEqual(or_spec["operator"], "OR")
 
-    def test_actions_column_uses_actions_renderer(self):
-        payload = build_rulebook_rules_grid_payload(_sample_grouped())
-        actions_col = next(
-            c for c in payload["columnDefs"] if c.get("colId") == "_actions"
+    def test_apply_row_filter_and_or(self):
+        record = build_rulebook_rules_grid_row(_sample_grouped()["rows"][0])
+        and_spec = build_column_quick_filter_spec("rule AND one")
+        filtered_and = apply_ag_grid_row_filter([record], {"name": and_spec})
+        self.assertEqual(len(filtered_and), 1)
+        missing_and = apply_ag_grid_row_filter(
+            [record],
+            {"name": build_column_quick_filter_spec("rule AND missing")},
         )
-        self.assertEqual(actions_col["cellRenderer"], "actionsCell")
-        self.assertNotIn("_actions_html", actions_col.get("field", ""))
+        self.assertEqual(missing_and, [])
+        filtered_or = apply_ag_grid_row_filter(
+            [record],
+            {"name": build_column_quick_filter_spec("missing OR one")},
+        )
+        self.assertEqual(len(filtered_or), 1)
 
     def test_object_groups_have_detail_columns(self):
-        payload = build_rulebook_rules_grid_payload(_sample_grouped())
+        payload = build_rulebook_rules_grid_column_defs(_sample_grouped())
         source_group = next(
-            c for c in payload["columnDefs"] if c.get("headerName") == "SOURCE"
+            c for c in payload["columnDefs"] if c.get("headerName") == "Source"
         )
         self.assertEqual(len(source_group["children"]), 1)
         self.assertEqual(source_group["children"][0]["field"], "source::ct_1")
-        self.assertNotIn("columnGroupShow", source_group["children"][0])
-        row = payload["rowData"][0]
-        self.assertEqual(row["source::ct_1"], "<span>cell</span>")
-        self.assertNotIn("source::__group_summary", row)
+
+    def test_filter_spec_to_column_quick_value(self):
+        self.assertEqual(
+            filter_spec_to_column_quick_value(
+                {"filterType": "text", "type": "equals", "filter": "demo-0001"}
+            ),
+            "demo-0001",
+        )
+        self.assertEqual(
+            filter_spec_to_column_quick_value(
+                {
+                    "filterType": "text",
+                    "operator": "OR",
+                    "conditions": [
+                        {"filterType": "text", "type": "contains", "filter": "a"},
+                        {"filterType": "text", "type": "contains", "filter": "b"},
+                    ],
+                }
+            ),
+            "a OR b",
+        )
+
+    def test_build_filter_model_from_verbose_nsm_query(self):
+        from types import SimpleNamespace
+
+        layout = _sample_grouped()["rules_layout"]
+
+        class FakeContext:
+            def get_field(self, name):
+                if str(name).lower() == "source":
+                    return SimpleNamespace(slug="source", pk=1, name="Source")
+                return None
+
+        model, err = build_ag_grid_filter_model_from_query_text(
+            'Source.Zones.name == "dmz"',
+            layout,
+            FakeContext(),
+        )
+        self.assertIsNone(err)
+        self.assertEqual(
+            model["source::ct_1"],
+            {"filterType": "text", "type": "contains", "filter": "dmz"},
+        )

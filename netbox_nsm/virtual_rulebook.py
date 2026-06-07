@@ -1,11 +1,16 @@
-"""Virtual read-only rulebook entry for the global all-rules grid."""
+"""Virtual read-only rulebook entry for the aggregated all-rules overview."""
 
 from __future__ import annotations
 
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from netbox_nsm.all_rules_grid_service import all_rules_count
+from netbox_nsm.models import Rule
+
+
+def all_rules_count() -> int:
+    return Rule.objects.count()
+
 
 __all__ = (
     "ALL_RULES_CHANGELOG_URL_NAME",
@@ -84,6 +89,7 @@ class VirtualAllRulesRulebook:
         self.comments = ""
         self.custom_field_data = {}
         self.description = str(_("Read-only view across all policy rulebooks."))
+        self.matrix_tab_enabled = False
         self._hierarchy_depth = 0
         self.assignments = _EmptyRelatedManager()
         self.tags = _EmptyRelatedManager()

@@ -16,6 +16,7 @@ from netbox_nsm.models import (
     TypeConfig,
 )
 from netbox_nsm.models.object_link import LinkPropagationChoices
+from netbox_nsm.tests.form_helpers import rulebook_post_data
 from netbox_nsm.tests.object_link_helpers import create_object_link_with_custom_object_b
 from utilities.testing import TestCase
 from utilities.testing.utils import post_data
@@ -54,13 +55,10 @@ class RulebookViewCrudTests(TestCase):
         url = reverse("plugins:netbox_nsm:rulebook_add")
         response = self.client.post(
             url,
-            post_data(
-                {
-                    "name": "ui-new-rulebook",
-                    "rulebook_type": "security_rules",
-                    "description": "created in UI test",
-                    "comments": "",
-                }
+            rulebook_post_data(
+                name="ui-new-rulebook",
+                matrix_tab_enabled="1",
+                description="created in UI test",
             ),
         )
         self.assertEqual(response.status_code, 302, response.content)
@@ -72,19 +70,51 @@ class RulebookViewCrudTests(TestCase):
         url = reverse("plugins:netbox_nsm:rulebook_edit", args=[self.rulebook.pk])
         response = self.client.post(
             url,
-            post_data(
-                {
-                    "name": "ui-crud-rulebook-renamed",
-                    "rulebook_type": "security_rules",
-                    "description": "updated",
-                    "comments": "",
-                }
+            rulebook_post_data(
+                name="ui-crud-rulebook-renamed",
+                description="updated",
             ),
         )
         self.assertEqual(response.status_code, 302, response.content)
         self.rulebook.refresh_from_db()
         self.assertEqual(self.rulebook.name, "ui-crud-rulebook-renamed")
         self.assertEqual(self.rulebook.description, "updated")
+
+    def test_edit_form_shows_hide_when_matrix_tab_disabled(self):
+        self.rulebook.matrix_tab_enabled = False
+        self.rulebook.save(update_fields=["matrix_tab_enabled"])
+        self.add_permissions("netbox_nsm.view_rulebook", "netbox_nsm.change_rulebook")
+        url = reverse("plugins:netbox_nsm:rulebook_edit", args=[self.rulebook.pk])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertContains(
+            response,
+            '<option value="0"\n selected\n>Hide</option>',
+        )
+
+    def test_detail_shows_matrix_tab_hide(self):
+        self.rulebook.matrix_tab_enabled = False
+        self.rulebook.save(update_fields=["matrix_tab_enabled"])
+        self.add_permissions("netbox_nsm.view_rulebook")
+        url = reverse("plugins:netbox_nsm:rulebook", args=[self.rulebook.pk])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertContains(response, "Matrix tab")
+        self.assertContains(response, "Hide")
+
+    def test_edit_rulebook_matrix_tab_hide_via_ui(self):
+        self.add_permissions("netbox_nsm.view_rulebook", "netbox_nsm.change_rulebook")
+        url = reverse("plugins:netbox_nsm:rulebook_edit", args=[self.rulebook.pk])
+        response = self.client.post(
+            url,
+            rulebook_post_data(
+                name=self.rulebook.name,
+                matrix_tab_enabled="0",
+            ),
+        )
+        self.assertEqual(response.status_code, 302, response.content)
+        self.rulebook.refresh_from_db()
+        self.assertFalse(self.rulebook.matrix_tab_enabled)
 
     def test_delete_rulebook_via_ui(self):
         rb = Rulebook.objects.create(
@@ -256,6 +286,10 @@ class RuleViewCrudTests(TestCase):
         response = self.client.post(url, post_data({"confirm": True}))
         self.assertEqual(response.status_code, 302, response.content)
         self.assertFalse(Rule.objects.filter(pk=rule.pk).exists())
+        self.assertEqual(
+            response.url,
+            reverse("plugins:netbox_nsm:rulebook_rules", args=[self.rulebook.pk]),
+        )
 
 
 class ObjectLinkPanelViewTests(TestCase):

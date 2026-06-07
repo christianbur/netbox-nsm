@@ -69,29 +69,24 @@ class AllRulesRulebookView(_VirtualAllRulesMixin, View):
 
 
 class AllRulesRulebookRulesView(_VirtualAllRulesMixin, View):
-    """Rules tab: read-only AG Grid across all policy rulebooks."""
+    """Read-only rules tab with the same HTML table as policy rulebooks."""
 
-    template_name = "netbox_nsm/rulebook_all_rules.html"
+    template_name = "netbox_nsm/rulebook_all_rules_rules.html"
     tab_key = "rules"
+    permission_required = "netbox_nsm.view_rulebook"
 
     def get(self, request):
         import netbox_nsm.views.rulebook as rulebook_views
-        from netbox_nsm.all_rules_grid_service import (
-            all_rules_count,
-            build_all_rules_grid_config,
-            build_all_rules_grid_scaffold,
-        )
+        from netbox_nsm.rulebook_rules_tab import build_rulebook_rules_tab_context
 
         return self.render_virtual(
             request,
-            {
-                "all_rules_count": all_rules_count(),
-                "all_rules_grid_config": build_all_rules_grid_config(
-                    request, read_only=True
-                ),
-                "all_rules_grid_payload": build_all_rules_grid_scaffold(rulebook_views),
-                "rules_tab_label": _("Rules"),
-            },
+            build_rulebook_rules_tab_context(
+                request,
+                self.get_virtual_object(),
+                view_helpers=rulebook_views,
+                readonly=True,
+            ),
         )
 
 

@@ -1,4 +1,5 @@
 from django.contrib.contenttypes.models import ContentType
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
 from django.urls import reverse
@@ -29,6 +30,7 @@ from netbox_nsm.forms import (
     RulebookForm,
     RuleFilterForm,
     RuleForm,
+    RuleBulkEditForm,
 )
 from netbox_nsm.models import (
     ObjectGroup,
@@ -52,8 +54,11 @@ from netbox_nsm.rulebook_field_utils import (
     get_rules_column_labels,
     get_rules_column_slugs,
     get_visible_rulebook_fields,
+    get_visible_virtual_all_rules_fields,
     load_rulebook_fields_for_detail,
 )
+from netbox_nsm.rulebook_rules_cell_html import ipa_loupe_button_html
+from netbox_nsm.virtual_rulebook import is_virtual_all_rules_rulebook
 from netbox_nsm.tables import (
     RulebookAssignmentTable,
     RulebookTable,
@@ -152,96 +157,262 @@ def _render_rules_cell(items, max_pills=None, *, colored=True):
     return f'<div class="nsm-rule-pills">{"".join(parts)}</div>'
 
 
-def ipa_loupe_button_html(
+def _virtual_all_rules_union_key(field_name: str, type_label: str) -> str:
+    return f"{field_name}::{type_label}"
+
+
+def _build_virtual_all_rules_rb_maps(
     *,
-    ct,
-    pk,
-    name: str = "",
-    title: str = "Objekt analysieren",
-) -> str:
-    """Small magnifier button for the floating IP Analyzer applet."""
-    return (
-        f'<button type="button" class="nsm-ipa-loupe"'
-        f' data-ct="{conditional_escape(str(ct))}"'
-        f' data-pk="{conditional_escape(str(pk))}"'
-        f' data-name="{conditional_escape(name or "")}"'
-        f' title="{conditional_escape(title)}"'
-        f' aria-label="{conditional_escape(title)}">'
-        f'<i class="mdi mdi-magnify" aria-hidden="true"></i></button>'
+    ct_label_map: dict,
+    groups_field_slugs: set[str],
+    union_field_names: dict[str, str],
+) -> dict[int, dict[str, str]]:
+    """Map union column keys (Area::TypeLabel) to per-rulebook local keys (slug::ct_N)."""
+    rb_maps: dict[int, dict[str, str]] = {}
+    for rulebook in Rulebook.objects.filter(
+        rulebook_type=RulebookTypeChoices.SECURITY_RULES
+    ).order_by("pk"):
+        rb_map: dict[str, str] = {}
+        for field in get_visible_rulebook_fields(rulebook):
+            if field.field_kind != RulebookFieldKind.OBJECT:
+                continue
+            union_name = union_field_names.get(field.slug, field.name)
+            ct_ids = [
+                ft.type_config.content_type_id
+                for ft in field.type_configs.all()
+                if ft.visible and ft.type_config and ft.type_config.content_type_id
+            ]
+            for ct_id in ct_ids:
+                type_label = ct_label_map.get(ct_id, f"Type {ct_id}")
+                union_key = _virtual_all_rules_union_key(union_name, type_label)
+                rb_map[union_key] = f"{field.slug}::ct_{ct_id}"
+            if field.slug in groups_field_slugs:
+                groups_label = str(_("Groups"))
+                union_key = _virtual_all_rules_union_key(union_name, groups_label)
+                rb_map[union_key] = f"{field.slug}::Groups"
+        rb_maps[rulebook.pk] = rb_map
+    return rb_maps
+
+
+def _build_virtual_all_rules_grouped_table_data(rules):
+    from netbox_nsm.display_utils import get_display_template_map, render_object_display
+
+    rules = list(rules)
+    ct_display_template_map = get_display_template_map()
+    visible_fields = get_visible_virtual_all_rules_fields()
+    union_field_names = {field.slug: field.name for field in visible_fields}
+
+    ct_label_map = {}
+    for tc in TypeConfig.objects.select_related("content_type"):
+        mc = tc.content_type.model_class()
+        if mc:
+            vc = getattr(mc._meta, "verbose_name", tc.content_type.model)
+            ct_label_map[tc.content_type.pk] = str(vc).capitalize()
+
+    fields_by_slug = {}
+    field_ct_ids_map = {}
+    for field in visible_fields:
+        if field.field_kind != RulebookFieldKind.OBJECT:
+            continue
+        fields_by_slug[field.slug] = field
+        field_ct_ids_map[field.slug] = [
+            ft.type_config.content_type_id
+            for ft in field.type_configs.all()
+            if ft.visible and ft.type_config and ft.type_config.content_type_id
+        ]
+
+    groups_field_slugs = set()
+    for group in ObjectGroup.objects.only("field_slugs"):
+        for slug in group.field_slugs or []:
+            groups_field_slugs.add(str(slug))
+
+    rules_layout = [
+        {
+            "kind": "system",
+            "slug": "rulebook",
+            "label": str(_("Rulebook")),
+        }
+    ]
+    header_groups = []
+    grouped_columns = []
+    group_idx = 0
+
+    for field in visible_fields:
+        if field.field_kind == RulebookFieldKind.SYSTEM:
+            rules_layout.append(
+                {"kind": "system", "slug": field.slug, "label": field.name}
+            )
+            continue
+
+        field_slug = field.slug
+        ct_ids = field_ct_ids_map.get(field_slug, [])
+        types = [
+            (f"ct_{ct_id}", ct_label_map.get(ct_id, f"Type {ct_id}"))
+            for ct_id in ct_ids
+        ]
+        if field_slug in groups_field_slugs:
+            types.append(("Groups", str(_("Groups"))))
+        if not types:
+            continue
+
+        cols = []
+        for type_key, type_label in types:
+            key = _virtual_all_rules_union_key(field.name, type_label)
+            col_def = {
+                "key": key,
+                "label": type_label,
+                "area_slug": field_slug,
+                "type_name": type_key,
+            }
+            cols.append(col_def)
+            grouped_columns.append(col_def)
+
+        group = {"label": field.name, "slug": field_slug, "columns": cols}
+        for idx, col in enumerate(cols):
+            col["is_group_start"] = idx == 0
+            col["is_group_end"] = idx == len(cols) - 1
+            col["group_band"] = "odd" if (group_idx % 2) else "even"
+        header_groups.append(group)
+        rules_layout.append(
+            {
+                "kind": "object",
+                "slug": field_slug,
+                "label": field.name,
+                "group": group,
+            }
+        )
+        group_idx += 1
+
+    col_index = 1
+    for entry in rules_layout:
+        if entry["kind"] == "system":
+            entry["col_index"] = col_index
+            col_index += 1
+        else:
+            for col in entry["group"]["columns"]:
+                col["col_index"] = col_index
+                col_index += 1
+
+    matching_class_map = {
+        tc.content_type_id: tc.matching_class
+        for tc in TypeConfig.objects.only("content_type_id", "matching_class")
+    }
+
+    rb_maps = _build_virtual_all_rules_rb_maps(
+        ct_label_map=ct_label_map,
+        groups_field_slugs=groups_field_slugs,
+        union_field_names=union_field_names,
     )
 
+    col_area_slug = {col["key"]: col["area_slug"] for col in grouped_columns}
+    rows = []
+    for rule in rules:
+        per_key = {col["key"]: [] for col in grouped_columns}
+        rb_map = rb_maps.get(rule.rulebook_id, {})
+        local_to_union = {local: union for union, local in rb_map.items()}
 
-def _rules_pill_html_ag(item, *, hidden=False, colored=True):
-    """AG Grid: colored dot + plain text link (no pill chrome)."""
-    color = (item.get("color") or "").strip() if colored else ""
-    dot_html = ""
-    if color:
-        dot_html = (
-            f'<span class="nsm-ag-cell-dot" style="background-color:'
-            f'{conditional_escape(color)};" aria-hidden="true"></span>'
-        )
-    hidden_class = " nsm-pill-hidden" if hidden else ""
-    excluded_class = " nsm-ag-cell-excluded" if item.get("excluded") else ""
-    data_attrs = ""
-    ct = item.get("ct")
-    pk = item.get("pk")
-    if ct is not None and pk is not None:
-        data_attrs = (
-            f' data-ct="{conditional_escape(str(ct))}"'
-            f' data-pk="{conditional_escape(str(pk))}"'
-            f' data-name="{conditional_escape(item.get("name") or "")}"'
-        )
-        if item.get("addrAnalyzable") or item.get("addr_analyzable"):
-            data_attrs += ' data-addr-analyzable="1"'
-    loupe_html = ""
-    if (item.get("addrAnalyzable") or item.get("addr_analyzable")) and (
-        ct is not None and pk is not None
-    ):
-        loupe_html = ipa_loupe_button_html(
-            ct=ct,
-            pk=pk,
-            name=item.get("name") or "",
-            title="Objekt analysieren",
-        )
-    return (
-        f'<span class="nsm-ag-cell-item{hidden_class}{excluded_class}"{data_attrs}>'
-        f"{dot_html}"
-        f'<a href="{conditional_escape(item["url"])}" '
-        f' class="nsm-ag-cell-link text-decoration-none"'
-        f' title="{conditional_escape(item["name"])}">'
-        f"{conditional_escape(item['name'])}"
-        f"</a>{loupe_html}</span>"
-    )
+        for item in rule.object_items.all():
+            if item.field is None:
+                continue
+            local_key = f"{item.field.slug}::ct_{item.content_type_id}"
+            key = local_to_union.get(local_key)
+            if not key or key not in per_key:
+                continue
+            assigned = item.assigned_object
+            if assigned is None:
+                continue
+            display_name = render_object_display(
+                assigned, item.content_type_id, ct_display_template_map
+            )
+            per_key[key].append(
+                {
+                    "url": (
+                        assigned.get_absolute_url()
+                        if hasattr(assigned, "get_absolute_url")
+                        else "#"
+                    ),
+                    "name": str(display_name),
+                    "color": getattr(assigned, "color", "") or "",
+                    "excluded": bool(item.exclude),
+                    "ct": item.content_type_id,
+                    "pk": item.object_id,
+                    "addrAnalyzable": _object_is_addr_analyzable(
+                        assigned, item.content_type_id, matching_class_map
+                    ),
+                }
+            )
 
+        for item in rule.group_items.all():
+            if item.field is None:
+                continue
+            local_key = f"{item.field.slug}::Groups"
+            key = local_to_union.get(local_key)
+            if not key or key not in per_key:
+                continue
+            per_key[key].append(
+                {
+                    "url": item.security_group.get_absolute_url(),
+                    "name": item.security_group.name,
+                    "color": "",
+                }
+            )
 
-def _render_rules_cell_ag(items, max_pills=None, *, colored=True):
-    if not items:
-        return '<span class="nsm-cell-empty">-</span>'
-    try:
-        limit = max(
-            1, int(max_pills if max_pills is not None else DEFAULT_MAX_VISIBLE_PILLS)
+        cells = {}
+        cells_items = {}
+        cells_filter = {}
+        for k, v in per_key.items():
+            area_slug = col_area_slug.get(k, k.split("::", 1)[0])
+            field = fields_by_slug.get(area_slug)
+            max_pills = (
+                field.max_visible_pills
+                if field is not None
+                else DEFAULT_MAX_VISIBLE_PILLS
+            )
+            use_colored = field.show_colored_pills if field is not None else True
+            cells_items[k] = v
+            cells[k] = _render_rules_cell(v, max_pills=max_pills, colored=use_colored)
+            cells_filter[k] = " ".join(item["name"] for item in v)
+
+        rows.append(
+            {
+                "pk": rule.pk,
+                "index": rule.index,
+                "enabled": rule.enabled,
+                "name": rule.name,
+                "url": rule.get_absolute_url(),
+                "description": rule.description or "-",
+                "edit_url": f"/plugins/netbox-nsm/rules/{rule.pk}/edit/",
+                "delete_url": f"/plugins/netbox-nsm/rules/{rule.pk}/delete/",
+                "system": {
+                    "index": rule.index,
+                    "enabled": rule.enabled,
+                    "name": rule.name,
+                    "url": rule.get_absolute_url(),
+                    "description": rule.description or "-",
+                    "rulebook": rule.rulebook.name,
+                    "rulebook_url": rule.rulebook.get_absolute_url(),
+                },
+                "cells": cells,
+                "cells_items": cells_items,
+                "cells_filter": cells_filter,
+            }
         )
-    except (TypeError, ValueError):
-        limit = DEFAULT_MAX_VISIBLE_PILLS
-    shown = items[:limit]
-    hidden = items[limit:]
-    parts = [_rules_pill_html_ag(item, colored=colored) for item in shown]
-    for item in hidden:
-        parts.append(_rules_pill_html_ag(item, hidden=True, colored=colored))
-    if hidden:
-        parts.append(
-            '<button type="button"'
-            ' class="nsm-ag-cell-more"'
-            " onclick=\"var c=this.closest('.nsm-ag-cell-list');"
-            "c.querySelectorAll('.nsm-pill-hidden').forEach(function(e){e.style.display='';});"
-            'this.remove();"'
-            f">+{len(hidden)}</button>"
-        )
-    return f'<div class="nsm-ag-cell-list">{"".join(parts)}</div>'
+
+    return {
+        "rules_layout": rules_layout,
+        "header_groups": header_groups,
+        "column_count": len(grouped_columns),
+        "total_column_count": col_index + 1,
+        "rows": rows,
+        "rb_maps": rb_maps,
+    }
 
 
 def _build_grouped_rules_table_data(rules, rulebook):
     from netbox_nsm.display_utils import get_display_template_map, render_object_display
+
+    if is_virtual_all_rules_rulebook(rulebook):
+        return _build_virtual_all_rules_grouped_table_data(rules)
 
     rules = list(rules)
     ct_display_template_map = get_display_template_map()
@@ -386,7 +557,6 @@ def _build_grouped_rules_table_data(rules, rulebook):
             )
 
         cells = {}
-        cells_ag = {}
         cells_items = {}
         cells_filter = {}
         for k, v in per_key.items():
@@ -400,9 +570,6 @@ def _build_grouped_rules_table_data(rules, rulebook):
             use_colored = field.show_colored_pills if field is not None else True
             cells_items[k] = v
             cells[k] = _render_rules_cell(v, max_pills=max_pills, colored=use_colored)
-            cells_ag[k] = _render_rules_cell_ag(
-                v, max_pills=max_pills, colored=use_colored
-            )
             cells_filter[k] = " ".join(item["name"] for item in v)
 
         rows.append(
@@ -423,7 +590,6 @@ def _build_grouped_rules_table_data(rules, rulebook):
                     "description": rule.description or "-",
                 },
                 "cells": cells,
-                "cells_ag": cells_ag,
                 "cells_items": cells_items,
                 "cells_filter": cells_filter,
             }
@@ -713,12 +879,14 @@ __all__ = (
     "RulebookBulkEditView",
     "RulebookBulkDeleteView",
     "RulebookRulesColumnsView",
-    "RulebookRulesGridView",
+    "RulebookRulesView",
     "RulebookBulkAssignView",
     "RuleView",
     "RuleListView",
     "RuleEditView",
     "RuleDeleteView",
+    "RuleBulkEditView",
+    "RuleBulkDeleteView",
     "RulebookAssignmentListView",
     "RulebookAssignmentEditView",
     "RulebookAssignmentDeleteView",
@@ -775,10 +943,13 @@ def _matrix_rules_href(
     zone_content_type_id=None,
     type_segment=None,
     display_template_map=None,
+    src_field_slug=None,
+    dst_field_slug=None,
 ):
     from urllib.parse import quote
 
     from netbox_nsm.display_utils import get_display_template_map, render_object_display
+    from netbox_nsm.object_rules_utils import build_matrix_cell_rules_filter_url
     from netbox_nsm.query.parser import Condition, conditions_to_query_param
 
     tmpl_map = (
@@ -793,6 +964,19 @@ def _matrix_rules_href(
     else:
         src_name = getattr(src_obj, "name", str(src_obj))
         dst_name = getattr(dst_obj, "name", str(dst_obj))
+
+    src_slug = (src_field_slug or "source").strip()
+    dst_slug = (dst_field_slug or "destination").strip()
+    if zone_content_type_id:
+        column_href = build_matrix_cell_rules_filter_url(
+            base_url,
+            src_column_key=f"{src_slug}::ct_{zone_content_type_id}",
+            dst_column_key=f"{dst_slug}::ct_{zone_content_type_id}",
+            src_filter=src_name,
+            dst_filter=dst_name,
+        )
+        if column_href:
+            return column_href
 
     def _zone_condition(field_name, obj_name):
         if type_segment:
@@ -823,27 +1007,46 @@ def _matrix_rules_href(
     else:
         q = _pair_query(src_name, dst_name)
     sep = "&" if "?" in base_url else "?"
-    return f"{base_url}{sep}nsm_q={quote(q, safe='')}"
+    return f"{base_url}{sep}filter_q={quote(q, safe='')}"
+
+
+def _rulebook_matrix_tab_visible(instance) -> bool:
+    if is_virtual_all_rules_rulebook(instance):
+        return False
+    return bool(getattr(instance, "matrix_tab_enabled", True))
 
 
 @register_model_view(Rulebook, name="matrix", path="matrix")
-class RulebookMatrixRedirectView(generic.ObjectView):
-    """Legacy matrix tab URL → Rules tab (matrix is embedded in the grid toolbar)."""
+class RulebookMatrixView(generic.ObjectView):
+    """Classic HTML zone matrix (source × destination heatmap)."""
 
     queryset = Rulebook.objects.all()
+    template_name = "netbox_nsm/rulebook_matrix.html"
+    tab = ViewTab(
+        label=_("Matrix"),
+        permission="netbox_nsm.view_rulebook",
+        weight=300,
+        hide_if_empty=True,
+        visible=_rulebook_matrix_tab_visible,
+    )
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request, **kwargs):
         instance = self.get_object(**kwargs)
-        from netbox_nsm.branch_urls import with_branch_query
+        if not _rulebook_matrix_tab_visible(instance):
+            raise Http404
+        return super().get(request, **kwargs)
 
-        rules_url = reverse(
-            "plugins:netbox_nsm:rulebook_rules",
-            args=[instance.pk],
+    def get_extra_context(self, request, instance):
+        from netbox_nsm.matrix_tab_context import build_matrix_tab_context
+        import netbox_nsm.views.rulebook as rulebook_views
+
+        ctx = build_matrix_tab_context(
+            request,
+            instance,
+            view_helpers=rulebook_views,
         )
-        query = request.GET.urlencode()
-        if query:
-            rules_url = f"{rules_url}?{query}"
-        return redirect(with_branch_query(rules_url, request), permanent=True)
+        ctx["matrix_tab_label"] = self.tab.label
+        return ctx
 
 
 def _build_ip_analysis_groups(rules_qs):
@@ -972,7 +1175,7 @@ class RulebookRulesColumnsView(generic.ObjectView):
 
 
 class _RulebookRulesTabMixin:
-    """Bulk-delete and context for the Rules (AG Grid) tab."""
+    """Bulk-delete and HTML rules table."""
 
     queryset = Rulebook.objects.all().prefetch_related("rules")
     template_name = "netbox_nsm/rulebook_rules.html"
@@ -988,14 +1191,20 @@ class _RulebookRulesTabMixin:
             return HttpResponseForbidden()
         pk_list = [int(pk) for pk in request.POST.getlist("pk") if pk.isdigit()]
         if pk_list:
-            from netbox_nsm.changelog_utils import (
-                record_rulebook_rules_changelog,
-                snapshot_instance,
-            )
+            from netbox_nsm.branch_db import ensure_branch_context
+            from netbox_nsm.changelog_utils import record_rulebook_rules_changelog
+            from netbox_nsm.rulebook_rules_utils import snapshot_rules_layout_entries
 
-            rb_prechange = snapshot_instance(instance)
-            Rule.objects.filter(pk__in=pk_list, rulebook=instance).delete()
-            record_rulebook_rules_changelog(instance, request, rb_prechange)
+            with ensure_branch_context(request):
+                rules_qs = Rule.objects.filter(pk__in=pk_list, rulebook=instance)
+                rb_prechange = snapshot_rules_layout_entries(rules_qs)
+                rules_qs.delete()
+                record_rulebook_rules_changelog(
+                    instance,
+                    request,
+                    rb_prechange,
+                    postchange={"rules_layout": {}},
+                )
         return redirect(
             reverse(
                 f"plugins:netbox_nsm:{self.rules_tab_route}",
@@ -1004,23 +1213,21 @@ class _RulebookRulesTabMixin:
         )
 
     def get_extra_context(self, request, instance):
-        from netbox_nsm import rulebook_rules_tab
+        from netbox_nsm.rulebook_rules_tab import build_rulebook_rules_tab_context
         import netbox_nsm.views.rulebook as rulebook_views
 
-        ctx = rulebook_rules_tab.build_rulebook_rules_tab_context(
+        ctx = build_rulebook_rules_tab_context(
             request,
             instance,
             view_helpers=rulebook_views,
-            grid_all_rules=True,
         )
         ctx["rules_tab_label"] = self.tab.label
         ctx["rules_tab_key"] = self.rules_tab_key
-        ctx["nsm_show_facet_panel"] = False
         return ctx
 
 
 @register_model_view(Rulebook, name="rules")
-class RulebookRulesGridView(_RulebookRulesTabMixin, generic.ObjectView):
+class RulebookRulesView(_RulebookRulesTabMixin, generic.ObjectView):
     tab = ViewTab(
         label=_("Rules"),
         permission="netbox_nsm.view_rulebook",
@@ -1029,11 +1236,31 @@ class RulebookRulesGridView(_RulebookRulesTabMixin, generic.ObjectView):
     )
 
 
+@register_model_view(Rulebook, name="test", path="test")
+class RulebookRulesTestRedirectView(generic.ObjectView):
+    """Legacy /test/ prototype URL → /rules/."""
+
+    queryset = Rulebook.objects.all()
+
+    def get(self, request, *args, **kwargs):
+        instance = self.get_object(**kwargs)
+        from netbox_nsm.branch_urls import with_branch_query
+
+        rules_url = reverse(
+            "plugins:netbox_nsm:rulebook_rules",
+            args=[instance.pk],
+        )
+        query = request.GET.urlencode()
+        if query:
+            rules_url = f"{rules_url}?{query}"
+        return redirect(with_branch_query(rules_url, request), permanent=True)
+
+
 @register_model_view(Rulebook, "list", path="", detail=False)
 class RulebookListView(generic.ObjectListView):
     queryset = (
         Rulebook.objects.prefetch_related("assignments__assigned_object_type")
-        .select_related("platform")
+        .select_related("platform", "parent")
         .annotate(rule_count=Count("rules"))
     )
     filterset = RulebookFilterSet
@@ -1043,17 +1270,19 @@ class RulebookListView(generic.ObjectListView):
     actions = (AddObject, BulkDelete)
 
     def get_table(self, data, request, bulk_actions=True):
+        from netbox_nsm.rulebook_hierarchy import hierarchy_depth, rulebook_tree_order
+
+        data_list = list(data)
+        depth_cache: dict[int, int] = {}
+        for rb in data_list:
+            rb.nsm_list_depth = hierarchy_depth(rb, _cache=depth_cache)
+        order_map = {pk: idx for idx, pk in enumerate(rulebook_tree_order(data_list))}
+        data_list.sort(key=lambda rb: order_map.get(rb.pk, 999999))
         return super().get_table(
-            self._pin_virtual_rulebook_first(data),
+            data_list,
             request,
             bulk_actions,
         )
-
-    @staticmethod
-    def _pin_virtual_rulebook_first(data):
-        from netbox_nsm.virtual_rulebook import build_virtual_all_rules_row
-
-        return [build_virtual_all_rules_row()] + list(data)
 
 
 @register_model_view(Rulebook, "add", detail=False)
@@ -1403,14 +1632,30 @@ def _addr_path_line(path_parts):
 
 
 def _addr_path_parts_for_leaf(node, path_prefix):
-    """Build CSV path segments for a leaf (IP as final segment when present)."""
+    """Build CSV path segments for a leaf (object name + IP when both differ)."""
     row = list(path_prefix)
     ip_ref = node.get("ip_ref")
     if ip_ref and ip_ref.get("str"):
-        row.append(ip_ref["str"])
+        ip_str = str(ip_ref["str"])
+        name = str(node.get("name") or "").strip()
+        if name and name != ip_str:
+            row.append(name)
+        row.append(ip_str)
     else:
         row.append(node["name"])
     return row
+
+
+def _prefix_addr_copy_lines(lines, *prefix_parts):
+    """Prepend fixed CSV segments (e.g. ``all``) to each copy line."""
+    head = _addr_path_line(list(prefix_parts))
+    if not head:
+        return list(lines or [])
+    prefixed = []
+    for line in lines or []:
+        text = str(line).strip()
+        prefixed.append(f"{head},{text}" if text else head)
+    return prefixed
 
 
 def _flatten_addr_tree_paths(nodes, path_prefix=None):
@@ -1475,7 +1720,7 @@ def _get_rulebook_address_fields(rulebook):
     )
 
 
-def _build_addr_tree_nodes(objs):
+def _build_addr_tree_nodes(objs, *, all_copy_prefix="all"):
     """Build enriched tree nodes and flat CSV path lines for a list of address objects."""
     nodes = []
     for obj in objs:
@@ -1484,7 +1729,10 @@ def _build_addr_tree_nodes(objs):
             _enrich_addr_tree_copy_lines(node)
             _enrich_addr_tree_leaf_counts(node)
             nodes.append(node)
-    return nodes, _flatten_addr_tree_paths(nodes)
+    flat_lines = _flatten_addr_tree_paths(nodes)
+    if all_copy_prefix:
+        flat_lines = _prefix_addr_copy_lines(flat_lines, all_copy_prefix)
+    return nodes, flat_lines
 
 
 def _object_supports_addr_analysis(obj):
@@ -1987,16 +2235,106 @@ class RuleEditView(generic.ObjectEditView):
 class RuleDeleteView(generic.ObjectDeleteView):
     queryset = Rule.objects.all()
 
-    def perform_destroy(self, instance):
-        from netbox_nsm.changelog_utils import (
-            record_rulebook_rules_changelog,
-            snapshot_instance,
-        )
+    def dispatch(self, request, *args, **kwargs):
+        from netbox_nsm.branch_db import resolve_db_alias, use_db_alias
 
-        rulebook = instance.rulebook
-        rb_prechange = snapshot_instance(rulebook)
-        super().perform_destroy(instance)
-        record_rulebook_rules_changelog(rulebook, self.request, rb_prechange)
+        alias = resolve_db_alias(request=request)
+        if alias:
+            with use_db_alias(alias):
+                return super().dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_return_url(self, request, obj=None):
+        return_url = request.GET.get("return_url") or request.POST.get("return_url")
+        if return_url:
+            return return_url
+        instance = obj
+        if instance is None:
+            try:
+                instance = self.get_object()
+            except Exception:
+                instance = None
+        if instance is not None and instance.rulebook_id:
+            return reverse(
+                "plugins:netbox_nsm:rulebook_rules",
+                args=[instance.rulebook_id],
+            )
+        return super().get_return_url(request, obj=obj)
+
+    def post(self, request, *args, **kwargs):
+        from utilities.forms import DeleteForm
+
+        from netbox_nsm.branch_db import ensure_branch_context
+        from netbox_nsm.changelog_utils import record_rulebook_rules_changelog
+        from netbox_nsm.rulebook_rules_utils import snapshot_rule_layout_entry
+
+        obj = self.get_object(**kwargs)
+        rulebook = obj.rulebook
+        rb_prechange = None
+        form = DeleteForm(request.POST, instance=obj)
+        if form.is_valid():
+            with ensure_branch_context(request):
+                rb_prechange = snapshot_rule_layout_entry(obj)
+
+        response = super().post(request, *args, **kwargs)
+        if rb_prechange is not None:
+            with ensure_branch_context(request):
+                record_rulebook_rules_changelog(
+                    rulebook,
+                    request,
+                    rb_prechange,
+                    postchange={"rules_layout": {}},
+                )
+        return response
+
+
+@register_model_view(Rule, "bulk_edit", path="edit", detail=False)
+class RuleBulkEditView(generic.BulkEditView):
+    queryset = Rule.objects.all()
+    form = RuleBulkEditForm
+
+
+@register_model_view(Rule, "bulk_delete", path="delete", detail=False)
+class RuleBulkDeleteView(generic.BulkDeleteView):
+    queryset = Rule.objects.all()
+
+    def post(self, request, *args, **kwargs):
+        rulebook_snapshots = None
+        if "_confirm" in request.POST:
+            pk_list = [pk for pk in request.POST.getlist("pk") if str(pk).isdigit()]
+            if pk_list:
+                from netbox_nsm.branch_db import ensure_branch_context
+                from netbox_nsm.models import Rulebook
+                from netbox_nsm.rulebook_rules_utils import (
+                    snapshot_rules_layout_entries,
+                )
+
+                queryset = self.queryset.filter(pk__in=pk_list)
+                with ensure_branch_context(request):
+                    rulebook_snapshots = {}
+                    for rulebook_id in queryset.values_list(
+                        "rulebook_id", flat=True
+                    ).distinct():
+                        rules = queryset.filter(rulebook_id=rulebook_id)
+                        rulebook = Rulebook.objects.get(pk=rulebook_id)
+                        rulebook_snapshots[rulebook_id] = (
+                            rulebook,
+                            snapshot_rules_layout_entries(rules),
+                        )
+        response = super().post(request, *args, **kwargs)
+        if rulebook_snapshots:
+            from netbox_nsm.branch_db import ensure_branch_context
+            from netbox_nsm.changelog_utils import record_rulebook_rules_changelog
+
+            with ensure_branch_context(request):
+                for rulebook, prechange in rulebook_snapshots.values():
+                    record_rulebook_rules_changelog(
+                        rulebook,
+                        request,
+                        prechange,
+                        postchange={"rules_layout": {}},
+                    )
+        return response
 
 
 @register_model_view(RulebookAssignment, "list", path="", detail=False)

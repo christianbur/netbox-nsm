@@ -27,6 +27,7 @@ from netbox_nsm.models import (
     RulebookAssignment,
     RuleObjectItem,
     RuleGroupItem,
+    RulebookStatusChoices,
 )
 from netbox_nsm.changelog_utils import (
     record_rule_assignment_changelog,
@@ -54,23 +55,22 @@ __all__ = (
     "RulebookBulkAssignForm",
     "RuleForm",
     "RuleFilterForm",
+    "RuleBulkEditForm",
     "RulebookAssignmentForm",
     "RulebookAssignmentFilterForm",
 )
 
 
+MATRIX_TAB_SHOW = "1"
+MATRIX_TAB_HIDE = "0"
+MATRIX_TAB_CHOICES = (
+    (MATRIX_TAB_SHOW, _("Show")),
+    (MATRIX_TAB_HIDE, _("Hide")),
+)
+
+
 class RulebookForm(PrimaryModelForm):
     name = forms.CharField(max_length=100, required=True)
-    rule_comment_template = forms.CharField(
-        required=False,
-        widget=forms.Textarea(
-            attrs={"rows": 5, "placeholder": "## Notes\n\n{rulebook} – Rule #{index}\n"}
-        ),
-        label=_("Rule Comment Template"),
-        help_text=_(
-            "Markdown template pre-filled when adding new rules. Supports {rule_name}, {index}, {rulebook}."
-        ),
-    )
     assigned_devices = DynamicModelMultipleChoiceField(
         queryset=Device.objects.all(),
         required=False,
@@ -89,18 +89,40 @@ class RulebookForm(PrimaryModelForm):
             "Firewall platform or security fabric (e.g. PAN-OS, Cisco ASA, TrustSec, Zscaler)."
         ),
     )
+    status = forms.ChoiceField(
+        choices=RulebookStatusChoices.choices,
+        required=True,
+        label=_("Status"),
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    parent = DynamicModelChoiceField(
+        queryset=Rulebook.objects.all(),
+        required=False,
+        label=_("Parent rulebook"),
+        help_text=_("Optional parent for hierarchical grouping in the rulebook list."),
+    )
+    matrix_tab_enabled = forms.ChoiceField(
+        choices=MATRIX_TAB_CHOICES,
+        required=True,
+        label=_("Matrix tab"),
+        help_text=_("Show the zone matrix tab for this rulebook."),
+        widget=forms.Select(attrs={"class": "form-select no-ts"}),
+        initial=MATRIX_TAB_SHOW,
+    )
 
     fieldsets = (
         FieldSet(
             "name",
             "rulebook_type",
+            "status",
+            "parent",
             "platform",
             "mgmt_url",
+            "matrix_tab_enabled",
             "description",
             name=_("Rulebook"),
         ),
         FieldSet("assigned_devices", "assigned_vms", name=_("Assigned Objects")),
-        FieldSet("rule_comment_template", name=_("Rule Defaults")),
         FieldSet("tags", name=_("Tags")),
     )
     comments = CommentField()
@@ -110,9 +132,11 @@ class RulebookForm(PrimaryModelForm):
         fields = (
             "name",
             "rulebook_type",
+            "status",
+            "parent",
             "platform",
             "mgmt_url",
-            "rule_comment_template",
+            "matrix_tab_enabled",
             "description",
             "comments",
             "tags",
@@ -120,6 +144,16 @@ class RulebookForm(PrimaryModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        parent_qs = Rulebook.objects.all()
+        if self.instance and self.instance.pk:
+            from netbox_nsm.rulebook_hierarchy import invalid_parent_pks
+
+            exclude_pks = invalid_parent_pks(self.instance)
+            if exclude_pks:
+                parent_qs = parent_qs.exclude(pk__in=exclude_pks)
+                for pk in sorted(exclude_pks):
+                    self.fields["parent"].widget.add_query_param("id__n", pk)
+        self.fields["parent"].queryset = parent_qs
         if self.instance and self.instance.pk:
             from django.contrib.contenttypes.models import ContentType
 
@@ -137,6 +171,24 @@ class RulebookForm(PrimaryModelForm):
             )
             self.initial["assigned_devices"] = device_pks
             self.initial["assigned_vms"] = vm_pks
+            tab_choice = (
+                MATRIX_TAB_SHOW if self.instance.matrix_tab_enabled else MATRIX_TAB_HIDE
+            )
+            self.initial["matrix_tab_enabled"] = tab_choice
+            self.fields["matrix_tab_enabled"].initial = tab_choice
+
+    def clean_parent(self):
+        from django.core.exceptions import ValidationError
+        from netbox_nsm.rulebook_hierarchy import validate_parent_choice
+
+        parent = self.cleaned_data.get("parent")
+        error = validate_parent_choice(self.instance, parent)
+        if error:
+            raise ValidationError(error)
+        return parent
+
+    def clean_matrix_tab_enabled(self):
+        return self.cleaned_data.get("matrix_tab_enabled") == MATRIX_TAB_SHOW
 
     def save(self, commit=True):
         instance = super().save(commit=commit)
@@ -150,30 +202,65 @@ class RulebookForm(PrimaryModelForm):
 
         device_ct = ContentType.objects.get_for_model(Device)
         vm_ct = ContentType.objects.get_for_model(VirtualMachine)
-        instance.assignments.filter(
-            assigned_object_type__in=[device_ct, vm_ct]
-        ).delete()
+        device_pks = {
+            device.pk for device in self.cleaned_data.get("assigned_devices") or []
+        }
+        vm_pks = {vm.pk for vm in self.cleaned_data.get("assigned_vms") or []}
+        current_devices = set(
+            instance.assignments.filter(assigned_object_type=device_ct).values_list(
+                "assigned_object_id", flat=True
+            )
+        )
+        current_vms = set(
+            instance.assignments.filter(assigned_object_type=vm_ct).values_list(
+                "assigned_object_id", flat=True
+            )
+        )
+        if device_pks == current_devices and vm_pks == current_vms:
+            return
+
+        for pk in current_devices - device_pks:
+            instance.assignments.filter(
+                assigned_object_type=device_ct, assigned_object_id=pk
+            ).delete()
+        for pk in current_vms - vm_pks:
+            instance.assignments.filter(
+                assigned_object_type=vm_ct, assigned_object_id=pk
+            ).delete()
         for device in self.cleaned_data.get("assigned_devices") or []:
-            RulebookAssignment.objects.get_or_create(
-                rulebook=instance,
-                assigned_object_type=device_ct,
-                assigned_object_id=device.pk,
-            )
+            if device.pk not in current_devices:
+                RulebookAssignment.objects.get_or_create(
+                    rulebook=instance,
+                    assigned_object_type=device_ct,
+                    assigned_object_id=device.pk,
+                )
         for vm in self.cleaned_data.get("assigned_vms") or []:
-            RulebookAssignment.objects.get_or_create(
-                rulebook=instance,
-                assigned_object_type=vm_ct,
-                assigned_object_id=vm.pk,
-            )
+            if vm.pk not in current_vms:
+                RulebookAssignment.objects.get_or_create(
+                    rulebook=instance,
+                    assigned_object_type=vm_ct,
+                    assigned_object_id=vm.pk,
+                )
 
 
 class RulebookFilterForm(PrimaryModelFilterSetForm):
     model = Rulebook
     fieldsets = (
         FieldSet("q", "filter_id", "tag"),
-        FieldSet("name", "rulebook_type", name=_("Rulebook")),
+        FieldSet(
+            "name",
+            "rulebook_type",
+            "status",
+            "parent_id",
+            name=_("Rulebook"),
+        ),
     )
     tags = TagFilterField(model)
+    parent_id = DynamicModelChoiceField(
+        queryset=Rulebook.objects.all(),
+        required=False,
+        label=_("Parent rulebook"),
+    )
 
 
 class RulebookBulkEditForm(PrimaryModelBulkEditForm):
@@ -182,13 +269,38 @@ class RulebookBulkEditForm(PrimaryModelBulkEditForm):
         choices=Rulebook._meta.get_field("rulebook_type").choices,
         required=False,
     )
+    status = forms.ChoiceField(
+        choices=(("", "---------"), *RulebookStatusChoices.choices),
+        required=False,
+        label=_("Status"),
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    parent = DynamicModelChoiceField(
+        queryset=Rulebook.objects.all(),
+        required=False,
+        label=_("Parent rulebook"),
+    )
+    matrix_tab_enabled = forms.ChoiceField(
+        choices=(("", "---------"), *MATRIX_TAB_CHOICES),
+        required=False,
+        label=_("Matrix tab"),
+        widget=forms.Select(attrs={"class": "form-select no-ts"}),
+    )
     description = forms.CharField(max_length=200, required=False)
     tags = TagFilterField(model)
-    nullable_fields = ["description"]
+    nullable_fields = ["description", "matrix_tab_enabled", "parent"]
     fieldsets = (
-        FieldSet("rulebook_type", "description"),
+        FieldSet(
+            "rulebook_type", "status", "parent", "matrix_tab_enabled", "description"
+        ),
         FieldSet("tags", name=_("Tags")),
     )
+
+    def clean_matrix_tab_enabled(self):
+        value = self.cleaned_data.get("matrix_tab_enabled")
+        if value in (None, ""):
+            return None
+        return value == MATRIX_TAB_SHOW
 
 
 class RuleForm(PrimaryModelForm):
@@ -270,11 +382,7 @@ class RuleForm(PrimaryModelForm):
         rulebook = self.instance.rulebook if self.instance.rulebook_id else None
         if rulebook is None and hasattr(self, "cleaned_data"):
             rulebook = self.cleaned_data.get("rulebook")
-        rb_prechange = (
-            snapshot_instance(rulebook)
-            if commit and req and rulebook and rulebook.pk
-            else None
-        )
+        rb_prechange = None
         prechange = None
         if commit and req and self.instance.pk:
             prechange = snapshot_instance(self.instance)
@@ -286,6 +394,17 @@ class RuleForm(PrimaryModelForm):
                 or resolve_db_alias(instance=self.instance, request=req)
             )
             with use_db_alias(alias):
+                if commit and req and rulebook and rulebook.pk:
+                    from netbox_nsm.rulebook_rules_utils import (
+                        snapshot_rule_layout_entry,
+                    )
+
+                    if self.instance.pk:
+                        rb_prechange = snapshot_rule_layout_entry(
+                            self.instance, db_alias=alias
+                        )
+                    else:
+                        rb_prechange = {"rules_layout": {}}
                 if alias and not self.instance.pk:
                     self.instance._state.db = alias
                 instance = super().save(commit=commit)
@@ -301,8 +420,20 @@ class RuleForm(PrimaryModelForm):
                         self._save_area_selections(instance, db_alias=db_alias)
                         self._save_virtual_group_config(instance)
                         record_rule_assignment_changelog(instance, req, prechange)
-                        if rb_prechange:
-                            record_rulebook_rules_changelog(rulebook, req, rb_prechange)
+                        if rb_prechange is not None:
+                            from netbox_nsm.rulebook_rules_utils import (
+                                snapshot_rule_layout_entry,
+                            )
+
+                            postchange = snapshot_rule_layout_entry(
+                                instance, db_alias=db_alias
+                            )
+                            record_rulebook_rules_changelog(
+                                rulebook,
+                                req,
+                                rb_prechange,
+                                postchange=postchange,
+                            )
         return instance
 
     def _save_virtual_group_config(self, instance):
@@ -434,6 +565,17 @@ class RuleFilterForm(PrimaryModelFilterSetForm):
         label=_("Rulebook"),
     )
     tags = TagFilterField(model)
+
+
+class RuleBulkEditForm(PrimaryModelBulkEditForm):
+    model = Rule
+    enabled = forms.NullBooleanField(required=False, label=_("Enabled"))
+    description = forms.CharField(max_length=200, required=False)
+    nullable_fields = ("enabled", "description")
+    fieldsets = (
+        FieldSet("enabled", "description"),
+        FieldSet("tags", name=_("Tags")),
+    )
 
 
 class RulebookAssignmentForm(forms.ModelForm):

@@ -5,7 +5,8 @@ from django.http import JsonResponse, HttpResponseBadRequest
 from django.views import View
 
 from netbox_nsm.models import RuleObjectItem
-from netbox_nsm.object_rules_utils import build_object_field_rules_filter_url
+from netbox_nsm.object_rules_utils import build_rule_name_column_filter_url
+from netbox_nsm.branch_urls import with_branch_query
 
 __all__ = ("ObjectRulesApiView",)
 
@@ -54,41 +55,30 @@ class ObjectRulesApiView(View):
         total = qs.count()
         batch = qs[offset : offset + LIMIT]
 
-        try:
-            obj = ct.get_object_for_this_type(obj_id)
-        except Exception:
-            obj = None
-
         results = []
         seen = set()
-        filter_url_cache: dict[tuple[int, int], str] = {}
         for item in batch:
             key = (item.field_id, item.rule_id)
             if key in seen:
                 continue
             seen.add(key)
-            cache_key = (item.rule.rulebook_id or 0, item.field_id or 0)
-            if cache_key not in filter_url_cache:
-                filter_url_cache[cache_key] = build_object_field_rules_filter_url(
-                    item.rule.rulebook,
-                    item.field,
-                    obj,
-                    ct,
-                )
+            rulebook = item.rule.rulebook
             results.append(
                 {
+                    "rule_id": item.rule_id,
                     "rule_name": item.rule.name,
-                    "rule_url": item.rule.get_rules_grid_filter_url(),
-                    "rule_detail_url": item.rule.get_absolute_url(),
-                    "field_filter_url": filter_url_cache[cache_key],
-                    "rulebook_pk": item.rule.rulebook.pk if item.rule.rulebook else 0,
-                    "rulebook_name": (
-                        item.rule.rulebook.name if item.rule.rulebook else ""
+                    "rule_url": with_branch_query(
+                        build_rule_name_column_filter_url(rulebook, item.rule),
+                        request,
                     ),
-                    "rulebook_url": (
-                        item.rule.rulebook.get_rules_tab_url()
-                        if item.rule.rulebook
-                        else ""
+                    "rule_detail_url": with_branch_query(
+                        item.rule.get_absolute_url(), request
+                    ),
+                    "rulebook_pk": rulebook.pk if rulebook else 0,
+                    "rulebook_name": rulebook.name if rulebook else "",
+                    "rulebook_url": with_branch_query(
+                        rulebook.get_rules_tab_url() if rulebook else "",
+                        request,
                     ),
                     "field_pk": item.field_id or 0,
                     "field_name": str(item.field) if item.field else "",

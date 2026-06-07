@@ -55,7 +55,9 @@ class RulebookRulesViewTests(TestCase):
         self.add_permissions("netbox_nsm.view_rulebook")
         url = reverse("plugins:netbox_nsm:rulebook", args=[self.rulebook.pk])
         content = self.client.get(url).content.decode()
-        rules_url = reverse("plugins:netbox_nsm:rulebook_rules", args=[self.rulebook.pk])
+        rules_url = reverse(
+            "plugins:netbox_nsm:rulebook_rules", args=[self.rulebook.pk]
+        )
         self.assertIn(rules_url, content)
 
         self.add_permissions("netbox_nsm.view_rulebook")

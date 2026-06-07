@@ -110,11 +110,7 @@ def changelog_content_type_label(content_type_id: int) -> str:
     except LookupError:
         pass
 
-    tc = (
-        TypeConfig.objects.filter(content_type_id=content_type_id)
-        .only("name")
-        .first()
-    )
+    tc = TypeConfig.objects.filter(content_type_id=content_type_id).only("name").first()
     if tc and (tc.name or "").strip():
         type_name = tc.name.strip()
     else:

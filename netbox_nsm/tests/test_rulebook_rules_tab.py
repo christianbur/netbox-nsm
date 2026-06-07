@@ -326,7 +326,9 @@ class RulebookRulesContextTests(TestCase):
             self.rulebook,
             view_helpers=rulebook_views,
         )
-        object_cols = [col for col in ctx["rules_flat_columns"] if col.get("kind") == "object"]
+        object_cols = [
+            col for col in ctx["rules_flat_columns"] if col.get("kind") == "object"
+        ]
         self.assertEqual(object_cols, [])
         self.assertFalse(ctx["rules_has_object_groups"])
 
@@ -597,9 +599,7 @@ class RulebookRulesContextTests(TestCase):
                 ),
             ]
         )
-        request = RequestFactory().get(
-            "/?filter_q=Name(disabled-rule)&f_status=on"
-        )
+        request = RequestFactory().get("/?filter_q=Name(disabled-rule)&f_status=on")
         request.user = self.user
         ctx = build_rulebook_rules_tab_context(
             request,
@@ -665,4 +665,6 @@ class RulebookRulesContextTests(TestCase):
                 "index",
             )
         )
-        self.assertFalse(_rules_filter_needs_full_scan({"name": {"filter": "x"}}, "index"))
+        self.assertFalse(
+            _rules_filter_needs_full_scan({"name": {"filter": "x"}}, "index")
+        )

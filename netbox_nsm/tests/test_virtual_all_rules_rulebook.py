@@ -4,7 +4,13 @@ from django.urls import reverse
 
 from django.contrib.contenttypes.models import ContentType
 
-from netbox_nsm.models import Rule, Rulebook, RulebookField, RulebookFieldKind, RulebookTypeChoices
+from netbox_nsm.models import (
+    Rule,
+    Rulebook,
+    RulebookField,
+    RulebookFieldKind,
+    RulebookTypeChoices,
+)
 from netbox_nsm.rulebook_field_utils import ensure_system_rulebook_fields
 from netbox_nsm.virtual_rulebook_detail import (
     VIRTUAL_ALL_RULES_FIELD_SLUG,
@@ -63,7 +69,11 @@ class VirtualAllRulesRulebookTests(TestCase):
         table = response.context["table"]
         names = [str(row.record.name) for row in table.rows]
         self.assertNotIn("All Rules", names)
-        self.assertTrue(any(is_virtual_all_rules_rulebook(row.record) is False for row in table.rows))
+        self.assertTrue(
+            any(
+                is_virtual_all_rules_rulebook(row.record) is False for row in table.rows
+            )
+        )
 
     def test_list_has_no_rules_all_tab(self):
         self.add_permissions("netbox_nsm.view_rulebook")

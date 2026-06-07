@@ -57,9 +57,7 @@ class RulebooksPanelUrlTests(SimpleTestCase):
     def test_multiple_rulebooks_links_to_list(self):
         rb_a = SimpleNamespace(pk=1, get_absolute_url=lambda: "/rulebooks/1/")
         rb_b = SimpleNamespace(pk=2, get_absolute_url=lambda: "/rulebooks/2/")
-        url = build_rulebooks_panel_url(
-            [{"rulebook": rb_a}, {"rulebook": rb_b}]
-        )
+        url = build_rulebooks_panel_url([{"rulebook": rb_a}, {"rulebook": rb_b}])
         self.assertIn("/rulebooks", url)
 
 

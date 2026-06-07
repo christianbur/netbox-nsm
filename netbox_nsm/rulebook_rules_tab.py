@@ -189,13 +189,17 @@ def _sort_rules_records(records: list, sort_field: str, sort_order: str) -> list
 
 def _rules_prefetch_queryset(rulebook):
     if is_virtual_all_rules_rulebook(rulebook):
-        return Rule.objects.filter(
-            rulebook__rulebook_type=RulebookTypeChoices.SECURITY_RULES
-        ).select_related("rulebook").prefetch_related(
-            "object_items__field",
-            "object_items__content_type",
-            "group_items__field",
-            "group_items__security_group",
+        return (
+            Rule.objects.filter(
+                rulebook__rulebook_type=RulebookTypeChoices.SECURITY_RULES
+            )
+            .select_related("rulebook")
+            .prefetch_related(
+                "object_items__field",
+                "object_items__content_type",
+                "group_items__field",
+                "group_items__security_group",
+            )
         )
     return rulebook.rules.prefetch_related(
         "object_items__field",
@@ -217,7 +221,15 @@ def _enabled_filter_q(needle: str) -> Q | None:
         return None
     labels = enabled_status_labels()
     on_parts = (labels["on"].lower(), "on", "enabled", "aktiv", "ein", "1", "true")
-    off_parts = (labels["off"].lower(), "off", "disabled", "inaktiv", "aus", "0", "false")
+    off_parts = (
+        labels["off"].lower(),
+        "off",
+        "disabled",
+        "inaktiv",
+        "aus",
+        "0",
+        "false",
+    )
     matches_on = any(part and part in n for part in on_parts)
     matches_off = any(part and part in n for part in off_parts)
     if matches_on and not matches_off:
@@ -437,7 +449,9 @@ def _annotate_rules_columns(
             col["sort_url_desc"] = ""
             col["filter_param"] = ""
             col["filter_value"] = ""
-        col["display_label"] = col.get("label") or col.get("slug") or col.get("key") or ""
+        col["display_label"] = (
+            col.get("label") or col.get("slug") or col.get("key") or ""
+        )
 
 
 def build_rules_page_url(request, page_num: int, base_qs_str: str = "") -> str:
@@ -744,9 +758,7 @@ def build_rulebook_rules_tab_context(
             if col_key in area_slug_by_key:
                 col["area_slug"] = area_slug_by_key[col_key]
     allowed_sort_fields = {
-        field
-        for col in flat_columns
-        if (field := _rules_query_field(col))
+        field for col in flat_columns if (field := _rules_query_field(col))
     }
     sort_field, sort_order = parse_rules_sort(request, allowed_sort_fields)
     get_params = request.GET.copy()

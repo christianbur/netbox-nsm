@@ -51,10 +51,18 @@ class RulebookMatrixViewTests(TestCase):
             index=1,
             enabled=True,
         )
-        cls.zone_a = Prefix.objects.create(prefix="10.0.1.0/24", status="active", description="demo-0001")
-        cls.zone_b = Prefix.objects.create(prefix="10.0.3.0/24", status="active", description="demo-0003")
-        cls.source_field = RulebookField.objects.get(rulebook=cls.rulebook, slug="source")
-        cls.destination_field = RulebookField.objects.get(rulebook=cls.rulebook, slug="destination")
+        cls.zone_a = Prefix.objects.create(
+            prefix="10.0.1.0/24", status="active", description="demo-0001"
+        )
+        cls.zone_b = Prefix.objects.create(
+            prefix="10.0.3.0/24", status="active", description="demo-0003"
+        )
+        cls.source_field = RulebookField.objects.get(
+            rulebook=cls.rulebook, slug="source"
+        )
+        cls.destination_field = RulebookField.objects.get(
+            rulebook=cls.rulebook, slug="destination"
+        )
         cls.rule_ab = Rule.objects.create(
             rulebook=cls.rulebook,
             name="ab-1",
@@ -119,7 +127,9 @@ class RulebookMatrixViewTests(TestCase):
         self.add_permissions("netbox_nsm.view_rulebook")
         url = reverse("plugins:netbox_nsm:rulebook", args=[self.rulebook.pk])
         content = self.client.get(url).content.decode()
-        matrix_url = reverse("plugins:netbox_nsm:rulebook_matrix", args=[self.rulebook.pk])
+        matrix_url = reverse(
+            "plugins:netbox_nsm:rulebook_matrix", args=[self.rulebook.pk]
+        )
         self.assertIn(matrix_url, content)
         self.assertIn("Matrix", content)
 

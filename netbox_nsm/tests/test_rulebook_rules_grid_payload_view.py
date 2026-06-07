@@ -64,7 +64,9 @@ def _sample_grouped():
 
 class RulesGridPayloadTests(SimpleTestCase):
     def test_empty_column_defs(self):
-        payload = build_rulebook_rules_grid_column_defs({"rules_layout": [], "rows": []})
+        payload = build_rulebook_rules_grid_column_defs(
+            {"rules_layout": [], "rows": []}
+        )
         self.assertEqual(len(payload["columnDefs"]), 1)
         self.assertEqual(payload["columnDefs"][0]["colId"], "_actions")
 

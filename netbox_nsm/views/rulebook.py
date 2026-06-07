@@ -1276,9 +1276,7 @@ class RulebookListView(generic.ObjectListView):
         depth_cache: dict[int, int] = {}
         for rb in data_list:
             rb.nsm_list_depth = hierarchy_depth(rb, _cache=depth_cache)
-        order_map = {
-            pk: idx for idx, pk in enumerate(rulebook_tree_order(data_list))
-        }
+        order_map = {pk: idx for idx, pk in enumerate(rulebook_tree_order(data_list))}
         data_list.sort(key=lambda rb: order_map.get(rb.pk, 999999))
         return super().get_table(
             data_list,
@@ -2307,7 +2305,9 @@ class RuleBulkDeleteView(generic.BulkDeleteView):
             if pk_list:
                 from netbox_nsm.branch_db import ensure_branch_context
                 from netbox_nsm.models import Rulebook
-                from netbox_nsm.rulebook_rules_utils import snapshot_rules_layout_entries
+                from netbox_nsm.rulebook_rules_utils import (
+                    snapshot_rules_layout_entries,
+                )
 
                 queryset = self.queryset.filter(pk__in=pk_list)
                 with ensure_branch_context(request):

@@ -1415,4 +1415,3 @@ def apply_ag_grid_row_filter(
         ):
             result.append(record)
     return result
-

@@ -64,5 +64,3 @@ def wrap_matrix_cell_hrefs(cells: list, request) -> None:
         ):
             if key in cell:
                 cell[key] = with_branch_query(cell[key], request)
-
-

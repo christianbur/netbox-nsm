@@ -514,7 +514,9 @@ class RulebookMetadataChangelogTest(ModelViewTestCase):
             name="metadata-changelog-rb",
             rulebook_type="security_rules",
         )
-        Rule.objects.create(rulebook=cls.rulebook, name="metadata-changelog-rule", index=10)
+        Rule.objects.create(
+            rulebook=cls.rulebook, name="metadata-changelog-rule", index=10
+        )
 
     def test_rulebook_edit_omits_layout_snapshots_from_changelog(self):
         self.add_permissions("netbox_nsm.view_rulebook", "netbox_nsm.change_rulebook")

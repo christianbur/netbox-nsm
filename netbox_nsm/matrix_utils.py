@@ -63,7 +63,9 @@ def apply_default_matrix_axis_filters(
     return default_pks, set(default_pks)
 
 
-def matrix_axis_display_label(label: str, *, max_chars: int = MATRIX_AXIS_LABEL_MAX_CHARS) -> str:
+def matrix_axis_display_label(
+    label: str, *, max_chars: int = MATRIX_AXIS_LABEL_MAX_CHARS
+) -> str:
     """Return axis label text for matrix cells (hard cap, no ellipsis suffix)."""
     text = str(label or "")
     if len(text) <= max_chars:

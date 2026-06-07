@@ -152,9 +152,7 @@ def _join_inline_cell_items(parts: list[str]) -> str:
 
 def _render_rules_object_cell_stack(items, *, colored=True) -> str:
     parts = [rules_pill_html_ag(item, colored=colored) for item in items]
-    return _wrap_rules_cell_list(
-        items, "".join(parts), "nsm-ag-cell-list--stack"
-    )
+    return _wrap_rules_cell_list(items, "".join(parts), "nsm-ag-cell-list--stack")
 
 
 def _render_rules_object_cell_inline(items, *, colored=True) -> str:

@@ -227,7 +227,9 @@ def save_all_column_selections(
 
 def build_column_cell_payload(rule: Rule, rulebook: Rulebook, column_key: str) -> dict:
     """Render rules table cell HTML + filter text for one column after save."""
-    from netbox_nsm.rulebook_rules_cell_html import render_rules_cell_ag as _render_rules_cell_ag
+    from netbox_nsm.rulebook_rules_cell_html import (
+        render_rules_cell_ag as _render_rules_cell_ag,
+    )
 
     area_slug, type_key = parse_rules_column_key(column_key)
     field = RulebookField.objects.filter(rulebook=rulebook, slug=area_slug).first()

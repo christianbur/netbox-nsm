@@ -38,10 +38,7 @@ class RulebookListViewTests(TestCase):
         self.add_permissions("netbox_nsm.view_rulebook")
         response = self.client.get(reverse("plugins:netbox_nsm:rulebook_list"))
         table = response.context["table"]
-        names = [
-            row.record.name
-            for row in table.rows
-        ]
+        names = [row.record.name for row in table.rows]
         self.assertIn("Corp Policy", names)
         self.assertIn("Branch FW", names)
         self.assertLess(names.index("Corp Policy"), names.index("Branch FW"))

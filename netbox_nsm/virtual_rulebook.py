@@ -11,6 +11,7 @@ from netbox_nsm.models import Rule
 def all_rules_count() -> int:
     return Rule.objects.count()
 
+
 __all__ = (
     "ALL_RULES_CHANGELOG_URL_NAME",
     "ALL_RULES_CONTACTS_URL_NAME",

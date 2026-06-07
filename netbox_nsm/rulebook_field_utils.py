@@ -55,9 +55,11 @@ def get_visible_virtual_all_rules_fields() -> list:
     merged_type_ids: dict[str, set[int]] = {}
     merged_types: dict[str, dict[int, RulebookFieldType]] = {}
 
-    type_qs = RulebookFieldType.objects.select_related(
-        "type_config__content_type"
-    ).filter(visible=True).order_by("sort_order", "pk")
+    type_qs = (
+        RulebookFieldType.objects.select_related("type_config__content_type")
+        .filter(visible=True)
+        .order_by("sort_order", "pk")
+    )
 
     rulebooks = Rulebook.objects.filter(
         rulebook_type=RulebookTypeChoices.SECURITY_RULES

@@ -112,7 +112,7 @@ def render_hierarchy_marker(depth: int) -> str:
         "".join(
             '<span class="nsm-rb-hierarchy-dot"'
             ' style="display:inline-block;width:0.55rem;height:0.55rem;'
-            'border-radius:50%;background:currentColor;opacity:0.55;'
+            "border-radius:50%;background:currentColor;opacity:0.55;"
             'flex-shrink:0;"></span>'
             for _ in range(depth)
         )

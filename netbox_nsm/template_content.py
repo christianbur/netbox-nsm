@@ -445,9 +445,7 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
                 for fid in d["_field_order"]
             ]
             rb = d["rulebook"]
-            d["rules_tab_url"] = (
-                _panel_url(rb.get_rules_tab_url()) if rb else ""
-            )
+            d["rules_tab_url"] = _panel_url(rb.get_rules_tab_url()) if rb else ""
             for fg in d["field_groups"]:
                 for rule in fg["rules"]:
                     rule.nsm_panel_filter_url = _panel_url(

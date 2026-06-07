@@ -202,7 +202,9 @@ class RulebookForm(PrimaryModelForm):
 
         device_ct = ContentType.objects.get_for_model(Device)
         vm_ct = ContentType.objects.get_for_model(VirtualMachine)
-        device_pks = {device.pk for device in self.cleaned_data.get("assigned_devices") or []}
+        device_pks = {
+            device.pk for device in self.cleaned_data.get("assigned_devices") or []
+        }
         vm_pks = {vm.pk for vm in self.cleaned_data.get("assigned_vms") or []}
         current_devices = set(
             instance.assignments.filter(assigned_object_type=device_ct).values_list(
@@ -288,7 +290,9 @@ class RulebookBulkEditForm(PrimaryModelBulkEditForm):
     tags = TagFilterField(model)
     nullable_fields = ["description", "matrix_tab_enabled", "parent"]
     fieldsets = (
-        FieldSet("rulebook_type", "status", "parent", "matrix_tab_enabled", "description"),
+        FieldSet(
+            "rulebook_type", "status", "parent", "matrix_tab_enabled", "description"
+        ),
         FieldSet("tags", name=_("Tags")),
     )
 

@@ -32,7 +32,9 @@ def _log_rulebook_fields_change(rulebook, request, *, message=""):
 
 
 def _begin_rulebook_fields_change(rulebook, request):
-    request._nsm_rulebook_fields_prechange = snapshot_instance(rulebook, fields_layout=True)
+    request._nsm_rulebook_fields_prechange = snapshot_instance(
+        rulebook, fields_layout=True
+    )
 
 
 class RulebookFieldAddView(View):

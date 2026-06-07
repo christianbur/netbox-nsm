@@ -449,7 +449,9 @@ def snapshot_before_edit(instance):
 def record_rulebook_layout_changelog(rulebook, request, prechange, *, message=""):
     """Write field-layout changes to the parent Rulebook changelog."""
     postchange = snapshot_instance(rulebook, fields_layout=True)
-    if (prechange or {}).get("fields_layout") == (postchange or {}).get("fields_layout"):
+    if (prechange or {}).get("fields_layout") == (postchange or {}).get(
+        "fields_layout"
+    ):
         return
     if not message:
         message = describe_rulebook_fields_layout_changes(prechange, postchange)

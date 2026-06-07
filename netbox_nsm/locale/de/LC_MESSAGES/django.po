@@ -388,6 +388,14 @@ msgstr "Regelbuch"
 msgid "Assigned Objects"
 msgstr "Zugewiesene Objekte"
 
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:66
+msgid "Enforcement targets"
+msgstr "Enforcement-Ziele"
+
+#: netbox_nsm/tables/rulebook.py:253
+msgid "Target of enforcement targets"
+msgstr "Target von Enforcement targets"
+
 #: netbox_nsm/forms/security_policy.py:76
 msgid "Rule Defaults"
 msgstr "Regel-Standardwerte"
@@ -1744,6 +1752,22 @@ msgstr "Regelbuch"
 #: netbox_nsm/templates/netbox_nsm/inc/nsm_security_links.html:157
 msgid "Enforced Rulebooks"
 msgstr "Erzwungene Regelbücher"
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:138
+msgid "No zone or label links assigned"
+msgstr "Keine Zone-/Label-Verknüpfungen"
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:95
+msgid "All interfaces"
+msgstr "Alle Interfaces"
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:92
+msgid "Show all interfaces on this object"
+msgstr "Alle Interfaces dieses Objekts anzeigen"
+
+#: netbox_nsm/templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:124
+msgid "No linked interfaces. Enable “All interfaces” to assign links."
+msgstr "Keine verknüpften Interfaces. „Alle Interfaces“ aktivieren, um Links zuzuweisen."
 
 #: netbox_nsm/templates/netbox_nsm/inc/device_enforcer_panel.html:28
 msgid "No rulebooks assigned. This device does not enforce any ruleset yet."

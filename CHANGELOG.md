@@ -4,7 +4,32 @@ All notable changes to **netbox-nsm** are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [0.3.2] - unreleased
+## [0.3.2] - 2026-06-05
+
+### Added
+
+- **Rulebook detail** — **Enforcement targets** panel: assigned devices/VMs/VDCs with expandable
+  interfaces, Security Panel object links (assign/edit/delete), host type badges (Device/VM/VDC),
+  **All interfaces** toggle, and link-off icon when no zone/label links exist
+- **Security Panel** — **Rulebooks** section on device/VM/VDC pages with count badge and **+**
+  shortcut to add a rulebook assignment
+- **`security_panel_links.build_object_link_rows`** — shared ObjectLink row builder for Security
+  Panel and rulebook panel
+- Tests for enforcement targets panel, bulk-assign GET/POST, and link row building
+
+### Changed
+
+- **Rulebook list** — **Assigned Objects** column renamed to **Target of enforcement targets**
+- **Rulebook detail** — flat “Assigned Objects” attribute row removed in favour of the new panel
+- **Security Panel** — rulebook assignment rows no longer show rulebook-type badge; indentation
+  aligned with other link rows
+
+### Fixed
+
+- **`RulebookBulkAssignView`** — render via `ObjectView.get_extra_context` (fixes missing
+  `render_to_response` on GET)
+- **`RulebookBulkAssignView` POST** — do not shadow gettext `_` in `get_or_create` unpacking
+  (fixes `RulebookAssignment object is not callable`)
 
 ## [0.3.1] - 2026-06-05
 
@@ -190,6 +215,7 @@ First release in the 0.2.x line.
 
 - Documentation-only plugin — no firewall push or policy enforcement
 - See [KNOWN_ISSUES.md](KNOWN_ISSUES.md) for open items
+[0.3.2]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.3.2
 [0.3.1]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.3.1
 [0.3.0]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.3.0
 [0.2.5]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.2.5

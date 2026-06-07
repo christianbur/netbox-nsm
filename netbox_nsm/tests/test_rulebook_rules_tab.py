@@ -186,6 +186,10 @@ class RulebookRulesLayoutTests(TestCase):
 
         class _Req:
             COOKIES = {}
+            path = "/plugins/netbox-nsm/rulebooks/1/rules/"
+
+            def get_full_path(self):
+                return self.path
 
             user = type("U", (), {"has_perm": lambda self, p: True})()
 

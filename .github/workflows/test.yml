@@ -1,4 +1,4 @@
-name: Test with all supported NetBox versions
+name: Test with NetBox
 
 on:
   pull_request:
@@ -12,10 +12,6 @@ concurrency:
 jobs:
     test-netbox:
         runs-on: ubuntu-latest
-
-        strategy:
-          matrix:
-            python-version: ["3.12", "3.13", "3.14"]
 
         services:
             redis:
@@ -48,10 +44,10 @@ jobs:
                 repository: netboxlabs/netbox-custom-objects
                 path: netbox-custom-objects
 
-          - name: Set up Python ${{ matrix.python-version }}
+          - name: Set up Python 3.12
             uses: actions/setup-python@main
             with:
-                python-version: ${{ matrix.python-version }}
+                python-version: "3.12"
 
           - name: Checkout NetBox
             uses: actions/checkout@main

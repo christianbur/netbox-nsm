@@ -5,6 +5,7 @@ from __future__ import annotations
 __all__ = (
     "branch_schema_id_from_request",
     "with_branch_query",
+    "wrap_rules_row_urls",
     "wrap_matrix_cell_hrefs",
 )
 
@@ -43,7 +44,7 @@ def with_branch_query(url: str, request) -> str:
 
 
 def wrap_rules_row_urls(rows: list, request) -> None:
-    """Mutate AG Grid policy row dicts in place — detail/edit/delete links."""
+    """Mutate policy row dicts in place — detail/edit/delete links."""
     for row in rows or []:
         for key in ("url", "edit_url", "delete_url"):
             if key in row:
@@ -57,11 +58,11 @@ def wrap_matrix_cell_hrefs(cells: list, request) -> None:
     """Mutate matrix cell dicts — rule filter and add-rule links."""
     for cell in cells or []:
         for key in (
-            "fwd_href",
-            "rev_href",
-            "both_href",
+            "filter_href",
             "add_href",
             "href",
         ):
             if key in cell:
                 cell[key] = with_branch_query(cell[key], request)
+
+

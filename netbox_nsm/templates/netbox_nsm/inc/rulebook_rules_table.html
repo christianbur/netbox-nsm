@@ -1,0 +1,40 @@
+{% load i18n %}
+<table class="table table-hover object-list nsm-rules-table">
+  {% include "netbox_nsm/inc/rulebook_rules_table_colgroup.html" %}
+  <thead>
+    {% include "netbox_nsm/inc/rulebook_rules_table_thead.html" %}
+  </thead>
+  <tbody>
+    {% for row in rules_rows %}
+    <tr class="nsm-rules-data-row{% if row.rules_multiline %} nsm-rules-multi-row{% endif %}">
+      {% if rules_show_selection_column %}
+      <td class="w-1">
+        <input type="checkbox"
+               name="pk"
+               value="{{ row.pk }}"
+               class="form-check-input"
+               aria-label="{% blocktrans with name=row.name %}Select {{ name }}{% endblocktrans %}">
+      </td>
+      {% endif %}
+      {% for cell in row.rules_cells %}
+        <td class="nsm-rules-td nsm-rules-td--{{ cell.kind }}{% if cell.slug %} nsm-rules-td--{{ cell.slug }}{% endif %}"
+            data-col-id="{{ cell.col_id }}">
+          {{ cell.html|safe }}
+        </td>
+      {% endfor %}
+    </tr>
+    {% empty %}
+    <tr>
+      <td colspan="{% if rules_show_selection_column %}{{ rules_flat_columns|length|add:1 }}{% else %}{{ rules_flat_columns|length }}{% endif %}" class="text-center text-muted">
+        &mdash;
+        {% if rules_filter_active %}
+          {% trans "No rules match the current filters." %}
+        {% else %}
+          {% trans "No rules in this rulebook." %}
+        {% endif %}
+        &mdash;
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create the 300-zone / 12 000-rule scale demo (netbox-dev CLI).
+"""Create the 100×100 / 10 000-rule scale demo (netbox-dev CLI).
 
 Example::
 

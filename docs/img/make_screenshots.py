@@ -98,7 +98,7 @@ PAGES = [
     ("07-policy-rules.png",
      f"{BASE}/plugins/netbox-nsm/rulebooks/{RB_BIG}/rules/"
      "?group_by=col:Source::Zones&nsm_q=Name(server+OR+db)+AND+Source.Zones(dmz)",
-     "Rules-Tab — AG Grid, Gruppierung Source.Zones, Filter-Query, Pills"),
+     "Rules-Tab — Table, Gruppierung Source.Zones, Filter-Query, Pills"),
 
     ("07-policy-rules-demo-group.png",
      f"{BASE}/plugins/netbox-nsm/rulebooks/{RB_DEMO}/rules/"
@@ -107,7 +107,7 @@ PAGES = [
 
     ("09-zone-matrix.png",
      f"{BASE}/plugins/netbox-nsm/rulebooks/{RB_BIG}/matrix/",
-     "Matrix-Tab — Enterprise TrustSec Core (AG Grid)"),
+     "Matrix-Tab — Demo Zone Matrix"),
 
     ("09-zone-matrix-demo-undirected.png",
      f"{BASE}/plugins/netbox-nsm/rulebooks/{RB_DEMO}/rules/"
@@ -127,10 +127,8 @@ PAGES = [
      "Rules mit Address-Objekten"),
 
     ("10-ip-analysis.png",
-     f"{BASE}/plugins/netbox-nsm/rulebooks/{RB_ZONE}/ipanalysis/"
-     f"?ip_ct={ADDR_CT_ID}&ip_pk={ADDR_G4_PK}&ip_name=g4"
-     f"&ip2_ct={ADDR_CT_ID}&ip2_pk={ADDR_G3_PK}&ip2_name=g3",
-     "IP Analysis — TrustSec Infra, g4 vs g3, CSV copy paths"),
+     f"{BASE}/plugins/netbox-nsm/ip-analysis/",
+     "IP Analysis — two-column prefix tree, CSV copy paths"),
 
     # ── Security Rule Add / Detail ──────────────────────────────────────────
     ("11-rule-add.png",

@@ -8,6 +8,8 @@ from django.utils.safestring import mark_safe
 __all__ = (
     "collect_descendant_pks",
     "hierarchy_depth",
+    "invalid_parent_pks",
+    "rulebook_list_depth",
     "render_hierarchy_marker",
     "rulebook_tree_order",
     "validate_parent_choice",
@@ -55,6 +57,13 @@ def collect_descendant_pks(rulebook) -> set[int]:
     return seen
 
 
+def invalid_parent_pks(rulebook) -> set[int]:
+    """PKs that must not be selectable as parent (self and descendants)."""
+    if rulebook is None or not rulebook.pk:
+        return set()
+    return {rulebook.pk} | collect_descendant_pks(rulebook)
+
+
 def validate_parent_choice(rulebook, parent) -> str | None:
     """Return an error message if parent is invalid, else None."""
     if parent is None:
@@ -77,19 +86,40 @@ def validate_parent_choice(rulebook, parent) -> str | None:
     return None
 
 
+def rulebook_list_depth(rulebook) -> int:
+    """Depth for the rulebook list (uses cache, parent walk, or parent_id fallback)."""
+    if rulebook is None:
+        return 0
+    cached = getattr(rulebook, "nsm_list_depth", None)
+    if cached is not None:
+        return cached
+    depth = hierarchy_depth(rulebook)
+    if depth == 0 and getattr(rulebook, "parent_id", None):
+        return 1
+    return depth
+
+
 def render_hierarchy_marker(depth: int) -> str:
     """
-    Visual depth marker for the rulebook list (NetBox prefix table style).
+    Visual depth marker for the rulebook list.
 
-    One leading bullet per hierarchy level, rendered via ``record-depth``.
+    One filled dot per hierarchy level (child = one dot, grandchild = two, …).
     """
     if depth <= 0:
         return ""
 
-    bullets = mark_safe("".join("<span>•</span>" for _ in range(depth)))
+    dots = mark_safe(
+        "".join(
+            '<span class="nsm-rb-hierarchy-dot"'
+            ' style="display:inline-block;width:0.55rem;height:0.55rem;'
+            'border-radius:50%;background:currentColor;opacity:0.55;'
+            'flex-shrink:0;"></span>'
+            for _ in range(depth)
+        )
+    )
     return format_html(
-        '<div class="record-depth" aria-hidden="true">{}</div>',
-        bullets,
+        '<span class="nsm-rb-hierarchy-markers" aria-hidden="true">{}</span>',
+        dots,
     )
 
 

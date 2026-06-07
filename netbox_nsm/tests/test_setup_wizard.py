@@ -26,5 +26,6 @@ class SetupWizardActionTests(SimpleTestCase):
                 "create_demo_starter",
                 "create_demo_enterprise",
                 "create_demo_addresses_scale",
+                "create_demo_scale",
             },
         )

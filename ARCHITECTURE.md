@@ -32,11 +32,11 @@ understand, extend or contribute to `netbox-nsm`.
 
 ## Front-end dependencies
 
-Interactive UI uses two MIT-licensed libraries (no commercial AG Grid Enterprise):
+Rules and Matrix use **server-rendered HTML** (Django templates + plugin JS/CSS). The only
+external UI library is **@xyflow/react** for Object Analyzer:
 
 | Library | Views | Notes |
 |---|---|---|
-| **AG Grid Community 33.2.4** | `rulebook_rules`, `rulebook_matrix`, All Rules grid | Vendored under `plugin_assets/vendor/ag-grid-community/` |
 | **@xyflow/react 12** | `object_analyzer` | Import map + esm.sh in `object_analyzer.html` |
 
 ---
@@ -122,7 +122,7 @@ See `scripts/drop_nsm_prefix.py` when migrating legacy names.
 | Tab context | `rulebook_rules_tab.py` | `build_rulebook_rules_tab_context()` |
 | Grid API paths | `/api/rulebooks/<pk>/rules-grid/` | validate: `…/rules-grid/validate/` |
 | Cache keys | `nsm:rulebook_rules_grid:…` | — |
-| Grid DOM/CSS (JS) | `nsm-rules-*` | `nsm-rules-ag-grid`, profile key `rules` |
+| Grid DOM/CSS (JS) | `nsm-rules-*` | Rules table chrome, profile key `rules` |
 | Grouped table data key | `rules_layout` | Column/row scaffold for rules grid |
 
 `all_rules_grid_*` and `matrix_grid_*` names are unchanged (virtual / matrix views).
@@ -360,7 +360,7 @@ The `SetupView` POST handler dispatches on the `action` form field:
 | `create_demo_scale` | `Demo - Scale Test` — 300 zones, 12 000 rules |
 | `create_demo_addresses_scale` | `Demo - Addresses` — 6 000 address-based rules |
 
-**Not in Setup:** `scripts/create_addresses_million_scale.py` — bench load (1M nested
+**Not in Setup:** `scripts/create_addresses_million_scale.py` — bench load (200k nested
 `nsm_addresses`, 13k rules). See [docs/bench_addresses_million_scale.md](docs/bench_addresses_million_scale.md).
 
 All demo actions call `_ensure_demo_prerequisites()` (imports missing COTs **and** TypeConfigs).
@@ -384,7 +384,7 @@ Registered in `template_content.py` as `template_extensions = [...]`:
 3. **group M2M** — via `group_m2m.iter_group_m2m_relations()` (parent groups as *Member of*, contained objects as *Member*).
 4. **Inherited links** — resolved at page load for IPAddress, IPRange, and Prefix (via `iter_inherited_nsm_links`).
 
-Header actions: **Object Analyzer** (all objects), **IP Analysis** (address-matching TypeConfig only), **Assign** (ObjectLink picker).
+Header actions: **Object Analyzer** (all objects), **IP Analysis** loupe overlay (address-matching TypeConfig only), **Assign** (ObjectLink picker).
 
 #### Macro vs micro zones (operational convention)
 
@@ -453,8 +453,9 @@ Security
 │   └── Type Config
 ├── Rulebooks
 └── Analysis
-    ├── IP Analysis        → `/plugins/netbox-nsm/ip-analysis/`
     └── Object Analyzer    → `/plugins/netbox-nsm/object-analyzer/`
+
+IP Analysis: Security Panel loupe overlay or `/plugins/netbox-nsm/ip-analysis/` (not in menu).
 ```
 
 ---

@@ -18,7 +18,7 @@
 | Path | Sections | Goal |
 |---|---|---|
 | **First steps** | [Prerequisites](#prerequisites--first-start) → [Setup](#setup-wizard) | Plugin ready, COTs + TypeConfigs imported |
-| **Link inventory** | [Object Links](#nsm-object-links) → [Security Panel](#security-panel) → [TypeConfigs](#typeconfigs) | Prefixes, devices, VMs linked to zones; macro/micro zones |
+| **Link inventory** | [Object Links](#nsm-object-links) → [Security Panel](#security-panel) → [Universal linking](#universal-linking--any-netbox-object--nsm) | Prefixes, devices, VMs linked to zones; macro/micro zones; same zone in panel and rulebook |
 | **Document policy** | [Rulebooks](#security-rulebooks) → [Rules grid](#rules-grid) → [IP Analysis](#ip-analysis) | Rules, matrix, cross-rulebook views |
 | **Explore** | [Object Analyzer](#object-analyzer) | Graph walk-through from any NetBox object |
 | **Integrate** | [REST API](#rest-api-reference) · [Dev notes](#development-notes) | Automation and development |
@@ -39,6 +39,7 @@
    - [Network Apps](#network-apps-nsm_network_apps)
 4. [NSM Object Links](#nsm-object-links)
 5. [Security Panel](#security-panel)
+   - [Universal linking — any NetBox object ↔ NSM](#universal-linking--any-netbox-object--nsm)
    - [Why the Security Panel](#why-the-security-panel)
    - [Workflow: assign, view, reverse lookup](#workflow-assign-view-reverse-lookup)
    - [Macro zones vs micro zones](#macro-zones-vs-micro-zones)
@@ -169,7 +170,7 @@ Restart NetBox after changing plugin config.
 | **1** | **Menu & panel title** | Set side menu label and panel title on object detail pages (default: *Security*). **Save** to persist. |
 | **2** | **Custom Objects** | Shows `netbox-custom-objects` readiness (**Plugin ready** / *Migrations pending* / *Plugin not installed*). Applies the bundled schema (`schema/nsm_portable_schema.json`). Lists seven built-in COTs with **present** / **missing** status. **Add all Custom Object Types** creates missing types. Shows *Section 2 complete.* when all seven are present. |
 | **3** | **TypeConfig** | Maps each COT to NSM behavior (matching class, display, panel). Inheritance is configured per link under **Assign**, not here. **Add all TypeConfigs** creates missing configs. Shows matching class per type (`zone`, `address`, `label`, `service`, `action`, `info`, `application`) and **OK** / **missing** status. Shows *Section 3 complete.* when everything is configured. |
-| **4** | **Demo** | Optional sample data (only when `setup_allow_destructive_actions: True`). **Starter demo** — Zone Matrix + Addresses rulebooks. **Enterprise DC Demo** — full DC + 11 rulebooks; disabled once IP addresses exist. **Scale test** — high-volume performance test. **Addresses demo** — large address-based rulebook. |
+| **4** | **Demo** | Optional sample data (only when `setup_allow_destructive_actions: True`). **Starter demo** — Zone Matrix + Addresses rulebooks. **Enterprise DC Demo** — full DC + 11 rulebooks; disabled once IP addresses exist. **Addresses demo** — large address-based rulebook. |
 
 Built-in COTs (section 2): `nsm_zones`, `nsm_addresses`, `nsm_labels`, `nsm_services`,
 `nsm_action`, `nsm_business_apps`, `nsm_network_apps`.
@@ -209,14 +210,12 @@ After Setup section 2, all seven types appear under **Custom Objects → Custom 
 
 Security zones — the logical groupings for zone-based policies.
 
-![Zone detail — prod](img/07-zone-detail.png)
+![Zone detail — untrust](img/07-zone-detail.png)
 
-The detail page shows zone attributes (name, color, description) on the left and the
-**Security Panel** on the right — the same panel as on prefixes and VMs, but here the zone is
-the *host* object: the panel lists everything *linked to* this zone (prefixes, VMs, group
-membership) and every rulebook rule that references it. In the **Rulebook** section, each
-rulebook row is expandable: open a group to see the field column (e.g. **Destination**) and
-rule names that reference this zone (e.g. `infra-to-prod` under *Enterprise - TrustSec Infra*).
+The detail page shows zone attributes (name, color) on the left and the **Security Panel**
+on the right — here the zone is the *host* object. **Rulebook** lists rules from **Demo - Zone
+Matrix** that reference `untrust` (e.g. `trust-to-untrust` as destination, `untrust-to-dmz` as
+source). **Services** shows a direct bidirectional link to `SNMP-Trap (udp/162)`.
 
 | Field | Description |
 |---|---|
@@ -340,6 +339,45 @@ The panel is **automatically embedded** on prefix, IP address, IP range, device,
 VM, VDC, and every custom object detail page (including zone/address/label instances). Beyond plugin installation and completing the Setup wizard, no
 additional configuration is required.
 
+### Universal linking — any NetBox object ↔ NSM
+
+Once NSM types exist (Setup wizard / TypeConfigs), **any supported NetBox object** can be
+linked to **any allowed NSM object** through the Security Panel — and vice versa. Operators
+create these relationships manually with **+ Assign**; **rulebook references** to NSM objects
+appear in the panel **automatically** when that object is used in a rule column (no extra
+assignment step).
+
+**Inheritance** extends a single assignment to related objects — for example **Inherit to IPAM
+children** on a prefix propagates a zone to all sub-prefixes, IP addresses, and IP ranges
+under that prefix without linking each child individually.
+
+Together, manual links, automatic rule references, and inheritance let you document **different
+segmentation approaches on the same inventory**:
+
+| Approach | Example | Typical link target |
+|---|---|---|
+| **Product A — macro zone** | Site or DC trust boundary (TrustSec, Palo Alto zone model) | Parent prefix `10.0.0.0/8 → zone prod` with **Inherit to IPAM children** |
+| **Product B — micro segmentation** | Application or workload segment inside a macro zone | VM **interface** `eth0 → zone app-x` with **Direct** (this object only) |
+
+Both use the same `nsm_zones` model — NSM does not define separate “macro” and “micro” types.
+The **same zone instance** you assign on an interface (or prefix, VM, device, …) is the
+**same object** picked in rulebook columns (`Source.Zones`, `Destination.Zones`, …). Inventory
+membership and policy rules always refer to one shared object.
+
+| Link origin | How it appears in the panel |
+|---|---|
+| **Manual (+ Assign)** | Operator creates an ObjectLink — e.g. zone on prefix, label on IP, service on zone |
+| **Automatic (rulebooks)** | NSM object used in a rule → **Rulebook** section lists matching rules on the object detail page |
+| **Inherited** | Parent prefix (or group) holds the link → child objects show it with an *Inherited* badge |
+
+**Bidirectional direct links** update both detail pages: link zone `untrust` → service
+`SNMP-Trap (udp/162)` with **Direct (bidirectional, visible on both sides)** and the zone page
+shows **Services (1)** while the service page shows **Zones (1)** — see screenshots below.
+
+For IPAM propagation, override rules, and link-type dropdown options, see
+[Inheritance in the Security Panel](#inheritance-in-the-security-panel) and
+[Assigning links](#assigning-links).
+
 ### Why the Security Panel
 
 Without the panel, NSM links would be invisible table rows or API entries. With the panel,
@@ -368,12 +406,10 @@ The daily NSM linking workflow runs entirely through the panel:
    Panel now lists every NetBox object *linked to* this security object (prefixes, VMs,
    interfaces, …) plus all rulebook rules that reference it.
 
-![Security Panel on zone prod — reverse view](img/07-zone-detail.png)
+![Security Panel on zone untrust — reverse view](img/07-zone-detail.png)
 
-*Reverse view on zone `prod`: rulebook references (35 rules; *Enterprise - TrustSec Infra*
-expanded to **Destination:** `infra-to-prod`), direct prefix link `10.1.0.0/16`, Security
-Object Group *Member of* **TS - Production**, and 50 directly linked VMs. Header badge **87**
-= total panel entries.*
+*Reverse view on zone `untrust` (Starter demo): **Rulebook** references from **Demo - Zone
+Matrix**, direct **Services** link to `SNMP-Trap`, header badge **4**.*
 
 ![Security Panel on prefix 10.1.0.0/16 — host view](img/12-prefix-security-panel.png)
 
@@ -550,7 +586,16 @@ On the **Assign Link** page (**+ Assign** from the panel), choose **Link type**:
 
 ![Assign Link — Link type dropdown with all propagation modes](img/17-assign-link-propagation-types.png)
 
-*Assign Link on prefix `10.245.58.0/24` — **Link type** dropdown lists all three propagation modes. All modes are always selectable; runtime inheritance depends on object structure (IPAM containment or group membership).*
+*Assign Link from zone **`untrust`** → service **`SNMP-Trap (udp/162)`** — **Link type**
+dropdown lists all three propagation modes (Direct, Inherit to IPAM children, Inherit to group
+members). For zone→service links, **Direct** is typical; IPAM inheritance applies when object A
+is a prefix or other IPAM parent.*
+
+![Bidirectional link — service SNMP-Trap shows zone untrust](img/18-service-security-panel-bidirectional.png)
+
+*After linking with **Direct (bidirectional, visible on both sides)**, the service detail page
+shows zone **`untrust`** under **Zones** — the mirror of the **Services** entry on the zone
+page.*
 
 Example workflow for a **macro zone on a DC container**:
 
@@ -773,7 +818,7 @@ NSM separates **inventory hosts** (prefix, IP, device, interface, VM, …) from 
 #### Rulebooks — any TypeConfig-backed object in columns
 
 Every **rulebook field** (Source, Destination, Service, …) accepts one or more **TypeConfig**
-entries (`RulebookFieldType`). Rule editor and AG Grid picker list every object instance
+entries (`RulebookFieldType`). Rule editor and inline cell picker list every object instance
 of those types — built-in COTs (zones, addresses, …) or **your own** types after registration.
 
 | Layer | What you configure | Result |
@@ -833,13 +878,12 @@ side by side in the same NetBox instance.
 
 ![Rulebook list](img/05-rulebook-list.png)
 
-The list shows all policy rulebooks with quick search, **+ Add**, import/export, and edit/delete per row
-(except the virtual entry below).
+The list shows all policy rulebooks with quick search, **+ Add**, import/export, and edit/delete per row.
 
 | Column | Description |
 |---|---|
-| **Name** | Rulebook name (link to detail page). Child rulebooks are indented under the parent. |
-| **Status** | `Active`, `Deprecated`, `Reserved`, or `Container` (grouping node without rules). The first row **All Rules** shows **Read-only** — not a stored rulebook. |
+| **Name** | Rulebook name (link to detail page). Child rulebooks show a **filled dot** before the name (one dot per hierarchy level). |
+| **Status** | `Active`, `Deprecated`, `Reserved`, or `Container` (grouping node without rules). |
 | **Parent** | Optional parent rulebook for hierarchical grouping. Linked when set; `—` for top-level entries. |
 | **Rules** | Rule count (link to Rules tab). |
 | **Platform** | Optional link to a DCIM **Platform** (e.g. PAN-OS, Cisco ASA, TrustSec). |
@@ -848,8 +892,8 @@ The list shows all policy rulebooks with quick search, **+ Add**, import/export,
 
 #### All Rules (virtual rulebook)
 
-The first row **All Rules** is a **read-only virtual rulebook** (not stored in the database).
-It aggregates every rule from all policy rulebooks in a single cross-rulebook view.
+**All Rules** is a **read-only virtual rulebook** (not stored in the database). It does **not**
+appear in the rulebook list; open it directly:
 
 - **URL:** `/plugins/netbox-nsm/rulebooks/0/` (overview) and `/rulebooks/0/rules/` (Rules tab)
 - **Status:** Read-only — no edit/delete actions, no checkbox
@@ -865,9 +909,8 @@ Rulebooks can be organized in a tree:
 
 - Set **Status** to **Container** for a grouping node with child rulebooks that have no
   rules of their own (e.g. `group1` with 0 rules).
-- Set **Parent** on child rulebooks to the container. Children appear indented under
-  the parent in the list (e.g. *Enterprise - TrustSec Core* and *Enterprise - TrustSec Infra*
-  under `group1`).
+- Set **Parent** on child rulebooks to the container. Children appear **below** the parent in
+  the list, sorted as a subtree, with a hierarchy dot in the **Name** column.
 
 Containers are for documentation structure only — they do not inherit or merge child rules.
 
@@ -884,17 +927,17 @@ The detail page has several tabs:
 | Tab | Purpose |
 |---|---|
 | **Rulebook** | Metadata, field hierarchy (columns), security assignments |
-| **Rules** | Policy grid (AG Grid) with embedded zone matrix in the toolbar |
+| **Rules** | Server-rendered policy table (filter query, Table / Group / Matrix modes) |
+| **Matrix** | Source × destination heatmap (when enabled on the rulebook) |
 | **Contacts** | NetBox contacts linked to this rulebook |
 | **Journal** | Journal entries |
 | **Changelog** | Audit history |
 
-![Rulebook Detail — Enterprise - TrustSec Core](img/06-rulebook-detail.png)
+![Rulebook Detail — Demo - Zone Matrix](img/06-rulebook-detail.png)
 
-The screenshot shows **Enterprise - TrustSec Core** (`netbox_nsm.rulebook:3`) from the
-Enterprise DC demo: type **Security Rules**, status **Active**, parent **group1** (container
-in the rulebook hierarchy). Tabs: **Rulebook**, **Rules**, **Contacts**,
-**Journal**, **Changelog**.
+The screenshot shows **Demo - Zone Matrix** from the starter demo: type **Security Rules**,
+status **Active**, zone-based **Fields** hierarchy (Source/Destination/Services/Action).
+Tabs: **Rulebook**, **Rules**, **Matrix**, **Contacts**, **Journal**, **Changelog**.
 
 A newly created rulebook has no custom fields and no rules yet. Add container and
 object fields on the **Rulebook** tab (see below), then switch to **Rules** for policy
@@ -970,7 +1013,7 @@ Below the Fields card, the **Security** card links this rulebook to NetBox objec
 Rules can be created and edited in two places:
 
 1. **Full-page form** — **+ Add Rule** on the Rules tab (or **Edit** on the rule detail page)
-2. **Inline AG Grid** — click cells in the policy table to open the object picker (see [Rules grid](#rules-grid))
+2. **Inline table** — click cells in the policy table to open the object picker (see [Rules grid](#rules-grid))
 
 #### Add / Edit form
 
@@ -978,10 +1021,10 @@ Rules can be created and edited in two places:
 From a rulebook's Rules tab, the URL includes `?rulebook=<pk>` so the form
 pre-selects that rulebook and sets **Index** to max(existing) + 1.
 
-![Add Security Rule — Demo - Addresses](img/11-rule-add.png)
+![Add Security Rule — Demo - Zone Matrix](img/11-rule-add.png)
 
-The screenshot shows **Demo - Addresses** (`rulebook:2`): address-based columns with
-active **Source** tab, type **Zones (zone)**, and zone **demo-0001** selected as a pill.
+The screenshot shows **Demo - Zone Matrix**: zone-based tabs with active **Source** tab,
+type **Zones (zone)**, and empty **Elements** picker (**Keine Auswahl**).
 
 ##### Security Rule (metadata)
 
@@ -1015,6 +1058,11 @@ Use **AND** in the picker to build AND groups (see [AND groups](#and-groups)).
 | **Owner group** | Optional ownership (NetBox contacts integration). |
 
 Footer actions: **Cancel**, **Create**, **Create & Add Another** (keeps same rulebook, increments index).
+
+![Security Rule detail — trust-to-untrust](img/11-rule-detail.png)
+
+Rule detail page for **trust-to-untrust** in **Demo - Zone Matrix**: metadata, zone/service
+columns, and **Security** assignments card.
 
 #### Inline cell editing (policy grid)
 
@@ -1059,23 +1107,17 @@ AND binds tighter than OR — `(A AND B) OR C` means "A and B together, or C alo
 
 ### Rules grid
 
-The **Rules** tab is the main policy editing and analysis surface. Rules are rendered in
-**[AG Grid Community](https://www.ag-grid.com/)** (v **33.2.4**, MIT — bundled in the plugin;
-Enterprise edition is not used). One row per rule; object columns follow the rulebook field
+The **Rules** tab is the main policy editing and analysis surface. Rules are rendered in a
+**server-rendered HTML table**: one row per rule; object columns follow the rulebook field
 layout under **SOURCE**, **DESTINATION**, **SERVICE**, and **ACTION** headers.
 
-The same grid supports three **view modes** — **Table**, **Group**, and **Matrix** — plus a
-shared filter query bar, drop zones, and an action rail. Use **Table** for everyday editing;
+The same page supports three **view modes** — **Table**, **Group**, and **Matrix** — plus a
+filter query bar, drop zones, and an action rail. Use **Table** for everyday editing;
 **Group** to collapse rules by column values; **Matrix** for a source × destination heatmap
-(see [Zone matrix](#zone-matrix) for matrix-specific details).
+on the dedicated **[Matrix tab](#zone-matrix)** (see below).
 
-The virtual **All Rules** entry (`rulebook:0`) uses the same grid with an extra **Rulebook**
+The virtual **All Rules** entry (`rulebook:0`) uses the same table with an extra **Rulebook**
 column and scoped filter syntax. **Matrix** mode is not available for All Rules.
-
-![Policy Rules — Enterprise - TrustSec Core](img/07-policy-rules.png)
-
-*Enterprise - TrustSec Core (`rulebook:3`): zone-based columns, filter query bar, view-mode
-selector (Table / Group / Matrix), and **+ Add Rule**.*
 
 #### Toolbar layout
 
@@ -1083,7 +1125,7 @@ Two bars sit above the grid:
 
 | Bar | Contents |
 |---|---|
-| **Chrome bar** (top) | **Filter query** input with Apply, Clear filters, and Copy; **+ Add Rule**; **Delete selected** (when rows are checked); **Export CSV** |
+| **Chrome bar** (top) | **Filter query** input with Apply, Clear filters, and Copy; **object cell display** (comma / lines / +N more); **+ Add Rule**; **Delete selected** (when rows are checked); **Export CSV** |
 | **View bar** (below) | **Help** (`?`); **view-mode selector** (Table / Group / Matrix); mode-specific **drop zone**; **action rail** (right) |
 
 Drag-and-drop is disabled in **Table** mode — switch to **Group** or **Matrix** first. The
@@ -1111,6 +1153,11 @@ Switch modes with the **Table / Group / Matrix** buttons, or add `view(table)`,
 opens the object picker), floating column filters, row checkboxes, and status toggles. No
 drop zone is active — the view bar shows a short hint to switch to Group or Matrix for
 drag-and-drop layout.
+
+![Policy Rules — Demo - Zone Matrix (Table view)](img/07-policy-rules-demo-table.png)
+
+*Starter demo — **Table** mode with zone/service pills, per-column search filters, cell
+display toolbar (Comma / Lines / +N More), and **+ Add Rule**.*
 
 ##### Group mode
 
@@ -1242,14 +1289,13 @@ vs. total rows. Floating filters and filter query bar operate on the loaded subs
 
 ### Zone matrix
 
-The **Rules Matrix** renders zone (or other object) policy as a **source × destination**
-heatmap on the **Rules** tab — same **AG Grid Community** stack as the policy table (MIT,
-v 33.2.4). Rows are **Source** objects; columns are **Destination** objects. Each cell
+The **Matrix** tab renders zone (or other object) policy as a **source × destination**
+heatmap. Rows are **Source** objects; columns are **Destination** objects. Each cell
 summarizes matching rules (Permit/Deny from the **Action** column) instead of listing every
 rule row.
 
-Available only for normal rulebooks — the virtual **All Rules** entry has no matrix mode.
-Legacy bookmarks to `/rulebooks/<pk>/matrix/` redirect to the Rules tab.
+Available only for normal rulebooks with **Matrix tab** enabled — the virtual **All Rules**
+entry has no matrix mode. Legacy bookmarks to `/rulebooks/<pk>/matrix/` still work.
 
 #### Example rulebook: Demo - Zone Matrix
 
@@ -1437,29 +1483,39 @@ Cisco ASA, Check Point, …). For address-based rulebooks, the matrix is less me
 
 ### IP Analysis
 
-**Security → Analysis → IP Analysis**
+**Not in the Security menu** — open from the **Security Panel** on any address-analyzable
+object (prefix, address, address custom object, …): click the **loupe** (🔍) in the panel
+header or on a linked row. The overlay compares prefix trees side by side (same backend as
+the standalone page).
+
+**Direct URL:** `/plugins/netbox-nsm/ip-analysis/` (optional; useful for deep links with
+`?ip_ct=&ip_pk=&ip_name=` query parameters).
 
 Compares how different security objects resolve to IP prefixes and networks — side by side in
 two columns. Useful for address-based rulebooks and overlap checks between zones, address
 groups, or custom objects.
 
-The page is registered to a demo rulebook (**Enterprise - TrustSec Infra**, pk `4`) and
-reachable only from the main menu (not a rulebook sub-tab).
-
 ![IP Analysis — TrustSec Infra](img/10-ip-analysis.png)
 
 #### Workflow
 
-1. Open **Security → Analysis → IP Analysis** (or `/plugins/netbox-nsm/rulebooks/4/ipanalysis/`).
-2. Add objects per column via **Search and add objects…** (chips label each column, e.g. `g4`, `g3`).
+1. Open a **prefix**, **IP address**, or **address** custom object → **Security Panel** →
+   **loupe** (🔍), **or** browse to `/plugins/netbox-nsm/ip-analysis/`.
+2. Add objects per column via **Search and add objects…** (chips label each column).
 3. Click **Analyze** in each column to resolve the hierarchy.
-4. Expand tree nodes — leaves show `object → prefix` (e.g. `demo-addr-0016 → 10.245.16.0/24`,
-   `dev-1 → 10.5.0.0/16`).
+4. Expand tree nodes — leaves show `object → prefix` (e.g. `demo-addr-0016 → 10.245.16.0/24`).
 
 #### CSV export
 
 There is no file download button. Use **Copy** icons on tree nodes (**All**, groups, leaves)
-to copy **CSV path** lines to the clipboard — format `group,group,…,ip` (comma-separated, no spaces).
+to copy **CSV path** lines to the clipboard — comma-separated, no spaces.
+
+| Copy scope | Line format (example) |
+|---|---|
+| **All** (top summary) | `all,group,object,10.0.0.0/24` |
+| Group / leaf | `group,object,10.0.0.0/24` (without the leading `all,`) |
+
+The **CIDR / Mask** toggle on the **All** row applies to prefix segments in copied lines.
 Paste into a spreadsheet or script for further analysis.
 
 Requires at least one **Address** matching TypeConfig in the rulebook's field layout.
@@ -1467,7 +1523,7 @@ Requires at least one **Address** matching TypeConfig in the rulebook's field la
 ---
 ## Object Analyzer
 
-**Security → Analysis → Demo – Object Analyzer**
+**Security → Analysis → Object Analyzer**
 
 The Object Analyzer is a read-only graph using **[@xyflow/react](https://xyflow.com/)**
 (React Flow, v **12**, [MIT license](https://github.com/xyflow/xyflow/blob/main/LICENSE)),
@@ -1476,14 +1532,16 @@ policy references. It mirrors the Security Panel and rulebook assignments, but a
 explorable tree you can walk node by node. The library is loaded only on this page
 from esm.sh (not bundled).
 
-![Object Analyzer — VM app-01-test-1](img/11-object-analyzer.png)
+![Object Analyzer — zone dmz](img/11-object-analyzer.png)
 
-The screenshot shows **app-01-test-1** (VM, Enterprise DC demo): primary prefix, host device,
-zone assignment, interfaces and labels on the prefix, and rulebooks/rules referencing the VM.
+The screenshot uses the **Starter demo** only: root object **dmz** (zone) → rulebook
+**Demo - Zone Matrix** → individual rules (`trust-to-untrust`, `trust-to-dmz`, …).
+There is no separate Enterprise DC demo dataset in a fresh install — examples in this
+section refer to **Demo - Zone Matrix** unless noted otherwise.
 
 ### Workflow
 
-1. Open **Security → Analysis → Demo – Object Analyzer** (or follow **Object Analyzer** from
+1. Open **Security → Analysis → Object Analyzer** (or follow **Object Analyzer** from
    an object's Security Panel).
 2. Type a name in the search field — device, VM, IP, prefix, label, zone, rule, …
 3. Pick a match from the dropdown (or keep typing until the right object appears).
@@ -1514,13 +1572,15 @@ entries above the graph (from each TypeConfig).
 From the root object, edges fan out by relationship type. Edge labels describe the link
 (e.g. **Primary IPv4**, **Host**, **Zone**, **Address**, **Label**, **Rulebook**).
 
-| Relationship | Example in screenshot |
+| Relationship | Example (Starter demo) |
 |---|---|
-| **Infrastructure** | VM → **Host** → `DC-01`; VM → **Primary IPv4** → prefix `10.0.1.0/24` |
-| **NSM links** | Prefix → **Label** → `test`; VM → **Zone** → `test-1` (same links as Security Panel) |
-| **Interfaces & IPs** | Prefix → `eth0`, `eth1` (interfaces); Prefix → `10.0.1.10/32` (**Address**) |
-| **Policy — Rulebooks** | Zone `test-1` → assigned rulebooks (`TV - Test`, `Linked - TV`, `Rulebook - 1`) |
-| **Policy — Rules** | Rulebook → individual rules (e.g. *Enterprise - TrustCheck …*, *Enterprise - To-DC-Inter …*) |
+| **NSM links** | Zone **dmz** → **Rulebook** → **Demo - Zone Matrix** |
+| **Policy — Rules** | Rulebook → rules (`trust-to-untrust`, `trust-to-dmz`, `untrust-to-mgmt`, …) |
+| **Infrastructure** | Device / VM / prefix → **Zone**, **Label**, interfaces (when linked in NetBox) |
+
+With only the Starter demo loaded, the graph from a zone root is shallow: zone → rulebook →
+rules. Infrastructure-heavy paths (VM → host → prefix → labels) need additional NetBox
+objects and links beyond the demo seed data.
 
 When multiple children share the same edge label (e.g. several rulebooks under **Zone**), the
 graph groups them under a summary node (`Zone · 3`); click the group to show each child.
@@ -1604,11 +1664,9 @@ See **[DATABASE.md](DATABASE.md)** for the full table list, hierarchy, and SQL e
 
 | Library | Use | Version | License |
 |---|---|---|---|
-| [AG Grid Community](https://github.com/ag-grid/ag-grid) | Rules tab, All Rules grid, Matrix tab | 33.2.4 | MIT — bundled in `plugin_assets/vendor/ag-grid-community/` |
 | [@xyflow/react](https://github.com/xyflow/xyflow) | Object Analyzer | 12.x (esm.sh) | MIT — CDN import in `object_analyzer.html` |
 
-Do not replace Community with **AG Grid Enterprise** without a commercial license.  
-See also `netbox_nsm/plugin_assets/vendor/ag-grid-community/README.md`.
+Rules and Matrix use **server-rendered HTML** (no third-party grid library).
 
 ### Template changes require restart
 

@@ -1,4 +1,4 @@
-"""Shared context for Zone Matrix views (classic HTML and AG Grid tab)."""
+"""Shared context for Zone Matrix tab views."""
 
 from __future__ import annotations
 
@@ -9,7 +9,14 @@ from django.urls import reverse
 
 from netbox_nsm.models import RulebookFieldType, TypeConfig
 from netbox_nsm.matrix_axis_filter import filter_objects_by_axis_query
-from netbox_nsm.matrix_grid_payload import MATRIX_AXIS_MAX, matrix_zone_display_label
+from netbox_nsm.matrix_utils import (
+    MATRIX_AXIS_MAX,
+    dedupe_matrix_object_types,
+    apply_default_matrix_axis_filters,
+    matrix_axis_display_label,
+    matrix_zone_display_label,
+    resolve_matrix_object_type_selection,
+)
 from netbox_nsm.display_utils import get_display_template_map
 from netbox_nsm.branch_urls import with_branch_query, wrap_matrix_cell_hrefs
 
@@ -54,6 +61,7 @@ def build_matrix_tab_context(
     src_row_range: tuple[int, int] | None = None,
 ) -> dict:
     """Build matrix_rows, filters, and legend for matrix templates."""
+    show_obj_type_filter = False
     rules_qs = view_helpers._load_rules_qs(instance)
 
     try:
@@ -114,11 +122,17 @@ def build_matrix_tab_context(
         except ContentType.DoesNotExist:
             continue
     available_types.sort(key=lambda x: x["label"])
+    raw_available_types = list(available_types)
+    available_types = dedupe_matrix_object_types(raw_available_types)
+    show_obj_type_filter = len(available_types) > 1
 
     sel_ct_id_str = request.GET.get("obj_type", "")
     selected_ct_id = int(sel_ct_id_str) if sel_ct_id_str.isdigit() else None
-    if selected_ct_id is None and available_types:
-        selected_ct_id = available_types[0]["ct_id"]
+    selected_ct_id = resolve_matrix_object_type_selection(
+        selected_ct_id,
+        raw_types=raw_available_types,
+        available_types=available_types,
+    )
 
     used_zones_by_pk = {}
     if selected_ct_id is not None:
@@ -127,13 +141,15 @@ def build_matrix_tab_context(
         except ContentType.DoesNotExist:
             selected_ct = None
         if selected_ct:
+            zone_model = selected_ct.model_class()
+            used_zone_pks: set[int] = set()
             for rule in rules_qs:
                 for item in rule.object_items.all():
                     if item.content_type_id != selected_ct_id:
                         continue
-                    obj = item.assigned_object
-                    if obj is None:
-                        continue
+                    used_zone_pks.add(item.object_id)
+            if zone_model and used_zone_pks:
+                for obj in zone_model.objects.filter(pk__in=used_zone_pks):
                     used_zones_by_pk[obj.pk] = obj
 
     display_template_map = get_display_template_map()
@@ -143,6 +159,9 @@ def build_matrix_tab_context(
 
     all_zones = sorted(used_zones_by_pk.values(), key=lambda z: zone_label(z).lower())
     zone_labels = {z.pk: zone_label(z) for z in all_zones}
+    zone_label_display = {
+        pk: matrix_axis_display_label(label) for pk, label in zone_labels.items()
+    }
 
     if client_axis_filters:
         src_q = request.GET.get("src_q", "").strip()
@@ -154,6 +173,11 @@ def build_matrix_tab_context(
     if not client_axis_filters:
         src_filter_pks = {int(v) for v in request.GET.getlist("src_id") if v.isdigit()}
         dst_filter_pks = {int(v) for v in request.GET.getlist("dst_id") if v.isdigit()}
+        src_filter_pks, dst_filter_pks = apply_default_matrix_axis_filters(
+            all_zones,
+            src_filter_pks=src_filter_pks,
+            dst_filter_pks=dst_filter_pks,
+        )
     src_zones = (
         [z for z in all_zones if z.pk in src_filter_pks]
         if src_filter_pks
@@ -191,18 +215,16 @@ def build_matrix_tab_context(
     if selected_ct_id is not None and build_rows:
         for rule in rules_qs:
             rule._color, rule._action_label = _action_color_label(rule)
+        for rule in rules_qs:
             rule_src_pks = set()
             rule_dst_pks = set()
             for item in rule.object_items.all():
                 if item.content_type_id != selected_ct_id:
                     continue
-                obj = item.assigned_object
-                if obj is None:
-                    continue
                 if item.field and item.field.placement == "source":
-                    rule_src_pks.add(obj.pk)
+                    rule_src_pks.add(item.object_id)
                 elif item.field and item.field.placement == "destination":
-                    rule_dst_pks.add(obj.pk)
+                    rule_dst_pks.add(item.object_id)
             for sp in rule_src_pks or {None}:
                 for dp in rule_dst_pks or {None}:
                     if sp is not None and dp is not None:
@@ -215,19 +237,6 @@ def build_matrix_tab_context(
             rule = rules_list[0]
             return {"count": 1, "color": rule._color, "label": rule._action_label}
         return {"count": len(rules_list), "color": None, "label": None}
-
-    def _combined_badge(fwd_rules, rev_rules):
-        seen = set()
-        merged = []
-        for rule in fwd_rules + rev_rules:
-            if rule.pk not in seen:
-                seen.add(rule.pk)
-                merged.append(rule)
-        return _badge(merged)
-
-    matrix_mode = request.GET.get("mode", "directed")
-    if matrix_mode not in ("undirected", "directed"):
-        matrix_mode = "directed"
 
     src_rb_field = (
         view_helpers._rulebook_field_for_ct(instance, "source", selected_ct_id)
@@ -254,6 +263,8 @@ def build_matrix_tab_context(
         "zone_content_type_id": selected_ct_id,
         "type_segment": matrix_type_segment,
         "display_template_map": display_template_map,
+        "src_field_slug": src_rb_field.slug if src_rb_field else "source",
+        "dst_field_slug": dst_rb_field.slug if dst_rb_field else "destination",
     }
 
     matrix_rows = []
@@ -265,35 +276,15 @@ def build_matrix_tab_context(
         cells = []
         for dst in dst_zones:
             fwd_rules = cell_map.get((src.pk, dst.pk), [])
-            rev_rules = cell_map.get((dst.pk, src.pk), [])
             cells.append(
                 {
                     "fwd": _badge(fwd_rules),
-                    "rev": _badge(rev_rules),
-                    "combined": _combined_badge(fwd_rules, rev_rules),
-                    "fwd_href": view_helpers._matrix_rules_href(
+                    "filter_href": view_helpers._matrix_rules_href(
                         rules_url_base,
                         src_field_name,
                         dst_field_name,
                         src,
                         dst,
-                        **matrix_href_kwargs,
-                    ),
-                    "rev_href": view_helpers._matrix_rules_href(
-                        rules_url_base,
-                        src_field_name,
-                        dst_field_name,
-                        dst,
-                        src,
-                        **matrix_href_kwargs,
-                    ),
-                    "both_href": view_helpers._matrix_rules_href(
-                        rules_url_base,
-                        src_field_name,
-                        dst_field_name,
-                        src,
-                        dst,
-                        bidirectional=True,
                         **matrix_href_kwargs,
                     ),
                     "add_href": with_branch_query(
@@ -313,6 +304,7 @@ def build_matrix_tab_context(
 
     return {
         "available_types": available_types,
+        "show_obj_type_filter": show_obj_type_filter,
         "selected_ct_id": selected_ct_id,
         "all_src_zones": all_zones,
         "all_dst_zones": all_zones,
@@ -322,7 +314,8 @@ def build_matrix_tab_context(
         "dst_filter_pks": dst_filter_pks,
         "matrix_rows": matrix_rows,
         "zone_labels": zone_labels,
+        "zone_label_display": zone_label_display,
         "action_legend": action_legend,
-        "matrix_mode": matrix_mode,
         "matrix_axis_limit": matrix_axis_limit,
+        "matrix_dense": max(len(src_zones), len(dst_zones)) > 40,
     }

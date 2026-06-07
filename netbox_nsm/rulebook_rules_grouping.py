@@ -324,7 +324,7 @@ def parse_expanded_keys(raw: str | None) -> set[str] | None:
 
 
 def parse_group_default_expanded(request) -> int:
-    """AG Grid groupDefaultExpanded equivalent: 0, 1, or -1."""
+    """Nested group expand default: 0, 1, or -1."""
     raw = (request.GET.get("group_expanded") or "").strip()
     if not raw:
         return 0
@@ -345,7 +345,7 @@ def resolve_group_expansion(
 ) -> tuple[set[str] | None, set[str] | None, int | None]:
     """Return (expanded_keys, collapsed_keys, default_expanded_level).
 
-    default_expanded_level mirrors AG Grid groupDefaultExpanded when no explicit
+    default_expanded_level mirrors nested group expand when no explicit
     expanded/collapsed URL params are present.
     """
     if not group_by:

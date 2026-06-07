@@ -32,4 +32,4 @@ class AddressesMillionScaleHelperTests(SimpleTestCase):
 
     def test_leaf_name_padding(self):
         self.assertEqual(_leaf_name(0), "bench-ip-0000000")
-        self.assertEqual(_leaf_name(999999), "bench-ip-0999999")
+        self.assertEqual(_leaf_name(199999), "bench-ip-0199999")

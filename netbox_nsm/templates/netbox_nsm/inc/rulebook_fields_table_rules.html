@@ -1,0 +1,27 @@
+{% load i18n %}
+<table class="table table-sm align-middle nsm-rb-fields-table nsm-rb-fields-table--rules mb-0">
+  <colgroup>
+    <col class="nsm-rb-col-lead">
+    <col class="nsm-rb-col-lane">
+    <col class="nsm-rb-col-name">
+    <col class="nsm-rb-col-kind">
+    <col class="nsm-rb-col-flags">
+    <col class="nsm-rb-col-actions">
+  </colgroup>
+  <thead>
+    <tr>
+      <th scope="col" class="nsm-rb-col-lead" aria-hidden="true"></th>
+      <th scope="col" class="nsm-rb-col-name" colspan="2">{% trans "Name" %}</th>
+      <th scope="col" class="nsm-rb-col-kind">{% trans "Kind" %}</th>
+      <th scope="col" class="nsm-rb-col-flags">{% trans "Options" %}</th>
+      <th scope="col" class="nsm-rb-col-actions text-end"><span class="visually-hidden">{% trans "Actions" %}</span></th>
+    </tr>
+  </thead>
+  {% for field in fields %}
+  <tbody class="nsm-rb-field-group nsm-rb-field-group--rules{% if field.is_system_field %} nsm-rb-field-group--system{% endif %}{% if not field.visible %} nsm-rb-field-group--hidden{% endif %}"
+         role="group"
+         aria-label="{{ field.name }}">
+    {% include "netbox_nsm/inc/rulebook_field_group_row_multiline.html" %}
+  </tbody>
+  {% endfor %}
+</table>

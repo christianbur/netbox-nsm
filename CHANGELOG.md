@@ -4,13 +4,70 @@ All notable changes to **netbox-nsm** are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [0.2.6] - unreleased
+## [0.3.1] - unreleased
+
+## [0.3.0] - 2026-06-07
+
+Major UI refresh: server-rendered **Rules** table and dedicated **Matrix** tab replace the
+bundled AG Grid views. Documentation realigned to the **Starter demo** (Demo - Zone Matrix).
 
 ### Added
 
-- Bench script `scripts/create_addresses_million_scale.py`: nested `nsm_addresses`
-  (1M hosts default) and 13k policy rules on an existing rulebook — **not** part of Setup
-  wizard. See `docs/bench_addresses_million_scale.md`.
+- **Rules tab** — server-rendered HTML table with filter query bar, Table / Group / Matrix
+  toolbar, per-column search, pagination, CSV export, and cell display modes (comma / lines /
+  **+N more** with per-cell expand)
+- **Matrix tab** — dedicated zone matrix page per rulebook (`matrix_tab_enabled` on Rulebook)
+- **Rulebook list** — hierarchy dot before child rulebook names (depth from parent chain)
+- **Rulebook form** — parent picker excludes self and descendant rulebooks
+- **IP Analysis** — CSV copy paths include object names (`all,branch,10.0.0.0/24` on **All**)
+- **TypeConfig list** — readable *All types* badge in Panel column (`bg-primary-subtle`, dark-mode friendly)
+- **Documentation** — Starter demo screenshots, [Universal linking](docs/using_netbox_nsm.md#universal-linking--any-netbox-object--nsm) (macro/micro zones, same zone in panel and rulebook), [`RULE_DATA_STORAGE.md`](docs/RULE_DATA_STORAGE.md)
+- Bench script `scripts/create_addresses_million_scale.py`: nested `nsm_addresses` (200k hosts
+  default) and 13k policy rules — **not** part of Setup wizard. See `docs/bench_addresses_million_scale.md`.
+
+### Changed
+
+- **All Rules** virtual rulebook no longer pinned in the rulebook list — open via
+  `/plugins/netbox-nsm/rulebooks/0/` (overview) and `/rulebooks/0/rules/`
+- **Setup demo** — Matrix scale test card removed from UI (backend action `create_demo_scale` unchanged)
+- **Policy views** — Rules and Matrix no longer use AG Grid Community; vendored
+  `ag-grid-community` assets and related grid API endpoints removed
+- **Object Analyzer** docs and screenshots use Starter demo only (no Enterprise DC dataset required)
+
+### Removed
+
+- Bundled **AG Grid Community** vendor CSS/JS and grid-specific templates (`rulebook_ag_*`,
+  `rulebook_rules_grid_*`, All Rules AG Grid view/API)
+- Matrix / All Rules REST grid APIs (`matrix_grid_api`, `all_rules_grid_api`, …)
+
+### Fixed
+
+- Parent rulebook dropdown could still offer the current rulebook (and descendants) in search results
+- Rules cell expand (`+N more`) did not remove `nsm-pill-hidden` after click
+- TypeConfig *All types* panel badge had poor contrast in NetBox dark mode
+
+### Migration
+
+- **Squashed** migrations `0002`–`0005` into a single `0001_initial` (current schema only —
+  no legacy `panel_linkable` or incremental data migrations).
+- Existing dev/test databases that already applied old migrations:  
+  `python manage.py migrate netbox_nsm zero` then `migrate netbox_nsm`  
+  (**drops all NSM plugin tables**; re-run Setup wizard / Starter demo).
+
+### Notes
+
+- **Breaking for bookmarks:** Rules/Matrix URLs and query parameters changed; deep links using
+  old AG Grid view state may need updating. See [Rules grid](docs/using_netbox_nsm.md#rules-grid)
+  and [Zone matrix](docs/using_netbox_nsm.md#zone-matrix).
+- Requires NetBox **4.5+** (tested through **4.6.x**).
+
+## [0.2.6] - 2026-06-07
+
+_Superseded by [0.3.0](#030---2026-06-07) — bench script and doc items rolled into 0.3.0._
+
+### Added
+
+- Bench script `scripts/create_addresses_million_scale.py` (see 0.3.0).
 
 ## [0.2.5] - 2026-06-06
 
@@ -91,4 +148,5 @@ First release in the 0.2.x line.
 
 - Documentation-only plugin — no firewall push or policy enforcement
 - See [KNOWN_ISSUES.md](KNOWN_ISSUES.md) for open items
+[0.3.0]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.3.0
 [0.2.5]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.2.5

@@ -1,4 +1,4 @@
-# Bench: 1M addresses + 13k rules
+# Bench: 200k addresses + 13k rules
 
 Standalone load generator for performance and UI testing. **Not** part of the Setup wizard
 (unlike `create_demo_addresses_scale` in Setup → Demos).
@@ -23,19 +23,21 @@ All bench objects use the name prefix `bench-` (separate from Setup demos `demo-
 ### Nested `nsm_addresses` (field `group`)
 
 ```
-100 regions     bench-reg-000 … bench-reg-099
-  └─ 1 000 sites    bench-site-0000 … (10 per region)
-      └─ 10 000 subnets   bench-net-00000 … (10 per site, each with ipam.Prefix /24)
-          └─ 1 000 000 hosts   bench-ip-0000000 … (100 /32 hosts per subnet)
+20 regions     bench-reg-000 … bench-reg-019
+  └─ 200 sites       bench-site-0000 … (10 per region, no Prefix — containers)
+      └─ 2 000 subnets   bench-net-00000 … (10 per site, each with ipam.Prefix /24)
+          └─ 200 000 hosts   bench-ip-0000000 … (100 /32 hosts per subnet)
 ```
 
-IP space: contiguous `/24` blocks in **10.128.0.0/9** (10.128.0.0/24 …).
+IP space: contiguous `/24` blocks in **10.128.0.0/9** (2 000 subnets).
 
 Leaf addresses reference:
 
 - `ip_address` → NetBox IPAM `/32`
 - `prefix` → parent subnet `/24`
 - `group` → parent subnet group (`bench-net-*`)
+
+Region and site objects are **group containers only** (no Prefix/IP).
 
 ### Policy rules
 
@@ -47,10 +49,14 @@ Default **13 000** rules on the target rulebook:
 
 ## Usage (netbox-dev)
 
-After image build or with live mount `./netbox-nsm` → `/opt/netbox-nsm`:
+`compose.yaml` bind-mounts `./netbox-nsm` → `/opt/netbox-nsm`. If that mount is disabled,
+rebuild the image: `docker compose build netbox && docker compose up -d netbox netbox-worker`.
 
 ```bash
-# Full run — long (1M IPAM rows + 1M+ COT rows + 13k rules)
+cd /home/christian/homelab/docker/netbox_dev
+docker compose up -d netbox netbox-worker   # after compose change
+
+# Full run (200k IPAM rows + rules — still long)
 docker exec netbox-dev python3 /opt/netbox-nsm/scripts/create_addresses_million_scale.py
 
 # Smoke test
@@ -75,7 +81,7 @@ docker exec netbox-dev python3 /opt/netbox-nsm/scripts/create_addresses_million_
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--rulebook-id` | `2` | Target rulebook primary key |
-| `--leaf-count` | `1000000` | Leaf host addresses (max 1M with current hierarchy) |
+| `--leaf-count` | `200000` | Leaf host addresses (max 200k with current hierarchy) |
 | `--rule-count` | `13000` | Policy rules to create |
 | `--skip-addresses` | off | Skip IPAM + COT creation |
 | `--skip-rules` | off | Skip rule creation |
@@ -87,7 +93,7 @@ docker exec netbox-dev python3 /opt/netbox-nsm/scripts/create_addresses_million_
 | Scale | Rough order of magnitude |
 |-------|---------------------------|
 | 1 000 leaves + 100 rules | seconds |
-| 1 000 000 leaves | tens of minutes to hours (DB size, disk, Postgres tuning) |
+| 200 000 leaves | many minutes (DB size, disk, Postgres tuning) |
 | 13 000 rules | minutes (bulk inserts) |
 
 Monitor Postgres disk and run smaller `--leaf-count` first on limited hardware.

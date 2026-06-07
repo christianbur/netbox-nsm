@@ -103,7 +103,7 @@ class RulebookPickerDataApiView(LoginRequiredMixin, View):
 
 class RuleFieldSelectionsApiView(LoginRequiredMixin, View):
     """
-    Read/write object selections for AG Grid columns.
+    Read/write object selections for rule table columns.
 
     GET  .../field-selections/?column=source::ct_1  — one column
     GET  .../field-selections/                      — all columns
@@ -161,7 +161,9 @@ class RuleFieldSelectionsApiView(LoginRequiredMixin, View):
 
         rule = self._load_rule(pk)
         prechange = snapshot_instance(rule)
-        rb_prechange = snapshot_instance(rule.rulebook)
+        from netbox_nsm.rulebook_rules_utils import snapshot_rule_layout_entry
+
+        rb_prechange = snapshot_rule_layout_entry(rule)
         try:
             with ensure_branch_context(request):
                 if isinstance(body.get("columns"), dict):
@@ -169,10 +171,13 @@ class RuleFieldSelectionsApiView(LoginRequiredMixin, View):
                         rule, body["columns"], rule.rulebook, request=request
                     )
                     record_rule_assignment_changelog(rule, request, prechange)
-                    record_rulebook_rules_changelog(
-                        rule.rulebook, request, rb_prechange
-                    )
                     rule = self._load_rule(pk, prefetch=True)
+                    record_rulebook_rules_changelog(
+                        rule.rulebook,
+                        request,
+                        rb_prechange,
+                        postchange=snapshot_rule_layout_entry(rule),
+                    )
                     return JsonResponse(
                         {
                             "columns": get_all_column_selections(rule, rule.rulebook),
@@ -193,7 +198,13 @@ class RuleFieldSelectionsApiView(LoginRequiredMixin, View):
 
                 save_column_selections(rule, column_key, selections, request=request)
                 record_rule_assignment_changelog(rule, request, prechange)
-                record_rulebook_rules_changelog(rule.rulebook, request, rb_prechange)
+                rule = self._load_rule(pk, prefetch=True)
+                record_rulebook_rules_changelog(
+                    rule.rulebook,
+                    request,
+                    rb_prechange,
+                    postchange=snapshot_rule_layout_entry(rule),
+                )
             rule = self._load_rule(pk, prefetch=True)
             payload = build_column_cell_payload(rule, rule.rulebook, column_key)
             payload["selections"] = get_column_selections(rule, column_key)

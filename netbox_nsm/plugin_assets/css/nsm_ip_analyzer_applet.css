@@ -507,8 +507,22 @@
   gap: 0.05rem;
 }
 
-.nsm-ag-cell-item .nsm-ipa-loupe {
-  margin-left: 0.1rem;
+.nsm-ag-cell-list--has-loupe {
+  position: relative;
+  padding-left: 1.25rem;
+}
+
+.nsm-ipa-cell-loupe {
+  position: absolute;
+  top: 0.1rem;
+  left: 0;
+  z-index: 1;
+}
+
+.nsm-ag-cell-list--stack.nsm-ag-cell-list--has-loupe > .nsm-ag-cell-item {
+  display: flex;
+  align-items: center;
+  gap: 0.05rem;
 }
 
 .nsm-link-table .col-actions .btn-group .nsm-ipa-loupe {

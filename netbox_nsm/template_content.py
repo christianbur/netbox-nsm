@@ -100,7 +100,15 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
             group_m2m_action_urls,
             object_link_action_urls,
         )
-        from netbox_nsm.object_rules_utils import build_object_field_rules_filter_url
+        from netbox_nsm.object_rules_utils import build_rule_name_column_filter_url
+        from netbox_nsm.branch_urls import with_branch_query
+
+        request = self.context.get("request")
+
+        def _panel_url(url: str) -> str:
+            if not url:
+                return ""
+            return with_branch_query(url, request) if request else url
 
         obj = self.context.get("object")
         if not obj or not hasattr(obj, "pk"):
@@ -388,6 +396,12 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
             .values("rule__rulebook_id")
             .annotate(ucount=Count("rule_id", distinct=True))
         }
+        field_rule_counts = {
+            (row["rule__rulebook_id"], row["field_id"]): row["ucount"]
+            for row in qs.order_by()
+            .values("rule__rulebook_id", "field_id")
+            .annotate(ucount=Count("rule_id", distinct=True))
+        }
 
         # Build first-page rulebook groups, sub-grouped by field (source/dest/…)
         seen_items = set()  # (field_id, rule_id) – for item-level dedup / offset calc
@@ -426,20 +440,22 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
                 {
                     "field": d["_fields"][fid]["field"],
                     "rules": d["_fields"][fid]["rules"],
-                    "filter_url": build_object_field_rules_filter_url(
-                        d["rulebook"],
-                        d["_fields"][fid]["field"],
-                        obj,
-                        ct,
-                        display_template_map=tmpl_map,
-                    ),
+                    "rule_count": field_rule_counts.get((rb_pk, fid), 0),
                 }
                 for fid in d["_field_order"]
             ]
+            rb = d["rulebook"]
+            d["rules_tab_url"] = (
+                _panel_url(rb.get_rules_tab_url()) if rb else ""
+            )
+            for fg in d["field_groups"]:
+                for rule in fg["rules"]:
+                    rule.nsm_panel_filter_url = _panel_url(
+                        build_rule_name_column_filter_url(rb, rule)
+                    )
             del d["_fields"], d["_field_order"]
         rulebook_groups = [by_rulebook[pk] for pk in rb_order]
 
-        request = self.context.get("request")
         return_url = request.path if request else "/"
         from urllib.parse import quote
 

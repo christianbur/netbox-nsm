@@ -248,7 +248,7 @@ class RuleAPITest(_RulebookPluginAPITestMixin, APITestCase):
 
 
 class RuleFieldSelectionsViewTest(_RulebookPluginAPITestMixin, APITestCase):
-    """Plugin HTML view for lazy AG Grid cell saves (session + CSRF)."""
+    """Plugin HTML view for lazy rule cell saves (session + CSRF)."""
 
     @classmethod
     def setUpTestData(cls):

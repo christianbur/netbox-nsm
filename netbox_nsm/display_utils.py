@@ -91,6 +91,43 @@ def render_object_display(
     return _resolve_name(obj)
 
 
+@functools.lru_cache(maxsize=256)
+def changelog_content_type_label(content_type_id: int) -> str:
+    """App › type label for changelog snapshots (e.g. Custom objects › Addresses)."""
+    from django.apps import apps as django_apps
+    from django.contrib.contenttypes.models import ContentType
+
+    from netbox_nsm.models import TypeConfig
+
+    try:
+        ct = ContentType.objects.get(pk=content_type_id)
+    except ContentType.DoesNotExist:
+        return ""
+
+    app_name = ct.app_label
+    try:
+        app_name = str(django_apps.get_app_config(ct.app_label).verbose_name)
+    except LookupError:
+        pass
+
+    tc = (
+        TypeConfig.objects.filter(content_type_id=content_type_id)
+        .only("name")
+        .first()
+    )
+    if tc and (tc.name or "").strip():
+        type_name = tc.name.strip()
+    else:
+        model_class = ct.model_class()
+        if model_class:
+            vn = model_class._meta.verbose_name_plural or model_class._meta.verbose_name
+            type_name = str(vn).title() if vn else ct.model.replace("_", " ").title()
+        else:
+            type_name = ct.model.replace("_", " ").title()
+
+    return f"{app_name} › {type_name}"
+
+
 def type_config_display_name(type_config, content_type=None) -> str:
     """Picker/type label: TypeConfig.name, else model verbose_name_plural."""
     if type_config is not None:

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Bench scale data — NOT registered in Setup wizard.
 
-Creates nested ``nsm_addresses`` (1M hosts by default) and policy rules on an
+Creates nested ``nsm_addresses`` (200k hosts by default) and policy rules on an
 existing rulebook (default pk=2, ``Demo - Addresses``).
 
 Examples::
 
-    # Full run (long; 1M rows + 13k rules)
+    # Full run (long; 200k rows + 13k rules)
     docker exec netbox-dev python3 /opt/netbox-nsm/scripts/create_addresses_million_scale.py
 
     # Rules only (addresses already present)

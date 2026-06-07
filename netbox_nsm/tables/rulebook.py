@@ -11,7 +11,11 @@ from netbox_nsm.models import (
     Rule,
     Rulebook,
     RulebookAssignment,
+    RulebookStatusChoices,
 )
+from netbox_nsm.rulebook_hierarchy import render_hierarchy_marker, rulebook_list_depth
+from netbox_nsm.rulebook_status import rulebook_status_badge_html
+from netbox_nsm.virtual_rulebook import is_virtual_all_rules_rulebook
 
 __all__ = (
     "RulebookTable",
@@ -287,20 +291,77 @@ class AssignedObjectsColumn(tables.Column):
         )
 
 
+class RulebookNameColumn(tables.Column):
+    """Rulebook name with optional parent/child depth marker (NetBox prefix style)."""
+
+    def render(self, value, record):
+        if is_virtual_all_rules_rulebook(record):
+            url = record.get_absolute_url()
+            return format_html(
+                '<a href="{}" class="nsm-rb-name-link">{}</a>',
+                url,
+                record.name,
+            )
+        url = reverse("plugins:netbox_nsm:rulebook", args=[record.pk])
+        link = format_html(
+            '<a href="{}" class="nsm-rb-name-link">{}</a>',
+            url,
+            value,
+        )
+        depth = rulebook_list_depth(record)
+        marker = render_hierarchy_marker(depth)
+        if marker:
+            return format_html(
+                '<span class="nsm-rb-name-cell">{}{}</span>',
+                mark_safe(marker),
+                link,
+            )
+        return link
+
+
+class RulebookStatusColumn(tables.Column):
+    """Rulebook lifecycle status (Active, Container, Deprecated, …)."""
+
+    def render(self, value, record):
+        if is_virtual_all_rules_rulebook(record):
+            return mark_safe(
+                rulebook_status_badge_html(
+                    "virtual",
+                    label=str(_("Read-only")),
+                )
+            )
+        return mark_safe(rulebook_status_badge_html(record.status))
+
+
 class RulebookTable(NetBoxTable):
-    name = tables.LinkColumn()
+    name = RulebookNameColumn(
+        linkify=False,
+        verbose_name=_("Name"),
+        orderable=True,
+    )
+    status = RulebookStatusColumn(
+        verbose_name=_("Status"),
+        accessor="status",
+        orderable=True,
+        attrs={
+            "th": {"style": "width: 1%; white-space: nowrap;"},
+            "td": {"style": "white-space: nowrap;"},
+        },
+    )
     rule_count = tables.TemplateColumn(
         template_code="""
 {% load i18n %}
+<div class="nsm-rule-pills">
 {% if record.is_virtual_all_rules %}
-<a href="{% url 'plugins:netbox_nsm:all_rules_rules' %}"
+  <a href="{% url 'plugins:netbox_nsm:all_rules_rules' %}"
 {% else %}
-<a href="{% url 'plugins:netbox_nsm:rulebook_rules' record.pk %}"
+  <a href="{% url 'plugins:netbox_nsm:rulebook_rules' record.pk %}"
 {% endif %}
-   class="nsm-rule-pill nsm-rule-pill--counter nsm-rulebook-count-pill text-decoration-none"
-   title="{% trans 'View rules' %}">
-  {% if record.rule_count is not None %}{{ record.rule_count }}{% else %}{{ record.rules.count }}{% endif %}
-</a>
+     class="nsm-rule-pill nsm-rule-pill--counter nsm-rulebook-count-pill text-decoration-none"
+     title="{% trans 'View rules' %}">
+    {% if record.rule_count is not None %}{{ record.rule_count }}{% else %}{{ record.rules.count }}{% endif %}
+  </a>
+</div>
         """,
         verbose_name=_("Rules"),
         accessor="rule_count",
@@ -324,6 +385,7 @@ class RulebookTable(NetBoxTable):
         fields = (
             "id",
             "name",
+            "status",
             "rule_count",
             "platform",
             "description",
@@ -332,6 +394,7 @@ class RulebookTable(NetBoxTable):
         )
         default_columns = (
             "name",
+            "status",
             "rule_count",
             "platform",
             "assigned_objects",

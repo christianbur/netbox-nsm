@@ -3,14 +3,48 @@
 from __future__ import annotations
 
 from collections import OrderedDict
+from types import SimpleNamespace
 
-from netbox_nsm.models import Rulebook, RulebookTypeChoices
+from django.utils.translation import gettext_lazy as _
+
+from netbox_nsm.models import Rulebook, RulebookFieldKind, RulebookTypeChoices
 from netbox_nsm.rulebook_field_utils import load_rulebook_fields_for_detail
 
 __all__ = (
+    "build_virtual_all_rules_rulebook_display_field",
     "build_virtual_rulebook_detail_context",
     "load_virtual_all_rules_fields_for_detail",
+    "sort_rulebook_fields_for_display",
 )
+
+VIRTUAL_ALL_RULES_FIELD_SLUG = "rulebook"
+
+
+def sort_rulebook_fields_for_display(fields) -> list:
+    """Stable column order: sort_order ascending, then slug."""
+    return sorted(fields, key=lambda row: (row.sort_order, row.slug or ""))
+
+
+def build_virtual_all_rules_rulebook_display_field():
+    """Synthetic system field for All Rules (sort order 0, not stored in DB)."""
+    return SimpleNamespace(
+        slug=VIRTUAL_ALL_RULES_FIELD_SLUG,
+        name=str(_("Rulebook")),
+        sort_order=0,
+        field_kind=RulebookFieldKind.SYSTEM,
+        placement="system",
+        visible=True,
+        searchable=False,
+        filterable=False,
+        facet_mode="disabled",
+        max_visible_pills=3,
+        show_colored_pills=True,
+        is_system_field=True,
+        is_container_field=False,
+        shows_field_level_facets=False,
+        field_type_list=[],
+        pk=None,
+    )
 
 
 def load_virtual_all_rules_fields_for_detail() -> list:
@@ -18,7 +52,8 @@ def load_virtual_all_rules_fields_for_detail() -> list:
     Union of rulebook fields across all policy rulebooks for read-only display.
 
     The first occurrence of each field slug wins for field-level attributes; nested
-    type rows are merged by ``type_config_id``.
+    type rows are merged by ``type_config_id``. Result is sorted by ``sort_order``,
+    with the synthetic All Rules ``rulebook`` column first (sort order 0).
     """
     field_map: OrderedDict[str, object] = OrderedDict()
     type_ids_seen: dict[str, set[int]] = {}
@@ -39,6 +74,8 @@ def load_virtual_all_rules_fields_for_detail() -> list:
                 continue
 
             existing = field_map[slug]
+            if field.sort_order < existing.sort_order:
+                existing.sort_order = field.sort_order
             for ft in field.field_type_list:
                 tc_id = ft.type_config_id
                 if tc_id in type_ids_seen[slug]:
@@ -46,7 +83,9 @@ def load_virtual_all_rules_fields_for_detail() -> list:
                 existing.field_type_list.append(ft)
                 type_ids_seen[slug].add(tc_id)
 
-    return list(field_map.values())
+    fields = list(field_map.values())
+    fields.append(build_virtual_all_rules_rulebook_display_field())
+    return sort_rulebook_fields_for_display(fields)
 
 
 def build_virtual_rulebook_detail_context(instance) -> dict:

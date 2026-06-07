@@ -60,3 +60,12 @@ class TypeConfigFormTests(TestCase):
         columns = TypeConfigTable.Meta.default_columns
         self.assertNotIn("inherit_links", columns)
         self.assertNotIn("inherit_stop_on_own", columns)
+
+    def test_render_panel_linkable_all_types_uses_subtle_badge(self):
+        table = TypeConfigTable(TypeConfig.objects.none())
+        html = table.render_panel_linkable_types(self.type_config)
+        self.assertIn("All types", html)
+        self.assertIn("bg-primary-subtle", html)
+        self.assertIn("text-primary-emphasis", html)
+        self.assertNotIn("bg-primary text-white", html)
+        self.assertNotIn("text-bg-primary", html)

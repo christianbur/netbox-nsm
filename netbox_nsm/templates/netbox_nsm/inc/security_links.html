@@ -15,30 +15,70 @@
   }
   .nsm-tree-hdr[aria-expanded="true"] .nsm-chev { transform: rotate(90deg); }
   .nsm-tree-hdr[aria-expanded="false"] .nsm-chev { transform: rotate(0deg); }
+  .nsm-tree-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: none;
+    background: none;
+    padding: 0;
+    color: inherit;
+    line-height: 1;
+  }
   .nsm-rb-hdr {
-    display: flex; align-items: center; gap: 6px;
-    padding: 3px 12px 3px 24px; cursor: pointer;
-    font-size: 12px; border: none; background: none;
-    width: 100%; text-align: left; color: inherit;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 12px 3px 2rem;
+    font-size: 12px;
+    font-weight: 500;
+    width: 100%;
+    text-align: left;
+    color: inherit;
   }
-  .nsm-rb-hdr:hover { background: var(--bs-tertiary-bg); }
-  .nsm-rb-hdr .nsm-chev {
-    font-size: 9px; transition: transform .15s;
-    color: var(--bs-secondary-color); flex-shrink: 0;
-  }
-  .nsm-rb-hdr[aria-expanded="true"] .nsm-chev { transform: rotate(90deg); }
-  .nsm-rb-hdr[aria-expanded="false"] .nsm-chev { transform: rotate(0deg); }
-  .nsm-fg-hdr {
-    display: block;
-    font-size: 11px;
+  .nsm-rb-hdr .nsm-tree-toggle .nsm-chev {
+    font-size: 9px;
+    transition: transform .15s;
     color: var(--bs-secondary-color);
-    border-top: 1px solid var(--bs-border-color-translucent);
-    padding: 0.25rem 0 0.25rem 2.25rem;
-    text-decoration: none;
   }
-  .nsm-fg-hdr:hover {
-    background: var(--bs-tertiary-bg);
-    color: var(--bs-body-color);
+  .nsm-rb-hdr .nsm-tree-toggle[aria-expanded="true"] .nsm-chev { transform: rotate(90deg); }
+  .nsm-rb-hdr .nsm-tree-toggle[aria-expanded="false"] .nsm-chev { transform: rotate(0deg); }
+  .nsm-rb-title-link {
+    color: inherit;
+    text-decoration: none;
+    min-width: 0;
+  }
+  .nsm-rb-title-link:hover {
+    color: inherit;
+    text-decoration: underline;
+  }
+  .nsm-rb-field-hdr {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 12px 3px 3.25rem;
+    font-size: 12px;
+    width: 100%;
+    text-align: left;
+    color: inherit;
+  }
+  .nsm-rb-field-hdr .nsm-tree-toggle .nsm-chev {
+    font-size: 9px;
+    transition: transform .15s;
+    color: var(--bs-secondary-color);
+  }
+  .nsm-rb-field-hdr .nsm-tree-toggle[aria-expanded="true"] .nsm-chev { transform: rotate(90deg); }
+  .nsm-rb-field-hdr .nsm-tree-toggle[aria-expanded="false"] .nsm-chev { transform: rotate(0deg); }
+  .nsm-rb-rule-list {
+    list-style: none;
+    margin: 0;
+    padding: 0 0 0.35rem 4.5rem;
+  }
+  .nsm-rb-rule-list > li {
+    font-size: 12px;
+    line-height: 1.45;
+    padding: 0.08rem 0;
   }
   .nsm-link-table .col-actions .nsm-link-actions.btn-group-sm > .btn {
     line-height: 1;
@@ -70,8 +110,8 @@
 </style>
 
 <div class="card">
-  <h5 class="card-header d-flex justify-content-between align-items-center">
-    <span>{{ nsm_panel_label }}{% if nsm_security_badge %} <span class="badge text-bg-secondary ms-1">{{ nsm_security_badge }}</span>{% endif %}</span>
+  <h5 class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <span class="text-nowrap">{{ nsm_panel_label }}{% if nsm_security_badge %} <span class="badge text-bg-secondary ms-1">{{ nsm_security_badge }}</span>{% endif %}</span>
     <span class="d-flex gap-1 align-items-center nsm-security-header-actions">
       <span class="d-inline-flex align-items-center gap-1">
         <a href="{{ nsm_analyzer_url }}" class="btn btn-ghost-primary btn-sm"
@@ -101,17 +141,21 @@
     <div class="ps-3 py-2 text-muted">{% trans "None" %}</div>
     {% endif %}
 
-    {# ── Rulebook section ──────────────────────────────────────────────── #}
+    {# ── Rulebooks → Rulebook → Field → Rule ────────────────────────────── #}
     {% if nsm_rulebook_groups %}
     <div class="border-bottom">
-      <button class="nsm-tree-hdr"
-              data-bs-toggle="collapse"
-              data-bs-target="#nsm-cat-rulebook"
-              aria-expanded="true">
-        <i class="mdi mdi-chevron-right nsm-chev"></i>
-        <span>{% trans "Rulebook" %}</span>
+      <div class="nsm-tree-hdr">
+        <button type="button"
+                class="nsm-tree-toggle"
+                data-bs-toggle="collapse"
+                data-bs-target="#nsm-cat-rulebook"
+                aria-expanded="true"
+                aria-label="{% trans 'Toggle Rulebooks' %}">
+          <i class="mdi mdi-chevron-right nsm-chev"></i>
+        </button>
+        <span>{% trans "Rulebooks" %}</span>
         <span class="badge text-bg-secondary ms-1">{{ nsm_unique_rules_total }}</span>
-      </button>
+      </div>
       <div id="nsm-cat-rulebook" class="collapse show">
         <div class="nsm-rulebook-accordion"
              id="nsm-accordion"
@@ -122,42 +166,49 @@
           {% for group in nsm_rulebook_groups %}
           {% with rb=group.rulebook %}
           <div class="border-top" data-rb-pk="{{ rb.pk }}">
-            <button class="nsm-rb-hdr"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#nsm-rb-{{ rb.pk }}"
-                    aria-expanded="false">
-              <i class="mdi mdi-chevron-right nsm-chev"></i>
-              {% if rb.get_rules_tab_url %}<a href="{{ rb.get_rules_tab_url }}" class="text-body" onclick="event.stopPropagation()">{{ rb.name }}</a>{% else %}<span>{{ rb.name }}</span>{% endif %}
+            <div class="nsm-rb-hdr">
+              <button type="button"
+                      class="nsm-tree-toggle"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#nsm-rb-{{ rb.pk }}"
+                      aria-expanded="true"
+                      aria-label="{% blocktrans with rb=rb.name %}Toggle {{ rb }}{% endblocktrans %}">
+                <i class="mdi mdi-chevron-right nsm-chev"></i>
+              </button>
+              {% if group.rules_tab_url %}
+              <a href="{{ group.rules_tab_url }}" class="nsm-rb-title-link">{{ rb.name }}</a>
+              {% else %}
+              <span>{{ rb.name }}</span>
+              {% endif %}
               <span class="badge text-bg-secondary ms-1 nsm-rb-count">{{ group.unique_count }}</span>
-            </button>
-            <div id="nsm-rb-{{ rb.pk }}" class="collapse">
+            </div>
+            <div id="nsm-rb-{{ rb.pk }}" class="collapse show">
               {% for fg in group.field_groups %}
-              <div class="nsm-fg" data-field-pk="{{ fg.field.pk }}">
-                {% if fg.filter_url %}
-                <a href="{{ fg.filter_url }}"
-                   class="nsm-fg-hdr"
-                   title="{% blocktrans with rb=rb.name field=fg.field.name %}Filter rules in {{ rb }} by {{ field }}{% endblocktrans %}">
-                  <i class="mdi mdi-arrow-right-thin"></i> {{ fg.field.name }}
-                </a>
-                {% else %}
-                <div class="nsm-fg-hdr" style="cursor: default;">
-                  <i class="mdi mdi-arrow-right-thin"></i> {{ fg.field.name }}
+              <div class="nsm-rb-field" data-field-pk="{{ fg.field.pk }}">
+                <div class="nsm-rb-field-hdr">
+                  <button type="button"
+                          class="nsm-tree-toggle"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#nsm-rb-{{ rb.pk }}-f-{{ fg.field.pk }}"
+                          aria-expanded="true"
+                          aria-label="{% blocktrans with field=fg.field.name %}Toggle {{ field }}{% endblocktrans %}">
+                    <i class="mdi mdi-chevron-right nsm-chev"></i>
+                  </button>
+                  <span>{{ fg.field.name }}</span>
+                  <span class="badge text-bg-secondary ms-1 nsm-rb-field-count">{{ fg.rule_count }}</span>
                 </div>
-                {% endif %}
-                <table class="table table-hover table-sm mb-0">
-                  <tbody class="nsm-fg-tbody">
+                <div id="nsm-rb-{{ rb.pk }}-f-{{ fg.field.pk }}" class="collapse show">
+                  <ul class="nsm-rb-rule-list nsm-rb-field-rules">
                     {% for rule in fg.rules %}
-                    <tr>
-                      <td style="font-size:12px; padding-left:3.25rem;">
-                        <a href="{{ rule.get_rules_grid_filter_url }}"
-                           class="nsm-security-rule-link"
-                           data-rule-detail-url="{{ rule.get_absolute_url }}"
-                           title="{% trans 'Filter in Rules grid (Ctrl+click: rule detail)' %}">{{ rule.name }}</a>
-                      </td>
-                    </tr>
+                    <li>
+                      <a href="{{ rule.nsm_panel_filter_url }}"
+                         class="nsm-security-rule-link"
+                         data-detail-url="{{ rule.get_absolute_url }}"
+                         title="{% trans 'Filter rules by name (Ctrl+click: open rule detail)' %}">{{ rule.name }}</a>
+                    </li>
                     {% endfor %}
-                  </tbody>
-                </table>
+                  </ul>
+                </div>
               </div>
               {% endfor %}
             </div>
@@ -165,7 +216,6 @@
           {% endwith %}
           {% endfor %}
 
-          {# sentinel for infinite scroll #}
           <div class="nsm-sentinel" style="height:1px;"></div>
         </div>
       </div>
@@ -269,22 +319,15 @@
 <script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/nsm_branch_api.js' %}?v=1"></script>
 <script>
 (function () {
-  function nsmFetch(url, options) {
-    if (window.NSM_BRANCH_API && window.NSM_BRANCH_API.fetch) {
-      return window.NSM_BRANCH_API.fetch(url, options);
-    }
-    return fetch(url, options);
-  }
-
   document.addEventListener("click", function (e) {
     var link = e.target.closest("a.nsm-security-rule-link");
     if (!link || !(e.ctrlKey || e.metaKey)) {
       return;
     }
-    var detail = link.getAttribute("data-rule-detail-url");
-    if (detail) {
+    var detailUrl = link.getAttribute("data-detail-url");
+    if (detailUrl) {
       e.preventDefault();
-      window.location.href = detail;
+      window.location.href = detailUrl;
     }
   });
 })();
@@ -298,6 +341,10 @@
   var loading = false;
   var sentinel = accordion.querySelector('.nsm-sentinel');
 
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
   function appendItems(results) {
     results.forEach(function (item) {
       var rbPk = String(item.rulebook_pk || 0);
@@ -309,52 +356,73 @@
         collapseDiv = document.getElementById(rbColId);
       } else {
         var rbLink = item.rulebook_url
-          ? '<a href="' + escHtml(item.rulebook_url) + '" class="text-body" onclick="event.stopPropagation()">' + escHtml(item.rulebook_name) + '</a>'
-          : escHtml(item.rulebook_name);
+          ? '<a href="' + escHtml(item.rulebook_url) + '" class="nsm-rb-title-link">' + escHtml(item.rulebook_name) + '</a>'
+          : '<span>' + escHtml(item.rulebook_name) + '</span>';
 
         var div = document.createElement('div');
         div.className = 'border-top';
         div.dataset.rbPk = rbPk;
         div.innerHTML =
-          '<button class="nsm-rb-hdr" data-bs-toggle="collapse" data-bs-target="#' + rbColId + '" aria-expanded="false">' +
-            '<i class="mdi mdi-chevron-right nsm-chev"></i>' +
+          '<div class="nsm-rb-hdr">' +
+            '<button type="button" class="nsm-tree-toggle" data-bs-toggle="collapse" data-bs-target="#' + rbColId + '" aria-expanded="true">' +
+              '<i class="mdi mdi-chevron-right nsm-chev"></i>' +
+            '</button>' +
             rbLink +
             '<span class="badge text-bg-secondary ms-1 nsm-rb-count">0</span>' +
-          '</button>' +
-          '<div id="' + rbColId + '" class="collapse"></div>';
+          '</div>' +
+          '<div id="' + rbColId + '" class="collapse show"></div>';
         accordion.insertBefore(div, sentinel);
         collapseDiv = div.querySelector('.collapse');
       }
 
       var fieldPk = String(item.field_pk || 0);
-      var fgDiv = collapseDiv.querySelector('[data-field-pk="' + fieldPk + '"]');
-      if (!fgDiv) {
-        fgDiv = document.createElement('div');
-        fgDiv.className = 'nsm-fg';
-        fgDiv.dataset.fieldPk = fieldPk;
-        var fgHdr = item.field_filter_url
-          ? '<a href="' + escHtml(item.field_filter_url) + '" class="nsm-fg-hdr">' +
-              '<i class="mdi mdi-arrow-right-thin"></i> ' + escHtml(item.field_name) +
-            '</a>'
-          : '<div class="nsm-fg-hdr" style="cursor:default;">' +
-              '<i class="mdi mdi-arrow-right-thin"></i> ' + escHtml(item.field_name) +
-            '</div>';
-        fgDiv.innerHTML =
-          fgHdr +
-          '<table class="table table-hover table-sm mb-0"><tbody class="nsm-fg-tbody"></tbody></table>';
-        collapseDiv.appendChild(fgDiv);
+      var fieldColId = rbColId + '-f-' + fieldPk;
+      var fieldDiv = collapseDiv.querySelector('[data-field-pk="' + fieldPk + '"]');
+      if (!fieldDiv) {
+        fieldDiv = document.createElement('div');
+        fieldDiv.className = 'nsm-rb-field';
+        fieldDiv.dataset.fieldPk = fieldPk;
+        fieldDiv.innerHTML =
+          '<div class="nsm-rb-field-hdr">' +
+            '<button type="button" class="nsm-tree-toggle" data-bs-toggle="collapse" data-bs-target="#' + fieldColId + '" aria-expanded="true">' +
+              '<i class="mdi mdi-chevron-right nsm-chev"></i>' +
+            '</button>' +
+            '<span>' + escHtml(item.field_name) + '</span>' +
+            '<span class="badge text-bg-secondary ms-1 nsm-rb-field-count">0</span>' +
+          '</div>' +
+          '<div id="' + fieldColId + '" class="collapse show">' +
+            '<ul class="nsm-rb-rule-list nsm-rb-field-rules"></ul>' +
+          '</div>';
+        collapseDiv.appendChild(fieldDiv);
       }
 
-      var tbody = fgDiv.querySelector('.nsm-fg-tbody');
-      var tr = document.createElement('tr');
-      tr.innerHTML =
-        '<td style="font-size:12px; padding-left:3.25rem;">' +
-          '<a href="' + escHtml(item.rule_url) + '" class="nsm-security-rule-link" ' +
-          'data-rule-detail-url="' + escHtml(item.rule_detail_url || item.rule_url) + '" ' +
-          'title="Filter in Rules grid (Ctrl+click: rule detail)">' +
-          escHtml(item.rule_name) + '</a>' +
-        '</td>';
-      tbody.appendChild(tr);
+      var ruleList = fieldDiv.querySelector('.nsm-rb-field-rules');
+      var li = document.createElement('li');
+      if (item.rule_id) {
+        li.dataset.ruleId = String(item.rule_id);
+      }
+      li.innerHTML =
+        '<a href="' + escHtml(item.rule_url) + '" class="nsm-security-rule-link" ' +
+        'data-detail-url="' + escHtml(item.rule_detail_url || '') + '" ' +
+        'title="Filter rules by name (Ctrl+click: open rule detail)">' +
+        escHtml(item.rule_name) + '</a>';
+      ruleList.appendChild(li);
+
+      var fieldCount = fieldDiv.querySelector('.nsm-rb-field-count');
+      if (fieldCount) {
+        fieldCount.textContent = String(ruleList.querySelectorAll('li').length);
+      }
+      var rbWrapper = accordion.querySelector('[data-rb-pk="' + rbPk + '"]');
+      var rbCountEl = rbWrapper && rbWrapper.querySelector('.nsm-rb-count');
+      if (rbCountEl) {
+        var seenRules = {};
+        rbWrapper.querySelectorAll('[data-rule-id]').forEach(function (el) {
+          if (el.dataset.ruleId) {
+            seenRules[el.dataset.ruleId] = true;
+          }
+        });
+        rbCountEl.textContent = String(Object.keys(seenRules).length);
+      }
     });
   }
 
@@ -377,10 +445,5 @@
   }, {root: null, threshold: 0});
 
   observer.observe(sentinel);
-
-  function escHtml(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
 })();
 </script>
-

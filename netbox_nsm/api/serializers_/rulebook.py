@@ -45,6 +45,7 @@ class RulebookSerializer(PrimaryModelSerializer):
             "parent",
             "platform",
             "mgmt_url",
+            "matrix_tab_enabled",
             "rule_comment_template",
             "description",
             "comments",

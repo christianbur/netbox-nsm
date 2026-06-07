@@ -2,10 +2,10 @@
 
 Hierarchy (nsm_addresses ``group`` M2M, groups-in-groups):
 
-* 100 regions  ``bench-reg-000`` … ``bench-reg-099``
-* 1 000 sites  ``bench-site-0000`` … (10 sites per region)
-* 10 000 subnet groups ``bench-net-00000`` … (10 nets per site, each with a /24 Prefix)
-* 1 000 000 leaf addresses ``bench-ip-0000000`` … (100 hosts per subnet, /32 each)
+* 20 regions  ``bench-reg-000`` … ``bench-reg-019``
+* 200 sites  ``bench-site-0000`` … (10 sites per region)
+* 2 000 subnet groups ``bench-net-00000`` … (10 nets per site, each with a /24 Prefix)
+* 200 000 leaf addresses ``bench-ip-0000000`` … (100 hosts per subnet, /32 each)
 
 IP space: ``10.128.0.0/9`` (contiguous /24 blocks).
 
@@ -38,10 +38,10 @@ __all__ = (
 BENCH_PREFIX = "bench-"
 DEFAULT_RULEBOOK_ID = 2
 DEFAULT_RULE_COUNT = 13_000
-DEFAULT_LEAF_COUNT = 1_000_000
-REGION_COUNT = 100
-SITE_COUNT = 1_000
-SUBNET_COUNT = 10_000
+DEFAULT_LEAF_COUNT = 200_000
+REGION_COUNT = 20
+SITE_COUNT = 200
+SUBNET_COUNT = 2_000
 HOSTS_PER_SUBNET = 100
 BATCH_SIZE = 5_000
 ACTION_RANDOM_SEED = 20260612

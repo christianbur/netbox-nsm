@@ -165,6 +165,38 @@ def _rules_layout_as_map(layout):
     return {}
 
 
+def _rules_layout_changelog_slice(prechange, postchange):
+    """Return minimal rules_layout dicts containing only changed rules."""
+    pre_rules = _rules_layout_as_map((prechange or {}).get("rules_layout"))
+    post_rules = _rules_layout_as_map((postchange or {}).get("rules_layout"))
+    slice_pre: dict = {}
+    slice_post: dict = {}
+    for rule_id in set(pre_rules) | set(post_rules):
+        old = pre_rules.get(rule_id)
+        new = post_rules.get(rule_id)
+        if old == new:
+            continue
+        if old is not None:
+            slice_pre[rule_id] = old
+        if new is not None:
+            slice_post[rule_id] = new
+    return slice_pre, slice_post
+
+
+def _infer_rules_layout_changelog_action(pre_slice, post_slice):
+    """Map a rules_layout delta to the ObjectChange action shown in the UI."""
+    pre_keys = set(pre_slice)
+    post_keys = set(post_slice)
+    removed = pre_keys - post_keys
+    added = post_keys - pre_keys
+    modified = pre_keys & post_keys
+    if removed and not added and not modified:
+        return ObjectChangeActionChoices.ACTION_DELETE
+    if added and not removed and not modified:
+        return ObjectChangeActionChoices.ACTION_CREATE
+    return ObjectChangeActionChoices.ACTION_UPDATE
+
+
 def _field_slug_label(slug):
     if not slug:
         return "?"
@@ -175,20 +207,26 @@ def _object_item_label(row):
     if not isinstance(row, dict):
         return "?"
     field = _field_slug_label(row.get("field"))
-    ct_id = row.get("content_type")
-    object_id = row.get("object_id")
-    display = f"#{object_id}"
-    if ct_id and object_id:
-        try:
-            from django.contrib.contenttypes.models import ContentType
+    if row.get("object"):
+        display = row["object"]
+    else:
+        display = f"#{row.get('object_id')}"
+        ct_id = row.get("content_type")
+        object_id = row.get("object_id")
+        if ct_id and object_id:
+            try:
+                from django.contrib.contenttypes.models import ContentType
 
-            ct = ContentType.objects.get_for_id(int(ct_id))
-            obj = ct.get_object_for_this_type(pk=int(object_id))
-            display = str(obj)
-        except Exception:
-            pass
+                ct = ContentType.objects.get_for_id(int(ct_id))
+                obj = ct.get_object_for_this_type(pk=int(object_id))
+                display = str(obj)
+            except Exception:
+                pass
     exclude = row.get("exclude")
     suffix = " (exclude)" if exclude else ""
+    type_label = row.get("content_type_label")
+    if type_label:
+        return f"{field} ({type_label}): {display}{suffix}"
     return f"{field}: {display}{suffix}"
 
 
@@ -330,14 +368,55 @@ def apply_type_config_changelog_message(instance, *, prechange=None):
         instance._changelog_message = message
 
 
-def snapshot_instance(instance, *, exclude=None):
+def _fields_layout_changelog_slice(prechange, postchange):
+    """Return minimal fields_layout dicts containing only changed fields."""
+    pre_layout = _layout_as_map((prechange or {}).get("fields_layout"))
+    post_layout = _layout_as_map((postchange or {}).get("fields_layout"))
+    slice_pre: dict = {}
+    slice_post: dict = {}
+    for slug in set(pre_layout) | set(post_layout):
+        old = pre_layout.get(slug)
+        new = post_layout.get(slug)
+        if old == new:
+            continue
+        if old is not None:
+            slice_pre[slug] = old
+        if new is not None:
+            slice_post[slug] = new
+    return slice_pre, slice_post
+
+
+def snapshot_instance(
+    instance,
+    *,
+    exclude=None,
+    fields_layout=False,
+    rules_layout=False,
+):
     """Return serialized state for manual pre/post change logging."""
     if hasattr(instance, "serialize_object"):
-        return instance.serialize_object(exclude=exclude or ["last_updated"])
+        exclude = exclude or ["last_updated"]
+        from netbox_nsm.models import Rulebook
+
+        if isinstance(instance, Rulebook):
+            return instance.serialize_object(
+                exclude=exclude,
+                include_fields_layout=fields_layout,
+                include_rules_layout=rules_layout,
+            )
+        return instance.serialize_object(exclude=exclude)
     return None
 
 
-def record_object_update(instance, request, prechange_data, *, message=""):
+def record_object_update(
+    instance,
+    request,
+    prechange_data,
+    *,
+    message="",
+    postchange_data=None,
+    action=ObjectChangeActionChoices.ACTION_UPDATE,
+):
     """
     Persist an ObjectChange for *instance* when data changed outside ``save()``.
 
@@ -349,8 +428,10 @@ def record_object_update(instance, request, prechange_data, *, message=""):
         return
 
     instance._prechange_snapshot = prechange_data
-    instance._changelog_message = message or ""
-    objectchange = instance.to_objectchange(ObjectChangeActionChoices.ACTION_UPDATE)
+    instance._changelog_message = (message or "")[:200]
+    objectchange = instance.to_objectchange(action)
+    if postchange_data is not None:
+        objectchange.postchange_data = postchange_data
     if not objectchange.has_changes:
         return
 
@@ -367,10 +448,19 @@ def snapshot_before_edit(instance):
 
 def record_rulebook_layout_changelog(rulebook, request, prechange, *, message=""):
     """Write field-layout changes to the parent Rulebook changelog."""
+    postchange = snapshot_instance(rulebook, fields_layout=True)
+    if (prechange or {}).get("fields_layout") == (postchange or {}).get("fields_layout"):
+        return
     if not message:
-        postchange = snapshot_instance(rulebook)
         message = describe_rulebook_fields_layout_changes(prechange, postchange)
-    record_object_update(rulebook, request, prechange, message=message)
+    pre_slice, post_slice = _fields_layout_changelog_slice(prechange, postchange)
+    record_object_update(
+        rulebook,
+        request,
+        {"fields_layout": pre_slice},
+        message=message,
+        postchange_data={"fields_layout": post_slice},
+    )
 
 
 def rulebook_rules_data_changed(prechange, postchange):
@@ -379,16 +469,30 @@ def rulebook_rules_data_changed(prechange, postchange):
     return prechange.get("rules_layout") != postchange.get("rules_layout")
 
 
-def record_rulebook_rules_changelog(rulebook, request, prechange, *, message=""):
+def record_rulebook_rules_changelog(
+    rulebook, request, prechange, *, message="", postchange=None
+):
     """Write rule / assignment changes to the parent Rulebook changelog."""
     if not prechange:
         return
-    postchange = snapshot_instance(rulebook)
+    from netbox_nsm.branch_db import ensure_branch_context
+
+    with ensure_branch_context(request):
+        if postchange is None:
+            postchange = snapshot_instance(rulebook, rules_layout=True)
     if not rulebook_rules_data_changed(prechange, postchange):
         return
     if not message:
         message = describe_rulebook_rules_changes(prechange, postchange)
-    record_object_update(rulebook, request, prechange, message=message)
+    pre_slice, post_slice = _rules_layout_changelog_slice(prechange, postchange)
+    record_object_update(
+        rulebook,
+        request,
+        {"rules_layout": pre_slice},
+        message=message,
+        postchange_data={"rules_layout": post_slice},
+        action=_infer_rules_layout_changelog_action(pre_slice, post_slice),
+    )
 
 
 def rule_assignment_data_changed(prechange, postchange):

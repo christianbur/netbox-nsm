@@ -96,6 +96,11 @@ class Rulebook(ContactsMixin, PrimaryModel):
         verbose_name=_("Parent rulebook"),
         help_text=_("Optional parent rulebook for hierarchical grouping."),
     )
+    matrix_tab_enabled = models.BooleanField(
+        default=True,
+        verbose_name=_("Matrix tab"),
+        help_text=_("Show the zone matrix tab for this rulebook."),
+    )
 
     class Meta:
         verbose_name = _("Rulebook")
@@ -125,15 +130,42 @@ class Rulebook(ContactsMixin, PrimaryModel):
             if ftc.type_config.matching_class
         }
 
-    def serialize_object(self, exclude=None):
+    def serialize_object(
+        self,
+        exclude=None,
+        *,
+        include_fields_layout=False,
+        include_rules_layout=False,
+    ):
+        """Serialize rulebook state for changelog snapshots.
+
+        Field and rule layout snapshots are expensive on large rulebooks. Load them
+        only when recording field or rule edits — not for metadata saves via
+        ``ObjectEditView``.
+        """
         data = super().serialize_object(exclude=exclude)
-        if self.pk:
+        if self.pk and include_fields_layout:
             from netbox_nsm.rulebook_field_utils import serialize_rulebook_fields_layout
-            from netbox_nsm.rulebook_rules_utils import serialize_rulebook_rules_layout
 
             data["fields_layout"] = serialize_rulebook_fields_layout(self)
+        if self.pk and include_rules_layout:
+            from netbox_nsm.rulebook_rules_utils import serialize_rulebook_rules_layout
+
             data["rules_layout"] = serialize_rulebook_rules_layout(self)
         return data
+
+    def snapshot(self):
+        """Changelog pre-image for metadata edits — never include rule/field layouts."""
+        from netbox.config import get_config
+
+        exclude_fields = []
+        if get_config().CHANGELOG_SKIP_EMPTY_CHANGES:
+            exclude_fields = ["last_updated"]
+        self._prechange_snapshot = self.serialize_object(
+            exclude=exclude_fields,
+            include_fields_layout=False,
+            include_rules_layout=False,
+        )
 
 
 class _FieldPlacementChoices(models.TextChoices):
@@ -403,15 +435,12 @@ class Rule(ContactsMixin, PrimaryModel):
         return reverse("plugins:netbox_nsm:rule", args=[self.pk])
 
     def get_rules_grid_filter_url(self):
-        """Rules tab (AG Grid) with name filter pre-applied."""
-        from urllib.parse import quote
-
+        """Rules tab with Name column quick filter pre-applied."""
         if not self.rulebook_id:
             return self.get_absolute_url()
-        escaped = self.name.replace("\\", "\\\\").replace('"', '\\"')
-        q = f'name == "{escaped}"'
-        base = reverse("plugins:netbox_nsm:rulebook_rules", args=[self.rulebook_id])
-        return f"{base}?nsm_q={quote(q)}"
+        from netbox_nsm.object_rules_utils import build_rule_name_column_filter_url
+
+        return build_rule_name_column_filter_url(self.rulebook, self)
 
     def serialize_object(self, exclude=None):
         data = super().serialize_object(exclude=exclude)
@@ -430,18 +459,30 @@ def _group_item_changelog_key(field_slug, security_group_id):
 
 
 def _serialize_rule_object_items(rule):
+    from netbox_nsm.display_utils import (
+        changelog_content_type_label,
+        get_display_template_map,
+        render_object_display,
+    )
+
+    tmpl_map = get_display_template_map()
     items = {}
     for item in rule.object_items.select_related("field", "content_type"):
         field_slug = item.field.slug if item.field_id else ""
         key = _object_item_changelog_key(
             field_slug, item.content_type_id, item.object_id
         )
-        items[key] = {
+        row = {
             "field": field_slug or None,
             "content_type": item.content_type_id,
+            "content_type_label": changelog_content_type_label(item.content_type_id),
             "object_id": item.object_id,
             "exclude": item.exclude,
         }
+        obj = item.assigned_object
+        if obj is not None:
+            row["object"] = render_object_display(obj, item.content_type_id, tmpl_map)
+        items[key] = row
     return items
 
 

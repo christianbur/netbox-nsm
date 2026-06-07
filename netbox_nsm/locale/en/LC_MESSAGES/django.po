@@ -24,9 +24,11 @@ msgstr ""
 
 #: netbox_nsm/__init__.py:10
 msgid ""
-"A NetBox plugin for network security management, including object groups and "
-"security policies."
+"Document network security policy in NetBox: rulebooks, zones, NSM links, "
+"and the Security Panel (requires netbox-custom-objects)."
 msgstr ""
+"Document network security policy in NetBox: rulebooks, zones, NSM links, "
+"and the Security Panel (requires netbox-custom-objects)."
 
 #: netbox_nsm/choices/security_policy_choices.py:16
 msgid "Permit"
@@ -792,10 +794,8 @@ msgstr ""
 msgid "Security Policy"
 msgstr ""
 
-#: netbox_nsm/models/security_policy.py:52 netbox_nsm/navigation.py:69
-#: netbox_nsm/navigation.py:112
-msgid "Security Policies"
-msgstr ""
+#~ msgid "Security Policies"
+#~ msgstr ""
 
 #: netbox_nsm/models/security_policy.py:95
 msgid ""

@@ -45,7 +45,7 @@ def _test_prefix():
 
 
 class RuleAssignmentChangelogTest(ModelViewTestCase):
-    """Rule assignment changes via policy grid API should appear on Rule changelog."""
+    """Rule assignment changes via rules grid API should appear on Rule changelog."""
 
     @classmethod
     def setUpTestData(cls):

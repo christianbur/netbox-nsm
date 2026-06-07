@@ -74,7 +74,7 @@ labels, and see matching rulebooks.
 | Feature                 | Menu path                                           | Doc                                                          |
 | ----------------------- | --------------------------------------------------- | ------------------------------------------------------------ |
 | Rulebooks               | Security → Rulebooks                                | [Security Rulebooks](using_netbox_nsm.md#security-rulebooks) |
-| Policy grid             | Rulebook → Rules                                    | [Rules grid](using_netbox_nsm.md#rules-grid)                 |
+| Rules grid              | Rulebook → Rules                                    | [Rules grid](using_netbox_nsm.md#rules-grid)                 |
 | Zone matrix             | Rulebook → **Matrix** tab                           | [Zone Matrix](using_netbox_nsm.md#zone-matrix)               |
 | All Rules (global view) | Direct URL `/plugins/netbox-nsm/rulebooks/0/rules/` | [All Rules](using_netbox_nsm.md#all-rules-virtual-rulebook)  |
 | IP Analysis             | Security Panel loupe (🔍) or `/plugins/netbox-nsm/ip-analysis/` | [IP Analysis](using_netbox_nsm.md#ip-analysis)               |

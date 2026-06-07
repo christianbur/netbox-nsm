@@ -7,7 +7,8 @@ class SecurityConfig(PluginConfig):
     name = "netbox_nsm"
     verbose_name = _("NetBox NSM - Network Security Management")
     description = _(
-        "A NetBox plugin for network security management, including object groups and security policies."
+        "Document network security policy in NetBox: rulebooks, zones, NSM links, "
+        "and the Security Panel (requires netbox-custom-objects)."
     )
     version = __version__
     author = "Christian Burmeister"

@@ -1,4 +1,4 @@
-"""Tab navigation for the virtual All Rules rulebook (mirrors policy rulebook ViewTabs)."""
+"""Tab navigation for the virtual All Rules rulebook (mirrors rulebook ViewTabs)."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ PRIMARY_TAB_KEY = "detail"
 PRIMARY_TAB_LABEL = _("Rulebook")
 
 # Labels, weights, and permissions aligned with RulebookRulesGridView and NetBox
-# feature tabs (contacts, journal, changelog) on policy rulebooks.
+# feature tabs (contacts, journal, changelog) on rulebooks.
 _VIRTUAL_TAB_SPECS = (
     {
         "key": "rules",

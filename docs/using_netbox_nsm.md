@@ -865,7 +865,7 @@ objects** (or the bundled COTs), linked via ObjectLinks.
 
 ## Security Rulebooks
 
-**Security → Security Policies**
+**Security → Rulebooks**
 
 A **Rulebook** models the rule base of a firewall (or a logical segment of one). Each rulebook
 has its own set of **fields** (columns) that define the column structure.
@@ -916,7 +916,7 @@ Containers are for documentation structure only — they do not inherit or merge
 
 ### Create a rulebook
 
-1. Open **Security → Security Policies** (list above) and click **+ Add**
+1. Open **Security → Rulebooks** (list above) and click **+ Add**
 2. Set name (e.g. `Enterprise - TrustSec Core`), type **Security Rules**, optional
    description, status, **parent** (e.g. container `group1` for hierarchical grouping), and
    platform
@@ -1053,7 +1053,7 @@ Use **AND** in the picker to build AND groups (see [AND groups](#and-groups)).
 
 | Field | Description |
 |---|---|
-| **Description** | Optional free-text note (last column in the policy grid). |
+| **Description** | Optional free-text note (last column in the rules grid). |
 | **Tags** | Standard NetBox tags. |
 | **Owner group** | Optional ownership (NetBox contacts integration). |
 
@@ -1064,7 +1064,7 @@ Footer actions: **Cancel**, **Create**, **Create & Add Another** (keeps same rul
 Rule detail page for **trust-to-untrust** in **Demo - Zone Matrix**: metadata, zone/service
 columns, and **Security** assignments card.
 
-#### Inline cell editing (policy grid)
+#### Inline cell editing (rules grid)
 
 On the **Rules** tab, each row is a rule; each cell maps to a field column.
 
@@ -1596,7 +1596,7 @@ Security Panel — the analyzer resolves them via the same edge resolvers.
 - *"Is this server covered by a deny rule anywhere?"*
 
 Object Analyzer is for exploration and documentation — the same facts are in the
-**Security Panel** on every object and in the **All Rules** policy grid.
+**Security Panel** on every object and in the **All Rules** rules grid.
 
 ---
 

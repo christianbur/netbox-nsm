@@ -1,4 +1,4 @@
-"""Virtual All Rules rulebook pages with the same tab structure as policy rulebooks."""
+"""Virtual All Rules rulebook pages with the same tab structure as rulebooks."""
 
 from __future__ import annotations
 
@@ -69,7 +69,7 @@ class AllRulesRulebookView(_VirtualAllRulesMixin, View):
 
 
 class AllRulesRulebookRulesView(_VirtualAllRulesMixin, View):
-    """Read-only rules tab with the same HTML table as policy rulebooks."""
+    """Read-only rules tab with the same HTML table as rulebooks."""
 
     template_name = "netbox_nsm/rulebook_all_rules_rules.html"
     tab_key = "rules"

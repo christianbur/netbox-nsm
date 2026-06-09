@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.group_m2m import (
+from netbox_nsm.objects.group_m2m import (
     GROUP_M2M_LABEL_MEMBER,
     GROUP_M2M_LABEL_MEMBER_OF,
     group_m2m_panel_type_key,

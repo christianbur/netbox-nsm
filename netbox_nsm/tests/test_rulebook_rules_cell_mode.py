@@ -1,6 +1,6 @@
 """Object cell display modes for Rules table cells."""
 
-from netbox_nsm.rulebook_rules_cell_html import (
+from netbox_nsm.rulebooks.cell_html import (
     CELL_MODE_COMPACT,
     CELL_MODE_INLINE,
     CELL_MODE_PILL_MORE,
@@ -8,7 +8,7 @@ from netbox_nsm.rulebook_rules_cell_html import (
     normalize_rules_cell_mode,
     render_rules_object_cell_html,
 )
-from netbox_nsm.rulebook_rules_tab import parse_rules_cell_mode
+from netbox_nsm.rulebooks.rules_tab_base import parse_rules_cell_mode
 from django.test import RequestFactory
 from utilities.testing import TestCase
 
@@ -57,7 +57,7 @@ class RulesCellModeTests(TestCase):
             },
             "system": {},
         }
-        from netbox_nsm.rulebook_rules_tab import _rules_row_is_multiline
+        from netbox_nsm.rulebooks.rules_tab_base import _rules_row_is_multiline
 
         self.assertTrue(_rules_row_is_multiline(row, cell_mode=CELL_MODE_STACK))
         self.assertFalse(_rules_row_is_multiline(row, cell_mode=CELL_MODE_INLINE))
@@ -109,6 +109,6 @@ class RulesCellModeTests(TestCase):
             },
             "system": {},
         }
-        from netbox_nsm.rulebook_rules_tab import _rules_row_is_multiline
+        from netbox_nsm.rulebooks.rules_tab_base import _rules_row_is_multiline
 
         self.assertFalse(_rules_row_is_multiline(row, cell_mode=CELL_MODE_PILL_MORE))

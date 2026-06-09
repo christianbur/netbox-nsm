@@ -10,7 +10,11 @@ from django.views import View
 
 from ipam.models import IPAddress
 
-from netbox_nsm.setup_flags import setup_allow_destructive_actions, setup_menu_enabled
+from netbox_nsm.core.setup_flags import setup_allow_destructive_actions, setup_menu_enabled
+from netbox_nsm.demos.addresses_million_scale import (
+    SCALE_DEMO_50K_LEAF_COUNT,
+    SCALE_DEMO_50K_RULE_COUNT,
+)
 
 from . import custom_objects, demo, typeconfig, ui_settings
 
@@ -33,25 +37,47 @@ class SetupView(LoginRequiredMixin, View):
             if co_loaded
             else custom_objects.empty_cot_status()
         )
+        rulebook_template_status = (
+            custom_objects.get_rulebook_template_status()
+            if co_ready
+            else custom_objects.empty_rulebook_template_status()
+        )
         tc_status = (
             typeconfig.get_typeconfig_status()
             if co_ready
             else typeconfig.empty_typeconfig_status()
         )
-        cots_ok = custom_objects.all_cots_ok(cot_status) if co_loaded else False
+        cots_ok = (
+            custom_objects.all_cots_ok(cot_status, rulebook_template_status)
+            if co_loaded
+            else False
+        )
         tcs_ok = (
             typeconfig.all_typeconfigs_ok(cot_status, tc_status) if co_ready else False
         )
+        ipam_has_ip_addresses = IPAddress.objects.exists()
         return {
             "custom_objects_plugin_loaded": co_loaded,
             "custom_objects_db_ready": co_ready,
             "cot_status": cot_status,
+            "cot_setup_groups": custom_objects.get_cot_setup_groups(
+                cot_status=cot_status,
+                rulebook_template_status=rulebook_template_status,
+            ),
             "tc_status": tc_status,
             "all_cots_ok": cots_ok,
             "all_tcs_ok": tcs_ok,
             "can_import_cots": co_ready and not cots_ok,
             "can_create_typeconfigs": cots_ok and not tcs_ok,
             "can_run_demo": tcs_ok and setup_allow_destructive_actions(),
+            "can_run_scale_demo_50k": (
+                tcs_ok
+                and setup_allow_destructive_actions()
+                and not ipam_has_ip_addresses
+            ),
+            "scale_demo_50k_leaf_count": SCALE_DEMO_50K_LEAF_COUNT,
+            "scale_demo_50k_rule_count": SCALE_DEMO_50K_RULE_COUNT,
+            "ipam_has_ip_addresses": ipam_has_ip_addresses,
             "setup_allow_destructive_actions": setup_allow_destructive_actions(),
             "ui_settings": ui_settings.get_ui_settings(),
         }
@@ -116,6 +142,16 @@ class SetupView(LoginRequiredMixin, View):
                 messages.error(
                     request,
                     _("Enterprise demo requires an empty IP address database."),
+                )
+                return redirect(reverse("plugins:netbox_nsm:setup"))
+            if action == "create_demo_scale_50k" and IPAddress.objects.exists():
+                messages.error(
+                    request,
+                    _(
+                        "%(label)s requires an empty IP address database "
+                        "(IPAM → IP addresses)."
+                    )
+                    % {"label": _("Address bench (50k)")},
                 )
                 return redirect(reverse("plugins:netbox_nsm:setup"))
 

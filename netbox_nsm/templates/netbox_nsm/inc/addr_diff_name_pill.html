@@ -1,0 +1,17 @@
+{% comment %}
+Two-color diff name pill for IP Analysis diff mode.
+Expects node.diff_name_a/b, diff_url_a/b, diff_same_name, diff_status on node.
+{% endcomment %}
+<span class="nsm-ipa-cell-pill nsm-ipa-diff-name-pill">
+  {% if not node.diff_same_name and node.diff_name_a and node.diff_name_b %}
+    <a href="{{ node.diff_url_a|default:node.url }}" class="nsm-addr-obj-link nsm-ipa-diff-name-a" onclick="event.stopPropagation();">{{ node.diff_name_a }}</a>
+    <span class="nsm-ipa-diff-name-sep" aria-hidden="true">|</span>
+    <a href="{{ node.diff_url_b|default:node.url }}" class="nsm-addr-obj-link nsm-ipa-diff-name-b" onclick="event.stopPropagation();">{{ node.diff_name_b }}</a>
+  {% elif node.diff_status == "only_b" %}
+    <a href="{{ node.diff_url_b|default:node.url }}" class="nsm-addr-obj-link nsm-ipa-diff-name-b" onclick="event.stopPropagation();">{{ node.diff_name_b|default:node.name }}</a>
+  {% elif node.diff_status == "only_a" %}
+    <a href="{{ node.diff_url_a|default:node.url }}" class="nsm-addr-obj-link nsm-ipa-diff-name-a" onclick="event.stopPropagation();">{{ node.diff_name_a|default:node.name }}</a>
+  {% else %}
+    <a href="{{ node.diff_url_a|default:node.url }}" class="nsm-addr-obj-link" onclick="event.stopPropagation();">{{ node.diff_name_a|default:node.name }}</a>
+  {% endif %}
+</span>

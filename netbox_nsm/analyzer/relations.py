@@ -178,74 +178,6 @@ def _prefix(pfx):
     return edges
 
 
-# ── Rule ───────────────────────────────────────────────────────
-from netbox_nsm.models import (  # noqa: E402
-    Rule,
-    Rulebook,
-    ObjectGroup,
-    RuleObjectItem,
-    ObjectGroupMember,
-    ObjectLink,
-)
-
-
-@registry.register(Rule)
-def _rule(rule):
-    edges = []
-    if rule.rulebook:
-        edges.append(
-            AnalyzerEdge("Rulebook", "in_rulebook", node_from_object(rule.rulebook))
-        )
-    for item in RuleObjectItem.objects.filter(rule=rule).select_related(
-        "field", "content_type"
-    )[:_MAX]:
-        if item.assigned_object is not None:
-            edges.append(
-                AnalyzerEdge(
-                    str(item.field),
-                    item.field.slug,
-                    node_from_object(item.assigned_object),
-                )
-            )
-    return edges
-
-
-# ── Rulebook ───────────────────────────────────────────────────
-@registry.register(Rulebook)
-def _rulebook(rb):
-    edges = []
-    for rule in rb.rules.all()[:_MAX]:
-        edges.append(AnalyzerEdge("Regel", "has_rule", node_from_object(rule)))
-    return edges
-
-
-# ── ObjectGroup ──────────────────────────────────────────────────────
-@registry.register(ObjectGroup)
-def _object_group(grp):
-    edges = []
-
-    for sub in grp.sub_groups.all()[:_MAX]:
-        edges.append(AnalyzerEdge("Sub-Group", "has_subgroup", node_from_object(sub)))
-
-    for member in ObjectGroupMember.objects.filter(group=grp).select_related(
-        "content_type"
-    )[:_MAX]:
-        if member.assigned_object is not None:
-            edges.append(
-                AnalyzerEdge(
-                    "Member", "has_member", node_from_object(member.assigned_object)
-                )
-            )
-
-    for slug in (grp.field_slugs or [])[:_MAX]:
-        edges.append(AnalyzerEdge("Field", "in_field", slug))
-
-    grp_ct = ContentType.objects.get_for_model(grp)
-    edges.extend(rule_object_item_edges(grp, grp_ct))
-    edges.extend(nsm_link_edges(grp, grp_ct))
-    return edges
-
-
 # ── Generic fallback (netbox_custom_objects + any unregistered model) ────────
 
 
@@ -258,9 +190,9 @@ def _generic_fallback(obj) -> list[AnalyzerEdge]:
     - group M2M members + reverse parent groups (Security Panel)
     - Reverse through-table M2M (netbox_custom_objects only)
     - Bidirectional ObjectLink
-    - RuleObjectItem → deduplicated to Rulebook level
+    - COT rulebook references (Security Panel scan)
     """
-    from netbox_nsm.models import RuleObjectItem
+    from netbox_nsm.security.panel import scan_cot_security_references
 
     ct = ContentType.objects.get_for_model(obj)
     edges = []
@@ -312,14 +244,14 @@ def _generic_fallback(obj) -> list[AnalyzerEdge]:
     # Bidirectional ObjectLink
     edges.extend(nsm_link_edges(obj, ct))
 
-    # Rulebooks that reference this object (deduplicated)
     seen_rb: dict = {}
-    for item in RuleObjectItem.objects.filter(
-        content_type=ct, object_id=obj.pk
-    ).select_related("rule__rulebook")[:50]:
-        rb = item.rule.rulebook if item.rule else None
-        if rb and rb.pk not in seen_rb:
-            seen_rb[rb.pk] = rb
+    for match in scan_cot_security_references(ct, obj.pk):
+        rb = match.get("rulebook")
+        if rb is None:
+            continue
+        key = getattr(rb, "slug", None) or getattr(rb, "pk", None)
+        if key is not None and key not in seen_rb:
+            seen_rb[key] = rb
     for rb in seen_rb.values():
         edges.append(AnalyzerEdge("Rulebook", "in_rulebook", node_from_object(rb)))
 

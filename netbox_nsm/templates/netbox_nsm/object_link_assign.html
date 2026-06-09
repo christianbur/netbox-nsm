@@ -113,15 +113,6 @@
               <div class="invalid-feedback d-block">{{ form.propagation.errors|join:", " }}</div>
             {% endif %}
           </div>
-          <div class="mb-3" id="propagate-stop-wrap">
-            <div class="form-check">
-              {{ form.propagate_stop_on_own }}
-              <label class="form-check-label" for="id_propagate_stop_on_own">
-                {% trans "Stop when child has own link of same type" %}
-              </label>
-            </div>
-          </div>
-
           {# Comment #}
           <div class="mb-3">
             <label for="id_comment" class="form-label fw-semibold">{% trans "Comment" %}</label>
@@ -168,12 +159,7 @@
                   <span class="text-muted">–</span>
                 {% endif %}
               </td>
-              <td class="text-muted small">
-                {{ link.get_propagation_display }}
-                {% if link.propagate_stop_on_own %}
-                <span class="badge text-bg-secondary ms-1">{% trans "stop on own" %}</span>
-                {% endif %}
-              </td>
+              <td class="text-muted small">{{ link.get_propagation_display }}</td>
               <td class="text-muted small">{{ link.comment|default:"–" }}</td>
               <td class="text-end pe-3">
                 <form method="post"

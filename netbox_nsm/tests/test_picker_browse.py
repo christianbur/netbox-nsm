@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.picker_browse import (
+from netbox_nsm.objects.picker_browse import (
     _apply_name_filter_regex,
     _filter_queryset_by_query,
     _resolve_short_name,
@@ -39,8 +39,8 @@ class PickerBrowseHelperTests(SimpleTestCase):
         items = [{"name": "a", "display": "A"}]
         self.assertEqual(_apply_name_filter_regex(items, "[invalid"), items)
 
-    @patch("netbox_nsm.picker_browse.render_object_display", return_value="Shown")
-    @patch("netbox_nsm.picker_browse._object_color", return_value="#abc")
+    @patch("netbox_nsm.objects.picker_browse.render_object_display", return_value="Shown")
+    @patch("netbox_nsm.objects.picker_browse._object_color", return_value="#abc")
     def test_serialize_picker_object(self, _color, _display):
         obj = SimpleNamespace(pk=7, name="svc-http")
         payload = serialize_picker_object(obj, 12, {})

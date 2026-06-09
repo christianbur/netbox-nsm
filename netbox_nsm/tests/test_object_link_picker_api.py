@@ -30,7 +30,6 @@ class ObjectTypeElementsApiViewTests(TestCase):
             content_type=cls.prefix_ct,
             matching_class=MatchingClassChoices.ZONE,
             display_template="{prefix}",
-            panel_slugs=["source"],
         )
 
     def _api_url(self, **params):

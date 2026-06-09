@@ -53,15 +53,6 @@
             {% endfor %}
           </div>
 
-          <div class="mb-3" id="propagate-stop-wrap">
-            <div class="form-check">
-              {{ form.propagate_stop_on_own }}
-              <label class="form-check-label" for="id_propagate_stop_on_own">
-                {% trans "Stop when child has own link of same type" %}
-              </label>
-            </div>
-          </div>
-
           <div class="mb-3">
             <label for="id_comment" class="form-label fw-semibold">{% trans "Comment" %}</label>
             <textarea name="comment" id="id_comment" rows="3" class="form-control {% if form.comment.errors %}is-invalid{% endif %}">{{ form.comment.value|default:"" }}</textarea>
@@ -83,19 +74,4 @@
   </div>
 </div>
 
-<script>
-(function () {
-  var propagationSelect = document.getElementById('id_propagation');
-  var propagateStopWrap = document.getElementById('propagate-stop-wrap');
-  function syncPropagationUi() {
-    if (!propagationSelect || !propagateStopWrap) return;
-    var isDirect = propagationSelect.value === 'direct';
-    propagateStopWrap.style.display = isDirect ? 'none' : '';
-  }
-  if (propagationSelect) {
-    propagationSelect.addEventListener('change', syncPropagationUi);
-    syncPropagationUi();
-  }
-})();
-</script>
 {% endblock %}

@@ -1,0 +1,37 @@
+{% load i18n %}
+{% comment %}
+Flat row for IPAM hierarchy (in both) — no nested details, no separator lines.
+Structural prefix parents are skipped; only diff_intersection_pair nodes are shown.
+{% endcomment %}
+{% if node.diff_intersection_pair %}
+<div class="nsm-addr-intersection-flat-row nsm-addr-leaf{% if node.diff_status and not node.diff_suppress_status %} nsm-addr-diff-leaf nsm-addr-diff-leaf--{{ node.diff_status }}{% if node.diff_side %} nsm-addr-diff-leaf--side-{{ node.diff_side }}{% endif %}{% if node.diff_fund %} nsm-addr-diff-leaf--fund{% endif %}{% elif node.diff_fund %} nsm-addr-diff-leaf nsm-addr-diff-leaf--fund{% endif %}">
+  {% if node.diff_fund %}
+  <span class="badge bg-info-subtle text-info nsm-addr-fund ms-1" title="{{ node.fund_tooltip|default:'Same IP address/range/prefix, but different object names' }}">
+    {% trans "Fund" %}
+  </span>
+  {% endif %}
+  {% if node.prefix_display_cidr and not node.ip_ref %}
+  <a href="{{ node.url }}" class="nsm-addr-obj-link">
+    <span class="nsm-addr-prefix-text" data-cidr="{{ node.prefix_display_cidr }}" data-netmask="{{ node.prefix_display_netmask }}">{{ node.prefix_display_cidr }}</span>
+  </a>
+  {% elif node.diff_status %}
+  {% include "netbox_nsm/inc/addr_diff_name_pill.html" %}
+  {% else %}
+  <a href="{{ node.url }}" class="nsm-addr-obj-link">{{ node.name }}</a>
+  {% endif %}
+  {% if node.leaf_count %}<span class="badge bg-secondary-subtle text-secondary nsm-addr-count" title="{% trans 'Resolved paths in tree preview' %}">{{ node.leaf_count }}</span>{% endif %}
+  {% if node.ip_ref %}
+  <span class="nsm-addr-ip">→ <a href="{{ node.ip_ref.url }}" class="text-muted">{% if node.prefix_display_cidr %}<span class="nsm-addr-prefix-text" data-cidr="{{ node.prefix_display_cidr }}" data-netmask="{{ node.prefix_display_netmask }}">{{ node.prefix_display_cidr }}</span>{% else %}{{ node.ip_ref.str }}{% endif %}</a>{% if node.ip_ref.ct and node.ip_ref.pk %}<button type="button" class="nsm-ipa-loupe btn btn-sm btn-ghost-secondary py-0 px-1" data-ct="{{ node.ip_ref.ct }}" data-pk="{{ node.ip_ref.pk }}" data-name="{{ node.ip_ref.str }}" title="{% trans 'Analyze IP object' %}"><i class="mdi mdi-magnify"></i></button>{% endif %}</span>
+  {% endif %}
+  {% for ref in node.related_refs %}
+  <span class="nsm-addr-related">
+    <span class="text-muted">{{ ref.label }}:</span>
+    <a href="{{ ref.url }}">{{ ref.name }}</a>
+  </span>
+  {% endfor %}
+</div>
+{% elif node.diff_ipam_hierarchy_prefix or node.children %}
+{% for child in node.children %}
+  {% include "netbox_nsm/inc/addr_intersection_flat_node.html" with node=child %}
+{% endfor %}
+{% endif %}

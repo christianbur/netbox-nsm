@@ -1,10 +1,9 @@
-"""Test helpers for ObjectLink scenarios involving custom objects."""
+"""Test helpers for object-link scenarios involving custom objects."""
 
 import uuid
 
-from django.contrib.contenttypes.models import ContentType
-
-from netbox_nsm.models import ObjectLink
+from netbox_nsm.objects.link_propagation import CotObjectLinkPropagationChoices
+from netbox_nsm.objects.object_link_service import create_or_update_links
 
 
 def create_custom_object_instance(*, name="NSM link test object"):
@@ -31,15 +30,12 @@ def create_custom_object_instance(*, name="NSM link test object"):
 
 
 def create_object_link_with_custom_object_b(object_a):
-    """Create ObjectLink with object_a (Prefix, IPAddress, etc.) and a custom object as object_b."""
+    """Create COT link with *object_a* and a custom object as policy side."""
     custom_instance = create_custom_object_instance()
-    object_a_ct = ContentType.objects.get_for_model(object_a)
-    custom_ct = ContentType.objects.get_for_model(custom_instance)
-    link = ObjectLink.objects.create(
-        object_a_type=object_a_ct,
-        object_a_id=object_a.pk,
-        object_b_type=custom_ct,
-        object_b_id=custom_instance.pk,
+    link, _created = create_or_update_links(
+        object_a,
+        custom_instance,
+        cot_propagation=CotObjectLinkPropagationChoices.DIRECT,
         comment="custom object b link",
     )
     return link, custom_instance

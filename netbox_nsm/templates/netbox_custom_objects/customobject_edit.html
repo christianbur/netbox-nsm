@@ -1,0 +1,53 @@
+{% extends 'generic/object_edit.html' %}
+{% load form_helpers %}
+{% load i18n %}
+{% load custom_object_utils %}
+{% load cot_form %}
+{% load static %}
+
+{% block head %}
+  {{ block.super }}
+  {% if object.custom_object_type.slug|is_nsm_rulebook_cot_slug %}
+    <link rel="stylesheet" href="{% static 'netbox_nsm/css/nsm_lazy_picker.css' %}">
+  {% endif %}
+{% endblock head %}
+
+{% block title %}
+  {% if object.pk %}
+    {% trans "Editing" %} {{ object.custom_object_type.display_name.lower }} {{ object }}
+  {% else %}
+    {% blocktrans trimmed with custom_object_type=object.custom_object_type.display_name %}
+      Add a new {{ custom_object_type }}
+    {% endblocktrans %}
+  {% endif %}
+{% endblock title %}
+
+{% block form %}
+  {% if branch_warning %}
+    {% include 'netbox_custom_objects/inc/branch_warning.html' %}
+  {% endif %}
+
+  {% for field in form.hidden_fields %}
+    {{ field }}
+  {% endfor %}
+
+  {% include 'netbox_custom_objects/inc/edit_fields.html' %}
+{% endblock form %}
+
+{% block buttons %}
+  <a href="{{ return_url }}" class="btn btn-outline-secondary btn-float">{% trans "Cancel" %}</a>
+  {% if object.pk %}
+    <button type="submit" name="_update" class="btn btn-primary"{% if branch_warning %} disabled{% endif %}>
+      {% trans "Save" %}
+    </button>
+  {% else %}
+    <div class="btn-group" role="group" aria-label="{% trans "Actions" %}">
+      <button type="submit" name="_create" class="btn btn-primary"{% if branch_warning %} disabled{% endif %}>
+        {% trans "Create" %}
+      </button>
+      <button type="submit" name="_addanother" class="btn btn-outline-primary btn-float"{% if branch_warning %} disabled{% endif %}>
+        {% trans "Create & Add Another" %}
+      </button>
+    </div>
+  {% endif %}
+{% endblock buttons %}

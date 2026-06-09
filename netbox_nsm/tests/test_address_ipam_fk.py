@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.address_ipam_fk import (
+from netbox_nsm.objects.address_ipam_fk import (
     NSM_ADDRESSES_SLUG,
     is_nsm_address_object,
     iter_address_ipam_fk_refs,
@@ -57,7 +57,7 @@ class AddressIpamFkRefTests(SimpleTestCase):
         self.assertEqual(list(iter_address_ipam_fk_refs(addr)), [])
 
     def test_fk_field_name_from_filter_prefix(self):
-        from netbox_nsm.address_ipam_fk import fk_field_name_from_filter
+        from netbox_nsm.objects.address_ipam_fk import fk_field_name_from_filter
 
         self.assertEqual(fk_field_name_from_filter({"prefix_id": 5}), "prefix")
         self.assertEqual(fk_field_name_from_filter({"ip_address_id": 1}), "ip_address")
@@ -68,7 +68,7 @@ class AddressIpamFkRefTests(SimpleTestCase):
         self.assertIn("Prefix", label)
         self.assertIn("IPAM", label)
 
-    @patch("netbox_nsm.address_ipam_fk.get_nsm_address_model")
+    @patch("netbox_nsm.objects.address_ipam_fk.get_nsm_address_model")
     def test_is_nsm_address_object_uses_custom_object_type_slug(self, get_model):
         stale_model = type("StaleTable3Model", (), {})
         fresh_model = type("FreshTable3Model", (), {})

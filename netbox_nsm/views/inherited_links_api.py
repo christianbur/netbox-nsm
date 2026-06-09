@@ -2,8 +2,8 @@ from django.contrib.contenttypes.models import ContentType
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.views import View
 
-from netbox_nsm.group_inheritance import iter_inherited_group_nsm_links
-from netbox_nsm.ipam_inheritance import iter_inherited_nsm_links
+from netbox_nsm.objects.group_inheritance import iter_inherited_group_nsm_links
+from netbox_nsm.objects.ipam_inheritance import iter_inherited_nsm_links
 
 __all__ = ("InheritedLinksApiView",)
 
@@ -39,7 +39,7 @@ class InheritedLinksApiView(View):
 
         try:
             from ipam.models import Prefix, IPAddress, IPRange
-            from netbox_nsm.display_utils import (
+            from netbox_nsm.core.display_utils import (
                 get_display_template_map,
                 render_object_display,
                 tc_panel_label,

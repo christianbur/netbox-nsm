@@ -1,7 +1,7 @@
 """
 NSM Query Engine
 
-Evaluates parsed Query objects against Rule instances.
+Evaluates parsed Query objects against COT rule instances.
 Also computes Facets from the result set.
 
 Design principles:
@@ -27,23 +27,24 @@ class RulebookContext:
 
     def __init__(self, rulebook=None):
         self.rulebook = rulebook
-        self._by_slug: Dict[str, Any] = {}  # lower(slug) → RulebookField
-        self._by_name: Dict[str, Any] = {}  # lower(name) → RulebookField
+        self._by_slug: Dict[str, Any] = {}  # lower(slug) → field descriptor
+        self._by_name: Dict[str, Any] = {}  # lower(name) → field descriptor
 
         if rulebook:
             try:
-                from netbox_nsm.virtual_rulebook import is_virtual_all_rules_rulebook
+                from netbox_nsm.rulebooks.virtual_cot import is_virtual_cot_rulebook
+                from netbox_nsm.rulebooks.virtual_all import is_virtual_all_rules_rulebook
 
-                if is_virtual_all_rules_rulebook(rulebook):
-                    from netbox_nsm.rulebook_field_utils import (
-                        get_visible_virtual_all_rules_fields,
+                if is_virtual_cot_rulebook(rulebook):
+                    fields_qs = self._cot_fields(rulebook.cot)
+                elif is_virtual_all_rules_rulebook(rulebook):
+                    from netbox_nsm.rulebooks.virtual_all_detail import (
+                        _load_all_rules_union_fields,
                     )
 
-                    fields_qs = get_visible_virtual_all_rules_fields()
+                    fields_qs = _load_all_rules_union_fields()
                 else:
-                    fields_qs = rulebook.fields.prefetch_related(
-                        "type_configs__type_config__content_type"
-                    ).all()
+                    fields_qs = []
                 for f in fields_qs:
                     self._by_slug[f.slug.lower()] = f
                     self._by_name[f.name.lower()] = f
@@ -51,8 +52,58 @@ class RulebookContext:
                 pass
 
         self._type_keys_by_field: Dict[int, Dict[str, int]] = {}
-        for f in self._by_slug.values():
-            self._type_keys_by_field[f.pk] = self._build_type_key_map(f)
+        for idx, f in enumerate(self._by_slug.values()):
+            self._type_keys_by_field[f.pk or idx] = self._build_type_key_map(f)
+
+    @staticmethod
+    def _cot_fields(cot):
+        from types import SimpleNamespace
+
+        from django.contrib.contenttypes.models import ContentType
+        from extras.choices import CustomFieldTypeChoices
+
+        fields = []
+        for idx, field in enumerate(
+            cot.fields.exclude(ui_visible="hidden").order_by("weight", "name")
+        ):
+            type_configs = []
+            if field.type == CustomFieldTypeChoices.TYPE_MULTIOBJECT:
+                if field.is_polymorphic:
+                    object_types = field.related_object_types.all()
+                elif field.related_object_type_id:
+                    object_types = [field.related_object_type]
+                else:
+                    object_types = []
+                for sort_order, ot in enumerate(object_types, start=1):
+                    ct = ContentType.objects.get(
+                        app_label=ot.app_label, model=ot.model
+                    )
+                    type_configs.append(
+                        SimpleNamespace(
+                            type_config=SimpleNamespace(
+                                name=ot.model,
+                                matching_class="",
+                                content_type=ct,
+                            ),
+                            sort_order=sort_order,
+                            visible=True,
+                        )
+                    )
+            is_system = field.name in {"index", "status", "name", "description"}
+            fields.append(
+                SimpleNamespace(
+                    pk=idx,
+                    slug=field.name,
+                    name=field.label or field.name,
+                    field_kind="system" if is_system else "object",
+                    visible=True,
+                    is_system_field=is_system,
+                    facet_mode="disabled",
+                    facet_weight=field.weight,
+                    type_configs=SimpleNamespace(all=lambda tc=type_configs: tc),
+                )
+            )
+        return fields
 
     def _build_type_key_map(self, field) -> Dict[str, int]:
         """Map normalized type segment aliases to content_type_id for a field."""
@@ -84,7 +135,7 @@ class RulebookContext:
         return key_map.get(_segment_key(type_segment))
 
     def get_field(self, name: str):
-        """Look up a RulebookField by slug or display name (case-insensitive)."""
+        """Look up a field descriptor by slug or display name (case-insensitive)."""
         lower = name.lower()
         return self._by_slug.get(lower) or self._by_name.get(lower)
 
@@ -191,7 +242,7 @@ def _get_fixed_value(rule, field_name: str) -> Optional[str]:
 
 
 def _get_sub_field_values(obj, sub_field: Optional[str]) -> List[str]:
-    """Resolve sub_field (z) on a NetBox object or ObjectGroup."""
+    """Resolve sub_field (z) on a NetBox or Custom Object."""
     if obj is None:
         return []
 
@@ -246,8 +297,8 @@ def _get_field_values(
     type_segment: Optional[str] = None,
     context: Optional[RulebookContext] = None,
 ) -> List[str]:
-    """Collect sub-field values for a RulebookField within a rule."""
-    from netbox_nsm.display_utils import get_display_template_map, render_object_display
+    """Collect sub-field values for a column field within a rule."""
+    from netbox_nsm.core.display_utils import get_display_template_map, render_object_display
 
     values: List[str] = []
     field_pk = field.pk
@@ -760,13 +811,11 @@ def type_segment_slug(type_config) -> str:
 
 def build_query_help_sections(rulebook) -> List[Dict]:
     """Build rulebook-specific x.y.z query help for the policy search UI."""
-    from netbox_nsm.models import RulebookFieldKind
-
     sections: List[Dict] = []
-    for field in rulebook.fields.filter(
-        field_kind=RulebookFieldKind.OBJECT,
-        filterable=True,
-    ).prefetch_related("type_configs__type_config__content_type"):
+    ctx = RulebookContext(rulebook)
+    for field in ctx.filter_panel_fields:
+        if getattr(field, "is_system_field", False):
+            continue
         types = []
         for ft in sorted(field.type_configs.all(), key=lambda x: x.sort_order):
             if not ft.visible:
@@ -791,66 +840,6 @@ def build_query_help_sections(rulebook) -> List[Dict]:
 
 
 def global_search(rules_qs, query: Query) -> Dict:
-    """
-    Search all rulebooks using the query engine.
-
-    Loads all matching rules (with prefetch), groups by rulebook,
-    returns a dict:
-    {
-        "rulebook_groups": [
-            {"rulebook": <obj>, "count": 15, "rules_tab_url": "..."},
-            ...
-        ],
-        "total_count": 37,
-    }
-    """
-    from collections import defaultdict
-    from django.urls import reverse
-
-    # Load and prepare all rules
-    rules = prepare_rules(
-        rules_qs.prefetch_related(
-            "object_items__field",
-            "object_items__content_type",
-            "group_items__field",
-            "group_items__security_group",
-        ).select_related("rulebook")
-    )
-
-    # Group rules by rulebook for per-rulebook context
-    by_rulebook: Dict = defaultdict(list)
-    for rule in rules:
-        by_rulebook[rule.rulebook].append(rule)
-
-    result_groups = []
-    total_count = 0
-
-    for rulebook, rb_rules in sorted(
-        by_rulebook.items(), key=lambda x: x[0].name if x[0] else ""
-    ):
-        ctx = RulebookContext(rulebook)
-        matched = filter_rules(rb_rules, query, ctx)
-        if not matched:
-            continue
-
-        try:
-            rules_tab_url = (
-                reverse(
-                    "plugins:netbox_nsm:rulebook_rules",
-                    args=[rulebook.pk],
-                )
-                + f"?nsm_q={query.to_string()}"
-            )
-        except Exception:
-            rules_tab_url = ""
-
-        result_groups.append(
-            {
-                "rulebook": rulebook,
-                "count": len(matched),
-                "rules_tab_url": rules_tab_url,
-            }
-        )
-        total_count += len(matched)
-
-    return {"rulebook_groups": result_groups, "total_count": total_count}
+    """Legacy native global search — returns empty after ORM removal."""
+    _ = (rules_qs, query)
+    return {"rulebook_groups": [], "total_count": 0}

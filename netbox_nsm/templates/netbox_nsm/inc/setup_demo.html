@@ -12,20 +12,47 @@
     <p class="text-muted small mb-3">{% trans "Available after section 3 is complete." %}</p>
     {% endif %}
     <div class="row g-3">
-      <div class="col-md-4">
+      <div class="col-md-6">
         <div class="card h-100 border-primary-subtle">
           <div class="card-body">
-            <h6 class="card-title fw-semibold">{% trans "Starter demo" %}</h6>
+            <h6 class="card-title fw-semibold">{% trans "Starter-Demo" %}</h6>
             <p class="card-text text-muted small mb-3">
-              {% trans "Zone Matrix + Addresses rulebooks." %}
+              {% trans "Legt nsm_rb_demo (Vorlage 0003, nur Zonen) mit 20 Zonen und 400 Regeln (zufällig permit/deny) in einer 20×20-Matrix an." %}
             </p>
             <form method="post" class="m-0">
               {% csrf_token %}
               <input type="hidden" name="action" value="create_demo_starter">
               <button type="submit" class="btn btn-outline-primary btn-sm"
                       {% if not can_run_demo %}disabled{% endif %}
-                      title="{% if not all_tcs_ok %}{% trans 'Complete section 3 first' %}{% endif %}">
-                <i class="mdi mdi-plus me-1"></i>{% trans "Create" %}
+                      title="{% if not all_tcs_ok %}{% trans 'Abschnitt 3 zuerst abschließen' %}{% endif %}">
+                <i class="mdi mdi-plus me-1"></i>{% trans "Anlegen" %}
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card h-100 border-warning-subtle">
+          <div class="card-body">
+            <h6 class="card-title fw-semibold">{% trans "Address Bench (50.000 Adressen)" %}</h6>
+            <p class="card-text text-muted small mb-3">
+              {% blocktrans with leaves=scale_demo_50k_leaf_count rules=scale_demo_50k_rule_count %}
+              Bench-Skalierungstest: {{ leaves }} verschachtelte nsm_address-Hosts, {{ rules }} COT-Regeln auf «Bench Addresses» (nsm_rb_bench_addresses). Läuft im Hintergrund über den RQ-Worker. Volllauf (200.000 Adressen) nur per CLI: scripts/create_addresses_million_scale.py
+              {% endblocktrans %}
+            </p>
+            {% if ipam_has_ip_addresses %}
+            <p class="text-warning small mb-2">
+              <i class="mdi mdi-alert-outline me-1"></i>
+              {% trans "Nur verfügbar, wenn IPAM → IP-Adressen leer ist." %}
+            </p>
+            {% endif %}
+            <form method="post" class="m-0">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="create_demo_scale_50k">
+              <button type="submit" class="btn btn-outline-warning btn-sm"
+                      {% if not can_run_scale_demo_50k %}disabled{% endif %}
+                      title="{% if not all_tcs_ok %}{% trans 'Abschnitt 3 zuerst abschließen' %}{% elif ipam_has_ip_addresses %}{% trans 'IPAM → IP-Adressen muss leer sein' %}{% endif %}">
+                <i class="mdi mdi-database-plus me-1"></i>{% trans "Anlegen" %}
               </button>
             </form>
           </div>

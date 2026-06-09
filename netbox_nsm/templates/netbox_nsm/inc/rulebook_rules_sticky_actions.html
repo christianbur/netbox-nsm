@@ -1,12 +1,12 @@
 {% load i18n %}
 
-{% if rules_can_delete %}
+{% if rules_show_bulk_delete and bulk_delete_url %}
 <div class="card btn-list sticky-actions d-print-none" data-sticky-position="right" data-sticky-when="selection">
   <div class="btn-list bulk-action-buttons">
     <button type="button"
             name="_delete"
             class="btn btn-red"
-            hx-post="{% url 'plugins:netbox_nsm:rule_bulk_delete' %}"
+            hx-post="{{ bulk_delete_url }}"
             hx-include="closest form"
             hx-target="#htmx-modal-content"
             hx-swap="innerHTML"

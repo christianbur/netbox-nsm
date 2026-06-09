@@ -493,6 +493,17 @@
     window.location.assign(url.toString());
   }
 
+  function navigateWithColumnMode(mode) {
+    var url = new URL(window.location.href);
+    url.searchParams.delete("page");
+    if (!mode || mode === "collapsed") {
+      url.searchParams.delete("col_mode");
+    } else {
+      url.searchParams.set("col_mode", mode);
+    }
+    window.location.assign(url.toString());
+  }
+
   function submitRulesQuicksearch() {
     var form = document.getElementById("rules-quicksearch");
     if (!form) {
@@ -572,6 +583,21 @@
         }
         navigateWithCellMode(mode);
       });
+    });
+  }
+
+  function bindRulesColumnModeToggle(config) {
+    var toggle = document.getElementById("nsm-rules-col-mode-toggle");
+    if (!toggle) {
+      return;
+    }
+    toggle.addEventListener("change", function () {
+      var nextMode = toggle.checked ? "collapsed" : "expanded";
+      var currentMode = config.columnMode || "collapsed";
+      if (nextMode === currentMode) {
+        return;
+      }
+      navigateWithColumnMode(nextMode);
     });
   }
 
@@ -680,9 +706,42 @@
     bindRulesFilterQueryDropTarget(config, applyFilterQuery);
     bindRulesColumnFilterDropTarget(config);
     bindRulesCellModeSelector(config);
+    bindRulesColumnModeToggle(config);
+  }
+
+  function prefillRulesFiltersFromUrl() {
+    var params = new URLSearchParams(window.location.search);
+    document.querySelectorAll("#rules .nsm-rules-filter-input").forEach(function (input) {
+      var name = input.getAttribute("name");
+      if (!name) {
+        return;
+      }
+      if ((input.value || "").trim()) {
+        return;
+      }
+      var fromUrl = (params.get(name) || "").trim();
+      if (fromUrl) {
+        input.value = fromUrl;
+        return;
+      }
+      var colId = input.getAttribute("data-col-id") || "";
+      if (!colId || colId.indexOf("::") >= 0) {
+        return;
+      }
+      var expandedPrefix = "f_" + colId.replace(/::/g, "__") + "__ct_";
+      params.forEach(function (value, key) {
+        if (!fromUrl && key.indexOf(expandedPrefix) === 0) {
+          fromUrl = (value || "").trim();
+        }
+      });
+      if (fromUrl) {
+        input.value = fromUrl;
+      }
+    });
   }
 
   document.addEventListener("DOMContentLoaded", function () {
+    prefillRulesFiltersFromUrl();
     bindRulesQuicksearchFilters();
     var config = readConfig();
     if (!config) {

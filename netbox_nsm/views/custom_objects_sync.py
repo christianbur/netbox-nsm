@@ -16,19 +16,18 @@ from django.shortcuts import redirect
 from django.urls import reverse
 from django.views import View
 
-from netbox_nsm.builtin_types import BUILTIN_CUSTOM_TYPES
+from netbox_nsm.objects.builtin_types import BUILTIN_CUSTOM_TYPES
 from django.http import Http404
 
-from netbox_nsm.setup_flags import setup_allow_destructive_actions, setup_menu_enabled
-from netbox_nsm.custom_objects_schema import (
+from netbox_nsm.core.setup_flags import setup_allow_destructive_actions, setup_menu_enabled
+from netbox_nsm.objects.custom_objects_schema import (
     build_choice_set_specs,
     build_schema_document,
     iter_types,
     slugify_identifier,
 )
 from netbox_nsm.models import Section, TypeConfig
-from netbox_nsm.panel_sections import section_slugs_to_panel_slugs
-from netbox_nsm.type_config_specs import TYPECONFIG_SPEC_BY_SLUG
+from netbox_nsm.objects.type_config_specs import TYPECONFIG_SPEC_BY_SLUG
 
 __all__ = ("SyncBuiltinToCustomObjectsView", "SyncTypeConfigsView")
 
@@ -45,12 +44,28 @@ def _prune_stale(document):
     """
     from netbox_custom_objects.models import CustomObjectType
 
+    from netbox_nsm.rulebooks.templates import RULEBOOK_TEMPLATE_GROUP
+
     wanted_cot_slugs = {t["slug"] for t in document["types"]}
     wanted_area_slugs = {
         t["group_name"] for t in document["types"] if t.get("group_name")
     }
 
-    stale_cots = CustomObjectType.objects.exclude(slug__in=wanted_cot_slugs)
+    template_slugs = set(
+        CustomObjectType.objects.filter(group_name=RULEBOOK_TEMPLATE_GROUP).values_list(
+            "slug", flat=True
+        )
+    )
+    deployed_rulebook_slugs = set(
+        CustomObjectType.objects.filter(slug__startswith="nsm_rb_")
+        .exclude(slug__in=template_slugs)
+        .values_list("slug", flat=True)
+    )
+    protected_slugs = template_slugs | deployed_rulebook_slugs
+
+    stale_cots = CustomObjectType.objects.exclude(slug__in=wanted_cot_slugs).exclude(
+        slug__in=protected_slugs
+    )
     cots_removed = stale_cots.count()
     stale_cots.delete()
 
@@ -80,6 +95,19 @@ def _ensure_choice_sets(specs):
     return created, kept
 
 
+def _prune_bundled_network_app_defaults(slug: str = "nsm_app_network") -> None:
+    """Drop legacy bundled Network App demo rows (including dns) from setup seed."""
+    from netbox_custom_objects.models import CustomObjectType
+
+    from netbox_nsm.objects.builtin_types import BUNDLED_NETWORK_APP_DEFAULT_NAMES
+
+    try:
+        cot = CustomObjectType.objects.get(slug=slug)
+        cot.get_model().objects.filter(name__in=BUNDLED_NETWORK_APP_DEFAULT_NAMES).delete()
+    except Exception:
+        pass
+
+
 def _seed_default_objects(builtin_types):
     """Iterate types and seed their default objects."""
     from netbox_custom_objects.models import CustomObjectType
@@ -89,6 +117,8 @@ def _seed_default_objects(builtin_types):
     skipped = 0
 
     for typedef, _base_slug, slug, _areas in iter_types(builtin_types):
+        if slug in ("nsm_app_network", "nsm_network_app", "nsm_network_apps"):
+            _prune_bundled_network_app_defaults(slug)
         defaults_list = typedef.get("default_objects") or []
         if not defaults_list:
             continue
@@ -129,7 +159,7 @@ def _seed_default_objects(builtin_types):
 
 
 def _sync_type_configs_and_sections(builtin_types):
-    """Populate TypeConfig (display_template, panel_slugs) and Section (M2M) tables."""
+    """Populate TypeConfig display fields and Section (M2M) tables."""
     from netbox_custom_objects.models import CustomObjectType
 
     sections_touched = 0
@@ -165,9 +195,6 @@ def _sync_type_configs_and_sections(builtin_types):
         ct = DjContentType.objects.get_for_model(cot.get_model())
 
         spec = TYPECONFIG_SPEC_BY_SLUG.get(slug)
-        panel_slugs = (
-            spec["panel_slugs"] if spec else section_slugs_to_panel_slugs(areas)
-        )
         matching_class = spec["matching_class"] if spec else ""
         TypeConfig.objects.update_or_create(
             content_type=ct,
@@ -177,8 +204,6 @@ def _sync_type_configs_and_sections(builtin_types):
                 "display_template": str(
                     (spec or typedef).get("display_template", "") or ""
                 ),
-                "order_id": int((spec or typedef).get("order_id", 100) or 100),
-                "panel_slugs": panel_slugs,
                 "panel_linkable_types": (spec or {}).get("panel_linkable_types", []),
             },
         )

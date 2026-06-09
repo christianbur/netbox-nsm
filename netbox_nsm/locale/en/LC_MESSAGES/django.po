@@ -2646,3 +2646,31 @@ msgstr "Matrix view"
 #: netbox_nsm/templates/netbox_nsm/inc/rulebook_ag_group_by.html
 msgid "Flat rules table — drag-and-drop is disabled. Switch to Group or Matrix to organize rules."
 msgstr "Flat rules table — drag-and-drop is disabled. Switch to Group or Matrix to organize rules."
+
+#: netbox_nsm/views/setup/custom_objects.py
+msgid "NSM Rulebooks"
+msgstr ""
+
+#: netbox_nsm/views/setup/custom_objects.py
+msgid "Built-in policy object types (zones, addresses, services, actions, …)."
+msgstr ""
+
+#: netbox_nsm/views/setup/custom_objects.py
+msgid "NSM Panel"
+msgstr ""
+
+#: netbox_nsm/views/setup/custom_objects.py
+msgid "Panel assignment links (inventory ↔ policy objects)."
+msgstr ""
+
+#: netbox_nsm/views/setup/custom_objects.py
+msgid "Rulebook templates (blueprints for creating rulebooks). No TypeConfig required."
+msgstr ""
+
+#: netbox_nsm/templates/netbox_nsm/inc/setup_custom_objects.html
+msgid "Includes built-in NSM types, NSM Panel links, and rulebook templates (nsm_rb_*_template)."
+msgstr ""
+
+#: netbox_nsm/templates/netbox_nsm/inc/setup_custom_objects.html
+msgid "Custom Object Groups"
+msgstr ""

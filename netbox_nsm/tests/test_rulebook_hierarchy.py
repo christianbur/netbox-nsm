@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.rulebook_hierarchy import (
+from netbox_nsm.rulebooks.hierarchy import (
     collect_descendant_pks,
     hierarchy_depth,
     invalid_parent_pks,
@@ -34,7 +34,7 @@ class RulebookHierarchyTests(SimpleTestCase):
         self.assertIsNotNone(validate_parent_choice(root, root))
 
     @patch(
-        "netbox_nsm.rulebook_hierarchy.collect_descendant_pks",
+        "netbox_nsm.rulebooks.hierarchy.collect_descendant_pks",
         return_value={2},
     )
     def test_validate_parent_cycle(self, _mock_descendants):
@@ -58,6 +58,21 @@ class RulebookHierarchyTests(SimpleTestCase):
         order = rulebook_tree_order([child, other, root])
         self.assertEqual(order, [1, 2, 3])
 
+    def test_cot_rulebook_tree_order(self):
+        from types import SimpleNamespace
+
+        from netbox_nsm.rulebooks.hierarchy import cot_rulebook_tree_order
+
+        def _row(slug, name, parent_slug=""):
+            row = SimpleNamespace(slug=slug, name=name, parent_slug=parent_slug)
+            return row
+
+        root = _row("nsm_rb_a", "A")
+        child = _row("nsm_rb_b", "B", "nsm_rb_a")
+        other = _row("nsm_rb_c", "C")
+        ordered = cot_rulebook_tree_order([child, other, root])
+        self.assertEqual([r.slug for r in ordered], ["nsm_rb_a", "nsm_rb_b", "nsm_rb_c"])
+
     def test_collect_descendant_pks_none(self):
         self.assertEqual(collect_descendant_pks(None), set())
 
@@ -69,7 +84,7 @@ class RulebookHierarchyTests(SimpleTestCase):
     def test_invalid_parent_pks_includes_self_and_descendants(self):
         root = _rb(1)
         with patch(
-            "netbox_nsm.rulebook_hierarchy.collect_descendant_pks",
+            "netbox_nsm.rulebooks.hierarchy.collect_descendant_pks",
             return_value={2, 3},
         ):
             self.assertEqual(invalid_parent_pks(root), {1, 2, 3})

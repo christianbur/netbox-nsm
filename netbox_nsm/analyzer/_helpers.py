@@ -1,56 +1,45 @@
-"""
-Edge-building helpers shared across resolver modules.
-
-Kept in a separate module to avoid circular imports:
-  registry.py  (defines AnalyzerEdge / node_from_object)
-      ↑ imported by
-  _helpers.py  (query logic)
-      ↑ imported by
-  relations.py (concrete resolvers)
-"""
+"""Edge-building helpers shared across resolver modules."""
 
 from __future__ import annotations
 
-_MAX = 15  # max related nodes per direction
+_MAX = 15
 
 
 def nsm_link_edges(obj, ct) -> list:
-    """Bidirectional AnalyzerEdge list from ObjectLink."""
-    from netbox_nsm.models import ObjectLink
+    """Bidirectional AnalyzerEdge list from COT ``nsm_object_link`` rows."""
     from netbox_nsm.analyzer.registry import AnalyzerEdge, node_from_object
+    from netbox_nsm.objects.object_link_service import iter_links_for_object
 
     edges = []
-    for link in ObjectLink.objects.filter(
-        object_a_type=ct, object_a_id=obj.pk
-    ).select_related("object_b_type")[:_MAX]:
-        if link.object_b is not None:
-            edges.append(
-                AnalyzerEdge("Linked", "nsm_link", node_from_object(link.object_b))
-            )
-
-    for link in ObjectLink.objects.filter(
-        object_b_type=ct, object_b_id=obj.pk
-    ).select_related("object_a_type")[:_MAX]:
-        if link.object_a is not None:
-            edges.append(
-                AnalyzerEdge("Linked", "nsm_link", node_from_object(link.object_a))
-            )
+    for link, direction in iter_links_for_object(obj):
+        linked = link.policy_object if direction == "fwd" else link.netbox_object
+        if linked is None:
+            continue
+        if len(edges) >= _MAX:
+            break
+        edges.append(
+            AnalyzerEdge("Linked", "nsm_link", node_from_object(linked))
+        )
 
     return edges
 
 
 def rule_object_item_edges(obj, ct) -> list:
-    """AnalyzerEdge list from RuleObjectItem (one edge per rule)."""
-    from netbox_nsm.models import RuleObjectItem
+    """AnalyzerEdge list from COT rulebook references."""
     from netbox_nsm.analyzer.registry import AnalyzerEdge, node_from_object
+    from netbox_nsm.cot_security_panel import scan_cot_security_references
 
     edges = []
-    for item in RuleObjectItem.objects.filter(
-        content_type=ct, object_id=obj.pk
-    ).select_related("rule__rulebook", "field")[:15]:
+    for match in scan_cot_security_references(ct, obj.pk)[:15]:
+        rule = match.get("rule")
+        field_name = match.get("field_name") or "rule"
+        if rule is None:
+            continue
         edges.append(
             AnalyzerEdge(
-                f"Regel ({item.field})", "in_rule", node_from_object(item.rule)
+                f"Regel ({field_name})",
+                "in_rule",
+                node_from_object(rule),
             )
         )
     return edges
@@ -74,16 +63,12 @@ def group_m2m_edges(obj) -> list:
 
 
 def addr_fk_edges(obj) -> list:
-    """For IPAM objects (Prefix, IPAddress, IPRange): find Custom Objects nsm_addresses
-    that reference this IPAM object via FK (prefix_id / ip_address_id / range_id).
-    Mirrors the Security Panel's addr-fk lookup.
-    """
+    """For IPAM objects: nsm_addresses FK references."""
     from netbox_nsm.analyzer.registry import AnalyzerEdge, node_from_object
 
     edges = []
     try:
         from netbox_custom_objects.models import CustomObjectType as _COT
-        from django.contrib.contenttypes.models import ContentType
 
         _addr_cot = _COT.objects.filter(slug="nsm_addresses").first()
         if not _addr_cot:
@@ -111,49 +96,27 @@ def addr_fk_edges(obj) -> list:
 
 
 def inherited_nsm_link_edges(obj) -> list:
-    """For IPAM objects (Prefix, IPAddress, IPRange): find ObjectLinks
-    attached to containing/parent prefixes (inherited via prefix hierarchy).
-    Mirrors the Security Panel's inherited link behaviour.
-    """
+    """Inherited COT object links from containing prefixes."""
     from netbox_nsm.analyzer.registry import AnalyzerEdge, node_from_object
-    from netbox_nsm.ipam_inheritance import ancestor_prefixes_for_ipam
-    from netbox_nsm.models import ObjectLink
-    from django.contrib.contenttypes.models import ContentType
+    from netbox_nsm.objects.ipam_inheritance import iter_inherited_nsm_links
 
     edges = []
     try:
-        from ipam.models import Prefix as _Prefix
-
-        ancestors = ancestor_prefixes_for_ipam(obj)
-        if not ancestors:
-            return edges
-
-        ancestor_pks = [p.pk for p in ancestors]
-        pfx_ct = ContentType.objects.get_for_model(_Prefix)
-
         seen_linked = set()
-        for link in ObjectLink.objects.filter(
-            object_a_type=pfx_ct, object_a_id__in=ancestor_pks
-        ).select_related("object_b_type")[:_MAX]:
-            if link.object_b is not None and link.object_b.pk not in seen_linked:
-                seen_linked.add(link.object_b.pk)
-                edges.append(
-                    AnalyzerEdge(
-                        "Inherited", "inherited_link", node_from_object(link.object_b)
-                    )
+        for inherited in iter_inherited_nsm_links(obj):
+            if len(edges) >= _MAX:
+                break
+            linked = inherited.linked
+            if linked is None or linked.pk in seen_linked:
+                continue
+            seen_linked.add(linked.pk)
+            edges.append(
+                AnalyzerEdge(
+                    "Inherited",
+                    "inherited_link",
+                    node_from_object(linked),
                 )
-
-        for link in ObjectLink.objects.filter(
-            object_b_type=pfx_ct, object_b_id__in=ancestor_pks
-        ).select_related("object_a_type")[:_MAX]:
-            if link.object_a is not None and link.object_a.pk not in seen_linked:
-                seen_linked.add(link.object_a.pk)
-                edges.append(
-                    AnalyzerEdge(
-                        "Inherited", "inherited_link", node_from_object(link.object_a)
-                    )
-                )
-
+            )
     except Exception:
         pass
 

@@ -6,7 +6,10 @@
   </thead>
   <tbody>
     {% for row in rules_rows %}
-    <tr class="nsm-rules-data-row{% if row.rules_multiline %} nsm-rules-multi-row{% endif %}">
+    <tr class="nsm-rules-data-row{% if row.rules_multiline %} nsm-rules-multi-row{% endif %}{% if not row.enabled %} nsm-rules-row--inactive{% endif %}"
+        data-status="{% if row.enabled %}true{% else %}false{% endif %}"
+        data-rule-index="{{ row.index }}"
+        data-rule-name="{{ row.name|escape }}">
       {% if rules_show_selection_column %}
       <td class="w-1">
         <input type="checkbox"
@@ -18,7 +21,8 @@
       {% endif %}
       {% for cell in row.rules_cells %}
         <td class="nsm-rules-td nsm-rules-td--{{ cell.kind }}{% if cell.slug %} nsm-rules-td--{{ cell.slug }}{% endif %}"
-            data-col-id="{{ cell.col_id }}">
+            data-col-id="{{ cell.col_id }}"
+            {% if cell.col_position %}data-col-position="{{ cell.col_position }}"{% endif %}>
           {{ cell.html|safe }}
         </td>
       {% endfor %}

@@ -3071,3 +3071,36 @@ msgstr[1] "%(count)s Objekte"
 
 #~ msgid "Maximale Anzahl Objekte pro Regel in diesem Field. Leer = unbegrenzt."
 #~ msgstr "Maximale Anzahl Objekte pro Regel in diesem Feld. Leer = unbegrenzt."
+
+#: netbox_nsm/views/setup/custom_objects.py
+#: netbox_nsm/models/security_property.py:136
+msgid "NSM Objects"
+msgstr "NSM Objekte"
+
+#: netbox_nsm/views/setup/custom_objects.py
+msgid "NSM Rulebooks"
+msgstr "NSM Rulebooks"
+
+#: netbox_nsm/views/setup/custom_objects.py
+msgid "Built-in policy object types (zones, addresses, services, actions, …)."
+msgstr "Integrierte Policy-Objekttypen (Zonen, Adressen, Services, Actions, …)."
+
+#: netbox_nsm/views/setup/custom_objects.py
+msgid "NSM Panel"
+msgstr "NSM Panel"
+
+#: netbox_nsm/views/setup/custom_objects.py
+msgid "Panel assignment links (inventory ↔ policy objects)."
+msgstr "Panel-Zuweisungslinks (Inventar ↔ Policy-Objekte)."
+
+#: netbox_nsm/views/setup/custom_objects.py
+msgid "Rulebook templates (blueprints for creating rulebooks). No TypeConfig required."
+msgstr "Rulebook-Vorlagen (Blueprints zum Anlegen von Rulebooks). Kein TypeConfig erforderlich."
+
+#: netbox_nsm/templates/netbox_nsm/inc/setup_custom_objects.html
+msgid "Includes built-in NSM types, NSM Panel links, and rulebook templates (nsm_rb_*_template)."
+msgstr "Enthält integrierte NSM-Typen, NSM-Panel-Links und Rulebook-Vorlagen (nsm_rb_*_template)."
+
+#: netbox_nsm/templates/netbox_nsm/inc/setup_custom_objects.html
+msgid "Custom Object Groups"
+msgstr "Custom-Object-Gruppen"

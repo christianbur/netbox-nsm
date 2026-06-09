@@ -7,8 +7,8 @@ django_bootstrap.setup()
 from extras.models import CustomFieldChoiceSet
 from netbox_custom_objects.models import CustomObjectType
 from netbox_custom_objects.schema.executor import apply_document
-from netbox_nsm.builtin_types import BUILTIN_CUSTOM_TYPES
-from netbox_nsm.custom_objects_schema import (
+from netbox_nsm.objects.builtin_types import BUILTIN_CUSTOM_TYPES
+from netbox_nsm.objects.custom_objects_schema import (
     build_choice_set_specs,
     build_schema_document,
 )

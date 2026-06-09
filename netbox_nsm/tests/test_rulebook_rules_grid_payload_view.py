@@ -2,7 +2,7 @@
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.rulebook_rules_grid_payload import (
+from netbox_nsm.rulebooks.grid_payload import (
     apply_ag_grid_row_filter,
     build_ag_grid_filter_model_from_query_text,
     build_column_quick_filter_spec,
@@ -10,7 +10,7 @@ from netbox_nsm.rulebook_rules_grid_payload import (
     build_rulebook_rules_grid_row,
     filter_spec_to_column_quick_value,
 )
-from netbox_nsm.rulebook_rules_cell_html import render_rules_cell_ag
+from netbox_nsm.rulebooks.cell_html import render_rules_cell_ag
 
 
 def _sample_grouped():
@@ -45,7 +45,7 @@ def _sample_grouped():
                 "system": {
                     "enabled": True,
                     "name": "rule-one",
-                    "index": 10,
+                    "index": 1,
                     "url": "/plugins/netbox-nsm/rules/1/",
                     "description": "Short desc",
                 },
@@ -84,7 +84,7 @@ class RulesGridPayloadTests(SimpleTestCase):
         row = build_rulebook_rules_grid_row(_sample_grouped()["rows"][0])
         self.assertTrue(row["enabled"])
         self.assertEqual(row["name"], "rule-one")
-        self.assertEqual(row["index"], 10)
+        self.assertEqual(row["index"], 1)
         self.assertEqual(row["source::ct_1__filter"], "prod dmz")
         self.assertEqual(row["source::ct_1"][0]["name"], "DMZ")
 

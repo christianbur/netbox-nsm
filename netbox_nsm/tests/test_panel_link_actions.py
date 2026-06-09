@@ -6,8 +6,8 @@ from unittest.mock import MagicMock, patch
 from django.template.loader import get_template
 from django.test import SimpleTestCase
 
-from netbox_nsm.group_m2m import GROUP_M2M_LABEL_MEMBER, GroupM2mRelation
-from netbox_nsm.panel_link_actions import (
+from netbox_nsm.objects.group_m2m import GROUP_M2M_LABEL_MEMBER, GroupM2mRelation
+from netbox_nsm.security.panel_link_actions import (
     address_ipam_fk_action_urls,
     address_ipam_fk_ref_action_urls,
     append_return_url,
@@ -20,7 +20,7 @@ from netbox_nsm.panel_link_actions import (
 
 
 class ObjectLinkActionUrlTests(SimpleTestCase):
-    @patch("netbox_nsm.panel_link_actions.reverse")
+    @patch("netbox_nsm.security.panel_link_actions.reverse")
     def test_object_link_action_urls(self, mock_reverse):
         mock_reverse.side_effect = [
             "/plugins/netbox-nsm/object-link/7/edit/",
@@ -54,9 +54,9 @@ class AppendReturnUrlTests(SimpleTestCase):
 
 
 class ObjectLinkPanelEditUrlTests(SimpleTestCase):
-    @patch("netbox_nsm.panel_link_actions.find_object_link_between", return_value=None)
+    @patch("netbox_nsm.security.panel_link_actions.find_object_link_between", return_value=None)
     @patch(
-        "netbox_nsm.panel_link_actions.object_link_assign_url", return_value="/assign/"
+        "netbox_nsm.security.panel_link_actions.object_link_assign_url", return_value="/assign/"
     )
     def test_fk_only_uses_assign_url(self, mock_assign, _find):
         prefix = SimpleNamespace(pk=5)
@@ -65,8 +65,8 @@ class ObjectLinkPanelEditUrlTests(SimpleTestCase):
         self.assertEqual(url, "/assign/")
         mock_assign.assert_called_once_with(prefix, "/ipam/prefixes/5/", object_b=addr)
 
-    @patch("netbox_nsm.panel_link_actions.object_link_action_urls")
-    @patch("netbox_nsm.panel_link_actions.find_object_link_between")
+    @patch("netbox_nsm.security.panel_link_actions.object_link_action_urls")
+    @patch("netbox_nsm.security.panel_link_actions.find_object_link_between")
     def test_existing_link_uses_edit_url(self, mock_find, mock_action_urls):
         link = SimpleNamespace(pk=3)
         mock_find.return_value = link
@@ -79,8 +79,8 @@ class ObjectLinkPanelEditUrlTests(SimpleTestCase):
 
 
 class ObjectLinkPanelDeleteUrlTests(SimpleTestCase):
-    @patch("netbox_nsm.panel_link_actions.object_link_action_urls")
-    @patch("netbox_nsm.panel_link_actions.find_object_link_between")
+    @patch("netbox_nsm.security.panel_link_actions.object_link_action_urls")
+    @patch("netbox_nsm.security.panel_link_actions.find_object_link_between")
     def test_existing_link_uses_delete_url(self, mock_find, mock_action_urls):
         link = SimpleNamespace(pk=3)
         mock_find.return_value = link
@@ -93,7 +93,7 @@ class ObjectLinkPanelDeleteUrlTests(SimpleTestCase):
         self.assertEqual(url, "/delete/")
         mock_action_urls.assert_called_once_with(link, "/ipam/prefixes/5/")
 
-    @patch("netbox_nsm.panel_link_actions.find_object_link_between", return_value=None)
+    @patch("netbox_nsm.security.panel_link_actions.find_object_link_between", return_value=None)
     def test_fk_only_uses_fallback(self, _find):
         prefix = SimpleNamespace(pk=5)
         addr = SimpleNamespace(pk=10)
@@ -105,7 +105,7 @@ class ObjectLinkPanelDeleteUrlTests(SimpleTestCase):
 
 class ObjectLinkAssignUrlTests(SimpleTestCase):
     @patch("django.contrib.contenttypes.models.ContentType")
-    @patch("netbox_nsm.panel_link_actions.reverse", return_value="/assign")
+    @patch("netbox_nsm.security.panel_link_actions.reverse", return_value="/assign")
     def test_builds_prefilled_assign_url(self, mock_reverse, mock_ct):
         mock_ct.objects.get_for_model.return_value = SimpleNamespace(pk=234)
         prefix = SimpleNamespace(pk=5)
@@ -126,15 +126,15 @@ class ObjectLinkAssignUrlTests(SimpleTestCase):
 
 class AddressIpamFkActionUrlTests(SimpleTestCase):
     @patch(
-        "netbox_nsm.panel_link_actions.address_ipam_fk_clear_url",
+        "netbox_nsm.security.panel_link_actions.address_ipam_fk_clear_url",
         return_value="/clear/",
     )
     @patch(
-        "netbox_nsm.panel_link_actions.object_link_panel_delete_url",
+        "netbox_nsm.security.panel_link_actions.object_link_panel_delete_url",
         return_value="/delete/",
     )
     @patch(
-        "netbox_nsm.panel_link_actions.object_link_panel_edit_url",
+        "netbox_nsm.security.panel_link_actions.object_link_panel_edit_url",
         return_value="/edit/",
     )
     def test_ref_action_urls_include_edit_and_delete(
@@ -149,15 +149,15 @@ class AddressIpamFkActionUrlTests(SimpleTestCase):
         mock_delete.assert_called_once()
 
     @patch(
-        "netbox_nsm.panel_link_actions.address_ipam_fk_clear_url",
+        "netbox_nsm.security.panel_link_actions.address_ipam_fk_clear_url",
         return_value="/clear/",
     )
     @patch(
-        "netbox_nsm.panel_link_actions.object_link_panel_delete_url",
+        "netbox_nsm.security.panel_link_actions.object_link_panel_delete_url",
         return_value="/delete/",
     )
     @patch(
-        "netbox_nsm.panel_link_actions.object_link_panel_edit_url",
+        "netbox_nsm.security.panel_link_actions.object_link_panel_edit_url",
         return_value="/edit/",
     )
     def test_forward_action_urls_include_edit_and_delete(
@@ -174,13 +174,13 @@ class AddressIpamFkActionUrlTests(SimpleTestCase):
 
 class GroupM2mActionUrlTests(SimpleTestCase):
     @patch(
-        "netbox_nsm.panel_link_actions.object_link_panel_delete_url",
+        "netbox_nsm.security.panel_link_actions.object_link_panel_delete_url",
         return_value="/delete/",
     )
     @patch(
-        "netbox_nsm.panel_link_actions.group_m2m_remove_url", return_value="/remove/"
+        "netbox_nsm.security.panel_link_actions.group_m2m_remove_url", return_value="/remove/"
     )
-    @patch("netbox_nsm.panel_link_actions.group_m2m_edit_url", return_value="/edit/")
+    @patch("netbox_nsm.security.panel_link_actions.group_m2m_edit_url", return_value="/edit/")
     def test_group_m2m_action_urls_include_edit_and_remove(
         self, _edit, _remove, mock_delete
     ):
@@ -202,9 +202,9 @@ class GroupM2mActionUrlTests(SimpleTestCase):
         )
 
     @patch(
-        "netbox_nsm.panel_link_actions.group_m2m_remove_url", return_value="/remove/"
+        "netbox_nsm.security.panel_link_actions.group_m2m_remove_url", return_value="/remove/"
     )
-    @patch("netbox_nsm.panel_link_actions.group_m2m_edit_url", return_value="/edit/")
+    @patch("netbox_nsm.security.panel_link_actions.group_m2m_edit_url", return_value="/edit/")
     def test_group_m2m_action_urls_without_page_obj_use_remove(self, _edit, _remove):
         group = SimpleNamespace(pk=1)
         member = SimpleNamespace(pk=2)
@@ -219,10 +219,10 @@ class GroupM2mActionUrlTests(SimpleTestCase):
         self.assertEqual(urls["edit_url"], "/edit/")
         self.assertEqual(urls["delete_url"], "/remove/")
 
-    @patch("netbox_nsm.panel_link_actions.reverse", return_value="/panel-edit/")
+    @patch("netbox_nsm.security.panel_link_actions.reverse", return_value="/panel-edit/")
     @patch("django.contrib.contenttypes.models.ContentType")
     def test_group_m2m_edit_url_builds_query_string(self, mock_ct, mock_reverse):
-        from netbox_nsm.panel_link_actions import group_m2m_edit_url
+        from netbox_nsm.security.panel_link_actions import group_m2m_edit_url
 
         mock_ct.objects.get_for_model.side_effect = [
             SimpleNamespace(pk=11),

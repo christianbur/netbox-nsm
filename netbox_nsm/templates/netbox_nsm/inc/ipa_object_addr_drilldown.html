@@ -1,0 +1,6 @@
+{% load i18n %}
+<div class="nsm-ipa-addr-drilldown" data-lazy-ct="{{ node.ct }}" data-lazy-pk="{{ node.pk }}" data-lazy-depth="{{ depth|default:0 }}" data-loaded="0">
+  <div class="nsm-ipa-addr-drilldown-loading text-muted small py-1" hidden>
+    <span class="mdi mdi-loading mdi-spin" aria-hidden="true"></span> {% trans "Loading address tree…" %}
+  </div>
+</div>

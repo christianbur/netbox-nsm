@@ -1,11 +1,8 @@
 """
 Create missing NSM branch tables in existing netbox_branching schemas.
 
-Junction tables (``RuleObjectItem``, …) must exist in the branch schema or inserts
-fall through ``search_path`` to ``public`` and FK-check against ``public.netbox_nsm_rule``.
-
-Reference tables (``RulebookField``, …) must contain rows copied from main when first
-created — an empty branch copy shadows ``public`` via ``search_path`` and breaks saves.
+Legacy junction tables (e.g. ObjectGroupMember) were removed in migration 0005.
+This command is retained for future branch-aware junction models.
 """
 
 from __future__ import annotations
@@ -15,20 +12,9 @@ from django.core.management.base import BaseCommand
 from django.db import connection
 from netbox.plugins import get_plugin_config
 
-from netbox_nsm.branching_support import register_branching_models
+from netbox_nsm.core.branching_support import register_branching_models
 
-# Junction rows are branch-specific — create empty tables only.
-JUNCTION_MODEL_LABELS = (
-    "netbox_nsm.ruleobjectitem",
-    "netbox_nsm.rulegroupitem",
-    "netbox_nsm.objectgroupmember",
-)
-
-# Shared rulebook metadata — copy rows from main on create / refresh.
-REFERENCE_MODEL_LABELS = (
-    "netbox_nsm.rulebookfield",
-    "netbox_nsm.rulebookfieldtype",
-)
+JUNCTION_MODEL_LABELS: tuple[str, ...] = ()
 
 
 class Command(BaseCommand):
@@ -39,11 +25,6 @@ class Command(BaseCommand):
             "--schema-id",
             dest="schema_id",
             help="Only sync this branch schema_id (e.g. k11eb2ac). Default: all ready branches.",
-        )
-        parser.add_argument(
-            "--refresh-reference-data",
-            action="store_true",
-            help="Re-copy RulebookField / RulebookFieldType rows from main into branch tables.",
         )
         parser.add_argument(
             "--fix-sequences",
@@ -59,6 +40,10 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         register_branching_models()
 
+        if not JUNCTION_MODEL_LABELS:
+            self.stdout.write("No NSM junction models configured; nothing to sync.")
+            return
+
         try:
             from netbox_branching.models import Branch
             from netbox_branching.models.branches import BranchStatusChoices
@@ -68,14 +53,12 @@ class Command(BaseCommand):
 
         main_schema = get_plugin_config("netbox_branching", "main_schema", "public")
         junction_tables = self._tables_for(JUNCTION_MODEL_LABELS)
-        reference_tables = self._tables_for(REFERENCE_MODEL_LABELS)
 
         branches = Branch.objects.filter(status=BranchStatusChoices.READY)
         if schema_id := options.get("schema_id"):
             branches = branches.filter(schema_id=schema_id)
 
         dry_run = options["dry_run"]
-        refresh = options["refresh_reference_data"]
         fix_sequences = options["fix_sequences"]
 
         for branch in branches:
@@ -87,24 +70,6 @@ class Command(BaseCommand):
                 )
                 if fix_sequences or self._table_exists(schema, table):
                     self._ensure_id_sequence(schema, table, dry_run=dry_run)
-            for table in reference_tables:
-                exists = self._table_exists(schema, table)
-                empty = exists and self._row_count(schema, table) == 0
-                if not exists:
-                    self._ensure_table(
-                        schema, table, main_schema, copy_data=True, dry_run=dry_run
-                    )
-                    self._ensure_id_sequence(schema, table, dry_run=dry_run)
-                elif refresh or empty:
-                    self._copy_reference_data(
-                        schema, table, main_schema, dry_run=dry_run
-                    )
-                    if fix_sequences:
-                        self._ensure_id_sequence(schema, table, dry_run=dry_run)
-                else:
-                    self.stdout.write(f"  skip {schema}.{table} (exists, has data)")
-                    if fix_sequences:
-                        self._ensure_id_sequence(schema, table, dry_run=dry_run)
 
     def _ensure_table(
         self,
@@ -124,18 +89,11 @@ class Command(BaseCommand):
         )
         if dry_run:
             self.stdout.write(f"  would run: {create_sql}")
-            if copy_data:
-                self.stdout.write(
-                    f"  would copy: INSERT INTO {schema}.{table} "
-                    f"SELECT * FROM {main_schema}.{table}"
-                )
             return
         with connection.cursor() as cursor:
             cursor.execute(create_sql)
         self.stdout.write(self.style.SUCCESS(f"  created {schema}.{table}"))
         self._ensure_id_sequence(schema, table, dry_run=dry_run)
-        if copy_data:
-            self._copy_reference_data(schema, table, main_schema, dry_run=False)
 
     def _ensure_id_sequence(self, schema: str, table: str, *, dry_run: bool) -> None:
         """
@@ -175,23 +133,6 @@ class Command(BaseCommand):
             self.style.SUCCESS(f"  id default on {schema}.{table} → {sequence_name}")
         )
 
-    def _copy_reference_data(
-        self, schema: str, table: str, main_schema: str, *, dry_run: bool
-    ) -> None:
-        sql_truncate = f"TRUNCATE {schema}.{table}"
-        sql_insert = f"INSERT INTO {schema}.{table} SELECT * FROM {main_schema}.{table}"
-        if dry_run:
-            self.stdout.write(f"  would run: {sql_truncate}")
-            self.stdout.write(f"  would run: {sql_insert}")
-            return
-        with connection.cursor() as cursor:
-            cursor.execute(sql_truncate)
-            cursor.execute(sql_insert)
-            count = self._row_count(schema, table)
-        self.stdout.write(
-            self.style.SUCCESS(f"  copied {count} rows into {schema}.{table}")
-        )
-
     @staticmethod
     def _tables_for(labels: tuple[str, ...]) -> list[str]:
         tables: list[str] = []
@@ -213,9 +154,3 @@ class Command(BaseCommand):
                 [schema, table],
             )
             return cursor.fetchone() is not None
-
-    @staticmethod
-    def _row_count(schema: str, table: str) -> int:
-        with connection.cursor() as cursor:
-            cursor.execute(f"SELECT COUNT(*) FROM {schema}.{table}")
-            return int(cursor.fetchone()[0])

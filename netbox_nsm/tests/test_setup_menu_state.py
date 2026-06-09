@@ -3,7 +3,7 @@
 from django.test import override_settings
 
 from netbox_nsm.models import NsmUiSettings
-from netbox_nsm.setup_flags import setup_menu_enabled, sync_setup_menu_config_state
+from netbox_nsm.core.setup_flags import setup_menu_enabled, sync_setup_menu_config_state
 from utilities.testing import TestCase
 
 

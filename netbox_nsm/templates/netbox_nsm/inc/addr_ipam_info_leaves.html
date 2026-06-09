@@ -1,0 +1,12 @@
+{% load i18n humanize %}
+{% if node.ipam_stats %}
+<div class="nsm-addr-info-leaves">
+  {% for stat in node.ipam_stats %}
+  <div class="nsm-addr-info-leaf">
+    <span class="text-muted">{{ stat.label }}:</span>
+    <a href="{{ stat.url }}" class="nsm-addr-info-link">{{ stat.count|intcomma }}</a>
+    {% if stat.truncated %}<span class="text-muted small">({% trans "tree preview" %})</span>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}

@@ -1,7 +1,10 @@
 {% load i18n %}
 {% include "netbox_nsm/inc/addr_analysis_assets.html" %}
-<link rel="stylesheet" href="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='css/nsm_ip_analyzer_applet.css' %}?v=202606073">
+<link rel="stylesheet" href="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='css/nsm_ip_analyzer_applet.css' %}?v=202606138">
 <script>
   window.NSM_IP_ANALYSIS_API = window.NSM_IP_ANALYSIS_API || "{% url 'plugins:netbox_nsm:ip_analysis_api' %}";
+  window.NSM_IP_ANALYSIS_CATEGORY_API = window.NSM_IP_ANALYSIS_CATEGORY_API || "{% url 'plugins:netbox_nsm:ip_analysis_category_api' %}";
+  window.NSM_IP_ANALYSIS_OBJECT_API = window.NSM_IP_ANALYSIS_OBJECT_API || "{% url 'plugins:netbox_nsm:ip_analysis_object_api' %}";
+  window.NSM_IP_ANALYSIS_ADD_OBJECT_TYPES_API = window.NSM_IP_ANALYSIS_ADD_OBJECT_TYPES_API || "{% url 'plugins:netbox_nsm:ip_analysis_add_object_types_api' %}";
 </script>
-<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/nsm_ip_analyzer_applet.js' %}?v=202606073"></script>
+<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/nsm_ip_analyzer_applet.js' %}?v=202606138"></script>

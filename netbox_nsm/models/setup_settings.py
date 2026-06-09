@@ -40,8 +40,8 @@ class NsmUiSettings(models.Model):
     )
 
     class Meta:
-        verbose_name = _("NSM UI settings")
-        verbose_name_plural = _("NSM UI settings")
+        verbose_name = _("NSM UI Settings")
+        verbose_name_plural = _("NSM UI Settings")
 
     def __str__(self):
         return self.menu_label or DEFAULT_MENU_LABEL

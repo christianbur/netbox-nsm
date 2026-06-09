@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.matrix_utils import (
+from netbox_nsm.matrix.matrix_utils import (
     MATRIX_FILTER_AUTO_COUNT,
     MATRIX_FILTER_AUTO_THRESHOLD,
     apply_default_matrix_axis_filters,

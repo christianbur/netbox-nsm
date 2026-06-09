@@ -8,7 +8,7 @@ from django.test import SimpleTestCase
 
 class IpamInheritanceTests(SimpleTestCase):
     def test_module_imports_without_syntax_error(self):
-        import netbox_nsm.ipam_inheritance as mod
+        import netbox_nsm.objects.ipam_inheritance as mod
 
         self.assertTrue(callable(mod.ancestor_prefixes_for_ipam))
         self.assertTrue(callable(mod.nsm_address_q_for_ancestor))
@@ -17,7 +17,7 @@ class IpamInheritanceTests(SimpleTestCase):
         """IPRange must filter start and end with separate .filter() calls."""
         source = inspect.getsource(
             __import__(
-                "netbox_nsm.ipam_inheritance",
+                "netbox_nsm.objects.ipam_inheritance",
                 fromlist=["ancestor_prefixes_for_ipam"],
             ).ancestor_prefixes_for_ipam
         )
@@ -31,7 +31,7 @@ class IpamInheritanceTests(SimpleTestCase):
     def test_iprange_calls_prefix_filter_for_both_endpoints(self, prefix_objects):
         from ipam.models import IPRange
 
-        from netbox_nsm.ipam_inheritance import ancestor_prefixes_for_ipam
+        from netbox_nsm.objects.ipam_inheritance import ancestor_prefixes_for_ipam
 
         obj = IPRange(start_address="10.0.0.1/32", end_address="10.0.0.50/32")
 

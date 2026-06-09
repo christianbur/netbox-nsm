@@ -1,0 +1,51 @@
+{% load form_helpers %}
+{% load i18n %}
+{% load custom_object_utils %}
+{% load cot_form %}
+
+{% with sub_names=group_info.0 field_label=group_info.1 %}
+<div class="row mb-3 nsm-rule-objects-row nsm-cot-poly-m2m-field">
+  <div class="col-sm-3 text-lg-end nsm-rule-objects-label">
+    <span class="col-form-label d-inline-block h4 mb-0">{{ field_label }}</span>
+  </div>
+  <div class="col nsm-rule-picker-host{% if sub_names|length > 1 %} nsm-rule-policy-tabs-layout{% endif %}">
+    {% if sub_names|length > 1 %}
+      <ul class="nav nav-tabs nsm-rule-policy-tabs" role="tablist">
+        {% for sub_name in sub_names %}
+          {% with sub_field=form|getfield:sub_name tab_id=sub_name|slugify %}
+            <li class="nav-item" role="presentation">
+              <button class="nav-link{% if forloop.first %} active{% endif %}"
+                      id="tab-{{ tab_id }}"
+                      data-bs-toggle="tab"
+                      data-bs-target="#pane-{{ tab_id }}"
+                      type="button"
+                      role="tab"
+                      aria-controls="pane-{{ tab_id }}"
+                      aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+                {{ sub_field.label|poly_m2m_tab_label }}
+              </button>
+            </li>
+          {% endwith %}
+        {% endfor %}
+      </ul>
+      <div class="tab-content nsm-rule-policy-tab-content pt-2">
+        {% for sub_name in sub_names %}
+          {% with sub_field=form|getfield:sub_name tab_id=sub_name|slugify %}
+            <div class="tab-pane fade{% if forloop.first %} show active{% endif %}"
+                 id="pane-{{ tab_id }}"
+                 role="tabpanel"
+                 aria-labelledby="tab-{{ tab_id }}"
+                 tabindex="0">
+              {% include "netbox_custom_objects/inc/render_field_widget_only.html" with field=sub_field %}
+            </div>
+          {% endwith %}
+        {% endfor %}
+      </div>
+    {% else %}
+      {% with sub_field=form|getfield:sub_names.0 %}
+        {% include "netbox_custom_objects/inc/render_field_widget_only.html" with field=sub_field %}
+      {% endwith %}
+    {% endif %}
+  </div>
+</div>
+{% endwith %}

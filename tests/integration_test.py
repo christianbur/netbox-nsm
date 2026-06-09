@@ -40,13 +40,8 @@ KNOWN = {
     "prefix_with_direct_links": 2,      # 10.0.0.0/24  (2 direkte NSM-Links)
     "prefix_parent": 1,                 # 10.0.0.0/8   (hat direkte NSM-Links)
     "ip_with_inherited_links": 501,     # 10.0.0.10/24 (liegt in /24 und /8)
-    "rulebook_pk": 1,
-    "rule_pk": 1,
     "object_link_pk": 1,
     "type_config_pk": 1,
-    "rulebook_field_pk": 1,
-    "rulebook_field_type_pk": 5,
-    "rule_object_item_pk": 1,
 }
 
 # ─── Hilfsfunktionen ──────────────────────────────────────────────────────────
@@ -212,16 +207,10 @@ def login() -> bool:
 def test_api_list_endpoints():
     """Alle LIST-Endpoints geben HTTP 200 mit count-Feld zurück."""
     endpoints = [
-        ("object-groups",                     "/api/plugins/netbox-nsm/object-groups/"),
-        ("rulebooks",    "/api/plugins/netbox-nsm/rulebooks/"),
-        ("rules",        "/api/plugins/netbox-nsm/rules/"),
+        ("object-groups", "/api/plugins/netbox-nsm/object-groups/"),
         ("rulebook-assignments", "/api/plugins/netbox-nsm/rulebook-assignments/"),
-        ("object-links",                      "/api/plugins/netbox-nsm/object-links/"),
-        ("type-configs",                      "/api/plugins/netbox-nsm/type-configs/"),
-        ("rulebook-fields",                   "/api/plugins/netbox-nsm/rulebook-fields/"),
-        ("rulebook-field-types",              "/api/plugins/netbox-nsm/rulebook-field-types/"),
-        ("rule-object-items",                 "/api/plugins/netbox-nsm/rule-object-items/"),
-        ("rule-group-items",                  "/api/plugins/netbox-nsm/rule-group-items/"),
+        ("object-links", "/api/plugins/netbox-nsm/object-links/"),
+        ("type-configs", "/api/plugins/netbox-nsm/type-configs/"),
     ]
     for name, path in endpoints:
         status, body = _get(path)
@@ -233,13 +222,8 @@ def test_api_list_endpoints():
 def test_api_detail_endpoints():
     """Detail-Endpoints für bekannte Objekte geben HTTP 200 zurück."""
     detail_tests = [
-        ("rulebook detail",         f"/api/plugins/netbox-nsm/rulebooks/{KNOWN['rulebook_pk']}/"),
-        ("rule detail",             f"/api/plugins/netbox-nsm/rules/{KNOWN['rule_pk']}/"),
-        ("object-link detail",      f"/api/plugins/netbox-nsm/object-links/{KNOWN['object_link_pk']}/"),
-        ("type-config detail",      f"/api/plugins/netbox-nsm/type-configs/{KNOWN['type_config_pk']}/"),
-        ("rulebook-field detail",   f"/api/plugins/netbox-nsm/rulebook-fields/{KNOWN['rulebook_field_pk']}/"),
-        ("rulebook-field-type det", f"/api/plugins/netbox-nsm/rulebook-field-types/{KNOWN['rulebook_field_type_pk']}/"),
-        ("rule-object-item detail", f"/api/plugins/netbox-nsm/rule-object-items/{KNOWN['rule_object_item_pk']}/"),
+        ("object-link detail", f"/api/plugins/netbox-nsm/object-links/{KNOWN['object_link_pk']}/"),
+        ("type-config detail", f"/api/plugins/netbox-nsm/type-configs/{KNOWN['type_config_pk']}/"),
     ]
     for name, path in detail_tests:
         status, body = _get(path)
@@ -253,12 +237,6 @@ def test_api_filters():
         # (Testname, Pfad, erwartet_count_gte, erwartet_feld)
         ("object-links filter by object_a_id",
          f"/api/plugins/netbox-nsm/object-links/?object_a_id={KNOWN['prefix_with_direct_links']}",
-         1, None),
-        ("rulebook-fields filter by rulebook",
-         f"/api/plugins/netbox-nsm/rulebook-fields/?rulebook_id={KNOWN['rulebook_pk']}",
-         1, None),
-        ("rule-object-items filter by rule",
-         f"/api/plugins/netbox-nsm/rule-object-items/?rule_id={KNOWN['rule_pk']}",
          1, None),
         ("type-configs limit=2",
          "/api/plugins/netbox-nsm/type-configs/?limit=2",
@@ -353,12 +331,8 @@ def test_api_pagination():
 def test_api_display_field():
     """Das display-Feld ist in allen Endpunkten vorhanden."""
     endpoints_with_pk = [
-        ("rulebook-fields display",         f"/api/plugins/netbox-nsm/rulebook-fields/{KNOWN['rulebook_field_pk']}/"),
-        ("rulebook-field-types display",    f"/api/plugins/netbox-nsm/rulebook-field-types/{KNOWN['rulebook_field_type_pk']}/"),
-        ("rule-object-items display",       f"/api/plugins/netbox-nsm/rule-object-items/{KNOWN['rule_object_item_pk']}/"),
-        ("object-links display",            f"/api/plugins/netbox-nsm/object-links/{KNOWN['object_link_pk']}/"),
-        ("type-configs display",            f"/api/plugins/netbox-nsm/type-configs/{KNOWN['type_config_pk']}/"),
-        ("rulebooks display",               f"/api/plugins/netbox-nsm/rulebooks/{KNOWN['rulebook_pk']}/"),
+        ("object-links display", f"/api/plugins/netbox-nsm/object-links/{KNOWN['object_link_pk']}/"),
+        ("type-configs display", f"/api/plugins/netbox-nsm/type-configs/{KNOWN['type_config_pk']}/"),
     ]
     for name, path in endpoints_with_pk:
         status, body = _get(path)
@@ -471,100 +445,6 @@ def test_custom_objects_crud():
 
 # ─── Zusammenfassung ─────────────────────────────────────────────────────────
 
-def test_rulebook_crud():
-    """Rulebook erstellen, ändern und löschen."""
-    list_path = "/api/plugins/netbox-nsm/rulebooks/"
-
-    # CREATE
-    s, b = _json_request("POST", list_path, {"name": "__test-rulebook", "rulebook_type": "security_rules"})
-    rb_id = b.get("id") if isinstance(b, dict) else None
-    ok_create = s == 201 and rb_id is not None
-    _record("rulebook CREATE", ok_create, f"HTTP {s}, id={rb_id}")
-    if not ok_create:
-        _record("rulebook READ", False, "skipped")
-        _record("rulebook UPDATE", False, "skipped")
-        _record("rulebook DELETE", False, "skipped")
-        return
-
-    # READ
-    s, b = _get(f"{list_path}{rb_id}/")
-    _record("rulebook READ (detail)", s == 200 and b.get("name") == "__test-rulebook",
-            f"HTTP {s}, name={b.get('name')!r}")
-
-    # UPDATE (PATCH)
-    s, b = _json_request("PATCH", f"{list_path}{rb_id}/",
-                         {"name": "__test-rulebook-upd", "description": "test-desc"})
-    ok_upd = s == 200 and b.get("name") == "__test-rulebook-upd"
-    _record("rulebook UPDATE", ok_upd, f"HTTP {s}, name={b.get('name')!r}")
-
-    # DELETE
-    s, _ = _json_request("DELETE", f"{list_path}{rb_id}/")
-    _record("rulebook DELETE", s == 204, f"HTTP {s}")
-
-    # Verify gone
-    s, _ = _get(f"{list_path}{rb_id}/")
-    _record("rulebook nach DELETE nicht mehr abrufbar", s == 404, f"HTTP {s}")
-
-
-def test_rule_crud():
-    """Rule im Test-Rulebook erstellen, ändern und löschen.
-
-    Erstellt zuerst ein temporäres Rulebook, dann eine Rule darin.
-    """
-    rb_path = "/api/plugins/netbox-nsm/rulebooks/"
-    rule_path = "/api/plugins/netbox-nsm/rules/"
-
-    # Test-Rulebook anlegen
-    s, rb = _json_request("POST", rb_path, {"name": "__test-rb-for-rule", "rulebook_type": "security_rules"})
-    if s != 201 or not rb.get("id"):
-        _record("rule CREATE", False, f"Rulebook-Anlage fehlgeschlagen: HTTP {s}")
-        _record("rule UPDATE", False, "skipped")
-        _record("rule DELETE", False, "skipped")
-        return
-    rb_id = rb["id"]
-
-    # CREATE rule
-    s, b = _json_request("POST", rule_path, {
-        "rulebook": rb_id,
-        "name": "__test-rule",
-        "index": 10,
-    })
-    rule_id = b.get("id") if isinstance(b, dict) else None
-    ok_create = s == 201 and rule_id is not None
-    _record("rule CREATE", ok_create, f"HTTP {s}, id={rule_id}, rulebook={rb_id}")
-
-    if ok_create:
-        # READ
-        s, b = _get(f"{rule_path}{rule_id}/")
-        _record("rule READ (detail)", s == 200 and b.get("name") == "__test-rule",
-                f"HTTP {s}, name={b.get('name')!r}")
-
-        # UPDATE — Name + enabled ändern
-        s, b = _json_request("PATCH", f"{rule_path}{rule_id}/",
-                             {"name": "__test-rule-upd", "enabled": False})
-        ok_upd = (s == 200
-                  and b.get("name") == "__test-rule-upd"
-                  and b.get("enabled") is False)
-        _record("rule UPDATE", ok_upd,
-                f"HTTP {s}, name={b.get('name')!r}, enabled={b.get('enabled')}")
-
-        # DELETE rule
-        s, _ = _json_request("DELETE", f"{rule_path}{rule_id}/")
-        _record("rule DELETE", s == 204, f"HTTP {s}")
-
-        # Verify gone
-        s, _ = _get(f"{rule_path}{rule_id}/")
-        _record("rule nach DELETE nicht mehr abrufbar", s == 404, f"HTTP {s}")
-    else:
-        _record("rule READ", False, "skipped")
-        _record("rule UPDATE", False, "skipped")
-        _record("rule DELETE", False, "skipped")
-        _record("rule nach DELETE nicht mehr abrufbar", False, "skipped")
-
-    # Test-Rulebook wieder aufräumen
-    _json_request("DELETE", f"{rb_path}{rb_id}/")
-
-
 def test_object_link_crud():
     """ObjectLink (Prefix ↔ NSM-Zone) erstellen, ändern und löschen."""
     link_path = "/api/plugins/netbox-nsm/object-links/"
@@ -631,88 +511,6 @@ def test_object_link_crud():
         _record("object-link duplicate → 400", False, f"Erst-Anlage fehlgeschlagen: HTTP {s1}")
 
 
-def test_rulebook_fields_workflow():
-    """Rulebook mit Feldern und Regel anlegen, ändern und löschen."""
-    rb_path = "/api/plugins/netbox-nsm/rulebooks/"
-    field_path = "/api/plugins/netbox-nsm/rulebook-fields/"
-    rule_path = "/api/plugins/netbox-nsm/rules/"
-
-    s, rb = _json_request(
-        "POST", rb_path, {"name": "__test-rb-fields", "rulebook_type": "security_rules"}
-    )
-    rb_id = rb.get("id") if isinstance(rb, dict) else None
-    ok_rb = s == 201 and rb_id is not None
-    _record("workflow rulebook CREATE", ok_rb, f"HTTP {s}, id={rb_id}")
-    if not ok_rb:
-        for step in (
-            "workflow field CREATE",
-            "workflow rule CREATE",
-            "workflow rule DELETE",
-            "workflow field DELETE",
-            "workflow rulebook DELETE",
-        ):
-            _record(step, False, "skipped")
-        return
-
-    s, field = _json_request(
-        "POST",
-        field_path,
-        {
-            "rulebook": rb_id,
-            "slug": "api_dest",
-            "name": "API Destination",
-            "placement": "destination",
-            "sort_order": 40,
-        },
-    )
-    field_id = field.get("id") if isinstance(field, dict) else None
-    ok_field = s == 201 and field_id is not None
-    _record("workflow field CREATE", ok_field, f"HTTP {s}, id={field_id}")
-
-    rule_id = None
-    if ok_field:
-        s, rule = _json_request(
-            "POST",
-            rule_path,
-            {
-                "rulebook": rb_id,
-                "name": "__test-workflow-rule",
-                "index": 25,
-            },
-        )
-        rule_id = rule.get("id") if isinstance(rule, dict) else None
-        ok_rule = s == 201 and rule_id is not None
-        _record("workflow rule CREATE", ok_rule, f"HTTP {s}, id={rule_id}")
-
-        if ok_rule:
-            s, rule = _json_request(
-                "PATCH",
-                f"{rule_path}{rule_id}/",
-                {"name": "__test-workflow-rule-upd"},
-            )
-            _record(
-                "workflow rule UPDATE",
-                s == 200 and rule.get("name") == "__test-workflow-rule-upd",
-                f"HTTP {s}, name={rule.get('name')!r}",
-            )
-            s, _ = _json_request("DELETE", f"{rule_path}{rule_id}/")
-            _record("workflow rule DELETE", s == 204, f"HTTP {s}")
-        else:
-            _record("workflow rule UPDATE", False, "skipped")
-            _record("workflow rule DELETE", False, "skipped")
-
-        s, _ = _json_request("DELETE", f"{field_path}{field_id}/")
-        _record("workflow field DELETE", s == 204, f"HTTP {s}")
-    else:
-        _record("workflow rule CREATE", False, "skipped")
-        _record("workflow rule UPDATE", False, "skipped")
-        _record("workflow rule DELETE", False, "skipped")
-        _record("workflow field DELETE", False, "skipped")
-
-    s, _ = _json_request("DELETE", f"{rb_path}{rb_id}/")
-    _record("workflow rulebook DELETE", s == 204, f"HTTP {s}")
-
-
 # ─── Zusammenfassung ─────────────────────────────────────────────────────────────
 
 def print_summary():
@@ -772,17 +570,8 @@ def main():
     print("\n[8] Custom Objects CRUD (nsm_action / nsm_addresses / nsm_labels / nsm_services / nsm_zones)")
     test_custom_objects_crud()
 
-    print("\n[9] Rulebook CRUD")
-    test_rulebook_crud()
-
-    print("\n[10] Rule CRUD (im Test-Rulebook)")
-    test_rule_crud()
-
-    print("\n[11] ObjectLink CRUD")
+    print("\n[9] ObjectLink CRUD")
     test_object_link_crud()
-
-    print("\n[12] Rulebook + Fields + Rule Workflow")
-    test_rulebook_fields_workflow()
 
     print_summary()
 

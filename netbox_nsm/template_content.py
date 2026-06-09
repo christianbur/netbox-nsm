@@ -27,8 +27,8 @@ def _build_ip_analysis_url(obj, ct, rulebook_groups):
 
 
 def _panel_link_payload(linked, lct, tmpl_map, **extra):
-    from netbox_nsm.display_utils import render_object_display
-    from netbox_nsm.views.rulebook import (
+    from netbox_nsm.core.display_utils import render_object_display
+    from netbox_nsm.analysis.addr_analysis_utils import (
         _object_is_addr_analyzable,
         _object_supports_addr_analysis,
     )
@@ -91,17 +91,15 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
 
     def right_page(self):
         from django.contrib.contenttypes.models import ContentType
-        from django.db.models import Count
         from django.urls import reverse
-        from netbox_nsm.models import RuleObjectItem, ObjectLink
-        from netbox_nsm.panel_link_actions import (
+        from netbox_nsm.security.panel_link_actions import (
             address_ipam_fk_action_urls,
             address_ipam_fk_ref_action_urls,
             group_m2m_action_urls,
             object_link_action_urls,
         )
-        from netbox_nsm.object_rules_utils import build_rule_name_column_filter_url
-        from netbox_nsm.branch_urls import with_branch_query
+        from netbox_nsm.security.panel import build_cot_security_panel_groups
+        from netbox_nsm.core.branch_urls import with_branch_query
 
         request = self.context.get("request")
 
@@ -116,7 +114,7 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
 
         ct = ContentType.objects.get_for_model(obj)
 
-        from netbox_nsm.display_utils import (
+        from netbox_nsm.core.display_utils import (
             get_display_template_map,
             render_object_display,
             type_config_display_name_for_ct_id,
@@ -131,70 +129,25 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
                 type_label_cache[ct_id] = type_config_display_name_for_ct_id(ct_id)
             return type_label_cache[ct_id]
 
-        # ── ObjectLinks grouped by linked-object type ──────────────────
-        from django.db.models import prefetch_related_objects as _prefetch
+        # ── Object links grouped by linked-object type (COT nsm_object_link) ──
+        from netbox_nsm.objects.object_link_service import build_panel_link_groups
 
-        fwd_links = list(
-            ObjectLink.objects.filter(object_a_type=ct, object_a_id=obj.pk)
-            .select_related("object_b_type")
-            .order_by("created")
-        )
-        _prefetch(
-            fwd_links, "object_b"
-        )  # batch-resolve Generic FK, 1 SQL per content-type
-        rev_links = list(
-            ObjectLink.objects.filter(object_b_type=ct, object_b_id=obj.pk)
-            .select_related("object_a_type")
-            .order_by("created")
-        )
-        _prefetch(rev_links, "object_a")
-
-        # key: "{app_label}__{model}" (safe for HTML IDs)
-        # value: {"label": verbose_name, "objects": [...]}
         links_by_type: dict = {}
         _return_url = (
             self.context.get("request").path if self.context.get("request") else "/"
         )
-        for link in fwd_links:
-            linked = link.object_b
-            if linked is None:
-                continue
-            lct = link.object_b_type
-            type_key = f"{lct.app_label}__{lct.model}"
-            if type_key not in links_by_type:
-                links_by_type[type_key] = {
-                    "label": _link_type_label(lct),
-                    "objects": [],
-                }
-            links_by_type[type_key]["objects"].append(
-                _panel_link_payload(
-                    linked,
-                    lct,
-                    tmpl_map,
-                    comment=link.comment,
-                    **object_link_action_urls(link, _return_url),
-                )
-            )
-        for link in rev_links:
-            linked = link.object_a
-            if linked is None:
-                continue
-            lct = link.object_a_type
-            type_key = f"{lct.app_label}__{lct.model}"
-            if type_key not in links_by_type:
-                links_by_type[type_key] = {
-                    "label": _link_type_label(lct),
-                    "objects": [],
-                }
-            links_by_type[type_key]["objects"].append(
-                _panel_link_payload(
-                    linked,
-                    lct,
-                    tmpl_map,
-                    comment=link.comment,
-                    **object_link_action_urls(link, _return_url),
-                )
-            )
+        cot_link_groups, _cot_total = build_panel_link_groups(
+            obj,
+            return_url=_return_url,
+            panel_link_payload=_panel_link_payload,
+            object_link_action_urls=object_link_action_urls,
+            type_label_fn=_link_type_label,
+        )
+        for group in cot_link_groups:
+            links_by_type[group["type_key"]] = {
+                "label": group["type_label"],
+                "objects": list(group["objects"]),
+            }
 
         # ── NSM address objects that reference this IPAM object via FK ────
         # nsm_addresses has ip_address / prefix / range FK fields pointing to
@@ -207,7 +160,7 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
             )
             from netbox_custom_objects.models import CustomObjectType as _COT
 
-            from netbox_nsm.address_ipam_fk import fk_field_name_from_filter
+            from netbox_nsm.objects.address_ipam_fk import fk_field_name_from_filter
 
             _addr_cot = _COT.objects.filter(slug="nsm_addresses").first()
             if _addr_cot:
@@ -259,7 +212,7 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
 
         # ── nsm_addresses → IPAM FK (prefix / IP / range) ───────────────
         try:
-            from netbox_nsm.address_ipam_fk import (
+            from netbox_nsm.objects.address_ipam_fk import (
                 is_nsm_address_object,
                 iter_address_ipam_fk_refs,
             )
@@ -306,7 +259,7 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
         try:
             from django.utils.translation import gettext as _gettext
 
-            from netbox_nsm.group_m2m import iter_group_m2m_relations
+            from netbox_nsm.objects.group_m2m import iter_group_m2m_relations
 
             _grp_type_key = f"{ct.app_label}__{ct.model}"
             _group_existing_urls = {
@@ -377,88 +330,20 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
         except Exception:
             pass
 
-        # ── Security rules that reference this object ─────────────────────
-        FIRST_PAGE = 30
-        qs = (
-            RuleObjectItem.objects.filter(content_type=ct, object_id=obj.pk)
-            .select_related("rule", "rule__rulebook", "field")
-            .prefetch_related("field__type_configs__type_config__content_type")
-            .order_by("rule__rulebook__name", "rule__index", "field__sort_order")
+        # ── Security rules that reference this object (COT rulebooks) ─────
+        panel_data = build_cot_security_panel_groups(
+            ct,
+            obj.pk,
+            panel_url=_panel_url,
         )
-        total_items = qs.count()
-        unique_rules_total = qs.values("rule_id").distinct().count()
-
-        # Pre-query unique rule counts per rulebook
-        # .order_by() clears inherited ordering to avoid extra GROUP BY cols
-        rb_unique_counts = {
-            row["rule__rulebook_id"]: row["ucount"]
-            for row in qs.order_by()
-            .values("rule__rulebook_id")
-            .annotate(ucount=Count("rule_id", distinct=True))
-        }
-        field_rule_counts = {
-            (row["rule__rulebook_id"], row["field_id"]): row["ucount"]
-            for row in qs.order_by()
-            .values("rule__rulebook_id", "field_id")
-            .annotate(ucount=Count("rule_id", distinct=True))
-        }
-
-        # Build first-page rulebook groups, sub-grouped by field (source/dest/…)
-        seen_items = set()  # (field_id, rule_id) – for item-level dedup / offset calc
-        by_rulebook = {}
-        rb_order = []
-        for item in qs[:FIRST_PAGE]:
-            key = (item.field_id, item.rule_id)
-            if key in seen_items:
-                continue
-            seen_items.add(key)
-            rb = item.rule.rulebook
-            rb_pk = rb.pk if rb else 0
-            if rb_pk not in by_rulebook:
-                by_rulebook[rb_pk] = {
-                    "rulebook": rb,
-                    "_fields": {},
-                    "_field_order": [],
-                    "unique_count": rb_unique_counts.get(rb_pk, 0),
-                }
-                rb_order.append(rb_pk)
-            rb_data = by_rulebook[rb_pk]
-            f_id = item.field_id
-            if f_id not in rb_data["_fields"]:
-                rb_data["_fields"][f_id] = {
-                    "field": item.field,
-                    "rules": [],
-                    "_seen": set(),
-                }
-                rb_data["_field_order"].append(f_id)
-            if item.rule_id not in rb_data["_fields"][f_id]["_seen"]:
-                rb_data["_fields"][f_id]["_seen"].add(item.rule_id)
-                rb_data["_fields"][f_id]["rules"].append(item.rule)
-        for rb_pk in rb_order:
-            d = by_rulebook[rb_pk]
-            d["field_groups"] = [
-                {
-                    "field": d["_fields"][fid]["field"],
-                    "rules": d["_fields"][fid]["rules"],
-                    "rule_count": field_rule_counts.get((rb_pk, fid), 0),
-                }
-                for fid in d["_field_order"]
-            ]
-            rb = d["rulebook"]
-            d["rules_tab_url"] = _panel_url(rb.get_rules_tab_url()) if rb else ""
-            for fg in d["field_groups"]:
-                for rule in fg["rules"]:
-                    rule.nsm_panel_filter_url = _panel_url(
-                        build_rule_name_column_filter_url(rb, rule)
-                    )
-            del d["_fields"], d["_field_order"]
-        rulebook_groups = [by_rulebook[pk] for pk in rb_order]
+        rulebook_groups = panel_data["rulebook_groups"]
+        unique_rules_total = panel_data["unique_rules_total"]
 
         return_url = request.path if request else "/"
         from urllib.parse import quote
 
-        from netbox_nsm.plugin_labels import get_nsm_panel_label
-        from netbox_nsm.views.rulebook import _object_supports_addr_analysis
+        from netbox_nsm.core.plugin_labels import get_nsm_panel_label
+        from netbox_nsm.analysis.addr_analysis_utils import _object_supports_addr_analysis
 
         obj_name = str(obj)
         analyzer_url = (
@@ -478,7 +363,7 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
         security_badge = unique_rules_total + total_links or None
 
         # ── Enforced rulebooks (Device/VM/VDC only) ───────────────────────
-        from netbox_nsm.models import RulebookAssignment
+        from netbox_nsm.models import CotRulebookAssignment
 
         enforcer_assignments = []
         enforcer_add_url = None
@@ -488,16 +373,14 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
 
             if isinstance(obj, (Device, VirtualMachine, VirtualDeviceContext)):
                 enforcer_assignments = list(
-                    RulebookAssignment.objects.filter(
+                    CotRulebookAssignment.objects.filter(
                         assigned_object_type=ct,
                         assigned_object_id=obj.pk,
-                    )
-                    .select_related("rulebook")
-                    .order_by("rulebook__name")
+                    ).order_by("cot_slug")
                 )
                 enforcer_add_url = (
-                    reverse("plugins:netbox_nsm:rulebookassignment_add")
-                    + f"?assigned_object_type_id={ct.pk}&assigned_object_id={obj.pk}&return_url={return_url}"
+                    reverse("plugins:netbox_nsm:cotrulebookassignment_add")
+                    + f"?assigned_object_type={ct.pk}&assigned_object_id={obj.pk}&return_url={return_url}"
                 )
         except Exception:
             pass
@@ -510,8 +393,6 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
                 "nsm_rulebook_groups": rulebook_groups,
                 "nsm_unique_rules_total": unique_rules_total,
                 "nsm_security_badge": security_badge,
-                "nsm_next_offset": len(seen_items),
-                "nsm_has_more": len(seen_items) < total_items,
                 "nsm_api_url": api_url,
                 "nsm_assign_url": assign_url,
                 "nsm_analyzer_url": analyzer_url,

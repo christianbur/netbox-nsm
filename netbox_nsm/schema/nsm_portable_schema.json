@@ -5,9 +5,9 @@
       "name": "nsm_action",
       "slug": "nsm_action",
       "verbose_name": "Action",
-      "verbose_name_plural": "Action",
-      "description": "Outcome a security rule takes on matched traffic.",
-      "group_name": "NSM",
+      "verbose_name_plural": "Actions",
+      "description": "Policy action for matching traffic in a rule (e.g. permit, deny, drop, reject). Used in rulebook Action columns.",
+      "group_name": "NSM Objects",
       "fields": [
         {
           "id": 1,
@@ -19,6 +19,13 @@
           "weight": 1
         },
         {
+          "id": 2,
+          "name": "color",
+          "type": "text",
+          "label": "Color",
+          "weight": 91
+        },
+        {
           "id": 3,
           "name": "description",
           "type": "text",
@@ -26,29 +33,22 @@
           "weight": 90
         },
         {
-          "id": 6,
+          "id": 4,
           "name": "comments",
           "type": "longtext",
           "label": "Comments",
           "weight": 100
-        },
-        {
-          "id": 7,
-          "name": "color",
-          "type": "text",
-          "label": "Color",
-          "weight": 91
         }
       ],
       "removed_fields": []
     },
     {
-      "name": "nsm_services",
-      "slug": "nsm_services",
-      "verbose_name": "Services",
+      "name": "nsm_service",
+      "slug": "nsm_service",
+      "verbose_name": "Service",
       "verbose_name_plural": "Services",
-      "description": "Represents exactly one network service (protocol + optional port).",
-      "group_name": "NSM",
+      "description": "Represents one network service (protocol + port). Used in rulebook Service columns and Security Panel links.",
+      "group_name": "NSM Objects",
       "fields": [
         {
           "id": 1,
@@ -60,6 +60,13 @@
           "weight": 1
         },
         {
+          "id": 2,
+          "name": "color",
+          "type": "text",
+          "label": "Color",
+          "weight": 91
+        },
+        {
           "id": 3,
           "name": "description",
           "type": "text",
@@ -67,26 +74,20 @@
           "weight": 90
         },
         {
-          "id": 6,
+          "id": 4,
           "name": "comments",
           "type": "longtext",
           "label": "Comments",
           "weight": 100
-        },
-        {
-          "id": 7,
-          "name": "color",
-          "type": "text",
-          "label": "Color",
-          "weight": 91
         },
         {
           "id": 100,
           "name": "protocol",
           "type": "select",
           "label": "Protocol",
+          "required": true,
           "weight": 10,
-          "choice_set": "nsm_services_protocol"
+          "choice_set": "nsm_service_protocol"
         },
         {
           "id": 101,
@@ -94,29 +95,21 @@
           "type": "integer",
           "label": "Port",
           "description": "Port 0–65535 (TCP/UDP/SCTP only).",
-          "weight": 11,
           "validation_minimum": 0,
-          "validation_maximum": 65535
-        },
-        {
-          "id": 102,
-          "name": "group",
-          "type": "multiobject",
-          "label": "Group",
-          "description": "Group(s) this service belongs to.",
-          "weight": 12,
-          "related_object_type": "custom-objects/nsm_services"
+          "validation_maximum": 65535,
+          "required": true,
+          "weight": 11
         }
       ],
       "removed_fields": []
     },
     {
-      "name": "nsm_addresses",
-      "slug": "nsm_addresses",
-      "verbose_name": "Addresses",
-      "verbose_name_plural": "Addresses",
-      "description": "Represents exactly one IP address, prefix, or range.",
-      "group_name": "NSM",
+      "name": "nsm_service_group",
+      "slug": "nsm_service_group",
+      "verbose_name": "Service Group",
+      "verbose_name_plural": "Service Groups",
+      "description": "Named collection of services. Referenced in rulebook Service columns; members are nsm_service objects.",
+      "group_name": "NSM Objects",
       "fields": [
         {
           "id": 1,
@@ -128,6 +121,13 @@
           "weight": 1
         },
         {
+          "id": 2,
+          "name": "color",
+          "type": "text",
+          "label": "Color",
+          "weight": 91
+        },
+        {
           "id": 3,
           "name": "description",
           "type": "text",
@@ -135,24 +135,68 @@
           "weight": 90
         },
         {
-          "id": 6,
+          "id": 4,
           "name": "comments",
           "type": "longtext",
           "label": "Comments",
           "weight": 100
         },
         {
-          "id": 7,
+          "id": 100,
+          "name": "group",
+          "type": "multiobject",
+          "label": "Group Members",
+          "description": "Member service objects in this group.",
+          "weight": 10,
+          "related_object_type": "custom-objects/nsm_service"
+        }
+      ],
+      "removed_fields": []
+    },
+    {
+      "name": "nsm_address",
+      "slug": "nsm_address",
+      "verbose_name": "Address",
+      "verbose_name_plural": "Addresses",
+      "description": "Named address object for policy rules (host, prefix, or range). Used in Source/Destination columns and Security Panel links.",
+      "group_name": "NSM Objects",
+      "fields": [
+        {
+          "id": 1,
+          "name": "name",
+          "type": "text",
+          "label": "Name",
+          "primary": true,
+          "required": true,
+          "weight": 1
+        },
+        {
+          "id": 2,
           "name": "color",
           "type": "text",
           "label": "Color",
           "weight": 91
         },
         {
+          "id": 3,
+          "name": "description",
+          "type": "text",
+          "label": "Description",
+          "weight": 90
+        },
+        {
+          "id": 4,
+          "name": "comments",
+          "type": "longtext",
+          "label": "Comments",
+          "weight": 100
+        },
+        {
           "id": 100,
           "name": "ip_address",
           "type": "object",
           "label": "IP Address",
+          "description": "Optional NetBox IP address this policy object represents.",
           "weight": 10,
           "related_object_type": "ipam/ipaddress"
         },
@@ -161,6 +205,7 @@
           "name": "range",
           "type": "object",
           "label": "Range",
+          "description": "Optional NetBox IP range this policy object represents.",
           "weight": 11,
           "related_object_type": "ipam/iprange"
         },
@@ -169,28 +214,26 @@
           "name": "prefix",
           "type": "object",
           "label": "Prefix",
+          "description": "Optional NetBox prefix this policy object represents.",
           "weight": 12,
           "related_object_type": "ipam/prefix"
-        },
+        }
+      ],
+      "removed_fields": [
         {
           "id": 103,
           "name": "group",
-          "type": "multiobject",
-          "label": "Group",
-          "description": "Group(s) this address belongs to.",
-          "weight": 13,
-          "related_object_type": "custom-objects/nsm_addresses"
+          "type": "multiobject"
         }
-      ],
-      "removed_fields": []
+      ]
     },
     {
-      "name": "nsm_labels",
-      "slug": "nsm_labels",
-      "verbose_name": "Labels",
-      "verbose_name_plural": "Labels",
-      "description": "Logical attribute with type classification.",
-      "group_name": "NSM",
+      "name": "nsm_address_group",
+      "slug": "nsm_address_group",
+      "verbose_name": "Address Group",
+      "verbose_name_plural": "Address Groups",
+      "description": "Named collection of address objects. Used in Source/Destination columns; members are nsm_address objects.",
+      "group_name": "NSM Objects",
       "fields": [
         {
           "id": 1,
@@ -202,6 +245,13 @@
           "weight": 1
         },
         {
+          "id": 2,
+          "name": "color",
+          "type": "text",
+          "label": "Color",
+          "weight": 91
+        },
+        {
           "id": 3,
           "name": "description",
           "type": "text",
@@ -209,18 +259,61 @@
           "weight": 90
         },
         {
-          "id": 6,
+          "id": 4,
           "name": "comments",
           "type": "longtext",
           "label": "Comments",
           "weight": 100
         },
         {
-          "id": 7,
+          "id": 100,
+          "name": "group",
+          "type": "multiobject",
+          "label": "Group Members",
+          "description": "Member address objects in this group.",
+          "weight": 10,
+          "related_object_type": "custom-objects/nsm_address"
+        }
+      ],
+      "removed_fields": []
+    },
+    {
+      "name": "nsm_label",
+      "slug": "nsm_label",
+      "verbose_name": "Label",
+      "verbose_name_plural": "Labels",
+      "description": "Classification tag for inventory or rules (e.g. compliance, tier). Used in label columns and Security Panel links.",
+      "group_name": "NSM Objects",
+      "fields": [
+        {
+          "id": 1,
+          "name": "name",
+          "type": "text",
+          "label": "Name",
+          "primary": true,
+          "required": true,
+          "weight": 1
+        },
+        {
+          "id": 2,
           "name": "color",
           "type": "text",
           "label": "Color",
           "weight": 91
+        },
+        {
+          "id": 3,
+          "name": "description",
+          "type": "text",
+          "label": "Description",
+          "weight": 90
+        },
+        {
+          "id": 4,
+          "name": "comments",
+          "type": "longtext",
+          "label": "Comments",
+          "weight": 100
         },
         {
           "id": 100,
@@ -229,26 +322,26 @@
           "label": "Label Type",
           "required": true,
           "weight": 10,
-          "choice_set": "nsm_labels_label_type"
+          "choice_set": "nsm_label_type"
         },
         {
           "id": 101,
           "name": "custom_type",
           "type": "text",
           "label": "Custom Type",
-          "description": "Required when Label Type = Custom (e.g. 'Department').",
+          "description": "Required when Label Type = custom (e.g. Department).",
           "weight": 11
         }
       ],
       "removed_fields": []
     },
     {
-      "name": "nsm_zones",
-      "slug": "nsm_zones",
-      "verbose_name": "Zones",
+      "name": "nsm_zone",
+      "slug": "nsm_zone",
+      "verbose_name": "Zone",
       "verbose_name_plural": "Zones",
-      "description": "Security zone (logical segment of the network).",
-      "group_name": "NSM",
+      "description": "Logical security zone for segmentation. Linked to inventory via Security Panel; used in rulebook zone columns.",
+      "group_name": "NSM Objects",
       "fields": [
         {
           "id": 1,
@@ -260,6 +353,13 @@
           "weight": 1
         },
         {
+          "id": 2,
+          "name": "color",
+          "type": "text",
+          "label": "Color",
+          "weight": 91
+        },
+        {
           "id": 3,
           "name": "description",
           "type": "text",
@@ -267,29 +367,22 @@
           "weight": 90
         },
         {
-          "id": 6,
+          "id": 4,
           "name": "comments",
           "type": "longtext",
           "label": "Comments",
           "weight": 100
-        },
-        {
-          "id": 7,
-          "name": "color",
-          "type": "text",
-          "label": "Color",
-          "weight": 91
         }
       ],
       "removed_fields": []
     },
     {
-      "name": "nsm_business_apps",
-      "slug": "nsm_business_apps",
-      "verbose_name": "Business Apps",
+      "name": "nsm_app_business",
+      "slug": "nsm_app_business",
+      "verbose_name": "Business App",
       "verbose_name_plural": "Business Apps",
-      "description": "Business application with technical and business ownership.",
-      "group_name": "NSM",
+      "description": "Business application metadata for rule Info columns (ownership, criticality). Documentation only — not a network App-ID.",
+      "group_name": "NSM Objects",
       "fields": [
         {
           "id": 1,
@@ -301,6 +394,13 @@
           "weight": 1
         },
         {
+          "id": 2,
+          "name": "color",
+          "type": "text",
+          "label": "Color",
+          "weight": 91
+        },
+        {
           "id": 3,
           "name": "description",
           "type": "text",
@@ -308,18 +408,11 @@
           "weight": 90
         },
         {
-          "id": 6,
+          "id": 4,
           "name": "comments",
           "type": "longtext",
           "label": "Comments",
           "weight": 100
-        },
-        {
-          "id": 7,
-          "name": "color",
-          "type": "text",
-          "label": "Color",
-          "weight": 91
         },
         {
           "id": 100,
@@ -327,7 +420,7 @@
           "type": "select",
           "label": "Criticality",
           "weight": 10,
-          "choice_set": "nsm_business_apps_criticality"
+          "choice_set": "nsm_app_business_criticality"
         },
         {
           "id": 101,
@@ -349,12 +442,12 @@
       "removed_fields": []
     },
     {
-      "name": "nsm_network_apps",
-      "slug": "nsm_network_apps",
-      "verbose_name": "Network Apps",
+      "name": "nsm_app_network",
+      "slug": "nsm_app_network",
+      "verbose_name": "Network App",
       "verbose_name_plural": "Network Apps",
       "description": "Network application identifier, similar to Palo Alto App-ID (e.g. ssh, onedrive, ssl).",
-      "group_name": "NSM",
+      "group_name": "NSM Objects",
       "fields": [
         {
           "id": 1,
@@ -366,6 +459,13 @@
           "weight": 1
         },
         {
+          "id": 2,
+          "name": "color",
+          "type": "text",
+          "label": "Color",
+          "weight": 91
+        },
+        {
           "id": 3,
           "name": "description",
           "type": "text",
@@ -373,18 +473,11 @@
           "weight": 90
         },
         {
-          "id": 6,
+          "id": 4,
           "name": "comments",
           "type": "longtext",
           "label": "Comments",
           "weight": 100
-        },
-        {
-          "id": 7,
-          "name": "color",
-          "type": "text",
-          "label": "Color",
-          "weight": 91
         },
         {
           "id": 100,
@@ -392,7 +485,7 @@
           "type": "select",
           "label": "Category",
           "weight": 10,
-          "choice_set": "nsm_network_apps_app_category"
+          "choice_set": "nsm_app_network_category"
         },
         {
           "id": 101,
@@ -401,7 +494,7 @@
           "label": "Risk Level",
           "description": "Risk level 1 (lowest) to 5 (highest), matching Palo Alto App-ID convention.",
           "weight": 11,
-          "choice_set": "nsm_network_apps_app_risk"
+          "choice_set": "nsm_app_network_risk"
         },
         {
           "id": 102,
@@ -410,6 +503,105 @@
           "label": "Default Ports",
           "description": "Comma-separated list of default ports/protocols, e.g. tcp/443,tcp/80",
           "weight": 12
+        }
+      ],
+      "removed_fields": []
+    },
+    {
+      "name": "nsm_object_link",
+      "slug": "nsm_object_link",
+      "verbose_name": "Object Link",
+      "verbose_name_plural": "Object Links",
+      "description": "Links NetBox inventory to an NSM policy object with propagation semantics (parallel COT model to native ObjectLink).",
+      "group_name": "NSM Panel",
+      "fields": [
+        {
+          "id": 1,
+          "name": "name",
+          "type": "text",
+          "label": "Name",
+          "primary": true,
+          "required": true,
+          "weight": 1
+        },
+        {
+          "id": 2,
+          "name": "color",
+          "type": "text",
+          "label": "Color",
+          "weight": 91
+        },
+        {
+          "id": 3,
+          "name": "description",
+          "type": "text",
+          "label": "Description",
+          "weight": 90
+        },
+        {
+          "id": 4,
+          "name": "comments",
+          "type": "longtext",
+          "label": "Comments",
+          "weight": 100
+        },
+        {
+          "id": 100,
+          "name": "policy_object",
+          "type": "object",
+          "label": "Policy Object",
+          "description": "NSM policy object (zone, address, label, service, …).",
+          "required": true,
+          "weight": 10,
+          "is_polymorphic": true,
+          "related_object_types": [
+            "custom-objects/nsm_zone",
+            "custom-objects/nsm_address",
+            "custom-objects/nsm_address_group",
+            "custom-objects/nsm_label",
+            "custom-objects/nsm_service",
+            "custom-objects/nsm_service_group",
+            "custom-objects/nsm_app_business",
+            "custom-objects/nsm_app_network"
+          ]
+        },
+        {
+          "id": 101,
+          "name": "netbox_object",
+          "type": "object",
+          "label": "NetBox Object",
+          "description": "NetBox inventory object this link is stored on (device, VM, interface, prefix, …).",
+          "required": true,
+          "weight": 11,
+          "is_polymorphic": true,
+          "related_object_types": [
+            "dcim/device",
+            "virtualization/virtualmachine",
+            "dcim/interface",
+            "virtualization/vminterface",
+            "ipam/prefix",
+            "ipam/ipaddress",
+            "ipam/iprange"
+          ]
+        },
+        {
+          "id": 102,
+          "name": "propagation",
+          "type": "select",
+          "label": "Propagation",
+          "description": "How the link is stored and inherited to IPAM children or group members.",
+          "required": true,
+          "weight": 12,
+          "default": "direct",
+          "choice_set": "nsm_object_link_propagation"
+        },
+        {
+          "id": 103,
+          "name": "comment",
+          "type": "longtext",
+          "label": "Comment",
+          "description": "Optional note shown in the Security Panel link row.",
+          "weight": 13
         }
       ],
       "removed_fields": []

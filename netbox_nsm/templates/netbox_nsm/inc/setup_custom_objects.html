@@ -1,5 +1,38 @@
 {% load i18n %}
 
+<style>
+  .cot-setup-table {
+    table-layout: fixed;
+    max-width: 900px;
+  }
+  .cot-setup-table th:nth-child(1),
+  .cot-setup-table td:nth-child(1) {
+    width: 28%;
+  }
+  .cot-setup-table th:nth-child(2),
+  .cot-setup-table td:nth-child(2) {
+    width: 22%;
+    white-space: nowrap;
+  }
+  .cot-setup-table th:nth-child(3),
+  .cot-setup-table td:nth-child(3) {
+    width: 38%;
+    max-width: 280px;
+  }
+  .cot-setup-table th:nth-child(4),
+  .cot-setup-table td:nth-child(4) {
+    width: 90px;
+  }
+  .cot-setup-table .cot-desc {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .cot-setup-table td.text-center .badge {
+    white-space: nowrap;
+  }
+</style>
+
 <h5 class="d-flex align-items-center gap-2 mb-2 mt-2">
   <span class="badge text-bg-secondary">2</span>
   <i class="mdi mdi-cube-outline"></i>
@@ -43,21 +76,32 @@
           <i class="mdi mdi-plus-circle-multiple me-1"></i>{% trans "Add all Custom Object Types" %}
         </button>
       </form>
+      <p class="text-muted small mt-2 mb-0">
+        {% trans "Includes built-in NSM types, NSM Panel links, and rulebook templates (nsm_rb_*_template)." %}
+      </p>
     </div>
 
-    <table class="table table-sm table-borderless mb-0" style="max-width:600px">
+    <h6 class="text-muted text-uppercase small fw-semibold mb-3 mt-2">{% trans "Custom Object Groups" %}</h6>
+    {% for group in cot_setup_groups %}
+    <h6 class="fw-semibold mb-1{% if not forloop.first %} mt-4{% endif %}">{{ group.label }}</h6>
+    <p class="text-muted small mb-2">{{ group.description }}</p>
+    <table class="table table-sm table-borderless mb-0 cot-setup-table">
       <thead class="table-active">
         <tr>
-          <th>{% trans "Type" %}</th>
-          <th class="text-center" style="width:90px">{% trans "Status" %}</th>
+          <th>{% trans "Slug" %}</th>
+          <th>{% trans "Label" %}</th>
+          <th>{% trans "Description" %}</th>
+          <th class="text-center">{% trans "Status" %}</th>
         </tr>
       </thead>
       <tbody>
-        {% for slug, cot in cot_status.items %}
+        {% for entry in group.entries %}
         <tr>
-          <td><code>{{ slug }}</code></td>
+          <td><code>{{ entry.slug }}</code></td>
+          <td>{{ entry.label }}</td>
+          <td class="text-muted small cot-desc" title="{{ entry.description }}">{{ entry.description }}</td>
           <td class="text-center">
-            {% if cot %}
+            {% if entry.cot %}
               <span class="badge bg-success-subtle text-success border border-success-subtle">
                 <i class="mdi mdi-check"></i> {% trans "present" %}
               </span>
@@ -71,6 +115,7 @@
         {% endfor %}
       </tbody>
     </table>
+    {% endfor %}
 
     {% if all_cots_ok %}
     <div class="text-success small mt-3">

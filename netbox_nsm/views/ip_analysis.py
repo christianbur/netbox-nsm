@@ -9,10 +9,8 @@ from django.shortcuts import render
 from django.views import View
 
 from netbox_nsm.models import TypeConfig
-from netbox_nsm.views.rulebook import (
-    _get_api_url_for_content_type,
-    _parse_ipa_column_selections,
-)
+from netbox_nsm.analysis.addr_analysis_utils import _parse_ipa_column_selections
+from netbox_nsm.core.api_urls import get_api_url_for_content_type as _get_api_url_for_content_type
 
 __all__ = ("IPAnalysisView",)
 
@@ -24,7 +22,7 @@ class IPAnalysisView(LoginRequiredMixin, View):
         seen_ct_ids = set()
         ip_api_types = []
         for tc in TypeConfig.objects.select_related("content_type").order_by(
-            "order_id", "content_type__app_label", "content_type__model"
+            "name", "content_type__app_label", "content_type__model"
         ):
             if tc.content_type_id in seen_ct_ids:
                 continue

@@ -67,19 +67,6 @@ class TypeConfig(NetBoxModel):
             "Field names in curly braces are substituted (e.g. '{name} ({protocol})')."
         ),
     )
-    panel_slugs = models.JSONField(
-        default=list,
-        blank=True,
-        verbose_name=_("Panel slugs"),
-        help_text=_(
-            "Panel section slugs where this type appears (e.g. source, destination, services)."
-        ),
-    )
-    order_id = models.PositiveIntegerField(
-        default=100,
-        verbose_name=_("Sort order"),
-        help_text=_("Sort order of this type within panel sections."),
-    )
     allow_virtual_groups = models.BooleanField(
         default=False,
         verbose_name=_("Allow Virtual Groups"),
@@ -118,7 +105,7 @@ class TypeConfig(NetBoxModel):
         verbose_name = _("Type Config")
         verbose_name_plural = _("Type Configs")
         ordering = (
-            "order_id",
+            "name",
             "content_type__app_label",
             "content_type__model",
             "matching_class",
@@ -293,15 +280,10 @@ class TypeConfig(NetBoxModel):
 
     def serialize_object(self, exclude=None):
         data = super().serialize_object(exclude=exclude)
-        data["panel_slugs"] = _serialize_type_config_panel_slugs(self.panel_slugs)
         data["panel_linkable_types"] = _serialize_type_config_panel_linkable_types(
             self.panel_linkable_types
         )
         return data
-
-
-def _serialize_type_config_panel_slugs(slugs):
-    return {slug: True for slug in (slugs or [])}
 
 
 def _serialize_type_config_panel_linkable_types(type_ids):

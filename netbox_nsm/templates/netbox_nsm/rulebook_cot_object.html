@@ -1,0 +1,35 @@
+{% extends 'generic/object.html' %}
+{% load i18n %}
+{% load helpers %}
+
+{% block object_identifier %}
+  <span class="text-muted">{{ object.slug }}</span>
+{% endblock object_identifier %}
+
+{% block subtitle %}{% endblock subtitle %}
+
+{% block controls %}{% endblock controls %}
+
+{% block alerts %}{% endblock alerts %}
+
+{% block breadcrumbs %}
+{% include "netbox_nsm/inc/rulebook_breadcrumbs.html" with active_tab=active_tab %}
+{% endblock breadcrumbs %}
+
+{% block tabs %}
+  <ul class="nav nav-tabs" role="presentation">
+    <li class="nav-item" role="presentation">
+      <a href="{% url 'plugins:netbox_nsm:cot_rulebook' slug=object.slug %}"
+         class="nav-link{% if tab_key == 'detail' %} active{% endif %}">
+        {% trans "Rulebook" %}
+      </a>
+    </li>
+    {% for tab in virtual_rulebook_tabs %}
+      <li class="nav-item" role="presentation">
+        <a href="{{ tab.url }}" class="nav-link{% if tab.is_active %} active{% endif %}">
+          {{ tab.label }}{% badge tab.badge %}
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
+{% endblock tabs %}

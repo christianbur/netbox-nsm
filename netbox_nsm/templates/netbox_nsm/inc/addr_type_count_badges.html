@@ -1,0 +1,15 @@
+{% load i18n %}
+{% comment %}
+  Subnet / range / IP summary badges for the IP analyzer All row.
+  counts: { count_subnets, count_ranges, count_ips, count_duplicates }
+  diff_summary: optional { both, fund, ... } for diff-mode overlap badges
+{% endcomment %}
+<span class="badge bg-secondary-subtle text-secondary nsm-addr-count">Subnets: {{ counts.count_subnets|default:0 }}</span>
+<span class="badge bg-secondary-subtle text-secondary nsm-addr-count">Ranges: {{ counts.count_ranges|default:0 }}</span>
+<span class="badge bg-secondary-subtle text-secondary nsm-addr-count">IPs: {{ counts.count_ips|default:0 }}</span>
+{% if counts.count_duplicates %}<span class="badge bg-warning-subtle text-warning nsm-addr-count nsm-addr-duplicate-summary" title="{% trans 'Objects with overlap warnings in the cell tree: subnet already covered by a parent prefix, listed twice in the cell (doppelt), or repeated elsewhere in the tree' %}">{% trans "Warnings" %}: {{ counts.count_duplicates }}</span>{% endif %}
+{% if diff_summary %}
+{% if diff_summary.in_all %}<span class="badge bg-warning-subtle text-warning nsm-addr-count nsm-addr-diff-in-all" title="{% trans 'IPAM keys present in all diff tabs' %}">{% trans "In all" %}: {{ diff_summary.in_all }}</span>{% elif diff_summary.both %}<span class="badge bg-warning-subtle text-warning nsm-addr-count nsm-addr-diff-in-both" title="{% trans 'IPAM keys present on both diff sides' %}">{% trans "In both" %}: {{ diff_summary.both }}</span>{% endif %}
+{% if diff_summary.in_some %}<span class="badge bg-warning-subtle text-warning nsm-addr-count nsm-addr-diff-in-some" title="{% trans 'IPAM keys present in some but not all diff tabs' %}">{% trans "In some" %}: {{ diff_summary.in_some }}</span>{% endif %}
+{% if diff_summary.fund %}<span class="badge bg-warning-subtle text-warning nsm-addr-count nsm-addr-diff-fund" title="{% trans 'Same IPAM key with different object names on diff sides' %}">{% trans "Fund" %}: {{ diff_summary.fund }}</span>{% endif %}
+{% endif %}

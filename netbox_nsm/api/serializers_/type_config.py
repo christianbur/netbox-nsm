@@ -4,7 +4,7 @@ from rest_framework.serializers import HyperlinkedIdentityField
 from netbox.api.fields import ContentTypeField
 from netbox.api.serializers import NetBoxModelSerializer
 
-from netbox_nsm.changelog_utils import apply_type_config_changelog_message
+from netbox_nsm.core.changelog_utils import apply_type_config_changelog_message
 from netbox_nsm.models import TypeConfig
 
 __all__ = ("TypeConfigSerializer",)
@@ -33,8 +33,6 @@ class TypeConfigSerializer(NetBoxModelSerializer):
             "content_type",
             "matching_class",
             "display_template",
-            "panel_slugs",
-            "order_id",
             "inherit_links",
             "inherit_stop_on_own",
             "panel_linkable_types",
@@ -50,7 +48,6 @@ class TypeConfigSerializer(NetBoxModelSerializer):
             "name",
             "content_type",
             "matching_class",
-            "panel_slugs",
             "panel_linkable_types",
         )
 

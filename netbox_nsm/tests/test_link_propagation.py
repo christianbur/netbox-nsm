@@ -5,7 +5,8 @@ from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.link_propagation import (
+from netbox_nsm.objects.link_propagation import (
+    CotObjectLinkPropagationChoices,
     object_link_panel_link_type,
     object_link_panel_user_comment,
     propagation_choices_for_object,
@@ -23,10 +24,15 @@ class LinkPropagationTests(SimpleTestCase):
         self.assertTrue(supports_ipam_propagation(MagicMock(spec=Prefix)))
         self.assertFalse(supports_ipam_propagation(SimpleNamespace(pk=1)))
 
-    def test_supports_group_for_object_group(self):
-        from netbox_nsm.models import ObjectGroup
+    def test_supports_group_for_cot_group_container(self):
+        class FakeAddress:
+            objects = MagicMock()
 
-        self.assertTrue(supports_group_propagation(MagicMock(spec=ObjectGroup)))
+        obj = FakeAddress()
+        obj.group = MagicMock()
+        FakeAddress.objects.filter.return_value.exists.return_value = True
+
+        self.assertTrue(supports_group_propagation(obj))
 
     def test_propagation_choices_always_include_all_modes(self):
         obj = SimpleNamespace(pk=1)
@@ -70,10 +76,7 @@ class LinkPropagationTests(SimpleTestCase):
 
     def test_panel_splits_link_type_and_user_comment(self):
         link = MagicMock(
-            get_propagation_display=MagicMock(
-                return_value="Inherit to IPAM children (prefixes, addresses, ranges)"
-            ),
-            propagate_stop_on_own=False,
+            cot_propagation=CotObjectLinkPropagationChoices.INHERIT_IPAM,
             comment="  edge case  ",
         )
         self.assertEqual(

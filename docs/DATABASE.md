@@ -115,18 +115,9 @@ python manage.py migrate netbox_nsm
 
 | Migration | Purpose |
 |-----------|---------|
-| `0001_initial` | Full NSM schema (squashed for 0.3.0). Fresh installs: `migrate netbox_nsm` only. Depends on `netbox_custom_objects` through `0014_fix_mixed_case_field_names`. Includes `matrix_tab_enabled`, `virtual_group_config`, `panel_linkable_types`. |
+| `0001_initial` | Full current NSM schema for **fresh empty databases**. Creates `CotRulebookAssignment`, `TypeConfig`, `ObjectGroup`, `ObjectLink`, `NsmUiSettings`, property/section models — **no** legacy native `Rulebook` / `Rule` tables. Depends on `netbox_custom_objects` through `0014_fix_mixed_case_field_names`. |
 
-### Existing database after a squash (dev)
-
-If NSM already had migrations `0002`–`0005` (or older numbered migrations) applied, reset the app schema before applying the squashed `0001`:
-
-```bash
-docker exec netbox-dev bash -c 'cd /opt/netbox/netbox && /opt/netbox/venv/bin/python manage.py migrate netbox_nsm zero'
-docker exec netbox-dev bash -c 'cd /opt/netbox/netbox && /opt/netbox/venv/bin/python manage.py migrate netbox_nsm'
-```
-
-**Warning:** `migrate … zero` drops all NSM plugin tables (rulebooks, rules, type configs, …). Custom object instances and NetBox core data are unaffected.
+Superseded incremental migrations (`0002_nsmuisettings_setup_menu_state`, `0003_drop_native_rulebooks`) are kept under `OLD/migrations/` for reference only.
 
 If migration planning fails with missing `netbox_custom_objects` parents, upgrade that plugin to a version that includes migration `0014` (NetBox dev stack: 0.5.x).
 

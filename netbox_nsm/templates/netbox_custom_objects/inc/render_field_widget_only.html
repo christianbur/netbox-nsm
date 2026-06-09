@@ -1,0 +1,14 @@
+{% load form_helpers %}
+{% load i18n %}
+
+<div{% if field.errors %} class="has-errors"{% endif %}>
+  {% render_field_with_aria field %}
+  {% if field.errors %}
+    <div class="form-text text-danger" id="{{ field.auto_id }}_errors" role="alert">
+      {% for error in field.errors %}{{ error }}{% if not forloop.last %}<br />{% endif %}{% endfor %}
+    </div>
+  {% endif %}
+  {% if field.help_text %}
+    <span class="form-text" id="{{ field.auto_id }}_helptext">{{ field.help_text|safe }}</span>
+  {% endif %}
+</div>

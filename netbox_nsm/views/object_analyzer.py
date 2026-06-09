@@ -55,7 +55,7 @@ class ObjectAnalyzerView(LoginRequiredMixin, View):
     def get(self, request):
         from django.contrib.contenttypes.models import ContentType
 
-        from netbox_nsm.api_urls import (
+        from netbox_nsm.core.api_urls import (
             get_api_url_for_content_type as _get_api_url_for_content_type,
         )
 
@@ -68,7 +68,7 @@ class ObjectAnalyzerView(LoginRequiredMixin, View):
         api_types = []
 
         for tc in TypeConfig.objects.select_related("content_type").order_by(
-            "order_id", "content_type__app_label", "content_type__model"
+            "name", "content_type__app_label", "content_type__model"
         ):
             if tc.content_type_id in seen_ct_ids:
                 continue

@@ -1,50 +1,28 @@
 from rest_framework.routers import APIRootView
-from rest_framework.viewsets import GenericViewSet
 from netbox.api.viewsets import NetBoxModelViewSet
 
-from .changelog_mixins import (
-    RuleAssignmentChangelogMixin,
-    RulebookFieldTypeLayoutChangelogMixin,
-    RulebookLayoutChangelogMixin,
-    RuleRulesChangelogMixin,
-)
 from .serializers import (
-    RulebookSerializer,
-    RuleSerializer,
-    RulebookAssignmentSerializer,
-    ObjectGroupSerializer,
+    CotRulebookAssignmentSerializer,
     ObjectLinkSerializer,
     TypeConfigSerializer,
-    RulebookFieldSerializer,
-    RulebookFieldTypeSerializer,
-    RuleObjectItemSerializer,
-    RuleGroupItemSerializer,
 )
 
 from netbox_nsm.models import (
-    Rulebook,
-    Rule,
-    RulebookAssignment,
-    ObjectGroup,
-    ObjectLink,
+    CotRulebookAssignment,
     TypeConfig,
-    RulebookField,
-    RulebookFieldType,
-    RuleObjectItem,
-    RuleGroupItem,
 )
 
 from netbox_nsm.filtersets import (
-    RulebookFilterSet,
-    RuleFilterSet,
-    RulebookAssignmentFilterSet,
-    ObjectGroupFilterSet,
+    CotRulebookAssignmentFilterSet,
     ObjectLinkFilterSet,
     TypeConfigFilterSet,
-    RulebookFieldFilterSet,
-    RulebookFieldTypeFilterSet,
-    RuleObjectItemFilterSet,
-    RuleGroupItemFilterSet,
+)
+
+from netbox_nsm.objects.object_link_service import (
+    ObjectLinkRecord,
+    delete_link,
+    get_link_by_pk,
+    get_object_link_model,
 )
 
 
@@ -53,38 +31,35 @@ class NetBoxSecurityRootView(APIRootView):
         return "NetBoxSecurity"
 
 
-class RulebookViewSet(NetBoxModelViewSet):
-    queryset = Rulebook.objects.prefetch_related("tags")
-    serializer_class = RulebookSerializer
-    filterset_class = RulebookFilterSet
-
-
-class RuleViewSet(RuleRulesChangelogMixin, NetBoxModelViewSet):
-    queryset = Rule.objects.select_related("rulebook").prefetch_related("tags")
-    serializer_class = RuleSerializer
-    filterset_class = RuleFilterSet
-
-
-class RulebookAssignmentViewSet(NetBoxModelViewSet):
-    queryset = RulebookAssignment.objects.all()
-    serializer_class = RulebookAssignmentSerializer
-    filterset_class = RulebookAssignmentFilterSet
-
-
-class ObjectGroupViewSet(NetBoxModelViewSet):
-    queryset = ObjectGroup.objects.prefetch_related("sub_groups", "tags")
-    serializer_class = ObjectGroupSerializer
-    filterset_class = ObjectGroupFilterSet
+class CotRulebookAssignmentViewSet(NetBoxModelViewSet):
+    queryset = CotRulebookAssignment.objects.all()
+    serializer_class = CotRulebookAssignmentSerializer
+    filterset_class = CotRulebookAssignmentFilterSet
 
 
 class ObjectLinkViewSet(NetBoxModelViewSet):
-    queryset = (
-        ObjectLink.objects.select_related("object_a_type", "object_b_type")
-        .prefetch_related("tags")
-        .order_by("pk")
-    )
+    """CRUD for COT ``nsm_object_link`` rows (legacy ``/object-links/`` path)."""
+
+    queryset = TypeConfig.objects.none()
     serializer_class = ObjectLinkSerializer
     filterset_class = ObjectLinkFilterSet
+
+    def get_queryset(self):
+        model = get_object_link_model()
+        if model is None:
+            return []
+        return model.objects.all().order_by("pk")
+
+    def get_object(self):
+        record = get_link_by_pk(self.kwargs["pk"])
+        if record is None:
+            from rest_framework.exceptions import NotFound
+
+            raise NotFound()
+        return record.instance
+
+    def perform_destroy(self, instance):
+        delete_link(ObjectLinkRecord.from_instance(instance))
 
 
 class TypeConfigViewSet(NetBoxModelViewSet):
@@ -93,45 +68,3 @@ class TypeConfigViewSet(NetBoxModelViewSet):
     )
     serializer_class = TypeConfigSerializer
     filterset_class = TypeConfigFilterSet
-
-
-class _PlainModelViewSet(NetBoxModelViewSet):
-    def initial(self, request, *args, **kwargs):
-        GenericViewSet.initial(self, request, *args, **kwargs)
-
-    def get_queryset(self):
-        return self.queryset
-
-
-class RulebookFieldViewSet(RulebookLayoutChangelogMixin, _PlainModelViewSet):
-    queryset = RulebookField.objects.select_related("rulebook").order_by(
-        "rulebook", "sort_order", "slug"
-    )
-    serializer_class = RulebookFieldSerializer
-    filterset_class = RulebookFieldFilterSet
-
-
-class RulebookFieldTypeViewSet(
-    RulebookFieldTypeLayoutChangelogMixin, _PlainModelViewSet
-):
-    queryset = RulebookFieldType.objects.select_related(
-        "field", "type_config__content_type"
-    ).order_by("field", "sort_order")
-    serializer_class = RulebookFieldTypeSerializer
-    filterset_class = RulebookFieldTypeFilterSet
-
-
-class RuleObjectItemViewSet(RuleAssignmentChangelogMixin, _PlainModelViewSet):
-    queryset = RuleObjectItem.objects.select_related(
-        "rule", "field", "content_type"
-    ).order_by("pk")
-    serializer_class = RuleObjectItemSerializer
-    filterset_class = RuleObjectItemFilterSet
-
-
-class RuleGroupItemViewSet(RuleAssignmentChangelogMixin, _PlainModelViewSet):
-    queryset = RuleGroupItem.objects.select_related(
-        "rule", "field", "security_group"
-    ).order_by("pk")
-    serializer_class = RuleGroupItemSerializer
-    filterset_class = RuleGroupItemFilterSet

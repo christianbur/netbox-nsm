@@ -44,8 +44,6 @@ class TypeConfigFormTests(TestCase):
                 "name": "Renamed Zones",
                 "matching_class": "zone",
                 "display_template": "{name}",
-                "panel_slugs": ["source"],
-                "order_id": 10,
                 "panel_linkable_types": [],
             },
         )
@@ -60,6 +58,7 @@ class TypeConfigFormTests(TestCase):
         columns = TypeConfigTable.Meta.default_columns
         self.assertNotIn("inherit_links", columns)
         self.assertNotIn("inherit_stop_on_own", columns)
+        self.assertIn("panel_linkable_types", columns)
 
     def test_render_panel_linkable_all_types_uses_subtle_badge(self):
         table = TypeConfigTable(TypeConfig.objects.none())

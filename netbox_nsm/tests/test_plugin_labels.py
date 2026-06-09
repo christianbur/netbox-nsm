@@ -3,7 +3,7 @@
 from django.test import TestCase, override_settings
 
 from netbox_nsm.models import NsmUiSettings
-from netbox_nsm.plugin_labels import get_nsm_menu_label, get_nsm_panel_label
+from netbox_nsm.core.plugin_labels import get_nsm_menu_label, get_nsm_panel_label
 
 
 class PluginLabelsTest(TestCase):

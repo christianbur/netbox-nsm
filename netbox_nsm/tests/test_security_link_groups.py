@@ -130,7 +130,7 @@ class FinalizeLinkTypeGroupTests(SimpleTestCase):
 
 
 class SecurityRulebookTreeTemplateTests(SimpleTestCase):
-    def test_renders_rulebook_field_rule_hierarchy(self):
+    def test_renders_rulebook_field_counts_without_rule_links(self):
         rb = SimpleNamespace(
             pk=5,
             name="Firewall",
@@ -138,11 +138,6 @@ class SecurityRulebookTreeTemplateTests(SimpleTestCase):
             get_rules_tab_url=lambda: "/rulebooks/5/rules/",
         )
         field = SimpleNamespace(pk=9, slug="source", name="Source")
-        rule = SimpleNamespace(
-            name="rule1",
-            get_absolute_url=lambda: "/rules/1/",
-            nsm_panel_filter_url="/rulebooks/5/rules/?f_name=rule1",
-        )
         html = render_to_string(
             "netbox_nsm/inc/security_links.html",
             {
@@ -161,16 +156,13 @@ class SecurityRulebookTreeTemplateTests(SimpleTestCase):
                             {
                                 "field": field,
                                 "rule_count": 1,
-                                "rules": [rule],
                             }
                         ],
                     }
                 ],
                 "nsm_link_type_groups": [],
                 "nsm_enforcer_assignments": [],
-                "nsm_api_url": "/api/",
-                "nsm_next_offset": 1,
-                "nsm_has_more": False,
+                "nsm_api_url": "/api/object-rules/?ct_id=1&obj_id=2",
             },
         )
         self.assertIn('id="nsm-cat-rulebook"', html)
@@ -184,10 +176,16 @@ class SecurityRulebookTreeTemplateTests(SimpleTestCase):
         self.assertNotIn("f_source__ct_", html)
         self.assertIn("nsm-rb-field-count", html)
         self.assertIn('class="nsm-rb-rule-list', html)
-        self.assertIn('href="/rulebooks/5/rules/?f_name=rule1"', html)
-        self.assertIn(">rule1<", html)
-        self.assertIn('data-detail-url="/rules/1/"', html)
-        self.assertIn('class="collapse show"', html)
+        self.assertIn('data-api-url="/api/object-rules/?ct_id=1&amp;obj_id=2"', html)
+        self.assertIn('data-rb-pk="5"', html)
+        self.assertIn('data-field-pk="9"', html)
+        self.assertIn('data-loaded="0"', html)
+        self.assertIn("nsm-rb-field-loading", html)
+        self.assertIn("fetchFieldRules", html)
+        self.assertNotIn('href="/rulebooks/5/rules/?f_name=rule1"', html)
+        self.assertNotIn(">rule1<", html)
+        self.assertIn('class="collapse nsm-rb-field-collapse"', html)
+        self.assertNotIn("nsm-sentinel", html)
         self.assertNotIn("nsm-security-rulebook-header-links", html)
 
 

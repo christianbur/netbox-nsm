@@ -1,3 +1,2 @@
-from .rulebook import *
-from .object_group import *
+from .cot_rulebook_assignment import *
 from .extras import *

@@ -12,6 +12,7 @@
   var MIN_HEIGHT = 240;
   var VIEWPORT_MARGIN = 12;
   var SIZE_STORAGE_KEY = "nsm-ipa-applet-size";
+  var MIN_BODY_SCALE = 0.55;
 
   function escHtml(text) {
     var div = document.createElement("div");
@@ -19,8 +20,54 @@
     return div.innerHTML;
   }
 
+  function formatTypeCountSummary(tab) {
+    if (!tab) {
+      return "";
+    }
+    if (
+      tab.countSubnets != null ||
+      tab.countRanges != null ||
+      tab.countIps != null
+    ) {
+      var parts = [
+        "Subnets: " + (tab.countSubnets || 0),
+        "Ranges: " + (tab.countRanges || 0),
+        "IPs: " + (tab.countIps != null ? tab.countIps : tab.leafCount || 0),
+      ];
+      if (tab.countDuplicates) {
+        parts.push("Warnings: " + tab.countDuplicates);
+      }
+      return parts.join("  ");
+    }
+    return tab.leafCount ? "IPs: " + tab.leafCount : "";
+  }
+
   function apiUrl() {
     return window.NSM_IP_ANALYSIS_API || "/plugins/netbox-nsm/api/ip-analysis/";
+  }
+
+  function addObjectTypesApiUrl() {
+    return (
+      window.NSM_IP_ANALYSIS_ADD_OBJECT_TYPES_API ||
+      "/plugins/netbox-nsm/api/ip-analysis/add-object-types/"
+    );
+  }
+
+  function debounce(fn, ms) {
+    var timer;
+    return function () {
+      var args = arguments;
+      var ctx = this;
+      clearTimeout(timer);
+      timer = setTimeout(function () {
+        fn.apply(ctx, args);
+      }, ms);
+    };
+  }
+
+  function getCsrfToken() {
+    var m = document.cookie.match(/csrftoken=([^;]+)/);
+    return m ? m[1] : "";
   }
 
   function nsmFetch(url, options) {
@@ -63,6 +110,26 @@
     return out;
   }
 
+  function collectRawObjects(objects) {
+    var out = [];
+    (objects || []).forEach(function (obj) {
+      if (!obj) {
+        return;
+      }
+      var ct = obj.ct != null ? String(obj.ct) : "";
+      var pk = obj.pk != null ? String(obj.pk) : "";
+      if (!ct || !pk) {
+        return;
+      }
+      out.push({
+        ct: ct,
+        pk: pk,
+        name: obj.name != null ? String(obj.name) : "",
+      });
+    });
+    return out;
+  }
+
   function objectsKey(objects) {
     return objects
       .map(function (obj) {
@@ -72,9 +139,108 @@
       .join("|");
   }
 
-  function tabTitle(objects, customTitle) {
+  function tabDedupKey(objects, context) {
+    var base = objectsKey(objects);
+    if (!context) {
+      return base;
+    }
+    var ruleIndex = context.ruleIndex;
+    var colPosition = context.colPosition;
+    if (ruleIndex != null && ruleIndex !== "" && colPosition) {
+      return base + "|" + ruleIndex + "/" + colPosition;
+    }
+    return base;
+  }
+
+  function rulesCellTabTitle(context) {
+    if (!context) {
+      return null;
+    }
+    var ruleIndex = context.ruleIndex;
+    var colPosition = context.colPosition;
+    if (ruleIndex == null || ruleIndex === "" || !colPosition) {
+      return null;
+    }
+    return "Rule " + ruleIndex + "/" + colPosition;
+  }
+
+  function rulesCellContextLabel(context) {
+    if (!context) {
+      return "";
+    }
+    var ruleIndex = context.ruleIndex;
+    if (ruleIndex == null || ruleIndex === "") {
+      return "";
+    }
+    var ruleName = context.ruleName || "";
+    var colPart = context.colId || context.colPosition || "";
+    if (ruleName) {
+      return ruleName + " (" + ruleIndex + ") / " + colPart;
+    }
+    return "Regel " + ruleIndex + " / " + colPart;
+  }
+
+  function rulesCellDiffSideLabel(context) {
+    if (!context) {
+      return "";
+    }
+    var ruleIndex = context.ruleIndex;
+    if (ruleIndex == null || ruleIndex === "") {
+      return "";
+    }
+    var ruleName = context.ruleName || "";
+    var colPart = context.colId || context.colPosition || "";
+    if (ruleName && colPart) {
+      return ruleName + " (" + ruleIndex + ") / " + colPart;
+    }
+    if (ruleName) {
+      return ruleName + " (" + ruleIndex + ")";
+    }
+    if (colPart) {
+      return "Rule " + ruleIndex + " / " + colPart;
+    }
+    var colPosition = context.colPosition;
+    if (colPosition) {
+      return "Rule " + ruleIndex + "/" + colPosition;
+    }
+    return "";
+  }
+
+  function diffSideLabel(tab) {
+    if (!tab) {
+      return "";
+    }
+    return (
+      rulesCellDiffSideLabel(tab.context) ||
+      tab.contextLabel ||
+      tab.title ||
+      ""
+    );
+  }
+
+  function diffTabContextLabel(tabs) {
+    if (!tabs || !tabs.length) {
+      return "";
+    }
+    var firstLabel = rulesCellContextLabel(tabs[0].context);
+    if (!firstLabel) {
+      return "";
+    }
+    for (var i = 1; i < tabs.length; i++) {
+      if (rulesCellContextLabel(tabs[i].context) !== firstLabel) {
+        return "";
+      }
+    }
+    return firstLabel;
+  }
+
+  function tabTitle(objects, customTitle, context) {
     if (customTitle) {
       return String(customTitle);
+    }
+    var rulesTitle = rulesCellTabTitle(context);
+    if (rulesTitle) {
+      return rulesTitle;
     }
     if (!objects.length) {
       return "IP-Analyse";
@@ -87,6 +253,69 @@
 
   function mergedTabTitle(objectCount) {
     return "Merged (" + objectCount + " Objekte)";
+  }
+
+  function diffTabTitleFromTabs(tabs) {
+    if (!tabs || !tabs.length) {
+      return "Diff";
+    }
+    if (tabs.length === 2) {
+      var a = truncateTitle(diffSideLabel(tabs[0]) || tabs[0].title || "A");
+      var b = truncateTitle(diffSideLabel(tabs[1]) || tabs[1].title || "B");
+      return "Diff (" + a + " ↔ " + b + ")";
+    }
+    if (tabs.length <= 4) {
+      var labels = tabs.map(function (tab) {
+        return truncateTitle(diffSideLabel(tab) || tab.title || "");
+      });
+      return "Diff (" + labels.join(" ↔ ") + ")";
+    }
+    return "Diff (" + tabs.length + " Tabs)";
+  }
+
+  function diffObjectsKey(sides) {
+    return (
+      "diff:" +
+      (sides || [])
+        .map(function (side) {
+          return objectsKey((side && side.objects) || []);
+        })
+        .join("|")
+    );
+  }
+
+  function formatDiffSummary(summary) {
+    if (!summary) {
+      return "";
+    }
+    var fundPart = summary.fund > 0 ? " | Fund: " + summary.fund : "";
+    if (summary.side_count && summary.side_count > 2) {
+      var parts = [];
+      (summary.only_by_side || []).forEach(function (item) {
+        if (item.count > 0) {
+          parts.push((item.label || "?") + ": +" + item.count);
+        }
+      });
+      if (summary.in_all > 0) {
+        parts.push("in allen: " + summary.in_all);
+      }
+      if (summary.in_some > 0) {
+        parts.push("in einigen: " + summary.in_some);
+      }
+      return parts.join(" | ") + fundPart;
+    }
+    return (
+      (summary.label_a || "A") +
+      ": +" +
+      (summary.only_a || 0) +
+      " | " +
+      (summary.label_b || "B") +
+      ": +" +
+      (summary.only_b || 0) +
+      " | gemeinsam: " +
+      (summary.both || 0) +
+      fundPart
+    );
   }
 
   function collectObjectsFromTabs(tabs) {
@@ -107,11 +336,30 @@
     return text.slice(0, TAB_TITLE_MAX - 1) + "…";
   }
 
-  function buildQuery(objects) {
+  function buildQuery(objects, rawObjects) {
     var params = new URLSearchParams();
-    objects.forEach(function (obj) {
+    var list =
+      rawObjects && rawObjects.length ? rawObjects : objects || [];
+    list.forEach(function (obj) {
       params.append("ct", obj.ct);
       params.append("pk", obj.pk);
+    });
+    return params.toString();
+  }
+
+  function buildDiffQuery(sides) {
+    var params = new URLSearchParams();
+    params.append("mode", "diff");
+    (sides || []).forEach(function (side, index) {
+      var prefix = "s" + index + "_";
+      (side.objects || []).forEach(function (obj) {
+        params.append(prefix + "ct", obj.ct);
+        params.append(prefix + "pk", obj.pk);
+      });
+      var label = (side && (side.diffLabel || side.title)) || "";
+      if (label) {
+        params.append(prefix + "name", label);
+      }
     });
     return params.toString();
   }
@@ -161,9 +409,22 @@
     this.titleEl = null;
     this.tabsEl = null;
     this.tabListEl = null;
+    this.toolbarEl = null;
+    this.toolbarActionsEl = null;
+    this.addObjectMenuEl = null;
+    this.addObjectModalEl = null;
+    this.addObjectSearchEl = null;
+    this.addObjectResultsEl = null;
+    this.addObjectTitleEl = null;
     this.mergeBtnEl = null;
+    this.diffBtnEl = null;
+    this._addObjectCategories = null;
+    this._addObjectCategory = null;
+    this._addObjectSearchCtrl = null;
+    this._addObjectSearchToken = 0;
     this.minimized = false;
     this._merging = false;
+    this._diffing = false;
     this.dragState = null;
     this.resizeState = null;
     this.tabs = [];
@@ -200,9 +461,28 @@
           '<button type="button" class="btn btn-sm btn-ghost-secondary py-0 px-1 nsm-ipa-applet-close" title="Schließen" aria-label="Schließen"><i class="mdi mdi-close"></i></button>' +
         "</div>" +
       "</div>" +
+      '<div class="nsm-ipa-applet-toolbar" hidden>' +
+        '<div class="dropdown nsm-ipa-applet-add-object">' +
+          '<button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle nsm-ipa-applet-add-object-toggle" data-bs-toggle="dropdown" data-bs-container="body" aria-expanded="false" title="Objekt hinzufügen" aria-label="Objekt hinzufügen">Objekt hinzufügen</button>' +
+          '<ul class="dropdown-menu nsm-ipa-applet-add-object-menu"></ul>' +
+        "</div>" +
+        '<div class="nsm-ipa-applet-toolbar-actions">' +
+          '<button type="button" class="btn btn-sm btn-outline-primary nsm-ipa-applet-merge" title="Merge" aria-label="Merge"><i class="mdi mdi-call-merge" aria-hidden="true"></i><span>Merge</span></button>' +
+          '<button type="button" class="btn btn-sm btn-outline-primary nsm-ipa-applet-diff" title="Diff" aria-label="Diff"><i class="mdi mdi-compare" aria-hidden="true"></i><span>Diff</span></button>' +
+        "</div>" +
+      "</div>" +
       '<div class="nsm-ipa-applet-tabs" hidden>' +
         '<div class="nsm-ipa-applet-tab-list" role="tablist"></div>' +
-        '<button type="button" class="btn btn-sm btn-outline-primary nsm-ipa-applet-merge" hidden title="Merge" aria-label="Merge"><i class="mdi mdi-call-merge" aria-hidden="true"></i><span>Merge</span></button>' +
+      "</div>" +
+      '<div class="nsm-ipa-applet-add-modal" hidden>' +
+        '<div class="nsm-ipa-applet-add-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="nsm-ipa-applet-add-modal-title">' +
+          '<div class="nsm-ipa-applet-add-modal-head">' +
+            '<h6 class="nsm-ipa-applet-add-modal-title" id="nsm-ipa-applet-add-modal-title">Objekt hinzufügen</h6>' +
+            '<button type="button" class="btn btn-sm btn-ghost-secondary py-0 px-1 nsm-ipa-applet-add-modal-close" title="Schließen" aria-label="Schließen"><i class="mdi mdi-close"></i></button>' +
+          "</div>" +
+          '<input type="search" class="form-control form-control-sm nsm-ipa-applet-add-search" placeholder="Suchen…" autocomplete="off">' +
+          '<div class="nsm-ipa-applet-add-results"></div>' +
+        "</div>" +
       "</div>" +
       '<div class="nsm-ipa-applet-body"></div>' +
       '<div class="nsm-ipa-applet-footer"><span class="nsm-ipa-applet-status"></span><span class="nsm-ipa-applet-count"></span></div>' +
@@ -217,7 +497,15 @@
     this.titleEl = panel.querySelector(".nsm-ipa-applet-title-text");
     this.tabsEl = panel.querySelector(".nsm-ipa-applet-tabs");
     this.tabListEl = panel.querySelector(".nsm-ipa-applet-tab-list");
+    this.toolbarEl = panel.querySelector(".nsm-ipa-applet-toolbar");
+    this.toolbarActionsEl = panel.querySelector(".nsm-ipa-applet-toolbar-actions");
+    this.addObjectMenuEl = panel.querySelector(".nsm-ipa-applet-add-object-menu");
+    this.addObjectModalEl = panel.querySelector(".nsm-ipa-applet-add-modal");
+    this.addObjectSearchEl = panel.querySelector(".nsm-ipa-applet-add-search");
+    this.addObjectResultsEl = panel.querySelector(".nsm-ipa-applet-add-results");
+    this.addObjectTitleEl = panel.querySelector(".nsm-ipa-applet-add-modal-title");
     this.mergeBtnEl = panel.querySelector(".nsm-ipa-applet-merge");
+    this.diffBtnEl = panel.querySelector(".nsm-ipa-applet-diff");
 
     var header = panel.querySelector(".nsm-ipa-applet-header");
     header.addEventListener("mousedown", this._onHeaderDown.bind(this));
@@ -226,12 +514,110 @@
 
     this.tabListEl.addEventListener("click", this._onTabListClick.bind(this));
     this.mergeBtnEl.addEventListener("click", this.mergeTabs.bind(this));
+    this.diffBtnEl.addEventListener("click", this.diffTabs.bind(this));
+    this._bindAddObjectHandlers();
 
     panel.querySelectorAll(".nsm-ipa-applet-resize-handle").forEach(
       function (handle) {
         handle.addEventListener("mousedown", this._onResizeDown.bind(this));
       }.bind(this)
     );
+
+    this._bindBodyScaleObserver();
+    this.bodyEl.addEventListener(
+      "toggle",
+      function () {
+        this._scheduleBodyScale();
+      }.bind(this),
+      true
+    );
+  };
+
+  Applet.prototype._wrapBodyContent = function (html) {
+    return (
+      '<div class="nsm-ipa-applet-body-scale-host">' +
+      '<div class="nsm-ipa-applet-body-scale">' +
+      html +
+      "</div></div>"
+    );
+  };
+
+  Applet.prototype._fitBodyScale = function () {
+    if (!this.bodyEl || this.minimized) {
+      return;
+    }
+    var host = this.bodyEl.querySelector(".nsm-ipa-applet-body-scale-host");
+    var inner = host && host.querySelector(".nsm-ipa-applet-body-scale");
+    if (!inner) {
+      return;
+    }
+
+    inner.style.transform = "none";
+    host.style.height = "auto";
+
+    var available = this.bodyEl.clientWidth;
+    var contentW = inner.scrollWidth;
+    var scale = 1;
+    if (contentW > available && available > 0) {
+      scale = Math.max(MIN_BODY_SCALE, available / contentW);
+    }
+
+    if (scale < 0.999) {
+      inner.style.transform = "scale(" + scale + ")";
+      host.style.height = Math.ceil(inner.offsetHeight * scale) + "px";
+    } else {
+      inner.style.transform = "";
+      host.style.height = "";
+    }
+  };
+
+  Applet.prototype._scheduleBodyScale = function () {
+    var self = this;
+    if (this._scaleRaf) {
+      cancelAnimationFrame(this._scaleRaf);
+    }
+    this._scaleRaf = requestAnimationFrame(function () {
+      self._scaleRaf = null;
+      self._fitBodyScale();
+    });
+  };
+
+  Applet.prototype._bindBodyScaleObserver = function () {
+    if (!this.bodyEl || this._bodyScaleBound) {
+      return;
+    }
+    this._bodyScaleBound = true;
+    var self = this;
+    if (typeof ResizeObserver !== "undefined") {
+      this._bodyScaleObserver = new ResizeObserver(function () {
+        self._scheduleBodyScale();
+      });
+      this._bodyScaleObserver.observe(this.bodyEl);
+    }
+    this._onWindowResizeForScale = function () {
+      self._scheduleBodyScale();
+    };
+    window.addEventListener("resize", this._onWindowResizeForScale);
+    this._bodyMutationObserver = new MutationObserver(function () {
+      self._scheduleBodyScale();
+    });
+  };
+
+  Applet.prototype._observeBodyContent = function () {
+    if (!this.bodyEl || !this._bodyMutationObserver) {
+      return;
+    }
+    this._bodyMutationObserver.disconnect();
+    this._bodyMutationObserver.observe(this.bodyEl, {
+      childList: true,
+      subtree: true,
+    });
+  };
+
+  Applet.prototype._unobserveBodyContent = function () {
+    if (this._bodyMutationObserver) {
+      this._bodyMutationObserver.disconnect();
+    }
   };
 
   Applet.prototype._onHeaderDown = function (e) {
@@ -401,6 +787,7 @@
       this._persistSize();
     }
     this.resizeState = null;
+    this._scheduleBodyScale();
   };
 
   Applet.prototype._onTabListClick = function (e) {
@@ -421,8 +808,8 @@
     }
   };
 
-  Applet.prototype.findTabByObjects = function (objects) {
-    var key = objectsKey(objects);
+  Applet.prototype.findTabByObjects = function (objects, context) {
+    var key = tabDedupKey(objects, context);
     for (var i = 0; i < this.tabs.length; i++) {
       if (this.tabs[i].objectsKey === key) {
         return this.tabs[i];
@@ -456,10 +843,36 @@
     this.titleEl.textContent = tab.title;
   };
 
+  Applet.prototype.renderToolbar = function () {
+    if (!this.toolbarEl) {
+      return;
+    }
+    var showToolbar = this.tabs.length >= 1 && this.el && !this.el.hidden;
+    this.toolbarEl.hidden = !showToolbar;
+    this.el.classList.toggle("nsm-ipa-applet--has-toolbar", showToolbar);
+
+    if (this.mergeBtnEl) {
+      var canMerge = this.tabs.length > 1;
+      this.mergeBtnEl.disabled = !canMerge || this._merging || this._diffing;
+    }
+    if (this.diffBtnEl) {
+      var canDiff = this.tabs.length >= 2;
+      this.diffBtnEl.disabled = !canDiff || this._merging || this._diffing;
+      this.diffBtnEl.title = canDiff
+        ? "Diff"
+        : "Diff (mindestens 2 Tabs erforderlich)";
+      this.diffBtnEl.setAttribute(
+        "aria-label",
+        canDiff ? "Diff" : "Diff (mindestens 2 Tabs erforderlich)"
+      );
+    }
+  };
+
   Applet.prototype.renderTabs = function () {
     if (!this.tabListEl || !this.tabsEl) {
       return;
     }
+    this.renderToolbar();
     var showTabs = this.tabs.length > 1;
     this.tabsEl.hidden = !showTabs;
     this.el.classList.toggle("nsm-ipa-applet--has-tabs", showTabs);
@@ -491,12 +904,337 @@
       }.bind(this)
     );
     this.tabListEl.innerHTML = html;
+  };
 
-    if (this.mergeBtnEl) {
-      var canMerge = this.tabs.length > 1;
-      this.mergeBtnEl.hidden = !canMerge;
-      this.mergeBtnEl.disabled = !canMerge || this._merging;
+  Applet.prototype._loadAddObjectCategories = function () {
+    if (this._addObjectCategories) {
+      return Promise.resolve(this._addObjectCategories);
     }
+    var self = this;
+    return nsmFetch(addObjectTypesApiUrl(), {
+      headers: mergeBranchHeaders({
+        "X-Requested-With": "XMLHttpRequest",
+        Accept: "application/json",
+      }),
+    })
+      .then(function (resp) {
+        if (!resp.ok) {
+          throw new Error("HTTP " + resp.status);
+        }
+        return resp.json();
+      })
+      .then(function (data) {
+        self._addObjectCategories = data.categories || [];
+        return self._addObjectCategories;
+      })
+      .catch(function () {
+        self._addObjectCategories = [];
+        return self._addObjectCategories;
+      });
+  };
+
+  Applet.prototype._renderAddObjectMenu = function (categories) {
+    if (!this.addObjectMenuEl) {
+      return;
+    }
+    if (!categories.length) {
+      this.addObjectMenuEl.innerHTML =
+        '<li><span class="dropdown-item-text text-muted small">Keine Objekttypen verfügbar</span></li>';
+      return;
+    }
+    var html = "";
+    categories.forEach(function (cat) {
+      html +=
+        '<li><button type="button" class="dropdown-item nsm-ipa-applet-add-object-kind" data-add-category="' +
+        escHtml(cat.id) +
+        '">' +
+        escHtml(cat.label) +
+        "</button></li>";
+    });
+    this.addObjectMenuEl.innerHTML = html;
+  };
+
+  Applet.prototype._closeAddObjectModal = function () {
+    if (!this.addObjectModalEl) {
+      return;
+    }
+    this._addObjectSearchToken += 1;
+    if (this._addObjectSearchCtrl) {
+      this._addObjectSearchCtrl.abort();
+      this._addObjectSearchCtrl = null;
+    }
+    this._addObjectCategory = null;
+    this.addObjectModalEl.hidden = true;
+    if (this.addObjectSearchEl) {
+      this.addObjectSearchEl.value = "";
+    }
+    if (this.addObjectResultsEl) {
+      this.addObjectResultsEl.innerHTML = "";
+    }
+  };
+
+  Applet.prototype._openAddObjectModal = function (category) {
+    var self = this;
+    if (!category || !this.addObjectModalEl) {
+      return;
+    }
+    this._addObjectCategory = category;
+    this.addObjectModalEl.hidden = false;
+    if (this.addObjectTitleEl) {
+      this.addObjectTitleEl.textContent = "Objekt hinzufügen — " + category.label;
+    }
+    if (this.addObjectResultsEl) {
+      this.addObjectResultsEl.innerHTML =
+        '<div class="nsm-ipa-applet-add-msg">Suchbegriff eingeben…</div>';
+    }
+    if (this.addObjectSearchEl) {
+      this.addObjectSearchEl.value = "";
+      window.setTimeout(function () {
+        self.addObjectSearchEl.focus();
+      }, 0);
+    }
+  };
+
+  Applet.prototype._renderAddObjectResults = function (items, message) {
+    if (!this.addObjectResultsEl) {
+      return;
+    }
+    if (message) {
+      this.addObjectResultsEl.innerHTML =
+        '<div class="nsm-ipa-applet-add-msg">' + escHtml(message) + "</div>";
+      return;
+    }
+    if (!items.length) {
+      this.addObjectResultsEl.innerHTML =
+        '<div class="nsm-ipa-applet-add-msg">Keine Treffer</div>';
+      return;
+    }
+    var html = "";
+    items.forEach(function (item) {
+      html +=
+        '<button type="button" class="nsm-ipa-applet-add-result" data-ct="' +
+        escHtml(item.ct) +
+        '" data-pk="' +
+        escHtml(item.pk) +
+        '" data-name="' +
+        escHtml(item.name) +
+        '">' +
+        '<span class="text-truncate">' +
+        escHtml(item.name) +
+        "</span>" +
+        '<span class="nsm-ipa-applet-add-result-type">' +
+        escHtml(item.type) +
+        "</span></button>";
+    });
+    this.addObjectResultsEl.innerHTML = html;
+  };
+
+  Applet.prototype._searchAddObject = function (query) {
+    var category = this._addObjectCategory;
+    if (!category || !query.trim()) {
+      this._renderAddObjectResults([], "Suchbegriff eingeben…");
+      return;
+    }
+    if (this._addObjectSearchCtrl) {
+      this._addObjectSearchCtrl.abort();
+    }
+    this._addObjectSearchCtrl = new AbortController();
+    var token = ++this._addObjectSearchToken;
+    var signal = this._addObjectSearchCtrl.signal;
+    this._renderAddObjectResults([], "Suche…");
+
+    var fetches = (category.types || []).map(function (typeEntry) {
+      var url =
+        typeEntry.api_url +
+        "?q=" +
+        encodeURIComponent(query.trim()) +
+        "&limit=20&brief=1";
+      return nsmFetch(url, {
+        signal: signal,
+        headers: mergeBranchHeaders({
+          Accept: "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+          "X-CSRFToken": getCsrfToken(),
+        }),
+      })
+        .then(function (resp) {
+          return resp.ok ? resp.json() : { results: [] };
+        })
+        .then(function (data) {
+          return (data.results || []).map(function (obj) {
+            return {
+              ct: String(typeEntry.ct_id),
+              pk: String(obj.id),
+              name: obj.display || obj.name || String(obj.id),
+              type: typeEntry.name,
+            };
+          });
+        })
+        .catch(function (err) {
+          if (err && err.name === "AbortError") {
+            return [];
+          }
+          return [];
+        });
+    });
+
+    var self = this;
+    Promise.all(fetches).then(function (all) {
+      if (token !== self._addObjectSearchToken) {
+        return;
+      }
+      self._renderAddObjectResults([].concat.apply([], all));
+    });
+  };
+
+  Applet.prototype._pickAddObject = function (ct, pk, name) {
+    if (!ct || !pk) {
+      return;
+    }
+    this._closeAddObjectModal();
+    this.open({
+      objects: [{ ct: String(ct), pk: String(pk), name: name || "" }],
+    });
+  };
+
+  Applet.prototype._bindAddObjectHandlers = function () {
+    var self = this;
+    this._debouncedAddObjectSearch = debounce(function (query) {
+      self._searchAddObject(query);
+    }, 250);
+
+    if (this.addObjectMenuEl) {
+      this.addObjectMenuEl.addEventListener("click", function (e) {
+        var btn = e.target.closest(".nsm-ipa-applet-add-object-kind");
+        if (!btn) {
+          return;
+        }
+        e.preventDefault();
+        var categoryId = btn.getAttribute("data-add-category");
+        self._loadAddObjectCategories().then(function (categories) {
+          var category = categories.find(function (cat) {
+            return cat.id === categoryId;
+          });
+          if (category) {
+            self._openAddObjectModal(category);
+          }
+        });
+      });
+    }
+
+    if (this.addObjectSearchEl) {
+      this.addObjectSearchEl.addEventListener("input", function () {
+        self._debouncedAddObjectSearch(self.addObjectSearchEl.value);
+      });
+      this.addObjectSearchEl.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          self._closeAddObjectModal();
+        }
+        if (e.key === "Enter") {
+          e.preventDefault();
+          var first =
+            self.addObjectResultsEl &&
+            self.addObjectResultsEl.querySelector(".nsm-ipa-applet-add-result");
+          if (first) {
+            first.click();
+          }
+        }
+      });
+    }
+
+    if (this.addObjectResultsEl) {
+      this.addObjectResultsEl.addEventListener("click", function (e) {
+        var btn = e.target.closest(".nsm-ipa-applet-add-result");
+        if (!btn) {
+          return;
+        }
+        e.preventDefault();
+        self._pickAddObject(
+          btn.getAttribute("data-ct"),
+          btn.getAttribute("data-pk"),
+          btn.getAttribute("data-name")
+        );
+      });
+    }
+
+    if (this.addObjectModalEl) {
+      this.addObjectModalEl.addEventListener("click", function (e) {
+        if (e.target === self.addObjectModalEl) {
+          self._closeAddObjectModal();
+        }
+      });
+      var closeBtn = this.addObjectModalEl.querySelector(
+        ".nsm-ipa-applet-add-modal-close"
+      );
+      if (closeBtn) {
+        closeBtn.addEventListener("click", function (e) {
+          e.preventDefault();
+          self._closeAddObjectModal();
+        });
+      }
+    }
+
+    this._loadAddObjectCategories().then(function (categories) {
+      self._renderAddObjectMenu(categories);
+    });
+  };
+
+  Applet.prototype.diffTabs = function () {
+    if (this.tabs.length < 2 || this._diffing) {
+      return;
+    }
+
+    var sourceTabs = this.tabs.slice();
+    var hasObjects = sourceTabs.some(function (tab) {
+      return (tab.objects || []).length > 0;
+    });
+    if (!hasObjects) {
+      return;
+    }
+
+    this._diffing = true;
+    this.renderTabs();
+
+    sourceTabs.forEach(function (tab) {
+      tab.loadToken = (tab.loadToken || 0) + 1;
+    });
+
+    var sides = sourceTabs.map(function (tab) {
+      return {
+        title: tab.title,
+        diffLabel: diffSideLabel(tab),
+        context: tab.context || null,
+        objects: normalizeObjects(tab.objects),
+      };
+    });
+
+    var diffTab = {
+      id: this.nextTabId++,
+      title: diffTabTitleFromTabs(sourceTabs),
+      contextLabel: diffTabContextLabel(sourceTabs),
+      mode: "diff",
+      sides: sides,
+      objectsKey: diffObjectsKey(sides),
+      status: "loading",
+      html: "",
+      message: "",
+      error: "",
+      leafCount: 0,
+      unsupportedCount: 0,
+      diffSummary: null,
+      loadToken: 0,
+      _loading: false,
+    };
+
+    this.tabs = [diffTab];
+    this.activeTabId = diffTab.id;
+    this._diffing = false;
+
+    this.renderTabs();
+    this.setWindowTitle();
+    this.renderActiveContent();
+    this.loadTab(diffTab);
   };
 
   Applet.prototype.mergeTabs = function () {
@@ -520,6 +1258,7 @@
       id: this.nextTabId++,
       title: mergedTabTitle(mergedObjects.length),
       objects: mergedObjects,
+      rawObjects: mergedObjects,
       objectsKey: objectsKey(mergedObjects),
       status: "loading",
       html: "",
@@ -550,6 +1289,7 @@
     var statusEl = this.footerEl.querySelector(".nsm-ipa-applet-status");
     var countEl = this.footerEl.querySelector(".nsm-ipa-applet-count");
 
+    this._unobserveBodyContent();
     if (tab.status === "loading") {
       this.bodyEl.innerHTML = loadingHtml();
       statusEl.textContent = "";
@@ -562,19 +1302,36 @@
       countEl.textContent = "";
       return;
     }
+    var contextBanner = "";
+    if (tab.contextLabel) {
+      contextBanner =
+        '<div class="nsm-ipa-applet-context">' +
+        escHtml(tab.contextLabel) +
+        "</div>";
+    }
     if (tab.message && !tab.html) {
       this.bodyEl.innerHTML =
-        '<div class="nsm-ipa-applet-empty">' + escHtml(tab.message) + "</div>";
+        contextBanner +
+        '<div class="nsm-ipa-applet-empty">' +
+        escHtml(tab.message) +
+        "</div>";
     } else if (tab.html) {
-      this.bodyEl.innerHTML = tab.html;
+      this.bodyEl.innerHTML = contextBanner + this._wrapBodyContent(tab.html);
       if (window.nsmInitAddrPrefixToggle) {
         window.nsmInitAddrPrefixToggle(this.bodyEl);
       }
+      this._observeBodyContent();
+      this._scheduleBodyScale();
     } else {
       this.bodyEl.innerHTML =
+        contextBanner +
         '<div class="nsm-ipa-applet-empty">Keine IP-Adressen aufgelöst.</div>';
     }
-    countEl.textContent = tab.leafCount ? tab.leafCount + " IP(s)" : "";
+    if (tab.mode === "diff" && tab.diffSummary) {
+      countEl.textContent = formatDiffSummary(tab.diffSummary);
+    } else {
+      countEl.textContent = formatTypeCountSummary(tab);
+    }
     statusEl.textContent = tab.unsupportedCount
       ? tab.unsupportedCount + " übersprungen"
       : "";
@@ -599,7 +1356,10 @@
       this.renderActiveContent();
     }
 
-    var url = apiUrl() + "?" + buildQuery(tab.objects);
+    var url =
+      tab.mode === "diff"
+        ? apiUrl() + "?" + buildDiffQuery(tab.sides || [])
+        : apiUrl() + "?" + buildQuery(tab.objects, tab.rawObjects);
     nsmFetch(url, {
       headers: mergeBranchHeaders({ "X-Requested-With": "XMLHttpRequest" }),
     })
@@ -622,6 +1382,12 @@
           tab.html = data.html || "";
           tab.message = data.message || "";
           tab.leafCount = data.leaf_count || 0;
+          tab.countSubnets = data.count_subnets != null ? data.count_subnets : null;
+          tab.countRanges = data.count_ranges != null ? data.count_ranges : null;
+          tab.countIps = data.count_ips != null ? data.count_ips : null;
+          tab.countDuplicates =
+            data.count_duplicates != null ? data.count_duplicates : null;
+          tab.diffSummary = data.diff_summary || null;
           tab.unsupportedCount =
             data.unsupported && data.unsupported.length
               ? data.unsupported.length
@@ -717,6 +1483,7 @@
 
   Applet.prototype.open = function (opts) {
     opts = opts || {};
+    var rawObjects = collectRawObjects(opts.objects);
     var objects = normalizeObjects(opts.objects);
     if (!objects.length) {
       return;
@@ -724,7 +1491,8 @@
 
     this.ensureDom();
 
-    var existing = this.findTabByObjects(objects);
+    var context = opts.context || null;
+    var existing = this.findTabByObjects(objects, context);
     if (existing) {
       this.showWindow();
       this.activateTab(existing.id);
@@ -733,9 +1501,12 @@
 
     var tab = {
       id: this.nextTabId++,
-      title: tabTitle(objects, opts.title),
+      title: tabTitle(objects, opts.title, context),
+      context: context,
+      contextLabel: rulesCellContextLabel(context),
       objects: objects,
-      objectsKey: objectsKey(objects),
+      rawObjects: rawObjects,
+      objectsKey: tabDedupKey(objects, context),
       status: "loading",
       html: "",
       message: "",
@@ -756,6 +1527,7 @@
   };
 
   Applet.prototype.destroyAllTabs = function () {
+    this._closeAddObjectModal();
     this.tabs.forEach(function (tab) {
       tab.loadToken = (tab.loadToken || 0) + 1;
     });
@@ -769,6 +1541,7 @@
   };
 
   Applet.prototype.close = function () {
+    this._closeAddObjectModal();
     this.tabs.forEach(function (tab) {
       tab.loadToken = (tab.loadToken || 0) + 1;
     });
@@ -792,6 +1565,7 @@
     } else if (this.el.classList.contains("nsm-ipa-applet--sized")) {
       this._restoreSize();
     }
+    this._scheduleBodyScale();
   };
 
   var singleton = new Applet();
@@ -801,7 +1575,17 @@
     if (!cell) {
       return objects;
     }
-    cell.querySelectorAll('.nsm-ag-cell-item[data-addr-analyzable="1"]').forEach(function (row) {
+    // Visible pills carry ct/pk; compact cells only expose hidden probe markers.
+    // Never collect both — that duplicated every object and tripped false "doppelt".
+    var rows = cell.querySelectorAll(
+      '.nsm-ag-cell-item[data-addr-analyzable="1"]:not(.nsm-ag-cell-item--probe)'
+    );
+    if (!rows.length) {
+      rows = cell.querySelectorAll(
+        '.nsm-ag-cell-item--probe[data-addr-analyzable="1"]'
+      );
+    }
+    rows.forEach(function (row) {
       objects.push({
         ct: row.getAttribute("data-ct"),
         pk: row.getAttribute("data-pk"),
@@ -809,6 +1593,56 @@
       });
     });
     return objects;
+  }
+
+  function loupeCellContainer(loupe) {
+    return (
+      loupe.closest(".nsm-ag-cell-list") ||
+      loupe.closest(".nsm-ag-cell-merged")
+    );
+  }
+
+  function readRulesCellContext(el) {
+    if (!el) {
+      return null;
+    }
+    var ruleIndex = el.getAttribute("data-rule-index");
+    if (ruleIndex == null || ruleIndex === "") {
+      return null;
+    }
+    return {
+      ruleIndex: ruleIndex,
+      ruleName: el.getAttribute("data-rule-name") || "",
+      colId: el.getAttribute("data-col-id") || "",
+      colPosition: el.getAttribute("data-col-position") || "",
+    };
+  }
+
+  function collectRulesCellContext(loupe) {
+    var cell = loupeCellContainer(loupe);
+    var context = readRulesCellContext(cell);
+    if (context) {
+      return context;
+    }
+    var td = loupe.closest("td.nsm-rules-td");
+    context = readRulesCellContext(td);
+    if (context) {
+      return context;
+    }
+    var tr = loupe.closest("tr.nsm-rules-data-row");
+    if (!tr) {
+      return null;
+    }
+    var ruleIndex = tr.getAttribute("data-rule-index");
+    if (ruleIndex == null || ruleIndex === "") {
+      return null;
+    }
+    return {
+      ruleIndex: ruleIndex,
+      ruleName: tr.getAttribute("data-rule-name") || "",
+      colId: td ? td.getAttribute("data-col-id") || "" : "",
+      colPosition: td ? td.getAttribute("data-col-position") || "" : "",
+    };
   }
 
   function bindGlobalHandlers() {
@@ -820,7 +1654,7 @@
       e.preventDefault();
       e.stopPropagation();
 
-      var cell = loupe.closest(".nsm-ag-cell-list");
+      var cell = loupeCellContainer(loupe);
       var objects = [];
       if (loupe.classList.contains("nsm-ipa-cell-loupe") && cell) {
         objects = collectCellObjects(cell);
@@ -834,7 +1668,11 @@
         objects = collectCellObjects(cell);
       }
       if (objects.length) {
-        singleton.open({ objects: objects });
+        var context = null;
+        if (loupe.classList.contains("nsm-ipa-cell-loupe")) {
+          context = collectRulesCellContext(loupe);
+        }
+        singleton.open({ objects: objects, context: context });
       }
     });
   }
@@ -845,6 +1683,9 @@
     },
     close: function () {
       singleton.close();
+    },
+    scheduleBodyScale: function () {
+      singleton._scheduleBodyScale();
     },
     createLoupeButton: createLoupeButton,
   };

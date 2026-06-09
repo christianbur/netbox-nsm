@@ -1,9 +1,0 @@
-{# NetBox 4.6 generic/object_edit.html has no {% block javascript %} — include in form. #}
-{% load static %}
-{% if nsm_group_member_picker_data %}
-{{ nsm_group_member_picker_data|json_script:"nsm-group-member-picker-data" }}
-{% endif %}
-{% if nsm_group_member_initial %}
-{{ nsm_group_member_initial|json_script:"nsm-group-member-initial" }}
-{% endif %}
-<script src="{% static 'netbox_nsm/js/nsm_object_group_form.js' %}?v=20260814"></script>

@@ -80,6 +80,16 @@
     line-height: 1.45;
     padding: 0.08rem 0;
   }
+  .nsm-rb-field-loading {
+    padding: 0.15rem 0 0.35rem 4.5rem;
+    font-size: 12px;
+    color: var(--bs-secondary-color);
+  }
+  .nsm-rb-field-loading .spinner-border {
+    width: 0.85rem;
+    height: 0.85rem;
+    border-width: 0.12em;
+  }
   .nsm-link-table .col-actions .nsm-link-actions.btn-group-sm > .btn {
     line-height: 1;
     padding: 0.12rem 0.28rem;
@@ -159,9 +169,7 @@
       <div id="nsm-cat-rulebook" class="collapse show">
         <div class="nsm-rulebook-accordion"
              id="nsm-accordion"
-             data-api-url="{{ nsm_api_url }}"
-             data-next-offset="{{ nsm_next_offset }}"
-             data-has-more="{% if nsm_has_more %}1{% else %}0{% endif %}">
+             data-api-url="{{ nsm_api_url }}">
 
           {% for group in nsm_rulebook_groups %}
           {% with rb=group.rulebook %}
@@ -190,24 +198,27 @@
                           class="nsm-tree-toggle"
                           data-bs-toggle="collapse"
                           data-bs-target="#nsm-rb-{{ rb.pk }}-f-{{ fg.field.pk }}"
-                          aria-expanded="true"
+                          aria-expanded="false"
                           aria-label="{% blocktrans with field=fg.field.name %}Toggle {{ field }}{% endblocktrans %}">
                     <i class="mdi mdi-chevron-right nsm-chev"></i>
                   </button>
                   <span>{{ fg.field.name }}</span>
                   <span class="badge text-bg-secondary ms-1 nsm-rb-field-count">{{ fg.rule_count }}</span>
                 </div>
-                <div id="nsm-rb-{{ rb.pk }}-f-{{ fg.field.pk }}" class="collapse show">
-                  <ul class="nsm-rb-rule-list nsm-rb-field-rules">
-                    {% for rule in fg.rules %}
-                    <li>
-                      <a href="{{ rule.nsm_panel_filter_url }}"
-                         class="nsm-security-rule-link"
-                         data-detail-url="{{ rule.get_absolute_url }}"
-                         title="{% trans 'Filter rules by name (Ctrl+click: open rule detail)' %}">{{ rule.name }}</a>
-                    </li>
-                    {% endfor %}
-                  </ul>
+                <div id="nsm-rb-{{ rb.pk }}-f-{{ fg.field.pk }}"
+                     class="collapse nsm-rb-field-collapse"
+                     data-rb-pk="{{ rb.pk }}"
+                     data-field-pk="{{ fg.field.pk }}">
+                  <ul class="nsm-rb-rule-list nsm-rb-field-rules"
+                      data-offset="0"
+                      data-has-more="{% if fg.rule_count %}1{% else %}0{% endif %}"
+                      data-loaded="0"
+                      data-loading="0"></ul>
+                  <div class="nsm-rb-field-loading d-none" aria-live="polite">
+                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                    {% trans "Loading…" %}
+                  </div>
+                  <div class="nsm-rb-field-sentinel" style="height:1px;"></div>
                 </div>
               </div>
               {% endfor %}
@@ -216,7 +227,6 @@
           {% endwith %}
           {% endfor %}
 
-          <div class="nsm-sentinel" style="height:1px;"></div>
         </div>
       </div>
     </div>
@@ -343,68 +353,34 @@
 
 <script>
 (function () {
-  var accordion = document.querySelector('.nsm-rulebook-accordion');
-  if (!accordion || accordion.dataset.hasMore !== '1') return;
+  var accordion = document.getElementById('nsm-accordion');
+  if (!accordion) return;
 
-  var loading = false;
-  var sentinel = accordion.querySelector('.nsm-sentinel');
+  var apiUrl = accordion.dataset.apiUrl;
+  var fieldObservers = new WeakMap();
+
+  function mergeHeaders() {
+    return (window.NSM_BRANCH_API && NSM_BRANCH_API.mergeBranchHeaders({'X-Requested-With': 'XMLHttpRequest'}))
+      || {'X-Requested-With': 'XMLHttpRequest'};
+  }
 
   function escHtml(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  function appendItems(results) {
+  function setFieldLoading(fieldCollapse, loading) {
+    var ruleList = fieldCollapse.querySelector('.nsm-rb-field-rules');
+    var loadingEl = fieldCollapse.querySelector('.nsm-rb-field-loading');
+    if (ruleList) {
+      ruleList.dataset.loading = loading ? '1' : '0';
+    }
+    if (loadingEl) {
+      loadingEl.classList.toggle('d-none', !loading);
+    }
+  }
+
+  function appendRules(ruleList, results) {
     results.forEach(function (item) {
-      var rbPk = String(item.rulebook_pk || 0);
-      var rbColId = 'nsm-rb-' + rbPk;
-      var existing = accordion.querySelector('[data-rb-pk="' + rbPk + '"]');
-      var collapseDiv;
-
-      if (existing) {
-        collapseDiv = document.getElementById(rbColId);
-      } else {
-        var rbLink = item.rulebook_url
-          ? '<a href="' + escHtml(item.rulebook_url) + '" class="nsm-rb-title-link">' + escHtml(item.rulebook_name) + '</a>'
-          : '<span>' + escHtml(item.rulebook_name) + '</span>';
-
-        var div = document.createElement('div');
-        div.className = 'border-top';
-        div.dataset.rbPk = rbPk;
-        div.innerHTML =
-          '<div class="nsm-rb-hdr">' +
-            '<button type="button" class="nsm-tree-toggle" data-bs-toggle="collapse" data-bs-target="#' + rbColId + '" aria-expanded="true">' +
-              '<i class="mdi mdi-chevron-right nsm-chev"></i>' +
-            '</button>' +
-            rbLink +
-            '<span class="badge text-bg-secondary ms-1 nsm-rb-count">0</span>' +
-          '</div>' +
-          '<div id="' + rbColId + '" class="collapse show"></div>';
-        accordion.insertBefore(div, sentinel);
-        collapseDiv = div.querySelector('.collapse');
-      }
-
-      var fieldPk = String(item.field_pk || 0);
-      var fieldColId = rbColId + '-f-' + fieldPk;
-      var fieldDiv = collapseDiv.querySelector('[data-field-pk="' + fieldPk + '"]');
-      if (!fieldDiv) {
-        fieldDiv = document.createElement('div');
-        fieldDiv.className = 'nsm-rb-field';
-        fieldDiv.dataset.fieldPk = fieldPk;
-        fieldDiv.innerHTML =
-          '<div class="nsm-rb-field-hdr">' +
-            '<button type="button" class="nsm-tree-toggle" data-bs-toggle="collapse" data-bs-target="#' + fieldColId + '" aria-expanded="true">' +
-              '<i class="mdi mdi-chevron-right nsm-chev"></i>' +
-            '</button>' +
-            '<span>' + escHtml(item.field_name) + '</span>' +
-            '<span class="badge text-bg-secondary ms-1 nsm-rb-field-count">0</span>' +
-          '</div>' +
-          '<div id="' + fieldColId + '" class="collapse show">' +
-            '<ul class="nsm-rb-rule-list nsm-rb-field-rules"></ul>' +
-          '</div>';
-        collapseDiv.appendChild(fieldDiv);
-      }
-
-      var ruleList = fieldDiv.querySelector('.nsm-rb-field-rules');
       var li = document.createElement('li');
       if (item.rule_id) {
         li.dataset.ruleId = String(item.rule_id);
@@ -415,43 +391,83 @@
         'title="Filter rules by name (Ctrl+click: open rule detail)">' +
         escHtml(item.rule_name) + '</a>';
       ruleList.appendChild(li);
-
-      var fieldCount = fieldDiv.querySelector('.nsm-rb-field-count');
-      if (fieldCount) {
-        fieldCount.textContent = String(ruleList.querySelectorAll('li').length);
-      }
-      var rbWrapper = accordion.querySelector('[data-rb-pk="' + rbPk + '"]');
-      var rbCountEl = rbWrapper && rbWrapper.querySelector('.nsm-rb-count');
-      if (rbCountEl) {
-        var seenRules = {};
-        rbWrapper.querySelectorAll('[data-rule-id]').forEach(function (el) {
-          if (el.dataset.ruleId) {
-            seenRules[el.dataset.ruleId] = true;
-          }
-        });
-        rbCountEl.textContent = String(Object.keys(seenRules).length);
-      }
     });
   }
 
-  var observer = new IntersectionObserver(function (entries) {
-    if (!entries[0].isIntersecting || loading) return;
-    if (accordion.dataset.hasMore !== '1') { observer.disconnect(); return; }
+  function observeFieldSentinel(fieldCollapse) {
+    if (fieldObservers.has(fieldCollapse)) {
+      return;
+    }
+    var sentinel = fieldCollapse.querySelector('.nsm-rb-field-sentinel');
+    if (!sentinel) {
+      return;
+    }
+    var observer = new IntersectionObserver(function (entries) {
+      if (!entries[0].isIntersecting) {
+        return;
+      }
+      var ruleList = fieldCollapse.querySelector('.nsm-rb-field-rules');
+      if (!ruleList || ruleList.dataset.hasMore !== '1' || ruleList.dataset.loading === '1') {
+        return;
+      }
+      fetchFieldRules(fieldCollapse, parseInt(ruleList.dataset.offset || '0', 10));
+    }, {root: null, threshold: 0});
+    observer.observe(sentinel);
+    fieldObservers.set(fieldCollapse, observer);
+  }
 
-    loading = true;
-    var url = accordion.dataset.apiUrl + '&offset=' + accordion.dataset.nextOffset;
-    fetch(url, {headers: (window.NSM_BRANCH_API && NSM_BRANCH_API.mergeBranchHeaders({'X-Requested-With': 'XMLHttpRequest'})) || {'X-Requested-With': 'XMLHttpRequest'}})
+  function disconnectFieldObserver(fieldCollapse) {
+    var observer = fieldObservers.get(fieldCollapse);
+    if (observer) {
+      observer.disconnect();
+      fieldObservers.delete(fieldCollapse);
+    }
+  }
+
+  function fetchFieldRules(fieldCollapse, offset) {
+    var ruleList = fieldCollapse.querySelector('.nsm-rb-field-rules');
+    if (!ruleList || ruleList.dataset.loading === '1') {
+      return;
+    }
+    if (ruleList.dataset.hasMore !== '1' && ruleList.dataset.loaded === '1') {
+      return;
+    }
+
+    setFieldLoading(fieldCollapse, true);
+    var url = apiUrl
+      + '&rulebook_pk=' + encodeURIComponent(fieldCollapse.dataset.rbPk)
+      + '&field_pk=' + encodeURIComponent(fieldCollapse.dataset.fieldPk)
+      + '&offset=' + encodeURIComponent(offset || 0);
+
+    fetch(url, {headers: mergeHeaders()})
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        appendItems(data.results);
-        accordion.dataset.nextOffset = data.offset;
-        accordion.dataset.hasMore = data.has_more ? '1' : '0';
-        if (!data.has_more) observer.disconnect();
-        loading = false;
+        appendRules(ruleList, data.results || []);
+        ruleList.dataset.offset = String(data.offset || 0);
+        ruleList.dataset.hasMore = data.has_more ? '1' : '0';
+        ruleList.dataset.loaded = '1';
+        setFieldLoading(fieldCollapse, false);
+        if (data.has_more) {
+          observeFieldSentinel(fieldCollapse);
+        } else {
+          disconnectFieldObserver(fieldCollapse);
+        }
       })
-      .catch(function () { loading = false; });
-  }, {root: null, threshold: 0});
+      .catch(function () {
+        setFieldLoading(fieldCollapse, false);
+      });
+  }
 
-  observer.observe(sentinel);
+  accordion.addEventListener('shown.bs.collapse', function (e) {
+    var fieldCollapse = e.target.closest('.nsm-rb-field-collapse');
+    if (!fieldCollapse || !accordion.contains(fieldCollapse)) {
+      return;
+    }
+    var ruleList = fieldCollapse.querySelector('.nsm-rb-field-rules');
+    if (!ruleList || ruleList.dataset.loaded === '1' || ruleList.dataset.hasMore !== '1') {
+      return;
+    }
+    fetchFieldRules(fieldCollapse, 0);
+  });
 })();
 </script>

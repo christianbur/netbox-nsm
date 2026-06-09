@@ -1,0 +1,15 @@
+{% extends 'generic/object_edit.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Add Rulebook" %}{% endblock title %}
+
+{% block tabs %}{% endblock tabs %}
+
+{% block form %}
+  {% include 'netbox_nsm/inc/cot_rulebook_create_fields.html' %}
+{% endblock form %}
+
+{% block buttons %}
+  <a href="{% url 'plugins:netbox_nsm:rulebook_list' %}" class="btn btn-outline-secondary btn-float">{% trans "Cancel" %}</a>
+  <button type="submit" class="btn btn-primary">{% trans "Create" %}</button>
+{% endblock buttons %}

@@ -6,6 +6,7 @@ from netbox_nsm.analyzer.api_view import AnalyzerAPIView
 
 from .views import *  # noqa: F401
 from .views.plugin_static import PluginAssetView
+from netbox_nsm.rulebooks.views.list import RulebookListView
 
 app_name = "netbox_nsm"
 
@@ -27,16 +28,6 @@ urlpatterns = [
         name="typeconfigs_sync",
     ),
     path(
-        "object/groups/",
-        ObjectGroupAreaView.as_view(),
-        name="objectgroup_area_root",
-    ),
-    path(
-        "object/groups/<str:area>/",
-        ObjectGroupAreaView.as_view(),
-        name="objectgroup_area",
-    ),
-    path(
         "type-config/",
         include(get_model_urls("netbox_nsm", "typeconfig", detail=False)),
     ),
@@ -44,46 +35,7 @@ urlpatterns = [
         "type-config/<int:pk>/",
         include(get_model_urls("netbox_nsm", "typeconfig")),
     ),
-    path(
-        "rulebook-field/add/", RulebookFieldAddView.as_view(), name="rulebookfield_add"
-    ),
-    path(
-        "rulebook-field/<int:pk>/edit/",
-        RulebookFieldEditView.as_view(),
-        name="rulebookfield_edit",
-    ),
-    path(
-        "rulebook-field/<int:pk>/delete/",
-        RulebookFieldDeleteView.as_view(),
-        name="rulebookfield_delete",
-    ),
-    path(
-        "rulebook-field-type/add/",
-        RulebookFieldTypeAddView.as_view(),
-        name="rulebookfieldtype_add",
-    ),
-    path(
-        "rulebook-field-type/<int:pk>/edit/",
-        RulebookFieldTypeEditView.as_view(),
-        name="rulebookfieldtype_edit",
-    ),
-    path(
-        "rulebook-field-type/<int:pk>/delete/",
-        RulebookFieldTypeDeleteView.as_view(),
-        name="rulebookfieldtype_delete",
-    ),
-    path(
-        "object-groups/",
-        include(get_model_urls("netbox_nsm", "objectgroup", detail=False)),
-    ),
-    path(
-        "object-groups/<int:pk>/",
-        include(get_model_urls("netbox_nsm", "objectgroup")),
-    ),
-    path(
-        "rulebooks/",
-        include(get_model_urls("netbox_nsm", "rulebook", detail=False)),
-    ),
+    path("rulebooks/", RulebookListView.as_view(), name="rulebook_list"),
     path(
         "rulebooks/all-rules/",
         RedirectView.as_view(
@@ -142,56 +94,73 @@ urlpatterns = [
         name="all_rules_matrix_redirect",
     ),
     path(
-        "rulebooks/<int:pk>/",
-        include(get_model_urls("netbox_nsm", "rulebook")),
+        "rulebooks/cot/add/",
+        CotRulebookCreateView.as_view(),
+        name="cot_rulebook_add",
     ),
     path(
-        "rulebooks/<int:pk>/bulk-assign/",
-        RulebookBulkAssignView.as_view(),
-        name="rulebook_bulk_assign",
+        "rulebooks/cot/<slug:slug>/",
+        CotRulebookView.as_view(),
+        name="cot_rulebook",
     ),
     path(
-        "rules/",
-        include(get_model_urls("netbox_nsm", "rule", detail=False)),
+        "rulebooks/cot/<slug:slug>/assign/",
+        CotRulebookBulkAssignView.as_view(),
+        name="cot_rulebook_bulk_assign",
     ),
     path(
-        "rules/<int:pk>/",
-        include(get_model_urls("netbox_nsm", "rule")),
+        "rulebooks/cot/<slug:slug>/rules/",
+        CotRulebookRulesView.as_view(),
+        name="cot_rulebook_rules",
+    ),
+    path(
+        "rulebooks/cot/<slug:slug>/matrix/",
+        CotRulebookMatrixView.as_view(),
+        name="cot_rulebook_matrix",
+    ),
+    path(
+        "rulebooks/cot/<slug:slug>/changelog/",
+        CotRulebookChangelogView.as_view(),
+        name="cot_rulebook_changelog",
     ),
     path(
         "rulebook-assignments/",
-        include(get_model_urls("netbox_nsm", "rulebookassignment", detail=False)),
+        include(
+            get_model_urls("netbox_nsm", "cotrulebookassignment", detail=False)
+        ),
     ),
     path(
         "rulebook-assignments/<int:pk>/",
-        include(get_model_urls("netbox_nsm", "rulebookassignment")),
+        include(get_model_urls("netbox_nsm", "cotrulebookassignment")),
     ),
-    path("rules/search/", GlobalRulesSearchView.as_view(), name="global_rules_search"),
+    path(
+        "rules/search/",
+        RedirectView.as_view(
+            pattern_name="plugins:netbox_nsm:all_rules_rules",
+            permanent=False,
+        ),
+        name="global_rules_search",
+    ),
     path("ip-analysis/", IPAnalysisView.as_view(), name="ip_analysis"),
     path("api/ip-analysis/", IpAnalysisApiView.as_view(), name="ip_analysis_api"),
-    path("object-analyzer/", ObjectAnalyzerView.as_view(), name="object_analyzer"),
     path(
-        "api/rulebooks/<int:pk>/rules-grid/validate/",
-        RulebookRulesGridValidateApiView.as_view(),
-        name="rulebook_rules_grid_validate_api",
+        "api/ip-analysis/category/",
+        IpAnalysisCategoryApiView.as_view(),
+        name="ip_analysis_category_api",
     ),
+    path(
+        "api/ip-analysis/object/",
+        IpAnalysisObjectDrilldownApiView.as_view(),
+        name="ip_analysis_object_api",
+    ),
+    path(
+        "api/ip-analysis/add-object-types/",
+        IpAnalysisAddObjectTypesApiView.as_view(),
+        name="ip_analysis_add_object_types_api",
+    ),
+    path("object-analyzer/", ObjectAnalyzerView.as_view(), name="object_analyzer"),
     path("api/analyzer/", AnalyzerAPIView.as_view(), name="analyzer_api"),
     path("api/object-rules/", ObjectRulesApiView.as_view(), name="object_rules_api"),
-    path(
-        "api/picker-browse/",
-        RulePickerBrowseApiView.as_view(),
-        name="rule_picker_browse_api",
-    ),
-    path(
-        "api/rulebooks/<int:pk>/picker-data/",
-        RulebookPickerDataApiView.as_view(),
-        name="rulebook_picker_data_api",
-    ),
-    path(
-        "api/rules/<int:pk>/field-selections/",
-        RuleFieldSelectionsApiView.as_view(),
-        name="rule_field_selections_api",
-    ),
     path(
         "api/inherited-links/",
         InheritedLinksApiView.as_view(),

@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from unittest import TestCase
 
-from netbox_nsm.custom_objects_schema import (
+from netbox_nsm.objects.custom_objects_schema import (
     CHOICE_SETS_PATH,
     PORTABLE_SCHEMA_PATH,
     build_choice_set_specs,
@@ -13,7 +13,25 @@ from netbox_nsm.custom_objects_schema import (
     load_choice_set_specs,
     load_portable_schema_document,
 )
-from netbox_nsm.type_config_specs import REQUIRED_COT_SLUGS
+from netbox_nsm.rulebooks.templates import (
+    RULEBOOK_TEMPLATE_SLUGS,
+    build_rulebook_template_type_defs,
+)
+from netbox_nsm.objects.type_config_specs import REQUIRED_COT_SLUGS
+
+
+def _assert_removed_fields_are_tombstones(type_def: dict) -> None:
+    removed_ids = {f["id"] for f in type_def.get("fields", [])}
+    for entry in type_def.get("removed_fields", []):
+        assert isinstance(entry, dict), (
+            f"{type_def['slug']}: removed_fields must be tombstone dicts, "
+            f"not {type_def.get('removed_fields')!r}"
+        )
+        assert "id" in entry and "name" in entry and "type" in entry, entry
+        assert entry["id"] not in removed_ids, (
+            f"{type_def['slug']}: removed_fields id {entry['id']} "
+            "must not appear in fields"
+        )
 
 
 class PortableSchemaTests(TestCase):
@@ -22,8 +40,10 @@ class PortableSchemaTests(TestCase):
         self.assertEqual(document["schema_version"], "1")
         self.assertIsInstance(document["types"], list)
         slugs = {t["slug"] for t in document["types"]}
-        self.assertEqual(slugs, set(REQUIRED_COT_SLUGS))
-
+        self.assertEqual(
+            slugs, set(REQUIRED_COT_SLUGS) | set(RULEBOOK_TEMPLATE_SLUGS)
+        )
+        self.assertFalse(set(REQUIRED_COT_SLUGS) & set(RULEBOOK_TEMPLATE_SLUGS))
         for type_def in document["types"]:
             self.assertEqual(type_def["name"], type_def["slug"])
             self.assertIn("fields", type_def)
@@ -34,6 +54,11 @@ class PortableSchemaTests(TestCase):
                 self.assertGreaterEqual(field_def["id"], 1)
                 self.assertIn("name", field_def)
                 self.assertIn("type", field_def)
+            _assert_removed_fields_are_tombstones(type_def)
+
+    def test_rulebook_template_defs_use_tombstone_removed_fields(self):
+        for type_def in build_rulebook_template_type_defs():
+            _assert_removed_fields_are_tombstones(type_def)
 
     def test_choice_sets_cover_schema_references(self):
         document = load_portable_schema_document()

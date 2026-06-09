@@ -4,6 +4,45 @@ All notable changes to **netbox-nsm** are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+## [0.4.0] - 2026-06-09
+
+### Added
+
+- **COT rulebooks** — policies, rules tab, matrix, metadata, and list/detail UI on
+  `CustomObjectType` slugs `nsm_rb_*` (native `Rulebook` / `Rule` models removed)
+- **Rulebook templates** — four bundled templates (`nsm_rb_0001_template` …) with shared field
+  catalog; setup import syncs schema and field `group_name` sort keys on all rulebook COTs
+- **`rulebook_groups`** — bundled groups `1# Common` … `7# Notes`, display-label resolution for
+  form sections and rules-tab column headers
+- **Rulebook add/edit form** — NSM template override: section headings (`1== Common` + line),
+  polymorphic M2M tabs, lazy object picker
+- **Enforcement targets** — panel **Edit** / **Done** mode: Add, Remove, and link actions only
+  while editing
+- **IP Analyzer applet** — expanded object tree, warnings, drill-down, and stylesheet/JS coverage
+- **Code layout** — packages `rulebooks/`, `security/`, `objects/`, `core/`, `analyzer/`
+
+### Changed
+
+- **Migrations** — single `0001_initial` for fresh empty databases (`CotRulebookAssignment`,
+  `TypeConfig`, `NsmUiSettings`, …); superseded chain in `OLD/migrations/`
+- **Rules tab** — group sort keys resolve to display labels (`Zones (Source)` not `2# Source`);
+  collapsed column headers and Security Panel labels aligned
+- **Enforcement targets** — host interface list always visible (collapse chevron removed)
+- **Setup** — demo and `import_rulebook_templates()` re-apply template schema and sync groups
+
+### Removed
+
+- Native rulebook CRUD, rules editor, matrix view, object-group UI, and related API/serializers/tests
+- `nsm_setting` / `nsm_replace` YAML in COT comments (labels are code-defined defaults)
+- Legacy maintenance scripts (`drop_nsm_prefix`, `apply_nsm_unification`, …)
+
+### Fixed
+
+- **`resolve_group_name_for_display`** — strips leading `N# ` sort prefix (N = 1–9) and matches
+  groups case-insensitively
+
 ## [0.3.2] - 2026-06-05
 
 ### Added
@@ -215,6 +254,7 @@ First release in the 0.2.x line.
 
 - Documentation-only plugin — no firewall push or policy enforcement
 - See [KNOWN_ISSUES.md](KNOWN_ISSUES.md) for open items
+[0.4.0]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.0
 [0.3.2]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.3.2
 [0.3.1]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.3.1
 [0.3.0]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.3.0

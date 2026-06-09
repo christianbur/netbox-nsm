@@ -13,17 +13,6 @@
         <tr><th scope="row">{% trans "Matching Class" %}</th><td>{{ object.get_matching_class_display|placeholder }}</td></tr>
         <tr><th scope="row">{% trans "Display Template" %}</th><td><code>{{ object.display_template|placeholder }}</code></td></tr>
         <tr>
-          <th scope="row">{% trans "Panel slugs" %}</th>
-          <td>
-            {% for slug in object.panel_slugs %}
-              {% if not forloop.first %}, {% endif %}{{ slug }}
-            {% empty %}
-              <span class="text-muted">—</span>
-            {% endfor %}
-          </td>
-        </tr>
-        <tr><th scope="row">{% trans "Sort order" %}</th><td>{{ object.order_id }}</td></tr>
-        <tr>
           <th scope="row">{% trans "Linkable in panel" %}</th>
           <td>
             {% if object.is_panel_linkable_disabled %}

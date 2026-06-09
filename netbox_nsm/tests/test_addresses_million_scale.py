@@ -3,7 +3,11 @@
 from django.test import SimpleTestCase
 
 from netbox_nsm.demos.addresses_million_scale import (
+    DEFAULT_LEAF_COUNT,
+    DEFAULT_RULE_COUNT,
     HOSTS_PER_SUBNET,
+    SCALE_DEMO_50K_LEAF_COUNT,
+    SCALE_DEMO_50K_RULE_COUNT,
     SUBNET_COUNT,
     _host_cidr,
     _leaf_indices,
@@ -33,3 +37,10 @@ class AddressesMillionScaleHelperTests(SimpleTestCase):
     def test_leaf_name_padding(self):
         self.assertEqual(_leaf_name(0), "bench-ip-0000000")
         self.assertEqual(_leaf_name(199999), "bench-ip-0199999")
+
+    def test_scale_demo_50k_constants(self):
+        self.assertEqual(SCALE_DEMO_50K_LEAF_COUNT, 50_000)
+        self.assertEqual(
+            SCALE_DEMO_50K_RULE_COUNT,
+            round(DEFAULT_RULE_COUNT * 50_000 / DEFAULT_LEAF_COUNT),
+        )

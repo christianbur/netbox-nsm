@@ -7,19 +7,74 @@ from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from netbox_nsm.builtin_types import BUILTIN_CUSTOM_TYPES
-from netbox_nsm.custom_objects_schema import (
+from netbox_nsm.objects.builtin_types import BUILTIN_CUSTOM_TYPES
+from netbox_nsm.objects.custom_objects_schema import (
     build_choice_set_specs,
     build_schema_document,
     iter_types,
 )
-from netbox_nsm.type_config_specs import REQUIRED_COT_SLUGS
+from netbox_nsm.objects.type_config_specs import REQUIRED_COT_SLUGS
+from netbox_nsm.rulebooks.templates import (
+    BUNDLED_RULEBOOK_TEMPLATE_SLUGS,
+    RULEBOOK_TEMPLATE_BY_SLUG,
+    RULEBOOK_TEMPLATE_GROUP,
+    RULEBOOK_TEMPLATE_SLUGS,
+    build_rulebook_template_type_defs,
+)
+
+NSM_PANEL_COT_SLUGS = ("nsm_object_link",)
+
+COT_BUILTIN_OBJECT_SLUGS = tuple(
+    slug for slug in REQUIRED_COT_SLUGS if slug not in NSM_PANEL_COT_SLUGS
+)
+
+COT_GROUP_OBJECTS = {
+    "id": "objects",
+    "label": _("NSM Objects"),
+    "description": _(
+        "Built-in policy object types (zones, addresses, services, actions, …)."
+    ),
+}
+
+COT_GROUP_NSM_PANEL = {
+    "id": "nsm_panel",
+    "label": _("NSM Panel"),
+    "description": _(
+        "Panel assignment links (inventory ↔ policy objects)."
+    ),
+}
+
+COT_GROUP_RULEBOOK_TEMPLATES = {
+    "id": "rulebook_templates",
+    "label": _("NSM Rulebooks"),
+    "description": _(
+        "Rulebook templates (blueprints for creating rulebooks). No TypeConfig required."
+    ),
+}
+
+COT_SETUP_GROUPS = (
+    COT_GROUP_OBJECTS,
+    COT_GROUP_NSM_PANEL,
+    COT_GROUP_RULEBOOK_TEMPLATES,
+)
 
 __all__ = (
+    "COT_GROUP_OBJECTS",
+    "COT_GROUP_NSM_PANEL",
+    "COT_GROUP_RULEBOOK_TEMPLATES",
+    "COT_SETUP_GROUPS",
+    "COT_BUILTIN_OBJECT_SLUGS",
+    "NSM_PANEL_COT_SLUGS",
     "custom_objects_plugin_loaded",
     "custom_objects_db_ready",
     "get_cot_status",
+    "get_rulebook_template_status",
+    "get_builtin_object_entries",
+    "get_nsm_panel_entries",
+    "get_rulebook_template_entries",
+    "get_cot_setup_groups",
     "all_cots_ok",
+    "import_rulebook_templates",
     "handle_custom_objects_action",
 )
 
@@ -68,8 +123,142 @@ def get_cot_status():
         return _empty_cot_status()
 
 
-def all_cots_ok(cot_status) -> bool:
-    return custom_objects_db_ready() and all(v is not None for v in cot_status.values())
+def empty_rulebook_template_status():
+    return {slug: None for slug in BUNDLED_RULEBOOK_TEMPLATE_SLUGS}
+
+
+def get_rulebook_template_status():
+    if not custom_objects_db_ready():
+        return empty_rulebook_template_status()
+    try:
+        from netbox_custom_objects.models import CustomObjectType
+
+        status = {slug: None for slug in BUNDLED_RULEBOOK_TEMPLATE_SLUGS}
+        for cot in CustomObjectType.objects.filter(
+            slug__in=BUNDLED_RULEBOOK_TEMPLATE_SLUGS
+        ):
+            status[cot.slug] = cot
+        for cot in (
+            CustomObjectType.objects.filter(group_name=RULEBOOK_TEMPLATE_GROUP)
+            .exclude(slug__in=BUNDLED_RULEBOOK_TEMPLATE_SLUGS)
+            .order_by("slug")
+        ):
+            status[cot.slug] = cot
+        return status
+    except (ProgrammingError, OperationalError):
+        return empty_rulebook_template_status()
+
+
+def _builtin_metadata_by_slug():
+    return {
+        prefixed: typedef
+        for typedef, _base, prefixed, _areas in iter_types(BUILTIN_CUSTOM_TYPES)
+    }
+
+
+def get_builtin_object_entries(*, cot_status=None):
+    if cot_status is None:
+        cot_status = get_cot_status()
+    metadata = _builtin_metadata_by_slug()
+    return [
+        {
+            "slug": slug,
+            "label": metadata.get(slug, {}).get("name", slug),
+            "description": metadata.get(slug, {}).get("description", ""),
+            "cot": cot_status.get(slug),
+        }
+        for slug in COT_BUILTIN_OBJECT_SLUGS
+    ]
+
+
+def get_nsm_panel_entries(*, cot_status=None):
+    if cot_status is None:
+        cot_status = get_cot_status()
+    metadata = _builtin_metadata_by_slug()
+    return [
+        {
+            "slug": slug,
+            "label": metadata.get(slug, {}).get("name", slug),
+            "description": metadata.get(slug, {}).get("description", ""),
+            "cot": cot_status.get(slug),
+        }
+        for slug in NSM_PANEL_COT_SLUGS
+    ]
+
+
+def get_rulebook_template_entries(*, template_status=None):
+    if template_status is None:
+        template_status = get_rulebook_template_status()
+    entries = []
+    for slug in BUNDLED_RULEBOOK_TEMPLATE_SLUGS:
+        entries.append(
+            {
+                "slug": slug,
+                "label": RULEBOOK_TEMPLATE_BY_SLUG[slug]["label"],
+                "description": RULEBOOK_TEMPLATE_BY_SLUG[slug]["summary"],
+                "cot": template_status.get(slug),
+            }
+        )
+    for slug, cot in template_status.items():
+        if slug in BUNDLED_RULEBOOK_TEMPLATE_SLUGS:
+            continue
+        entries.append(
+            {
+                "slug": slug,
+                "label": (cot.verbose_name or cot.name or slug) if cot else slug,
+                "description": (cot.description or "").strip() if cot else "",
+                "cot": cot,
+            }
+        )
+    return entries
+
+
+def get_cot_setup_groups(*, cot_status=None, rulebook_template_status=None):
+    if cot_status is None:
+        cot_status = get_cot_status()
+    if rulebook_template_status is None:
+        rulebook_template_status = get_rulebook_template_status()
+    return [
+        {
+            **COT_GROUP_OBJECTS,
+            "entries": get_builtin_object_entries(cot_status=cot_status),
+        },
+        {
+            **COT_GROUP_NSM_PANEL,
+            "entries": get_nsm_panel_entries(cot_status=cot_status),
+        },
+        {
+            **COT_GROUP_RULEBOOK_TEMPLATES,
+            "entries": get_rulebook_template_entries(
+                template_status=rulebook_template_status
+            ),
+        },
+    ]
+
+
+def all_cots_ok(cot_status, rulebook_template_status=None) -> bool:
+    if not all(v is not None for v in cot_status.values()):
+        return False
+    if rulebook_template_status is None:
+        if not custom_objects_db_ready():
+            return False
+        rulebook_template_status = get_rulebook_template_status()
+    return all(
+        rulebook_template_status.get(slug) is not None
+        for slug in BUNDLED_RULEBOOK_TEMPLATE_SLUGS
+    )
+
+
+def import_rulebook_templates() -> None:
+    from netbox_custom_objects.schema.executor import apply_document
+    from netbox_nsm.rulebooks.rulebook_groups import sync_all_rulebook_cots
+
+    document = {
+        "schema_version": "1",
+        "types": build_rulebook_template_type_defs(),
+    }
+    apply_document(document, allow_destructive=False)
+    sync_all_rulebook_cots()
 
 
 def import_single_type(slug: str) -> None:
@@ -110,6 +299,7 @@ def import_all_types() -> None:
         apply_document(document, allow_destructive=True)
         _prune_stale(document)
         _seed_default_objects(BUILTIN_CUSTOM_TYPES)
+    import_rulebook_templates()
 
 
 def handles_action(action: str) -> bool:
@@ -122,13 +312,16 @@ def handle_custom_objects_action(request, action: str):
         import_single_type(slug)
         messages.success(
             request,
-            _("Custom Object Type '%(slug)s' imported (TypeConfigs: use step 2).")
+            _("Custom Object Type '%(slug)s' imported (TypeConfigs: use step 3).")
             % {"slug": slug},
         )
     elif action == "import_all_types":
         import_all_types()
         messages.success(
             request,
-            _("All Custom Object Types imported. Create TypeConfigs in step 2."),
+            _(
+                "All Custom Object Types and rulebook templates imported. "
+                "Create TypeConfigs in step 3."
+            ),
         )
     return redirect(reverse("plugins:netbox_nsm:setup"))

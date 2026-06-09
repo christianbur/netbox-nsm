@@ -1,23 +1,27 @@
 #!/usr/bin/env python3
 """Bench scale data — NOT registered in Setup wizard.
 
-Creates nested ``nsm_addresses`` (200k hosts by default) and policy rules on an
-existing rulebook (default pk=2, ``Demo - Addresses``).
+Creates nested ``nsm_address`` hosts (200k by default) and COT policy rules on
+``nsm_rb_bench_addresses`` (template 0002 — addresses only).
 
-Examples::
+Ausführung (im Verzeichnis ``docker/netbox_dev``)::
 
-    # Full run (long; 200k rows + 13k rules)
-    docker exec netbox-dev python3 /opt/netbox-nsm/scripts/create_addresses_million_scale.py
+    # Vollständiger Lauf (lange Laufzeit; 200k Adressen + 13k Regeln)
+    docker compose exec netbox python3 /opt/netbox-nsm/scripts/create_addresses_million_scale.py
 
-    # Rules only (addresses already present)
-    docker exec netbox-dev python3 /opt/netbox-nsm/scripts/create_addresses_million_scale.py --skip-addresses
+    # Nur Regeln (Adressen bereits vorhanden)
+    docker compose exec netbox python3 /opt/netbox-nsm/scripts/create_addresses_million_scale.py --skip-addresses
 
-    # Smaller smoke test
-    docker exec netbox-dev python3 /opt/netbox-nsm/scripts/create_addresses_million_scale.py \\
+    # Smoke-Test
+    docker compose exec netbox python3 /opt/netbox-nsm/scripts/create_addresses_million_scale.py \\
         --leaf-count 1000 --rule-count 100
 
-    # Remove bench-* data
-    docker exec netbox-dev python3 /opt/netbox-nsm/scripts/create_addresses_million_scale.py --purge
+    # Bench-Daten entfernen
+    docker compose exec netbox python3 /opt/netbox-nsm/scripts/create_addresses_million_scale.py --purge
+
+Voraussetzungen: NetBox + netbox-custom-objects + netbox-nsm; Setup → Import all types
+und Create all TypeConfigs (oder Starter-Demo). Container ``netbox`` muss laufen;
+``./netbox-nsm`` wird nach ``/opt/netbox-nsm`` gemountet.
 """
 
 from __future__ import annotations
@@ -31,7 +35,7 @@ django_bootstrap.setup()
 
 from netbox_nsm.demos.addresses_million_scale import (  # noqa: E402
     DEFAULT_LEAF_COUNT,
-    DEFAULT_RULEBOOK_ID,
+    DEFAULT_RULEBOOK_SLUG,
     DEFAULT_RULE_COUNT,
     create_addresses_million_scale,
     purge_bench_data,
@@ -40,30 +44,35 @@ from netbox_nsm.demos.addresses_million_scale import (  # noqa: E402
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Bench: nested nsm_addresses + rules (standalone, not Setup)."
+        description="Bench: nested nsm_address hosts + COT rules (standalone, not Setup)."
+    )
+    parser.add_argument(
+        "--rulebook-slug",
+        default=DEFAULT_RULEBOOK_SLUG,
+        help=f"Target COT rulebook slug (default: {DEFAULT_RULEBOOK_SLUG})",
     )
     parser.add_argument(
         "--rulebook-id",
         type=int,
-        default=DEFAULT_RULEBOOK_ID,
-        help=f"Target rulebook pk (default: {DEFAULT_RULEBOOK_ID})",
+        default=None,
+        help="Legacy: resolve rulebook by CustomObjectType pk instead of slug",
     )
     parser.add_argument(
         "--leaf-count",
         type=int,
         default=DEFAULT_LEAF_COUNT,
-        help=f"Leaf address count (default: {DEFAULT_LEAF_COUNT:,})",
+        help=f"Leaf host address count (default: {DEFAULT_LEAF_COUNT:,})",
     )
     parser.add_argument(
         "--rule-count",
         type=int,
         default=DEFAULT_RULE_COUNT,
-        help=f"Policy rules to create (default: {DEFAULT_RULE_COUNT:,})",
+        help=f"COT policy rules to create (default: {DEFAULT_RULE_COUNT:,})",
     )
     parser.add_argument(
         "--skip-addresses",
         action="store_true",
-        help="Skip address/IPAM creation; use existing bench-* leaves",
+        help="Skip address/IPAM creation; use existing bench-ip-* leaves",
     )
     parser.add_argument(
         "--skip-rules",
@@ -73,7 +82,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--keep-rules",
         action="store_true",
-        help="Do not delete existing bench-* rules before creating",
+        help="Do not delete existing bench-rule-* rows before creating",
     )
     parser.add_argument(
         "--purge",
@@ -83,7 +92,10 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.purge:
-        summary = purge_bench_data(rulebook_id=args.rulebook_id)
+        summary = purge_bench_data(
+            rulebook_id=args.rulebook_id,
+            rulebook_slug=args.rulebook_slug,
+        )
         print(
             "Purged bench data: "
             f"{summary['rules_deleted']} rules, "
@@ -96,6 +108,7 @@ def main(argv: list[str] | None = None) -> int:
 
     summary = create_addresses_million_scale(
         rulebook_id=args.rulebook_id,
+        rulebook_slug=args.rulebook_slug,
         leaf_count=args.leaf_count,
         rule_count=args.rule_count,
         skip_addresses=args.skip_addresses,
@@ -103,10 +116,10 @@ def main(argv: list[str] | None = None) -> int:
         recreate_rules=not args.keep_rules,
     )
     print(
-        f"{summary['rulebook']} (pk={summary['rulebook_id']}): "
+        f"{summary['rulebook']} ({summary['rulebook_slug']}, pk={summary['rulebook_id']}): "
         f"{summary['leaves']:,} leaves, "
         f"{summary['rules']:,} new rules, "
-        f"{summary['object_items']:,} rule object items, "
+        f"{summary['object_items']:,} multiobject assignments, "
         f"{summary['elapsed_s']}s"
     )
     return 0

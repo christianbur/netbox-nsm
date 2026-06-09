@@ -66,7 +66,7 @@ class SetupIntegrationTests(TestCase):
         self.assertEqual(response.status_code, 302, response.content)
         settings_obj = NsmUiSettings.get_solo()
         self.assertTrue(settings_obj.setup_menu_dismissed)
-        from netbox_nsm.setup_flags import setup_menu_enabled
+        from netbox_nsm.core.setup_flags import setup_menu_enabled
 
         self.assertFalse(setup_menu_enabled())
 

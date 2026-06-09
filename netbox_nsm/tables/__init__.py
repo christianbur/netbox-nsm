@@ -1,3 +1,2 @@
-from .rulebook import *
-from .object_group import *
+from netbox_nsm.rulebooks.tables.rulebook import *
 from .type_config import *

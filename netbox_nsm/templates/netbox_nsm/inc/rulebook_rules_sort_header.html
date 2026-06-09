@@ -1,6 +1,13 @@
 {% load i18n %}
 <span class="nsm-rules-sort-header">
+  {% if subtitle %}
+  <span class="nsm-rules-sort-label nsm-rules-th-stack">
+    <span class="nsm-rules-th-title">{{ title }}</span>
+    <span class="nsm-rules-th-subtitle">{{ subtitle }}</span>
+  </span>
+  {% else %}
   <span class="nsm-rules-sort-label">{{ label }}</span>
+  {% endif %}
   <a href="{{ meta.sort_url }}"
      class="nsm-rules-sort-direction{% if meta.sort_active %} is-active is-{{ meta.sort_order }}{% endif %}"
      title="{% if meta.sort_active and meta.sort_order == 'desc' %}{% trans 'Z–A' %}{% elif meta.sort_active %}{% trans 'A–Z' %}{% else %}{% trans 'Sort' %}{% endif %}"

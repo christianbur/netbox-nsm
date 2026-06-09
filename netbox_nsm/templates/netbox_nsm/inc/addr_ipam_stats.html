@@ -1,0 +1,3 @@
+{% if node.ipam_stats_short %}
+<span class="badge bg-secondary-subtle text-secondary nsm-addr-ipam-short font-monospace" title="{% for stat in node.ipam_stats %}{{ stat.label }}: {{ stat.count }}{% if not forloop.last %} · {% endif %}{% endfor %}">{{ node.ipam_stats_short }}</span>
+{% endif %}

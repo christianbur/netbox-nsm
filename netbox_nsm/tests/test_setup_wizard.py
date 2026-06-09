@@ -11,6 +11,7 @@ WIZARD_ACTIONS = {
     "import_all_types": custom_objects.handles_action,
     "create_all_typeconfigs": typeconfig.handles_action,
     "create_demo_starter": demo.handles_action,
+    "create_demo_scale_50k": demo.handles_action,
 }
 
 
@@ -26,7 +27,6 @@ class SetupWizardActionTests(SimpleTestCase):
             {
                 "create_demo_starter",
                 "create_demo_enterprise",
-                "create_demo_addresses_scale",
-                "create_demo_scale",
+                "create_demo_scale_50k",
             },
         )

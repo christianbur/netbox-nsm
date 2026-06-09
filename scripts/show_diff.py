@@ -6,7 +6,7 @@ django_bootstrap.setup()
 
 from netbox_custom_objects.models import CustomObjectType
 from netbox_custom_objects.schema.comparator import diff_document
-from netbox_nsm.custom_objects_schema import load_portable_schema_document
+from netbox_nsm.objects.custom_objects_schema import load_portable_schema_document
 
 doc = load_portable_schema_document()
 

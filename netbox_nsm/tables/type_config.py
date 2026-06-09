@@ -7,11 +7,8 @@ from netbox.tables import NetBoxTable
 from netbox.tables.columns import ActionsColumn
 
 from netbox_nsm.models import TypeConfig
-from netbox_nsm.panel_sections import get_panel_sections
 
 __all__ = ("TypeConfigTable",)
-
-_SLUG_LABELS = {s["slug"]: str(s["name"]) for s in get_panel_sections()}
 
 _MATCHING_CLASS_BADGE = {
     "address": ("bg-info", "text-white"),
@@ -42,8 +39,6 @@ class TypeConfigTable(NetBoxTable):
     )
     matching_class = tables.Column(verbose_name=_("Matching Class"))
     display_template = tables.Column(verbose_name=_("Display Template"))
-    panel_slugs = tables.Column(verbose_name=_("Panel slugs"), orderable=False)
-    order_id = tables.Column(verbose_name=_("Sort order"))
     panel_linkable_types = tables.Column(
         verbose_name=_("Panel"),
         orderable=False,
@@ -92,12 +87,6 @@ class TypeConfigTable(NetBoxTable):
         label = value.replace("_", " ").capitalize()
         return format_html('<span class="badge {} {}">{}</span>', bg, fg, label)
 
-    def render_panel_slugs(self, record):
-        slugs = record.panel_slugs or []
-        if not slugs:
-            return "—"
-        return ", ".join(_SLUG_LABELS.get(s, s) for s in slugs)
-
     def render_panel_linkable_types(self, record):
         if record.is_panel_linkable_disabled():
             return mark_safe('<span class="text-muted">—</span>')
@@ -117,8 +106,6 @@ class TypeConfigTable(NetBoxTable):
             "content_type",
             "matching_class",
             "display_template",
-            "panel_slugs",
-            "order_id",
             "panel_linkable_types",
             "actions",
         )
@@ -126,8 +113,6 @@ class TypeConfigTable(NetBoxTable):
             "name",
             "content_type",
             "matching_class",
-            "panel_slugs",
-            "order_id",
             "display_template",
             "panel_linkable_types",
             "actions",

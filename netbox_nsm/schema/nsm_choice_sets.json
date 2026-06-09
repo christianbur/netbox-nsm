@@ -1,6 +1,6 @@
 [
   {
-    "name": "nsm_services_protocol",
+    "name": "nsm_service_protocol",
     "choices": [
       "tcp",
       "udp",
@@ -15,7 +15,7 @@
     ]
   },
   {
-    "name": "nsm_labels_label_type",
+    "name": "nsm_label_type",
     "choices": [
       "role",
       "application",
@@ -25,7 +25,7 @@
     ]
   },
   {
-    "name": "nsm_business_apps_criticality",
+    "name": "nsm_app_business_criticality",
     "choices": [
       "low",
       "medium",
@@ -34,7 +34,7 @@
     ]
   },
   {
-    "name": "nsm_network_apps_app_category",
+    "name": "nsm_app_network_category",
     "choices": [
       "collaboration",
       "database",
@@ -53,13 +53,23 @@
     ]
   },
   {
-    "name": "nsm_network_apps_app_risk",
+    "name": "nsm_app_network_risk",
     "choices": [
       "1",
       "2",
       "3",
       "4",
       "5"
+    ]
+  },
+  {
+    "name": "nsm_object_link_propagation",
+    "choices": [
+      "direct",
+      "inherit_ipam",
+      "inherit_ipam_stop",
+      "inherit_group",
+      "inherit_group_stop"
     ]
   }
 ]

@@ -2,50 +2,47 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from netbox_nsm.models import TypeConfig
-from netbox_nsm.models.object_link import LinkPropagationChoices
+from netbox_nsm.objects.link_propagation import (
+    CotObjectLinkPropagationChoices,
+    cot_propagation_choices_for_form,
+)
 
 __all__ = ("ObjectLinkAssignForm", "ObjectLinkEditForm")
 
 
 class ObjectLinkPropagationForm(forms.Form):
-    """Base form with propagation fields (must subclass forms.Form for Django 4.6+)."""
+    """Base form with combined COT propagation field."""
 
     propagation = forms.ChoiceField(
         label=_("Link type"),
-        choices=LinkPropagationChoices.choices,
-        initial=LinkPropagationChoices.DIRECT,
+        choices=[],
+        initial=CotObjectLinkPropagationChoices.DIRECT,
         help_text=_(
-            "Direct: stored on object A and shown on both A and B; not propagated "
+            "Direct: stored on this object and shown on both sides; not propagated "
             "to children. Inherit modes also show the link on child objects in "
             "their Security Panel (IPAM children or group members, when applicable)."
         ),
         widget=forms.Select(attrs={"class": "form-select", "id": "id_propagation"}),
     )
-    propagate_stop_on_own = forms.BooleanField(
-        label=_("Stop when child has own link of same type"),
-        required=False,
-        initial=False,
-        widget=forms.CheckboxInput(
-            attrs={"class": "form-check-input", "id": "id_propagate_stop_on_own"}
-        ),
-    )
 
     def _configure_propagation_fields(self, source_object):
         self.source_object = source_object
-        self.fields["propagation"].choices = LinkPropagationChoices.choices
+        self.fields["propagation"].choices = cot_propagation_choices_for_form(
+            source_object
+        )
 
     def _clean_propagation_fields(self, data):
-        propagation = data.get("propagation") or LinkPropagationChoices.DIRECT
-        allowed_modes = {value for value, _label in LinkPropagationChoices.choices}
+        propagation = data.get("propagation") or CotObjectLinkPropagationChoices.DIRECT
+        allowed_modes = {
+            value for value, _label in cot_propagation_choices_for_form(self.source_object)
+        }
         if propagation not in allowed_modes:
             self.add_error("propagation", _("Invalid link type."))
-        if propagation == LinkPropagationChoices.DIRECT:
-            data["propagate_stop_on_own"] = False
         return data
 
 
 def _build_type_choices(source_content_type_id=None):
-    """NSM types assignable as Object B in the Security Panel assign picker."""
+    """NSM types assignable as policy object in the Security Panel assign picker."""
     if source_content_type_id is not None:
         configs = list(
             TypeConfig.queryset_assignable_from(int(source_content_type_id))
@@ -171,7 +168,7 @@ class ObjectLinkAssignForm(ObjectLinkPropagationForm):
 
 
 class ObjectLinkEditForm(ObjectLinkPropagationForm):
-    """Edit propagation and comment on an existing ObjectLink."""
+    """Edit propagation and comment on an existing nsm_object_link row."""
 
     comment = forms.CharField(
         label=_("Comment"),

@@ -10,7 +10,7 @@ from django.utils.translation import gettext as _
 from django.views import View
 from utilities.forms.fields import DynamicModelChoiceField
 
-from netbox_nsm.address_ipam_fk import (
+from netbox_nsm.objects.address_ipam_fk import (
     NSM_ADDRESSES_SLUG,
     get_nsm_address_model,
     panel_link_type_for_address_ipam_fk,
@@ -87,7 +87,7 @@ class AddressIpamFkClearView(LoginRequiredMixin, View):
     def _context(self, request, addr_obj, field_name, return_url):
         from django.contrib.contenttypes.models import ContentType
 
-        from netbox_nsm.address_ipam_fk import panel_link_type_for_address_ipam_fk
+        from netbox_nsm.objects.address_ipam_fk import panel_link_type_for_address_ipam_fk
 
         ipam_obj = getattr(addr_obj, field_name, None)
         return {

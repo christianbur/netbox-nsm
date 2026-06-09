@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.views.rulebook import (
+from netbox_nsm.analysis.addr_analysis_utils import (
     _attach_addr_node_prefix_display,
     _build_addr_tree_node,
 )
@@ -93,3 +93,12 @@ class AddrCopyPrefixFormatTests(SimpleTestCase):
         self.assertIn("nsm-addr-prefix-format", assets)
         self.assertIn("window.nsmFormatAddrCopyLines(text, btn)", assets)
         self.assertIn("btn.closest('.nsm-addr-top')", assets)
+        self.assertIn("runLazyCategoryLoad", assets)
+        self.assertIn("nsm-addr-lazy-progress", assets)
+
+    def test_lazy_load_button_exposes_progress_metadata(self):
+        template = (
+            _PLUGIN_ROOT / "templates/netbox_nsm/inc/addr_tree_node.html"
+        ).read_text(encoding="utf-8")
+        self.assertIn("data-total=", template)
+        self.assertIn("data-label-loading=", template)

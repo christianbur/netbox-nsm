@@ -1,0 +1,67 @@
+{% load form_helpers %}
+{% load i18n %}
+
+{{ form.non_field_errors }}
+
+<div class="field-group mb-4">
+  <div class="row">
+    <h2 class="col-9 offset-3">{% trans "Template" %}</h2>
+  </div>
+  {% render_field form.template_slug %}
+</div>
+
+<div class="field-group mb-4">
+  <div class="row">
+    <h2 class="col-9 offset-3">{% trans "Columns" %}</h2>
+  </div>
+  <div class="row mb-3">
+    <div class="col-md-9 offset-md-3">
+      <div class="table-responsive">
+        <table class="table table-sm table-striped">
+          <thead>
+            <tr>
+              <th>{% trans "Column" %}</th>
+              <th>{% trans "Allowed objects" %}</th>
+              <th>{% trans "Required" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for col in template_columns %}
+            <tr>
+              <td>{{ col.label }}</td>
+              <td>
+                {% if col.allowed_objects %}
+                  {{ col.allowed_objects|join:", " }}
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if col.required %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="field-group mb-4">
+  <div class="row">
+    <h2 class="col-9 offset-3">{% trans "Rulebook" %}</h2>
+  </div>
+  {% render_field form.name %}
+  {% render_field form.verbose_name %}
+  {% render_field form.description %}
+  {% render_field form.parent_slug %}
+  {% if preview_slug %}
+  <div class="row mb-3">
+    <label class="col-form-label col-md-3 text-lg-end">{% trans "Slug" %}</label>
+    <div class="col-md-9">
+      <p class="form-control-plaintext"><code>{{ preview_slug }}</code></p>
+    </div>
+  </div>
+  {% endif %}
+</div>

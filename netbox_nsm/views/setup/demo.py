@@ -1,6 +1,26 @@
-"""Setup: demo rulebook creation."""
+"""Setup: demo rulebook creation (COT-only).
+
+Starter-Demo (20×20 Zonen-Matrix, Template 0003 — nur Zonen, zufällig permit/deny)::
+
+    # Über NetBox Setup (Abschnitt 4) → „Starter-Demo“ → Anlegen
+    # oder per Django-Shell:
+    from netbox_nsm.views.setup.demo import create_demo_starter
+    create_demo_starter()
+
+Address Bench (50.000 Adressen, nur bei leerem IPAM)::
+
+    # Setup → „Address Bench (50.000 Adressen)“
+    # RQ-Worker muss laufen (netbox-dev-worker). Volllauf 200k nur per CLI:
+    # scripts/create_addresses_million_scale.py
+
+Ausführung im Container::
+
+    docker compose exec netbox python3 manage.py shell -c \\
+        "from netbox_nsm.views.setup.demo import create_demo_starter; create_demo_starter()"
+"""
 
 import io
+import random
 import sys
 from pathlib import Path
 
@@ -12,18 +32,21 @@ from django.utils.translation import gettext_lazy as _
 
 from ipam.models import IPAddress
 
-from netbox_nsm.models import TypeConfig
-from netbox_nsm.models.rulebook import (
-    Rule,
-    Rulebook,
-    RulebookField,
-    RulebookFieldType,
-    RuleObjectItem,
+from netbox_nsm.rulebooks.templates import (
+    DEMO_RULEBOOK_SLUG,
+    DEMO_RULEBOOK_TEMPLATE_SLUG,
+    build_rulebook_document,
+    format_rulebook_display_name,
 )
-from netbox_nsm.rulebook_field_utils import ensure_system_rulebook_fields
+
+from .custom_objects import import_rulebook_templates
 
 __all__ = (
+    "DEMO_ACTION_RANDOM_SEED",
     "DEMO_ACTIONS",
+    "DEMO_GRID_SIZE",
+    "DEMO_RULE_COUNT",
+    "DEMO_ZONE_COUNT",
     "_count_active_rq_workers",
     "_find_pending_demo_job",
     "_queue_demo_import",
@@ -31,137 +54,33 @@ __all__ = (
     "handle_demo_action",
 )
 
-_DEMO_MATRIX_RULES = [
-    {
-        "name": "trust-to-untrust",
-        "src": "trust",
-        "dst": "untrust",
-        "svc": "HTTPS",
-        "action": "permit",
-    },
-    {
-        "name": "trust-to-dmz",
-        "src": "trust",
-        "dst": "dmz",
-        "svc": "HTTPS",
-        "action": "permit",
-    },
-    {
-        "name": "trust-to-mgmt",
-        "src": "trust",
-        "dst": "mgmt",
-        "svc": "SSH",
-        "action": "permit",
-    },
-    {
-        "name": "untrust-to-dmz",
-        "src": "untrust",
-        "dst": "dmz",
-        "svc": "HTTPS",
-        "action": "permit",
-    },
-    {
-        "name": "untrust-to-mgmt",
-        "src": "untrust",
-        "dst": "mgmt",
-        "svc": "SSH",
-        "action": "deny",
-    },
-    {
-        "name": "dmz-to-mgmt",
-        "src": "dmz",
-        "dst": "mgmt",
-        "svc": "SSH",
-        "action": "deny",
-    },
-]
+DEMO_GRID_SIZE = 20
+DEMO_ZONE_COUNT = 20
+DEMO_RULE_COUNT = DEMO_GRID_SIZE * DEMO_GRID_SIZE
+DEMO_ACTION_RANDOM_SEED = 7
+DEMO_ZONE_NAME_PREFIX = "zone_"
+DEMO_RULE_NAME_PREFIX = "demo-rule-"
 
 DEMO_ACTIONS = frozenset(
     {
         "create_demo_starter",
         "create_demo_enterprise",
-        "create_demo_addresses_scale",
-        "create_demo_scale",
+        "create_demo_scale_50k",
     }
 )
 
-# Object columns shared by starter demos (system columns come from ensure_system_rulebook_fields).
-_SECURITY_RULES_OBJECT_FIELD_SPECS = (
-    {"slug": "source", "name": "Source", "sort_order": 10, "placement": "source"},
-    {
-        "slug": "destination",
-        "name": "Destination",
-        "sort_order": 20,
-        "placement": "destination",
-    },
-    {"slug": "service", "name": "Service", "sort_order": 30, "placement": "fixed"},
-    {"slug": "action", "name": "Action", "sort_order": 40, "placement": "fixed"},
+SCALE_DEMO_50K_IMPORT = (
+    "netbox_nsm.demos.addresses_million_scale.create_addresses_scale_demo_50k"
 )
-
-# (field_slug, [(cot_slug, type_sort_order), ...])
-_ZONE_MATRIX_FIELD_TYPES = {
-    "source": (("nsm_zones", 10),),
-    "destination": (("nsm_zones", 10),),
-    "service": (("nsm_services", 10),),
-    "action": (("nsm_action", 10),),
-}
-
-_ADDRESSES_FIELD_TYPES = {
-    "source": (("nsm_zones", 10), ("nsm_addresses", 20)),
-    "destination": (("nsm_zones", 10), ("nsm_addresses", 20)),
-    "service": (("nsm_services", 10), ("nsm_network_apps", 20)),
-    "action": (("nsm_action", 10),),
-}
+SCALE_DEMO_50K_RULEBOOK_NAME = "Bench Addresses"
 
 
-def _upsert_object_fields(rb, specs):
-    fields = {}
-    for spec in specs:
-        field, _ = RulebookField.objects.update_or_create(
-            rulebook=rb,
-            slug=spec["slug"],
-            defaults={
-                "name": spec["name"],
-                "sort_order": spec["sort_order"],
-                "placement": spec["placement"],
-                "visible": True,
-                "max_visible_pills": 5,
-            },
-        )
-        fields[spec["slug"]] = field
-    return fields
+def _demo_zone_name(zone_idx: int) -> str:
+    return f"{DEMO_ZONE_NAME_PREFIX}{zone_idx + 1:02d}"
 
 
-def _attach_typeconfig(field, cot_slug, *, sort_order=10, visible=True):
-    from django.contrib.contenttypes.models import ContentType as DjCT
-    from netbox_custom_objects.models import CustomObjectType
-
-    try:
-        cot = CustomObjectType.objects.get(slug=cot_slug)
-        ct = DjCT.objects.get_for_model(cot.get_model())
-        tc = TypeConfig.objects.get(content_type=ct)
-    except Exception:
-        return None
-
-    ft, created = RulebookFieldType.objects.get_or_create(
-        field=field,
-        type_config=tc,
-        defaults={"sort_order": sort_order, "visible": visible},
-    )
-    if not created and (ft.sort_order != sort_order or ft.visible != visible):
-        ft.sort_order = sort_order
-        ft.visible = visible
-        ft.save(update_fields=["sort_order", "visible"])
-    return tc
-
-
-def _apply_field_types(fields, type_map):
-    for field_slug, type_specs in type_map.items():
-        field = fields.get(field_slug)
-        if field is None:
-            continue
-        for cot_slug, sort_order in type_specs:
-            _attach_typeconfig(field, cot_slug, sort_order=sort_order, visible=True)
+def _matrix_indices(rule_idx: int) -> tuple[int, int]:
+    return rule_idx // DEMO_GRID_SIZE, rule_idx % DEMO_GRID_SIZE
 
 
 def _ensure_demo_prerequisites():
@@ -170,6 +89,7 @@ def _ensure_demo_prerequisites():
         all_cots_ok,
         custom_objects_db_ready,
         get_cot_status,
+        get_rulebook_template_status,
         import_all_types,
     )
     from .typeconfig import (
@@ -185,7 +105,8 @@ def _ensure_demo_prerequisites():
         )
 
     cot_status = get_cot_status()
-    if not all_cots_ok(cot_status):
+    rulebook_template_status = get_rulebook_template_status()
+    if not all_cots_ok(cot_status, rulebook_template_status):
         import_all_types()
     else:
         _ensure_builtin_default_objects()
@@ -194,16 +115,42 @@ def _ensure_demo_prerequisites():
     if not all_typeconfigs_ok(cot_status, tc_status):
         create_all_typeconfigs()
 
+    from netbox_nsm.views.custom_objects_sync import _prune_bundled_network_app_defaults
+
+    for slug in ("nsm_app_network", "nsm_network_app", "nsm_network_apps"):
+        _prune_bundled_network_app_defaults(slug)
+
+
+def _ensure_rulebook_templates() -> None:
+    """Deploy bundled rulebook templates (group NSM Rulebook Templates)."""
+    import_rulebook_templates()
+
+
+def _ensure_nsm_rb_demo_rulebook() -> None:
+    """Create demo rulebook nsm_rb_demo from template 0003 (zones only)."""
+    from netbox_custom_objects.models import CustomObjectType
+    from netbox_custom_objects.schema.executor import apply_document
+
+    if CustomObjectType.objects.filter(slug=DEMO_RULEBOOK_SLUG).exists():
+        return
+
+    document = build_rulebook_document(
+        template_slug=DEMO_RULEBOOK_TEMPLATE_SLUG,
+        rulebook_slug=DEMO_RULEBOOK_SLUG,
+        verbose_name=format_rulebook_display_name("Demo"),
+    )
+    apply_document(document, allow_destructive=False)
+
 
 def _ensure_builtin_default_objects() -> None:
     """Seed Permit/HTTPS/etc. when COTs exist but default rows were never created."""
     from netbox_custom_objects.models import CustomObjectType
 
-    from netbox_nsm.builtin_types import BUILTIN_CUSTOM_TYPES
+    from netbox_nsm.objects.builtin_types import BUILTIN_CUSTOM_TYPES
     from netbox_nsm.views.custom_objects_sync import _seed_default_objects
 
     needs_seed = False
-    for slug in ("nsm_action", "nsm_services", "nsm_zones"):
+    for slug in ("nsm_action", "nsm_service", "nsm_zone"):
         try:
             cot = CustomObjectType.objects.get(slug=slug)
         except CustomObjectType.DoesNotExist:
@@ -252,7 +199,15 @@ def _find_pending_demo_job(import_path: str):
     return None
 
 
-def _queue_demo_import(request, *, import_path: str, label, rulebook_name: str) -> bool:
+def _queue_demo_import(
+    request,
+    *,
+    import_path: str,
+    label,
+    rulebook_name: str,
+    job_timeout: int = 900,
+    processing_minutes: str = "1–2",
+) -> bool:
     """Run large demos in RQ so the HTTP request does not time out."""
     import django_rq
 
@@ -275,12 +230,13 @@ def _queue_demo_import(request, *, import_path: str, label, rulebook_name: str) 
             _(
                 "%(label)s import is already queued or running (job %(job_id)s). "
                 "The rulebook «%(rulebook)s» is replaced when that job starts; "
-                "allow about 1–2 minutes of processing after it begins."
+                "allow about %(minutes)s minutes of processing after it begins."
             )
             % {
                 "label": label,
                 "job_id": pending.id,
                 "rulebook": rulebook_name,
+                "minutes": processing_minutes,
             },
         )
         return True
@@ -289,7 +245,7 @@ def _queue_demo_import(request, *, import_path: str, label, rulebook_name: str) 
     job = queue.enqueue(
         import_path,
         kwargs={"recreate": True},
-        job_timeout=900,
+        job_timeout=job_timeout,
         failure_ttl=3600,
         result_ttl=3600,
     )
@@ -300,7 +256,7 @@ def _queue_demo_import(request, *, import_path: str, label, rulebook_name: str) 
             _(
                 "%(label)s import queued (job %(job_id)s); %(backlog)s other job(s) "
                 "are ahead in the worker queue. The rulebook «%(rulebook)s» will be "
-                "recreated when this job starts (~1–2 minutes of work). "
+                "recreated when this job starts (~%(minutes)s minutes of work). "
                 "Find it under Security → Rulebooks."
             )
             % {
@@ -308,6 +264,7 @@ def _queue_demo_import(request, *, import_path: str, label, rulebook_name: str) 
                 "job_id": job.id,
                 "backlog": backlog,
                 "rulebook": rulebook_name,
+                "minutes": processing_minutes,
             },
         )
     else:
@@ -315,104 +272,98 @@ def _queue_demo_import(request, *, import_path: str, label, rulebook_name: str) 
             request,
             _(
                 "%(label)s import started in the background (job %(job_id)s). "
-                "The rulebook «%(rulebook)s» will be recreated in about 1–2 minutes "
+                "The rulebook «%(rulebook)s» will be recreated in about %(minutes)s minutes "
                 "(any existing rulebook with that name is removed when the job "
                 "starts, not when you click Create). Find it under Security → Rulebooks."
             )
-            % {"label": label, "job_id": job.id, "rulebook": rulebook_name},
+            % {
+                "label": label,
+                "job_id": job.id,
+                "rulebook": rulebook_name,
+                "minutes": processing_minutes,
+            },
         )
     return True
 
 
-def _create_zone_matrix_rulebook():
-    from django.contrib.contenttypes.models import ContentType as DjCT
+def _get_custom_objects_by_name(slug):
     from netbox_custom_objects.models import CustomObjectType
 
-    rb, _ = Rulebook.objects.get_or_create(
-        name="Demo - Zone Matrix",
-        defaults={"rulebook_type": "security_rules"},
-    )
-    ensure_system_rulebook_fields(rb)
-    fields = _upsert_object_fields(rb, _SECURITY_RULES_OBJECT_FIELD_SPECS)
-    _apply_field_types(fields, _ZONE_MATRIX_FIELD_TYPES)
+    try:
+        cot = CustomObjectType.objects.get(slug=slug)
+        model = cot.get_model()
+        return {obj.name.lower(): obj for obj in model.objects.all()}
+    except Exception:
+        return {}
 
-    def _get_objects_by_name(slug):
-        try:
-            cot = CustomObjectType.objects.get(slug=slug)
-            model = cot.get_model()
-            return {
-                obj.name.lower(): (obj, DjCT.objects.get_for_model(model))
-                for obj in model.objects.all()
-            }
-        except Exception:
-            return {}
 
-    zones_by_name = _get_objects_by_name("nsm_zones")
-    services_by_name = _get_objects_by_name("nsm_services")
-    actions_by_name = _get_objects_by_name("nsm_action")
+def _ensure_demo_zones():
+    """Create zone_01 … zone_20 for the starter matrix demo."""
+    from netbox_custom_objects.models import CustomObjectType
 
-    for i, rule_def in enumerate(_DEMO_MATRIX_RULES):
-        rule, _ = Rule.objects.get_or_create(
-            rulebook=rb,
-            name=rule_def["name"],
-            defaults={"index": (i + 1) * 10, "enabled": True},
-        )
+    zone_cot = CustomObjectType.objects.get(slug="nsm_zone")
+    zone_model = zone_cot.get_model()
+    zones = []
+    for zone_idx in range(DEMO_ZONE_COUNT):
+        zone, _ = zone_model.objects.get_or_create(name=_demo_zone_name(zone_idx))
+        zones.append(zone)
+    return zones
 
-        def _add_object(field_obj, lookup_dict, key):
-            entry = lookup_dict.get(key.lower())
-            if not entry:
-                return
-            obj, ct = entry
-            RuleObjectItem.objects.get_or_create(
-                rule=rule,
-                field=field_obj,
-                content_type=ct,
-                object_id=obj.pk,
-                defaults={"exclude": False},
+
+def _create_rb_demo_starter_rules():
+    """Seed nsm_rb_demo with a 20×20 zone matrix (400 rules, random permit/deny)."""
+    from netbox_custom_objects.models import CustomObjectType
+
+    cot = CustomObjectType.objects.get(slug=DEMO_RULEBOOK_SLUG)
+    model = cot.get_model()
+    model.objects.all().delete()
+
+    zones = _ensure_demo_zones()
+    services_by_name = _get_custom_objects_by_name("nsm_service")
+    actions_by_name = _get_custom_objects_by_name("nsm_action")
+    https = services_by_name.get("https")
+    act_rng = random.Random(DEMO_ACTION_RANDOM_SEED)
+
+    rules = model.objects.bulk_create(
+        [
+            model(
+                index=rule_idx + 1,
+                status=True,
+                name=(
+                    f"{DEMO_RULE_NAME_PREFIX}"
+                    f"{_demo_zone_name(src_i)}-to-{_demo_zone_name(dst_i)}"
+                ),
             )
-
-        _add_object(fields["source"], zones_by_name, rule_def["src"])
-        _add_object(fields["destination"], zones_by_name, rule_def["dst"])
-        _add_object(fields["service"], services_by_name, rule_def["svc"])
-        _add_object(fields["action"], actions_by_name, rule_def["action"])
-    return rb
-
-
-def _create_addresses_rulebook():
-    rb, _ = Rulebook.objects.get_or_create(
-        name="Demo - Addresses",
-        defaults={"rulebook_type": "security_rules"},
+            for rule_idx in range(DEMO_RULE_COUNT)
+            for src_i, dst_i in [_matrix_indices(rule_idx)]
+        ],
+        batch_size=100,
     )
-    ensure_system_rulebook_fields(rb)
-    fields = _upsert_object_fields(rb, _SECURITY_RULES_OBJECT_FIELD_SPECS)
-    _apply_field_types(fields, _ADDRESSES_FIELD_TYPES)
-    return rb
 
+    for rule_idx, rule in enumerate(rules):
+        src_i, dst_i = _matrix_indices(rule_idx)
+        rule.source_zones.set([zones[src_i]])
+        rule.destination_zones.set([zones[dst_i]])
+        action_key = "permit" if act_rng.random() < 0.5 else "deny"
+        action = actions_by_name.get(action_key) or next(
+            iter(actions_by_name.values()), None
+        )
+        if action is not None:
+            rule.actions.set([action])
+        if https is not None:
+            rule.services_applications.set([https])
 
-def _format_demo_summary(summary: dict) -> str:
-    parts = []
-    if summary.get("skipped"):
-        parts.append(_("already complete"))
-    if summary.get("rules") is not None:
-        parts.append(_("%(count)s rules") % {"count": summary["rules"]})
-    if summary.get("zones") is not None:
-        parts.append(_("%(count)s zones") % {"count": summary["zones"]})
-    if summary.get("pairs") is not None:
-        parts.append(_("%(count)s address pairs") % {"count": summary["pairs"]})
-    if summary.get("object_items") is not None:
-        parts.append(_("%(count)s object items") % {"count": summary["object_items"]})
-    if summary.get("elapsed_s") is not None:
-        parts.append(_("%(seconds)s s") % {"seconds": summary["elapsed_s"]})
-    return ", ".join(str(part) for part in parts)
+    return cot
 
 
 def create_demo_starter():
-    """Built-in COTs/TypeConfigs (if needed), Zone Matrix + Addresses rulebooks."""
+    """Built-in COTs/TypeConfigs (if needed) and nsm_rb_demo with 20×20 zone matrix."""
     _ensure_demo_prerequisites()
+    _ensure_rulebook_templates()
+    _ensure_nsm_rb_demo_rulebook()
     with transaction.atomic():
-        matrix_rb = _create_zone_matrix_rulebook()
-        addresses_rb = _create_addresses_rulebook()
-    return matrix_rb, addresses_rb
+        rb_demo_cot = _create_rb_demo_starter_rules()
+    return rb_demo_cot
 
 
 def run_enterprise_demo(request):
@@ -454,15 +405,20 @@ def handles_action(action: str) -> bool:
 
 def handle_demo_action(request, action: str):
     if action == "create_demo_starter":
-        matrix_rb, addresses_rb = create_demo_starter()
+        rb_demo_cot = create_demo_starter()
         messages.success(
             request,
             _(
-                "Starter demos created: '%(matrix)s' (with rules when zone objects exist) "
-                "and '%(addresses)s' (zones + addresses, no rules). "
+                "Starter demo created: %(zone_count)s zones, %(rule_count)s rules "
+                "(random permit/deny) in custom-object type '%(rb_slug)s' "
+                "(template 0003, zones only). "
                 "Custom Object Types / TypeConfigs were imported if missing."
             )
-            % {"matrix": matrix_rb.name, "addresses": addresses_rb.name},
+            % {
+                "zone_count": DEMO_ZONE_COUNT,
+                "rule_count": DEMO_RULE_COUNT,
+                "rb_slug": rb_demo_cot.slug,
+            },
         )
     elif action == "create_demo_enterprise":
         if IPAddress.objects.exists():
@@ -474,20 +430,23 @@ def handle_demo_action(request, action: str):
             )
             return redirect(reverse("plugins:netbox_nsm:setup"))
         run_enterprise_demo(request)
-    elif action == "create_demo_addresses_scale":
-        _ensure_demo_prerequisites()
+    elif action == "create_demo_scale_50k":
+        if IPAddress.objects.exists():
+            messages.error(
+                request,
+                _(
+                    "%(label)s requires an empty IP address database "
+                    "(IPAM → IP addresses)."
+                )
+                % {"label": _("Address bench (50k)")},
+            )
+            return redirect(reverse("plugins:netbox_nsm:setup"))
         _queue_demo_import(
             request,
-            import_path="netbox_nsm.demos.addresses_scale.create_addresses_scale_demo",
-            label=_("Addresses demo"),
-            rulebook_name="Demo - Addresses",
-        )
-    elif action == "create_demo_scale":
-        _ensure_demo_prerequisites()
-        _queue_demo_import(
-            request,
-            import_path="netbox_nsm.demos.scale_test.create_scale_test_demo",
-            label=_("Matrix scale test"),
-            rulebook_name="Demo - Scale Test",
+            import_path=SCALE_DEMO_50K_IMPORT,
+            label=_("Address bench (50k)"),
+            rulebook_name=SCALE_DEMO_50K_RULEBOOK_NAME,
+            job_timeout=3600,
+            processing_minutes="5–15",
         )
     return redirect(reverse("plugins:netbox_nsm:setup"))

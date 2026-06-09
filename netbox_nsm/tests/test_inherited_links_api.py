@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 from django.contrib.contenttypes.models import ContentType
 from django.test import RequestFactory, SimpleTestCase
 
-from netbox_nsm.ipam_inheritance import InheritedNsmLink
+from netbox_nsm.objects.ipam_inheritance import InheritedNsmLink
 from netbox_nsm.views.inherited_links_api import InheritedLinksApiView
 
 
@@ -15,7 +15,7 @@ class InheritedLinksApiTests(SimpleTestCase):
         self.factory = RequestFactory()
         self.view = InheritedLinksApiView.as_view()
 
-    @patch("netbox_nsm.display_utils.get_display_template_map", return_value={})
+    @patch("netbox_nsm.core.display_utils.get_display_template_map", return_value={})
     @patch("netbox_nsm.views.inherited_links_api.iter_inherited_group_nsm_links")
     @patch("netbox_nsm.views.inherited_links_api.ContentType")
     @patch("netbox_nsm.views.inherited_links_api.iter_inherited_nsm_links")
@@ -47,9 +47,9 @@ class InheritedLinksApiTests(SimpleTestCase):
         iter_links_fn.assert_called_once_with(ip)
 
     @patch("netbox_nsm.views.inherited_links_api.iter_inherited_group_nsm_links")
-    @patch("netbox_nsm.display_utils.render_object_display")
-    @patch("netbox_nsm.display_utils.tc_panel_label")
-    @patch("netbox_nsm.display_utils.get_display_template_map")
+    @patch("netbox_nsm.core.display_utils.render_object_display")
+    @patch("netbox_nsm.core.display_utils.tc_panel_label")
+    @patch("netbox_nsm.core.display_utils.get_display_template_map")
     @patch("netbox_nsm.views.inherited_links_api.ContentType")
     @patch("netbox_nsm.views.inherited_links_api.iter_inherited_nsm_links")
     def test_returns_inherited_groups_from_shared_iterator(

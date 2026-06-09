@@ -7,7 +7,7 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from netbox_nsm.models import TypeConfig
-from netbox_nsm.type_config_specs import TYPECONFIG_SPEC_BY_SLUG, TYPECONFIG_SPECS
+from netbox_nsm.objects.type_config_specs import TYPECONFIG_SPEC_BY_SLUG, TYPECONFIG_SPECS
 
 from .custom_objects import custom_objects_db_ready
 
@@ -77,8 +77,6 @@ def create_typeconfig_for_slug(slug: str) -> None:
         defaults={
             "name": spec["label"],
             "display_template": spec["display_template"],
-            "panel_slugs": spec["panel_slugs"],
-            "order_id": spec.get("order_id", 100),
             "panel_linkable_types": spec.get("panel_linkable_types", []),
         },
     )
@@ -86,7 +84,7 @@ def create_typeconfig_for_slug(slug: str) -> None:
 
 def create_all_typeconfigs() -> None:
     """Create/update TypeConfigs and link NSM sections (same as TypeConfig sync)."""
-    from netbox_nsm.builtin_types import BUILTIN_CUSTOM_TYPES
+    from netbox_nsm.objects.builtin_types import BUILTIN_CUSTOM_TYPES
     from netbox_nsm.views.custom_objects_sync import _sync_type_configs_and_sections
 
     _sync_type_configs_and_sections(BUILTIN_CUSTOM_TYPES)

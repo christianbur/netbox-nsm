@@ -1,17 +1,22 @@
 from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.contenttypes.models import ContentType
 from django.http import HttpResponseRedirect, JsonResponse, HttpResponseBadRequest
-from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.views import View
 
-from netbox.views import generic
 from netbox_nsm.forms import ObjectLinkAssignForm, ObjectLinkEditForm
-from netbox_nsm.models import ObjectLink, TypeConfig
-from netbox_nsm.models.object_link import LinkPropagationChoices
-from netbox_nsm.picker_browse import MIN_PICKER_QUERY_LEN, browse_content_type_objects
+from netbox_nsm.models import TypeConfig
+from netbox_nsm.objects.link_propagation import CotObjectLinkPropagationChoices
+from netbox_nsm.objects.object_link_service import (
+    create_or_update_links,
+    delete_link,
+    get_link_by_pk,
+    iter_links_stored_on_netbox_object,
+    update_link,
+)
+from netbox_nsm.objects.picker_browse import MIN_PICKER_QUERY_LEN, browse_content_type_objects
 
 __all__ = (
     "ObjectLinkAssignView",
@@ -60,8 +65,6 @@ class ObjectLinkAssignView(LoginRequiredMixin, View):
             initial["comment"] = request.GET["comment"]
         if request.GET.get("propagation"):
             initial["propagation"] = request.GET["propagation"]
-        if request.GET.get("propagate_stop_on_own") in ("1", "true", "on"):
-            initial["propagate_stop_on_own"] = True
         if request.GET.get("object_b_id"):
             try:
                 b_ct = ContentType.objects.get(pk=int(request.GET["object_b_type_id"]))
@@ -72,14 +75,7 @@ class ObjectLinkAssignView(LoginRequiredMixin, View):
                 prefill_object_b = None
 
         form = ObjectLinkAssignForm(initial=initial, source_object=obj)
-
-        # Existing links for object_a
-        ct_real = ContentType.objects.get_for_model(obj)
-        existing = (
-            ObjectLink.objects.filter(object_a_type=ct_real, object_a_id=obj.pk)
-            .select_related("object_b_type")
-            .order_by("created")
-        )
+        existing = list(iter_links_stored_on_netbox_object(obj))
 
         return self._render(
             request,
@@ -101,13 +97,7 @@ class ObjectLinkAssignView(LoginRequiredMixin, View):
             return HttpResponseRedirect(return_url)
 
         form = ObjectLinkAssignForm(request.POST, source_object=obj)
-
-        ct_real = ContentType.objects.get_for_model(obj)
-        existing = (
-            ObjectLink.objects.filter(object_a_type=ct_real, object_a_id=obj.pk)
-            .select_related("object_b_type")
-            .order_by("created")
-        )
+        existing = list(iter_links_stored_on_netbox_object(obj))
 
         if not form.is_valid():
             return self._render(
@@ -121,12 +111,10 @@ class ObjectLinkAssignView(LoginRequiredMixin, View):
 
         b_ct_pk = form.cleaned_data["object_b_type"]
         comment = form.cleaned_data.get("comment", "")
-        propagation = form.cleaned_data.get(
-            "propagation", LinkPropagationChoices.DIRECT
+        cot_propagation = form.cleaned_data.get(
+            "propagation", CotObjectLinkPropagationChoices.DIRECT
         )
-        propagate_stop_on_own = form.cleaned_data.get("propagate_stop_on_own", False)
 
-        # Support multiple selected IDs (list of hidden inputs named object_b_id)
         raw_ids = request.POST.getlist("object_b_id")
         b_obj_ids = []
         for raw in raw_ids:
@@ -162,38 +150,18 @@ class ObjectLinkAssignView(LoginRequiredMixin, View):
             )
 
         created_count = 0
-        update_fields = [
-            "comment",
-            "propagation",
-            "propagate_stop_on_own",
-            "last_updated",
-        ]
         for b_obj_id in b_obj_ids:
-            link, created = ObjectLink.objects.get_or_create(
-                object_a_type=ct_real,
-                object_a_id=obj.pk,
-                object_b_type=b_ct,
-                object_b_id=b_obj_id,
-                defaults={
-                    "comment": comment,
-                    "propagation": propagation,
-                    "propagate_stop_on_own": propagate_stop_on_own,
-                },
+            try:
+                policy_obj = b_ct.get_object_for_this_type(pk=b_obj_id)
+            except Exception:
+                continue
+            _link, created = create_or_update_links(
+                obj,
+                policy_obj,
+                cot_propagation=cot_propagation,
+                comment=comment,
             )
-            if not created:
-                changed = False
-                if link.comment != comment:
-                    link.comment = comment
-                    changed = True
-                if link.propagation != propagation:
-                    link.propagation = propagation
-                    changed = True
-                if link.propagate_stop_on_own != propagate_stop_on_own:
-                    link.propagate_stop_on_own = propagate_stop_on_own
-                    changed = True
-                if changed:
-                    link.save(update_fields=update_fields)
-            else:
+            if created:
                 created_count += 1
 
         if created_count:
@@ -237,7 +205,7 @@ class ObjectLinkAssignView(LoginRequiredMixin, View):
 
 class ObjectLinkEditView(LoginRequiredMixin, View):
     """
-    Edit propagation and comment on an existing ObjectLink.
+    Edit propagation and comment on an existing nsm_object_link row.
 
     GET  /plugins/netbox-nsm/object-link/<pk>/edit/?return_url=...
     POST /plugins/netbox-nsm/object-link/<pk>/edit/
@@ -248,12 +216,15 @@ class ObjectLinkEditView(LoginRequiredMixin, View):
     def _form_initial(self, link):
         return {
             "comment": link.comment or "",
-            "propagation": link.propagation,
-            "propagate_stop_on_own": link.propagate_stop_on_own,
+            "propagation": link.cot_propagation,
         }
 
     def get(self, request, pk):
-        link = get_object_or_404(ObjectLink, pk=pk)
+        link = get_link_by_pk(pk)
+        if link is None:
+            from django.http import Http404
+
+            raise Http404
         return_url = request.GET.get("return_url", "/")
         form = ObjectLinkEditForm(
             initial=self._form_initial(link),
@@ -268,27 +239,23 @@ class ObjectLinkEditView(LoginRequiredMixin, View):
         )
 
     def post(self, request, pk):
-        link = get_object_or_404(ObjectLink, pk=pk)
+        link = get_link_by_pk(pk)
+        if link is None:
+            from django.http import Http404
+
+            raise Http404
         return_url = request.POST.get("return_url", "/")
         form = ObjectLinkEditForm(
             request.POST,
             source_object=link.object_a,
         )
         if form.is_valid():
-            link.comment = form.cleaned_data.get("comment", "")
-            link.propagation = form.cleaned_data.get(
-                "propagation", LinkPropagationChoices.DIRECT
-            )
-            link.propagate_stop_on_own = form.cleaned_data.get(
-                "propagate_stop_on_own", False
-            )
-            link.save(
-                update_fields=[
-                    "comment",
-                    "propagation",
-                    "propagate_stop_on_own",
-                    "last_updated",
-                ]
+            update_link(
+                link,
+                cot_propagation=form.cleaned_data.get(
+                    "propagation", CotObjectLinkPropagationChoices.DIRECT
+                ),
+                comment=form.cleaned_data.get("comment", ""),
             )
             messages.success(request, _("Link updated."))
             return HttpResponseRedirect(return_url)
@@ -309,7 +276,11 @@ class ObjectLinkDeleteView(LoginRequiredMixin, View):
     """
 
     def get(self, request, pk):
-        link = get_object_or_404(ObjectLink, pk=pk)
+        link = get_link_by_pk(pk)
+        if link is None:
+            from django.http import Http404
+
+            raise Http404
         return_url = request.GET.get("return_url", "/")
         from django.shortcuts import render
 
@@ -321,8 +292,12 @@ class ObjectLinkDeleteView(LoginRequiredMixin, View):
 
     def post(self, request, pk):
         return_url = request.POST.get("return_url", "/")
-        link = get_object_or_404(ObjectLink, pk=pk)
-        link.delete()
+        link = get_link_by_pk(pk)
+        if link is None:
+            from django.http import Http404
+
+            raise Http404
+        delete_link(link)
         messages.success(request, _("Assignment removed."))
         return HttpResponseRedirect(return_url)
 
@@ -345,7 +320,6 @@ class ObjectTypeElementsApiView(LoginRequiredMixin, View):
         except ContentType.DoesNotExist:
             return HttpResponseBadRequest("Invalid ct_id")
 
-        # Only allow TypeConfig-configured types that are panel-linkable.
         if not TypeConfig.queryset_panel_linkable().filter(content_type=ct).exists():
             return HttpResponseBadRequest(
                 "Type not configured as panel-linkable in NSM"

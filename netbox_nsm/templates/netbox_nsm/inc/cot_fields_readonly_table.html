@@ -1,0 +1,65 @@
+{% load i18n %}
+{% load custom_object_utils %}
+<table class="table table-hover attr-table mb-0">
+  <thead>
+    <tr>
+      <th scope="col">{% trans "Field" %}</th>
+      <th scope="col">{% trans "Label" %}</th>
+      <th scope="col">{% trans "Type" %}</th>
+      <th scope="col">{% trans "Related type" %}</th>
+      <th scope="col" class="text-center">
+        <span class="visually-hidden">{% trans "Required" %}</span>
+      </th>
+      <th scope="col" class="text-center">
+        <span class="visually-hidden">{% trans "Primary" %}</span>
+      </th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for group_name, group_fields in cot_field_groups.items %}
+      {% if group_name %}
+      <tr class="table-group-header">
+        <th scope="colgroup" colspan="6" class="fw-bold">{{ group_name }}</th>
+      </tr>
+      {% endif %}
+      {% for field in group_fields %}
+      <tr>
+        <td><code>{{ field.name }}</code></td>
+        <td>{{ field.label|default:"—" }}</td>
+        <td>{{ field|get_field_type_verbose_name }}</td>
+        <td>
+          {% if field.type == "object" or field.type == "multiobject" %}
+            {{ field|get_field_object_type }}
+          {% else %}
+            <span class="text-muted">—</span>
+          {% endif %}
+        </td>
+        <td class="text-center">
+          {% if field.required %}
+          <i
+            class="mdi mdi-asterisk text-primary"
+            data-bs-toggle="tooltip"
+            data-bs-placement="right"
+            title="{% trans 'Required' %}"
+          ></i>
+          {% endif %}
+        </td>
+        <td class="text-center">
+          {% if field.primary %}
+          <i
+            class="mdi mdi-text-short text-primary"
+            data-bs-toggle="tooltip"
+            data-bs-placement="right"
+            title="{% trans 'Primary name field' %}"
+          ></i>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    {% empty %}
+    <tr>
+      <td colspan="6" class="text-muted">{% trans "No fields defined." %}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>

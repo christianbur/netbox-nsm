@@ -1,7 +1,30 @@
 {% load i18n %}
 <div class="nsm-ag-chrome-bar">
   <div class="nsm-ag-chrome-bar-row d-flex align-items-start gap-2">
+    {% if rules_show_add_rule %}
+    <div class="nsm-ag-toolbar-actions nsm-ag-toolbar-actions-start d-flex flex-nowrap align-items-center gap-2 flex-shrink-0">
+      <a id="nsm-ag-add-rule"
+         href="{{ nsm_rule_add_url|default:'' }}"
+         class="btn btn-sm btn-primary text-nowrap{% if not nsm_rule_add_url %} disabled{% endif %}"
+         {% if not nsm_rule_add_url %}aria-disabled="true" tabindex="-1"{% endif %}>
+        <span class="mdi mdi-plus-thick" aria-hidden="true"></span> {% trans "Add Rule" %}
+      </a>
+    </div>
+    {% endif %}
     <div class="nsm-ag-toolbar-actions nsm-ag-toolbar-actions-end d-flex flex-nowrap align-items-center gap-2 flex-shrink-0 ms-auto">
+      <div class="form-check form-switch nsm-rules-col-mode-switch flex-shrink-0 mb-0"
+           title="{% trans 'Group object types into one column per field' %}">
+        <input type="checkbox"
+               class="form-check-input"
+               id="nsm-rules-col-mode-toggle"
+               role="switch"
+               {% if rules_column_mode == 'collapsed' %}checked{% endif %}
+               aria-checked="{% if rules_column_mode == 'collapsed' %}true{% else %}false{% endif %}"
+               aria-label="{% trans 'Group object types into one column per field' %}">
+        <label class="form-check-label text-nowrap" for="nsm-rules-col-mode-toggle">
+          {% trans "Grouped columns" %}
+        </label>
+      </div>
       <div id="nsm-rules-cell-mode-selector"
            class="btn-group btn-group-sm nsm-rules-cell-mode-selector flex-shrink-0"
            role="group"
@@ -36,14 +59,6 @@
           </span>
         </button>
       </div>
-      {% if rules_show_add_rule %}
-      <a id="nsm-ag-add-rule"
-         href="{% if perms.netbox_nsm.add_rule %}{{ nsm_rule_add_url|default:'' }}{% else %}#{% endif %}"
-         class="btn btn-sm btn-primary text-nowrap{% if not perms.netbox_nsm.add_rule %} disabled{% endif %}"
-         {% if not perms.netbox_nsm.add_rule %}aria-disabled="true" tabindex="-1"{% endif %}>
-        <span class="mdi mdi-plus-thick" aria-hidden="true"></span> {% trans "Add Rule" %}
-      </a>
-      {% endif %}
       <button type="button"
               id="nsm-ag-csv-export"
               class="btn btn-sm btn-outline-secondary text-nowrap"

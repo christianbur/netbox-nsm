@@ -101,6 +101,10 @@
   vertical-align: middle;
 }
 
+#rules .table.nsm-rules-table thead .nsm-rules-head-row--primary th.nsm-rules-th {
+  text-transform: uppercase;
+}
+
 #rules .nsm-rules-th--filter {
   position: relative;
 }
@@ -149,8 +153,32 @@ body.nsm-rules-column-resizing {
 
 #rules .table.nsm-rules-table .nsm-rules-th--actions,
 #rules .table.nsm-rules-table .nsm-rules-td--actions {
-  text-align: right;
   white-space: nowrap;
+}
+
+#rules .table.nsm-rules-table .nsm-rules-th--status,
+#rules .table.nsm-rules-table .nsm-rules-td--status {
+  white-space: nowrap;
+}
+
+#rules .table.nsm-rules-table tbody tr.nsm-rules-data-row.nsm-rules-row--inactive,
+#rules .table.nsm-rules-table tbody tr.nsm-rules-data-row[data-status="false"] {
+  opacity: 0.62;
+  background-color: color-mix(
+    in srgb,
+    var(--bs-secondary-bg, var(--bs-tertiary-bg, #e9ecef)) 55%,
+    var(--bs-table-bg, var(--bs-body-bg))
+  );
+}
+
+#rules .table.nsm-rules-table tbody tr.nsm-rules-data-row.nsm-rules-row--inactive td,
+#rules .table.nsm-rules-table tbody tr.nsm-rules-data-row[data-status="false"] td {
+  color: var(--bs-secondary-color);
+}
+
+#rules .table.nsm-rules-table tbody tr.nsm-rules-data-row.nsm-rules-row--inactive .nsm-ag-cell-link,
+#rules .table.nsm-rules-table tbody tr.nsm-rules-data-row[data-status="false"] .nsm-ag-cell-link {
+  color: var(--bs-secondary-color);
 }
 
 #rules .table.nsm-rules-table .nsm-rules-td--actions .btn-group-sm > .btn {
@@ -168,12 +196,41 @@ body.nsm-rules-column-resizing {
   display: inline-flex;
   gap: 0.2rem;
   max-width: 100%;
-  white-space: nowrap;
 }
 
 #rules .table.object-list thead th.orderable .nsm-rules-sort-label {
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+#rules .table.object-list thead th.orderable .nsm-rules-th-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.05rem;
+  line-height: 1.15;
+  min-width: 0;
+  text-transform: uppercase;
+  white-space: normal;
+}
+
+#rules .table.object-list thead th.orderable .nsm-rules-th-title {
+  font-size: 0.55rem;
+  font-weight: var(--bs-body-font-weight);
+  max-width: 100%;
+  opacity: 0.82;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#rules .table.object-list thead th.orderable .nsm-rules-th-subtitle {
+  font-size: 0.72rem;
+  font-weight: 600;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 #rules .table.object-list thead th.orderable .nsm-rules-sort-direction {
@@ -235,6 +292,11 @@ body.nsm-rules-column-resizing {
 
 #rules .nsm-rules-filter-input.nsm-ag-floating-filter-drop-hover {
   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--tblr-primary, #206bc4) 55%, transparent);
+}
+
+#rules .nsm-rules-filter-input::placeholder {
+  color: var(--bs-secondary-color, #6c757d);
+  opacity: 0.35;
 }
 
 #rules .nsm-rules-filter-drag-ghost {
@@ -478,4 +540,115 @@ body.nsm-rules-column-resizing {
   line-height: 1.35;
   overflow-wrap: anywhere;
   white-space: normal;
+}
+
+#rules .nsm-rules-col-mode-switch {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.35rem;
+  min-height: 1.75rem;
+  padding-left: 0.15rem;
+}
+
+#rules .nsm-rules-col-mode-switch .form-check-label {
+  font-size: 0.75rem;
+  line-height: 1.2;
+  user-select: none;
+}
+
+#rules .nsm-ag-cell-merged {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+#rules .table.nsm-rules-table tbody td.nsm-rules-td--object:has(.nsm-ag-cell-merged--has-loupe) {
+  overflow: visible;
+}
+
+#rules .nsm-ag-cell-merged--has-loupe {
+  position: relative;
+  padding-top: 0.1rem;
+  padding-right: 1.35rem;
+}
+
+#rules .nsm-ag-cell-merged--has-loupe > .nsm-ipa-cell-loupe {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: auto;
+  z-index: 2;
+  margin-left: 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+}
+
+#rules .nsm-ag-cell-merged--has-loupe:hover > .nsm-ipa-cell-loupe,
+#rules .nsm-ag-cell-merged--has-loupe:focus-within > .nsm-ipa-cell-loupe,
+#rules .table.nsm-rules-table tbody td.nsm-rules-td--object:hover .nsm-ag-cell-merged--has-loupe > .nsm-ipa-cell-loupe {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+#rules .nsm-ag-cell-merged--has-loupe > .nsm-ipa-cell-loupe:focus-visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+#rules .nsm-ag-cell-type-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+#rules .nsm-ag-cell-type-subheading {
+  color: var(--bs-secondary-color);
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+#rules .nsm-ag-cell-type-badge {
+  align-self: flex-start;
+  background: color-mix(in srgb, var(--bs-secondary-bg) 88%, var(--bs-border-color));
+  border-radius: 0.2rem;
+  color: var(--bs-secondary-color);
+  display: inline-block;
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 0.08rem 0.35rem;
+  text-overflow: ellipsis;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+#rules .nsm-ag-cell-type-items {
+  min-width: 0;
+}
+
+#rules.nsm-rules-column-mode-collapsed .table.object-list thead th.orderable .nsm-rules-th-title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  opacity: 1;
+}
+
+#rules.nsm-rules-column-mode-collapsed .table.object-list thead th.orderable .nsm-rules-sort-label {
+  font-size: 0.72rem;
+  font-weight: 600;
 }

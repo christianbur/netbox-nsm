@@ -3,8 +3,8 @@
 from django.test import RequestFactory
 from django.urls import reverse
 
-from netbox_nsm.virtual_rulebook import build_virtual_all_rules_row
-from netbox_nsm.virtual_rulebook_tabs import (
+from netbox_nsm.rulebooks.virtual_all import build_virtual_all_rules_row
+from netbox_nsm.rulebooks.virtual_all_tabs import (
     PRIMARY_TAB_KEY,
     build_virtual_rulebook_tabs,
 )

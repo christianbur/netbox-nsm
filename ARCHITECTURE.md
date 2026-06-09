@@ -129,6 +129,28 @@ See `scripts/drop_nsm_prefix.py` when migrating legacy names.
 
 ## Data Model
 
+### Native models (SOLL)
+
+Five Django models owned by `netbox_nsm` form the active domain layer:
+
+| Model | UI title | Purpose |
+|-------|----------|---------|
+| `CotRulebook` | COT Rulebook | Parent/child hierarchy for deployed COT rulebooks (`nsm_rb_*`) |
+| `CotRulebookAssignment` | Rulebook Assignment | Assign a COT rulebook to Device / VM / VDC |
+| `NsmUiSettings` | NSM UI Settings | Singleton menu/panel labels and Setup menu flags |
+| `Section` | NSM Section | Logical grouping of Custom Object Types (source, destination, …) |
+| `TypeConfig` | Type Config | Per-ContentType NSM behaviour (panel, matching class, display) |
+
+Policy object **instances**, rulebook **rules**, and Security Panel **links** are stored as
+Custom Object Types (`netbox-custom-objects`), not as native NSM tables. The canonical link
+COT is `nsm_object_link` (native `ObjectLink` was removed in migration `0004`).
+
+Legacy `ObjectGroup`, `ObjectGroupMember`, `PropertyType`, `PropertyField`, and `Property`
+tables were removed in migration `0005_remove_legacy_object_and_property_models`. Group
+membership and policy objects use COT `group` M2M fields and Custom Object Types instead.
+
+See `netbox_nsm/models/__init__.py` for the authoritative inline summary.
+
 ### Database tables (PostgreSQL)
 
 All NSM-owned rows use the Django app label `netbox_nsm` (tables `netbox_nsm_*`).
@@ -142,8 +164,8 @@ not in NSM tables — NSM only stores links, configuration, rulebooks, and gener
 | Type in field | `netbox_nsm_rulebookfieldtype` + `netbox_nsm_typeconfig` |
 | Rule | `netbox_nsm_rule` |
 | Rule cell objects / groups | `netbox_nsm_ruleobjectitem`, `netbox_nsm_rulegroupitem` |
-| Panel links | `netbox_nsm_objectlink` |
-| Object groups | `netbox_nsm_objectgroup`, `netbox_nsm_objectgroupmember` |
+| Panel links | COT `nsm_object_link` rows |
+| Group membership | COT `group` M2M on Custom Objects |
 
 Full table list, M2M tables, and SQL examples: **[docs/DATABASE.md](docs/DATABASE.md)**.
 
@@ -282,10 +304,10 @@ RuleObjectItem
 ├── object_id   (PositiveBigIntegerField)
 └── object      (GenericForeignKey)
 
-RuleGroupItem
+RuleGroupItem (legacy native schema — removed; COT rulebooks use group M2M / nested rules)
 ├── rule   (FK → Rule)
 ├── field  (FK → RulebookField)
-└── group  (FK → ObjectGroup)
+└── group  (COT group object or nested rule reference)
 ```
 
 This separation allows mixing direct object references and group references within the same
@@ -339,7 +361,6 @@ These are synced to the database via `custom_objects_schema.py` which builds the
 | `views/object_link.py` | CRUD for ObjectLink | `object-link/` |
 | `views/ip_analysis.py` | `IPAnalysisView` | `ip-analysis/` |
 | `views/object_analyzer.py` | `ObjectAnalyzerView` | `object-analyzer/` |
-| `views/nsm_object_group.py` | ObjectGroup CRUD | `object-groups/` |
 | `panel_sections.py` | Static panel slugs (source, destination, …) | — |
 | `views/setup/demo.py` | Demo rulebooks (Matrix imports COTs/TypeConfigs if needed) | Setup POST |
 | `views/custom_objects_sync.py` | Sync helper (manual trigger) | `setup/sync/custom-objects/` |
@@ -447,7 +468,7 @@ group construction until request time.
 Menu structure (when `top_level_menu=True`):
 
 ```
-Security
+NSM
 ├── Configuration
 │   ├── Setup
 │   └── Type Config

@@ -92,7 +92,7 @@ class AnalyzerEdge:
 def node_from_object(obj: Any) -> AnalyzerNode:
     """Build an AnalyzerNode from any NetBox model instance."""
     from django.contrib.contenttypes.models import ContentType
-    from netbox_nsm.display_utils import (
+    from netbox_nsm.core.display_utils import (
         get_display_template_map,
         render_object_display,
         ct_display_label,

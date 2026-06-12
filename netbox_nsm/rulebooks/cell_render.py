@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from django.utils.html import conditional_escape
 
+from netbox_nsm.core.nsm_object_status import nsm_object_status_icon_html
+
 __all__ = (
     "DEFAULT_MAX_VISIBLE_PILLS",
     "_render_rules_cell",
@@ -38,13 +40,25 @@ def _rules_pill_html(item, *, hidden=False, colored=True):
     hidden_class = " nsm-pill-hidden" if hidden else ""
     colored_class = " nsm-rule-pill-colored" if color else ""
     excluded_class = " nsm-pill-excluded" if item.get("excluded") else ""
+    parent_url = (item.get("parent_url") or "").strip()
+    parent_name = (item.get("parent_name") or "").strip()
+    parent_html = ""
+    if parent_url and parent_name:
+        parent_html = (
+            f'<a href="{conditional_escape(parent_url)}" class="nsm-rule-pill-parent text-decoration-none">'
+            f'{conditional_escape(parent_name)}</a>'
+            f'<span class="text-muted"> / </span>'
+        )
+    status_icon = nsm_object_status_icon_html(item.get("status"))
     return (
+        f"{parent_html}"
         f'<a href="{conditional_escape(item["url"])}" '
         f' class="nsm-rule-pill{colored_class}{hidden_class} text-decoration-none{excluded_class}"'
         f"{style_attr}"
         f' title="{conditional_escape(item["name"])}">'
         f'{conditional_escape(item["name"])}'
         f"</a>"
+        f"{status_icon}"
     )
 
 

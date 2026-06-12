@@ -6,7 +6,6 @@ from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.models.type_config import MatchingClassChoices
 from netbox_nsm.rulebooks.cell_html import (
     ipa_loupe_button_html,
     render_rules_cell_ag as _render_rules_cell_ag,
@@ -21,6 +20,7 @@ from netbox_nsm.analysis.addr_analysis_utils import (
     _addr_tree_node_display_count,
     _build_addr_diff_analysis,
     _build_addr_diff_analysis_from_sides,
+    _build_addr_diff_group,
     _build_addr_tree_node,
     _build_ipa_cell_object_tree,
     _build_ipam_category_nodes,
@@ -56,20 +56,20 @@ _PLUGIN_ROOT = Path(__file__).resolve().parents[1]
 
 
 class ObjectIsAddrAnalyzableTests(SimpleTestCase):
-    def test_nsm_object_requires_address_matching_class(self):
+    def test_nsm_object_requires_address_content_type(self):
         addr = MagicMock()
         addr._meta.app_label = "netbox_custom_objects"
         addr._meta.model_name = "table1model"
-        mc = {42: MatchingClassChoices.ZONE}
-        self.assertFalse(_object_is_addr_analyzable(addr, 42, mc))
+        address_ct_ids = {42}
+        self.assertFalse(_object_is_addr_analyzable(addr, 42, address_ct_ids))
 
     @patch(
         "netbox_nsm.analysis.addr_analysis_utils._object_supports_addr_analysis", return_value=True
     )
-    def test_true_for_address_class(self, _supports):
+    def test_true_for_address_content_type(self, _supports):
         prefix = MagicMock()
-        mc = {7: MatchingClassChoices.ADDRESS}
-        self.assertTrue(_object_is_addr_analyzable(prefix, 7, mc))
+        address_ct_ids = {7}
+        self.assertTrue(_object_is_addr_analyzable(prefix, 7, address_ct_ids))
 
     def test_ipam_prefix_analyzable_without_typeconfig(self):
         prefix = MagicMock()
@@ -83,27 +83,25 @@ class ObjectIsAddrAnalyzableTests(SimpleTestCase):
         "netbox_nsm.analysis.addr_analysis_utils._object_supports_addr_analysis",
         return_value=True,
     )
-    def test_builds_matching_class_map_when_none(self, _supports, typeconfig_cls):
-        typeconfig_cls.objects.only.return_value = [
-            MagicMock(content_type_id=42, matching_class=MatchingClassChoices.ADDRESS),
+    def test_builds_address_ct_ids_when_none(self, _supports, typeconfig_cls):
+        typeconfig_cls.objects.filter.return_value.only.return_value = [
+            MagicMock(content_type_id=42),
         ]
         addr = MagicMock()
         self.assertTrue(_object_is_addr_analyzable(addr, 42))
-        typeconfig_cls.objects.only.assert_called_once_with(
-            "content_type_id", "matching_class"
-        )
+        typeconfig_cls.objects.filter.assert_called_once()
 
 
 class IpamPrefixTreeTests(SimpleTestCase):
     @patch("netbox_nsm.analysis.addr_analysis_utils._collect_ipam_drilldown_children")
     @patch("netbox_nsm.analysis.addr_analysis_utils._addr_is_group_container", return_value=False)
     @patch("netbox_nsm.analysis.addr_analysis_utils._addr_ip_ref")
-    def test_nsm_address_with_prefix_expands_ipam_drilldown(
+    def test_nsm_address_prefix_only_expands_ipam_drilldown(
         self, ip_ref_fn, _group_container, drilldown_fn
     ):
         addr = MagicMock()
         addr.pk = 99
-        addr.name = "bench-ip-demo"
+        addr.name = "bench-net-demo"
         addr.get_absolute_url.return_value = "/custom-objects/99/"
 
         prefix = MagicMock()
@@ -126,7 +124,7 @@ class IpamPrefixTreeTests(SimpleTestCase):
                 "ct": 14,
                 "pk": 5,
             }
-            if getattr(obj, "name", None) == "bench-ip-demo"
+            if getattr(obj, "name", None) == "bench-net-demo"
             else None
         )
         drilldown_fn.return_value = [ip]
@@ -146,22 +144,95 @@ class IpamPrefixTreeTests(SimpleTestCase):
                     node = _build_addr_tree_node(addr)
 
         self.assertEqual(node["kind"], "group")
-        self.assertEqual(node["name"], "bench-ip-demo")
+        self.assertEqual(node["name"], "bench-net-demo")
         self.assertEqual(node["ip_ref"]["ct"], 14)
         self.assertEqual(len(node["children"]), 1)
 
-    def test_ipam_fk_field_order_matches_ip_ref_display(self):
+    @patch("django.contrib.contenttypes.models.ContentType")
+    @patch("netbox_nsm.analysis.addr_analysis_utils._collect_ipam_prefix_drilldown")
+    @patch("netbox_nsm.analysis.addr_analysis_utils._addr_is_group_container", return_value=False)
+    def test_nsm_address_with_host_ip_stays_leaf_without_prefix_drilldown(
+        self, _group_container, prefix_drilldown_fn, content_type_cls
+    ):
+        ct = MagicMock()
+        ct.pk = 14
+        content_type_cls.objects.get_for_model.return_value = ct
+
+        addr = MagicMock()
+        addr.pk = 99
+        addr.name = "bench-ip-0018231"
+        addr.get_absolute_url.return_value = "/custom-objects/99/"
+        addr.range = None
+
+        prefix = MagicMock()
+        prefix.pk = 5
+        prefix.__str__ = lambda self: "10.128.182.0/24"
+        prefix.get_absolute_url.return_value = "/ipam/prefixes/5/"
+
+        ip = MagicMock()
+        ip.pk = 7
+        ip.__str__ = lambda self: "10.128.182.32/32"
+        ip.get_absolute_url.return_value = "/ipam/ip-addresses/7/"
+
+        addr.prefix = prefix
+        addr.ip_address = ip
+
+        prefix_drilldown_fn.side_effect = AssertionError(
+            "prefix drilldown must not run when host ip_address is set"
+        )
+
+        with patch(
+            "netbox_nsm.analysis.addr_analysis_utils._ipam_obj_from_ip_ref",
+            return_value=ip,
+        ):
+            with patch(
+                "netbox_nsm.analysis.addr_analysis_utils._attach_addr_navigation_refs",
+                side_effect=lambda node, **kw: node,
+            ):
+                with patch(
+                    "netbox_nsm.analysis.addr_analysis_utils._attach_addr_node_prefix_display",
+                    side_effect=lambda node, **kw: node,
+                ):
+                    node = _build_addr_tree_node(addr)
+
+        self.assertEqual(node["kind"], "leaf")
+        self.assertEqual(node["name"], "bench-ip-0018231")
+        self.assertEqual(node["ip_ref"]["str"], "10.128.182.32/32")
+        self.assertEqual(node["children"], [])
+
+    @patch("django.contrib.contenttypes.models.ContentType")
+    def test_addr_ip_ref_prefers_host_ip_over_parent_prefix(self, content_type_cls):
         from netbox_nsm.analysis.addr_analysis_utils import (
-            _ADDR_IPAM_FK_FIELDS,
+            _ADDR_IPAM_FK_FIELDS_SUBNET,
+            _addr_ip_ref,
+            _addr_ip_ref_field_order,
             _ipam_fk_object_for_addr_node,
         )
 
-        self.assertEqual(_ADDR_IPAM_FK_FIELDS[0], "prefix")
+        ct = MagicMock()
+        ct.pk = 21
+        content_type_cls.objects.get_for_model.return_value = ct
+
         addr = MagicMock()
-        addr.prefix = MagicMock(name="prefix-obj")
-        addr.ip_address = MagicMock(name="ip-obj")
+        addr.prefix = MagicMock()
+        addr.prefix.__str__ = lambda self: "10.128.182.0/24"
+        addr.prefix.get_absolute_url.return_value = "/ipam/prefixes/5/"
+        addr.prefix.pk = 5
+
+        addr.ip_address = MagicMock()
+        addr.ip_address.__str__ = lambda self: "10.128.182.32/32"
+        addr.ip_address.get_absolute_url.return_value = "/ipam/ip-addresses/7/"
+        addr.ip_address.pk = 7
         addr.range = None
-        self.assertIs(_ipam_fk_object_for_addr_node(addr), addr.prefix)
+
+        self.assertEqual(_addr_ip_ref_field_order(addr), ("ip_address", "range", "prefix"))
+        self.assertEqual(_addr_ip_ref_field_order(MagicMock(prefix=addr.prefix, ip_address=None, range=None)), _ADDR_IPAM_FK_FIELDS_SUBNET)
+        self.assertIs(_ipam_fk_object_for_addr_node(addr), addr.ip_address)
+
+        ip_ref = _addr_ip_ref(addr)
+        self.assertEqual(ip_ref["str"], "10.128.182.32/32")
+        self.assertEqual(ip_ref["type"], "IP Address")
+        self.assertEqual(ip_ref["pk"], 7)
 
     @patch("netbox_nsm.analysis.addr_analysis_utils._attach_prefix_ipam_meta", side_effect=lambda n, *a, **k: n)
     @patch("netbox_nsm.analysis.addr_analysis_utils._build_ipam_category_nodes")
@@ -1323,8 +1394,15 @@ class AddrDiffAnalysisTests(SimpleTestCase):
         self.assertEqual(group_by_slug["in-all"]["name"], "In all")
         self.assertEqual(len(group_by_slug["in-all"]["children"]), 1)
         self.assertEqual(group_by_slug["in-all"]["children"][0]["diff_status"], "both")
-        self.assertEqual(group_by_slug["in-some"]["name"], "In some (3 tabs)")
+        self.assertEqual(group_by_slug["in-some"]["name"], "In some")
+        self.assertEqual(
+            group_by_slug["in-some"]["diff_present_labels"], ["Tab 1", "Tab 3"]
+        )
         self.assertEqual(len(group_by_slug["in-some"]["children"]), 1)
+        self.assertEqual(
+            group_by_slug["in-some"]["children"][0]["diff_present_labels"],
+            ["Tab 1", "Tab 3"],
+        )
         summary = result[0]["types"][0]["diff_summary"]
         self.assertEqual(summary["side_count"], 3)
         self.assertEqual(summary["in_all"], 1)
@@ -1332,6 +1410,65 @@ class AddrDiffAnalysisTests(SimpleTestCase):
         self.assertEqual(summary["only_by_side"][0]["count"], 1)
         self.assertEqual(summary["only_by_side"][1]["count"], 1)
         self.assertEqual(summary["only_by_side"][2]["count"], 1)
+
+    def test_build_addr_diff_group_stores_diff_present_labels(self):
+        group = _build_addr_diff_group(
+            "In some",
+            [{"kind": "leaf", "name": "x", "url": "#", "children": []}],
+            diff_group="in-some",
+            diff_present_labels=["Tab 1", "Tab 3"],
+        )
+        self.assertEqual(group["name"], "In some")
+        self.assertEqual(group["diff_present_labels"], ["Tab 1", "Tab 3"])
+
+    @patch("netbox_nsm.analysis.addr_analysis_utils._build_addr_tree_nodes")
+    @patch(
+        "netbox_nsm.analysis.addr_analysis_utils._object_supports_addr_analysis",
+        return_value=True,
+    )
+    def test_build_addr_diff_in_some_splits_by_presence_pattern(
+        self, _supports, build_nodes_fn
+    ):
+        def leaf(name, ip):
+            return {
+                "kind": "leaf",
+                "name": name,
+                "url": "#",
+                "ip_ref": {"str": ip, "url": "#"},
+                "children": [],
+            }
+
+        build_nodes_fn.side_effect = [
+            ([leaf("t0-only", "10.0.0.1"), leaf("shared", "10.0.0.9"), leaf("ab", "10.0.0.5")], []),
+            ([leaf("t1-only", "10.0.0.2"), leaf("shared", "10.0.0.9")], []),
+            ([leaf("t2-only", "10.0.0.3"), leaf("shared", "10.0.0.9"), leaf("cd", "10.0.0.6")], []),
+            ([leaf("t3-only", "10.0.0.4"), leaf("shared", "10.0.0.9"), leaf("ab", "10.0.0.5"), leaf("cd", "10.0.0.6")], []),
+        ]
+        result = _build_addr_diff_analysis_from_sides(
+            [
+                {"objs": [MagicMock()], "label": "Rule A / destination"},
+                {"objs": [MagicMock()], "label": "Rule B / destination"},
+                {"objs": [MagicMock()], "label": "Rule C / destination"},
+                {"objs": [MagicMock()], "label": "Rule D / destination"},
+            ]
+        )
+        in_some_groups = [
+            g
+            for g in result[0]["types"][0]["nodes"]
+            if g.get("diff_group") == "in-some"
+        ]
+        self.assertEqual(len(in_some_groups), 2)
+        labels_by_name = {
+            tuple(g["diff_present_labels"]): g["name"] for g in in_some_groups
+        }
+        self.assertEqual(
+            labels_by_name[("Rule A / destination", "Rule D / destination")],
+            "In some",
+        )
+        self.assertEqual(
+            labels_by_name[("Rule C / destination", "Rule D / destination")],
+            "In some",
+        )
 
     def test_type_counts_for_diff_addr_keys(self):
         prefix_entry = {
@@ -1443,7 +1580,7 @@ class AddrDiffAnalysisTests(SimpleTestCase):
         self.assertIn("nsm-addr-diff-in-both", all_block)
         self.assertIn("bg-warning-subtle text-warning", all_block)
 
-    def test_addr_analysis_panel_renders_ipam_hierarchy_before_diff_groups(self):
+    def test_addr_analysis_panel_omits_ipam_hierarchy_intersection_block(self):
         from django.template.loader import render_to_string
 
         html = render_to_string(
@@ -1495,84 +1632,12 @@ class AddrDiffAnalysisTests(SimpleTestCase):
                 ],
             },
         )
-        hierarchy_pos = html.index("IPAM hierarchy (in both)")
+        self.assertNotIn("IPAM hierarchy (in both)", html)
+        self.assertNotIn("nsm-addr-diff-intersection", html)
+        self.assertNotIn("nsm-addr-diff-intersection-separator", html)
         only_pos = html.index("Only in Left")
         all_pos = html.index("All")
-        self.assertLess(hierarchy_pos, only_pos)
-        self.assertLess(hierarchy_pos, all_pos)
-        separator_pos = html.index("nsm-addr-diff-intersection-separator")
-        self.assertLess(hierarchy_pos, separator_pos)
-        self.assertLess(separator_pos, all_pos)
-
-    def test_addr_analysis_panel_intersection_tree_uses_flat_rows(self):
-        from django.template.loader import render_to_string
-
-        html = render_to_string(
-            "netbox_nsm/inc/addr_analysis_panel.html",
-            {
-                "addr_analysis": [
-                    {
-                        "field_slug": "diff",
-                        "field_name": "Diff",
-                        "types": [
-                            {
-                                "type_name": "Diff",
-                                "nodes": [
-                                    {
-                                        "kind": "group",
-                                        "name": "In both",
-                                        "url": "#",
-                                        "diff_group": "both",
-                                        "children": [],
-                                    },
-                                ],
-                                "intersection_tree": [
-                                    {
-                                        "kind": "group",
-                                        "name": "10.128.182.0/24",
-                                        "url": "#",
-                                        "diff_ipam_hierarchy_prefix": True,
-                                        "children": [
-                                            {
-                                                "kind": "leaf",
-                                                "name": "bench-ip-0018231",
-                                                "url": "#",
-                                                "diff_intersection_pair": True,
-                                                "diff_status": "both",
-                                                "diff_same_name": True,
-                                                "diff_name_a": "bench-ip-0018231",
-                                                "diff_url_a": "#",
-                                                "leaf_count": 100,
-                                                "ip_ref": {
-                                                    "str": "10.128.182.0/24",
-                                                    "url": "#",
-                                                },
-                                                "prefix_display_cidr": "10.128.182.0/24",
-                                                "prefix_display_netmask": "255.255.255.0",
-                                                "children": [],
-                                            },
-                                        ],
-                                    },
-                                ],
-                                "intersection_leaf_count": 100,
-                                "diff_summary": {
-                                    "label_a": "Left",
-                                    "label_b": "Right",
-                                },
-                            }
-                        ],
-                    }
-                ],
-            },
-        )
-        self.assertIn("nsm-addr-intersection-flat-row", html)
-        self.assertIn("bench-ip-0018231", html)
-        self.assertIn("10.128.182.0/24", html)
-        children_pos = html.index("nsm-addr-diff-intersection-children")
-        children_end = html.index("</details>", children_pos)
-        children_html = html[children_pos:children_end]
-        self.assertNotIn("<details", children_html)
-        self.assertIn("nsm-addr-diff-intersection-children", html)
+        self.assertLess(all_pos, only_pos)
 
     @patch("netbox_nsm.analysis.addr_analysis_utils._build_addr_tree_nodes")
     @patch(
@@ -1745,6 +1810,50 @@ class AddrDiffAnalysisTests(SimpleTestCase):
         ]
         result = _build_addr_diff_analysis([MagicMock()], [MagicMock()])
         self.assertEqual(result[0]["types"][0]["intersection_tree"], [])
+        self.assertEqual(result[0]["types"][0]["intersection_leaf_count"], 0)
+
+    @patch("netbox_nsm.analysis.addr_analysis_utils._build_addr_tree_nodes")
+    @patch(
+        "netbox_nsm.analysis.addr_analysis_utils._object_supports_addr_analysis",
+        return_value=True,
+    )
+    def test_build_addr_diff_same_subnet_different_hosts_not_in_both(
+        self, _supports, build_nodes_fn
+    ):
+        """Hosts in the same /24 but different /32 must not appear under In both."""
+        leaf_18231 = {
+            "kind": "leaf",
+            "name": "bench-ip-0018231",
+            "url": "#a",
+            "ip_ref": {"str": "10.128.182.32/32", "url": "#"},
+            "children": [],
+        }
+        leaf_18210 = {
+            "kind": "leaf",
+            "name": "bench-ip-0018210",
+            "url": "#b",
+            "ip_ref": {"str": "10.128.182.11/32", "url": "#"},
+            "children": [],
+        }
+        build_nodes_fn.side_effect = [
+            ([leaf_18231], []),
+            ([leaf_18210], []),
+        ]
+
+        result = _build_addr_diff_analysis(
+            [MagicMock()],
+            [MagicMock()],
+            label_a="Rule 2",
+            label_b="Rule 3",
+        )
+
+        groups = result[0]["types"][0]["nodes"]
+        both_groups = [g for g in groups if g.get("diff_group") == "both"]
+        self.assertEqual(both_groups, [])
+        summary = result[0]["types"][0]["diff_summary"]
+        self.assertEqual(summary["both"], 0)
+        self.assertEqual(summary["only_a"], 1)
+        self.assertEqual(summary["only_b"], 1)
         self.assertEqual(result[0]["types"][0]["intersection_leaf_count"], 0)
 
     @patch("netbox_nsm.analysis.addr_analysis_utils._build_addr_tree_nodes")
@@ -2273,11 +2382,16 @@ class IpAnalyzerMergeAssetsTests(SimpleTestCase):
         self.assertIn("diffTabs", js)
         self.assertIn("buildDiffQuery", js)
         self.assertIn("diffTabTitleFromTabs", js)
+        self.assertIn("diffRulesSideShortLabel", js)
+        self.assertIn('Diff %(a)s - %(b)s', js)
+        self.assertIn("ruleIndex + \"/\" + colPosition", js)
         self.assertIn("formatDiffSummary", js)
         self.assertIn("tab.sides", js)
         self.assertIn('mode", "diff"', js)
         self.assertIn("Diff (", js)
-        self.assertIn("var canDiff = this.tabs.length >= 2", js)
+        self.assertIn('return tab.mode !== "diff"', js)
+        self.assertIn("this.tabs.push(diffTab)", js)
+        self.assertNotIn("this.tabs = [diffTab]", js)
         self.assertIn("mindestens 2 Tabs", js)
         self.assertNotIn("var canDiff = this.tabs.length === 2", js)
         self.assertIn("Fund:", js)
@@ -2463,7 +2577,7 @@ class IpAnalyzerMergeAssetsTests(SimpleTestCase):
             _PLUGIN_ROOT / "templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html"
         ).read_text(encoding="utf-8")
         self.assertIn("nsm_ip_analyzer_applet.js", assets)
-        self.assertIn("?v=202606138", assets)
+        self.assertIn("?v=202606140", assets)
         self.assertIn("NSM_IP_ANALYSIS_ADD_OBJECT_TYPES_API", assets)
 
     def test_merged_cell_loupe_corner_hover_css(self):
@@ -2475,6 +2589,35 @@ class IpAnalyzerMergeAssetsTests(SimpleTestCase):
         self.assertIn(
             ".nsm-ag-cell-merged--has-loupe:hover > .nsm-ipa-cell-loupe", css
         )
+
+    def test_rules_filter_loupe_corner_hover_css(self):
+        css = (_PLUGIN_ROOT / "plugin_assets/css/rulebook_rules.css").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(
+            ".nsm-rules-filter-target--has-loupe > .nsm-rules-filter-loupe", css
+        )
+        self.assertIn(
+            ".nsm-rules-filter-target--has-loupe:hover > .nsm-rules-filter-loupe",
+            css,
+        )
+        self.assertIn(
+            "tbody td:hover .nsm-rules-filter-target--has-loupe > .nsm-rules-filter-loupe",
+            css,
+        )
+        self.assertIn(
+            ":has(.nsm-rules-filter-loupe:hover) > .nsm-rules-filter-loupe",
+            css,
+        )
+        self.assertIn(".nsm-rules-filter-loupe .mdi", css)
+        self.assertNotIn("grid-template-columns: minmax(0, max-content) 0", css)
+
+    def test_rules_filter_target_html_has_loupe_class(self):
+        from netbox_nsm.rulebooks.cell_html import rules_filter_target_html
+
+        html = rules_filter_target_html("Example", "Example")
+        self.assertIn("nsm-rules-filter-target--has-loupe", html)
+        self.assertIn("nsm-rules-filter-loupe", html)
 
     def test_cell_loupe_list_position_scoped_in_applet_css(self):
         css = (_PLUGIN_ROOT / "plugin_assets/css/nsm_ip_analyzer_applet.css").read_text(
@@ -2824,78 +2967,139 @@ class IpaCellObjectTreeTests(SimpleTestCase):
 
 
 class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
-    def test_object_tree_cell_direct_class_on_cell_objects(self):
+    _OBJECT_TREE_FIXTURE = [
+        {
+            "name": "g-10.0.0.0/8",
+            "url": "/g/8/",
+            "ct": "10",
+            "pk": "8",
+            "kind": "group",
+            "is_cell_direct": True,
+            "children": [
+                {
+                    "name": "n-10.1.0.0/16",
+                    "url": "/n/16/",
+                    "ct": "10",
+                    "pk": "16",
+                    "kind": "leaf",
+                    "children": [],
+                }
+            ],
+        },
+        {
+            "name": "bench-ip-0014328",
+            "url": "/a/5/",
+            "ct": "10",
+            "pk": "5",
+            "kind": "leaf",
+            "is_cell_direct": True,
+            "ip_ref": {"str": "10.128.143.0/24", "url": "#"},
+            "prefix_display_cidr": "10.128.143.0/24",
+            "addr_drilldown_lazy": True,
+            "children": [],
+        },
+    ]
+
+    def _render_object_tree_html(self):
         from django.template.loader import render_to_string
 
-        object_tree = [
-            {
-                "name": "g-10.0.0.0/8",
-                "url": "/g/8/",
-                "ct": "10",
-                "pk": "8",
-                "kind": "group",
-                "is_cell_direct": True,
-                "children": [
-                    {
-                        "name": "n-10.1.0.0/16",
-                        "url": "/n/16/",
-                        "ct": "10",
-                        "pk": "16",
-                        "kind": "leaf",
-                        "children": [],
-                    }
-                ],
-            },
-            {
-                "name": "bench-ip-0014328",
-                "url": "/a/5/",
-                "ct": "10",
-                "pk": "5",
-                "kind": "leaf",
-                "is_cell_direct": True,
-                "ip_ref": {"str": "10.128.143.0/24", "url": "#"},
-                "prefix_display_cidr": "10.128.143.0/24",
-                "addr_drilldown_lazy": True,
-                "children": [],
-            },
-        ]
-        html = render_to_string(
+        return render_to_string(
             "netbox_nsm/inc/addr_analysis_applet_body.html",
-            {"addr_analysis": [], "object_tree": object_tree},
+            {"addr_analysis": [], "object_tree": self._OBJECT_TREE_FIXTURE},
         )
-        self.assertEqual(html.count("nsm-ipa-object-node--cell-direct"), 2)
-        self.assertEqual(html.count("nsm-ipa-cell-pill"), 2)
-        self.assertIn("g-10.0.0.0/8", html)
-        self.assertIn("n-10.1.0.0/16", html)
-        self.assertIn("bench-ip-0014328", html)
-        self.assertIn("nsm-ipa-addr-drilldown", html)
-        drilldown_pos = html.index("nsm-ipa-addr-drilldown")
-        self.assertNotIn(
-            "nsm-ipa-object-node--cell-direct",
-            html[drilldown_pos:],
+
+    def test_ipa_nested_leaf_renders_cell_pill(self):
+        html = self._render_object_tree_html()
+        child_name_pos = html.index("n-10.1.0.0/16")
+        child_leaf_start = html.rfind('<div class="nsm-addr-leaf', 0, child_name_pos)
+        child_leaf_end = html.index("</div>", child_name_pos)
+        child_leaf_html = html[child_leaf_start:child_leaf_end]
+        self.assertIn('class="nsm-ipa-cell-pill"', child_leaf_html)
+
+    def test_ipa_cell_direct_summary_keeps_ip_outside_pill(self):
+        html = self._render_object_tree_html()
+        group_summary_end = html.index("</summary>", html.index("nsm-ipa-object-node--cell-direct"))
+        leaf_summary_start = html.index(
+            "nsm-ipa-object-node--cell-direct", group_summary_end
         )
-        self.assertNotIn("nsm-ipa-cell-pill", html[drilldown_pos:])
-        group_summary_start = html.index("nsm-ipa-object-node--cell-direct")
-        group_summary_end = html.index("</summary>", group_summary_start)
-        group_summary_html = html[group_summary_start:group_summary_end]
-        self.assertIn('class="nsm-ipa-cell-pill"', group_summary_html)
-        self.assertIn("g-10.0.0.0/8", group_summary_html)
-        self.assertNotIn("→", group_summary_html)
-        leaf_summary_start = html.index("nsm-ipa-object-node--cell-direct", group_summary_end)
         leaf_summary_end = html.index("</summary>", leaf_summary_start)
         leaf_summary_html = html[leaf_summary_start:leaf_summary_end]
         self.assertIn('class="nsm-ipa-cell-pill"', leaf_summary_html)
-        pill_end = leaf_summary_html.index("</span>", leaf_summary_html.index("nsm-ipa-cell-pill"))
+        pill_end = leaf_summary_html.index(
+            "</span>", leaf_summary_html.index("nsm-ipa-cell-pill")
+        )
         pill_html = leaf_summary_html[:pill_end]
         self.assertIn("bench-ip-0014328", pill_html)
         self.assertNotIn("→", pill_html)
         self.assertNotIn("10.128.143.0/24", pill_html)
         self.assertIn("→", leaf_summary_html[pill_end:])
         self.assertIn("10.128.143.0/24", leaf_summary_html[pill_end:])
-        child_leaf_pos = html.index("n-10.1.0.0/16")
-        child_leaf_end = html.index("</div>", child_leaf_pos)
-        child_leaf_html = html[child_leaf_pos:child_leaf_end]
-        self.assertNotIn("nsm-ipa-cell-pill", child_leaf_html)
+
+    def test_ipa_drilldown_placeholder_excludes_cell_pill(self):
+        html = self._render_object_tree_html()
+        drilldown_pos = html.index("nsm-ipa-addr-drilldown")
+        self.assertNotIn("nsm-ipa-cell-pill", html[drilldown_pos:])
+
+    def test_ipa_drilldown_fragment_omits_cell_pill_when_disabled(self):
+        from django.template.loader import render_to_string
+
+        html = render_to_string(
+            "netbox_nsm/inc/addr_tree_nodes_fragment.html",
+            {
+                "nodes": [
+                    {
+                        "kind": "leaf",
+                        "name": "bench-ip-drill",
+                        "url": "/a/1/",
+                        "children": [],
+                    }
+                ],
+                "depth": 1,
+                "prefix": "ipa",
+                "show_copy": False,
+                "ipa_cell_pill": False,
+            },
+        )
+        self.assertIn("bench-ip-drill", html)
+        self.assertNotIn("nsm-ipa-cell-pill", html)
+
+    def test_diff_in_some_summary_renders_present_label_lines(self):
+        from django.template.loader import render_to_string
+
+        html = render_to_string(
+            "netbox_nsm/inc/addr_tree_nodes_fragment.html",
+            {
+                "nodes": [
+                    {
+                        "kind": "group",
+                        "name": "In some",
+                        "url": "#",
+                        "diff_group": "in-some",
+                        "diff_present_labels": [
+                            "Rule bench-rule-00038 (38) / destination",
+                            "Rule bench-rule-03250 (3250) / destination",
+                        ],
+                        "children": [
+                            {
+                                "kind": "leaf",
+                                "name": "bench-ip-0046354",
+                                "url": "/a/1/",
+                                "ip_ref": {"str": "10.129.207.55/32", "url": "#"},
+                                "diff_status": "in_some",
+                                "children": [],
+                            }
+                        ],
+                    }
+                ],
+                "depth": 0,
+                "prefix": "diff-ipam",
+                "show_copy": False,
+            },
+        )
+        self.assertIn("nsm-addr-diff-in-some-head", html)
+        self.assertIn("− Rule bench-rule-00038 (38) / destination", html)
+        self.assertIn("− Rule bench-rule-03250 (3250) / destination", html)
+        self.assertNotIn("In some: Rule", html)
 
     def test_object_tree_integrated_in_all_view_not_separate_section(self):
         from django.template.loader import render_to_string

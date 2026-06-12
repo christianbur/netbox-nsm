@@ -1,0 +1,41 @@
+{% load i18n %}
+{% if rules_row_group_tabs %}
+<nav class="nsm-rules-row-group-tabs nsm-rules-row-group-tabs--vertical"
+     aria-label="{% trans 'Rule groups' %}">
+  <button type="button"
+          class="btn btn-sm btn-link nsm-rules-row-group-tabs-scroll nsm-rules-row-group-tabs-scroll--prev"
+          aria-label="{% trans 'Previous rule groups' %}"
+          title="{% trans 'Previous rule groups' %}"
+          disabled>
+    <i class="mdi mdi-chevron-double-up" aria-hidden="true"></i>
+  </button>
+  <div class="nsm-rules-row-group-tabs-viewport" tabindex="-1">
+    <ul class="nav nav-tabs flex-column" role="tablist">
+      {% for tab in rules_row_group_tabs %}
+      <li class="nav-item" role="presentation">
+        <a class="nav-link{% if tab.is_active %} active{% endif %}"
+           href="{% querystring row_group_tab=tab.group_id page=1 %}"
+           role="tab"
+           {% if tab.is_active %}aria-current="page"{% endif %}
+           title="{% blocktrans with label=tab.group_label count=tab.rule_count %}{{ label }} ({{ count }} rules){% endblocktrans %}">
+          <span class="nsm-rules-row-group-tab-label">{{ tab.group_label }}</span>
+          <span class="badge rounded-pill text-bg-secondary ms-1">{{ tab.rule_count }}</span>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  <button type="button"
+          class="btn btn-sm btn-link nsm-rules-row-group-tabs-scroll nsm-rules-row-group-tabs-scroll--next"
+          aria-label="{% trans 'Next rule groups' %}"
+          title="{% trans 'Next rule groups' %}"
+          disabled>
+    <i class="mdi mdi-chevron-double-down" aria-hidden="true"></i>
+  </button>
+  <span class="nsm-rules-row-group-tabs-resize-handle"
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="{% trans 'Resize tab column' %}"
+        tabindex="-1"></span>
+</nav>
+{% endif %}

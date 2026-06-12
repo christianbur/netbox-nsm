@@ -37,7 +37,6 @@ def _field_from_cot(cot_field) -> SimpleNamespace:
                     SimpleNamespace(
                         type_config=SimpleNamespace(
                             name=ot.model,
-                            matching_class="",
                             content_type_id=None,
                         ),
                         type_config_id=None,
@@ -50,7 +49,6 @@ def _field_from_cot(cot_field) -> SimpleNamespace:
                 SimpleNamespace(
                     type_config=SimpleNamespace(
                         name=ot.model,
-                        matching_class="",
                         content_type_id=None,
                     ),
                     type_config_id=None,

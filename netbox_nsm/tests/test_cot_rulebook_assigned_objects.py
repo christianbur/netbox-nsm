@@ -9,11 +9,7 @@ from django.urls import reverse
 from ipam.models import Prefix
 
 from dcim.models import Device, DeviceRole, DeviceType, Interface, Manufacturer, Site
-from netbox_nsm.models import (
-    CotRulebookAssignment,
-    MatchingClassChoices,
-    TypeConfig,
-)
+from netbox_nsm.models import CotRulebookAssignment, TypeConfig
 from netbox_nsm.objects.link_propagation import CotObjectLinkPropagationChoices
 from netbox_nsm.objects.object_link_service import create_or_update_links, get_object_link_model
 from netbox_nsm.rulebooks.assigned_objects import build_cot_rulebook_assigned_objects_panel
@@ -78,7 +74,6 @@ class CotRulebookAssignedObjectsPanelTests(TestCase):
         TypeConfig.objects.create(
             name="COT Assigned Zone",
             content_type=ContentType.objects.get_for_model(Prefix),
-            matching_class=MatchingClassChoices.ZONE,
         )
         cls.assignment = CotRulebookAssignment.objects.create(
             cot_slug=COT_SLUG,
@@ -186,6 +181,8 @@ class CotRulebookAssignedObjectsPanelTests(TestCase):
         )
         self.assertIn("nsm-rb-assigned-edit-toggle", content)
         self.assertIn('class="btn btn-sm btn-primary nsm-rb-assigned-edit-only"', content)
+        self.assertIn("nsm-copy-fields-schema-btn", content)
+        self.assertIn("nsm-fields-schema-yaml-data", content)
 
     def test_object_link_assign_url_uses_same_endpoint_as_security_panel(self):
         self.add_permissions("netbox_nsm.add_objectlink")

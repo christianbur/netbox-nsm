@@ -1,0 +1,34 @@
+{% extends 'base/layout.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Add Object Config" %}{% endblock %}
+
+{% block content %}
+<h1 class="h2 mb-3">{% trans "Add Object Config" %}</h1>
+{% if missing %}
+<form method="post">
+  {% csrf_token %}
+  <div class="card">
+    <div class="card-body">
+      <p class="text-muted">{% trans "Select a Custom Object Type without nsm_config in comments." %}</p>
+      <div class="list-group">
+        {% for entry in missing %}
+        <label class="list-group-item d-flex gap-2">
+          <input class="form-check-input" type="radio" name="slug" value="{{ entry.spec.slug }}" required>
+          <span>
+            <strong>{{ entry.spec.label }}</strong>
+            <code class="ms-2">{{ entry.spec.slug }}</code>
+          </span>
+        </label>
+        {% endfor %}
+      </div>
+      <button type="submit" class="btn btn-primary mt-3">{% trans "Create with defaults" %}</button>
+      <a href="{% url 'plugins:netbox_nsm:objectconfig_list' %}" class="btn btn-secondary mt-3">{% trans "Cancel" %}</a>
+    </div>
+  </div>
+</form>
+{% else %}
+<div class="alert alert-info">{% trans "All UI object types already have nsm_config in comments." %}</div>
+<a href="{% url 'plugins:netbox_nsm:objectconfig_list' %}" class="btn btn-secondary">{% trans "Back" %}</a>
+{% endif %}
+{% endblock %}

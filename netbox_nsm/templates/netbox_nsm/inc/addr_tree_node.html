@@ -20,7 +20,7 @@ Renders one node of the address tree.
     </summary>
     <div class="nsm-addr-children"{% if node.lazy_load %} data-lazy-prefix="{{ node.lazy_ctx.prefix_pk }}" data-lazy-category="{{ node.lazy_ctx.category }}"{% endif %}>
       {% for child in node.children %}
-        {% include "netbox_nsm/inc/addr_tree_node.html" with node=child depth=depth|add:1 prefix=prefix forloop_counter=forloop.counter %}
+        {% include "netbox_nsm/inc/addr_tree_node.html" with node=child depth=depth|add:1 prefix=prefix ipa_cell_pill=ipa_cell_pill|default_if_none:True forloop_counter=forloop.counter %}
       {% endfor %}
       {% if node.lazy_load %}
       <button type="button" class="btn btn-sm btn-outline-secondary nsm-addr-lazy-load mt-1"
@@ -41,7 +41,16 @@ Renders one node of the address tree.
   <details class="nsm-addr-details{% if prefix == "ipa" and node.ct %} nsm-ipa-object-node{% endif %}{% if depth == 0 and prefix != "ipa" %} nsm-addr-top{% endif %}{% if node.diff_group %} nsm-addr-diff-group nsm-addr-diff-group--{{ node.diff_group }}{% endif %}">
     <summary class="nsm-addr-summary{% if prefix == "ipa" and node.is_cell_direct %} nsm-ipa-object-node--cell-direct{% endif %}{% if prefix == "ipa" and node.subnet_contained_in %} nsm-ipa-object-node--subnet-warning{% endif %}{% if prefix == "ipa" and node.is_doppelt %} nsm-ipa-object-node--doppelt-warning{% endif %}">
       {% if node.diff_group %}
-      {% if prefix == "ipa" and node.is_cell_direct %}
+      {% if node.diff_present_labels %}
+      <span class="nsm-addr-diff-in-some-head">
+        <span class="nsm-addr-link fw-semibold">{{ node.name }}</span>
+        <span class="nsm-addr-diff-present-labels">
+          {% for label in node.diff_present_labels %}
+          <span class="nsm-addr-diff-present-label">− {{ label }}</span>
+          {% endfor %}
+        </span>
+      </span>
+      {% elif prefix == "ipa" and node.is_cell_direct %}
       <span class="nsm-ipa-cell-pill"><span class="nsm-addr-link fw-semibold">{{ node.name }}</span></span>
       {% else %}
       <span class="nsm-addr-link fw-semibold">{{ node.name }}</span>
@@ -92,7 +101,7 @@ Renders one node of the address tree.
       {% if node.children %}
       <div class="nsm-ipa-cell-children">
         {% for child in node.children %}
-          {% include "netbox_nsm/inc/addr_tree_node.html" with node=child depth=depth|add:1 prefix=prefix forloop_counter=forloop.counter %}
+          {% include "netbox_nsm/inc/addr_tree_node.html" with node=child depth=depth|add:1 prefix=prefix ipa_cell_pill=ipa_cell_pill|default_if_none:True forloop_counter=forloop.counter %}
         {% endfor %}
       </div>
       {% endif %}
@@ -101,7 +110,7 @@ Renders one node of the address tree.
       {% endif %}
       {% else %}
       {% for child in node.children %}
-        {% include "netbox_nsm/inc/addr_tree_node.html" with node=child depth=depth|add:1 prefix=prefix forloop_counter=forloop.counter %}
+        {% include "netbox_nsm/inc/addr_tree_node.html" with node=child depth=depth|add:1 prefix=prefix ipa_cell_pill=ipa_cell_pill|default_if_none:True forloop_counter=forloop.counter %}
       {% endfor %}
       {% endif %}
     </div>
@@ -131,7 +140,7 @@ Renders one node of the address tree.
     </a>
     {% elif node.diff_status %}
     {% include "netbox_nsm/inc/addr_diff_name_pill.html" %}
-    {% elif prefix == "ipa" and node.is_cell_direct %}
+    {% elif prefix == "ipa" and ipa_cell_pill != False %}
     <span class="nsm-ipa-cell-pill"><a href="{{ node.url }}" class="nsm-addr-obj-link">{{ node.name }}</a></span>
     {% else %}
     <a href="{{ node.url }}" class="nsm-addr-obj-link">{{ node.name }}</a>

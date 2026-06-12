@@ -88,7 +88,62 @@ class CotRulesTabFastPathTests(SimpleTestCase):
     @patch("netbox_nsm.rulebooks.rules_tab.cot_multiobject_prefetch_plan")
     @patch("netbox_nsm.rulebooks.rules_tab.build_cot_grouped_rules_table_data")
     @patch("netbox_nsm.rulebooks.rules_tab.cot_rule_instances_queryset")
-    def test_active_filter_loads_all_rows(
+    def test_system_field_filter_uses_db_queryset(
+        self, mock_qs_fn, mock_build_rows, mock_prefetch_plan, mock_m2m_prefetch
+    ):
+        layout = self._layout()
+        virtual_rb = SimpleNamespace(cot=SimpleNamespace(), slug="nsm_rb_demo")
+        mock_prefetch_plan.return_value = ["source_addresses"]
+
+        page_instance = SimpleNamespace(pk=7)
+        qs = MagicMock()
+        filtered_qs = MagicMock()
+        ordered_qs = MagicMock()
+        qs.filter.return_value = filtered_qs
+        filtered_qs.order_by.return_value = ordered_qs
+
+        paginator = MagicMock()
+        page_obj = MagicMock()
+        page_obj.object_list = [page_instance]
+        paginator.get_page.return_value = page_obj
+        paginator.num_pages = 1
+
+        mock_qs_fn.return_value = qs
+        mock_build_rows.return_value = {"rows": [{"pk": 7}]}
+
+        with patch(
+            "netbox_nsm.rulebooks.rules_tab.EnhancedPaginator",
+            return_value=paginator,
+        ) as mock_paginator_cls:
+            _cot_rules_page(
+                virtual_rb,
+                layout=layout,
+                filter_model={
+                    "name": {
+                        "filterType": "text",
+                        "type": "contains",
+                        "filter": "demo-rule-zone_001-to-zone_051",
+                    }
+                },
+                sort_field="index",
+                sort_order="asc",
+                page_num=1,
+                per_page=50,
+            )
+
+        mock_qs_fn.assert_called_once_with(virtual_rb)
+        qs.filter.assert_called_once()
+        filtered_qs.order_by.assert_called_once_with("index", "pk")
+        mock_paginator_cls.assert_called_once_with(ordered_qs, 50)
+        mock_build_rows.assert_called_once_with(
+            [page_instance], virtual_rb, layout=layout
+        )
+
+    @patch("netbox_nsm.rulebooks.rules_tab.prefetch_cot_multiobject_fields")
+    @patch("netbox_nsm.rulebooks.rules_tab.cot_multiobject_prefetch_plan")
+    @patch("netbox_nsm.rulebooks.rules_tab.build_cot_grouped_rules_table_data")
+    @patch("netbox_nsm.rulebooks.rules_tab.cot_rule_instances_queryset")
+    def test_object_field_filter_still_loads_all_rows(
         self, mock_qs_fn, mock_build_rows, mock_prefetch_plan, mock_m2m_prefetch
     ):
         layout = self._layout()
@@ -110,7 +165,13 @@ class CotRulesTabFastPathTests(SimpleTestCase):
             _cot_rules_page(
                 virtual_rb,
                 layout=layout,
-                filter_model={"name": {"filterType": "text", "type": "contains", "filter": "x"}},
+                filter_model={
+                    "source_addresses::ct_1": {
+                        "filterType": "text",
+                        "type": "contains",
+                        "filter": "bench-ip",
+                    }
+                },
                 sort_field="index",
                 sort_order="asc",
                 page_num=1,

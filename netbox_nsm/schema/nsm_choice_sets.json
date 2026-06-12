@@ -1,5 +1,13 @@
 [
   {
+    "name": "nsm_object_status",
+    "choices": [
+      "active",
+      "reserved",
+      "deprecated"
+    ]
+  },
+  {
     "name": "nsm_service_protocol",
     "choices": [
       "tcp",

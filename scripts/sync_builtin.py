@@ -12,6 +12,7 @@ from netbox_nsm.objects.custom_objects_schema import (
     build_choice_set_specs,
     build_schema_document,
 )
+from netbox_nsm.objects.type_config_export import sync_cot_nsm_config_comments_for_slugs
 
 choice_specs = build_choice_set_specs()
 for spec in choice_specs:
@@ -24,6 +25,7 @@ for spec in choice_specs:
 
 doc = build_schema_document()
 apply_document(doc, allow_destructive=True)
+sync_cot_nsm_config_comments_for_slugs(t["slug"] for t in doc["types"])
 print("Sync OK")
 
 for cot in CustomObjectType.objects.filter(slug__startswith="nsm_").order_by("slug"):

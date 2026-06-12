@@ -5,7 +5,9 @@ from __future__ import annotations
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
 from django.db.models import Q
+from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -13,21 +15,28 @@ from django.views import View
 
 from core.models import ObjectChange
 from core.tables import ObjectChangeTable
-from utilities.htmx import htmx_partial
 from utilities.querydict import normalize_querydict
 
 from netbox_nsm.models import CotRulebookAssignment
 from netbox_nsm.rulebooks.assigned_objects import build_cot_rulebook_assigned_objects_panel
-from netbox_nsm.rulebooks.cot_hierarchy import build_virtual_cot_rulebook_with_hierarchy
+from netbox_nsm.rulebooks.cot_hierarchy import (
+    build_virtual_cot_rulebook_with_hierarchy,
+    get_cot_row_group_by_col_id,
+)
+from netbox_nsm.rulebooks.rules_row_grouping import row_group_column_label_for_cot
 from netbox_nsm.rulebooks.create import (
-    create_cot_rulebook_from_template,
+    create_cot_rulebook_from_schema_yaml,
     update_cot_rulebook_metadata,
 )
 from netbox_nsm.rulebooks.forms.assignment import CotRulebookBulkAssignForm
 from netbox_nsm.rulebooks.registry import get_deployed_cot_rulebook
 from netbox_nsm.rulebooks.rules_tab import build_cot_rulebook_rules_tab_context
 from netbox_nsm.rulebooks.forms.cot import CotRulebookCreateForm, CotRulebookDetailForm
-from netbox_nsm.rulebooks.templates import template_wizard_columns
+from netbox_nsm.rulebooks.templates import (
+    export_rulebook_schema_yaml_for_copy,
+    validate_substituted_rulebook_schema_yaml,
+    wizard_columns_from_schema_yaml,
+)
 from netbox_nsm.matrix.cot_matrix_tab_context import (
     build_cot_matrix_tab_context,
     cot_rulebook_matrix_enabled,
@@ -38,6 +47,7 @@ __all__ = (
     "CotRulebookBulkAssignView",
     "CotRulebookChangelogView",
     "CotRulebookCreateView",
+    "CotRulebookSchemaValidateView",
     "CotRulebookMatrixView",
     "CotRulebookRulesView",
     "CotRulebookView",
@@ -102,11 +112,17 @@ class CotRulebookView(_CotRulebookMixin, View):
             edit_mode = can_edit and request.GET.get("edit") == "1"
         if edit_form is None and edit_mode and can_edit:
             edit_form = CotRulebookDetailForm(cot=cot, rulebook_slug=slug)
+        from netbox_nsm.rulebooks.rules_row_grouping import row_group_column_label_for_cot
+
+        row_group_col_id = get_cot_row_group_by_col_id(slug)
         ctx = self.build_base_context(request, slug, tab_key=self.tab_key)
         ctx.update(
             {
                 "cot_slug": cot.slug,
                 "cot_field_groups": self._cot_field_groups(cot),
+                "rules_row_group_column_label": row_group_column_label_for_cot(
+                    cot, row_group_col_id
+                ),
                 "rule_count": instance.rule_count,
                 "can_edit": can_edit,
                 "edit_mode": bool(edit_mode and can_edit),
@@ -115,6 +131,7 @@ class CotRulebookView(_CotRulebookMixin, View):
                 "assigned_objects_panel": build_cot_rulebook_assigned_objects_panel(
                     cot.slug, request
                 ),
+                "fields_schema_yaml": export_rulebook_schema_yaml_for_copy(cot),
             }
         )
         return ctx
@@ -135,22 +152,22 @@ class CotRulebookView(_CotRulebookMixin, View):
         cot = self.get_virtual_object(slug).cot
         form = CotRulebookDetailForm(cot=cot, rulebook_slug=slug, data=request.POST)
         if form.is_valid():
-            from netbox_nsm.rulebooks.cot_hierarchy import (
-                set_cot_matrix_tab_enabled,
-                set_cot_rulebook_parent,
-            )
+            from netbox_nsm.objects.rulebook_config import save_rulebook_config_for_cot
 
             update_cot_rulebook_metadata(
                 slug,
                 verbose_name=form.cleaned_data["verbose_name"],
                 description=form.cleaned_data.get("description") or "",
             )
-            set_cot_rulebook_parent(slug, form.cleaned_data.get("parent_slug") or None)
+            rulebook_config = {
+                "parent_slug": form.cleaned_data.get("parent_slug") or "",
+                "row_group_by_col_id": form.cleaned_data.get("row_group_by_col_id") or "",
+            }
             if "matrix_tab_enabled" in form.cleaned_data:
-                set_cot_matrix_tab_enabled(
-                    slug,
-                    form.cleaned_data["matrix_tab_enabled"],
-                )
+                rulebook_config["matrix_tab_enabled"] = form.cleaned_data[
+                    "matrix_tab_enabled"
+                ]
+            save_rulebook_config_for_cot(cot, rulebook_config)
             messages.success(request, _("Rulebook updated."))
             return redirect(
                 reverse(
@@ -255,9 +272,8 @@ class CotRulebookRulesView(_CotRulebookMixin, View):
             raise Http404()
         instance = build_virtual_cot_rulebook_with_hierarchy(cot, rule_count=0)
         rules_ctx = build_cot_rulebook_rules_tab_context(request, instance)
-        total_rules = rules_ctx.get("rules_total_rules")
-        if total_rules is not None:
-            instance.rule_count = total_rules
+        if rules_ctx.get("rules_tab_badge") is not None:
+            instance.rules_tab_badge = rules_ctx["rules_tab_badge"]
         ctx = self.build_base_context(
             request, slug, tab_key=self.tab_key, instance=instance
         )
@@ -309,35 +325,45 @@ class CotRulebookChangelogView(_CotRulebookMixin, View):
         return render(request, self.template_name, ctx)
 
 
+class CotRulebookSchemaValidateView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = "netbox_nsm.add_rulebook"
+
+    def post(self, request):
+        schema_yaml = request.POST.get("schema_yaml", "")
+        try:
+            validate_substituted_rulebook_schema_yaml(
+                schema_yaml,
+                display_name=request.POST.get("verbose_name", ""),
+                name=request.POST.get("name", ""),
+                description=request.POST.get("description", ""),
+            )
+        except ValidationError as exc:
+            message = exc.messages[0] if getattr(exc, "messages", None) else str(exc)
+            return JsonResponse({"valid": False, "error": str(message)})
+        except Exception as exc:
+            return JsonResponse({"valid": False, "error": str(exc)})
+        return JsonResponse({"valid": True})
+
+
 class CotRulebookCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
     permission_required = "netbox_nsm.add_rulebook"
     template_name = "netbox_nsm/cot_rulebook_create.html"
-    htmx_template_name = "netbox_nsm/htmx/cot_rulebook_create_fields.html"
 
     def get(self, request):
-        from netbox_nsm.views.setup.demo import _ensure_rulebook_templates
-
-        _ensure_rulebook_templates()
         initial_data = normalize_querydict(request.GET)
         form = CotRulebookCreateForm(initial=initial_data)
-        template_slug = self._resolve_template_slug(form, initial_data)
-        context = self._context(request, form, template_slug)
-
-        if htmx_partial(request):
-            return render(request, self.htmx_template_name, context)
-
-        return render(request, self.template_name, context)
+        return render(
+            request,
+            self.template_name,
+            self._context(request, form),
+        )
 
     def post(self, request):
-        from netbox_nsm.views.setup.demo import _ensure_rulebook_templates
-
-        _ensure_rulebook_templates()
         form = CotRulebookCreateForm(request.POST)
-        template_slug = request.POST.get("template_slug") or ""
         if form.is_valid():
             try:
-                cot = create_cot_rulebook_from_template(
-                    template_slug=form.cleaned_data["template_slug"],
+                cot = create_cot_rulebook_from_schema_yaml(
+                    schema_yaml=form.cleaned_data["schema_yaml"],
                     name=form.cleaned_data["name"],
                     verbose_name=form.cleaned_data.get("verbose_name") or None,
                     description=form.cleaned_data.get("description") or None,
@@ -359,32 +385,58 @@ class CotRulebookCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
         return render(
             request,
             self.template_name,
-            self._context(request, form, template_slug),
+            self._context(request, form),
         )
 
-    @staticmethod
-    def _resolve_template_slug(form, data: dict) -> str:
-        template_slug = (data.get("template_slug") or "").strip()
-        if template_slug:
-            return template_slug
-        choices = form.fields["template_slug"].choices
-        if choices:
-            return choices[0][0]
-        return ""
-
-    def _context(self, request, form, template_slug: str) -> dict:
+    def _context(self, request, form) -> dict:
         from netbox_nsm.rulebooks.create import resolve_rulebook_slug
+        from netbox_nsm.rulebooks.templates import (
+            default_rulebook_schema_yaml,
+            substitute_rulebook_schema_placeholders,
+        )
+
+        from netbox_nsm.rulebooks.create import derive_rulebook_name
 
         preview_slug = ""
-        if form.is_bound and not form.errors.get("name"):
+        if form.is_bound and not form.errors.get("verbose_name"):
             try:
-                preview_slug = resolve_rulebook_slug(form.data.get("name", ""))
+                raw_name = (form.data.get("name") or "").strip()
+                if not raw_name:
+                    raw_name = derive_rulebook_name(form.data.get("verbose_name", ""))
+                preview_slug = resolve_rulebook_slug(raw_name)
             except Exception:
                 preview_slug = ""
-        columns = template_wizard_columns(template_slug) if template_slug else []
+
+        schema_yaml = (
+            form.data.get("schema_yaml")
+            if form.is_bound
+            else form.initial.get("schema_yaml") or default_rulebook_schema_yaml()
+        )
+        preview_display = (
+            (form.data.get("verbose_name") or "").strip() if form.is_bound else ""
+        )
+        preview_name = (form.data.get("name") or "").strip() if form.is_bound else ""
+        if form.is_bound and not preview_name and preview_display:
+            preview_name = derive_rulebook_name(preview_display)
+        preview_description = (
+            (form.data.get("description") or "").strip() if form.is_bound else ""
+        )
+        resolved_schema_yaml = substitute_rulebook_schema_placeholders(
+            schema_yaml,
+            display_name=preview_display,
+            name=preview_name,
+            description=preview_description,
+        )
+        columns = []
+        schema_error = None
+        try:
+            columns = wizard_columns_from_schema_yaml(resolved_schema_yaml)
+        except Exception as exc:
+            schema_error = str(exc)
+
         return {
             "form": form,
-            "template_slug": template_slug,
             "template_columns": columns,
+            "schema_error": schema_error,
             "preview_slug": preview_slug,
         }

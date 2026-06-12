@@ -1,10 +1,53 @@
 {% load i18n %}
 {% include "netbox_nsm/inc/addr_analysis_assets.html" %}
-<link rel="stylesheet" href="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='css/nsm_ip_analyzer_applet.css' %}?v=202606138">
+<link rel="stylesheet" href="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='css/nsm_ip_analyzer_applet.css' %}?v=202606143">
 <script>
   window.NSM_IP_ANALYSIS_API = window.NSM_IP_ANALYSIS_API || "{% url 'plugins:netbox_nsm:ip_analysis_api' %}";
   window.NSM_IP_ANALYSIS_CATEGORY_API = window.NSM_IP_ANALYSIS_CATEGORY_API || "{% url 'plugins:netbox_nsm:ip_analysis_category_api' %}";
   window.NSM_IP_ANALYSIS_OBJECT_API = window.NSM_IP_ANALYSIS_OBJECT_API || "{% url 'plugins:netbox_nsm:ip_analysis_object_api' %}";
   window.NSM_IP_ANALYSIS_ADD_OBJECT_TYPES_API = window.NSM_IP_ANALYSIS_ADD_OBJECT_TYPES_API || "{% url 'plugins:netbox_nsm:ip_analysis_add_object_types_api' %}";
+  window.NSM_IPA_I18N = {
+    "IP Analysis": "{% trans 'IP Analysis'|escapejs %}",
+    "Subnets: %(count)s": "{% trans 'Subnets: %(count)s'|escapejs %}",
+    "Ranges: %(count)s": "{% trans 'Ranges: %(count)s'|escapejs %}",
+    "IPs: %(count)s": "{% trans 'IPs: %(count)s'|escapejs %}",
+    "Warnings: %(count)s": "{% trans 'Warnings: %(count)s'|escapejs %}",
+    "Rule %(index)s/%(col)s": "{% trans 'Rule %(index)s/%(col)s'|escapejs %}",
+    "Rule %(index)s / %(col)s": "{% trans 'Rule %(index)s / %(col)s'|escapejs %}",
+    "Rule %(name)s (%(index)s) / %(col)s": "{% trans 'Rule %(name)s (%(index)s) / %(col)s'|escapejs %}",
+    "Rule %(name)s (%(index)s)": "{% trans 'Rule %(name)s (%(index)s)'|escapejs %}",
+    "%(count)s objects": "{% trans '%(count)s objects'|escapejs %}",
+    "Merged (%(count)s objects)": "{% trans 'Merged (%(count)s objects)'|escapejs %}",
+    "Diff": "{% trans 'Diff'|escapejs %}",
+    "Diff %(a)s - %(b)s": "{% trans 'Diff %(a)s - %(b)s'|escapejs %}",
+    "Diff %(labels)s": "{% trans 'Diff %(labels)s'|escapejs %}",
+    "Diff (%(a)s ↔ %(b)s)": "{% trans 'Diff (%(a)s ↔ %(b)s)'|escapejs %}",
+    "Diff (%(labels)s)": "{% trans 'Diff (%(labels)s)'|escapejs %}",
+    "Diff (%(count)s tabs)": "{% trans 'Diff (%(count)s tabs)'|escapejs %}",
+    " | Fund: %(count)s": "{% trans ' | Fund: %(count)s'|escapejs %}",
+    "%(label)s: +%(count)s": "{% trans '%(label)s: +%(count)s'|escapejs %}",
+    "in all: %(count)s": "{% trans 'in all: %(count)s'|escapejs %}",
+    "in some: %(count)s": "{% trans 'in some: %(count)s'|escapejs %}",
+    "%(label_a)s: +%(count_a)s | %(label_b)s: +%(count_b)s | shared: %(both)s": "{% trans '%(label_a)s: +%(count_a)s | %(label_b)s: +%(count_b)s | shared: %(both)s'|escapejs %}",
+    "Analyze object": "{% trans 'Analyze object'|escapejs %}",
+    "Analysis running…": "{% trans 'Analysis running…'|escapejs %}",
+    "Analysis failed.": "{% trans 'Analysis failed.'|escapejs %}",
+    "Minimize": "{% trans 'Minimize'|escapejs %}",
+    "Close": "{% trans 'Close'|escapejs %}",
+    "Add object": "{% trans 'Add object'|escapejs %}",
+    "Merge": "{% trans 'Merge'|escapejs %}",
+    "Search…": "{% trans 'Search…'|escapejs %}",
+    "Add object — %(category)s": "{% trans 'Add object — %(category)s'|escapejs %}",
+    "Enter search term…": "{% trans 'Enter search term…'|escapejs %}",
+    "No matches": "{% trans 'No matches'|escapejs %}",
+    "Searching…": "{% trans 'Searching…'|escapejs %}",
+    "Diff (at least 2 tabs required)": "{% trans 'Diff (at least 2 tabs required)'|escapejs %}",
+    "Close tab": "{% trans 'Close tab'|escapejs %}",
+    "No object types available": "{% trans 'No object types available'|escapejs %}",
+    "No IP addresses resolved.": "{% trans 'No IP addresses resolved.'|escapejs %}",
+    "%(count)s skipped": "{% trans '%(count)s skipped'|escapejs %}",
+    "Analysis could not be loaded.": "{% trans 'Analysis could not be loaded.'|escapejs %}",
+    "IP Analysis (%(count)s)": "{% trans 'IP Analysis (%(count)s)'|escapejs %}"
+  };
 </script>
-<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/nsm_ip_analyzer_applet.js' %}?v=202606138"></script>
+<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/nsm_ip_analyzer_applet.js' %}?v=202606143"></script>

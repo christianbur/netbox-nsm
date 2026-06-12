@@ -1,9 +1,8 @@
-"""Setup wizard: Custom Object status includes core types and rulebook templates."""
+"""Setup wizard: Custom Object status includes core types only."""
 
 from django.test import SimpleTestCase
 
 from netbox_nsm.objects.type_config_specs import REQUIRED_COT_SLUGS
-from netbox_nsm.rulebooks.templates import RULEBOOK_TEMPLATE_SLUGS
 from netbox_nsm.views.setup import custom_objects
 
 
@@ -11,21 +10,13 @@ class SetupCustomObjectsStatusTests(SimpleTestCase):
     def test_required_cot_slugs_include_object_link(self):
         self.assertIn("nsm_object_link", REQUIRED_COT_SLUGS)
 
-    def test_empty_status_covers_bundled_template_slugs(self):
-        cot_status = custom_objects.empty_cot_status()
-        template_status = custom_objects.empty_rulebook_template_status()
-        self.assertEqual(set(cot_status), set(REQUIRED_COT_SLUGS))
-        self.assertEqual(set(template_status), set(RULEBOOK_TEMPLATE_SLUGS))
-        self.assertFalse(custom_objects.all_cots_ok(cot_status, template_status))
+    def test_all_cots_ok_when_core_types_present(self):
+        cot_status = {slug: object() for slug in REQUIRED_COT_SLUGS}
+        self.assertTrue(custom_objects.all_cots_ok(cot_status))
 
-    def test_rulebook_template_entries_match_slugs(self):
-        entries = custom_objects.get_rulebook_template_entries(
-            template_status=custom_objects.empty_rulebook_template_status()
-        )
-        self.assertEqual([entry["slug"] for entry in entries], RULEBOOK_TEMPLATE_SLUGS)
-        for entry in entries:
-            self.assertTrue(entry["label"])
-            self.assertTrue(entry["description"])
+    def test_all_cots_ok_false_when_type_missing(self):
+        cot_status = custom_objects.empty_cot_status()
+        self.assertFalse(custom_objects.all_cots_ok(cot_status))
 
     def test_builtin_object_entries_exclude_panel_link(self):
         entries = custom_objects.get_builtin_object_entries(
@@ -52,22 +43,52 @@ class SetupCustomObjectsStatusTests(SimpleTestCase):
             self.assertTrue(entry["label"])
             self.assertTrue(entry["description"])
 
-    def test_cot_setup_groups_cover_all_types(self):
+    def test_cot_setup_groups_cover_core_types_only(self):
         groups = custom_objects.get_cot_setup_groups(
             cot_status=custom_objects.empty_cot_status(),
-            rulebook_template_status=custom_objects.empty_rulebook_template_status(),
+            rulebook_template_status={},
         )
         self.assertEqual(len(groups), len(custom_objects.COT_SETUP_GROUPS))
         self.assertEqual(groups[0]["id"], "objects")
         self.assertEqual(groups[1]["id"], "nsm_panel")
-        self.assertEqual(groups[2]["id"], "rulebook_templates")
         object_slugs = [entry["slug"] for entry in groups[0]["entries"]]
         panel_slugs = [entry["slug"] for entry in groups[1]["entries"]]
-        template_slugs = [entry["slug"] for entry in groups[2]["entries"]]
         self.assertEqual(object_slugs, list(custom_objects.COT_BUILTIN_OBJECT_SLUGS))
         self.assertEqual(panel_slugs, list(custom_objects.NSM_PANEL_COT_SLUGS))
-        self.assertEqual(template_slugs, RULEBOOK_TEMPLATE_SLUGS)
         self.assertEqual(
             set(object_slugs) | set(panel_slugs),
             set(REQUIRED_COT_SLUGS),
         )
+
+    def test_cot_setup_groups_omit_rulebook_templates_when_empty(self):
+        groups = custom_objects.get_cot_setup_groups(
+            cot_status=custom_objects.empty_cot_status(),
+            rulebook_template_status={},
+        )
+        self.assertEqual(
+            [group["id"] for group in groups],
+            ["objects", "nsm_panel"],
+        )
+
+    def test_cot_schema_yaml_contains_bundled_types(self):
+        yaml_text = custom_objects.get_cot_schema_yaml()
+        self.assertIn("schema_version", yaml_text)
+        self.assertIn("nsm_zone", yaml_text)
+        self.assertIn("nsm_object_link", yaml_text)
+
+    def test_cot_schema_preview_covers_required_slugs(self):
+        preview = custom_objects.get_cot_schema_preview()
+        self.assertEqual(
+            {row["slug"] for row in preview},
+            set(REQUIRED_COT_SLUGS),
+        )
+        for row in preview:
+            self.assertTrue(row["label"])
+            self.assertTrue(row["fields"])
+
+    def test_cot_schema_preview_includes_nsm_config_for_ui_types(self):
+        preview = custom_objects.get_cot_schema_preview()
+        zone = next(row for row in preview if row["slug"] == "nsm_zone")
+        self.assertIn("nsm_config:", zone["nsm_config_yaml"])
+        object_link = next(row for row in preview if row["slug"] == "nsm_object_link")
+        self.assertEqual(object_link["nsm_config_yaml"], "")

@@ -50,14 +50,6 @@ class CotRulebookAssignment(NetBoxModel):
         ordering = ("cot_slug", "assigned_object_id")
         verbose_name = _("Rulebook Assignment")
         verbose_name_plural = _("Rulebook Assignments")
-        permissions = [
-            ("view_rulebook", "Can view rulebooks"),
-            ("add_rulebook", "Can add rulebooks"),
-            ("view_rulebookassignment", "Can view rulebook assignments"),
-            ("add_rulebookassignment", "Can add rulebook assignments"),
-            ("change_rulebookassignment", "Can change rulebook assignments"),
-            ("delete_rulebookassignment", "Can delete rulebook assignments"),
-        ]
 
     def __str__(self):
         return f"{self.assigned_object}: {self.cot_slug}"

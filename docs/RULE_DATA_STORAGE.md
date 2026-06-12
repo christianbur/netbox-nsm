@@ -2,15 +2,19 @@
 
 [← Documentation home](README.md) · [Database tables](DATABASE.md) · [Architecture](../ARCHITECTURE.md)
 
-NSM does **not** persist policy as a wide spreadsheet with dynamic columns on the `Rule` row.
-Instead, data is split into four layers:
+NSM does **not** persist policy as wide `netbox_nsm_rule` rows with dynamic SQL columns.
+Since the COT migration, **rulebooks and rules are Custom Object Types** managed by
+`netbox-custom-objects`. NSM native tables hold only configuration and assignment metadata.
 
-1. **Schema** — which columns a rulebook has (`RulebookField`, `RulebookFieldType`)
-2. **Rules** — one row per policy rule (`Rule`)
-3. **Cell contents** — links from a rule + column to objects or groups (`RuleObjectItem`, `RuleGroupItem`)
-4. **Referenced objects** — zones, addresses, services, etc. live in Custom Objects or NetBox core; NSM stores only generic foreign keys
+Data is split into four layers:
 
-Security **object instances** are never duplicated inside NSM rule tables. See [What is stored elsewhere](DATABASE.md#what-is-stored-elsewhere).
+1. **Schema** — COT field definitions on each deployed rulebook (`nsm_rb_*`)
+2. **Rules** — one COT row per policy rule
+3. **Cell contents** — `multiobject` COT fields on each rule row (references to zones, addresses, …)
+4. **Referenced objects** — zones, addresses, services, etc. are separate COT or NetBox core rows
+
+Security **object instances** are never duplicated inside rule rows — cells store references only.
+See [What is stored elsewhere](DATABASE.md#what-is-stored-elsewhere).
 
 ---
 
@@ -19,42 +23,39 @@ Security **object instances** are never duplicated inside NSM rule tables. See [
 ```mermaid
 flowchart TB
     subgraph UI["What you see in the UI"]
-        RB["Rulebook Rules table<br/>Columns: Index | Source › Zones | Destination › Addresses | …"]
+        RB["Rulebook Rules grid<br/>Columns: Index | Source › Zones | Destination › Addresses | …"]
     end
 
-    subgraph Schema["Layer 1: column schema (per rulebook)"]
-        RBF["RulebookField<br/>slug: source, destination, service, …"]
-        RBFT["RulebookFieldType<br/>allowed object types per column"]
-        TC["TypeConfig<br/>matching, display template, panel flags"]
+    subgraph Schema["Layer 1: column schema (per rulebook COT)"]
+        COT["COT nsm_rb_*<br/>field: source, destination, service, …"]
+        FLD["Field metadata<br/>type=multiobject, related_object_types, group_name"]
+        TC["TypeConfig<br/>matching class, display template, panel flags"]
     end
 
     subgraph Rules["Layer 2: rule rows"]
-        R["Rule<br/>index, name, enabled, description, …"]
+        R["COT rule row<br/>index, status, name, description, …"]
     end
 
     subgraph Cells["Layer 3: cell contents"]
-        ROI["RuleObjectItem<br/>rule + field + content_type + object_id"]
-        RGI["RuleGroupItem<br/>rule + field + ObjectGroup"]
+        MO["multiobject field values<br/>on the rule COT row"]
     end
 
-    subgraph External["Layer 4: actual objects (outside NSM rule tables)"]
-        Z["Zone"]
-        A["Address"]
-        S["Service"]
-        OG["ObjectGroup"]
+    subgraph External["Layer 4: referenced objects"]
+        Z["nsm_zone"]
+        A["nsm_address"]
+        S["nsm_service"]
+        G["nsm_address_group"]
     end
 
     RB --> R
-    RB --> RBF
-    RBF --> RBFT --> TC
-    R --> ROI
-    R --> RGI
-    RBF --> ROI
-    RBF --> RGI
-    ROI -.->|Generic FK| Z
-    ROI -.->|Generic FK| A
-    ROI -.->|Generic FK| S
-    RGI -.-> OG
+    COT --> FLD
+    FLD -.-> TC
+    R --> MO
+    COT --> MO
+    MO -.->|object reference| Z
+    MO -.->|object reference| A
+    MO -.->|object reference| S
+    MO -.->|object reference| G
 ```
 
 ---
@@ -63,53 +64,33 @@ flowchart TB
 
 ```mermaid
 erDiagram
-    Rulebook ||--o{ RulebookField : "defines columns"
-    Rulebook ||--o{ Rule : "contains rules"
-    RulebookField ||--o{ RulebookFieldType : "allowed types"
-    RulebookFieldType }o--|| TypeConfig : "points to"
-    TypeConfig }o--|| ContentType : "object type"
+    "COT nsm_rb_*" ||--o{ "COT rule row" : "contains"
+    "COT nsm_rb_*" ||--|{ "COT field def" : "defines columns"
+    TypeConfig }o--|| ContentType : "behaviour for referenced types"
 
-    Rule ||--o{ RuleObjectItem : "cell = object"
-    Rule ||--o{ RuleGroupItem : "cell = group"
-    RulebookField ||--o{ RuleObjectItem : "which column"
-    RulebookField ||--o{ RuleGroupItem : "which column"
-
-    RuleObjectItem }o--|| ContentType : "type"
-    RuleObjectItem }o--o| "Any NetBox / custom object" : "object_id"
-
-    Rulebook {
-        int id PK
+    "COT rule row" {
+        int index PK
+        bool status
         string name
-        string rulebook_type
+        json multiobject_source
+        json multiobject_destination
     }
 
-    RulebookField {
-        int id PK
-        int rulebook_id FK
+    "COT nsm_rb_*" {
         string slug
-        string name
-        string placement
-        string field_kind
+        text comments_nsm_config_rulebook
     }
 
-    Rule {
+    CotRulebookAssignment {
         int id PK
-        int rulebook_id FK
-        int index
-        string name
-        bool enabled
-        json virtual_group_config
-    }
-
-    RuleObjectItem {
-        int id PK
-        int rule_id FK
-        int field_id FK
-        int content_type_id FK
-        bigint object_id
-        bool exclude
+        int assigned_object_type_id FK
+        bigint assigned_object_id
+        string cot_slug
     }
 ```
+
+Native `Rulebook`, `Rule`, `RulebookField`, `RuleObjectItem`, and `RuleGroupItem` tables were
+**removed**. Do not query `netbox_nsm_rule*` for current installs.
 
 ---
 
@@ -119,94 +100,90 @@ erDiagram
 
 | Index | Name     | Source › Zones   | Destination › Addresses |
 |------:|----------|------------------|-------------------------|
-| 100   | Web→App  | DMZ, Internal    | 10.0.0.0/24             |
+| 100   | Web→App  | DMZ, Internal    | bench-net-prod          |
 
-**How that maps to the database:**
+**How that maps to storage:**
 
 ```mermaid
 flowchart LR
-    subgraph rulebook["Rulebook: Security Rules RB"]
-        F1["RulebookField<br/>slug=source"]
-        F2["RulebookField<br/>slug=destination"]
+    subgraph cot["COT rulebook nsm_rb_demo_addresses"]
+        F1["field source<br/>multiobject → zones, labels, addresses, groups"]
+        F2["field destination<br/>multiobject → zones, labels, addresses, groups"]
     end
 
-    subgraph rule["Rule #42"]
-        R["index=100<br/>name=Web→App<br/>enabled=true"]
+    subgraph rule["Rule COT row index=100"]
+        R["name=Web→App<br/>status=true"]
+        S1["source → [DMZ pk, Internal pk]"]
+        S2["destination → [bench-net-prod pk]"]
     end
 
-    subgraph items["RuleObjectItems"]
-        I1["field=source<br/>ct=Zone, object_id=7 → DMZ"]
-        I2["field=source<br/>ct=Zone, object_id=12 → Internal"]
-        I3["field=destination<br/>ct=Address, object_id=99 → 10.0.0.0/24"]
-    end
-
-    F1 --> I1
-    F1 --> I2
-    F2 --> I3
-    R --> I1
-    R --> I2
-    R --> I3
+    F1 --> S1
+    F2 --> S2
+    R --> S1
+    R --> S2
 ```
 
-**Important:** multiple pills in one UI cell = **multiple `RuleObjectItem` rows** (same
-`rule_id` and `field_id`, different `object_id`).
-
-Unique constraint on `RuleObjectItem`: `(rule, field, content_type, object_id)`.
+**Important:** multiple pills in one UI cell = **multiple object references** in the same
+`multiobject` field on that rule row (stored by `netbox-custom-objects`, not in NSM junction tables).
 
 ---
 
-## UI concept → PostgreSQL table
+## UI concept → storage
 
-| UI concept | Table | What is stored |
-|------------|-------|----------------|
-| Rulebook | `netbox_nsm_rulebook` | Name, platform, matrix flag, comment template, … |
-| Column “Source” | `netbox_nsm_rulebookfield` | slug, name, placement, sort_order, visibility, … |
-| Sub-type “Zones” under Source | `netbox_nsm_rulebookfieldtype` → `netbox_nsm_typeconfig` | Which content type is allowed, max items, … |
-| Rule row | `netbox_nsm_rule` | index, name, enabled, description — **not** zone/address text |
-| Object pill in a cell | `netbox_nsm_ruleobjectitem` | FK to rule + field + generic object |
-| Group pill in a cell | `netbox_nsm_rulegroupitem` | FK to rule + field + `ObjectGroup` |
-| Zone / Address instance | Custom Objects / NetBox core | **Not** in NSM rule junction tables |
+| UI concept | Where it lives | What is stored |
+|------------|----------------|----------------|
+| Rulebook (deployed) | COT `nsm_rb_<name>` + `comments.nsm_config.rulebook` | COT schema + hierarchy/matrix flags in comments |
+| Column “Source” | COT field `source` (or `source_zones`, …) | `multiobject` definition, `group_name`, `related_object_types` |
+| Sub-type “Zones” under Source | Polymorphic `related_object_types` + `TypeConfig` | UI splits one field by content type |
+| Rule row | COT table for `nsm_rb_*` | `index`, `status`, `name`, system + policy fields |
+| Object pill in a cell | `multiobject` value on rule row | Reference to zone / address / … instance |
+| Group pill | `multiobject` or nested `group` M2M | Address group COT or member references |
+| Zone / Address instance | `netbox-custom-objects` | **Not** duplicated in NSM native tables |
+| Rulebook on device | `netbox_nsm_cotrulebookassignment` | `cot_slug` + generic FK to Device/VM/VDC |
 
-System columns (Index, Status, Name, Description) are also `RulebookField` rows with
-`field_kind=system`; their values live on the `Rule` model, not in `RuleObjectItem`.
+System columns (Index, Status, Name, Description) are ordinary COT fields on the rulebook type
+(see `_FIELD_CATALOG` in `rulebooks/templates.py`).
+
+---
+
+## Rulebook templates and schema apply
+
+Built-in layouts (zone matrix, address-based, …) are Python documents in `rulebooks/templates.py`.
+Setup or `POST /api/plugins/custom-objects/schema/apply/` deploys them as `nsm_rb_*` COTs.
+
+Adding a column to a rulebook means **extending the COT schema** (new field on `nsm_rb_*`), not
+a Django migration on NSM rule junction tables.
 
 ---
 
 ## Global rule list vs rulebook Rules tab
 
-Both views read the **same** `Rule` and junction rows. Only the **presentation** differs.
+Both views read the **same** COT rule rows. Only presentation differs.
 
 ```mermaid
 flowchart TB
-    subgraph same["Same PostgreSQL data"]
-        DB[(netbox_nsm_rule<br/>netbox_nsm_ruleobjectitem<br/>…)]
+    subgraph same["Same COT data"]
+        DB[(netbox-custom-objects<br/>nsm_rb_* rows)]
     end
 
-    subgraph list["/plugins/netbox-nsm/rules/"]
-        L["RuleListView<br/>Fixed columns: Source, Destination, Service, Action, Info<br/>Legacy layout, all rulebooks mixed"]
-    end
-
-    subgraph tab["/plugins/netbox-nsm/rulebooks/&lt;pk&gt;/rules/"]
-        T["RulebookRulesView<br/>Dynamic columns from RulebookField<br/>Per-rulebook layout"]
+    subgraph tab["/plugins/netbox-nsm/rulebooks/cot/&lt;slug&gt;/rules/"]
+        T["COT rules tab<br/>Columns from COT field schema"]
     end
 
     subgraph all["/plugins/netbox-nsm/rulebooks/0/rules/"]
-        A["All Rules (read-only)<br/>Union of columns across policy rulebooks"]
+        A["All Rules (read-only)<br/>Union across security rulebooks"]
     end
 
-    DB --> L
     DB --> T
     DB --> A
 ```
 
 | URL | Purpose |
 |-----|---------|
-| `/plugins/netbox-nsm/rules/` | NetBox object list of all `Rule` records; fixed column set in `RuleTable` |
-| `/plugins/netbox-nsm/rulebooks/<pk>/rules/` | Rules grid for one rulebook; columns match that rulebook's fields |
-| `/plugins/netbox-nsm/rulebooks/0/rules/` | Aggregated read-only view across all security rulebooks |
+| `/plugins/netbox-nsm/rulebooks/cot/<slug>/rules/` | Rules grid for one deployed COT rulebook; optional vertical **Grouped rows** tabs (`nsm_config.rulebook.row_group_by_col_id`, active tab `?row_group_tab=…`) |
+| `/plugins/netbox-nsm/rulebooks/0/rules/` | Aggregated read-only view across rulebooks |
 
-Prefer the rulebook Rules tab (or All Rules) for day-to-day policy work. The global `/rules/`
-list is mainly a technical inventory / admin view.
+The legacy global `/plugins/netbox-nsm/rules/` native list was removed with the COT migration.
 
 ---
 
@@ -214,39 +191,35 @@ list is mainly a technical inventory / admin view.
 
 ```mermaid
 sequenceDiagram
-    participant Admin as Configure rulebook
-    participant Field as RulebookField
+    participant Admin as Extend rulebook COT
+    participant Field as COT field (multiobject)
     participant Editor as Rule editor
-    participant Item as RuleObjectItem
-    participant Obj as NetBox object
+    participant Row as COT rule row
+    participant Obj as Zone / Address COT
 
-    Admin->>Field: Add column "Application"
-    Admin->>Field: Allow type "Labels"
-    Editor->>Item: On save: rule + field(application) + label pk=5
-    Item->>Obj: Generic FK → Label pk=5
+    Admin->>Field: Add field "application" → labels
+    Editor->>Row: Save rule with application → [label pk=5]
+    Row->>Obj: Reference via multiobject storage
 ```
 
 | Dynamic at… | Mechanism |
 |-------------|-----------|
-| **Schema** | Each rulebook defines its own `RulebookField` rows and allowed `RulebookFieldType` entries |
-| **Cell content** | Zero or more `RuleObjectItem` / `RuleGroupItem` rows per rule and field |
-| **`Rule` row itself** | **Not** dynamic — no columns like `source_zones` or `dest_addresses` on the model |
-
-Adding a new column to a rulebook does **not** require a database migration for rule content:
-new assignments use existing junction tables with a new `field_id`.
+| **Schema** | Each `nsm_rb_*` COT defines its own fields (`rulebooks/templates.py` or schema apply) |
+| **Cell content** | Zero or more references per `multiobject` field on each rule row |
+| **Rule row shape** | Defined by COT fields — not a fixed `netbox_nsm_rule` model |
 
 ---
 
-## `virtual_group_config` (JSON on `Rule`)
+## Virtual AND/OR groups in cells
 
-`Rule.virtual_group_config` stores editor metadata for **virtual AND/OR groups** inside a cell
-(how pills are grouped in the rule form). Object references still persist in
-`RuleObjectItem` / `RuleGroupItem`; the JSON describes structure, not the referenced objects.
+The rule editor can group pills into virtual AND/OR bubbles (`allow_virtual_groups` on
+`TypeConfig`). Structure is stored in editor metadata on the rule row (JSON where the COT
+schema provides it); object references remain in the underlying `multiobject` field values.
 
 ---
 
 ## Related documentation
 
-- [DATABASE.md](DATABASE.md) — full table list and migration notes
-- [ARCHITECTURE.md](../ARCHITECTURE.md) — model field reference for developers
+- [DATABASE.md](DATABASE.md) — native NSM tables, removed legacy tables, migrations
+- [ARCHITECTURE.md](../ARCHITECTURE.md) — developer model reference
 - [Using netbox-nsm — Rules grid](using_netbox_nsm.md#rules-grid) — operator UI guide

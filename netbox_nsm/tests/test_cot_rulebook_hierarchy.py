@@ -9,9 +9,10 @@ from django.test import SimpleTestCase
 
 from utilities.testing import TestCase
 
-from netbox_nsm.models import CotRulebook
+from netbox_nsm.objects.rulebook_config import save_rulebook_config_for_cot
 from netbox_nsm.rulebooks.cot_hierarchy import collect_descendant_slugs, validate_cot_parent_slug
 from netbox_nsm.rulebooks.hierarchy import cot_rulebook_tree_order, hierarchy_depth, render_hierarchy_marker
+from netbox_nsm.rulebooks.templates import RULEBOOK_GROUP
 from netbox_nsm.rulebooks.virtual_cot import VirtualCotRulebook
 
 
@@ -77,10 +78,24 @@ class CotRulebookHierarchyUnitTests(SimpleTestCase):
 
 
 class CotRulebookHierarchyModelTests(TestCase):
-    def test_model_rejects_self_parent(self):
-        record = CotRulebook(slug="nsm_rb_demo", parent_slug="nsm_rb_demo")
+    @classmethod
+    def setUpTestData(cls):
+        from netbox_custom_objects.models import CustomObjectType
+
+        cls.cot = CustomObjectType.objects.create(
+            name="nsm_rb_demo",
+            slug="nsm_rb_demo",
+            verbose_name="Demo",
+            description="",
+            group_name=RULEBOOK_GROUP,
+        )
+
+    def test_save_rejects_self_parent(self):
         with self.assertRaises(ValidationError):
-            record.full_clean()
+            save_rulebook_config_for_cot(
+                self.cot,
+                {"parent_slug": "nsm_rb_demo"},
+            )
 
 
 class CotRulebookHierarchyFormTests(SimpleTestCase):

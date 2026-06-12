@@ -37,6 +37,7 @@ class SecurityConfig(PluginConfig):
         self._patch_color_field_widget()
         self._patch_poly_subfield_labels()
         self._patch_cot_rule_add_index()
+        self._patch_nsm_object_urls()
 
     @staticmethod
     def _patch_color_field_widget():
@@ -75,5 +76,10 @@ class SecurityConfig(PluginConfig):
 
         patch_cot_rule_add_form()
 
+    @staticmethod
+    def _patch_nsm_object_urls():
+        from netbox_nsm.objects.cot_routes import apply_nsm_object_url_patches
+
+        apply_nsm_object_url_patches()
 
 config = SecurityConfig  # noqa

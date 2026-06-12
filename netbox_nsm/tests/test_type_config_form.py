@@ -1,70 +1,74 @@
-"""Tests for TypeConfig settings UI (form / table)."""
+"""Tests for Object Config form (nsm_config)."""
 
-from django.contrib.contenttypes.models import ContentType
-from django.utils.translation import gettext as _
-
-from ipam.models import Prefix
-
-from netbox_nsm.forms.type_config import TypeConfigAddForm, TypeConfigForm
-from netbox_nsm.models import TypeConfig
-from netbox_nsm.tables.type_config import TypeConfigTable
+from netbox_nsm.forms.type_config import NsmAddressConfigForm, NsmConfigForm
+from netbox_nsm.objects.type_config_specs import (
+    TYPECONFIG_LIST_EXCLUDED_SLUGS,
+    TYPECONFIG_SORT_ORDER_BY_SLUG,
+    TYPECONFIG_UI_SPECS,
+    default_sort_order_for_slug,
+)
 from utilities.testing import TestCase
 
 
-class TypeConfigFormTests(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.prefix_ct = ContentType.objects.get_for_model(Prefix)
-        cls.type_config = TypeConfig.objects.create(
-            name="Test Zones",
-            content_type=cls.prefix_ct,
-            matching_class="zone",
-            inherit_links=True,
-            inherit_stop_on_own=True,
-        )
-
-    def test_edit_form_excludes_inheritance_fields(self):
-        form = TypeConfigForm(instance=self.type_config)
+class NsmConfigFormTests(TestCase):
+    def test_form_has_rule_view_fields_only(self):
+        form = NsmConfigForm()
+        self.assertIn("sort_order", form.fields)
+        self.assertIn("display_template", form.fields)
         self.assertNotIn("inherit_links", form.fields)
-        self.assertNotIn("inherit_stop_on_own", form.fields)
+        self.assertNotIn("panel_linkable_types", form.fields)
 
-    def test_edit_form_has_no_inheritance_fieldset(self):
-        fieldset_names = [fs.name for fs in TypeConfigForm.fieldsets]
-        self.assertNotIn(_("Inheritance"), fieldset_names)
+    def test_form_has_rule_view_fieldset(self):
+        from django.utils.translation import gettext as _
 
-    def test_add_form_excludes_inheritance_fields(self):
-        form = TypeConfigAddForm()
-        self.assertNotIn("inherit_links", form.fields)
-        self.assertNotIn("inherit_stop_on_own", form.fields)
+        fieldset_names = [fs.name for fs in NsmConfigForm.fieldsets]
+        self.assertIn(_("Rule View"), fieldset_names)
 
-    def test_edit_save_preserves_legacy_inheritance_db_values(self):
-        form = TypeConfigForm(
-            instance=self.type_config,
+    def test_to_config_dict_round_trip(self):
+        form = NsmConfigForm(
             data={
-                "name": "Renamed Zones",
-                "matching_class": "zone",
+                "sort_order": 12,
                 "display_template": "{name}",
-                "panel_linkable_types": [],
-            },
+            }
         )
         self.assertTrue(form.is_valid(), form.errors)
-        saved = form.save()
-        saved.refresh_from_db()
-        self.assertEqual(saved.name, "Renamed Zones")
-        self.assertTrue(saved.inherit_links)
-        self.assertTrue(saved.inherit_stop_on_own)
+        self.assertEqual(
+            form.to_config_dict(),
+            {"sort_order": 12, "display_template": "{name}"},
+        )
 
-    def test_table_default_columns_exclude_inheritance(self):
-        columns = TypeConfigTable.Meta.default_columns
-        self.assertNotIn("inherit_links", columns)
-        self.assertNotIn("inherit_stop_on_own", columns)
-        self.assertIn("panel_linkable_types", columns)
+    def test_ui_specs_exclude_object_link_with_default_sort_orders(self):
+        ui_slugs = {spec["slug"] for spec in TYPECONFIG_UI_SPECS}
+        self.assertEqual(ui_slugs & TYPECONFIG_LIST_EXCLUDED_SLUGS, set())
+        self.assertNotIn("nsm_object_link", ui_slugs)
+        for slug, expected in TYPECONFIG_SORT_ORDER_BY_SLUG.items():
+            self.assertEqual(default_sort_order_for_slug(slug), expected)
 
-    def test_render_panel_linkable_all_types_uses_subtle_badge(self):
-        table = TypeConfigTable(TypeConfig.objects.none())
-        html = table.render_panel_linkable_types(self.type_config)
-        self.assertIn("All types", html)
-        self.assertIn("bg-primary-subtle", html)
-        self.assertIn("text-primary-emphasis", html)
-        self.assertNotIn("bg-primary text-white", html)
-        self.assertNotIn("text-bg-primary", html)
+    def test_nsm_address_form_includes_object_builder_fieldset(self):
+        from django.utils.translation import gettext as _
+
+        form = NsmAddressConfigForm()
+        fieldset_names = [fs.name for fs in form.fieldsets]
+        self.assertIn(_("Rule View"), fieldset_names)
+        self.assertIn(_("Object Sync"), fieldset_names)
+        self.assertIn("template_ipaddress", form.fields)
+
+    def test_nsm_address_form_round_trip_object_builder(self):
+        form = NsmAddressConfigForm(
+            data={
+                "sort_order": 12,
+                "display_template": "{name}",
+                "object_builder_enabled": True,
+                "template_ipaddress": "H-{host}",
+                "copy_description_ipaddress": True,
+                "template_prefix": "N-{network}-{prefix_length}",
+                "template_iprange": "R-{start_address}-{end_address}",
+            }
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        config = form.to_config_dict()
+        self.assertTrue(config["object_builder"]["enabled"])
+        self.assertEqual(
+            config["object_builder"]["sources"]["ipam.ipaddress"]["build_template"],
+            "H-{host}",
+        )

@@ -14,51 +14,37 @@ __all__ = (
     "deployed_rulebook_parent_choices",
     "get_cot_matrix_tab_enabled",
     "get_cot_parent_slug",
+    "get_cot_row_group_by_col_id",
     "invalid_parent_slugs",
     "load_cot_parent_map",
-    "set_cot_matrix_tab_enabled",
-    "set_cot_rulebook_parent",
     "validate_cot_parent_slug",
 )
 
 
 def load_cot_parent_map() -> dict[str, str]:
-    from netbox_nsm.models import CotRulebook
+    from netbox_nsm.objects.rulebook_config import load_rulebook_parent_map
 
-    return {
-        slug: parent_slug
-        for slug, parent_slug in CotRulebook.objects.exclude(parent_slug="").values_list(
-            "slug", "parent_slug"
-        )
-    }
+    return load_rulebook_parent_map()
 
 
 def get_cot_parent_slug(slug: str) -> str:
-    from netbox_nsm.models import CotRulebook
+    from netbox_nsm.objects.rulebook_config import resolve_rulebook_config_for_slug
 
-    try:
-        return CotRulebook.objects.values_list("parent_slug", flat=True).get(slug=slug) or ""
-    except CotRulebook.DoesNotExist:
-        return ""
+    return resolve_rulebook_config_for_slug(slug).get("parent_slug") or ""
 
 
 def get_cot_matrix_tab_enabled(slug: str) -> bool:
     """Return whether the Matrix tab is enabled; defaults to True."""
-    from netbox_nsm.models import CotRulebook
+    from netbox_nsm.objects.rulebook_config import resolve_rulebook_config_for_slug
 
-    try:
-        return CotRulebook.objects.values_list("matrix_tab_enabled", flat=True).get(slug=slug)
-    except CotRulebook.DoesNotExist:
-        return True
+    return resolve_rulebook_config_for_slug(slug)["matrix_tab_enabled"]
 
 
-def set_cot_matrix_tab_enabled(slug: str, enabled: bool) -> None:
-    from netbox_nsm.models import CotRulebook
+def get_cot_row_group_by_col_id(slug: str) -> str:
+    """Return configured rules-tab row group column id, or empty string."""
+    from netbox_nsm.objects.rulebook_config import resolve_rulebook_config_for_slug
 
-    CotRulebook.objects.update_or_create(
-        slug=slug,
-        defaults={"matrix_tab_enabled": enabled},
-    )
+    return resolve_rulebook_config_for_slug(slug).get("row_group_by_col_id") or ""
 
 
 def collect_descendant_slugs(slug: str, *, parent_map: dict[str, str] | None = None) -> set[str]:
@@ -118,25 +104,6 @@ def validate_cot_parent_slug(
         seen.add(node)
         node = parent_map.get(node) or None
     return None
-
-
-def set_cot_rulebook_parent(slug: str, parent_slug: str | None = None) -> None:
-    from netbox_nsm.models import CotRulebook
-
-    parent_slug = (parent_slug or "").strip()
-    error = validate_cot_parent_slug(slug, parent_slug or None)
-    if error:
-        from django.core.exceptions import ValidationError
-
-        raise ValidationError(error)
-
-    if parent_slug:
-        CotRulebook.objects.update_or_create(
-            slug=slug,
-            defaults={"parent_slug": parent_slug},
-        )
-    else:
-        CotRulebook.objects.update_or_create(slug=slug, defaults={"parent_slug": ""})
 
 
 def deployed_rulebook_parent_choices(*, exclude_slugs: set[str] | None = None) -> list[tuple[str, str]]:

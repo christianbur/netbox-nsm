@@ -161,3 +161,29 @@ class CotRuleAddIndexFormTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, 'value="15"')
+
+    def test_add_form_clone_prefills_from_copy_from(self):
+        self.model.objects.create(index=2, name="source-rule")
+        self.add_permissions(
+            f"netbox_custom_objects.view_{self.model._meta.model_name}",
+            f"netbox_custom_objects.add_{self.model._meta.model_name}",
+        )
+        source = self.model.objects.get(name="source-rule")
+        response = self.client.get(self._add_url(), {"copy_from": source.pk})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'value="3"')
+        self.assertContains(response, "Copy of source-rule")
+
+    def test_rules_actions_dropdown_includes_clone_link(self):
+        from netbox_nsm.rulebooks.rules_tab_base import _render_actions_cell_html
+
+        html = _render_actions_cell_html(
+            "/edit/",
+            "/delete/",
+            "/add/?copy_from=5",
+            can_change=True,
+            can_delete=True,
+            can_add=True,
+        )
+        self.assertIn("nsm-ag-action-clone", html)
+        self.assertIn("copy_from=5", html)

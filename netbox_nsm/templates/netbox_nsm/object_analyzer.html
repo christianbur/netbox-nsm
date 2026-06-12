@@ -1,7 +1,7 @@
 {% extends 'generic/_base.html' %}
 {% load i18n static %}
 
-{% block title %}Object Analyzer{% endblock %}
+{% block title %}{% trans "Object Analyzer" %}{% endblock %}
 
 {% block content %}
 <style>
@@ -47,6 +47,8 @@
 .react-flow__background { opacity: 1; }
 .react-flow__controls-button { background: var(--bs-body-bg); border-color: var(--bs-border-color); color: var(--bs-body-color); }
 .react-flow__minimap { border: 1px solid var(--bs-border-color); border-radius: .35rem; overflow: hidden; }
+.react-flow__node.nsm-oa-node { overflow: visible; }
+.nsm-oa-toggle { touch-action: manipulation; }
 
 .nsm-oa-legend { font-size: .75rem; }
 .nsm-oa-legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; }
@@ -60,9 +62,9 @@
   <div class="card mb-3">
     <div class="card-header d-flex align-items-center gap-2">
       <i class="mdi mdi-graph text-primary"></i>
-      <strong>Object Analyzer</strong>
+      <strong>{% trans "Object Analyzer" %}</strong>
       <span class="text-muted small ms-1">
-        Objekt auswählen → Select object · click to expand · double-click to open
+        {% trans "Select object · click to expand · double-click to open" %}
       </span>
 
     </div>
@@ -74,13 +76,13 @@
         <div class="d-flex gap-2 align-items-start" style="max-width:44rem;">
           <div class="nsm-oa-wrap flex-grow-1">
             <input type="text" class="nsm-oa-input" id="nsm-oa-search"
-                   placeholder="Search: Device, VM, IP, Prefix, Label, Zone, Rule …"
+                   placeholder="{% trans 'Search: Device, VM, IP, Prefix, Label, Zone, Rule …' %}"
                    autocomplete="off"
                    value="{% if sel_pk %}{{ sel_name }}{% endif %}">
             <div class="nsm-oa-drop" id="nsm-oa-drop" hidden></div>
           </div>
           <button type="submit" class="btn btn-sm btn-primary flex-shrink-0">
-            <i class="mdi mdi-graph-outline"></i> Analyse
+            <i class="mdi mdi-graph-outline"></i> {% trans "Analyze" %}
           </button>
           {% if sel_pk %}
             <button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0" id="nsm-oa-clear">
@@ -94,7 +96,7 @@
               <i class="mdi mdi-check-circle text-primary"></i>
               {{ sel_name }}
             </span>
-            <span class="text-muted small">— Click a node in the graph to load its connections.</span>
+            <span class="text-muted small">— {% trans "Click a node in the graph to load its connections." %}</span>
           </div>
         {% endif %}
       </form>
@@ -106,13 +108,13 @@
     {% for item in legend %}
       <span><span class="nsm-oa-legend-dot" style="background:{{ item.color }};"></span>{{ item.label }}</span>
     {% endfor %}
-    <span><span class="nsm-oa-legend-dot" style="background:#0d6efd;"></span>Device</span>
-    <span><span class="nsm-oa-legend-dot" style="background:#0891b2;"></span>VM</span>
-    <span><span class="nsm-oa-legend-dot" style="background:#6c757d;"></span>Interface</span>
-    <span><span class="nsm-oa-legend-dot" style="background:#16a34a;"></span>IP</span>
-    <span><span class="nsm-oa-legend-dot" style="background:#0d9488;"></span>Prefix</span>
-    <span><span class="nsm-oa-legend-dot" style="background:#c026d3;"></span>Label</span>
-    <span><span class="nsm-oa-legend-dot" style="background:#dc3545;"></span>Zone / Rule</span>
+    <span><span class="nsm-oa-legend-dot" style="background:#0d6efd;"></span>{% trans "Device" %}</span>
+    <span><span class="nsm-oa-legend-dot" style="background:#0891b2;"></span>{% trans "VM" %}</span>
+    <span><span class="nsm-oa-legend-dot" style="background:#6c757d;"></span>{% trans "Interface" %}</span>
+    <span><span class="nsm-oa-legend-dot" style="background:#16a34a;"></span>{% trans "IP" %}</span>
+    <span><span class="nsm-oa-legend-dot" style="background:#0d9488;"></span>{% trans "Prefix" %}</span>
+    <span><span class="nsm-oa-legend-dot" style="background:#c026d3;"></span>{% trans "Label" %}</span>
+    <span><span class="nsm-oa-legend-dot" style="background:#dc3545;"></span>{% trans "Zone / Rule" %}</span>
   </div>
 
   {# ── Graph ────────────────────────────────────────────────────── #}
@@ -122,8 +124,8 @@
     {% if not sel_pk %}
       <div class="h-100 d-flex flex-column align-items-center justify-content-center text-muted">
         <i class="mdi mdi-graph-outline" style="font-size:3rem;"></i>
-        <p class="lead mt-3 mb-1">Select object</p>
-        <p class="small">Select an object above – the graph starts with this node.</p>
+        <p class="lead mt-3 mb-1">{% trans "Select object" %}</p>
+        <p class="small">{% trans "Select an object above – the graph starts with this node." %}</p>
       </div>
     {% endif %}
   </div>
@@ -145,15 +147,54 @@
 </script>
 <link rel="stylesheet" href="https://esm.sh/@xyflow/react@12/dist/style.css">
 
+<script>
+window.NSM_OA_I18N = {
+  searching: "{% trans 'Searching…'|escapejs %}",
+  noResults: "{% trans 'No results'|escapejs %}",
+  collapse: "{% trans 'Collapse'|escapejs %}",
+  expand: "{% trans 'Expand'|escapejs %}",
+  openObject: "{% trans 'Open object'|escapejs %}",
+  removeNode: "{% trans 'Remove node'|escapejs %}",
+  errorPrefix: "{% trans 'Error:'|escapejs %}",
+  typePlural: {
+    device: "{% trans 'Devices'|escapejs %}",
+    vm: "{% trans 'VMs'|escapejs %}",
+    interface: "{% trans 'Interfaces'|escapejs %}",
+    ip: "{% trans 'IPs'|escapejs %}",
+    prefix: "{% trans 'Prefixes'|escapejs %}",
+    iprange: "{% trans 'IP ranges'|escapejs %}",
+    vlan: "{% trans 'VLANs'|escapejs %}",
+    vrf: "{% trans 'VRFs'|escapejs %}",
+    label: "{% trans 'Labels'|escapejs %}",
+    zone: "{% trans 'Zones'|escapejs %}",
+    group: "{% trans 'Groups'|escapejs %}",
+    rule: "{% trans 'Rules'|escapejs %}",
+    rulebook: "{% trans 'Rulebooks'|escapejs %}",
+    site: "{% trans 'Sites'|escapejs %}",
+    tenant: "{% trans 'Tenants'|escapejs %}",
+    object: "{% trans 'Objects'|escapejs %}",
+  },
+};
+</script>
+
 <script type="module">
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
-  ReactFlow, useNodesState, useEdgesState,
+  ReactFlow, ReactFlowProvider, useNodesState, useEdgesState,
   Background, Controls, MiniMap, MarkerType, Panel,
   Handle, Position,
   BaseEdge, EdgeLabelRenderer, getBezierPath,
 } from '@xyflow/react';
+
+function oaT(key, fallback) {
+  const bag = window.NSM_OA_I18N || {};
+  return bag[key] != null ? bag[key] : (fallback || key);
+}
+function oaTypePlural(nodeType, fallback) {
+  const bag = (window.NSM_OA_I18N || {}).typePlural || {};
+  return bag[nodeType] != null ? bag[nodeType] : (fallback || nodeType);
+}
 
 /* ─────────── Node styles ─────────────────────────────────────── */
 const NS = {
@@ -184,8 +225,27 @@ function mkEdge(id, source, target, label) {
   };
 }
 
-/* shared collapse callback — set by App, used by NsmEdge */
+/* shared graph callbacks — set by App, used by NsmNode / NsmEdge */
 const _graphCb = {};
+
+function rebuildGroupData(grpId, apiChildrenCache) {
+  const m = grpId.match(/^grp:([^:]+):(.+)$/);
+  if (!m) return null;
+  const parentId = m[1];
+  const slug = m[2];
+  const cached = apiChildrenCache[parentId];
+  if (!cached) return null;
+  const byLabel = {};
+  cached.forEach(c => {
+    (byLabel[c.edge_label] = byLabel[c.edge_label] || []).push(c);
+  });
+  for (const [label, group] of Object.entries(byLabel)) {
+    if (label.replace(/[^a-zA-Z0-9_-]/g, '_') === slug) {
+      return { children: group };
+    }
+  }
+  return null;
+}
 
 /* ─────────── Custom edge component ──────────────────────────── */
 function NsmEdge({ id, source, target, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, markerEnd, style, label }) {
@@ -199,7 +259,7 @@ function NsmEdge({ id, source, target, sourceX, sourceY, targetX, targetY, sourc
       },
         label ? React.createElement('span', {
           style: { display: 'block', fontSize: 10, fontWeight: 600, color: '#475569', background: 'rgba(248,250,252,.92)', padding: '1px 5px', borderRadius: 3, cursor: 'pointer' },
-          title: 'Collapse',
+          title: oaT('collapse', 'Collapse'),
           onClick: (e) => { e.stopPropagation(); _graphCb.collapseEdge?.(source, target); },
         }, label + ' ▾') : null,
       )
@@ -208,10 +268,22 @@ function NsmEdge({ id, source, target, sourceX, sourceY, targetX, targetY, sourc
 }
 /* ─────────── Plural labels ─────────────────────────────────────── */
 const TYPE_PLURAL = {
-  device: 'Devices', vm: 'VMs', interface: 'Interfaces', ip: 'IPs',
-  prefix: 'Prefixes', iprange: 'IP-Ranges', vlan: 'VLANs', vrf: 'VRFs',
-  label: 'Labels', zone: 'Zones', group: 'Groups', rule: 'Rules',
-  rulebook: 'Rulebooks', site: 'Sites', tenant: 'Tenants', object: 'Objects',
+  device: oaTypePlural('device', 'Devices'),
+  vm: oaTypePlural('vm', 'VMs'),
+  interface: oaTypePlural('interface', 'Interfaces'),
+  ip: oaTypePlural('ip', 'IPs'),
+  prefix: oaTypePlural('prefix', 'Prefixes'),
+  iprange: oaTypePlural('iprange', 'IP ranges'),
+  vlan: oaTypePlural('vlan', 'VLANs'),
+  vrf: oaTypePlural('vrf', 'VRFs'),
+  label: oaTypePlural('label', 'Labels'),
+  zone: oaTypePlural('zone', 'Zones'),
+  group: oaTypePlural('group', 'Groups'),
+  rule: oaTypePlural('rule', 'Rules'),
+  rulebook: oaTypePlural('rulebook', 'Rulebooks'),
+  site: oaTypePlural('site', 'Sites'),
+  tenant: oaTypePlural('tenant', 'Tenants'),
+  object: oaTypePlural('object', 'Objects'),
 };
 /* ─────────── Layout helper ──────────────────────────────────── */
 const HGAP = 230, VGAP = 160;
@@ -260,11 +332,29 @@ function treeLayout(allNodes, allEdges) {
 }
 
 /* ─────────── Custom node component ──────────────────────────── */
+function nsmToggleExpand(id, expanded) {
+  if (expanded) {
+    _graphCb.collapse?.(id);
+  } else {
+    _graphCb.expand?.(id);
+  }
+}
+
 function NsmNode({ id, data, selected }) {
   const s = NS[data.nodeType] || NS.object;
   const textColor = selected ? '#fff' : '#1a202c';
 
-  return React.createElement(React.Fragment, null,
+  return React.createElement('div', {
+    className: 'nsm-oa-node',
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      fontFamily: 'system-ui, -apple-system, sans-serif',
+      minWidth: 140,
+      maxWidth: 210,
+    },
+  },
     /* ── target handle (top) ── */
     React.createElement(Handle, {
       type: 'target', position: Position.Top,
@@ -273,14 +363,14 @@ function NsmNode({ id, data, selected }) {
     /* ── node body ── */
     React.createElement('div', {
       style: {
+        width: '100%',
         padding: '18px 12px 8px', borderRadius: 10, position: 'relative',
         background: selected ? s.color : s.bg,
         border: `2px solid ${s.color}`,
-        color: textColor, minWidth: 140, maxWidth: 210,
+        color: textColor,
         boxShadow: data.loading ? `0 0 0 3px ${s.color}88`
           : selected ? `0 0 0 3px ${s.color}44` : '0 2px 8px rgba(0,0,0,.12)',
         transition: 'all .15s', userSelect: 'none',
-        fontFamily: 'system-ui, -apple-system, sans-serif',
         cursor: 'default',
       },
     },
@@ -295,7 +385,7 @@ function NsmNode({ id, data, selected }) {
               color: selected ? 'rgba(255,255,255,.75)' : s.color,
               textDecoration: 'none', opacity: .8,
             },
-            title: 'Open object',
+            title: oaT('openObject', 'Open object'),
           }, '↗')
         : null,
       /* top-right: remove button */
@@ -306,8 +396,9 @@ function NsmNode({ id, data, selected }) {
           cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: '0 2px',
           color: selected ? 'rgba(255,255,255,.8)' : '#dc3545',
         },
-        title: 'Remove node',
-        onClick: (e) => { e.stopPropagation(); data.onRemove(id); },
+        title: oaT('removeNode', 'Remove node'),
+        className: 'nodrag nopan',
+        onClick: (e) => { e.stopPropagation(); _graphCb.remove?.(id); },
       }, '×'),
       /* header row */
       React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 7 } },
@@ -326,7 +417,42 @@ function NsmNode({ id, data, selected }) {
           : null,
       ),
     ),
-    /* ── source handle (bottom) ── */
+    /* ── connector + expand/collapse (inside node bounds for React Flow hit-testing) ── */
+    !data.loading
+      ? React.createElement('div', {
+          className: 'nodrag nopan nsm-oa-toggle',
+          role: 'button',
+          tabIndex: 0,
+          title: data.expanded ? oaT('collapse', 'Collapse') : oaT('expand', 'Expand'),
+          onClick: e => { e.stopPropagation(); nsmToggleExpand(id, data.expanded); },
+          onKeyDown: e => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              e.stopPropagation();
+              nsmToggleExpand(id, data.expanded);
+            }
+          },
+          style: {
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            marginTop: 2, paddingBottom: 2,
+            cursor: 'pointer', pointerEvents: 'all',
+          },
+        },
+        React.createElement('div', {
+          style: { width: 2, height: 14, background: s.color, opacity: 0.65, borderRadius: 1 },
+        }),
+        React.createElement('div', {
+          style: {
+            width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+            background: s.color, color: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 15, fontWeight: 700, lineHeight: 1,
+            boxShadow: '0 1px 4px rgba(0,0,0,.25)',
+          },
+        }, data.expanded ? '\u2212' : '+'),
+      )
+      : null,
+    /* ── source handle (below toggle) ── */
     React.createElement(Handle, {
       type: 'source', position: Position.Bottom,
       style: {
@@ -336,33 +462,6 @@ function NsmNode({ id, data, selected }) {
         opacity: data.loading || data.expanded ? 1 : 0,
       },
     }),
-    /* ── expand stub: always visible below node (except while loading) ── */
-    !data.loading
-      ? React.createElement('div', {
-          className: 'nodrag nopan',
-          title: data.expanded ? 'Einklappen' : 'Expandieren',
-          onClick: e => { e.stopPropagation(); data.expanded ? data.onCollapse(id) : data.onExpand(id); },
-          style: {
-            position: 'absolute',
-            bottom: -36, left: '50%', transform: 'translateX(-50%)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center',
-            cursor: 'pointer', pointerEvents: 'all', zIndex: 5,
-          },
-        },
-        React.createElement('div', {
-          style: { width: 2, height: 18, background: s.color, opacity: 0.65, borderRadius: 1 },
-        }),
-        React.createElement('div', {
-          style: {
-            width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
-            background: s.color, color: '#fff',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 13, fontWeight: 700, lineHeight: 1,
-            boxShadow: '0 1px 4px rgba(0,0,0,.25)',
-          },
-        }, data.expanded ? '\u2212' : '+'),
-      )
-      : null,
   );
 }
 
@@ -397,10 +496,13 @@ function App({ initialCt, initialPk }) {
   const posMap         = useRef({});
   const childrenMapRef = useRef({});   /* nodeId → [directChildId, …] */
   const groupDataRef   = useRef({});   /* groupNodeId → { children: API-edge-list } */
+  const apiChildrenCacheRef = useRef({}); /* nodeId → last API children payload */
   const expandFnRef    = useRef(null);
   const collapseFnRef  = useRef(null);
+  const collapseEdgeFnRef = useRef(null);
   const removeFnRef    = useRef(null);
   const resetFnRef     = useRef(null);
+  const applyChildrenRef = useRef(null);
 
   /* stable callbacks passed into node data */
   const stableExpand   = useCallback((id) => expandFnRef.current?.(id),  []);
@@ -411,7 +513,7 @@ function App({ initialCt, initialPk }) {
     return { ...base, onExpand: stableExpand, onCollapse: stableCollapse, onRemove: stableRemove };
   }
   function mkNode(id, pos, base) {
-    return { id, type: 'nsm', position: pos, data: mkNodeData(base) };
+    return { id, type: 'nsm', position: pos, className: 'nsm-oa-node', data: mkNodeData(base) };
   }
 
   /* ── Collapse edge (per-connection) ──────────────────────── */
@@ -475,6 +577,11 @@ function App({ initialCt, initialPk }) {
 
   /* ── Collapse all (legacy, kept for completeness) ──────────── */
   const collapseNode = useCallback((nodeId) => {
+    const rfNode = rfInstanceRef.current?.getNode(nodeId);
+    if (!rfNode?.data?.expanded) {
+      expandedRef.current.delete(nodeId);
+      return;
+    }
     /* Phase 1: collect all descendants WITHOUT touching refs yet */
     function getAllDescendants(id) {
       const kids = childrenMapRef.current[id] || [];
@@ -590,13 +697,21 @@ function App({ initialCt, initialPk }) {
     setEdges(es => { const ids = new Set(es.map(e => e.id)); return [...es, ...newEdges.filter(e => !ids.has(e.id))]; });
     setTimeout(() => rfInstanceRef.current?.fitView({ duration: 400, padding: 0.18 }), 80);
   }
+  applyChildrenRef.current = applyChildren;
 
   /* ── Expand ─────────────────────────────────────────────────── */
   const expandNode = useCallback(async (nodeId) => {
-    if (expandedRef.current.has(nodeId)) return;
+    const rfNode = rfInstanceRef.current?.getNode(nodeId);
+    if (rfNode?.data?.loading) return;
+    if (rfNode?.data?.expanded) return;
+    if (expandedRef.current.has(nodeId)) expandedRef.current.delete(nodeId);
     expandedRef.current.add(nodeId);
 
     /* group node → place all children directly (no re-grouping) */
+    if (!groupDataRef.current[nodeId] && nodeId.startsWith('grp:')) {
+      const rebuilt = rebuildGroupData(nodeId, apiChildrenCacheRef.current);
+      if (rebuilt) groupDataRef.current[nodeId] = rebuilt;
+    }
     if (groupDataRef.current[nodeId]) {
       const gd      = groupDataRef.current[nodeId];
       const pos     = rfInstanceRef.current?.getNode(nodeId)?.position || { x: 400, y: 200 };
@@ -633,25 +748,30 @@ function App({ initialCt, initialPk }) {
     const parts = nodeId.split(':');
     const ctId  = Number(parts[0]);
     const pk    = Number(parts[1]);
-    if (!ctId || !pk) { expandedRef.current.delete(nodeId); return; }
+    if (!ctId || !pk) {
+      expandedRef.current.delete(nodeId);
+      setStatus(oaT('errorPrefix', 'Error:') + ' cannot expand "' + nodeId + '"');
+      return;
+    }
 
     setNodes(ns => ns.map(n => n.id === nodeId ? { ...n, data: { ...n.data, loading: true } } : n));
 
     let data;
     try { data = await fetchNodeData(ctId, pk); }
     catch (e) {
-      setStatus('Error: ' + e.message);
+      setStatus(oaT('errorPrefix', 'Error:') + ' ' + e.message);
       expandedRef.current.delete(nodeId);
       setNodes(ns => ns.map(n => n.id === nodeId ? { ...n, data: { ...n.data, loading: false } } : n));
       return;
     }
 
     const apiChildren = data.children || [];
+    apiChildrenCacheRef.current[nodeId] = apiChildren;
     const parentPos   = rfInstanceRef.current?.getNode(nodeId)?.position || { x: 400, y: 50 };
     setNodes(ns => ns.map(n => n.id === nodeId
       ? { ...n, data: { ...n.data, loading: false, expanded: true, childCount: apiChildren.length } }
       : n));
-    applyChildren(nodeId, parentPos, apiChildren);
+    applyChildrenRef.current?.(nodeId, parentPos, apiChildren);
   }, []);
 
   /* ── Remove single node + its edges ─────────────────────── */
@@ -670,6 +790,7 @@ function App({ initialCt, initialPk }) {
     posMap.current        = {};
     childrenMapRef.current = {};
     groupDataRef.current   = {};
+    apiChildrenCacheRef.current = {};
     const rootId  = `${initialCt}:${initialPk}`;
     const rootPos = { x: 400, y: 50 };
     posMap.current[rootId] = rootPos;
@@ -680,6 +801,7 @@ function App({ initialCt, initialPk }) {
     })]);
     fetchNodeData(initialCt, initialPk)
       .then(d => {
+        apiChildrenCacheRef.current[rootId] = d.children || [];
         setNodes([mkNode(rootId, rootPos, {
           label: d.node.label, nodeType: d.node.node_type, typeLabel: d.node.type_label,
           ctId: d.node.ct_id, objectId: d.node.object_id,
@@ -694,21 +816,34 @@ function App({ initialCt, initialPk }) {
   /* auto-initialize when component mounts */
   useEffect(() => { const t = setTimeout(() => resetGraph(), 50); return () => clearTimeout(t); }, [resetGraph]);
 
-  /* keep fn-refs current */
-  expandFnRef.current   = expandNode;
+  /* keep fn-refs current (stable handlers for nodes rendered outside App re-renders) */
+  expandFnRef.current = expandNode;
   collapseFnRef.current = collapseNode;
-  removeFnRef.current   = removeNode;
-  resetFnRef.current    = resetGraph;
-  /* expose collapse to edge component */
-  _graphCb.collapse     = collapseNode;
-  _graphCb.collapseEdge = collapseEdge;
+  collapseEdgeFnRef.current = collapseEdge;
+  removeFnRef.current = removeNode;
+  resetFnRef.current = resetGraph;
+  _graphCb.expand = (id) => expandFnRef.current?.(id);
+  _graphCb.collapse = (id) => collapseFnRef.current?.(id);
+  _graphCb.collapseEdge = (s, t) => collapseEdgeFnRef.current?.(s, t);
+  _graphCb.remove = (id) => removeFnRef.current?.(id);
+
+  const onNodeClick = useCallback((evt, node) => {
+    const target = evt?.target;
+    if (target?.closest?.('a, button, .nsm-oa-toggle')) return;
+    if (node?.data?.loading || node?.data?.expanded) return;
+    _graphCb.expand?.(node.id);
+  }, []);
 
   return React.createElement(ReactFlow, {
     nodes, edges, onNodesChange, onEdgesChange,
     nodeTypes, edgeTypes,
     onInit: (rfi) => { rfInstanceRef.current = rfi; },
+    onNodeClick,
     fitView: true, minZoom: 0.1, maxZoom: 3,
     nodesDraggable: true, nodesConnectable: false,
+    noDragClassName: 'nodrag',
+    noPanClassName: 'nopan',
+    nodeClickDistance: 8,
   },
     React.createElement(Background, { gap: 18, size: 1, color: '#cbd5e1' }),
     React.createElement(Controls),
@@ -725,11 +860,17 @@ function App({ initialCt, initialPk }) {
 }
 
 /* ─────────── Bootstrap ───────────────────────────────────────── */
+function ObjectAnalyzerRoot(props) {
+  return React.createElement(ReactFlowProvider, null,
+    React.createElement(App, props),
+  );
+}
+
 const graphEl = document.getElementById('nsm-oa-graph');
 if (graphEl && graphEl.dataset.pk) {
   const ct = parseInt(graphEl.dataset.ct);
   const pk = parseInt(graphEl.dataset.pk);
-  createRoot(graphEl).render(React.createElement(App, { initialCt: ct, initialPk: pk }));
+  createRoot(graphEl).render(React.createElement(ObjectAnalyzerRoot, { initialCt: ct, initialPk: pk }));
 }
 </script>
 
@@ -737,6 +878,7 @@ if (graphEl && graphEl.dataset.pk) {
 <script>
 (function () {
   'use strict';
+  var oaI18n = window.NSM_OA_I18N || {};
   var apiTypes = [];
   try { apiTypes = JSON.parse(document.getElementById('nsm-oa-api-types').textContent) || []; } catch (_) {}
 
@@ -771,7 +913,7 @@ if (graphEl && graphEl.dataset.pk) {
     if (!q.trim()) { closeDrop(); return; }
     if (_ctrl) _ctrl.abort();
     _ctrl = new AbortController();
-    dropEl.innerHTML = "<div class='nsm-oa-drop-msg'>Suche\u2026</div>";
+    dropEl.innerHTML = "<div class='nsm-oa-drop-msg'>" + (oaI18n.searching || 'Searching\u2026') + "</div>";
     dropEl.hidden = false;
 
     var fetches = apiTypes.map(function(t) {
@@ -785,7 +927,7 @@ if (graphEl && graphEl.dataset.pk) {
     Promise.all(fetches).then(function(all) {
       if (_ctrl && _ctrl.signal.aborted) return;
       var items = [].concat.apply([], all);
-      if (!items.length) { dropEl.innerHTML="<div class='nsm-oa-drop-msg'>{% trans 'No results' %}</div>"; dropEl.hidden=false; return; }
+      if (!items.length) { dropEl.innerHTML="<div class='nsm-oa-drop-msg'>" + (oaI18n.noResults || 'No results') + "</div>"; dropEl.hidden=false; return; }
       var html = '';
       items.forEach(function(item) {
         html += "<div class='nsm-oa-drop-item' data-ct='"+esc(item.ct)+"' data-pk='"+esc(item.pk)+"' data-name='"+esc(item.name)+"'>"

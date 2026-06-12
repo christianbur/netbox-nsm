@@ -9,6 +9,7 @@ from netbox_nsm.rulebooks.forms.cot import CotRulebookCreateForm
 from netbox_nsm.rulebooks.templates import (
     BUNDLED_RULEBOOK_TEMPLATE_SLUGS,
     RULEBOOK_TEMPLATE_GROUP,
+    default_rulebook_schema_yaml,
     get_rulebook_template_slugs,
     is_deployed_rulebook_slug,
     is_rulebook_template_slug,
@@ -52,19 +53,26 @@ class RulebookTemplateDiscoveryTests(TestCase):
         self.assertTrue(is_rulebook_template_slug(self.custom_slug))
         self.assertFalse(is_deployed_rulebook_slug(self.custom_slug))
 
-    def test_bundled_templates_still_recognized(self):
-        for slug in BUNDLED_RULEBOOK_TEMPLATE_SLUGS:
-            self.assertTrue(is_rulebook_template_slug(slug))
+    def test_no_bundled_templates(self):
+        self.assertEqual(BUNDLED_RULEBOOK_TEMPLATE_SLUGS, [])
 
     def test_get_rulebook_template_slugs_includes_custom(self):
         slugs = get_rulebook_template_slugs()
         self.assertIn(self.custom_slug, slugs)
-        for bundled in BUNDLED_RULEBOOK_TEMPLATE_SLUGS:
-            self.assertIn(bundled, slugs)
 
     def test_setup_status_includes_custom_template(self):
         status = custom_objects.get_rulebook_template_status()
         self.assertEqual(status[self.custom_slug].pk, self.custom_cot.pk)
+
+    def test_setup_groups_include_custom_template_when_present(self):
+        groups = custom_objects.get_cot_setup_groups()
+        rulebook_group = next(
+            group for group in groups if group["id"] == "rulebook_templates"
+        )
+        self.assertIn(
+            self.custom_slug,
+            [entry["slug"] for entry in rulebook_group["entries"]],
+        )
 
     def test_setup_entries_include_custom_template(self):
         entries = custom_objects.get_rulebook_template_entries()
@@ -76,7 +84,7 @@ class RulebookTemplateDiscoveryTests(TestCase):
         self.assertEqual(custom_entry["label"], "Custom Template")
         self.assertEqual(custom_entry["description"], "Manually created blueprint")
 
-    def test_create_form_lists_custom_template(self):
+    def test_create_form_prefills_default_schema_yaml(self):
         from unittest.mock import patch
 
         with patch(
@@ -84,11 +92,24 @@ class RulebookTemplateDiscoveryTests(TestCase):
             return_value=[("", "—")],
         ):
             form = CotRulebookCreateForm()
-        choice_slugs = [slug for slug, _label in form.fields["template_slug"].choices]
-        self.assertIn(self.custom_slug, choice_slugs)
+        self.assertEqual(form.initial["schema_yaml"], default_rulebook_schema_yaml())
+        self.assertIn("schema_yaml", form.fields)
 
     def test_wizard_columns_for_custom_template(self):
         columns = template_wizard_columns(self.custom_slug)
         self.assertEqual([row["name"] for row in columns], ["index", "name"])
         self.assertEqual(columns[0]["label"], "Index")
         self.assertTrue(columns[0]["required"])
+
+    def test_import_rulebook_templates_syncs_groups_only(self):
+        from unittest.mock import patch
+
+        with patch(
+            "netbox_custom_objects.schema.executor.apply_document"
+        ) as mock_apply, patch(
+            "netbox_nsm.rulebooks.rulebook_groups.sync_all_rulebook_cots"
+        ) as mock_sync:
+            custom_objects.import_rulebook_templates()
+
+        mock_apply.assert_not_called()
+        mock_sync.assert_called_once()

@@ -5,7 +5,8 @@ from __future__ import annotations
 from extras.choices import CustomFieldTypeChoices
 
 from netbox_nsm.core.poly_subfield_labels import shorten_rulebook_poly_subfield_labels
-from netbox_nsm.matrix.cot_matrix_tab_context import MATRIX_DST_FIELD, MATRIX_SRC_FIELD
+from netbox_nsm.matrix.cot_matrix_tab_context import resolve_matrix_field_names
+from netbox_nsm.rulebooks.cot_rule_clone import apply_rule_clone_prefill
 from netbox_nsm.rulebooks.cot_rule_index import next_rulebook_index
 from netbox_nsm.rulebooks.templates import is_deployed_rulebook_slug
 
@@ -62,9 +63,13 @@ def resolve_zone_field_initial(cot, field_name: str, zone_pk) -> tuple[str, list
 
 def apply_matrix_zone_prefill(cot, initial: dict) -> None:
     """Translate matrix ``source_zone`` / ``destination_zone`` query params into form initial."""
+    matrix_fields = resolve_matrix_field_names(cot)
+    if matrix_fields is None:
+        return
+    src_field, dst_field = matrix_fields
     for param, field_name in (
-        ("source_zone", MATRIX_SRC_FIELD),
-        ("destination_zone", MATRIX_DST_FIELD),
+        ("source_zone", src_field),
+        ("destination_zone", dst_field),
     ):
         zone_pk = initial.pop(param, None)
         if zone_pk is None:
@@ -115,6 +120,7 @@ def patch_cot_rule_add_form() -> None:
             if prefill_index:
                 if "initial" not in kwargs:
                     kwargs["initial"] = {}
+                apply_rule_clone_prefill(cot, kwargs["initial"])
                 if "index" not in kwargs["initial"]:
                     kwargs["initial"]["index"] = next_rulebook_index(cot)
                 apply_matrix_zone_prefill(cot, kwargs["initial"])

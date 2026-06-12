@@ -97,7 +97,7 @@ class RulesTabColumnHeaderTests(SimpleTestCase):
 
     def test_rules_field_display_label_resolves_sort_key_group(self):
         self.assertEqual(
-            rules_field_display_label("Zones", "2# Source"), "Zones (Source)"
+            rules_field_display_label("Zones", "2# Source"), "Zones (2# Source)"
         )
 
     def test_rules_field_display_label_without_group(self):

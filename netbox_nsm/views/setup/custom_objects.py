@@ -10,15 +10,18 @@ from django.utils.translation import gettext_lazy as _
 from netbox_nsm.objects.builtin_types import BUILTIN_CUSTOM_TYPES
 from netbox_nsm.objects.custom_objects_schema import (
     build_choice_set_specs,
+    build_portable_schema_preview_types,
     build_schema_document,
+    export_portable_schema_yaml,
     iter_types,
+    prepare_document_for_apply,
+    validate_custom_objects_schema_yaml,
 )
+from netbox_nsm.objects.nsm_config import format_nsm_config_comment_yaml
 from netbox_nsm.objects.type_config_specs import REQUIRED_COT_SLUGS
 from netbox_nsm.rulebooks.templates import (
     BUNDLED_RULEBOOK_TEMPLATE_SLUGS,
-    RULEBOOK_TEMPLATE_BY_SLUG,
     RULEBOOK_TEMPLATE_GROUP,
-    RULEBOOK_TEMPLATE_SLUGS,
     build_rulebook_template_type_defs,
 )
 
@@ -44,24 +47,14 @@ COT_GROUP_NSM_PANEL = {
     ),
 }
 
-COT_GROUP_RULEBOOK_TEMPLATES = {
-    "id": "rulebook_templates",
-    "label": _("NSM Rulebooks"),
-    "description": _(
-        "Rulebook templates (blueprints for creating rulebooks). No TypeConfig required."
-    ),
-}
-
 COT_SETUP_GROUPS = (
     COT_GROUP_OBJECTS,
     COT_GROUP_NSM_PANEL,
-    COT_GROUP_RULEBOOK_TEMPLATES,
 )
 
 __all__ = (
     "COT_GROUP_OBJECTS",
     "COT_GROUP_NSM_PANEL",
-    "COT_GROUP_RULEBOOK_TEMPLATES",
     "COT_SETUP_GROUPS",
     "COT_BUILTIN_OBJECT_SLUGS",
     "NSM_PANEL_COT_SLUGS",
@@ -73,6 +66,8 @@ __all__ = (
     "get_nsm_panel_entries",
     "get_rulebook_template_entries",
     "get_cot_setup_groups",
+    "get_cot_schema_yaml",
+    "get_cot_schema_preview",
     "all_cots_ok",
     "import_rulebook_templates",
     "handle_custom_objects_action",
@@ -190,18 +185,8 @@ def get_rulebook_template_entries(*, template_status=None):
     if template_status is None:
         template_status = get_rulebook_template_status()
     entries = []
-    for slug in BUNDLED_RULEBOOK_TEMPLATE_SLUGS:
-        entries.append(
-            {
-                "slug": slug,
-                "label": RULEBOOK_TEMPLATE_BY_SLUG[slug]["label"],
-                "description": RULEBOOK_TEMPLATE_BY_SLUG[slug]["summary"],
-                "cot": template_status.get(slug),
-            }
-        )
-    for slug, cot in template_status.items():
-        if slug in BUNDLED_RULEBOOK_TEMPLATE_SLUGS:
-            continue
+    for slug in sorted(template_status):
+        cot = template_status[slug]
         entries.append(
             {
                 "slug": slug,
@@ -213,11 +198,17 @@ def get_rulebook_template_entries(*, template_status=None):
     return entries
 
 
+def get_cot_schema_yaml() -> str:
+    return export_portable_schema_yaml(include_rulebook_templates=False)
+
+
+def get_cot_schema_preview() -> list[dict]:
+    return build_portable_schema_preview_types(include_rulebook_templates=False)
+
+
 def get_cot_setup_groups(*, cot_status=None, rulebook_template_status=None):
     if cot_status is None:
         cot_status = get_cot_status()
-    if rulebook_template_status is None:
-        rulebook_template_status = get_rulebook_template_status()
     return [
         {
             **COT_GROUP_OBJECTS,
@@ -227,42 +218,39 @@ def get_cot_setup_groups(*, cot_status=None, rulebook_template_status=None):
             **COT_GROUP_NSM_PANEL,
             "entries": get_nsm_panel_entries(cot_status=cot_status),
         },
-        {
-            **COT_GROUP_RULEBOOK_TEMPLATES,
-            "entries": get_rulebook_template_entries(
-                template_status=rulebook_template_status
-            ),
-        },
     ]
 
 
 def all_cots_ok(cot_status, rulebook_template_status=None) -> bool:
-    if not all(v is not None for v in cot_status.values()):
-        return False
-    if rulebook_template_status is None:
-        if not custom_objects_db_ready():
-            return False
-        rulebook_template_status = get_rulebook_template_status()
-    return all(
-        rulebook_template_status.get(slug) is not None
-        for slug in BUNDLED_RULEBOOK_TEMPLATE_SLUGS
-    )
+    return all(v is not None for v in cot_status.values())
 
 
 def import_rulebook_templates() -> None:
+    from netbox_custom_objects.models import CustomObjectType
     from netbox_custom_objects.schema.executor import apply_document
     from netbox_nsm.rulebooks.rulebook_groups import sync_all_rulebook_cots
 
-    document = {
-        "schema_version": "1",
-        "types": build_rulebook_template_type_defs(),
-    }
-    apply_document(document, allow_destructive=False)
+    existing_slugs = set(
+        CustomObjectType.objects.filter(
+            slug__in=BUNDLED_RULEBOOK_TEMPLATE_SLUGS
+        ).values_list("slug", flat=True)
+    )
+    missing_types = [
+        type_def
+        for type_def in build_rulebook_template_type_defs()
+        if type_def.get("slug") not in existing_slugs
+    ]
+    if missing_types:
+        apply_document(
+            {"schema_version": "1", "types": missing_types},
+            allow_destructive=False,
+        )
     sync_all_rulebook_cots()
 
 
 def import_single_type(slug: str) -> None:
     from netbox_custom_objects.schema.executor import apply_document
+    from netbox_nsm.objects.type_config_export import sync_cot_nsm_config_comments_for_slugs
     from netbox_nsm.views.custom_objects_sync import (
         _ensure_choice_sets,
         _seed_default_objects,
@@ -282,28 +270,57 @@ def import_single_type(slug: str) -> None:
         _ensure_choice_sets(choice_specs)
         apply_document(document, allow_destructive=False)
         _seed_default_objects(matching_types)
+        sync_cot_nsm_config_comments_for_slugs([slug])
 
 
-def import_all_types() -> None:
+def _apply_nsm_configs_by_slug(configs_by_slug: dict[str, dict]) -> None:
+    from netbox_custom_objects.models import CustomObjectType
+
+    for slug, config in configs_by_slug.items():
+        cot = CustomObjectType.objects.filter(slug=slug).first()
+        if not cot:
+            continue
+        cot.comments = format_nsm_config_comment_yaml(config).rstrip()
+        cot.save(update_fields=["comments"])
+
+
+def import_all_types(*, schema_yaml: str | None = None) -> None:
     from netbox_custom_objects.schema.executor import apply_document
+    from netbox_nsm.objects.type_config_export import sync_cot_nsm_config_comments_for_slugs
     from netbox_nsm.views.custom_objects_sync import (
         _ensure_choice_sets,
         _prune_stale,
         _seed_default_objects,
     )
 
-    choice_specs = build_choice_set_specs(BUILTIN_CUSTOM_TYPES)
-    document = build_schema_document(BUILTIN_CUSTOM_TYPES)
+    configs_by_slug: dict[str, dict] = {}
+    if schema_yaml:
+        apply_document_data, configs_by_slug = prepare_document_for_apply(schema_yaml)
+        choice_specs = build_choice_set_specs(BUILTIN_CUSTOM_TYPES)
+    else:
+        choice_specs = build_choice_set_specs(BUILTIN_CUSTOM_TYPES)
+        apply_document_data = build_schema_document(BUILTIN_CUSTOM_TYPES)
+
     with transaction.atomic():
         _ensure_choice_sets(choice_specs)
-        apply_document(document, allow_destructive=True)
-        _prune_stale(document)
+        apply_document(apply_document_data, allow_destructive=True)
+        _prune_stale(apply_document_data)
         _seed_default_objects(BUILTIN_CUSTOM_TYPES)
+        if configs_by_slug:
+            _apply_nsm_configs_by_slug(configs_by_slug)
+        else:
+            sync_cot_nsm_config_comments_for_slugs(
+                t["slug"] for t in apply_document_data["types"]
+            )
     import_rulebook_templates()
 
 
 def handles_action(action: str) -> bool:
-    return action.startswith("import_type_") or action == "import_all_types"
+    return (
+        action.startswith("import_type_")
+        or action == "import_all_types"
+        or action == "import_all_custom_objects"
+    )
 
 
 def handle_custom_objects_action(request, action: str):
@@ -312,16 +329,22 @@ def handle_custom_objects_action(request, action: str):
         import_single_type(slug)
         messages.success(
             request,
-            _("Custom Object Type '%(slug)s' imported (TypeConfigs: use step 3).")
-            % {"slug": slug},
+            _("Custom Object Type '%(slug)s' imported.") % {"slug": slug},
         )
-    elif action == "import_all_types":
-        import_all_types()
+    elif action in ("import_all_types", "import_all_custom_objects"):
+        schema_yaml = request.POST.get("schema_yaml", "").strip()
+        if schema_yaml:
+            try:
+                validate_custom_objects_schema_yaml(schema_yaml)
+            except Exception as exc:
+                messages.error(
+                    request,
+                    _("Schema YAML invalid: %(error)s") % {"error": exc},
+                )
+                return redirect(reverse("plugins:netbox_nsm:setup"))
+        import_all_types(schema_yaml=schema_yaml or None)
         messages.success(
             request,
-            _(
-                "All Custom Object Types and rulebook templates imported. "
-                "Create TypeConfigs in step 3."
-            ),
+            _("All Custom Object Types imported with Object Config (nsm_config)."),
         )
     return redirect(reverse("plugins:netbox_nsm:setup"))

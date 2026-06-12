@@ -359,7 +359,7 @@ Links each ContentType to NSM (built-in COTs or **your own** Custom Object Types
 
 ![Matrix filters](docs/img/09-matrix-filters.png)
 
-Corner filters (`dmz OR mgmt`), diagonal self-cells, axis limit 250 zones.
+Corner filters (`dmz OR mgmt`), diagonal self-cells, axis limit 400 zones.
 
 [Zone Matrix →](docs/using_netbox_nsm.md#zone-matrix)
 
@@ -394,13 +394,14 @@ Pick Device, VM, IP, Prefix, or Zone → **Analyse** → expand the graph.
 
 Base path: `/api/plugins/netbox-nsm/`
 
-| Endpoint | Model |
+| Endpoint | Description |
 |---|---|
-| `object-links/` | `ObjectLink` |
-| `type-configs/` | `TypeConfig` |
-| `rulebooks/` | `Rulebook` |
-| `rules/` | `Rule` |
-| `security-policy-assignments/` | `RulebookAssignment` |
+| `type-configs/` | `TypeConfig` CRUD |
+| `object-links/` | Security Panel links (`nsm_object_link` COT rows) |
+| `rulebook-assignments/` | `CotRulebookAssignment` CRUD |
+| `ip-analysis/` | Address resolution / diff (IPAM + analyzable address objects; JSON only) |
+
+Rulebook rules and policy objects live in **netbox-custom-objects** (COT), not under this API.
 
 Portable schema: `POST /api/plugins/custom-objects/schema/apply/` with bundled `nsm_portable_schema.json`.
 

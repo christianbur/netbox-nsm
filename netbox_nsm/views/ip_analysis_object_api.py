@@ -85,6 +85,7 @@ class IpAnalysisObjectDrilldownApiView(LoginRequiredMixin, View):
                 "depth": depth + 1,
                 "prefix": "ipa",
                 "show_copy": False,
+                "ipa_cell_pill": False,
             },
             request=request,
         )

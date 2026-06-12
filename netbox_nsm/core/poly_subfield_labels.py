@@ -56,16 +56,12 @@ def poly_subfield_type_label(content_type_id: int) -> str:
     """
     from django.contrib.contenttypes.models import ContentType
 
-    from netbox_nsm.models import TypeConfig
+    from netbox_nsm.objects.nsm_config import resolve_nsm_config_for_content_type
     from utilities.object_types import object_type_name
 
-    tc = (
-        TypeConfig.objects.filter(content_type_id=content_type_id)
-        .select_related("content_type")
-        .first()
-    )
-    if tc is not None:
-        label = (tc.content_type_label or "").strip()
+    config = resolve_nsm_config_for_content_type(content_type_id)
+    if config is not None:
+        label = (config.content_type_label or "").strip()
         if label:
             return label
 

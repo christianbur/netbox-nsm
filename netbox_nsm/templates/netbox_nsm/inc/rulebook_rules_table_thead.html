@@ -14,20 +14,25 @@
     {% if col.children %}
       {% for child in col.children %}
         <th scope="col"
-            class="nsm-rules-th nsm-rules-th--type orderable{% if rules_draggable_headers %} nsm-rules-col-draggable{% endif %}{% if child.rules_meta.sort_active %} {{ child.rules_meta.sort_order }}{% endif %}"
+            class="nsm-rules-th nsm-rules-th--type nsm-rules-th--groupable orderable{% if rules_draggable_headers %} nsm-rules-col-draggable{% endif %}{% if child.rules_meta.sort_active %} {{ child.rules_meta.sort_order }}{% endif %}"
+            data-col-id="{{ child.field|default:child.colId }}"
             {% if rules_draggable_headers and child.rules_meta.group_value %}data-group-value="{{ child.rules_meta.group_value }}" draggable="true"{% endif %}>
-          {% if child.rules_meta %}
-            {% include "netbox_nsm/inc/rulebook_rules_sort_header.html" with meta=child.rules_meta title=child.header_title subtitle=child.header_subtitle label=child.display_label %}
-          {% else %}
-            {% if child.header_subtitle %}
-            <span class="nsm-rules-th-stack">
-              <span class="nsm-rules-th-title">{{ child.header_title }}</span>
-              <span class="nsm-rules-th-subtitle">{{ child.header_subtitle }}</span>
-            </span>
-            {% else %}
-            {{ child.display_label }}
-            {% endif %}
-          {% endif %}
+          <div class="nsm-rules-th-inner">
+            <div class="nsm-rules-th-label-row">
+              {% if child.rules_meta %}
+                {% include "netbox_nsm/inc/rulebook_rules_sort_header.html" with meta=child.rules_meta title=child.header_title subtitle=child.header_subtitle label=child.display_label %}
+              {% else %}
+                {% if child.header_subtitle %}
+                <span class="nsm-rules-th-stack">
+                  <span class="nsm-rules-th-title">{{ child.header_title }}</span>
+                  <span class="nsm-rules-th-subtitle">{{ child.header_subtitle }}</span>
+                </span>
+                {% else %}
+                {{ child.display_label }}
+                {% endif %}
+              {% endif %}
+            </div>
+          </div>
         </th>
       {% endfor %}
     {% elif col.colId == "_actions" %}
@@ -36,19 +41,44 @@
           aria-label="{% trans 'Actions' %}"></th>
     {% elif col.colId and col.rules_meta %}
       <th scope="col"
-          class="nsm-rules-th nsm-rules-th--{% if col.rules_column_kind == 'object' %}type{% else %}system{% endif %} nsm-rules-th--{{ col.colId }} orderable{% if col.rules_meta.sort_active %} {{ col.rules_meta.sort_order }}{% endif %}">
-        {% if col.rules_column_kind == 'object' %}
-          {% include "netbox_nsm/inc/rulebook_rules_sort_header.html" with meta=col.rules_meta title=col.header_title subtitle=col.header_subtitle label=col.display_label %}
-        {% else %}
-          {% include "netbox_nsm/inc/rulebook_rules_sort_header.html" with meta=col.rules_meta label=col.headerName %}
-        {% endif %}
+          class="nsm-rules-th nsm-rules-th--{% if col.rules_column_kind == 'object' %}type{% else %}system{% endif %} nsm-rules-th--groupable nsm-rules-th--{{ col.colId }} orderable{% if col.rules_meta.sort_active %} {{ col.rules_meta.sort_order }}{% endif %}"
+          data-col-id="{{ col.colId }}">
+        <div class="nsm-rules-th-inner">
+          <div class="nsm-rules-th-label-row">
+            {% if col.rules_column_kind == "object" %}
+              {% include "netbox_nsm/inc/rulebook_rules_sort_header.html" with meta=col.rules_meta title=col.header_title subtitle=col.header_subtitle label=col.display_label %}
+            {% else %}
+              {% include "netbox_nsm/inc/rulebook_rules_sort_header.html" with meta=col.rules_meta label=col.headerName %}
+            {% endif %}
+          </div>
+        </div>
+      </th>
+    {% elif col.colId %}
+      <th scope="col"
+          class="nsm-rules-th nsm-rules-th--system nsm-rules-th--groupable nsm-rules-th--{{ col.colId }}"
+          data-col-id="{{ col.colId }}">
+        <div class="nsm-rules-th-inner">
+          <div class="nsm-rules-th-label-row">
+            <span class="nsm-rules-th-title">{{ col.headerName }}</span>
+          </div>
+        </div>
       </th>
     {% endif %}
   {% endfor %}
 </tr>
 <tr class="nsm-rules-head-row nsm-rules-head-row--filter">
   {% if rules_show_selection_column %}
-  <th scope="col" class="nsm-rules-th nsm-rules-th--filter w-1"></th>
+  <th scope="col"
+      class="nsm-rules-th nsm-rules-th--filter nsm-rules-th--resizable nsm-rules-th--select w-1"
+      data-col-id="_select"
+      data-default-width="40"
+      data-min-width="32">
+    <span class="nsm-rules-col-resize-handle"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="{% trans 'Resize column' %}"
+          tabindex="-1"></span>
+  </th>
   {% endif %}
   {% for col in rules_flat_columns %}
     <th scope="col"
@@ -57,16 +87,25 @@
         data-default-width="{{ col.default_width_px }}"
         data-min-width="{{ col.min_width_px }}">
       {% if col.sort_field %}
-      <input type="search"
-             class="form-control form-control-sm nsm-rules-filter-input"
-             form="rules-quicksearch"
-             name="{{ col.filter_param }}"
-             value="{{ col.filter_value }}"
-             data-col-id="{{ col.col_id }}"
-             placeholder="{% trans 'Search: a OR b … a AND b' %}"
-             title="{% trans 'Search: a OR b … a AND b' %}"
-             autocomplete="off"
-             aria-label="{{ col.display_label }}">
+      <div class="nsm-rules-filter-field{% if col.filter_value %} nsm-rules-filter-field--has-value{% endif %}">
+        <input type="search"
+               class="form-control form-control-sm nsm-rules-filter-input"
+               form="rules-quicksearch"
+               name="{{ col.filter_param }}"
+               value="{{ col.filter_value }}"
+               data-col-id="{{ col.col_id }}"
+               placeholder="{% trans 'Search: a OR b … a AND b' %}"
+               title="{% trans 'Search: a OR b … a AND b' %}"
+               autocomplete="off"
+               aria-label="{{ col.display_label }}">
+        <button type="button"
+                class="nsm-rules-filter-clear"
+                tabindex="-1"
+                title="{% trans 'Clear filter' %}"
+                aria-label="{% trans 'Clear filter' %}">
+          <i class="mdi mdi-close" aria-hidden="true"></i>
+        </button>
+      </div>
       {% elif col.kind == "actions" %}
       <div class="nsm-rules-filter-actions d-flex gap-1 justify-content-end">
         <button type="button"

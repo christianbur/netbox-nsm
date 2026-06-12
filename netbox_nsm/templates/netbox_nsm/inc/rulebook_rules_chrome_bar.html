@@ -12,19 +12,15 @@
     </div>
     {% endif %}
     <div class="nsm-ag-toolbar-actions nsm-ag-toolbar-actions-end d-flex flex-nowrap align-items-center gap-2 flex-shrink-0 ms-auto">
-      <div class="form-check form-switch nsm-rules-col-mode-switch flex-shrink-0 mb-0"
-           title="{% trans 'Group object types into one column per field' %}">
-        <input type="checkbox"
-               class="form-check-input"
-               id="nsm-rules-col-mode-toggle"
-               role="switch"
-               {% if rules_column_mode == 'collapsed' %}checked{% endif %}
-               aria-checked="{% if rules_column_mode == 'collapsed' %}true{% else %}false{% endif %}"
-               aria-label="{% trans 'Group object types into one column per field' %}">
-        <label class="form-check-label text-nowrap" for="nsm-rules-col-mode-toggle">
-          {% trans "Grouped columns" %}
-        </label>
-      </div>
+      <button type="button"
+              id="nsm-rules-col-mode-toggle"
+              class="btn btn-sm btn-outline-secondary nsm-rules-cell-mode-btn nsm-rules-col-mode-btn flex-shrink-0{% if rules_column_mode == 'collapsed' %} active{% endif %}"
+              aria-pressed="{% if rules_column_mode == 'collapsed' %}true{% else %}false{% endif %}"
+              title="{% trans 'Group object types into one column per field' %}"
+              aria-label="{% trans 'Group object types into one column per field' %}">
+        <span class="mdi mdi-view-column" aria-hidden="true"></span>
+        <span class="nsm-rules-cell-mode-btn-label">{% trans "Grouped columns" %}</span>
+      </button>
       <div id="nsm-rules-cell-mode-selector"
            class="btn-group btn-group-sm nsm-rules-cell-mode-selector flex-shrink-0"
            role="group"

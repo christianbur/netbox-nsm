@@ -38,13 +38,21 @@
     height: calc(1.5em + 0.5rem + 2px);
   }
   .nsm-viz-wrapper { overflow: auto; max-height: 78vh; position: relative; }
-  .nsm-viz-table { border-collapse: separate; border-spacing: 0; font-size: .72rem; white-space: nowrap;
+  .nsm-viz-table { border-collapse: separate; border-spacing: 0; table-layout: fixed; font-size: .72rem; white-space: nowrap;
     --nsm-viz-corner-size: 6.5rem;
+    --nsm-viz-cell-width: 3rem;
+    --nsm-viz-cell-height: 3rem;
     --nsm-viz-axis-label-max-chars: 100;
     --nsm-viz-col-label-line-height: 1.35;
     --nsm-viz-axis-highlight-bg: rgba(13, 110, 253, 0.16);
     --nsm-viz-axis-highlight-label-bg: #2a4560;
     --nsm-viz-axis-highlight-accent: rgba(13, 110, 253, 0.85);
+  }
+  .nsm-viz-table col.nsm-matrix-corner-col {
+    width: var(--nsm-viz-corner-size);
+  }
+  .nsm-viz-table col.nsm-matrix-data-col {
+    width: var(--nsm-viz-cell-width);
   }
   .nsm-viz-table .nsm-corner {
     position: sticky; top: 0; left: 0; z-index: 22;
@@ -70,7 +78,9 @@
     vertical-align: bottom;
     text-align: center;
     padding: .25rem .2rem;
-    min-width: 2.8rem;
+    width: var(--nsm-viz-cell-width);
+    min-width: var(--nsm-viz-cell-width);
+    max-width: var(--nsm-viz-cell-width);
     height: auto;
     min-height: var(--nsm-viz-corner-size);
     max-height: calc(var(--nsm-viz-axis-label-max-chars) * 0.7rem * var(--nsm-viz-col-label-line-height) + 0.7rem);
@@ -92,7 +102,7 @@
     border-right: 2px solid #374a5f; border-bottom: 1px solid #2d3e52;
     text-align: right; font-weight: 700; color: #c8d8e8; font-size: .7rem; letter-spacing: .03em;
     padding: .35rem .6rem .35rem .4rem; white-space: nowrap;
-    width: auto;
+    width: var(--nsm-viz-corner-size);
     min-width: var(--nsm-viz-corner-size);
     max-width: calc(var(--nsm-viz-axis-label-max-chars) * 0.45em + 1.2rem);
     overflow: hidden;
@@ -124,21 +134,23 @@
   .nsm-viz-table td.nsm-viz-axis-highlight.nsm-viz-cell-self {
     box-shadow: inset 0 0 0 2px var(--nsm-viz-axis-highlight-accent);
   }
-  .nsm-viz-table td {
+  .nsm-viz-table td.nsm-viz-data-cell {
     border: 1px solid #2d3e52;
     padding: .25rem .2rem;
     text-align: center;
     vertical-align: middle;
-    min-width: 3rem;
-    min-height: 3rem;
+    width: var(--nsm-viz-cell-width);
+    min-width: var(--nsm-viz-cell-width);
+    max-width: var(--nsm-viz-cell-width);
+    height: var(--nsm-viz-cell-height);
+    min-height: var(--nsm-viz-cell-height);
+    max-height: var(--nsm-viz-cell-height);
     box-sizing: border-box;
   }
   .nsm-viz-table.nsm-viz-table--dense {
     --nsm-viz-corner-size: 6.5rem;
   }
-  .nsm-viz-table.nsm-viz-table--dense td {
-    min-width: 2.4rem;
-    min-height: 2.4rem;
+  .nsm-viz-table.nsm-viz-table--dense td.nsm-viz-data-cell {
     padding: .2rem .15rem;
     font-size: .58rem;
   }
@@ -149,7 +161,6 @@
     max-width: 2.8rem;
   }
   .nsm-viz-table.nsm-viz-table--dense thead th.nsm-col-label {
-    min-width: 2.4rem;
     padding: .2rem .15rem;
   }
   .nsm-viz-table.nsm-viz-table--dense thead th.nsm-col-label > .nsm-col-text {
@@ -162,6 +173,19 @@
     font-size: .58rem;
   }
   .nsm-viz-table tbody th.nsm-row-label { border-top: 1px solid #2d3e52; border-bottom: 1px solid #2d3e52; }
+  .nsm-matrix-spacer,
+  tr.nsm-matrix-spacer td {
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    pointer-events: none;
+  }
+  .nsm-matrix-loading td {
+    text-align: center;
+    color: var(--bs-secondary-color);
+    font-size: .72rem;
+    padding: 1rem;
+  }
   td.nsm-viz-cell-self { position: relative; isolation: isolate;
     background: repeating-linear-gradient(
       45deg,
@@ -258,11 +282,18 @@
       {% endif %}
     </div>
     {% endif %}
-    {% if matrix_rows %}
-      <div class="nsm-viz-wrapper">
-        <table class="nsm-viz-table{% if matrix_dense %} nsm-viz-table--dense{% endif %}">
+    {% if matrix_viewport %}
+      {{ matrix_viewport|json_script:"nsm-matrix-data" }}
+      <div class="nsm-viz-wrapper" id="nsm-matrix-scroll">
+        <table class="nsm-viz-table{% if matrix_dense %} nsm-viz-table--dense{% endif %}" id="nsm-matrix-table" style="--nsm-viz-cell-width: {{ matrix_viewport.cell_width }}px; --nsm-viz-cell-height: {{ matrix_viewport.cell_height }}px;">
+          <colgroup>
+            <col class="nsm-matrix-corner-col">
+            {% for zone in dst_zones %}
+              <col class="nsm-matrix-data-col">
+            {% endfor %}
+          </colgroup>
           <thead>
-            <tr>
+            <tr id="nsm-matrix-head-row">
               <th class="nsm-corner">
                 <svg class="nsm-corner-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
                   <line x1="0" y1="0" x2="100" y2="100" stroke="#374a5f" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
@@ -272,32 +303,12 @@
                   <span class="nsm-corner-src">&darr; Source</span>
                 </div>
               </th>
-              {% for zone in dst_zones %}
-                <th class="nsm-col-label">
-                  <a href="{{ zone.get_absolute_url }}" class="nsm-col-text text-decoration-none" title="{{ zone_labels|dict_get:zone.pk }}">{{ zone_label_display|dict_get:zone.pk }}</a>
-                </th>
-              {% endfor %}
             </tr>
           </thead>
-          <tbody>
-            {% for row in matrix_rows %}
-              <tr>
-                <th class="nsm-row-label" title="{{ zone_labels|dict_get:row.source_zone.pk }}">
-                  <a href="{{ row.source_zone.get_absolute_url }}" class="text-decoration-none" style="color:inherit">{{ zone_label_display|dict_get:row.source_zone.pk }}</a>
-                </th>
-                {% for cell in row.cells %}
-                  <td class="{% if cell.is_self %}nsm-viz-cell-self{% endif %}{% if cell.filter_href %} nsm-viz-cell-clickable{% endif %}"{% if cell.filter_href %} data-rules-href="{{ cell.filter_href }}"{% endif %}>
-                    {% if cell.fwd.count == 0 %}
-                      <a href="{{ cell.add_href }}" class="nsm-dir-badge nsm-dir-badge-empty" title="Add Rule">+</a>
-                    {% elif cell.fwd.count == 1 %}
-                      <a href="{{ cell.filter_href }}" class="nsm-dir-badge" style="background-color:{{ cell.fwd.color }};color:#fff;" title="{{ cell.fwd.label }}">{{ cell.fwd.label }}</a>
-                    {% else %}
-                      <a href="{{ cell.filter_href }}" class="nsm-dir-badge nsm-dir-badge-count" title="{{ cell.fwd.count }} Rules">{{ cell.fwd.count }}</a>
-                    {% endif %}
-                  </td>
-                {% endfor %}
-              </tr>
-            {% endfor %}
+          <tbody id="nsm-matrix-body">
+            <tr class="nsm-matrix-loading">
+              <td colspan="{{ dst_zones|length|add:1 }}">{% trans "Loading matrix…" %}</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -309,5 +320,5 @@
     {% endif %}
   </div>
 </div>
-<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/rulebook_matrix.js' %}?v=20260609"></script>
+<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/rulebook_matrix.js' %}?v=20260610c"></script>
 {% endblock %}

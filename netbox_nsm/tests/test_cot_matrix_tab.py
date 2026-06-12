@@ -12,8 +12,12 @@ from netbox_nsm.matrix.cot_matrix_tab_context import (
     cot_rulebook_matrix_capable,
     cot_rulebook_matrix_enabled,
 )
-from netbox_nsm.models import CotRulebook
-from netbox_nsm.rulebooks.cot_hierarchy import get_cot_matrix_tab_enabled, set_cot_matrix_tab_enabled
+from netbox_nsm.objects.rulebook_config import (
+    resolve_rulebook_config_for_cot,
+    save_rulebook_config_for_cot,
+)
+from netbox_nsm.rulebooks.cot_hierarchy import get_cot_matrix_tab_enabled
+from netbox_nsm.rulebooks.templates import RULEBOOK_GROUP
 from netbox_nsm.rulebooks.virtual_cot import VirtualCotRulebook
 from netbox_nsm.rulebooks.virtual_cot_tabs import build_virtual_cot_rulebook_tabs
 
@@ -37,6 +41,10 @@ class CotRulebookMatrixCapableTests(SimpleTestCase):
         cot = _cot_with_fields("index", "source_zones", "destination_zones", "actions")
         self.assertTrue(cot_rulebook_matrix_capable(cot))
 
+    def test_capable_when_generic_source_destination_present(self):
+        cot = _cot_with_fields("index", "source", "destination", "actions")
+        self.assertTrue(cot_rulebook_matrix_capable(cot))
+
     def test_not_capable_without_source_zones(self):
         cot = _cot_with_fields("index", "destination_zones", "actions")
         self.assertFalse(cot_rulebook_matrix_capable(cot))
@@ -47,26 +55,52 @@ class CotRulebookMatrixCapableTests(SimpleTestCase):
 
 
 class CotRulebookMatrixEnabledTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        from netbox_custom_objects.models import CustomObjectType
+
+        cls.cot = CustomObjectType.objects.create(
+            name="nsm_rb_test01",
+            slug="nsm_rb_test01",
+            verbose_name="Test 01",
+            description="",
+            group_name=RULEBOOK_GROUP,
+        )
+
     def test_enabled_by_default_when_capable(self):
         cot = _cot_with_fields("source_zones", "destination_zones")
         self.assertTrue(cot_rulebook_matrix_enabled(cot))
 
     def test_disabled_when_matrix_tab_setting_false(self):
+        save_rulebook_config_for_cot(self.cot, {"matrix_tab_enabled": False})
         cot = _cot_with_fields("source_zones", "destination_zones")
-        CotRulebook.objects.create(slug=cot.slug, matrix_tab_enabled=False)
+        cot.slug = self.cot.slug
         self.assertFalse(cot_rulebook_matrix_enabled(cot))
 
     def test_get_matrix_tab_enabled_defaults_true(self):
         self.assertTrue(get_cot_matrix_tab_enabled("nsm_rb_missing"))
 
     def test_set_matrix_tab_enabled_persists(self):
-        set_cot_matrix_tab_enabled("nsm_rb_test01", False)
-        row = CotRulebook.objects.get(slug="nsm_rb_test01")
-        self.assertFalse(row.matrix_tab_enabled)
-        self.assertFalse(get_cot_matrix_tab_enabled("nsm_rb_test01"))
+        save_rulebook_config_for_cot(self.cot, {"matrix_tab_enabled": False})
+        self.cot.refresh_from_db()
+        config = resolve_rulebook_config_for_cot(self.cot)
+        self.assertFalse(config["matrix_tab_enabled"])
+        self.assertFalse(get_cot_matrix_tab_enabled(self.cot.slug))
 
 
 class CotVirtualRulebookTabsTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        from netbox_custom_objects.models import CustomObjectType
+
+        cls.cot = CustomObjectType.objects.create(
+            name="nsm_rb_test01",
+            slug="nsm_rb_test01",
+            verbose_name="Test 01",
+            description="",
+            group_name=RULEBOOK_GROUP,
+        )
+
     def setUp(self):
         self.request = RequestFactory().get("/")
         self.request.user = SimpleNamespace(
@@ -96,7 +130,7 @@ class CotVirtualRulebookTabsTests(TestCase):
         self.assertNotIn("matrix", [tab["key"] for tab in tabs])
 
     def test_matrix_tab_absent_when_disabled(self):
-        CotRulebook.objects.create(slug="nsm_rb_test01", matrix_tab_enabled=False)
+        save_rulebook_config_for_cot(self.cot, {"matrix_tab_enabled": False})
         cot = _cot_with_fields("source_zones", "destination_zones")
         virtual = VirtualCotRulebook(cot, rule_count=2)
         tabs = build_virtual_cot_rulebook_tabs(self.request, virtual)

@@ -22,13 +22,12 @@ def get_display_template_map() -> dict[int, str]:
     Result is cached for the lifetime of the Python process (templates are
     virtually static at runtime; a container restart resets the cache).
     """
-    from netbox_nsm.models import TypeConfig
+    from netbox_nsm.objects.nsm_config import build_nsm_config_lookup
 
     return {
-        tc.content_type_id: tc.display_template
-        for tc in TypeConfig.objects.filter(display_template__gt="").only(
-            "content_type_id", "display_template"
-        )
+        config.content_type_id: config.display_template
+        for config in build_nsm_config_lookup().values()
+        if config.display_template
     }
 
 
@@ -97,7 +96,7 @@ def changelog_content_type_label(content_type_id: int) -> str:
     from django.apps import apps as django_apps
     from django.contrib.contenttypes.models import ContentType
 
-    from netbox_nsm.models import TypeConfig
+    from netbox_nsm.objects.nsm_config import resolve_nsm_config_for_content_type
 
     try:
         ct = ContentType.objects.get(pk=content_type_id)
@@ -110,9 +109,9 @@ def changelog_content_type_label(content_type_id: int) -> str:
     except LookupError:
         pass
 
-    tc = TypeConfig.objects.filter(content_type_id=content_type_id).only("name").first()
-    if tc and (tc.name or "").strip():
-        type_name = tc.name.strip()
+    config = resolve_nsm_config_for_content_type(content_type_id)
+    if config and (config.name or "").strip():
+        type_name = config.name.strip()
     else:
         model_class = ct.model_class()
         if model_class:
@@ -144,15 +143,15 @@ def type_config_display_name(type_config, content_type=None) -> str:
 def type_config_display_name_for_ct_id(content_type_id: int) -> str:
     from django.contrib.contenttypes.models import ContentType
 
-    from netbox_nsm.models import TypeConfig
+    from netbox_nsm.objects.nsm_config import resolve_nsm_config_for_content_type
 
-    tc = (
-        TypeConfig.objects.filter(content_type_id=content_type_id)
-        .select_related("content_type")
-        .first()
-    )
-    if tc:
-        return type_config_display_name(tc, tc.content_type)
+    config = resolve_nsm_config_for_content_type(content_type_id)
+    if config:
+        try:
+            ct = ContentType.objects.get(pk=content_type_id)
+        except ContentType.DoesNotExist:
+            ct = None
+        return type_config_display_name(config, ct)
     try:
         ct = ContentType.objects.get(pk=content_type_id)
     except ContentType.DoesNotExist:

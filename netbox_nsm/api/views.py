@@ -1,3 +1,5 @@
+from rest_framework.response import Response
+from rest_framework.reverse import reverse
 from rest_framework.routers import APIRootView
 from netbox.api.viewsets import NetBoxModelViewSet
 
@@ -29,6 +31,20 @@ from netbox_nsm.objects.object_link_service import (
 class NetBoxSecurityRootView(APIRootView):
     def get_view_name(self):
         return "NetBoxSecurity"
+
+    def get(self, request, *args, **kwargs):
+        response = super().get(request, *args, **kwargs)
+        data = dict(response.data)
+        namespace = request.resolver_match.namespace
+        url_name = "ip-analysis"
+        if namespace:
+            url_name = f"{namespace}:{url_name}"
+        data["ip-analysis"] = reverse(
+            url_name,
+            request=request,
+            format=kwargs.get("format"),
+        )
+        return Response(data)
 
 
 class CotRulebookAssignmentViewSet(NetBoxModelViewSet):

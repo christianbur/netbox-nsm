@@ -55,7 +55,12 @@ class SetupView(LoginRequiredMixin, View):
         tcs_ok = (
             typeconfig.all_typeconfigs_ok(cot_status, tc_status) if co_ready else False
         )
+        section2_ok = cots_ok and tcs_ok
         ipam_has_ip_addresses = IPAddress.objects.exists()
+        from netbox_nsm.objects.type_config_export import (
+            format_all_type_configs_comment_yaml,
+        )
+
         return {
             "custom_objects_plugin_loaded": co_loaded,
             "custom_objects_db_ready": co_ready,
@@ -64,17 +69,21 @@ class SetupView(LoginRequiredMixin, View):
                 cot_status=cot_status,
                 rulebook_template_status=rulebook_template_status,
             ),
+            "cot_schema_yaml": custom_objects.get_cot_schema_yaml(),
+            "cot_schema_preview": custom_objects.get_cot_schema_preview(),
             "tc_status": tc_status,
             "all_cots_ok": cots_ok,
             "all_tcs_ok": tcs_ok,
-            "can_import_cots": co_ready and not cots_ok,
             "can_create_typeconfigs": cots_ok and not tcs_ok,
-            "can_run_demo": tcs_ok and setup_allow_destructive_actions(),
+            "typeconfigs_definition_yaml": format_all_type_configs_comment_yaml(),
+            "can_import_cots": co_ready and not section2_ok,
+            "can_run_demo": section2_ok and setup_allow_destructive_actions(),
             "can_run_scale_demo_50k": (
-                tcs_ok
-                and setup_allow_destructive_actions()
-                and not ipam_has_ip_addresses
+                section2_ok and setup_allow_destructive_actions()
             ),
+            "starter_demo_zone_count": demo.DEMO_ZONE_COUNT,
+            "starter_demo_rule_count": demo.DEMO_RULE_COUNT,
+            "starter_demo_grid_size": demo.DEMO_GRID_SIZE,
             "scale_demo_50k_leaf_count": SCALE_DEMO_50K_LEAF_COUNT,
             "scale_demo_50k_rule_count": SCALE_DEMO_50K_RULE_COUNT,
             "ipam_has_ip_addresses": ipam_has_ip_addresses,
@@ -109,9 +118,10 @@ class SetupView(LoginRequiredMixin, View):
                         "and run migrations first."
                     ),
                 )
-            elif ctx["all_cots_ok"]:
+            elif ctx["all_cots_ok"] and ctx["all_tcs_ok"]:
                 messages.info(
-                    request, _("All Custom Object Types are already present.")
+                    request,
+                    _("All Custom Object Types and Object Configs are already present."),
                 )
             return redirect(reverse("plugins:netbox_nsm:setup"))
 
@@ -119,10 +129,13 @@ class SetupView(LoginRequiredMixin, View):
             if not ctx["all_cots_ok"]:
                 messages.error(
                     request,
-                    _("Complete section 2 (Custom Objects) before adding TypeConfigs."),
+                    _("Complete section 2 (Custom Object Types) first."),
                 )
             elif ctx["all_tcs_ok"]:
-                messages.info(request, _("All TypeConfigs are already configured."))
+                messages.info(
+                    request,
+                    _("All Object Configs are already present."),
+                )
             return redirect(reverse("plugins:netbox_nsm:setup"))
 
         if demo.handles_action(action):
@@ -132,10 +145,10 @@ class SetupView(LoginRequiredMixin, View):
                     _("Demo actions are disabled (setup_allow_destructive_actions)."),
                 )
                 return redirect(reverse("plugins:netbox_nsm:setup"))
-            if not ctx["all_tcs_ok"]:
+            if not (ctx["all_cots_ok"] and ctx["all_tcs_ok"]):
                 messages.error(
                     request,
-                    _("Complete section 3 (TypeConfig) before running demos."),
+                    _("Complete section 2 (Custom Object Schema) before running demos."),
                 )
                 return redirect(reverse("plugins:netbox_nsm:setup"))
             if action == "create_demo_enterprise" and IPAddress.objects.exists():
@@ -144,14 +157,15 @@ class SetupView(LoginRequiredMixin, View):
                     _("Enterprise demo requires an empty IP address database."),
                 )
                 return redirect(reverse("plugins:netbox_nsm:setup"))
-            if action == "create_demo_scale_50k" and IPAddress.objects.exists():
+            if action == "create_demo_scale_50k" and not request.POST.get(
+                "scale_demo_50k_confirm"
+            ):
                 messages.error(
                     request,
                     _(
-                        "%(label)s requires an empty IP address database "
-                        "(IPAM → IP addresses)."
-                    )
-                    % {"label": _("Address bench (50k)")},
+                        "Please confirm that IP addresses may be created "
+                        "before starting the address bench."
+                    ),
                 )
                 return redirect(reverse("plugins:netbox_nsm:setup"))
 

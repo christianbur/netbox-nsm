@@ -62,7 +62,11 @@
   .nsm-addr-diff-group--only-b > .nsm-addr-summary .nsm-addr-link { color: var(--bs-success-text-emphasis, var(--bs-success)); }
   .nsm-addr-diff-group--both > .nsm-addr-summary .nsm-addr-link,
   .nsm-addr-diff-group--in-all > .nsm-addr-summary .nsm-addr-link { color: var(--bs-secondary-text-emphasis, var(--bs-secondary)); }
+  .nsm-addr-diff-group--in-some > .nsm-addr-summary { align-items: flex-start; flex-wrap: wrap; }
   .nsm-addr-diff-group--in-some > .nsm-addr-summary .nsm-addr-link { color: var(--bs-warning-text-emphasis, var(--bs-warning)); }
+  .nsm-addr-diff-in-some-head { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .nsm-addr-diff-present-labels { display: flex; flex-direction: column; padding-left: 0.65rem; }
+  .nsm-addr-diff-present-label { color: var(--bs-warning-text-emphasis, var(--bs-warning)); font-weight: 400; font-size: 0.72rem; line-height: 1.25; white-space: normal; }
   .nsm-addr-diff-group--in-some > .nsm-addr-summary .nsm-addr-count,
   .nsm-addr-diff-group--in-some > .nsm-addr-summary .nsm-addr-ipam-short {
     background-color: var(--bs-warning-bg-subtle) !important;

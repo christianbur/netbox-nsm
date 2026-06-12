@@ -1,43 +1,66 @@
-{% extends 'generic/object.html' %}
+{% extends 'base/layout.html' %}
 {% load i18n %}
 {% load helpers %}
 
+{% block title %}{{ config.name }} — {% trans "Object Config" %}{% endblock %}
+
 {% block content %}
+<div class="row mb-3">
+  <div class="col">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'plugins:netbox_nsm:objectconfig_list' %}">{% trans "Object Config" %}</a></li>
+        <li class="breadcrumb-item active">{{ config.name }}</li>
+      </ol>
+    </nav>
+    <h1 class="h2">{{ config.name }}</h1>
+    <p class="text-muted"><code>{{ config.slug }}</code></p>
+  </div>
+  <div class="col-auto d-print-none">
+    <a href="{% url 'plugins:netbox_nsm:objectconfig_edit' config.slug %}" class="btn btn-warning">
+      <i class="mdi mdi-pencil"></i> {% trans "Edit" %}
+    </a>
+    <a href="{% url 'plugins:netbox_nsm:objectconfig_delete' config.slug %}" class="btn btn-danger">
+      <i class="mdi mdi-trash-can-outline"></i> {% trans "Delete" %}
+    </a>
+  </div>
+</div>
+
 <div class="row">
   <div class="col col-md-6">
     <div class="card">
-      <h5 class="card-header">{% trans "Type Config" %}</h5>
-      <table class="table table-hover attr-table">
-        <tr><th scope="row">{% trans "Name" %}</th><td>{{ object.name }}</td></tr>
-        <tr><th scope="row">{% trans "Object Type" %}</th><td>{{ object.content_type_label|placeholder }}</td></tr>
-        <tr><th scope="row">{% trans "Matching Class" %}</th><td>{{ object.get_matching_class_display|placeholder }}</td></tr>
-        <tr><th scope="row">{% trans "Display Template" %}</th><td><code>{{ object.display_template|placeholder }}</code></td></tr>
-        <tr>
-          <th scope="row">{% trans "Linkable in panel" %}</th>
-          <td>
-            {% if object.is_panel_linkable_disabled %}
-              <span class="text-muted">{% trans "Disabled" %}</span>
-            {% else %}
-              {% with labels=object.panel_linkable_type_labels %}
-                {% if labels %}
-                  {{ labels|join:", " }}
-                {% else %}
-                  {% trans "All types" %}
-                {% endif %}
-              {% endwith %}
-            {% endif %}
-          </td>
-        </tr>
-        <tr><th scope="row">{% trans "Allow Virtual Groups" %}</th><td>{% checkmark object.allow_virtual_groups %}</td></tr>
-        <tr><th scope="row">{% trans "Inherit from parent" %}</th><td>{% checkmark object.inherit_links %}</td></tr>
-        <tr><th scope="row">{% trans "Stop inheritance if own link present" %}</th><td>{% checkmark object.inherit_stop_on_own %}</td></tr>
+      <h5 class="card-header">{% trans "Rule View" %}</h5>
+      <table class="table table-hover attr-table mb-0">
+        <tr><th scope="row">{% trans "Sort order" %}</th><td>{{ config.sort_order }}</td></tr>
+        <tr><th scope="row">{% trans "Object Type" %}</th><td>{{ config.content_type_label|placeholder }}</td></tr>
+        <tr><th scope="row">{% trans "Display Template" %}</th><td><code>{{ config.display_template|placeholder }}</code></td></tr>
       </table>
     </div>
-    {% include 'inc/panels/custom_fields.html' %}
+    {% if config.slug == "nsm_address" and object_builder %}
+    <div class="card mt-3">
+      <h5 class="card-header">{% trans "Object Sync" %}</h5>
+      <table class="table table-hover attr-table mb-0">
+        <tr>
+          <th scope="row">{% trans "Enabled" %}</th>
+          <td>{% if object_builder.enabled %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %}</td>
+        </tr>
+        {% for row in object_builder_templates %}
+        <tr>
+          <th scope="row">{{ row.label }}</th>
+          <td><code>{{ row.template|default:"—" }}</code></td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+    {% endif %}
   </div>
   <div class="col-md-6">
-    {% include 'inc/panels/tags.html' %}
-    {% include 'inc/panels/comments.html' %}
+    <div class="card">
+      <h5 class="card-header">{% trans "Comments" %}</h5>
+      <div class="card-body">
+        <pre class="mb-0 font-monospace small">{{ cot.comments|default:"" }}</pre>
+      </div>
+    </div>
   </div>
 </div>
 {% endblock %}

@@ -6,10 +6,14 @@ from unittest.mock import patch
 from django.core.exceptions import ValidationError
 
 from netbox_nsm.rulebooks.create import (
+    create_cot_rulebook_from_schema_yaml,
     create_cot_rulebook_from_template,
     resolve_rulebook_slug,
 )
-from netbox_nsm.rulebooks.templates import template_wizard_columns
+from netbox_nsm.rulebooks.templates import (
+    default_rulebook_schema_yaml,
+    wizard_columns_from_schema_yaml,
+)
 
 
 class CotRulebookCreateTests(TestCase):
@@ -21,12 +25,18 @@ class CotRulebookCreateTests(TestCase):
         with self.assertRaises(ValidationError):
             resolve_rulebook_slug("0001_template")
 
-    @patch("netbox_nsm.rulebooks.cot_hierarchy.set_cot_rulebook_parent")
+    @patch("netbox_nsm.rulebooks.rulebook_groups.apply_schema_yaml_field_groups")
+    @patch("netbox_nsm.rulebooks.create.save_rulebook_config_for_cot")
     @patch("netbox_custom_objects.schema.executor.apply_document")
     @patch("netbox_nsm.rulebooks.templates._query_rulebook_template_cots")
     @patch("netbox_custom_objects.models.CustomObjectType")
-    def test_create_sets_matching_verbose_names(
-        self, mock_cot_model, mock_template_cots, mock_apply_document, mock_set_parent
+    def test_create_from_schema_yaml_sets_matching_verbose_names(
+        self,
+        mock_cot_model,
+        mock_template_cots,
+        mock_apply_document,
+        mock_set_parent,
+        mock_apply_field_groups,
     ):
         mock_template_cots.return_value.none.return_value = mock_template_cots.return_value
         mock_template_cots.return_value.filter.return_value.exists.return_value = False
@@ -37,8 +47,8 @@ class CotRulebookCreateTests(TestCase):
         created = SimpleNamespace(slug="nsm_rb_test_01", verbose_name="Rulebook Test 01")
         mock_cot_model.objects.get.return_value = created
 
-        create_cot_rulebook_from_template(
-            template_slug="nsm_rb_0001_template",
+        create_cot_rulebook_from_schema_yaml(
+            schema_yaml=default_rulebook_schema_yaml(),
             name="Test 01",
         )
 
@@ -46,14 +56,49 @@ class CotRulebookCreateTests(TestCase):
         type_def = document["types"][0]
         self.assertEqual(type_def["verbose_name"], "Rulebook Test 01")
         self.assertEqual(type_def["verbose_name_plural"], "Rulebook Test 01")
+        self.assertEqual(type_def["fields"][3]["name"], "source")
+        self.assertNotIn("group_name", type_def["fields"][3])
 
-    def test_wizard_columns_for_each_template(self):
-        for slug in (
-            "nsm_rb_0001_template",
-            "nsm_rb_0002_template",
-            "nsm_rb_0003_template",
-            "nsm_rb_0004_template",
-        ):
-            columns = template_wizard_columns(slug)
-            self.assertGreater(len(columns), 0)
-            self.assertEqual(columns[0]["name"], "index")
+    @patch("netbox_nsm.rulebooks.rulebook_groups.apply_schema_yaml_field_groups")
+    @patch("netbox_nsm.rulebooks.create.save_rulebook_config_for_cot")
+    @patch("netbox_custom_objects.schema.executor.apply_document")
+    @patch("netbox_nsm.rulebooks.templates.get_template")
+    @patch("netbox_nsm.rulebooks.templates._query_rulebook_template_cots")
+    @patch("netbox_custom_objects.models.CustomObjectType")
+    def test_create_from_template_still_supported(
+        self,
+        mock_cot_model,
+        mock_template_cots,
+        mock_get_template,
+        mock_apply_document,
+        mock_set_parent,
+        mock_apply_field_groups,
+    ):
+        mock_template_cots.return_value.none.return_value = mock_template_cots.return_value
+        mock_template_cots.return_value.filter.return_value.exists.return_value = False
+        mock_template_cots.return_value.filter.return_value.first.return_value = None
+        mock_get_template.return_value = {
+            "slug": "nsm_rb_custom_template",
+            "field_names": ("index", "name", "source", "destination", "actions"),
+        }
+        from types import SimpleNamespace
+
+        mock_cot_model.objects.filter.return_value.exists.return_value = False
+        created = SimpleNamespace(slug="nsm_rb_test_01", verbose_name="Rulebook Test 01")
+        mock_cot_model.objects.get.return_value = created
+
+        create_cot_rulebook_from_template(
+            template_slug="nsm_rb_custom_template",
+            name="Test 01",
+        )
+
+        document = mock_apply_document.call_args[0][0]
+        type_def = document["types"][0]
+        self.assertEqual(type_def["verbose_name"], "Rulebook Test 01")
+
+    def test_wizard_columns_for_default_schema(self):
+        columns = wizard_columns_from_schema_yaml(default_rulebook_schema_yaml())
+        self.assertGreater(len(columns), 0)
+        self.assertEqual(columns[0]["name"], "index")
+        self.assertEqual(next(c for c in columns if c["name"] == "source")["label"], "Source")
+

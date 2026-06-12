@@ -5,6 +5,7 @@ from __future__ import annotations
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
+from netbox_nsm.rulebooks.rules_tab_base import rules_tab_badge_for_object
 from utilities.views import ViewTab
 
 __all__ = ("build_virtual_cot_rulebook_tabs",)
@@ -19,7 +20,7 @@ _COT_TAB_SPECS = (
         "url_name": "cot_rulebook_rules",
         "view_tab": ViewTab(
             label=_("Rules"),
-            badge=lambda obj: getattr(obj, "rule_count", None) or None,
+            badge=rules_tab_badge_for_object,
             permission="netbox_nsm.view_rulebook",
             weight=100,
         ),

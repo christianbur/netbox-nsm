@@ -5,29 +5,15 @@ from django.utils.translation import gettext_lazy as _
 
 from netbox.models import NetBoxModel
 
+from netbox_nsm.core.type_kind import type_config_css_slug, type_config_icon
+
 __all__ = (
-    "MatchingClassChoices",
     "PANEL_LINKABLE_DISABLED",
     "TypeConfig",
 )
 
 # Sentinel stored in panel_linkable_types to represent legacy panel_linkable=False.
 PANEL_LINKABLE_DISABLED = 0
-
-
-class MatchingClassChoices(models.TextChoices):
-    ADDRESS = "address", _("Address")
-    ZONE = "zone", _("Zone")
-    LABEL_SCOPE = "label-scope", _("Label-Scope")
-    LABEL = "label", _("Label")
-    TRUST = "trust", _("Trust")
-    SERVICE = "service", _("Service")
-    ACTION = "action", _("Action")
-    INFO = "info", _("Info")
-    USER = "user", _("User")
-    APPLICATION = "application", _("Application")
-    GROUP = "group", _("Group")
-    OTHER = "other", _("Other")
 
 
 class TypeConfig(NetBoxModel):
@@ -46,15 +32,12 @@ class TypeConfig(NetBoxModel):
         related_name="nsm_matching_configs",
         verbose_name=_("Object Type"),
     )
-    matching_class = models.CharField(
-        max_length=20,
-        choices=MatchingClassChoices.choices,
-        blank=True,
-        default="",
-        verbose_name=_("Matching Class"),
+    sort_order = models.PositiveIntegerField(
+        default=0,
+        verbose_name=_("Sort order"),
         help_text=_(
-            "Semantic category of this type. Used to automatically derive the "
-            "matching strategy of a Rulebook (e.g. 'label', 'zone', 'address')."
+            "Display order in the Object Config list and other NSM type pickers "
+            "(lower values appear first)."
         ),
     )
     display_template = models.CharField(
@@ -102,15 +85,34 @@ class TypeConfig(NetBoxModel):
     )
 
     class Meta:
-        verbose_name = _("Type Config")
-        verbose_name_plural = _("Type Configs")
+        verbose_name = _("Object Config")
+        verbose_name_plural = _("Object Configs")
         ordering = (
+            "sort_order",
             "name",
             "content_type__app_label",
             "content_type__model",
-            "matching_class",
         )
-        unique_together = [("content_type", "matching_class")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["content_type"],
+                name="netbox_nsm_typeconfig_content_type_uniq",
+            ),
+        ]
+
+    @classmethod
+    def queryset_for_settings_list(cls):
+        """TypeConfigs shown in the NSM Object Config management list."""
+        from netbox_nsm.objects.type_config_specs import (
+            TYPECONFIG_LIST_EXCLUDED_SLUGS,
+            content_type_ids_for_cot_slugs,
+        )
+
+        excluded_ct_ids = content_type_ids_for_cot_slugs(TYPECONFIG_LIST_EXCLUDED_SLUGS)
+        qs = cls.objects.all()
+        if excluded_ct_ids:
+            qs = qs.exclude(content_type_id__in=excluded_ct_ids)
+        return qs
 
     @classmethod
     def queryset_panel_linkable(cls):
@@ -190,21 +192,14 @@ class TypeConfig(NetBoxModel):
         primary = name or self.content_type_label or ""
         pkey = self._label_dedup_key(primary)
         bits: list[str] = []
-        candidates: list[str] = []
         if name:
-            candidates.append(self.content_type_label)
-        if self.matching_class:
-            candidates.append(self.get_matching_class_display())
-        for label in candidates:
-            label = (label or "").strip()
-            if not label:
-                continue
-            lkey = self._label_dedup_key(label)
-            if lkey == pkey:
-                continue
-            if any(self._label_dedup_key(b) == lkey for b in bits):
-                continue
-            bits.append(label)
+            label = (self.content_type_label or "").strip()
+            if label:
+                lkey = self._label_dedup_key(label)
+                if lkey != pkey and not any(
+                    self._label_dedup_key(b) == lkey for b in bits
+                ):
+                    bits.append(label)
         return " · ".join(bits)
 
     @property
@@ -217,12 +212,8 @@ class TypeConfig(NetBoxModel):
 
     @property
     def type_line_kind_parts(self) -> list[str]:
-        """Kind-column badges (matching class + meta), deduplicated."""
+        """Kind-column badges (meta), deduplicated."""
         parts: list[str] = []
-        if self.matching_class:
-            mc_label = (self.get_matching_class_display() or "").strip()
-            if mc_label:
-                parts.append(mc_label)
         for label in self.type_line_subtitle_parts:
             label = (label or "").strip()
             if not label:
@@ -235,27 +226,13 @@ class TypeConfig(NetBoxModel):
         return parts
 
     @property
-    def matching_class_icon(self):
-        icons = {
-            MatchingClassChoices.ADDRESS: "mdi-ip-network-outline",
-            MatchingClassChoices.ZONE: "mdi-map-marker-radius-outline",
-            MatchingClassChoices.SERVICE: "mdi-cog-outline",
-            MatchingClassChoices.ACTION: "mdi-play-circle-outline",
-            MatchingClassChoices.INFO: "mdi-information-outline",
-            MatchingClassChoices.USER: "mdi-account-outline",
-            MatchingClassChoices.APPLICATION: "mdi-application-outline",
-            MatchingClassChoices.GROUP: "mdi-account-group-outline",
-            MatchingClassChoices.LABEL: "mdi-label-outline",
-            MatchingClassChoices.LABEL_SCOPE: "mdi-label-multiple-outline",
-            MatchingClassChoices.TRUST: "mdi-shield-check-outline",
-        }
-        return icons.get(self.matching_class, "mdi-cube-outline")
+    def type_css_slug(self):
+        """Safe slug for nsm-rb-mc-* CSS classes (e.g. label-scope)."""
+        return type_config_css_slug(self)
 
     @property
-    def matching_class_css_slug(self):
-        """Safe slug for nsm-rb-mc-* CSS classes (e.g. label-scope)."""
-        mc = (self.matching_class or "").strip()
-        return mc or MatchingClassChoices.OTHER
+    def type_icon(self):
+        return type_config_icon(self)
 
     def __str__(self):
         if self.name:
@@ -268,12 +245,8 @@ class TypeConfig(NetBoxModel):
                 mc._meta.app_config, "verbose_name", self.content_type.app_label
             )
             model_label = mc._meta.verbose_name.title()
-            base = f"{app_label} › {model_label}"
-        else:
-            base = f"{self.content_type.app_label} | {self.content_type.model}"
-        if self.matching_class:
-            return f"{base} ({self.matching_class})"
-        return base
+            return f"{app_label} › {model_label}"
+        return f"{self.content_type.app_label} | {self.content_type.model}"
 
     def get_absolute_url(self):
         return reverse("plugins:netbox_nsm:typeconfig", args=[self.pk])

@@ -31,6 +31,16 @@
   .cot-setup-table td.text-center .badge {
     white-space: nowrap;
   }
+  .nsm-cot-schema-yaml {
+    white-space: pre;
+    overflow-x: auto;
+    overflow-wrap: normal;
+    word-break: normal;
+    font-family: var(--bs-font-monospace);
+    font-size: 0.875rem;
+    min-height: 12rem;
+    max-height: 28rem;
+  }
 </style>
 
 <h5 class="d-flex align-items-center gap-2 mb-2 mt-2">
@@ -77,8 +87,95 @@
         </button>
       </form>
       <p class="text-muted small mt-2 mb-0">
-        {% trans "Includes built-in NSM types, NSM Panel links, and rulebook templates (nsm_rb_*_template)." %}
+        {% trans "Includes built-in NSM types and NSM Panel links." %}
       </p>
+    </div>
+
+    <h6 class="text-muted text-uppercase small fw-semibold mb-3 mt-2">{% trans "Portable schema" %}</h6>
+    <ul class="nav nav-tabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active"
+                id="cot-schema-define-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#cot-schema-define"
+                type="button"
+                role="tab"
+                aria-controls="cot-schema-define"
+                aria-selected="true">
+          {% trans "YAML" %}
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link"
+                id="cot-schema-preview-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#cot-schema-preview"
+                type="button"
+                role="tab"
+                aria-controls="cot-schema-preview"
+                aria-selected="false">
+          {% trans "Preview" %}
+        </button>
+      </li>
+    </ul>
+    <div class="tab-content border border-top-0 rounded-bottom p-3 mb-4">
+      <div class="tab-pane fade show active"
+           id="cot-schema-define"
+           role="tabpanel"
+           aria-labelledby="cot-schema-define-tab">
+        <textarea class="form-control font-monospace nsm-cot-schema-yaml"
+                  readonly
+                  rows="18"
+                  aria-label="{% trans 'Portable schema YAML' %}">{{ cot_schema_yaml }}</textarea>
+      </div>
+      <div class="tab-pane fade"
+           id="cot-schema-preview"
+           role="tabpanel"
+           aria-labelledby="cot-schema-preview-tab">
+        {% for type in cot_schema_preview %}
+        <div class="{% if not forloop.first %}mt-4{% endif %}">
+          <h6 class="fw-semibold mb-1">
+            <code>{{ type.slug }}</code>
+            <span class="text-muted fw-normal">— {{ type.label }}</span>
+          </h6>
+          {% if type.description %}
+          <p class="text-muted small mb-2">{{ type.description }}</p>
+          {% endif %}
+          {% if type.nsm_config_yaml %}
+          <pre class="form-control font-monospace nsm-cot-schema-yaml mb-2"
+               style="min-height: auto; max-height: 8rem;">{{ type.nsm_config_yaml }}</pre>
+          {% endif %}
+          <div class="table-responsive">
+            <table class="table table-sm table-striped mb-0">
+              <thead>
+                <tr>
+                  <th>{% trans "Column" %}</th>
+                  <th>{% trans "Type" %}</th>
+                  <th>{% trans "Required" %}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for field in type.fields %}
+                <tr>
+                  <td>{{ field.label }}</td>
+                  <td><code>{{ field.type }}</code></td>
+                  <td>
+                    {% if field.required %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %}
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="3" class="text-muted">{% trans "No columns defined." %}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% empty %}
+        <p class="text-muted mb-0">{% trans "No types defined." %}</p>
+        {% endfor %}
+      </div>
     </div>
 
     <h6 class="text-muted text-uppercase small fw-semibold mb-3 mt-2">{% trans "Custom Object Groups" %}</h6>

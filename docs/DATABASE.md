@@ -5,10 +5,13 @@
 NSM persists its own data in the **NetBox PostgreSQL database**. Django uses the app label
 `netbox_nsm`; table names follow the pattern `netbox_nsm_<model_name>` (lowercase).
 
-Security **object instances** (zones, addresses, labels, services, actions, etc.) are **not**
-stored in these tables. They live in `netbox-custom-objects` (and standard NetBox apps such
-as IPAM/DCIM when referenced by rules). NSM tables hold configuration, links, rulebooks, and
-references via `content_type_id` + `object_id`.
+Security **object instances** (zones, addresses, labels, services, actions, rulebook rules,
+object links) are **not** stored in these native NSM tables. They live in
+`netbox-custom-objects` (and standard NetBox apps such as IPAM/DCIM when referenced by rules).
+NSM native tables hold configuration and generic assignments via
+`content_type_id` + `object_id`. Deployed COT rulebook hierarchy, matrix tab,
+and **Grouped rows** settings live in each rulebook type's `comments` field
+(`nsm_config.rulebook` YAML block).
 
 ---
 
@@ -26,68 +29,32 @@ python manage.py dbshell -c "\dt netbox_nsm_*"
 
 ---
 
-## Rulebooks and rules (core)
+## Native NSM models (current)
 
 | Table | Model | Purpose |
 |-------|--------|---------|
-| `netbox_nsm_rulebook` | `Rulebook` | Named rulebook (policy container): name, platform, comment template, type |
-| `netbox_nsm_rulebookfield` | `RulebookField` | **Field** (policy column): slug, name, placement, visibility, facet settings |
-| `netbox_nsm_rulebookfieldtype` | `RulebookFieldType` | **Type within a field**: links a field to a `TypeConfig`, sort order, max items, name filter |
+| `netbox_nsm_cotrulebookassignment` | `CotRulebookAssignment` | Assign a COT rulebook to Device / VM / VDC (generic FK) |
 | `netbox_nsm_typeconfig` | `TypeConfig` | Global type behaviour: content type, matching class, display template, panel/inheritance flags |
-| `netbox_nsm_rule` | `Rule` | One security rule: index, name, enabled, policy action, virtual groups JSON |
-| `netbox_nsm_ruleobjectitem` | `RuleObjectItem` | Object assigned to a rule field (generic FK to any NetBox/custom object) |
-| `netbox_nsm_rulegroupitem` | `RuleGroupItem` | `ObjectGroup` assigned to a rule field |
-| `netbox_nsm_rulebookassignment` | `RulebookAssignment` | Rulebook bound to a device/VM (generic FK) |
-
-### UI hierarchy vs tables
-
-| UI concept | Primary table(s) |
-|------------|------------------|
-| **Field** (e.g. Source, Destination, Index) | `netbox_nsm_rulebookfield` |
-| **Type in field** (e.g. Zones, Addresses under Destination) | `netbox_nsm_rulebookfieldtype` → `netbox_nsm_typeconfig` |
-| **Rule row** in the policy table | `netbox_nsm_rule` |
-| **Cell content** (objects/groups in a rule) | `netbox_nsm_ruleobjectitem`, `netbox_nsm_rulegroupitem` |
-
-### Related rule tables
-
-| Table | Purpose |
-|-------|---------|
-| `netbox_nsm_rule_source_users` | M2M: rule → source users |
-| `netbox_nsm_rule_destination_users` | M2M: rule → destination users |
-
-NetBox `PrimaryModel` / `NetBoxModel` rows also use standard extras: tags (`extras_taggeditem`),
-custom fields (`custom_field_data` JSON on the model table), contacts where applicable.
-
----
-
-## Object groups
-
-| Table | Model | Purpose |
-|-------|--------|---------|
-| `netbox_nsm_objectgroup` | `ObjectGroup` | Named group of objects and/or nested groups |
-| `netbox_nsm_objectgroupmember` | `ObjectGroupMember` | Group membership (generic FK or sub-group) |
-
----
-
-## Security panel and object links
-
-| Table | Model | Purpose |
-|-------|--------|---------|
 | `netbox_nsm_section` | `Section` | Security panel section definitions |
-| `netbox_nsm_objectlink` | `ObjectLink` | Bidirectional link between two NetBox objects (panel) |
+| `netbox_nsm_nsmuisettings` | `NsmUiSettings` | Singleton UI labels and Setup menu flags |
 
-`Section` may reference custom object types via an M2M table
+`Section` may reference custom object types via M2M table
 `netbox_nsm_section_custom_object_types`.
 
 ---
 
-## Properties (NSM property catalog)
+## Removed legacy tables
 
-| Table | Model | Purpose |
-|-------|--------|---------|
-| `netbox_nsm_propertytype` | `PropertyType` | Property type definition |
-| `netbox_nsm_propertyfield` | `PropertyField` | Fields on a property type |
-| `netbox_nsm_property` | `Property` | Concrete property values |
+These tables existed in early NSM versions and were dropped during the COT migration:
+
+| Removed table | Replaced by |
+|---------------|-------------|
+| `netbox_nsm_rulebook`, `netbox_nsm_rule`, `netbox_nsm_rulebookfield`, … | COT rulebooks (`nsm_rb_*`) and rule rows in `netbox-custom-objects` |
+| `netbox_nsm_objectlink` | COT `nsm_object_link` |
+| `netbox_nsm_objectgroup`, `netbox_nsm_objectgroupmember` | COT `group` M2M on Custom Objects |
+| `netbox_nsm_propertytype`, `netbox_nsm_propertyfield`, `netbox_nsm_property` | Custom Object Types / fields |
+
+See migrations `0004_delete_objectlink` and `0005_remove_legacy_object_and_property_models`.
 
 ---
 
@@ -96,6 +63,8 @@ custom fields (`custom_field_data` JSON on the model table), contacts where appl
 | Data | Where |
 |------|--------|
 | Zone / Address / Label / Service / Action **instances** | `netbox-custom-objects` tables (per COT slug) |
+| Rulebook **rules** (grid rows) | COT tables for each `nsm_rb_*` rulebook |
+| Security Panel **links** | COT `nsm_object_link` |
 | IP prefixes, IP addresses, devices, VMs | NetBox core (`ipam_*`, `dcim_*`, `virtualization_*`, …) |
 | Tags, custom fields, changelog | NetBox `extras_*` |
 
@@ -115,13 +84,18 @@ python manage.py migrate netbox_nsm
 
 | Migration | Purpose |
 |-----------|---------|
-| `0001_initial` | Full current NSM schema for **fresh empty databases**. Creates `CotRulebookAssignment`, `TypeConfig`, `ObjectGroup`, `ObjectLink`, `NsmUiSettings`, property/section models — **no** legacy native `Rulebook` / `Rule` tables. Depends on `netbox_custom_objects` through `0014_fix_mixed_case_field_names`. |
+| `0001_initial` | Squashed baseline for **fresh empty databases** (includes transitional legacy models later removed). Depends on `netbox_custom_objects` through `0014_fix_mixed_case_field_names`. |
+| `0002_cotrulebook_row_group_by_col_id` | Adds `row_group_by_col_id` on transitional `CotRulebook` (superseded by `0003`) |
+| `0003_migrate_cotrulebook_to_nsm_config` | Moves `CotRulebook` metadata into COT `comments` (`nsm_config.rulebook`) and drops `CotRulebook` |
 
-Superseded incremental migrations (`0002_nsmuisettings_setup_menu_state`, `0003_drop_native_rulebooks`) are kept under `OLD/migrations/` for reference only.
+**Squashing:** `0001_initial` is already regenerated as a squashed baseline for new installs
+(`docker/netbox_dev/scripts/generate_nsm_0001.sh`). Incremental migrations `0002`–`0003` must
+remain for existing databases that applied them; do not squash further without a coordinated
+release and migration replacement plan.
 
 If migration planning fails with missing `netbox_custom_objects` parents, upgrade that plugin to a version that includes migration `0014` (NetBox dev stack: 0.5.x).
 
-To regenerate after model changes (dev, writable plugin mount):
+To regenerate `0001_initial` after model changes (dev, writable plugin mount):
 
 ```bash
 # In netbox-dev — remove numbered migrations, then:
@@ -142,6 +116,6 @@ Or use `docker/netbox_dev/scripts/generate_nsm_0001.sh`.
 
 ## See also
 
-- [RULE_DATA_STORAGE.md](RULE_DATA_STORAGE.md) — layer model, diagrams, global `/rules/` vs rulebook Rules tab
+- [RULE_DATA_STORAGE.md](RULE_DATA_STORAGE.md) — layer model, COT rule storage, rules grid
 - [ARCHITECTURE.md](../ARCHITECTURE.md) — field-level model diagrams and relationships
 - [using_netbox_nsm.md](using_netbox_nsm.md) — operator guide (rulebooks, fields, policy UI)

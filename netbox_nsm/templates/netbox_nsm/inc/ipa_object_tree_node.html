@@ -1,3 +1,3 @@
 {% for node in nodes %}
-  {% include "netbox_nsm/inc/addr_tree_node.html" with node=node depth=depth prefix="ipa" show_copy=False %}
+  {% include "netbox_nsm/inc/addr_tree_node.html" with node=node depth=depth prefix="ipa" show_copy=False ipa_cell_pill=True %}
 {% endfor %}

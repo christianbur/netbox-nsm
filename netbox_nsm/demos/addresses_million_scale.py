@@ -1,7 +1,7 @@
 """Bench scale: nested ``nsm_address`` hosts + policy rules on a COT rulebook.
 
 Creates ``bench-*`` objects (separate from Setup demos). Rules are rows in an
-``nsm_rb_*`` Custom Object Type with ``source_addresses`` / ``destination_addresses``
+``nsm_rb_*`` Custom Object Type with ``source`` / ``destination``
 multiobject fields — not native ``Rulebook`` / ``Rule`` / ``RuleObjectItem``.
 
 Ausführung (netbox-dev)::
@@ -17,6 +17,7 @@ import random
 import time
 from typing import Any
 
+from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
 from ipam.models import IPAddress, Prefix
 
@@ -25,6 +26,7 @@ from netbox_nsm.demos.cot_demo_common import (
     ensure_rulebook_cot,
     get_cot_model,
 )
+from netbox_nsm.rulebooks.templates import default_rulebook_schema_yaml
 
 __all__ = (
     "DEFAULT_LEAF_COUNT",
@@ -61,7 +63,6 @@ SCALE_DEMO_50K_RULE_COUNT = round(
     DEFAULT_RULE_COUNT * SCALE_DEMO_50K_LEAF_COUNT / DEFAULT_LEAF_COUNT
 )
 DEFAULT_RULEBOOK_SLUG = "nsm_rb_bench_addresses"
-BENCH_RULEBOOK_TEMPLATE = "nsm_rb_0002_template"
 DEFAULT_RULEBOOK_ID = None  # legacy CLI default; resolved at runtime to COT pk
 
 RULE_RANDOM_SEED = 42
@@ -74,6 +75,38 @@ BATCH_SIZE = 2000
 _BENCH_NET_PREFIX = "bench-net-"
 _BENCH_IP_PREFIX = "bench-ip-"
 _BENCH_RULE_PREFIX = "bench-rule-"
+
+_IP_CT_ID: int | None = None
+_PREFIX_CT_ID: int | None = None
+
+
+def _ip_content_type_id() -> int:
+    global _IP_CT_ID
+    if _IP_CT_ID is None:
+        _IP_CT_ID = ContentType.objects.get_for_model(IPAddress).pk
+    return _IP_CT_ID
+
+
+def _prefix_content_type_id() -> int:
+    global _PREFIX_CT_ID
+    if _PREFIX_CT_ID is None:
+        _PREFIX_CT_ID = ContentType.objects.get_for_model(Prefix).pk
+    return _PREFIX_CT_ID
+
+
+def _address_polymorphic_kwargs(ipam_obj) -> dict[str, int]:
+    """Map an IPAM row to polymorphic ``nsm_address.address`` column values."""
+    if isinstance(ipam_obj, IPAddress):
+        return {
+            "address_content_type_id": _ip_content_type_id(),
+            "address_object_id": ipam_obj.pk,
+        }
+    if isinstance(ipam_obj, Prefix):
+        return {
+            "address_content_type_id": _prefix_content_type_id(),
+            "address_object_id": ipam_obj.pk,
+        }
+    raise TypeError(f"Unsupported nsm_address target: {type(ipam_obj)!r}")
 
 
 def _subnet_prefix_cidr(subnet_idx: int) -> str:
@@ -122,7 +155,7 @@ def _load_lookup_map(*slugs: str) -> dict[str, Any]:
 def _ensure_bench_rulebook(slug: str):
     return ensure_rulebook_cot(
         slug=slug,
-        template_slug=BENCH_RULEBOOK_TEMPLATE,
+        schema_yaml=default_rulebook_schema_yaml(),
         display_name="Bench Addresses",
     )
 
@@ -143,7 +176,7 @@ def _create_subnet_addresses(
         prefix_by_subnet[subnet_idx] = prefix
         AddrModel.objects.get_or_create(
             name=_subnet_name(subnet_idx),
-            defaults={"prefix": prefix},
+            defaults=_address_polymorphic_kwargs(prefix),
         )
     return prefix_by_subnet
 
@@ -159,7 +192,6 @@ def _create_leaf_addresses(
     subnet_count = (leaf_count + HOSTS_PER_SUBNET - 1) // HOSTS_PER_SUBNET
 
     for subnet_idx in range(subnet_count):
-        prefix = prefix_by_subnet[subnet_idx]
         hosts_in_subnet = min(
             HOSTS_PER_SUBNET,
             leaf_count - subnet_idx * HOSTS_PER_SUBNET,
@@ -184,8 +216,7 @@ def _create_leaf_addresses(
                 addr_batch.append(
                     AddrModel(
                         name=_leaf_name(global_leaf),
-                        ip_address_id=ip.pk,
-                        prefix_id=prefix.pk,
+                        **_address_polymorphic_kwargs(ip),
                     )
                 )
             leaves.extend(
@@ -228,8 +259,8 @@ def _create_bench_rules(
         dsts = addr_rng.sample(leaves, min(dst_n, len(leaves)))
 
         rule = RuleModel.objects.create(index=index, status=True, name=name)
-        rule.source_addresses.set(srcs)
-        rule.destination_addresses.set(dsts)
+        rule.source.set(srcs)
+        rule.destination.set(dsts)
         rule.services_applications.set([svc_rng.choice(services)])
         action_key = "permit" if act_rng.random() < 0.5 else "deny"
         action = actions.get(action_key) or next(iter(actions.values()))
@@ -342,10 +373,24 @@ def purge_bench_data(
         ).delete()
 
     AddrModel, _ = get_cot_model("nsm_address", "nsm_addresses")
+    ip_ct_id = _ip_content_type_id()
+    prefix_ct_id = _prefix_content_type_id()
     host_qs = AddrModel.objects.filter(name__startswith=_BENCH_IP_PREFIX)
-    ip_ids = [pk for pk in host_qs.values_list("ip_address_id", flat=True) if pk]
+    ip_ids = [
+        pk
+        for pk in host_qs.filter(address_content_type_id=ip_ct_id).values_list(
+            "address_object_id", flat=True
+        )
+        if pk
+    ]
     net_qs = AddrModel.objects.filter(name__startswith=_BENCH_NET_PREFIX)
-    prefix_ids = [pk for pk in net_qs.values_list("prefix_id", flat=True) if pk]
+    prefix_ids = [
+        pk
+        for pk in net_qs.filter(address_content_type_id=prefix_ct_id).values_list(
+            "address_object_id", flat=True
+        )
+        if pk
+    ]
 
     addresses_deleted, _ = AddrModel.objects.filter(
         name__startswith="bench-"

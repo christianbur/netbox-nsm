@@ -1119,13 +1119,45 @@ on the dedicated **[Matrix tab](#zone-matrix)** (see below).
 The virtual **All Rules** entry (`rulebook:0`) uses the same table with an extra **Rulebook**
 column and scoped filter syntax. **Matrix** mode is not available for All Rules.
 
+#### COT rulebook Rules tab
+
+Deployed COT rulebooks (`/plugins/netbox-nsm/rulebooks/cot/<slug>/rules/`) use a
+**server-rendered** rules table. The **Table / Group / Matrix** view modes below apply to the
+legacy numeric rulebook UI and **All Rules**; COT rulebooks use the chrome bar and settings
+described here instead.
+
+**Rulebook detail** (Edit mode on the overview tab):
+
+| Setting | Purpose |
+|---|---|
+| **Grouped rows** | Choose a column for **vertical side tabs** on the Rules tab (e.g. **Source - Zone**). Select **— none —** to disable. Stored per rulebook in `CustomObjectType.comments` (`nsm_config.rulebook.row_group_by_col_id`). |
+| **Matrix tab** | Show or hide the Matrix tab when the schema has matching source/destination zone columns. |
+
+**Rules tab chrome bar** (right side):
+
+| Control | Purpose |
+|---|---|
+| **Grouped columns** | Toggle **collapsed** vs **expanded** polymorphic columns (`?col_mode=collapsed`). Active when the button is highlighted. Works together with **Grouped rows**. |
+| **Comma / Lines / +N** | Object cell display in the grid (`?cell_mode=…`) |
+| **Export CSV** | Download visible page data |
+
+When **Grouped rows** is configured:
+
+- A **vertical tab column** appears left of the table (scroll arrows, resizable width).
+- The active group is selected via `?row_group_tab=<slug>` (slug derived from the group label).
+- Rules with several values in the grouping column appear under one tab label with comma-separated names (e.g. `trust, zone_097`).
+- The grouping column **stays visible** in the table.
+- With an active column filter, the **Rules** tab badge shows `filtered/total` (e.g. `120/62500`).
+
+**Column headers:** title row plus filter row; drag the right edge of a column to resize (hit area spans **both** header rows). Widths persist in the browser.
+
 #### Toolbar layout
 
 Two bars sit above the grid:
 
 | Bar | Contents |
 |---|---|
-| **Chrome bar** (top) | **Filter query** input with Apply, Clear filters, and Copy; **object cell display** (comma / lines / +N more); **+ Add Rule**; **Delete selected** (when rows are checked); **Export CSV** |
+| **Chrome bar** (top) | **Filter query** input with Apply, Clear filters, and Copy (legacy / All Rules); on **COT** rulebooks: **Grouped columns**, **Comma / Lines / +N**, **+ Add Rule**, **Export CSV** — see [COT rulebook Rules tab](#cot-rulebook-rules-tab) |
 | **View bar** (below) | **Help** (`?`); **view-mode selector** (Table / Group / Matrix); mode-specific **drop zone**; **action rail** (right) |
 
 Drag-and-drop is disabled in **Table** mode — switch to **Group** or **Matrix** first. The
@@ -1260,7 +1292,8 @@ Changing the view-mode selector updates the query to include or remove the match
 
 | Column | Description |
 |---|---|
-| **Group** | Appears when row grouping is active — expand/collapse group headers with rule counts (e.g. `dev-2 (7)`). |
+| **Side tabs** | **COT only** — when **Grouped rows** is set on the rulebook, vertical tabs left of the grid filter by the chosen column (not a table column). |
+| **Group** | **Legacy Group view** — expand/collapse inline group rows when grouping pills are active (not used on COT Rules tab). |
 | **Index** | Rule sort order within the rulebook. |
 | **Status** | On/Off toggle — enable or disable rule inline. |
 | **Name** | Rule name (system field). |
@@ -1473,8 +1506,8 @@ Toggle via the action rail or URL parameter `mode=undirected`.
 
 #### Limits and best use
 
-**Axis limit:** Each axis shows at most **250** zones (`MATRIX_AXIS_MAX`). If a rulebook
-references more zones, a warning banner appears and only the first 250 source and/or destination
+**Axis limit:** Each axis shows at most **400** zones (`MATRIX_AXIS_MAX`). If a rulebook
+references more zones, a warning banner appears and only the first 400 source and/or destination
 zones are shown.
 
 Works best for rulebooks with zone objects in Source and Destination fields (Palo Alto, Fortinet,
@@ -1519,6 +1552,9 @@ The **CIDR / Mask** toggle on the **All** row applies to prefix segments in copi
 Paste into a spreadsheet or script for further analysis.
 
 Requires at least one **Address** matching TypeConfig in the rulebook's field layout.
+
+**Automation:** For token-authenticated JSON (no HTML), use
+`GET`/`POST /api/plugins/netbox-nsm/ip-analysis/` — see [REST API reference](#ip-analysis-rest-api).
 
 ---
 ## Object Analyzer
@@ -1602,23 +1638,81 @@ Object Analyzer is for exploration and documentation — the same facts are in t
 
 ## REST API reference
 
-All NSM models are available under `/api/plugins/netbox-nsm/`.
+NSM plugin models and analysis helpers are under `/api/plugins/netbox-nsm/`.
 The root endpoint (`GET /api/plugins/netbox-nsm/`) lists all available endpoints.
+
+Rulebook **rules** and policy **object instances** (zones, addresses, labels, …) are
+stored as Custom Object Types — use the **netbox-custom-objects** API for CRUD on those
+rows, not NSM REST paths.
 
 ### Endpoints
 
 | Endpoint | Description | Key filters |
 |---|---|---|
 | `type-configs/` | TypeConfig entries | `slug`, `matching_class` |
-| `object-links/` | ObjectLink entries | `host_ct_id`, `host_obj_id`, `sec_obj_ct_id` |
-| `rulebooks/` | Rulebook entries | `name` |
-| `rules/` | Rule entries | `rulebook_id`, `enabled` |
-| `rulebook-assignments/` | Rulebook → object assignments | — |
-| `object-groups/` | ObjectGroup entries | — |
-| `rulebook-fields/` | Column definitions per rulebook | `rulebook_id` |
-| `rulebook-field-types/` | Allowed types per field | — |
-| `rule-object-items/` | Object elements in a rule cell | `rule_id`, `field_id` |
-| `rule-group-items/` | AND group elements in a rule cell | `rule_id`, `field_id` |
+| `object-links/` | Security Panel links (`nsm_object_link` COT) | `host_ct_id`, `host_obj_id`, `sec_obj_ct_id` |
+| `rulebook-assignments/` | COT rulebook → device/VM assignments | `cot_slug`, `assigned_object_id` |
+| `ip-analysis/` | Address resolution / diff (see below) | — |
+
+Legacy native endpoints (`rulebooks/`, `rules/`, `object-groups/`, …) were removed with
+the COT migration. Do not expect them on current installs.
+
+### IP Analysis REST API
+
+**Path:** `GET` or `POST` `/api/plugins/netbox-nsm/ip-analysis/`
+
+Token-authenticated JSON API for automation. Resolves **address-analyzable** objects to
+prefix/IP trees or multi-side diffs. Supported object types:
+
+- NetBox IPAM: prefix, IP address, IP range
+- COT address types: e.g. `nsm_address`, `nsm_address_group` (any type with address
+  matching class and analyzable fields)
+
+Objects are referenced by Django **content type id** and **object id** — not by COT slug
+or rulebook id.
+
+**Merge mode** (default): combine multiple objects into one analysis.
+
+```http
+GET /api/plugins/netbox-nsm/ip-analysis/?ct=10&pk=42&ct=10&pk=43
+Authorization: Token <your-token>
+```
+
+```json
+POST /api/plugins/netbox-nsm/ip-analysis/
+Content-Type: application/json
+
+{
+  "mode": "merge",
+  "objects": [
+    {"content_type": 10, "id": 42},
+    {"content_type": 10, "id": 43}
+  ]
+}
+```
+
+**Diff mode:** compare two or more sides (e.g. two rule source columns).
+
+```http
+GET /api/plugins/netbox-nsm/ip-analysis/?mode=diff&a_ct=10&a_pk=1&b_ct=10&b_pk=2
+```
+
+```json
+POST /api/plugins/netbox-nsm/ip-analysis/
+{
+  "mode": "diff",
+  "sides": [
+    {"label": "Left", "objects": [{"content_type": 10, "id": 1}]},
+    {"label": "Right", "objects": [{"content_type": 10, "id": 2}]}
+  ]
+}
+```
+
+Response fields include `mode`, `leaf_count`, `count_subnets`, `count_ranges`, `count_ips`,
+`count_duplicates`, `objects`, `unsupported`, and structured `addr_analysis` (no `html`).
+
+For the **UI applet** (HTML fragments for the Security Panel loupe), use the plugin UI API
+instead: `GET /plugins/netbox-nsm/api/ip-analysis/` (session auth, includes rendered HTML).
 
 ### Schema import
 

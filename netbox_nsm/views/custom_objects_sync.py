@@ -26,7 +26,8 @@ from netbox_nsm.objects.custom_objects_schema import (
     iter_types,
     slugify_identifier,
 )
-from netbox_nsm.models import Section, TypeConfig
+from netbox_nsm.models import Section
+from netbox_nsm.objects.type_config_export import sync_cot_nsm_config_comments
 from netbox_nsm.objects.type_config_specs import TYPECONFIG_SPEC_BY_SLUG
 
 __all__ = ("SyncBuiltinToCustomObjectsView", "SyncTypeConfigsView")
@@ -190,23 +191,8 @@ def _sync_type_configs_and_sections(builtin_types):
         except CustomObjectType.DoesNotExist:
             continue
 
-        from django.contrib.contenttypes.models import ContentType as DjContentType
-
-        ct = DjContentType.objects.get_for_model(cot.get_model())
-
         spec = TYPECONFIG_SPEC_BY_SLUG.get(slug)
-        matching_class = spec["matching_class"] if spec else ""
-        TypeConfig.objects.update_or_create(
-            content_type=ct,
-            matching_class=matching_class,
-            defaults={
-                "name": spec["label"] if spec else str(typedef.get("name", "") or slug),
-                "display_template": str(
-                    (spec or typedef).get("display_template", "") or ""
-                ),
-                "panel_linkable_types": (spec or {}).get("panel_linkable_types", []),
-            },
-        )
+        sync_cot_nsm_config_comments(cot, spec=spec)
         configs_touched += 1
 
         for area in areas:
@@ -253,6 +239,13 @@ class SyncBuiltinToCustomObjectsView(LoginRequiredMixin, View):
                 obj_created, obj_updated, obj_skipped = _seed_default_objects(
                     BUILTIN_CUSTOM_TYPES
                 )
+                from netbox_nsm.objects.type_config_export import (
+                    sync_cot_nsm_config_comments_for_slugs,
+                )
+
+                sync_cot_nsm_config_comments_for_slugs(
+                    t["slug"] for t in document["types"]
+                )
         except Exception as exc:
             messages.error(
                 request,
@@ -268,7 +261,7 @@ class SyncBuiltinToCustomObjectsView(LoginRequiredMixin, View):
                 "ChoiceSets (%(cs_kept)d existing), %(obj_created)d new objects, "
                 "%(obj_updated)d updated, %(obj_skipped)d skipped, "
                 "%(cots_pruned)d old types + %(secs_pruned)d old sections removed. "
-                "Run TypeConfig sync (step 2) separately."
+                "Run Object Config sync (step 2) separately."
             )
             % {
                 "types": len(document["types"]),
@@ -295,7 +288,7 @@ class SyncTypeConfigsView(LoginRequiredMixin, View):
         if not setup_allow_destructive_actions():
             messages.error(
                 request,
-                _("TypeConfig sync is disabled (setup_allow_destructive_actions)."),
+                _("Object Config sync is disabled (setup_allow_destructive_actions)."),
             )
             return redirect(redirect_url)
 
@@ -316,7 +309,7 @@ class SyncTypeConfigsView(LoginRequiredMixin, View):
         except Exception as exc:
             messages.error(
                 request,
-                _("TypeConfig sync failed: %(exc_type)s: %(exc)s")
+                _("Object Config sync failed: %(exc_type)s: %(exc)s")
                 % {"exc_type": exc.__class__.__name__, "exc": exc},
             )
             return redirect(redirect_url)
@@ -324,7 +317,7 @@ class SyncTypeConfigsView(LoginRequiredMixin, View):
         messages.success(
             request,
             _(
-                "TypeConfig sync complete — %(cfg_count)d TypeConfigs, "
+                "Object Config sync complete — %(cfg_count)d Object Configs, "
                 "%(sec_links)d section links."
             )
             % {"cfg_count": cfg_count, "sec_links": sec_links},

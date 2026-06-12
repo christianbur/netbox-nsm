@@ -1001,3 +1001,27 @@ span.nsm-rulebook-count-pill {
   min-width: 0;
   vertical-align: middle;
 }
+
+
+/* Object status info icons (reserved / deprecated) — beat table/link inheritance */
+#rules .nsm-object-status-icon,
+.nsm-link-table .nsm-object-status-icon,
+.nsm-object-status-icon {
+  font-size: 0.95rem;
+  line-height: 1;
+  vertical-align: -0.1em;
+  margin-left: 0.15rem;
+  opacity: 1 !important;
+}
+
+#rules .nsm-object-status-icon--deprecated,
+.nsm-link-table .nsm-object-status-icon--deprecated,
+.nsm-object-status-icon--deprecated {
+  color: #dc3545 !important;
+}
+
+#rules .nsm-object-status-icon--reserved,
+.nsm-link-table .nsm-object-status-icon--reserved,
+.nsm-object-status-icon--reserved {
+  color: #fd7e14 !important;
+}

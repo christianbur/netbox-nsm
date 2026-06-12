@@ -5,7 +5,8 @@ from __future__ import annotations
 from django.utils.html import conditional_escape
 
 from netbox_nsm.core.api_urls import get_api_url_for_content_type as _get_api_url_for_content_type
-from netbox_nsm.models.type_config import MatchingClassChoices, TypeConfig
+from netbox_nsm.core.type_kind import is_address_content_type_id
+from netbox_nsm.objects.type_config_specs import content_type_ids_for_cot_slugs
 
 __all__ = (
     "_ADDR_IPAM_FK_FIELDS",
@@ -49,13 +50,36 @@ _FIELD_TYPE_LABELS = {
     "range": "Range",
 }
 _ADDR_IPAM_FK_FIELDS = ("prefix", "ip_address", "range")
+_ADDR_IPAM_FK_FIELDS_HOST = ("ip_address", "range", "prefix")
+_ADDR_IPAM_FK_FIELDS_SUBNET = ("prefix", "ip_address", "range")
 
 
-def _addr_ip_ref(obj):
-    """Return {str, url, type, ct, pk} when obj references an IPAM object, else None."""
+def _addr_has_direct_ip_address(obj) -> bool:
+    try:
+        return getattr(obj, "ip_address", None) is not None
+    except Exception:
+        return False
+
+
+def _addr_has_direct_range(obj) -> bool:
+    try:
+        return getattr(obj, "range", None) is not None
+    except Exception:
+        return False
+
+
+def _addr_ip_ref_field_order(obj):
+    """Host/range objects compare by specific IP; subnet rows keep prefix drilldown."""
+    if _addr_has_direct_ip_address(obj) or _addr_has_direct_range(obj):
+        return _ADDR_IPAM_FK_FIELDS_HOST
+    return _ADDR_IPAM_FK_FIELDS_SUBNET
+
+
+def _addr_ip_ref_from_fields(obj, field_names):
+    """Return {str, url, type, ct, pk} for the first populated IPAM FK in *field_names*."""
     from django.contrib.contenttypes.models import ContentType
 
-    for field_name in _ADDR_IPAM_FK_FIELDS:
+    for field_name in field_names:
         try:
             related = getattr(obj, field_name, None)
             if related is not None:
@@ -70,6 +94,11 @@ def _addr_ip_ref(obj):
         except Exception:
             pass
     return None
+
+
+def _addr_ip_ref(obj):
+    """Return the most appropriate IPAM ref for analysis (host IP before parent prefix)."""
+    return _addr_ip_ref_from_fields(obj, _addr_ip_ref_field_order(obj))
 
 
 def _addr_ip_ref_node_dict(ip_ref):
@@ -394,7 +423,7 @@ def _ipam_obj_from_ip_ref(ip_ref):
 
 
 def _ipam_fk_object_for_addr_node(obj):
-    for field_name in _ADDR_IPAM_FK_FIELDS:
+    for field_name in _addr_ip_ref_field_order(obj):
         try:
             related = getattr(obj, field_name, None)
             if related is not None:
@@ -1323,7 +1352,7 @@ def _object_supports_addr_analysis(obj):
     return False
 
 
-def _object_is_addr_analyzable(obj, content_type_id, matching_class_map=None):
+def _object_is_addr_analyzable(obj, content_type_id, address_ct_ids=None):
     """True when content type is address-class and the object can be IP-analyzed."""
     if not obj or not content_type_id:
         return False
@@ -1331,18 +1360,11 @@ def _object_is_addr_analyzable(obj, content_type_id, matching_class_map=None):
         return False
     if _is_ipam_addr_object(obj):
         return True
-    from netbox_nsm.models.type_config import MatchingClassChoices
-
-    if matching_class_map is None:
-        matching_class_map = {
-            tc.content_type_id: tc.matching_class
-            for tc in TypeConfig.objects.only("content_type_id", "matching_class")
-        }
-    try:
-        ct_id = int(content_type_id)
-    except (TypeError, ValueError):
-        return False
-    return matching_class_map.get(ct_id) == MatchingClassChoices.ADDRESS
+    if address_ct_ids is None:
+        address_ct_ids = set(
+            content_type_ids_for_cot_slugs(["nsm_address", "nsm_address_group"])
+        )
+    return is_address_content_type_id(content_type_id, cache=address_ct_ids)
 
 
 def _addr_leaf_compare_key(node, path_prefix=None):
@@ -1740,7 +1762,13 @@ def _enrich_diff_name_pill_fields(node, entry, *, other_entry=None, diff_status)
 
 
 def _shallow_addr_leaf_for_diff(
-    node, *, diff_status, diff_fund=False, fund_detail=None, other_entry=None
+    node,
+    *,
+    diff_status,
+    diff_fund=False,
+    fund_detail=None,
+    other_entry=None,
+    diff_present_labels=None,
 ):
     """Return a display leaf with diff_status for grouped diff output."""
     leaf = {
@@ -1754,6 +1782,8 @@ def _shallow_addr_leaf_for_diff(
         "diff_status": diff_status,
         "children": [],
     }
+    if diff_present_labels:
+        leaf["diff_present_labels"] = list(diff_present_labels)
     _enrich_diff_name_pill_fields(
         leaf, node, other_entry=other_entry, diff_status=diff_status
     )
@@ -1766,7 +1796,7 @@ def _shallow_addr_leaf_for_diff(
     return leaf
 
 
-def _build_addr_diff_group(name, leaves, *, diff_group):
+def _build_addr_diff_group(name, leaves, *, diff_group, diff_present_labels=None):
     """One diff section (only A / only B / both) as an address-tree group node."""
     if not leaves:
         return None
@@ -1778,6 +1808,8 @@ def _build_addr_diff_group(name, leaves, *, diff_group):
         "ip_ref": None,
         "children": leaves,
     }
+    if diff_present_labels:
+        group["diff_present_labels"] = list(diff_present_labels)
     _enrich_addr_tree_leaf_counts(group)
     _enrich_addr_tree_copy_lines(group)
     return group
@@ -2296,32 +2328,38 @@ def _build_addr_diff_analysis_from_sides(side_specs):
             groups.append(group)
 
     if in_some_keys:
-        leaves = []
+        in_some_by_presence = {}
         for key in in_some_keys:
-            present_indices = sorted(key_sides[key])
-            entries = [maps[index][key] for index in present_indices]
+            present_indices = tuple(sorted(key_sides[key]))
+            in_some_by_presence.setdefault(present_indices, []).append(key)
+        for present_indices in sorted(in_some_by_presence):
             present_labels = [labels[index] for index in present_indices]
-            is_fund, fund_detail = _addr_entries_is_diff_fund(entries, present_labels)
-            if is_fund:
-                fund_count += 1
-            primary_entry = entries[0]
-            other_entry = entries[1] if len(entries) > 1 else None
-            leaves.append(
-                _shallow_addr_leaf_for_diff(
-                    primary_entry,
-                    diff_status="in_some",
-                    diff_fund=is_fund,
-                    fund_detail=fund_detail,
-                    other_entry=other_entry,
+            leaves = []
+            for key in in_some_by_presence[present_indices]:
+                entries = [maps[index][key] for index in present_indices]
+                is_fund, fund_detail = _addr_entries_is_diff_fund(entries, present_labels)
+                if is_fund:
+                    fund_count += 1
+                primary_entry = entries[0]
+                other_entry = entries[1] if len(entries) > 1 else None
+                leaves.append(
+                    _shallow_addr_leaf_for_diff(
+                        primary_entry,
+                        diff_status="in_some",
+                        diff_fund=is_fund,
+                        fund_detail=fund_detail,
+                        other_entry=other_entry,
+                        diff_present_labels=present_labels,
+                    )
                 )
+            group = _build_addr_diff_group(
+                "In some",
+                leaves,
+                diff_group="in-some",
+                diff_present_labels=present_labels,
             )
-        group = _build_addr_diff_group(
-            f"In some ({side_count} tabs)",
-            leaves,
-            diff_group="in-some",
-        )
-        if group:
-            groups.append(group)
+            if group:
+                groups.append(group)
 
     if in_all_keys:
         overlap_name = "In both" if side_count == 2 else "In all"

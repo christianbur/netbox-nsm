@@ -30,8 +30,8 @@ class TypeConfigSerializer(NetBoxModelSerializer):
             "url",
             "display",
             "name",
+            "sort_order",
             "content_type",
-            "matching_class",
             "display_template",
             "inherit_links",
             "inherit_stop_on_own",
@@ -47,7 +47,6 @@ class TypeConfigSerializer(NetBoxModelSerializer):
             "display",
             "name",
             "content_type",
-            "matching_class",
             "panel_linkable_types",
         )
 

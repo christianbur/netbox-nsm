@@ -7,7 +7,7 @@ from typing import Iterator
 
 from django.contrib.contenttypes.models import ContentType
 
-from netbox_nsm.models import TypeConfig
+from netbox_nsm.objects.nsm_config import is_panel_linkable_content_type
 from netbox_nsm.models.object_link import LinkPropagationChoices
 from netbox_nsm.objects.link_propagation import (
     CotObjectLinkPropagationChoices,
@@ -101,8 +101,8 @@ def classify_link_endpoints(object_a, object_b):
     """
     ct_a = ContentType.objects.get_for_model(object_a)
     ct_b = ContentType.objects.get_for_model(object_b)
-    a_policy = TypeConfig.queryset_panel_linkable().filter(content_type=ct_a).exists()
-    b_policy = TypeConfig.queryset_panel_linkable().filter(content_type=ct_b).exists()
+    a_policy = is_panel_linkable_content_type(ct_a.pk)
+    b_policy = is_panel_linkable_content_type(ct_b.pk)
     if a_policy and not b_policy:
         return object_b, object_a
     return object_a, object_b
@@ -291,6 +291,7 @@ def build_panel_link_groups(
     from django.db.models import prefetch_related_objects
 
     from netbox_nsm.core.display_utils import get_display_template_map
+    from netbox_nsm.core.interface_parent import prefetch_interface_parents
     from netbox_nsm.objects.link_propagation import object_link_panel_user_comment
     from netbox_nsm.template_content import _finalize_link_type_groups
 
@@ -304,6 +305,12 @@ def build_panel_link_groups(
     link_pairs = list(iter_links_for_object(obj))
     instances = [link.instance for link, _ in link_pairs if link.instance is not None]
     prefetch_related_objects(instances, "netbox_object", "policy_object")
+    linked_for_prefetch = []
+    for link, direction in link_pairs:
+        linked = link.policy_object if direction == "fwd" else link.netbox_object
+        if linked is not None:
+            linked_for_prefetch.append(linked)
+    prefetch_interface_parents(linked_for_prefetch)
 
     for link, direction in link_pairs:
         linked = link.policy_object if direction == "fwd" else link.netbox_object

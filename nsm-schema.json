@@ -19,6 +19,16 @@
           "weight": 1
         },
         {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
+        },
+        {
           "id": 2,
           "name": "color",
           "type": "text",
@@ -58,6 +68,16 @@
           "primary": true,
           "required": true,
           "weight": 1
+        },
+        {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
         },
         {
           "id": 2,
@@ -121,6 +141,16 @@
           "weight": 1
         },
         {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
+        },
+        {
           "id": 2,
           "name": "color",
           "type": "text",
@@ -171,6 +201,16 @@
           "weight": 1
         },
         {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
+        },
+        {
           "id": 2,
           "name": "color",
           "type": "text",
@@ -190,16 +230,49 @@
           "type": "longtext",
           "label": "Comments",
           "weight": 100
+        },
+        {
+          "id": 100,
+          "name": "ip_address",
+          "type": "object",
+          "label": "IP Address",
+          "description": "Optional NetBox IP address this policy object represents.",
+          "weight": 10,
+          "related_object_type": "ipam/ipaddress"
+        },
+        {
+          "id": 101,
+          "name": "range",
+          "type": "object",
+          "label": "Range",
+          "description": "Optional NetBox IP range this policy object represents.",
+          "weight": 11,
+          "related_object_type": "ipam/iprange"
+        },
+        {
+          "id": 102,
+          "name": "prefix",
+          "type": "object",
+          "label": "Prefix",
+          "description": "Optional NetBox prefix this policy object represents.",
+          "weight": 12,
+          "related_object_type": "ipam/prefix"
         }
       ],
-      "removed_fields": []
+      "removed_fields": [
+        {
+          "id": 103,
+          "name": "group",
+          "type": "multiobject"
+        }
+      ]
     },
     {
       "name": "nsm_address_group",
       "slug": "nsm_address_group",
       "verbose_name": "Address Group",
       "verbose_name_plural": "Address Groups",
-      "description": "Represents a group of IP addresses, prefixes, or ranges.",
+      "description": "Named collection of address objects. Used in Source/Destination columns; members are nsm_address objects.",
       "group_name": "NSM Objects",
       "fields": [
         {
@@ -210,6 +283,16 @@
           "primary": true,
           "required": true,
           "weight": 1
+        },
+        {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
         },
         {
           "id": 2,
@@ -262,6 +345,16 @@
           "weight": 1
         },
         {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
+        },
+        {
           "id": 2,
           "name": "color",
           "type": "text",
@@ -290,6 +383,14 @@
           "required": true,
           "weight": 10,
           "choice_set": "nsm_label_type"
+        },
+        {
+          "id": 101,
+          "name": "custom_type",
+          "type": "text",
+          "label": "Custom Type",
+          "description": "Required when Label Type = custom (e.g. Department).",
+          "weight": 11
         }
       ],
       "removed_fields": []
@@ -299,7 +400,7 @@
       "slug": "nsm_zone",
       "verbose_name": "Zone",
       "verbose_name_plural": "Zones",
-      "description": "Security zone (logical segment of the network).",
+      "description": "Logical security zone for segmentation. Linked to inventory via Security Panel; used in rulebook zone columns.",
       "group_name": "NSM Objects",
       "fields": [
         {
@@ -310,6 +411,16 @@
           "primary": true,
           "required": true,
           "weight": 1
+        },
+        {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
         },
         {
           "id": 2,
@@ -340,7 +451,7 @@
       "slug": "nsm_app_business",
       "verbose_name": "Business App",
       "verbose_name_plural": "Business Apps",
-      "description": "Business application with technical and business ownership.",
+      "description": "Business application metadata for rule Info columns (ownership, criticality). Documentation only — not a network App-ID.",
       "group_name": "NSM Objects",
       "fields": [
         {
@@ -351,6 +462,16 @@
           "primary": true,
           "required": true,
           "weight": 1
+        },
+        {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
         },
         {
           "id": 2,
@@ -418,6 +539,16 @@
           "weight": 1
         },
         {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
+        },
+        {
           "id": 2,
           "name": "color",
           "type": "text",
@@ -482,6 +613,16 @@
           "primary": true,
           "required": true,
           "weight": 1
+        },
+        {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
         },
         {
           "id": 2,

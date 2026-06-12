@@ -18,6 +18,7 @@ __all__ = (
     "rulebook_field_group_name",
     "rulebook_group_heading_parts",
     "strip_rulebook_group_sort_prefix",
+    "apply_schema_yaml_field_groups",
     "sync_all_rulebook_cots",
     "sync_rulebook_field_groups",
 )
@@ -36,6 +37,8 @@ RULEBOOK_FIELD_GROUPS: dict[str, str] = {
     "index": GROUP_COMMON,
     "status": GROUP_COMMON,
     "name": GROUP_COMMON,
+    "source": GROUP_SOURCE,
+    "destination": GROUP_DESTINATION,
     "source_zones": GROUP_SOURCE,
     "source_labels": GROUP_SOURCE,
     "source_addresses": GROUP_SOURCE,
@@ -48,25 +51,22 @@ RULEBOOK_FIELD_GROUPS: dict[str, str] = {
     "description": GROUP_NOTES,
 }
 
-_DEFAULT_GROUP_NAME_MAP: dict[str, str] = {
-    GROUP_COMMON: "",
-    GROUP_SOURCE: "Source",
-    GROUP_DESTINATION: "Destination",
-    GROUP_SERVICES: "Services",
-    GROUP_ACTIONS: "",
-    GROUP_INFOS: "",
-    GROUP_NOTES: "",
-}
-
-
 def rulebook_field_group_name(field_name: str) -> str | None:
     """Return the sort-key ``group_name`` for a bundled rulebook field, if known."""
     return RULEBOOK_FIELD_GROUPS.get(field_name)
 
 
 def default_group_name_map() -> dict[str, str]:
-    """Built-in sort-key → display-label map for rulebook form/rules UI."""
-    return dict(_DEFAULT_GROUP_NAME_MAP)
+    """Built-in sort-key → display-label map (identity: show ``N# `` prefix verbatim)."""
+    return {
+        GROUP_COMMON: GROUP_COMMON,
+        GROUP_SOURCE: GROUP_SOURCE,
+        GROUP_DESTINATION: GROUP_DESTINATION,
+        GROUP_SERVICES: GROUP_SERVICES,
+        GROUP_ACTIONS: GROUP_ACTIONS,
+        GROUP_INFOS: GROUP_INFOS,
+        GROUP_NOTES: GROUP_NOTES,
+    }
 
 
 def strip_rulebook_group_sort_prefix(raw_group: str | None) -> str:
@@ -78,7 +78,7 @@ def strip_rulebook_group_sort_prefix(raw_group: str | None) -> str:
 
 
 def resolve_group_name_for_display(raw_group: str | None, *, cot=None) -> str:
-    """Map sort-key ``group_name`` (e.g. ``2# Source``) to a rules/form display label."""
+    """Return ``group_name`` for rules/form display (including ``N# `` sort prefix)."""
     key = (raw_group or "").strip()
     if not key:
         return ""
@@ -88,13 +88,6 @@ def resolve_group_name_for_display(raw_group: str | None, *, cot=None) -> str:
     for map_key, value in mapping.items():
         if map_key.lower() == key.lower():
             return value
-    stripped = strip_rulebook_group_sort_prefix(key)
-    if stripped and stripped != key:
-        for map_key, value in mapping.items():
-            _, map_suffix = parse_rulebook_group_sort_key(map_key)
-            if map_suffix.lower() == stripped.lower():
-                return value
-        return stripped
     return key
 
 
@@ -149,9 +142,37 @@ def clear_legacy_nsm_setting_comments(cot) -> bool:
     return True
 
 
-def sync_rulebook_field_groups(cot) -> int:
-    """Apply bundled ``group_name`` sort keys to all known rulebook fields on *cot*."""
+def apply_schema_yaml_field_groups(cot, schema_fields: list[dict]) -> int:
+    """Apply ``group_name`` only for fields that declare it in schema YAML; clear others."""
     if not _is_rulebook_cot_slug(getattr(cot, "slug", None)):
+        return 0
+    group_by_name: dict[str, str] = {}
+    for field_def in schema_fields or []:
+        name = (field_def.get("name") or "").strip()
+        if name and "group_name" in field_def:
+            group_by_name[name] = (field_def.get("group_name") or "").strip()
+    updated = 0
+    for field in cot.fields.all():
+        if field.name in group_by_name:
+            target = group_by_name[field.name]
+        else:
+            target = ""
+        if field.group_name != target:
+            field.group_name = target
+            field.save(update_fields=["group_name"])
+            updated += 1
+    clear_legacy_nsm_setting_comments(cot)
+    return updated
+
+
+def sync_rulebook_field_groups(cot) -> int:
+    """Apply bundled ``group_name`` sort keys on rulebook **template** COTs only."""
+    from netbox_nsm.rulebooks.templates import is_rulebook_template_slug
+
+    slug = getattr(cot, "slug", None)
+    if not is_rulebook_template_slug(slug):
+        if _is_rulebook_cot_slug(slug):
+            return clear_legacy_nsm_setting_comments(cot)
         return 0
     updated = 0
     for field in cot.fields.all():

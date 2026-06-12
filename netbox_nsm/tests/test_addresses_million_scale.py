@@ -1,6 +1,9 @@
 """Helpers for bench million-address scale script (not Setup)."""
 
+from unittest.mock import patch
+
 from django.test import SimpleTestCase
+from ipam.models import IPAddress, Prefix
 
 from netbox_nsm.demos.addresses_million_scale import (
     DEFAULT_LEAF_COUNT,
@@ -9,6 +12,7 @@ from netbox_nsm.demos.addresses_million_scale import (
     SCALE_DEMO_50K_LEAF_COUNT,
     SCALE_DEMO_50K_RULE_COUNT,
     SUBNET_COUNT,
+    _address_polymorphic_kwargs,
     _host_cidr,
     _leaf_indices,
     _leaf_name,

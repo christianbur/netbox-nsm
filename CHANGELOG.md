@@ -4,7 +4,33 @@ All notable changes to **netbox-nsm** are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.5.0] - 2026-06-12
+
+### Notes
+
+- Release
+
 ## [Unreleased]
+
+### Added
+
+- **Rules tab row grouping** — per-rulebook column grouping (`row_group_by_col_id`), chrome tabs, and
+  client-side row-group behaviour on the rules table
+- **Object sync** — filterable NSM custom-object browser with pagination and object-link display
+- **IP analysis** — service-layer refactor and expanded applet/API coverage
+- **TypeConfig / custom objects** — list UI, schema setup panel, export and builder helpers
+- **Tests** — row-grouping context and performance, security link groups, and related rulebook/setup
+  coverage
+
+### Changed
+
+- **Migrations** — squash to `0001_initial` with upgrade migration `0002_cotrulebook_row_group_by_col_id`
+  (see `docs/DATABASE.md`)
+- **Documentation** — architecture, rule storage, database, and usage guides aligned with row grouping
+
+### Removed
+
+- Legacy `OLD/` shim tree and superseded incremental migrations merged into the squash
 
 ## [0.4.0] - 2026-06-09
 
@@ -26,7 +52,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - **Migrations** — single `0001_initial` for fresh empty databases (`CotRulebookAssignment`,
-  `TypeConfig`, `NsmUiSettings`, …); superseded chain in `OLD/migrations/`
+  `TypeConfig`, `NsmUiSettings`, …); incremental `0002`–`0007` for upgrades (see `docs/DATABASE.md`)
 - **Rules tab** — group sort keys resolve to display labels (`Zones (Source)` not `2# Source`);
   collapsed column headers and Security Panel labels aligned
 - **Enforcement targets** — host interface list always visible (collapse chevron removed)
@@ -259,3 +285,4 @@ First release in the 0.2.x line.
 [0.3.1]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.3.1
 [0.3.0]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.3.0
 [0.2.5]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.2.5
+[0.5.0]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.5.0

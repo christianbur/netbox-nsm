@@ -29,6 +29,16 @@ class CotRulebook(models.Model):
             "destination zone columns."
         ),
     )
+    row_group_by_col_id = models.CharField(
+        max_length=200,
+        blank=True,
+        default="",
+        verbose_name=_("Grouped rows"),
+        help_text=_(
+            "Rules tab column used for vertical side-tab row grouping (col_id "
+            "from the rules table layout)."
+        ),
+    )
 
     class Meta:
         verbose_name = _("COT Rulebook")

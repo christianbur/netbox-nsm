@@ -188,6 +188,93 @@ class SecurityRulebookTreeTemplateTests(SimpleTestCase):
         self.assertNotIn("nsm-sentinel", html)
         self.assertNotIn("nsm-security-rulebook-header-links", html)
 
+    def test_renders_dashed_separator_between_rulebooks_and_manual_links(self):
+        rb = SimpleNamespace(
+            pk=5,
+            name="Firewall",
+            get_absolute_url=lambda: "/rulebooks/5/",
+            get_rules_tab_url=lambda: "/rulebooks/5/rules/",
+        )
+        field = SimpleNamespace(pk=9, slug="source", name="Source")
+        html = render_to_string(
+            "netbox_nsm/inc/security_links.html",
+            {
+                "nsm_panel_label": "Security",
+                "nsm_security_badge": 1,
+                "nsm_unique_rules_total": 1,
+                "nsm_analyzer_url": "/analyzer/",
+                "nsm_assign_url": "/assign/",
+                "nsm_page_addr_analyzable": False,
+                "nsm_rulebook_groups": [
+                    {
+                        "rulebook": rb,
+                        "unique_count": 1,
+                        "rules_tab_url": "/rulebooks/5/rules/",
+                        "field_groups": [
+                            {
+                                "field": field,
+                                "rule_count": 1,
+                            }
+                        ],
+                    }
+                ],
+                "nsm_link_type_groups": [
+                    {
+                        "type_key": "zone",
+                        "type_label": "Zone",
+                        "count": 1,
+                        "show_comment": False,
+                        "show_actions": True,
+                        "objects": [
+                            {
+                                "name": "dmz",
+                                "url": "/zones/1/",
+                                "edit_url": "/edit/",
+                                "delete_url": "/delete/",
+                            }
+                        ],
+                    }
+                ],
+                "nsm_enforcer_assignments": [],
+                "nsm_api_url": "/api/object-rules/?ct_id=1&obj_id=2",
+            },
+        )
+        self.assertIn('<hr class="nsm-link-section-separator">', html)
+        self.assertIn('id="nsm-cat-rulebook"', html)
+        self.assertIn('id="nsm-cat-zone"', html)
+        rulebook_pos = html.index('id="nsm-cat-rulebook"')
+        separator_pos = html.index('<hr class="nsm-link-section-separator">')
+        manual_pos = html.index('id="nsm-cat-zone"')
+        self.assertLess(rulebook_pos, separator_pos)
+        self.assertLess(separator_pos, manual_pos)
+
+    def test_hides_separator_when_only_one_link_type_present(self):
+        html = render_to_string(
+            "netbox_nsm/inc/security_links.html",
+            {
+                "nsm_panel_label": "Security",
+                "nsm_security_badge": None,
+                "nsm_analyzer_url": "/analyzer/",
+                "nsm_assign_url": "/assign/",
+                "nsm_page_addr_analyzable": False,
+                "nsm_rulebook_groups": [],
+                "nsm_link_type_groups": [
+                    {
+                        "type_key": "zone",
+                        "type_label": "Zone",
+                        "count": 1,
+                        "show_comment": False,
+                        "show_actions": False,
+                        "objects": [{"name": "dmz", "url": "/zones/1/"}],
+                    }
+                ],
+                "nsm_enforcer_assignments": [],
+                "nsm_unique_rules_total": 0,
+                "nsm_api_url": "",
+            },
+        )
+        self.assertNotIn('<hr class="nsm-link-section-separator">', html)
+
 
 class SecurityPanelHeaderActionsTemplateTests(SimpleTestCase):
     def _render_header(self, **overrides):

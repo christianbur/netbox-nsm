@@ -14,6 +14,24 @@
   var SIZE_STORAGE_KEY = "nsm-ipa-applet-size";
   var MIN_BODY_SCALE = 0.55;
 
+  function ipaT(key, fallback) {
+    var i18n = window.NSM_IPA_I18N || {};
+    if (i18n[key] != null && i18n[key] !== "") {
+      return i18n[key];
+    }
+    return fallback != null ? fallback : key;
+  }
+
+  function ipaTf(key, params, fallback) {
+    var text = ipaT(key, fallback);
+    if (params) {
+      Object.keys(params).forEach(function (k) {
+        text = text.split("%(" + k + ")s").join(String(params[k]));
+      });
+    }
+    return text;
+  }
+
   function escHtml(text) {
     var div = document.createElement("div");
     div.textContent = text == null ? "" : String(text);
@@ -30,16 +48,20 @@
       tab.countIps != null
     ) {
       var parts = [
-        "Subnets: " + (tab.countSubnets || 0),
-        "Ranges: " + (tab.countRanges || 0),
-        "IPs: " + (tab.countIps != null ? tab.countIps : tab.leafCount || 0),
+        ipaTf("Subnets: %(count)s", { count: tab.countSubnets || 0 }),
+        ipaTf("Ranges: %(count)s", { count: tab.countRanges || 0 }),
+        ipaTf("IPs: %(count)s", {
+          count: tab.countIps != null ? tab.countIps : tab.leafCount || 0,
+        }),
       ];
       if (tab.countDuplicates) {
-        parts.push("Warnings: " + tab.countDuplicates);
+        parts.push(ipaTf("Warnings: %(count)s", { count: tab.countDuplicates }));
       }
       return parts.join("  ");
     }
-    return tab.leafCount ? "IPs: " + tab.leafCount : "";
+    return tab.leafCount
+      ? ipaTf("IPs: %(count)s", { count: tab.leafCount })
+      : "";
   }
 
   function apiUrl() {
@@ -161,7 +183,10 @@
     if (ruleIndex == null || ruleIndex === "" || !colPosition) {
       return null;
     }
-    return "Rule " + ruleIndex + "/" + colPosition;
+    return ipaTf("Rule %(index)s/%(col)s", {
+      index: ruleIndex,
+      col: colPosition,
+    });
   }
 
   function rulesCellContextLabel(context) {
@@ -175,9 +200,16 @@
     var ruleName = context.ruleName || "";
     var colPart = context.colId || context.colPosition || "";
     if (ruleName) {
-      return ruleName + " (" + ruleIndex + ") / " + colPart;
+      return ipaTf("Rule %(name)s (%(index)s) / %(col)s", {
+        name: ruleName,
+        index: ruleIndex,
+        col: colPart,
+      });
     }
-    return "Regel " + ruleIndex + " / " + colPart;
+    return ipaTf("Rule %(index)s / %(col)s", {
+      index: ruleIndex,
+      col: colPart,
+    });
   }
 
   function rulesCellDiffSideLabel(context) {
@@ -191,19 +223,28 @@
     var ruleName = context.ruleName || "";
     var colPart = context.colId || context.colPosition || "";
     if (ruleName && colPart) {
-      return ruleName + " (" + ruleIndex + ") / " + colPart;
+      return ipaTf("Rule %(name)s (%(index)s) / %(col)s", {
+        name: ruleName,
+        index: ruleIndex,
+        col: colPart,
+      });
     }
     if (ruleName) {
-      return ruleName + " (" + ruleIndex + ")";
+      return ipaTf("Rule %(name)s (%(index)s)", {
+        name: ruleName,
+        index: ruleIndex,
+      });
     }
     if (colPart) {
-      return "Rule " + ruleIndex + " / " + colPart;
+      return ipaTf("Rule %(index)s / %(col)s", {
+        index: ruleIndex,
+        col: colPart,
+      });
     }
-    var colPosition = context.colPosition;
-    if (colPosition) {
-      return "Rule " + ruleIndex + "/" + colPosition;
-    }
-    return "";
+    return ipaTf("Rule %(index)s/%(col)s", {
+      index: ruleIndex,
+      col: colPosition,
+    });
   }
 
   function diffSideLabel(tab) {
@@ -243,34 +284,65 @@
       return rulesTitle;
     }
     if (!objects.length) {
-      return "IP-Analyse";
+      return ipaT("IP Analysis");
     }
     if (objects.length === 1) {
-      return objects[0].name || "IP-Analyse";
+      return objects[0].name || ipaT("IP Analysis");
     }
-    return objects.length + " Objekte";
+    return ipaTf("%(count)s objects", { count: objects.length });
   }
 
   function mergedTabTitle(objectCount) {
-    return "Merged (" + objectCount + " Objekte)";
+    return ipaTf("Merged (%(count)s objects)", { count: objectCount });
+  }
+
+  function diffRulesSideShortLabel(context) {
+    if (!context) {
+      return "";
+    }
+    var ruleIndex = context.ruleIndex;
+    var colPosition = context.colPosition;
+    if (ruleIndex == null || ruleIndex === "" || !colPosition) {
+      return "";
+    }
+    return ruleIndex + "/" + colPosition;
   }
 
   function diffTabTitleFromTabs(tabs) {
     if (!tabs || !tabs.length) {
-      return "Diff";
+      return ipaT("Diff");
+    }
+    var ruleShorts = tabs.map(function (tab) {
+      return diffRulesSideShortLabel(tab.context);
+    });
+    if (
+      ruleShorts.length === tabs.length &&
+      ruleShorts.every(function (label) {
+        return !!label;
+      })
+    ) {
+      if (tabs.length === 2) {
+        return ipaTf("Diff %(a)s - %(b)s", {
+          a: ruleShorts[0],
+          b: ruleShorts[1],
+        });
+      }
+      if (tabs.length <= 4) {
+        return ipaTf("Diff %(labels)s", { labels: ruleShorts.join(" - ") });
+      }
     }
     if (tabs.length === 2) {
       var a = truncateTitle(diffSideLabel(tabs[0]) || tabs[0].title || "A");
       var b = truncateTitle(diffSideLabel(tabs[1]) || tabs[1].title || "B");
-      return "Diff (" + a + " ↔ " + b + ")";
+      return ipaTf("Diff (%(a)s ↔ %(b)s)", { a: a, b: b });
     }
     if (tabs.length <= 4) {
       var labels = tabs.map(function (tab) {
         return truncateTitle(diffSideLabel(tab) || tab.title || "");
       });
-      return "Diff (" + labels.join(" ↔ ") + ")";
+      return ipaTf("Diff (%(labels)s)", { labels: labels.join(" ↔ ") });
     }
-    return "Diff (" + tabs.length + " Tabs)";
+    return ipaTf("Diff (%(count)s tabs)", { count: tabs.length });
   }
 
   function diffObjectsKey(sides) {
@@ -288,33 +360,41 @@
     if (!summary) {
       return "";
     }
-    var fundPart = summary.fund > 0 ? " | Fund: " + summary.fund : "";
+    var fundPart =
+      summary.fund > 0
+        ? ipaTf(" | Fund: %(count)s", { count: summary.fund })
+        : "";
     if (summary.side_count && summary.side_count > 2) {
       var parts = [];
       (summary.only_by_side || []).forEach(function (item) {
         if (item.count > 0) {
-          parts.push((item.label || "?") + ": +" + item.count);
+          parts.push(
+            ipaTf("%(label)s: +%(count)s", {
+              label: item.label || "?",
+              count: item.count,
+            })
+          );
         }
       });
       if (summary.in_all > 0) {
-        parts.push("in allen: " + summary.in_all);
+        parts.push(ipaTf("in all: %(count)s", { count: summary.in_all }));
       }
       if (summary.in_some > 0) {
-        parts.push("in einigen: " + summary.in_some);
+        parts.push(ipaTf("in some: %(count)s", { count: summary.in_some }));
       }
       return parts.join(" | ") + fundPart;
     }
     return (
-      (summary.label_a || "A") +
-      ": +" +
-      (summary.only_a || 0) +
-      " | " +
-      (summary.label_b || "B") +
-      ": +" +
-      (summary.only_b || 0) +
-      " | gemeinsam: " +
-      (summary.both || 0) +
-      fundPart
+      ipaTf(
+        "%(label_a)s: +%(count_a)s | %(label_b)s: +%(count_b)s | shared: %(both)s",
+        {
+          label_a: summary.label_a || "A",
+          count_a: summary.only_a || 0,
+          label_b: summary.label_b || "B",
+          count_b: summary.only_b || 0,
+          both: summary.both || 0,
+        }
+      ) + fundPart
     );
   }
 
@@ -376,8 +456,8 @@
     var btn = document.createElement("button");
     btn.type = "button";
     btn.className = "nsm-ipa-loupe";
-    btn.setAttribute("aria-label", title || "Objekt analysieren");
-    btn.title = title || "Objekt analysieren";
+    btn.setAttribute("aria-label", title || ipaT("Analyze object"));
+    btn.title = title || ipaT("Analyze object");
     btn.innerHTML = '<i class="mdi mdi-magnify" aria-hidden="true"></i>';
     if (obj && obj.ct != null && obj.pk != null) {
       btn.setAttribute("data-ct", String(obj.ct));
@@ -390,14 +470,16 @@
   function loadingHtml() {
     return (
       '<div class="nsm-ipa-applet-loading">' +
-      '<span class="mdi mdi-loading mdi-spin" aria-hidden="true"></span> Analyse läuft…</div>'
+      '<span class="mdi mdi-loading mdi-spin" aria-hidden="true"></span> ' +
+      escHtml(ipaT("Analysis running…")) +
+      "</div>"
     );
   }
 
   function errorHtml(message) {
     return (
       '<div class="nsm-ipa-applet-error">' +
-      escHtml(message || "Analyse fehlgeschlagen.") +
+      escHtml(message || ipaT("Analysis failed.")) +
       "</div>"
     );
   }
@@ -451,24 +533,52 @@
     panel.className = "nsm-ipa-applet";
     panel.setAttribute("role", "dialog");
     panel.setAttribute("aria-modal", "false");
-    panel.setAttribute("aria-label", "IP-Analyse");
+    panel.setAttribute("aria-label", ipaT("IP Analysis"));
     panel.hidden = true;
     panel.innerHTML =
       '<div class="nsm-ipa-applet-header">' +
-        '<h6 class="nsm-ipa-applet-title"><i class="mdi mdi-ip-network-outline" aria-hidden="true"></i><span class="nsm-ipa-applet-title-text">IP-Analyse</span></h6>' +
+        '<h6 class="nsm-ipa-applet-title"><i class="mdi mdi-ip-network-outline" aria-hidden="true"></i><span class="nsm-ipa-applet-title-text">' +
+        escHtml(ipaT("IP Analysis")) +
+        '</span></h6>' +
         '<div class="nsm-ipa-applet-actions">' +
-          '<button type="button" class="btn btn-sm btn-ghost-secondary py-0 px-1 nsm-ipa-applet-minimize" title="Minimieren" aria-label="Minimieren"><i class="mdi mdi-window-minimize"></i></button>' +
-          '<button type="button" class="btn btn-sm btn-ghost-secondary py-0 px-1 nsm-ipa-applet-close" title="Schließen" aria-label="Schließen"><i class="mdi mdi-close"></i></button>' +
+          '<button type="button" class="btn btn-sm btn-ghost-secondary py-0 px-1 nsm-ipa-applet-minimize" title="' +
+          escHtml(ipaT("Minimize")) +
+          '" aria-label="' +
+          escHtml(ipaT("Minimize")) +
+          '"><i class="mdi mdi-window-minimize"></i></button>' +
+          '<button type="button" class="btn btn-sm btn-ghost-secondary py-0 px-1 nsm-ipa-applet-close" title="' +
+          escHtml(ipaT("Close")) +
+          '" aria-label="' +
+          escHtml(ipaT("Close")) +
+          '"><i class="mdi mdi-close"></i></button>' +
         "</div>" +
       "</div>" +
       '<div class="nsm-ipa-applet-toolbar" hidden>' +
         '<div class="dropdown nsm-ipa-applet-add-object">' +
-          '<button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle nsm-ipa-applet-add-object-toggle" data-bs-toggle="dropdown" data-bs-container="body" aria-expanded="false" title="Objekt hinzufügen" aria-label="Objekt hinzufügen">Objekt hinzufügen</button>' +
+          '<button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle nsm-ipa-applet-add-object-toggle" data-bs-toggle="dropdown" data-bs-container="body" aria-expanded="false" title="' +
+          escHtml(ipaT("Add object")) +
+          '" aria-label="' +
+          escHtml(ipaT("Add object")) +
+          '">' +
+          escHtml(ipaT("Add object")) +
+          '</button>' +
           '<ul class="dropdown-menu nsm-ipa-applet-add-object-menu"></ul>' +
         "</div>" +
         '<div class="nsm-ipa-applet-toolbar-actions">' +
-          '<button type="button" class="btn btn-sm btn-outline-primary nsm-ipa-applet-merge" title="Merge" aria-label="Merge"><i class="mdi mdi-call-merge" aria-hidden="true"></i><span>Merge</span></button>' +
-          '<button type="button" class="btn btn-sm btn-outline-primary nsm-ipa-applet-diff" title="Diff" aria-label="Diff"><i class="mdi mdi-compare" aria-hidden="true"></i><span>Diff</span></button>' +
+          '<button type="button" class="btn btn-sm btn-outline-primary nsm-ipa-applet-merge" title="' +
+          escHtml(ipaT("Merge")) +
+          '" aria-label="' +
+          escHtml(ipaT("Merge")) +
+          '"><i class="mdi mdi-call-merge" aria-hidden="true"></i><span>' +
+          escHtml(ipaT("Merge")) +
+          '</span></button>' +
+          '<button type="button" class="btn btn-sm btn-outline-primary nsm-ipa-applet-diff" title="' +
+          escHtml(ipaT("Diff")) +
+          '" aria-label="' +
+          escHtml(ipaT("Diff")) +
+          '"><i class="mdi mdi-compare" aria-hidden="true"></i><span>' +
+          escHtml(ipaT("Diff")) +
+          '</span></button>' +
         "</div>" +
       "</div>" +
       '<div class="nsm-ipa-applet-tabs" hidden>' +
@@ -477,15 +587,24 @@
       '<div class="nsm-ipa-applet-add-modal" hidden>' +
         '<div class="nsm-ipa-applet-add-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="nsm-ipa-applet-add-modal-title">' +
           '<div class="nsm-ipa-applet-add-modal-head">' +
-            '<h6 class="nsm-ipa-applet-add-modal-title" id="nsm-ipa-applet-add-modal-title">Objekt hinzufügen</h6>' +
-            '<button type="button" class="btn btn-sm btn-ghost-secondary py-0 px-1 nsm-ipa-applet-add-modal-close" title="Schließen" aria-label="Schließen"><i class="mdi mdi-close"></i></button>' +
+            '<h6 class="nsm-ipa-applet-add-modal-title" id="nsm-ipa-applet-add-modal-title">' +
+            escHtml(ipaT("Add object")) +
+            '</h6>' +
+            '<button type="button" class="btn btn-sm btn-ghost-secondary py-0 px-1 nsm-ipa-applet-add-modal-close" title="' +
+            escHtml(ipaT("Close")) +
+            '" aria-label="' +
+            escHtml(ipaT("Close")) +
+            '"><i class="mdi mdi-close"></i></button>' +
           "</div>" +
-          '<input type="search" class="form-control form-control-sm nsm-ipa-applet-add-search" placeholder="Suchen…" autocomplete="off">' +
+          '<input type="search" class="form-control form-control-sm nsm-ipa-applet-add-search" placeholder="' +
+          escHtml(ipaT("Search…")) +
+          '" autocomplete="off">' +
           '<div class="nsm-ipa-applet-add-results"></div>' +
         "</div>" +
       "</div>" +
       '<div class="nsm-ipa-applet-body"></div>' +
       '<div class="nsm-ipa-applet-footer"><span class="nsm-ipa-applet-status"></span><span class="nsm-ipa-applet-count"></span></div>' +
+      '<div class="nsm-ipa-applet-resize-handle nsm-ipa-applet-resize-handle--n" data-resize="n" aria-hidden="true"></div>' +
       '<div class="nsm-ipa-applet-resize-handle nsm-ipa-applet-resize-handle--e" data-resize="e" aria-hidden="true"></div>' +
       '<div class="nsm-ipa-applet-resize-handle nsm-ipa-applet-resize-handle--s" data-resize="s" aria-hidden="true"></div>' +
       '<div class="nsm-ipa-applet-resize-handle nsm-ipa-applet-resize-handle--se" data-resize="se" aria-hidden="true"></div>';
@@ -759,20 +878,38 @@
     var dir = this.resizeState.direction;
     var width = this.resizeState.originWidth;
     var height = this.resizeState.originHeight;
+    var left = this.resizeState.originLeft;
+    var top = this.resizeState.originTop;
 
     if (dir.indexOf("e") !== -1) {
-      width += dx;
+      width = this.resizeState.originWidth + dx;
+    }
+    if (dir.indexOf("w") !== -1) {
+      width = this.resizeState.originWidth - dx;
+      left = this.resizeState.originLeft + dx;
     }
     if (dir.indexOf("s") !== -1) {
-      height += dy;
+      height = this.resizeState.originHeight + dy;
+    }
+    if (dir.indexOf("n") !== -1) {
+      height = this.resizeState.originHeight - dy;
+      top = this.resizeState.originTop + dy;
     }
 
-    var size = this._clampSize(
-      width,
-      height,
-      this.resizeState.originLeft,
-      this.resizeState.originTop
-    );
+    var size = this._clampSize(width, height, left, top);
+
+    if (dir.indexOf("n") !== -1) {
+      top = this.resizeState.originTop + (this.resizeState.originHeight - size.height);
+    }
+    if (dir.indexOf("w") !== -1) {
+      left = this.resizeState.originLeft + (this.resizeState.originWidth - size.width);
+    }
+
+    top = Math.max(VIEWPORT_MARGIN, top);
+    left = Math.max(VIEWPORT_MARGIN, left);
+
+    this.el.style.left = left + "px";
+    this.el.style.top = top + "px";
     this.el.style.width = size.width + "px";
     this.el.style.height = size.height + "px";
   };
@@ -833,11 +970,17 @@
     }
     var tab = this.getActiveTab();
     if (!tab) {
-      this.titleEl.textContent = "IP-Analyse";
+      this.titleEl.textContent = ipaT("IP Analysis");
+      return;
+    }
+    if (tab.mode === "diff") {
+      this.titleEl.textContent = tab.title;
       return;
     }
     if (this.tabs.length > 1) {
-      this.titleEl.textContent = "IP-Analyse (" + this.tabs.length + ")";
+      this.titleEl.textContent = ipaTf("IP Analysis (%(count)s)", {
+        count: this.tabs.length,
+      });
       return;
     }
     this.titleEl.textContent = tab.title;
@@ -852,18 +995,23 @@
     this.el.classList.toggle("nsm-ipa-applet--has-toolbar", showToolbar);
 
     if (this.mergeBtnEl) {
-      var canMerge = this.tabs.length > 1;
+      var mergeSourceCount = this.tabs.filter(function (tab) {
+        return tab.mode !== "diff";
+      }).length;
+      var canMerge = mergeSourceCount > 1;
       this.mergeBtnEl.disabled = !canMerge || this._merging || this._diffing;
     }
     if (this.diffBtnEl) {
-      var canDiff = this.tabs.length >= 2;
+      var diffSourceCount = this.tabs.filter(function (tab) {
+        return tab.mode !== "diff";
+      }).length;
+      var canDiff = diffSourceCount >= 2;
       this.diffBtnEl.disabled = !canDiff || this._merging || this._diffing;
-      this.diffBtnEl.title = canDiff
-        ? "Diff"
-        : "Diff (mindestens 2 Tabs erforderlich)";
+      var diffDisabledLabel = ipaT("Diff (at least 2 tabs required)");
+      this.diffBtnEl.title = canDiff ? ipaT("Diff") : diffDisabledLabel;
       this.diffBtnEl.setAttribute(
         "aria-label",
-        canDiff ? "Diff" : "Diff (mindestens 2 Tabs erforderlich)"
+        canDiff ? ipaT("Diff") : diffDisabledLabel
       );
     }
   };
@@ -899,7 +1047,11 @@
           '<span class="nsm-ipa-applet-tab-label">' +
           escHtml(label) +
           "</span>" +
-          '<span class="nsm-ipa-applet-tab-close" role="button" tabindex="-1" aria-label="Tab schließen" title="Schließen">&times;</span>' +
+          '<span class="nsm-ipa-applet-tab-close" role="button" tabindex="-1" aria-label="' +
+          escHtml(ipaT("Close tab")) +
+          '" title="' +
+          escHtml(ipaT("Close")) +
+          '">&times;</span>' +
           "</button>";
       }.bind(this)
     );
@@ -939,7 +1091,9 @@
     }
     if (!categories.length) {
       this.addObjectMenuEl.innerHTML =
-        '<li><span class="dropdown-item-text text-muted small">Keine Objekttypen verfügbar</span></li>';
+        '<li><span class="dropdown-item-text text-muted small">' +
+        escHtml(ipaT("No object types available")) +
+        "</span></li>";
       return;
     }
     var html = "";
@@ -981,11 +1135,15 @@
     this._addObjectCategory = category;
     this.addObjectModalEl.hidden = false;
     if (this.addObjectTitleEl) {
-      this.addObjectTitleEl.textContent = "Objekt hinzufügen — " + category.label;
+      this.addObjectTitleEl.textContent = ipaTf("Add object — %(category)s", {
+        category: category.label,
+      });
     }
     if (this.addObjectResultsEl) {
       this.addObjectResultsEl.innerHTML =
-        '<div class="nsm-ipa-applet-add-msg">Suchbegriff eingeben…</div>';
+        '<div class="nsm-ipa-applet-add-msg">' +
+        escHtml(ipaT("Enter search term…")) +
+        "</div>";
     }
     if (this.addObjectSearchEl) {
       this.addObjectSearchEl.value = "";
@@ -1006,7 +1164,9 @@
     }
     if (!items.length) {
       this.addObjectResultsEl.innerHTML =
-        '<div class="nsm-ipa-applet-add-msg">Keine Treffer</div>';
+        '<div class="nsm-ipa-applet-add-msg">' +
+        escHtml(ipaT("No matches")) +
+        "</div>";
       return;
     }
     var html = "";
@@ -1032,7 +1192,7 @@
   Applet.prototype._searchAddObject = function (query) {
     var category = this._addObjectCategory;
     if (!category || !query.trim()) {
-      this._renderAddObjectResults([], "Suchbegriff eingeben…");
+      this._renderAddObjectResults([], ipaT("Enter search term…"));
       return;
     }
     if (this._addObjectSearchCtrl) {
@@ -1041,7 +1201,7 @@
     this._addObjectSearchCtrl = new AbortController();
     var token = ++this._addObjectSearchToken;
     var signal = this._addObjectSearchCtrl.signal;
-    this._renderAddObjectResults([], "Suche…");
+    this._renderAddObjectResults([], ipaT("Searching…"));
 
     var fetches = (category.types || []).map(function (typeEntry) {
       var url =
@@ -1181,24 +1341,19 @@
   };
 
   Applet.prototype.diffTabs = function () {
-    if (this.tabs.length < 2 || this._diffing) {
+    var sourceTabs = this.tabs.filter(function (tab) {
+      return tab.mode !== "diff";
+    });
+    if (sourceTabs.length < 2 || this._diffing) {
       return;
     }
 
-    var sourceTabs = this.tabs.slice();
     var hasObjects = sourceTabs.some(function (tab) {
       return (tab.objects || []).length > 0;
     });
     if (!hasObjects) {
       return;
     }
-
-    this._diffing = true;
-    this.renderTabs();
-
-    sourceTabs.forEach(function (tab) {
-      tab.loadToken = (tab.loadToken || 0) + 1;
-    });
 
     var sides = sourceTabs.map(function (tab) {
       return {
@@ -1208,6 +1363,17 @@
         objects: normalizeObjects(tab.objects),
       };
     });
+    var diffKey = diffObjectsKey(sides);
+    for (var i = 0; i < this.tabs.length; i++) {
+      if (this.tabs[i].mode === "diff" && this.tabs[i].objectsKey === diffKey) {
+        this.showWindow();
+        this.activateTab(this.tabs[i].id);
+        return;
+      }
+    }
+
+    this._diffing = true;
+    this.renderTabs();
 
     var diffTab = {
       id: this.nextTabId++,
@@ -1215,7 +1381,7 @@
       contextLabel: diffTabContextLabel(sourceTabs),
       mode: "diff",
       sides: sides,
-      objectsKey: diffObjectsKey(sides),
+      objectsKey: diffKey,
       status: "loading",
       html: "",
       message: "",
@@ -1227,10 +1393,11 @@
       _loading: false,
     };
 
-    this.tabs = [diffTab];
+    this.tabs.push(diffTab);
     this.activeTabId = diffTab.id;
     this._diffing = false;
 
+    this.showWindow();
     this.renderTabs();
     this.setWindowTitle();
     this.renderActiveContent();
@@ -1238,11 +1405,14 @@
   };
 
   Applet.prototype.mergeTabs = function () {
-    if (this.tabs.length < 2 || this._merging) {
+    var mergeSourceTabs = this.tabs.filter(function (tab) {
+      return tab.mode !== "diff";
+    });
+    if (mergeSourceTabs.length < 2 || this._merging) {
       return;
     }
 
-    var mergedObjects = collectObjectsFromTabs(this.tabs);
+    var mergedObjects = collectObjectsFromTabs(mergeSourceTabs);
     if (!mergedObjects.length) {
       return;
     }
@@ -1325,7 +1495,9 @@
     } else {
       this.bodyEl.innerHTML =
         contextBanner +
-        '<div class="nsm-ipa-applet-empty">Keine IP-Adressen aufgelöst.</div>';
+        '<div class="nsm-ipa-applet-empty">' +
+        escHtml(ipaT("No IP addresses resolved.")) +
+        "</div>";
     }
     if (tab.mode === "diff" && tab.diffSummary) {
       countEl.textContent = formatDiffSummary(tab.diffSummary);
@@ -1333,7 +1505,7 @@
       countEl.textContent = formatTypeCountSummary(tab);
     }
     statusEl.textContent = tab.unsupportedCount
-      ? tab.unsupportedCount + " übersprungen"
+      ? ipaTf("%(count)s skipped", { count: tab.unsupportedCount })
       : "";
   };
 
@@ -1407,7 +1579,7 @@
             return;
           }
           tab.status = "error";
-          tab.error = "Analyse konnte nicht geladen werden.";
+          tab.error = ipaT("Analysis could not be loaded.");
           if (tab.id === this.activeTabId) {
             this.renderActiveContent();
           }

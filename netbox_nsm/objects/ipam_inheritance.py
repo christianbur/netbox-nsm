@@ -102,12 +102,9 @@ def should_include_inherited_type(
 
 
 def _type_config_map() -> dict:
-    from netbox_nsm.models import TypeConfig
+    from netbox_nsm.objects.nsm_config import build_nsm_config_lookup
 
-    return {
-        tc.content_type_id: tc
-        for tc in TypeConfig.objects.select_related("content_type").all()
-    }
+    return build_nsm_config_lookup()
 
 
 def _linked_dedupe_key(linked, type_key: str) -> tuple:

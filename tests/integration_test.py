@@ -207,7 +207,6 @@ def login() -> bool:
 def test_api_list_endpoints():
     """Alle LIST-Endpoints geben HTTP 200 mit count-Feld zurück."""
     endpoints = [
-        ("object-groups", "/api/plugins/netbox-nsm/object-groups/"),
         ("rulebook-assignments", "/api/plugins/netbox-nsm/rulebook-assignments/"),
         ("object-links", "/api/plugins/netbox-nsm/object-links/"),
         ("type-configs", "/api/plugins/netbox-nsm/type-configs/"),

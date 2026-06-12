@@ -1,0 +1,60 @@
+/* Object Sync — column quick-search (Rule Viewer parity) */
+
+#object-sync .nsm-rules-head-row--filter th {
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+#object-sync .nsm-sync-filter-cell {
+  min-width: 0;
+}
+
+#object-sync .nsm-sync-filter-cell .nsm-rules-filter-field {
+  min-width: 0;
+}
+
+#object-sync .nsm-rules-filter-field {
+  position: relative;
+}
+
+#object-sync .nsm-rules-filter-field .nsm-rules-filter-input {
+  padding-right: 1.65rem;
+}
+
+#object-sync .nsm-rules-filter-field .nsm-rules-filter-input::-webkit-search-cancel-button,
+#object-sync .nsm-rules-filter-field .nsm-rules-filter-input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+
+#object-sync .nsm-rules-filter-clear {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--bs-secondary-color, #6c757d);
+  display: none;
+  height: 1.25rem;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+  position: absolute;
+  right: 0.3rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.25rem;
+}
+
+#object-sync .nsm-rules-filter-field--has-value .nsm-rules-filter-clear {
+  display: inline-flex;
+}
+
+#object-sync .nsm-rules-filter-input::placeholder {
+  color: var(--bs-secondary-color, #6c757d);
+  opacity: 0.35;
+}
+
+#object-sync .table-responsive {
+  max-height: min(75vh, 920px);
+  overflow: auto;
+}

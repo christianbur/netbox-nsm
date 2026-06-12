@@ -7,7 +7,10 @@ from django.utils.translation import gettext_lazy as _
 from django.views import View
 
 from netbox_nsm.forms import ObjectLinkAssignForm, ObjectLinkEditForm
-from netbox_nsm.models import TypeConfig
+from netbox_nsm.objects.nsm_config import (
+    is_assignable_from_content_type,
+    is_panel_linkable_content_type,
+)
 from netbox_nsm.objects.link_propagation import CotObjectLinkPropagationChoices
 from netbox_nsm.objects.object_link_service import (
     create_or_update_links,
@@ -320,7 +323,7 @@ class ObjectTypeElementsApiView(LoginRequiredMixin, View):
         except ContentType.DoesNotExist:
             return HttpResponseBadRequest("Invalid ct_id")
 
-        if not TypeConfig.queryset_panel_linkable().filter(content_type=ct).exists():
+        if not is_panel_linkable_content_type(ct_id):
             return HttpResponseBadRequest(
                 "Type not configured as panel-linkable in NSM"
             )
@@ -331,11 +334,7 @@ class ObjectTypeElementsApiView(LoginRequiredMixin, View):
                 assigner_id = int(assigner_ct_id)
             except (TypeError, ValueError):
                 return HttpResponseBadRequest("Invalid assigner_ct_id")
-            if (
-                not TypeConfig.queryset_assignable_from(assigner_id)
-                .filter(content_type=ct)
-                .exists()
-            ):
+            if not is_assignable_from_content_type(assigner_id, ct_id):
                 return HttpResponseBadRequest(
                     "Type not assignable from this object type in NSM"
                 )

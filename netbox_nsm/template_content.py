@@ -10,13 +10,9 @@ def _build_ip_analysis_url(obj, ct, rulebook_groups):
 
     from django.urls import reverse
 
-    from netbox_nsm.models import TypeConfig
-    from netbox_nsm.models.type_config import MatchingClassChoices
+    from netbox_nsm.core.type_kind import is_address_content_model
 
-    if not TypeConfig.objects.filter(
-        content_type=ct,
-        matching_class=MatchingClassChoices.ADDRESS,
-    ).exists():
+    if not is_address_content_model(ct.model):
         return None
 
     obj_name = str(obj)
@@ -32,7 +28,13 @@ def _panel_link_payload(linked, lct, tmpl_map, **extra):
         _object_is_addr_analyzable,
         _object_supports_addr_analysis,
     )
+    from netbox_nsm.core.interface_parent import interface_parent_host_payload
+    from netbox_nsm.core.nsm_object_status import (
+        get_nsm_object_status,
+        nsm_object_status_icon_html,
+    )
 
+    object_status = get_nsm_object_status(linked)
     payload = {
         "url": (
             linked.get_absolute_url() if hasattr(linked, "get_absolute_url") else "#"
@@ -42,6 +44,9 @@ def _panel_link_payload(linked, lct, tmpl_map, **extra):
         "obj_id": linked.pk,
         "addr_analyzable": _object_is_addr_analyzable(linked, lct.pk),
         "supports_addr_analysis": _object_supports_addr_analysis(linked),
+        "status": object_status,
+        "status_icon_html": nsm_object_status_icon_html(object_status),
+        **interface_parent_host_payload(linked),
     }
     payload.update(extra)
     return payload
@@ -385,6 +390,23 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
         except Exception:
             pass
 
+        nsm_interface_analysis = []
+        try:
+            from dcim.models import Device as _AnalysisDevice
+            from virtualization.models import VirtualMachine as _AnalysisVM
+            from netbox_nsm.security.host_interface_analysis import (
+                build_host_interface_analysis,
+            )
+
+            if isinstance(obj, (_AnalysisDevice, _AnalysisVM)):
+                nsm_interface_analysis = build_host_interface_analysis(
+                    obj,
+                    request=request,
+                    panel_url=_panel_url,
+                )
+        except Exception:
+            pass
+
         return self.render(
             "netbox_nsm/inc/security_links.html",
             {
@@ -404,6 +426,7 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
                 "nsm_page_object_name": obj_name,
                 "nsm_enforcer_assignments": enforcer_assignments,
                 "nsm_enforcer_add_url": enforcer_add_url,
+                "nsm_interface_analysis": nsm_interface_analysis,
             },
         )
 

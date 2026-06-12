@@ -8,8 +8,10 @@ from collections import defaultdict
 from django.utils.html import escape
 from django.utils.translation import gettext as _
 
+from netbox_nsm.core.type_kind import column_is_address
 from netbox_nsm.query.engine import RulebookContext
 from netbox_nsm.query.parser import Query
+from netbox_nsm.rulebooks.cell_html import rules_filter_target_html
 
 # System layout slug -> row field + rules table column options
 _SYSTEM_COLUMN_DEFS: dict[str, dict] = {
@@ -68,12 +70,18 @@ def _description_cell_html(system: dict) -> str:
     parts = re.split(r"\s→\s", desc)
     if len(parts) >= 2:
         lines = "".join(
-            f'<span class="nsm-ag-description-part">{escape(part.strip())}</span>'
+            rules_filter_target_html(
+                f'<span class="nsm-ag-description-part">{escape(part.strip())}</span>',
+                part.strip(),
+            )
             for part in parts
             if part.strip()
         )
         return f'<div class="nsm-ag-description-lines">{lines}</div>'
-    return f'<span class="nsm-ag-description-text">{escape(desc)}</span>'
+    return rules_filter_target_html(
+        f'<span class="nsm-ag-description-text">{escape(desc)}</span>',
+        desc,
+    )
 
 
 def _description_line_count(desc_raw: str) -> int:
@@ -1139,7 +1147,7 @@ def _object_column_def(col: dict) -> dict:
         "cellRendererParams": {
             "maxPills": col.get("max_visible_pills", 5),
             "colored": col.get("show_colored_pills", True),
-            "addressColumn": col.get("matching_class") == "address",
+            "addressColumn": column_is_address(col),
         },
     }
 

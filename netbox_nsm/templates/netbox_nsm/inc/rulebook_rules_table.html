@@ -1,15 +1,40 @@
 {% load i18n %}
-<table class="table table-hover object-list nsm-rules-table">
+<table class="table table-hover object-list nsm-rules-table{% if rules_row_group_active %} nsm-rules-table--row-grouped{% endif %}">
   {% include "netbox_nsm/inc/rulebook_rules_table_colgroup.html" %}
   <thead>
     {% include "netbox_nsm/inc/rulebook_rules_table_thead.html" %}
   </thead>
   <tbody>
     {% for row in rules_rows %}
-    <tr class="nsm-rules-data-row{% if row.rules_multiline %} nsm-rules-multi-row{% endif %}{% if not row.enabled %} nsm-rules-row--inactive{% endif %}"
+    {% if row.kind == "group" %}
+    <tr class="nsm-rules-group-row"
+        data-group-id="{{ row.group_id }}">
+      {% if rules_show_selection_column %}
+      <td class="w-1"></td>
+      {% endif %}
+      {% for col in rules_flat_columns %}
+        {% if col.kind == "rule_group" %}
+        <td class="nsm-rules-td nsm-rules-td--rule-group">
+          <button type="button"
+                  class="btn btn-sm btn-link p-0 text-start nsm-rules-group-toggle"
+                  data-group-id="{{ row.group_id }}"
+                  aria-expanded="false">
+            <span class="mdi mdi-chevron-right nsm-rules-group-chevron" aria-hidden="true"></span>
+            <span class="nsm-rules-group-label">{{ row.group_label }}</span>
+            <span class="text-muted">({{ row.rule_count }})</span>
+          </button>
+        </td>
+        {% else %}
+        <td class="nsm-rules-td nsm-rules-td--empty"></td>
+        {% endif %}
+      {% endfor %}
+    </tr>
+    {% else %}
+    <tr class="nsm-rules-data-row{% if row.parent_group_id %} nsm-rules-group-child nsm-rules-group-child--collapsed{% endif %}{% if row.rules_multiline %} nsm-rules-multi-row{% endif %}{% if not row.enabled %} nsm-rules-row--inactive{% endif %}"
         data-status="{% if row.enabled %}true{% else %}false{% endif %}"
         data-rule-index="{{ row.index }}"
-        data-rule-name="{{ row.name|escape }}">
+        data-rule-name="{{ row.name|escape }}"
+        {% if row.parent_group_id %}data-parent-group="{{ row.parent_group_id }}"{% endif %}>
       {% if rules_show_selection_column %}
       <td class="w-1">
         <input type="checkbox"
@@ -27,6 +52,7 @@
         </td>
       {% endfor %}
     </tr>
+    {% endif %}
     {% empty %}
     <tr>
       <td colspan="{% if rules_show_selection_column %}{{ rules_flat_columns|length|add:1 }}{% else %}{{ rules_flat_columns|length }}{% endif %}" class="text-center text-muted">

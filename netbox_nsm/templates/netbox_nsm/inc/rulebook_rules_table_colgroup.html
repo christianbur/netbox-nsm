@@ -1,7 +1,11 @@
 {% if rules_flat_columns %}
 <colgroup>
   {% if rules_show_selection_column %}
-  <col class="nsm-rules-col nsm-rules-col--select">
+  <col class="nsm-rules-col nsm-rules-col--select"
+       data-col-id="_select"
+       data-default-width="40"
+       data-min-width="32"
+       style="width: 40px; min-width: 32px">
   {% endif %}
   {% for col in rules_flat_columns %}
   <col class="nsm-rules-col"

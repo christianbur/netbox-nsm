@@ -1,6 +1,6 @@
 import django_tables2 as tables
 from django.urls import reverse, NoReverseMatch
-from django.utils.html import format_html, mark_safe
+from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
 from netbox.tables import NetBoxTable
@@ -10,23 +10,12 @@ from netbox_nsm.models import TypeConfig
 
 __all__ = ("TypeConfigTable",)
 
-_MATCHING_CLASS_BADGE = {
-    "address": ("bg-info", "text-white"),
-    "zone": ("bg-primary", "text-white"),
-    "label-scope": ("bg-primary", "text-white"),
-    "label": ("bg-success", "text-white"),
-    "service": ("bg-warning", "text-white"),
-    "action": ("bg-danger", "text-white"),
-    "info": ("bg-light", "text-dark border"),
-    "user": ("bg-dark", "text-white"),
-    "application": ("bg-secondary", "text-white"),
-    "group": ("bg-secondary", "text-white"),
-    "trust": ("bg-secondary", "text-white"),
-    "other": ("bg-secondary", "text-white"),
-}
-
 
 class TypeConfigTable(NetBoxTable):
+    sort_order = tables.Column(
+        verbose_name=_("Sort order"),
+        orderable=True,
+    )
     name = tables.Column(
         verbose_name=_("Name"),
         orderable=True,
@@ -37,13 +26,7 @@ class TypeConfigTable(NetBoxTable):
         orderable=True,
         order_by=("content_type__app_label", "content_type__model"),
     )
-    matching_class = tables.Column(verbose_name=_("Matching Class"))
     display_template = tables.Column(verbose_name=_("Display Template"))
-    panel_linkable_types = tables.Column(
-        verbose_name=_("Panel"),
-        orderable=False,
-        accessor="panel_linkable_types",
-    )
     actions = ActionsColumn(actions=("edit", "delete"))
 
     def render_content_type(self, value):
@@ -65,7 +48,6 @@ class TypeConfigTable(NetBoxTable):
             app_name,
             model_name,
         )
-        # Try to find the object list URL
         url = None
         for pattern in (
             f"{value.app_label}:{value.model}_list",
@@ -80,40 +62,19 @@ class TypeConfigTable(NetBoxTable):
             return format_html('<a href="{}">{}</a>', url, inner)
         return inner
 
-    def render_matching_class(self, value):
-        if not value:
-            return "—"
-        bg, fg = _MATCHING_CLASS_BADGE.get(value, ("bg-secondary", "text-white"))
-        label = value.replace("_", " ").capitalize()
-        return format_html('<span class="badge {} {}">{}</span>', bg, fg, label)
-
-    def render_panel_linkable_types(self, record):
-        if record.is_panel_linkable_disabled():
-            return mark_safe('<span class="text-muted">—</span>')
-        labels = record.panel_linkable_type_labels()
-        if not labels:
-            return format_html(
-                '<span class="badge bg-primary-subtle text-primary-emphasis'
-                ' border border-primary-subtle">{}</span>',
-                _("All types"),
-            )
-        return ", ".join(labels)
-
     class Meta(NetBoxTable.Meta):
         model = TypeConfig
         fields = (
             "name",
             "content_type",
-            "matching_class",
+            "sort_order",
             "display_template",
-            "panel_linkable_types",
             "actions",
         )
         default_columns = (
             "name",
             "content_type",
-            "matching_class",
+            "sort_order",
             "display_template",
-            "panel_linkable_types",
             "actions",
         )

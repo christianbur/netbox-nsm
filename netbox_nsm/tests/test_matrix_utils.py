@@ -1,13 +1,10 @@
 """Tests for zone matrix helper utilities."""
 
-from types import SimpleNamespace
-
 from django.test import SimpleTestCase
 
 from netbox_nsm.matrix.matrix_utils import (
-    MATRIX_FILTER_AUTO_COUNT,
-    MATRIX_FILTER_AUTO_THRESHOLD,
-    apply_default_matrix_axis_filters,
+    MATRIX_VIEWPORT_DEFAULT_COLS,
+    MATRIX_VIEWPORT_DEFAULT_ROWS,
     dedupe_matrix_object_types,
     matrix_axis_display_label,
     resolve_matrix_object_type_selection,
@@ -41,40 +38,10 @@ class DedupeMatrixObjectTypesTests(SimpleTestCase):
         self.assertEqual(resolved, 10)
 
 
-class DefaultMatrixAxisFilterTests(SimpleTestCase):
-    def _zones(self, count: int):
-        return [SimpleNamespace(pk=i) for i in range(1, count + 1)]
-
-    def test_leaves_explicit_filters_unchanged(self):
-        zones = self._zones(250)
-        src, dst = apply_default_matrix_axis_filters(
-            zones,
-            src_filter_pks={5},
-            dst_filter_pks=set(),
-        )
-        self.assertEqual(src, {5})
-        self.assertEqual(dst, set())
-
-    def test_no_default_when_at_or_below_threshold(self):
-        zones = self._zones(MATRIX_FILTER_AUTO_THRESHOLD)
-        src, dst = apply_default_matrix_axis_filters(
-            zones,
-            src_filter_pks=set(),
-            dst_filter_pks=set(),
-        )
-        self.assertEqual(src, set())
-        self.assertEqual(dst, set())
-
-    def test_selects_first_ten_when_above_threshold(self):
-        zones = self._zones(MATRIX_FILTER_AUTO_THRESHOLD + 1)
-        src, dst = apply_default_matrix_axis_filters(
-            zones,
-            src_filter_pks=set(),
-            dst_filter_pks=set(),
-        )
-        expected = set(range(1, MATRIX_FILTER_AUTO_COUNT + 1))
-        self.assertEqual(src, expected)
-        self.assertEqual(dst, expected)
+class MatrixViewportDefaultsTests(SimpleTestCase):
+    def test_default_viewport_is_fifty_by_fifty(self):
+        self.assertEqual(MATRIX_VIEWPORT_DEFAULT_ROWS, 50)
+        self.assertEqual(MATRIX_VIEWPORT_DEFAULT_COLS, 50)
 
 
 class MatrixAxisDisplayLabelTests(SimpleTestCase):

@@ -7,6 +7,9 @@ git_user = "christian"
 
 [repo]
 url = "https://github.com/christianbur/netbox-nsm"
+dev_branch = "dev"
+release_branch = "main"
+auto_promote_to_main = true
 
 [changelog]
 file = "CHANGELOG.md"
@@ -40,4 +43,4 @@ init_file = "netbox_nsm/__init__.py"
 
 [reminders]
 pypi_note = "PyPI publish typically runs via the GitHub release pipeline (if configured in the repo)."
-manual_push_hint = "bash /home/christian/homelab/tools/github-push.sh netbox-nsm"
+manual_push_hint = "bash /home/christian/homelab/tools/github-push.sh netbox-nsm && ./scripts/promote_release_to_main.sh --version <X.Y.Z>"

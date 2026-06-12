@@ -48,12 +48,13 @@ class DemoQueueTests(SimpleTestCase):
         self.assertIn("already queued or running", body)
         self.assertIn("abc-123", body)
 
+    @mock.patch.object(demo, "get_nsm_menu_label", return_value="Firewall")
     @mock.patch.object(demo, "messages")
     @mock.patch("django_rq.get_queue")
     @mock.patch.object(demo, "_find_pending_demo_job", return_value=None)
     @mock.patch.object(demo, "_count_active_rq_workers", return_value=1)
     def test_queue_demo_import_mentions_backlog(
-        self, _mock_workers, _mock_pending, mock_get_queue, mock_messages
+        self, _mock_workers, _mock_pending, mock_get_queue, mock_messages, _mock_menu
     ):
         queue = mock.Mock()
         queue.job_ids = ["job-a", "job-b"]
@@ -71,4 +72,5 @@ class DemoQueueTests(SimpleTestCase):
         mock_messages.success.assert_called_once()
         body = mock_messages.success.call_args[0][1]
         self.assertIn("1 other job(s)", body)
+        self.assertIn("Firewall → Rulebooks", body)
         queue.enqueue.assert_called_once()

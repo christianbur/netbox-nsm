@@ -1,4 +1,4 @@
-"""Setup: NSM TypeConfig status and creation."""
+"""Setup: nsm_config status in COT comments."""
 
 from django.contrib import messages
 from django.db.utils import OperationalError, ProgrammingError
@@ -6,52 +6,51 @@ from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from netbox_nsm.models import TypeConfig
-from netbox_nsm.objects.type_config_specs import TYPECONFIG_SPEC_BY_SLUG, TYPECONFIG_SPECS
+from netbox_nsm.objects.nsm_config import (
+    has_nsm_config_in_comments,
+    sync_cot_nsm_config_comments,
+)
+from netbox_nsm.objects.type_config_specs import TYPECONFIG_SPEC_BY_SLUG, TYPECONFIG_UI_SPECS
 
 from .custom_objects import custom_objects_db_ready
 
 __all__ = (
     "get_typeconfig_status",
     "all_typeconfigs_ok",
+    "create_all_typeconfigs",
+    "create_typeconfig_for_slug",
     "handle_typeconfig_action",
 )
 
 
 def empty_typeconfig_status():
     return [
-        {"spec": spec, "cot": None, "typeconfig": None} for spec in TYPECONFIG_SPECS
+        {"spec": spec, "cot": None, "typeconfig": None}
+        for spec in TYPECONFIG_UI_SPECS
     ]
 
 
 def get_typeconfig_status():
-    from django.contrib.contenttypes.models import ContentType as DjCT
-
     if not custom_objects_db_ready():
-        return [
-            {"spec": spec, "cot": None, "typeconfig": None} for spec in TYPECONFIG_SPECS
-        ]
+        return empty_typeconfig_status()
 
     result = []
     try:
         from netbox_custom_objects.models import CustomObjectType
 
-        for spec in TYPECONFIG_SPECS:
-            cot = tc = None
+        from netbox_nsm.objects.nsm_config import resolve_nsm_config_for_cot
+
+        for spec in TYPECONFIG_UI_SPECS:
+            cot = config = None
             try:
                 cot = CustomObjectType.objects.get(slug=spec["slug"])
-                ct = DjCT.objects.get_for_model(cot.get_model())
-                tc = TypeConfig.objects.filter(
-                    content_type=ct,
-                    matching_class=spec["matching_class"],
-                ).first()
+                if has_nsm_config_in_comments(cot.comments or ""):
+                    config = resolve_nsm_config_for_cot(cot)
             except Exception:
                 pass
-            result.append({"spec": spec, "cot": cot, "typeconfig": tc})
+            result.append({"spec": spec, "cot": cot, "typeconfig": config})
     except (ProgrammingError, OperationalError):
-        return [
-            {"spec": spec, "cot": None, "typeconfig": None} for spec in TYPECONFIG_SPECS
-        ]
+        return empty_typeconfig_status()
     return result
 
 
@@ -62,7 +61,6 @@ def all_typeconfigs_ok(cot_status, tc_status) -> bool:
 
 
 def create_typeconfig_for_slug(slug: str) -> None:
-    from django.contrib.contenttypes.models import ContentType as DjCT
     from netbox_custom_objects.models import CustomObjectType
 
     spec = TYPECONFIG_SPEC_BY_SLUG.get(slug)
@@ -70,20 +68,11 @@ def create_typeconfig_for_slug(slug: str) -> None:
         raise ValueError(f"No TypeConfig spec for slug {slug!r}")
 
     cot = CustomObjectType.objects.get(slug=slug)
-    ct = DjCT.objects.get_for_model(cot.get_model())
-    TypeConfig.objects.update_or_create(
-        content_type=ct,
-        matching_class=spec["matching_class"],
-        defaults={
-            "name": spec["label"],
-            "display_template": spec["display_template"],
-            "panel_linkable_types": spec.get("panel_linkable_types", []),
-        },
-    )
+    sync_cot_nsm_config_comments(cot, spec=spec)
 
 
 def create_all_typeconfigs() -> None:
-    """Create/update TypeConfigs and link NSM sections (same as TypeConfig sync)."""
+    """Write bundled nsm_config YAML to all UI Custom Object Types."""
     from netbox_nsm.objects.builtin_types import BUILTIN_CUSTOM_TYPES
     from netbox_nsm.views.custom_objects_sync import _sync_type_configs_and_sections
 
@@ -99,12 +88,12 @@ def handle_typeconfig_action(request, action: str):
         slug = action[len("create_typeconfig_") :]
         create_typeconfig_for_slug(slug)
         messages.success(
-            request, _("TypeConfig for '%(slug)s' created.") % {"slug": slug}
+            request, _("Object Config for '%(slug)s' created.") % {"slug": slug}
         )
     elif action == "create_all_typeconfigs":
         create_all_typeconfigs()
         messages.success(
             request,
-            _("All TypeConfigs created/updated (including NSM section links)."),
+            _("All Object Configs created/updated (including NSM section links)."),
         )
     return redirect(reverse("plugins:netbox_nsm:setup"))

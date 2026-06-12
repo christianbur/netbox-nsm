@@ -1,4 +1,4 @@
-"""Matrix tab context for COT-backed rulebooks (source_zones × destination_zones)."""
+"""Matrix tab context for COT-backed rulebooks (zone source × destination columns)."""
 
 from __future__ import annotations
 
@@ -8,12 +8,20 @@ from urllib.parse import urlencode
 from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
 
-from netbox_nsm.core.branch_urls import with_branch_query, wrap_matrix_cell_hrefs
+from netbox_nsm.core.branch_urls import with_branch_query
 from netbox_nsm.core.display_utils import get_display_template_map
 from netbox_nsm.matrix.matrix_axis_filter import filter_objects_by_axis_query
 from netbox_nsm.matrix.matrix_utils import (
     MATRIX_AXIS_MAX,
-    apply_default_matrix_axis_filters,
+    MATRIX_CELL_HEIGHT_DENSE_PX,
+    MATRIX_CELL_HEIGHT_PX,
+    MATRIX_CELL_WIDTH_DENSE_PX,
+    MATRIX_CELL_WIDTH_PX,
+    MATRIX_CORNER_WIDTH_PX,
+    MATRIX_VIEWPORT_COL_BUFFER,
+    MATRIX_VIEWPORT_DEFAULT_COLS,
+    MATRIX_VIEWPORT_DEFAULT_ROWS,
+    MATRIX_VIEWPORT_ROW_BUFFER,
     dedupe_matrix_object_types,
     matrix_axis_display_label,
     matrix_zone_display_label,
@@ -33,19 +41,32 @@ __all__ = (
     "MATRIX_SRC_FIELD",
     "build_cot_matrix_tab_context",
     "build_matrix_cell_add_href",
+    "build_sparse_matrix_cells",
     "cot_rulebook_matrix_capable",
     "cot_rulebook_matrix_enabled",
+    "resolve_matrix_field_names",
+    "serialize_matrix_zone_axis",
 )
 
-MATRIX_SRC_FIELD = "source_zones"
-MATRIX_DST_FIELD = "destination_zones"
-_MATRIX_PREFETCH_FIELDS = (MATRIX_SRC_FIELD, MATRIX_DST_FIELD, "actions")
+_MATRIX_LEGACY_PAIR = ("source_zones", "destination_zones")
+_MATRIX_GENERIC_PAIR = ("source", "destination")
+MATRIX_SRC_FIELD = _MATRIX_LEGACY_PAIR[0]
+MATRIX_DST_FIELD = _MATRIX_LEGACY_PAIR[1]
+
+
+def resolve_matrix_field_names(cot) -> tuple[str, str] | None:
+    """Return source/destination field names when the COT supports a zone matrix."""
+    names = set(cot.fields.values_list("name", flat=True))
+    if _MATRIX_LEGACY_PAIR[0] in names and _MATRIX_LEGACY_PAIR[1] in names:
+        return _MATRIX_LEGACY_PAIR
+    if _MATRIX_GENERIC_PAIR[0] in names and _MATRIX_GENERIC_PAIR[1] in names:
+        return _MATRIX_GENERIC_PAIR
+    return None
 
 
 def cot_rulebook_matrix_capable(cot) -> bool:
     """True when the COT schema has source and destination zone columns."""
-    names = set(cot.fields.values_list("name", flat=True))
-    return MATRIX_SRC_FIELD in names and MATRIX_DST_FIELD in names
+    return resolve_matrix_field_names(cot) is not None
 
 
 def cot_rulebook_matrix_enabled(cot) -> bool:
@@ -104,17 +125,22 @@ def _field_content_type_entries(field) -> list[dict]:
     return entries
 
 
-def _matrix_available_types(cot) -> list[dict]:
+def _matrix_available_types(
+    cot,
+    *,
+    src_field: str,
+    dst_field: str,
+) -> list[dict]:
     fields = {
         field.name: field
-        for field in cot.fields.filter(name__in=(MATRIX_SRC_FIELD, MATRIX_DST_FIELD))
+        for field in cot.fields.filter(name__in=(src_field, dst_field))
     }
     if len(fields) != 2:
         return []
-    dst_ct_ids = {entry["ct_id"] for entry in _field_content_type_entries(fields[MATRIX_DST_FIELD])}
+    dst_ct_ids = {entry["ct_id"] for entry in _field_content_type_entries(fields[dst_field])}
     return [
         entry
-        for entry in _field_content_type_entries(fields[MATRIX_SRC_FIELD])
+        for entry in _field_content_type_entries(fields[src_field])
         if entry["ct_id"] in dst_ct_ids
     ]
 
@@ -156,6 +182,15 @@ def _action_color_label(rule) -> tuple[str, str]:
     return getattr(obj, "color", None) or "#888888", getattr(obj, "name", str(obj))
 
 
+def _badge(rules_list):
+    if not rules_list:
+        return {"count": 0, "color": None, "label": None}
+    if len(rules_list) == 1:
+        rule = rules_list[0]
+        return {"count": 1, "color": rule._color, "label": rule._action_label}
+    return {"count": len(rules_list), "color": None, "label": None}
+
+
 def build_matrix_cell_add_href(
     add_url_base: str,
     rules_url_base: str,
@@ -173,6 +208,66 @@ def build_matrix_cell_add_href(
         }
     )
     return with_branch_query(f"{add_url_base}?{query}", request)
+
+
+def serialize_matrix_zone_axis(
+    zones: list,
+    *,
+    zone_labels: dict[int, str],
+    zone_label_display: dict[int, str],
+    request,
+) -> list[dict]:
+    """JSON-friendly axis entries for client-side matrix rendering."""
+    rows: list[dict] = []
+    for zone in zones:
+        rows.append(
+            {
+                "pk": zone.pk,
+                "label": zone_labels[zone.pk],
+                "label_display": zone_label_display[zone.pk],
+                "url": with_branch_query(zone.get_absolute_url(), request),
+            }
+        )
+    return rows
+
+
+def build_sparse_matrix_cells(
+    src_zones: list,
+    dst_zones: list,
+    cell_map: dict[tuple[int | None, int | None], list],
+    *,
+    src_field: str,
+    dst_field: str,
+    zone_labels: dict[int, str],
+    rules_url_base: str,
+    request,
+) -> dict[str, dict]:
+    """Return only non-empty or self-diagonal cells for viewport rendering."""
+    cells: dict[str, dict] = {}
+    for src in src_zones:
+        for dst in dst_zones:
+            is_self = src.pk == dst.pk
+            fwd_rules = cell_map.get((src.pk, dst.pk), [])
+            if not fwd_rules and not is_self:
+                continue
+            filter_href = ""
+            if fwd_rules:
+                filter_href = with_branch_query(
+                    build_matrix_cell_rules_filter_url(
+                        rules_url_base,
+                        src_column_key=src_field,
+                        dst_column_key=dst_field,
+                        src_filter=zone_labels[src.pk],
+                        dst_filter=zone_labels[dst.pk],
+                    ),
+                    request,
+                )
+            cells[f"{src.pk}:{dst.pk}"] = {
+                "fwd": _badge(fwd_rules),
+                "filter_href": filter_href,
+                "is_self": is_self,
+            }
+    return cells
 
 
 def _related_pks(
@@ -211,36 +306,32 @@ def build_cot_matrix_tab_context(
     *,
     client_axis_filters: bool = False,
 ) -> dict:
-    """Build matrix_rows, filters, and legend for COT matrix templates."""
+    """Build matrix viewport payload, filters, and legend for COT matrix templates."""
     cot = virtual_rb.cot
-    if not cot_rulebook_matrix_enabled(cot):
+    matrix_fields = resolve_matrix_field_names(cot)
+    if matrix_fields is None or not cot_rulebook_matrix_enabled(cot):
         return {
             "available_types": [],
             "show_obj_type_filter": False,
             "selected_ct_id": None,
-            "matrix_rows": [],
+            "matrix_viewport": None,
             "action_legend": [],
         }
+
+    src_field, dst_field = matrix_fields
+    matrix_prefetch_fields = (src_field, dst_field, "actions")
 
     rules_qs = list(
         cot_rule_instances_queryset(virtual_rb).order_by("index", "pk")
     )
-    prefetch_cot_multiobject_fields(rules_qs, virtual_rb, list(_MATRIX_PREFETCH_FIELDS))
+    prefetch_cot_multiobject_fields(rules_qs, virtual_rb, list(matrix_prefetch_fields))
     action_legend = _action_legend()
 
-    rules_url_base = with_branch_query(
-        reverse(
-            "plugins:netbox_nsm:cot_rulebook_rules",
-            kwargs={"slug": virtual_rb.slug},
-        ),
-        request,
+    raw_available_types = _matrix_available_types(
+        cot,
+        src_field=src_field,
+        dst_field=dst_field,
     )
-    add_url_base = reverse(
-        "plugins:netbox_custom_objects:customobject_add",
-        kwargs={"custom_object_type": virtual_rb.slug},
-    )
-
-    raw_available_types = _matrix_available_types(cot)
     available_types = dedupe_matrix_object_types(raw_available_types)
 
     sel_ct_id_str = request.GET.get("obj_type", "")
@@ -265,7 +356,7 @@ def build_cot_matrix_tab_context(
                 used_zone_pks.update(
                     _related_pks(
                         rule,
-                        MATRIX_SRC_FIELD,
+                        src_field,
                         selected_ct_id,
                         ct_cache=ct_cache,
                     )
@@ -273,7 +364,7 @@ def build_cot_matrix_tab_context(
                 used_zone_pks.update(
                     _related_pks(
                         rule,
-                        MATRIX_DST_FIELD,
+                        dst_field,
                         selected_ct_id,
                         ct_cache=ct_cache,
                     )
@@ -303,11 +394,6 @@ def build_cot_matrix_tab_context(
     if not client_axis_filters:
         src_filter_pks = {int(v) for v in request.GET.getlist("src_id") if v.isdigit()}
         dst_filter_pks = {int(v) for v in request.GET.getlist("dst_id") if v.isdigit()}
-        src_filter_pks, dst_filter_pks = apply_default_matrix_axis_filters(
-            all_zones,
-            src_filter_pks=src_filter_pks,
-            dst_filter_pks=dst_filter_pks,
-        )
     src_zones = (
         [z for z in all_zones if z.pk in src_filter_pks]
         if src_filter_pks
@@ -334,13 +420,13 @@ def build_cot_matrix_tab_context(
             rule._color, rule._action_label = _action_color_label(rule)
             rule_src_pks = _related_pks(
                 rule,
-                MATRIX_SRC_FIELD,
+                src_field,
                 selected_ct_id,
                 ct_cache=ct_cache,
             )
             rule_dst_pks = _related_pks(
                 rule,
-                MATRIX_DST_FIELD,
+                dst_field,
                 selected_ct_id,
                 ct_cache=ct_cache,
             )
@@ -349,42 +435,56 @@ def build_cot_matrix_tab_context(
                     if sp is not None and dp is not None:
                         cell_map[(sp, dp)].append(rule)
 
-    def _badge(rules_list):
-        if not rules_list:
-            return {"count": 0, "color": None, "label": None}
-        if len(rules_list) == 1:
-            rule = rules_list[0]
-            return {"count": 1, "color": rule._color, "label": rule._action_label}
-        return {"count": len(rules_list), "color": None, "label": None}
-
-    matrix_rows = []
-    for src in src_zones:
-        cells = []
-        for dst in dst_zones:
-            fwd_rules = cell_map.get((src.pk, dst.pk), [])
-            filter_href = build_matrix_cell_rules_filter_url(
-                rules_url_base,
-                src_column_key=MATRIX_SRC_FIELD,
-                dst_column_key=MATRIX_DST_FIELD,
-                src_filter=zone_label(src),
-                dst_filter=zone_label(dst),
-            )
-            cells.append(
-                {
-                    "fwd": _badge(fwd_rules),
-                    "filter_href": filter_href,
-                    "add_href": build_matrix_cell_add_href(
-                        add_url_base,
-                        rules_url_base,
-                        source_zone_pk=src.pk,
-                        destination_zone_pk=dst.pk,
-                        request=request,
-                    ),
-                    "is_self": src.pk == dst.pk,
-                }
-            )
-        wrap_matrix_cell_hrefs(cells, request)
-        matrix_rows.append({"source_zone": src, "cells": cells})
+    matrix_dense = max(len(src_zones), len(dst_zones)) > 40
+    rules_url_base = with_branch_query(
+        reverse(
+            "plugins:netbox_nsm:cot_rulebook_rules",
+            kwargs={"slug": virtual_rb.slug},
+        ),
+        request,
+    )
+    add_url_base = with_branch_query(
+        reverse(
+            "plugins:netbox_custom_objects:customobject_add",
+            kwargs={"custom_object_type": virtual_rb.slug},
+        ),
+        request,
+    )
+    sparse_cells = build_sparse_matrix_cells(
+        src_zones,
+        dst_zones,
+        cell_map,
+        src_field=src_field,
+        dst_field=dst_field,
+        zone_labels=zone_labels,
+        rules_url_base=rules_url_base,
+        request=request,
+    )
+    matrix_viewport = {
+        "dense": matrix_dense,
+        "cell_width": MATRIX_CELL_WIDTH_DENSE_PX if matrix_dense else MATRIX_CELL_WIDTH_PX,
+        "cell_height": MATRIX_CELL_HEIGHT_DENSE_PX if matrix_dense else MATRIX_CELL_HEIGHT_PX,
+        "corner_width": MATRIX_CORNER_WIDTH_PX,
+        "default_rows": MATRIX_VIEWPORT_DEFAULT_ROWS,
+        "default_cols": MATRIX_VIEWPORT_DEFAULT_COLS,
+        "row_buffer": MATRIX_VIEWPORT_ROW_BUFFER,
+        "col_buffer": MATRIX_VIEWPORT_COL_BUFFER,
+        "src_zones": serialize_matrix_zone_axis(
+            src_zones,
+            zone_labels=zone_labels,
+            zone_label_display=zone_label_display,
+            request=request,
+        ),
+        "dst_zones": serialize_matrix_zone_axis(
+            dst_zones,
+            zone_labels=zone_labels,
+            zone_label_display=zone_label_display,
+            request=request,
+        ),
+        "cells": sparse_cells,
+        "add_url_base": add_url_base,
+        "rules_url_base": rules_url_base,
+    }
 
     return {
         "available_types": available_types,
@@ -396,10 +496,10 @@ def build_cot_matrix_tab_context(
         "dst_zones": dst_zones,
         "src_filter_pks": src_filter_pks,
         "dst_filter_pks": dst_filter_pks,
-        "matrix_rows": matrix_rows,
+        "matrix_viewport": matrix_viewport,
         "zone_labels": zone_labels,
         "zone_label_display": zone_label_display,
         "action_legend": action_legend,
         "matrix_axis_limit": matrix_axis_limit,
-        "matrix_dense": max(len(src_zones), len(dst_zones)) > 40,
+        "matrix_dense": matrix_dense,
     }

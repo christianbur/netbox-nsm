@@ -98,10 +98,19 @@
     font-size: 0.8rem;
     line-height: 1;
   }
+  .nsm-object-status-icon {
+    font-size: 0.95rem;
+    line-height: 1;
+    vertical-align: -0.1em;
+    margin-left: 0.2rem;
+  }
+  .nsm-object-status-icon--deprecated { color: #dc3545 !important; opacity: 1 !important; }
+  .nsm-object-status-icon--reserved { color: #fd7e14 !important; opacity: 1 !important; }
   .nsm-link-table {
     table-layout: fixed;
     width: 100%;
   }
+  .nsm-link-parent-host { font-size: 12px; }
   .nsm-link-table .col-object {
     width: auto;
     padding-left: 3rem;
@@ -116,6 +125,42 @@
   .nsm-link-table .col-actions {
     width: 7.25rem;
     vertical-align: middle;
+  }
+  .nsm-link-section-separator {
+    border-top: 1px dashed var(--bs-border-color);
+    margin: 0;
+  }
+  .nsm-analysis-iface-hdr {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 12px 3px 2rem;
+    font-size: 12px;
+    font-weight: 500;
+    width: 100%;
+    text-align: left;
+    color: inherit;
+  }
+  .nsm-analysis-iface-hdr .nsm-tree-toggle .nsm-chev {
+    font-size: 9px;
+    transition: transform .15s;
+    color: var(--bs-secondary-color);
+  }
+  .nsm-analysis-iface-hdr .nsm-tree-toggle[aria-expanded="true"] .nsm-chev { transform: rotate(90deg); }
+  .nsm-analysis-iface-hdr .nsm-tree-toggle[aria-expanded="false"] .nsm-chev { transform: rotate(0deg); }
+  .nsm-analysis-iface-body {
+    padding: 0.15rem 12px 0.35rem 3.25rem;
+    font-size: 12px;
+  }
+  .nsm-analysis-link-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15rem;
+    margin-right: 0.35rem;
+    margin-bottom: 0.15rem;
+  }
+  .nsm-analysis-rulebooks {
+    margin-top: 0.25rem;
   }
 </style>
 
@@ -232,7 +277,11 @@
     </div>
     {% endif %}
 
-    {# ── ObjectLink type groups ──────────────────────────────────────── #}
+    {% if nsm_rulebook_groups and nsm_link_type_groups %}
+    <hr class="nsm-link-section-separator">
+    {% endif %}
+
+    {# ── ObjectLink type groups (manual assignments) ─────────────────── #}
     {% for group in nsm_link_type_groups %}
     <div class="border-bottom">
       <button class="nsm-tree-hdr"
@@ -250,7 +299,7 @@
             {% for linked in group.objects %}
             <tr class="nsm-link-row">
               <td class="col-object">
-                <a href="{{ linked.url }}"{% if linked.inherited_from_name %} class="text-muted fst-italic"{% endif %}>{{ linked.name }}</a>
+                {% if linked.parent_url %}<a href="{{ linked.parent_url }}" class="nsm-link-parent-host text-decoration-none">{{ linked.parent_name }}</a><span class="text-muted" aria-hidden="true"> / </span>{% endif %}<a href="{{ linked.url }}"{% if linked.inherited_from_name %} class="text-muted fst-italic"{% endif %}>{{ linked.name }}</a>{% if linked.status_icon_html %}{{ linked.status_icon_html|safe }}{% endif %}
                 {% if linked.inherited_from_name %}
                 <span class="text-muted" style="font-size:11px;">
                   ({% trans "from" %} <a href="{{ linked.inherited_from_url }}" class="text-muted">{{ linked.inherited_from_name }}</a>)
@@ -331,6 +380,126 @@
     </div>
     {% endif %}
 
+    {# ── Per-interface analysis (Device / VM only) ─────────────────────── #}
+    {% if nsm_interface_analysis %}
+    <hr class="nsm-link-section-separator">
+    <div class="border-bottom">
+      <button class="nsm-tree-hdr"
+              data-bs-toggle="collapse"
+              data-bs-target="#nsm-cat-analysis"
+              aria-expanded="true">
+        <i class="mdi mdi-chevron-right nsm-chev"></i>
+        <span>{% trans "Analysis" %}</span>
+        <span class="badge text-bg-secondary ms-1">{{ nsm_interface_analysis|length }}</span>
+      </button>
+      <div id="nsm-cat-analysis" class="collapse show">
+        {% for iface in nsm_interface_analysis %}
+        <div class="border-top" data-iface-pk="{{ iface.pk }}">
+          <div class="nsm-analysis-iface-hdr">
+            <button type="button"
+                    class="nsm-tree-toggle"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#nsm-analysis-iface-{{ iface.pk }}"
+                    aria-expanded="true"
+                    aria-label="{% blocktrans with name=iface.name %}Toggle {{ name }}{% endblocktrans %}">
+              <i class="mdi mdi-chevron-right nsm-chev"></i>
+            </button>
+            {% if iface.parent_url %}
+            <a href="{{ iface.parent_url }}" class="nsm-link-parent-host text-decoration-none">{{ iface.parent_name }}</a>
+            <span class="text-muted" aria-hidden="true"> / </span>
+            {% endif %}
+            {% if iface.url %}
+            <a href="{{ iface.url }}" class="nsm-rb-title-link">{{ iface.name }}</a>
+            {% else %}
+            <span>{{ iface.name }}</span>
+            {% endif %}
+            <span class="badge text-bg-secondary ms-1">{{ iface.entry_count }}</span>
+          </div>
+          <div id="nsm-analysis-iface-{{ iface.pk }}" class="collapse show">
+            <div class="nsm-analysis-iface-body">
+              {% if iface.link_rows %}
+              <div class="d-flex flex-wrap align-items-start gap-1 mb-1">
+                {% for link in iface.link_rows %}
+                <span class="nsm-analysis-link-pill">
+                  <span class="text-muted">{{ link.type_label }}:</span>
+                  {% if link.url %}
+                  <a href="{{ link.url }}">{{ link.name|safe }}</a>
+                  {% else %}
+                  <span>{{ link.name|safe }}</span>
+                  {% endif %}
+                </span>
+                {% endfor %}
+              </div>
+              {% endif %}
+
+              {% if iface.rulebook_groups %}
+              <div class="nsm-analysis-rulebooks nsm-rulebook-accordion"
+                   data-api-url="{{ iface.api_url }}">
+                {% for group in iface.rulebook_groups %}
+                {% with rb=group.rulebook %}
+                <div data-rb-pk="{{ rb.pk }}">
+                  <div class="nsm-rb-hdr">
+                    <button type="button"
+                            class="nsm-tree-toggle"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#nsm-analysis-iface-{{ iface.pk }}-rb-{{ rb.pk }}"
+                            aria-expanded="false"
+                            aria-label="{% blocktrans with rb=rb.name %}Toggle {{ rb }}{% endblocktrans %}">
+                      <i class="mdi mdi-chevron-right nsm-chev"></i>
+                    </button>
+                    {% if group.rules_tab_url %}
+                    <a href="{{ group.rules_tab_url }}" class="nsm-rb-title-link">{{ rb.name }}</a>
+                    {% else %}
+                    <span>{{ rb.name }}</span>
+                    {% endif %}
+                    <span class="badge text-bg-secondary ms-1 nsm-rb-count">{{ group.unique_count }}</span>
+                  </div>
+                  <div id="nsm-analysis-iface-{{ iface.pk }}-rb-{{ rb.pk }}" class="collapse">
+                    {% for fg in group.field_groups %}
+                    <div class="nsm-rb-field" data-field-pk="{{ fg.field.pk }}">
+                      <div class="nsm-rb-field-hdr">
+                        <button type="button"
+                                class="nsm-tree-toggle"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#nsm-analysis-iface-{{ iface.pk }}-rb-{{ rb.pk }}-f-{{ fg.field.pk }}"
+                                aria-expanded="false"
+                                aria-label="{% blocktrans with field=fg.field.name %}Toggle {{ field }}{% endblocktrans %}">
+                          <i class="mdi mdi-chevron-right nsm-chev"></i>
+                        </button>
+                        <span>{{ fg.field.name }}</span>
+                        <span class="badge text-bg-secondary ms-1 nsm-rb-field-count">{{ fg.rule_count }}</span>
+                      </div>
+                      <div id="nsm-analysis-iface-{{ iface.pk }}-rb-{{ rb.pk }}-f-{{ fg.field.pk }}"
+                           class="collapse nsm-rb-field-collapse"
+                           data-rb-pk="{{ rb.pk }}"
+                           data-field-pk="{{ fg.field.pk }}">
+                        <ul class="nsm-rb-rule-list nsm-rb-field-rules"
+                            data-offset="0"
+                            data-has-more="{% if fg.rule_count %}1{% else %}0{% endif %}"
+                            data-loaded="0"
+                            data-loading="0"></ul>
+                        <div class="nsm-rb-field-loading d-none" aria-live="polite">
+                          <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                          {% trans "Loading…" %}
+                        </div>
+                        <div class="nsm-rb-field-sentinel" style="height:1px;"></div>
+                      </div>
+                    </div>
+                    {% endfor %}
+                  </div>
+                </div>
+                {% endwith %}
+                {% endfor %}
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
   </div>
 </div>
 
@@ -353,10 +522,6 @@
 
 <script>
 (function () {
-  var accordion = document.getElementById('nsm-accordion');
-  if (!accordion) return;
-
-  var apiUrl = accordion.dataset.apiUrl;
   var fieldObservers = new WeakMap();
 
   function mergeHeaders() {
@@ -425,6 +590,11 @@
   }
 
   function fetchFieldRules(fieldCollapse, offset) {
+    var accordion = fieldCollapse.closest('.nsm-rulebook-accordion');
+    if (!accordion) {
+      return;
+    }
+    var apiUrl = accordion.dataset.apiUrl;
     var ruleList = fieldCollapse.querySelector('.nsm-rb-field-rules');
     if (!ruleList || ruleList.dataset.loading === '1') {
       return;
@@ -458,16 +628,18 @@
       });
   }
 
-  accordion.addEventListener('shown.bs.collapse', function (e) {
-    var fieldCollapse = e.target.closest('.nsm-rb-field-collapse');
-    if (!fieldCollapse || !accordion.contains(fieldCollapse)) {
-      return;
-    }
-    var ruleList = fieldCollapse.querySelector('.nsm-rb-field-rules');
-    if (!ruleList || ruleList.dataset.loaded === '1' || ruleList.dataset.hasMore !== '1') {
-      return;
-    }
-    fetchFieldRules(fieldCollapse, 0);
+  document.querySelectorAll('.nsm-rulebook-accordion').forEach(function (accordion) {
+    accordion.addEventListener('shown.bs.collapse', function (e) {
+      var fieldCollapse = e.target.closest('.nsm-rb-field-collapse');
+      if (!fieldCollapse || !accordion.contains(fieldCollapse)) {
+        return;
+      }
+      var ruleList = fieldCollapse.querySelector('.nsm-rb-field-rules');
+      if (!ruleList || ruleList.dataset.loaded === '1' || ruleList.dataset.hasMore !== '1') {
+        return;
+      }
+      fetchFieldRules(fieldCollapse, 0);
+    });
   });
 })();
 </script>

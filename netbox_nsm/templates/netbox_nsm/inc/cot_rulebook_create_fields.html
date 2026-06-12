@@ -1,48 +1,110 @@
 {% load form_helpers %}
 {% load i18n %}
+{% trans "Schema valid" as schema_valid_label %}
+{% trans "Schema invalid" as schema_invalid_label %}
+{% trans "Validation request failed." as schema_validate_failed_label %}
+
+<style>
+  .nsm-schema-yaml-editor,
+  #id_schema_yaml {
+    white-space: pre;
+    overflow-x: auto;
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+  .nsm-schema-yaml-validity {
+    font-size: 1.1rem;
+    vertical-align: middle;
+  }
+</style>
 
 {{ form.non_field_errors }}
 
 <div class="field-group mb-4">
   <div class="row">
-    <h2 class="col-9 offset-3">{% trans "Template" %}</h2>
-  </div>
-  {% render_field form.template_slug %}
-</div>
-
-<div class="field-group mb-4">
-  <div class="row">
-    <h2 class="col-9 offset-3">{% trans "Columns" %}</h2>
+    <h2 class="col-9 offset-3">
+      {% trans "Schema" %}
+      <span id="nsm-schema-yaml-validity"
+            class="nsm-schema-yaml-validity ms-2"
+            aria-live="polite"></span>
+    </h2>
   </div>
   <div class="row mb-3">
     <div class="col-md-9 offset-md-3">
-      <div class="table-responsive">
-        <table class="table table-sm table-striped">
-          <thead>
-            <tr>
-              <th>{% trans "Column" %}</th>
-              <th>{% trans "Allowed objects" %}</th>
-              <th>{% trans "Required" %}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for col in template_columns %}
-            <tr>
-              <td>{{ col.label }}</td>
-              <td>
-                {% if col.allowed_objects %}
-                  {{ col.allowed_objects|join:", " }}
-                {% else %}
-                  <span class="text-muted">—</span>
-                {% endif %}
-              </td>
-              <td>
-                {% if col.required %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+      <ul class="nav nav-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active"
+                  id="schema-define-tab"
+                  data-bs-toggle="tab"
+                  data-bs-target="#schema-define"
+                  type="button"
+                  role="tab"
+                  aria-controls="schema-define"
+                  aria-selected="true">
+            {% trans "YAML" %}
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link"
+                  id="schema-preview-tab"
+                  data-bs-toggle="tab"
+                  data-bs-target="#schema-preview"
+                  type="button"
+                  role="tab"
+                  aria-controls="schema-preview"
+                  aria-selected="false">
+            {% trans "Preview" %}
+          </button>
+        </li>
+      </ul>
+      <div class="tab-content border border-top-0 rounded-bottom p-3">
+        <div class="tab-pane fade show active"
+             id="schema-define"
+             role="tabpanel"
+             aria-labelledby="schema-define-tab">
+          {% render_field form.schema_yaml %}
+        </div>
+        <div class="tab-pane fade"
+             id="schema-preview"
+             role="tabpanel"
+             aria-labelledby="schema-preview-tab">
+          {% if schema_error %}
+            <div class="alert alert-warning mb-0" role="alert">{{ schema_error }}</div>
+          {% else %}
+            <div class="table-responsive">
+              <table class="table table-sm table-striped mb-0">
+                <thead>
+                  <tr>
+                    <th>{% trans "Column" %}</th>
+                    <th>{% trans "Allowed objects" %}</th>
+                    <th>{% trans "Required" %}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for col in template_columns %}
+                  <tr>
+                    <td>{{ col.label }}</td>
+                    <td>
+                      {% if col.allowed_objects %}
+                        {{ col.allowed_objects|join:", " }}
+                      {% else %}
+                        <span class="text-muted">—</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if col.required %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %}
+                    </td>
+                  </tr>
+                  {% empty %}
+                  <tr>
+                    <td colspan="3" class="text-muted">{% trans "No columns defined." %}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% endif %}
+        </div>
       </div>
     </div>
   </div>
@@ -52,8 +114,8 @@
   <div class="row">
     <h2 class="col-9 offset-3">{% trans "Rulebook" %}</h2>
   </div>
-  {% render_field form.name %}
   {% render_field form.verbose_name %}
+  {% render_field form.name %}
   {% render_field form.description %}
   {% render_field form.parent_slug %}
   {% if preview_slug %}
@@ -65,3 +127,227 @@
   </div>
   {% endif %}
 </div>
+
+<script>
+(function () {
+  const schemaInput = document.getElementById("id_schema_yaml");
+  const displayInput = document.getElementById("id_verbose_name");
+  const nameInput = document.getElementById("id_name");
+  const descriptionInput = document.getElementById("id_description");
+  const validityEl = document.getElementById("nsm-schema-yaml-validity");
+  const validateUrl = "{% url 'plugins:netbox_nsm:cot_rulebook_schema_validate' %}";
+  if (!displayInput || !nameInput) {
+    return;
+  }
+
+  const placeholderTokens = ["{{name}}", "{{display_name}}", "{{description}}"];
+  let validateTimer = null;
+  let validateRequestId = 0;
+
+  function deriveName(value) {
+    return value
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/_+/g, "_")
+      .replace(/^_|_$/g, "");
+  }
+
+  function unquoteYamlScalar(value) {
+    var text = String(value || "").trim();
+    if (
+      (text.charAt(0) === '"' && text.charAt(text.length - 1) === '"') ||
+      (text.charAt(0) === "'" && text.charAt(text.length - 1) === "'")
+    ) {
+      return text.slice(1, -1);
+    }
+    return text;
+  }
+
+  function isLiteral(value) {
+    var text = String(value || "");
+    if (!text.trim()) {
+      return false;
+    }
+    for (var i = 0; i < placeholderTokens.length; i += 1) {
+      if (text.indexOf(placeholderTokens[i]) >= 0) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function readYamlLine(text, key) {
+    var pattern = new RegExp("^\\s*" + key + ":\\s*(.+)$", "m");
+    var match = text.match(pattern);
+    return match ? unquoteYamlScalar(match[1]) : "";
+  }
+
+  function extractMetadataFromSchemaYaml(text) {
+    var slug = readYamlLine(text, "slug") || readYamlLine(text, "name");
+    var verboseName = readYamlLine(text, "verbose_name");
+    var description = readYamlLine(text, "description");
+    var meta = {};
+    if (isLiteral(slug)) {
+      if (slug.indexOf("nsm_rb_") === 0) {
+        meta.name = slug.slice("nsm_rb_".length);
+      } else if (slug) {
+        meta.name = slug;
+      }
+    }
+    if (isLiteral(verboseName)) {
+      meta.verbose_name = verboseName;
+    }
+    if (text.match(/^\s*description:\s*/m) && isLiteral(description)) {
+      meta.description = description;
+    }
+    return meta;
+  }
+
+  function setFieldLock(input, locked, value) {
+    if (!input) {
+      return;
+    }
+    if (locked) {
+      input.value = value == null ? "" : value;
+      input.readOnly = true;
+      input.setAttribute("tabindex", "-1");
+      return;
+    }
+    input.readOnly = false;
+    input.removeAttribute("tabindex");
+  }
+
+  function syncFromSchemaYaml() {
+    if (!schemaInput) {
+      syncNameFromDisplay();
+      return;
+    }
+    var meta = extractMetadataFromSchemaYaml(schemaInput.value || "");
+    setFieldLock(
+      displayInput,
+      meta.verbose_name != null,
+      meta.verbose_name
+    );
+    setFieldLock(nameInput, meta.name != null, meta.name);
+    setFieldLock(
+      descriptionInput,
+      meta.description != null,
+      meta.description
+    );
+    if (meta.verbose_name == null) {
+      syncNameFromDisplay();
+    }
+  }
+
+  function syncNameFromDisplay() {
+    if (displayInput.readOnly) {
+      return;
+    }
+    nameInput.value = deriveName(displayInput.value);
+  }
+
+  function getCsrfToken() {
+    var input = document.querySelector('input[name="csrfmiddlewaretoken"]');
+    return input ? input.value : "";
+  }
+
+  function setSchemaValidity(state, message) {
+    if (!validityEl) {
+      return;
+    }
+    if (state === "valid") {
+      validityEl.innerHTML =
+        '<i class="mdi mdi-check-circle text-success" title="{{ schema_valid_label|escapejs }}"></i>';
+      validityEl.setAttribute("title", "{{ schema_valid_label|escapejs }}");
+      return;
+    }
+    if (state === "invalid") {
+      validityEl.innerHTML =
+        '<i class="mdi mdi-alert-circle text-danger"></i>';
+      validityEl.setAttribute("title", message || "{{ schema_invalid_label|escapejs }}");
+      return;
+    }
+    validityEl.innerHTML = "";
+    validityEl.removeAttribute("title");
+  }
+
+  function scheduleSchemaValidation() {
+    if (!schemaInput || !validateUrl) {
+      return;
+    }
+    if (validateTimer) {
+      window.clearTimeout(validateTimer);
+    }
+    validateTimer = window.setTimeout(validateSchemaYaml, 350);
+  }
+
+  function validateSchemaYaml() {
+    if (!schemaInput || !validateUrl) {
+      return;
+    }
+    var yamlText = schemaInput.value || "";
+    if (!yamlText.trim()) {
+      setSchemaValidity("idle");
+      return;
+    }
+    var requestId = validateRequestId + 1;
+    validateRequestId = requestId;
+    var body = new URLSearchParams();
+    body.set("schema_yaml", yamlText);
+    body.set("verbose_name", displayInput.value || "");
+    body.set("name", nameInput.value || "");
+    body.set("description", descriptionInput ? descriptionInput.value || "" : "");
+    body.set("csrfmiddlewaretoken", getCsrfToken());
+    fetch(validateUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-Requested-With": "XMLHttpRequest",
+        "X-CSRFToken": getCsrfToken(),
+      },
+      body: body.toString(),
+      credentials: "same-origin",
+    })
+      .then(function (response) {
+        return response.json();
+      })
+      .then(function (payload) {
+        if (requestId !== validateRequestId) {
+          return;
+        }
+        if (payload && payload.valid) {
+          setSchemaValidity("valid");
+          return;
+        }
+        setSchemaValidity("invalid", payload && payload.error);
+      })
+      .catch(function () {
+        if (requestId !== validateRequestId) {
+          return;
+        }
+        setSchemaValidity("invalid", "{{ schema_validate_failed_label|escapejs }}");
+      });
+  }
+
+  displayInput.addEventListener("input", function () {
+    syncNameFromDisplay();
+    scheduleSchemaValidation();
+  });
+  if (descriptionInput) {
+    descriptionInput.addEventListener("input", scheduleSchemaValidation);
+  }
+  if (schemaInput) {
+    schemaInput.addEventListener("input", function () {
+      syncFromSchemaYaml();
+      scheduleSchemaValidation();
+    });
+    schemaInput.addEventListener("change", function () {
+      syncFromSchemaYaml();
+      scheduleSchemaValidation();
+    });
+  }
+  syncFromSchemaYaml();
+  scheduleSchemaValidation();
+})();
+</script>

@@ -10,21 +10,7 @@
       {% if type_block.type_name and type_block.type_name != section.field_name %}
       <div class="nsm-addr-type-title mb-1">{{ type_block.type_name }}</div>
       {% endif %}
-      {% if type_block.nodes or object_tree or type_block.intersection_tree %}
-      {% if section.field_slug == "diff" and type_block.intersection_tree %}
-      <details class="nsm-addr-details nsm-addr-top nsm-addr-diff-intersection" open>
-        <summary class="nsm-addr-summary">
-          <span class="fw-semibold">IPAM hierarchy (in both)</span>
-          {% if type_block.intersection_leaf_count %}<span class="badge bg-secondary-subtle text-secondary nsm-addr-count">IPs: {{ type_block.intersection_leaf_count }}</span>{% endif %}
-        </summary>
-        <div class="nsm-addr-children nsm-addr-diff-intersection-children">
-          {% for node in type_block.intersection_tree %}
-            {% include "netbox_nsm/inc/addr_intersection_flat_node.html" with node=node %}
-          {% endfor %}
-        </div>
-      </details>
-      <hr class="nsm-addr-diff-intersection-separator">
-      {% endif %}
+      {% if type_block.nodes or object_tree %}
       <details class="nsm-addr-details nsm-addr-top" open>
         <summary class="nsm-addr-summary">
           <span class="fw-semibold">{% trans "All" %}</span>

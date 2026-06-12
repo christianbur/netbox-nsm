@@ -5,7 +5,7 @@ from django_filters import FilterSet
 from netbox.filtersets import NetBoxModelFilterSet
 from utilities.filtersets import register_filterset
 
-from netbox_nsm.models import MatchingClassChoices, TypeConfig
+from netbox_nsm.models import TypeConfig
 from netbox_nsm.objects.object_link_service import get_object_link_model
 
 __all__ = (
@@ -60,13 +60,9 @@ class ObjectLinkFilterSet(FilterSet):
 
 @register_filterset
 class TypeConfigFilterSet(NetBoxModelFilterSet):
-    matching_class = django_filters.MultipleChoiceFilter(
-        choices=MatchingClassChoices.choices,
-    )
-
     class Meta:
         model = TypeConfig
-        fields = ("id", "matching_class")
+        fields = ("id",)
 
     def search(self, queryset, name, value):
         if not value.strip():

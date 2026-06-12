@@ -1,10 +1,23 @@
 from django.urls import include, path
 from django.views.generic import RedirectView
+
+from netbox_nsm.views.object_sync import ObjectSyncView
 from utilities.urls import get_model_urls
 
 from netbox_nsm.analyzer.api_view import AnalyzerAPIView
 
 from .views import *  # noqa: F401
+from .views.nsm_objects import (
+    NsmCustomObjectBulkDeleteView,
+    NsmCustomObjectBulkEditView,
+    NsmCustomObjectBulkImportView,
+    NsmCustomObjectChangeLogView,
+    NsmCustomObjectDeleteView,
+    NsmCustomObjectEditView,
+    NsmCustomObjectJournalView,
+    NsmCustomObjectListView,
+    NsmCustomObjectView,
+)
 from .views.plugin_static import PluginAssetView
 from netbox_nsm.rulebooks.views.list import RulebookListView
 
@@ -18,6 +31,11 @@ urlpatterns = [
     ),
     path("setup/", SetupView.as_view(), name="setup"),
     path(
+        "setup/validate-schema/",
+        SetupSchemaValidateView.as_view(),
+        name="setup_schema_validate",
+    ),
+    path(
         "setup/sync/custom-objects/",
         SyncBuiltinToCustomObjectsView.as_view(),
         name="custom_objects_sync",
@@ -27,13 +45,81 @@ urlpatterns = [
         SyncTypeConfigsView.as_view(),
         name="typeconfigs_sync",
     ),
+    path("object-sync/", ObjectSyncView.as_view(), name="object_sync"),
     path(
-        "type-config/",
-        include(get_model_urls("netbox_nsm", "typeconfig", detail=False)),
+        "object-builder/",
+        RedirectView.as_view(
+            pattern_name="plugins:netbox_nsm:object_sync",
+            permanent=True,
+        ),
+        name="object_builder",
     ),
     path(
-        "type-config/<int:pk>/",
-        include(get_model_urls("netbox_nsm", "typeconfig")),
+        "objects/<str:custom_object_type>/",
+        NsmCustomObjectListView.as_view(),
+        name="nsm_object_list",
+    ),
+    path(
+        "objects/<str:custom_object_type>/add/",
+        NsmCustomObjectEditView.as_view(),
+        name="nsm_object_add",
+    ),
+    path(
+        "objects/<str:custom_object_type>/bulk-edit/",
+        NsmCustomObjectBulkEditView.as_view(),
+        name="nsm_object_bulk_edit",
+    ),
+    path(
+        "objects/<str:custom_object_type>/bulk-delete/",
+        NsmCustomObjectBulkDeleteView.as_view(),
+        name="nsm_object_bulk_delete",
+    ),
+    path(
+        "objects/<str:custom_object_type>/bulk-import/",
+        NsmCustomObjectBulkImportView.as_view(),
+        name="nsm_object_bulk_import",
+    ),
+    path(
+        "objects/<str:custom_object_type>/<int:pk>/",
+        NsmCustomObjectView.as_view(),
+        name="nsm_object",
+    ),
+    path(
+        "objects/<str:custom_object_type>/<int:pk>/edit/",
+        NsmCustomObjectEditView.as_view(),
+        name="nsm_object_edit",
+    ),
+    path(
+        "objects/<str:custom_object_type>/<int:pk>/delete/",
+        NsmCustomObjectDeleteView.as_view(),
+        name="nsm_object_delete",
+    ),
+    path(
+        "objects/<str:custom_object_type>/<int:pk>/journal/",
+        NsmCustomObjectJournalView.as_view(),
+        name="nsm_object_journal",
+    ),
+    path(
+        "objects/<str:custom_object_type>/<int:pk>/changelog/",
+        NsmCustomObjectChangeLogView.as_view(),
+        name="nsm_object_changelog",
+    ),
+    path("type-config/", ObjectConfigListView.as_view(), name="objectconfig_list"),
+    path("type-config/add/", ObjectConfigAddView.as_view(), name="objectconfig_add"),
+    path(
+        "type-config/<slug:slug>/",
+        ObjectConfigView.as_view(),
+        name="objectconfig",
+    ),
+    path(
+        "type-config/<slug:slug>/edit/",
+        ObjectConfigEditView.as_view(),
+        name="objectconfig_edit",
+    ),
+    path(
+        "type-config/<slug:slug>/delete/",
+        ObjectConfigDeleteView.as_view(),
+        name="objectconfig_delete",
     ),
     path("rulebooks/", RulebookListView.as_view(), name="rulebook_list"),
     path(
@@ -97,6 +183,11 @@ urlpatterns = [
         "rulebooks/cot/add/",
         CotRulebookCreateView.as_view(),
         name="cot_rulebook_add",
+    ),
+    path(
+        "rulebooks/cot/add/validate-schema/",
+        CotRulebookSchemaValidateView.as_view(),
+        name="cot_rulebook_schema_validate",
     ),
     path(
         "rulebooks/cot/<slug:slug>/",

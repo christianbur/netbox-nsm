@@ -37,6 +37,10 @@ class CotRulebookMatrixCapableTests(SimpleTestCase):
         cot = _cot_with_fields("index", "source_zones", "destination_zones", "actions")
         self.assertTrue(cot_rulebook_matrix_capable(cot))
 
+    def test_capable_when_generic_source_destination_present(self):
+        cot = _cot_with_fields("index", "source", "destination", "actions")
+        self.assertTrue(cot_rulebook_matrix_capable(cot))
+
     def test_not_capable_without_source_zones(self):
         cot = _cot_with_fields("index", "destination_zones", "actions")
         self.assertFalse(cot_rulebook_matrix_capable(cot))

@@ -4,7 +4,7 @@
 
 {% block head %}
 {{ block.super }}
-<link rel="stylesheet" href="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='css/rulebook_rules.css' %}?v=20260609g">
+<link rel="stylesheet" href="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='css/rulebook_rules.css' %}?v=20260612e">
 {% include "netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html" %}
 {% endblock head %}
 
@@ -22,6 +22,9 @@
   {% if rules_column_mode == 'expanded' %}
   <input type="hidden" name="col_mode" value="expanded">
   {% endif %}
+  {% if rules_row_group_tab_active %}
+  <input type="hidden" name="row_group_tab" value="{{ rules_row_group_tab_active }}">
+  {% endif %}
   {% if request.GET.per_page %}
   <input type="hidden" name="per_page" value="{{ request.GET.per_page }}">
   {% endif %}
@@ -29,17 +32,21 @@
 <form method="post" class="form form-horizontal">
   {% csrf_token %}
   <input type="hidden" name="return_url" value="{{ rules_return_url }}">
-  <div class="card mb-3{% if rules_cell_mode == 'inline' %} nsm-rules-cell-mode-inline{% elif rules_cell_mode == 'compact' %} nsm-rules-cell-mode-compact{% elif rules_cell_mode == 'pill_more' %} nsm-rules-cell-mode-pill-more{% endif %}{% if rules_column_mode == 'collapsed' %} nsm-rules-column-mode-collapsed{% endif %}" id="rules">
+  <div class="card mb-3{% if rules_cell_mode == 'inline' %} nsm-rules-cell-mode-inline{% elif rules_cell_mode == 'compact' %} nsm-rules-cell-mode-compact{% elif rules_cell_mode == 'pill_more' %} nsm-rules-cell-mode-pill-more{% endif %}{% if rules_column_mode == 'collapsed' %} nsm-rules-column-mode-collapsed{% endif %}{% if rules_row_group_active %} nsm-rules-row-group-active{% endif %}" id="rules">
     {% include "netbox_nsm/inc/rulebook_rules_chrome_bar.html" %}
-    <div class="htmx-container table-responsive nsm-rules-table-scroll{% if rules_has_object_header_stack %} nsm-rules-table-scroll--subhead{% endif %}">
-      {% include "netbox_nsm/inc/rulebook_rules_table.html" %}
-      {% include "netbox_nsm/inc/rulebook_rules_pagination.html" %}
+    <div class="nsm-rules-body{% if rules_row_group_active %} nsm-rules-body--with-side-tabs{% endif %}">
+      {% include "netbox_nsm/inc/rulebook_rules_row_group_tabs.html" %}
+      <div class="htmx-container table-responsive nsm-rules-table-scroll{% if rules_has_object_header_stack %} nsm-rules-table-scroll--subhead{% endif %}">
+        {% include "netbox_nsm/inc/rulebook_rules_table.html" %}
+        {% include "netbox_nsm/inc/rulebook_rules_pagination.html" %}
+      </div>
     </div>
   </div>
   {% include "netbox_nsm/inc/rulebook_rules_sticky_actions.html" %}
 </form>
 {{ rules_chrome_config|json_script:"rules-chrome-config" }}
 <script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/nsm_branch_api.js' %}?v=1"></script>
-<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/rulebook_rules_chrome.js' %}?v=20260609"></script>
-<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/rulebook_rules_columns.js' %}?v=20260717"></script>
+<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/rulebook_rules_chrome.js' %}?v=20260612g"></script>
+<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/rulebook_rules_columns.js' %}?v=20260612e"></script>
+<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/rulebook_rules_row_group.js' %}?v=20260612e"></script>
 {% endblock content %}

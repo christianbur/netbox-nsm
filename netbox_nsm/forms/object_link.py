@@ -1,7 +1,12 @@
 from django import forms
+from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext_lazy as _
 
-from netbox_nsm.models import TypeConfig
+from netbox_nsm.objects.nsm_config import (
+    filter_assignable_configs,
+    is_assignable_from_content_type,
+    iter_panel_linkable_configs,
+)
 from netbox_nsm.objects.link_propagation import (
     CotObjectLinkPropagationChoices,
     cot_propagation_choices_for_form,
@@ -44,26 +49,19 @@ class ObjectLinkPropagationForm(forms.Form):
 def _build_type_choices(source_content_type_id=None):
     """NSM types assignable as policy object in the Security Panel assign picker."""
     if source_content_type_id is not None:
-        configs = list(
-            TypeConfig.queryset_assignable_from(int(source_content_type_id))
-            .select_related("content_type")
-            .order_by("name", "matching_class")
-        )
+        configs = filter_assignable_configs(int(source_content_type_id))
     else:
-        configs = list(
-            TypeConfig.queryset_panel_linkable()
-            .select_related("content_type")
-            .order_by("name", "matching_class")
+        configs = sorted(
+            iter_panel_linkable_configs(),
+            key=lambda c: (c.name or "").lower(),
         )
 
     choices = [("", _("── Select type ──"))]
     for cfg in configs:
-        if cfg.name and cfg.matching_class:
-            label = f"{cfg.name} ({cfg.matching_class})"
-        elif cfg.name:
+        if cfg.name:
             label = cfg.name
         else:
-            ct = cfg.content_type
+            ct = ContentType.objects.get(pk=cfg.content_type_id)
             model_class = ct.model_class()
             if model_class:
                 label = (
@@ -72,7 +70,7 @@ def _build_type_choices(source_content_type_id=None):
                 )
             else:
                 label = f"{ct.app_label} → {ct.model}"
-        choices.append((cfg.content_type.pk, label))
+        choices.append((cfg.content_type_id, label))
     return choices
 
 
@@ -152,13 +150,7 @@ class ObjectLinkAssignForm(ObjectLinkPropagationForm):
             )
             return data
 
-        if (
-            not TypeConfig.queryset_assignable_from(int(object_a_type_id))
-            .filter(
-                content_type_id=int(ct_pk),
-            )
-            .exists()
-        ):
+        if not is_assignable_from_content_type(int(object_a_type_id), int(ct_pk)):
             self.add_error(
                 "object_b_type",
                 _("This type is not linkable from the Security Panel."),

@@ -1,13 +1,13 @@
 """Setup: demo rulebook creation (COT-only).
 
-Starter-Demo (20×20 Zonen-Matrix, Template 0003 — nur Zonen, zufällig permit/deny)::
+Starter-Demo (250×250 Zonen-Matrix, portable-schema YAML — nur Zonen, zufällig permit/deny)::
 
     # Über NetBox Setup (Abschnitt 4) → „Starter-Demo“ → Anlegen
     # oder per Django-Shell:
     from netbox_nsm.views.setup.demo import create_demo_starter
     create_demo_starter()
 
-Address Bench (50.000 Adressen, nur bei leerem IPAM)::
+Address Bench (50.000 Adressen, Setup mit Bestätigung im UI)::
 
     # Setup → „Address Bench (50.000 Adressen)“
     # RQ-Worker muss laufen (netbox-dev-worker). Volllauf 200k nur per CLI:
@@ -32,10 +32,11 @@ from django.utils.translation import gettext_lazy as _
 
 from ipam.models import IPAddress
 
+from netbox_nsm.core.plugin_labels import get_nsm_menu_label
+from netbox_nsm.rulebooks.create import create_cot_rulebook_from_schema_yaml
 from netbox_nsm.rulebooks.templates import (
     DEMO_RULEBOOK_SLUG,
-    DEMO_RULEBOOK_TEMPLATE_SLUG,
-    build_rulebook_document,
+    demo_rulebook_schema_yaml,
     format_rulebook_display_name,
 )
 
@@ -54,12 +55,14 @@ __all__ = (
     "handle_demo_action",
 )
 
-DEMO_GRID_SIZE = 20
-DEMO_ZONE_COUNT = 20
+DEMO_GRID_SIZE = 250
+DEMO_ZONE_COUNT = 250
 DEMO_RULE_COUNT = DEMO_GRID_SIZE * DEMO_GRID_SIZE
 DEMO_ACTION_RANDOM_SEED = 7
 DEMO_ZONE_NAME_PREFIX = "zone_"
 DEMO_RULE_NAME_PREFIX = "demo-rule-"
+DEMO_M2M_BATCH_SIZE = 5000
+DEMO_RULE_BATCH_SIZE = 1000
 
 DEMO_ACTIONS = frozenset(
     {
@@ -75,8 +78,12 @@ SCALE_DEMO_50K_IMPORT = (
 SCALE_DEMO_50K_RULEBOOK_NAME = "Bench Addresses"
 
 
+def _demo_zone_name_width() -> int:
+    return max(2, len(str(DEMO_ZONE_COUNT)))
+
+
 def _demo_zone_name(zone_idx: int) -> str:
-    return f"{DEMO_ZONE_NAME_PREFIX}{zone_idx + 1:02d}"
+    return f"{DEMO_ZONE_NAME_PREFIX}{zone_idx + 1:0{_demo_zone_name_width()}d}"
 
 
 def _matrix_indices(rule_idx: int) -> tuple[int, int]:
@@ -127,19 +134,18 @@ def _ensure_rulebook_templates() -> None:
 
 
 def _ensure_nsm_rb_demo_rulebook() -> None:
-    """Create demo rulebook nsm_rb_demo from template 0003 (zones only)."""
+    """Create demo rulebook nsm_rb_demo from portable schema YAML (zones only)."""
     from netbox_custom_objects.models import CustomObjectType
-    from netbox_custom_objects.schema.executor import apply_document
 
     if CustomObjectType.objects.filter(slug=DEMO_RULEBOOK_SLUG).exists():
         return
 
-    document = build_rulebook_document(
-        template_slug=DEMO_RULEBOOK_TEMPLATE_SLUG,
-        rulebook_slug=DEMO_RULEBOOK_SLUG,
+    create_cot_rulebook_from_schema_yaml(
+        schema_yaml=demo_rulebook_schema_yaml(),
+        name="demo",
         verbose_name=format_rulebook_display_name("Demo"),
+        description="",
     )
-    apply_document(document, allow_destructive=False)
 
 
 def _ensure_builtin_default_objects() -> None:
@@ -257,7 +263,7 @@ def _queue_demo_import(
                 "%(label)s import queued (job %(job_id)s); %(backlog)s other job(s) "
                 "are ahead in the worker queue. The rulebook «%(rulebook)s» will be "
                 "recreated when this job starts (~%(minutes)s minutes of work). "
-                "Find it under Security → Rulebooks."
+                "Find it under %(menu_label)s → Rulebooks."
             )
             % {
                 "label": label,
@@ -265,6 +271,7 @@ def _queue_demo_import(
                 "backlog": backlog,
                 "rulebook": rulebook_name,
                 "minutes": processing_minutes,
+                "menu_label": get_nsm_menu_label(),
             },
         )
     else:
@@ -274,13 +281,14 @@ def _queue_demo_import(
                 "%(label)s import started in the background (job %(job_id)s). "
                 "The rulebook «%(rulebook)s» will be recreated in about %(minutes)s minutes "
                 "(any existing rulebook with that name is removed when the job "
-                "starts, not when you click Create). Find it under Security → Rulebooks."
+                "starts, not when you click Create). Find it under %(menu_label)s → Rulebooks."
             )
             % {
                 "label": label,
                 "job_id": job.id,
                 "rulebook": rulebook_name,
                 "minutes": processing_minutes,
+                "menu_label": get_nsm_menu_label(),
             },
         )
     return True
@@ -298,7 +306,7 @@ def _get_custom_objects_by_name(slug):
 
 
 def _ensure_demo_zones():
-    """Create zone_01 … zone_20 for the starter matrix demo."""
+    """Create zone_001 … zone_N for the starter matrix demo."""
     from netbox_custom_objects.models import CustomObjectType
 
     zone_cot = CustomObjectType.objects.get(slug="nsm_zone")
@@ -310,8 +318,56 @@ def _ensure_demo_zones():
     return zones
 
 
+def _get_cot_field_through_model(cot, field_name: str):
+    from django.apps import apps
+
+    from netbox_custom_objects import constants
+
+    field = cot.fields.get(name=field_name)
+    return apps.get_model(constants.APP_LABEL, field.through_model_name)
+
+
+def _bulk_seed_demo_matrix_relations(
+    *,
+    cot,
+    rules,
+    zones,
+    actions_by_name: dict,
+    act_rng: random.Random,
+) -> None:
+    from django.contrib.contenttypes.models import ContentType
+
+    zone_ct_id = ContentType.objects.get_for_model(zones[0]).pk
+    fallback_action = next(iter(actions_by_name.values()), None)
+
+    for field_name, zone_index in (("source", 0), ("destination", 1)):
+        Through = _get_cot_field_through_model(cot, field_name)
+        rows = [
+            Through(
+                source_id=rule.pk,
+                content_type_id=zone_ct_id,
+                object_id=zones[_matrix_indices(rule_idx)[zone_index]].pk,
+            )
+            for rule_idx, rule in enumerate(rules)
+        ]
+        Through.objects.bulk_create(rows, batch_size=DEMO_M2M_BATCH_SIZE)
+
+    if not fallback_action:
+        return
+
+    ActionsThrough = _get_cot_field_through_model(cot, "actions")
+    action_rows = []
+    for rule in rules:
+        action_key = "permit" if act_rng.random() < 0.5 else "deny"
+        action = actions_by_name.get(action_key) or fallback_action
+        action_rows.append(
+            ActionsThrough(source_id=rule.pk, target_id=action.pk)
+        )
+    ActionsThrough.objects.bulk_create(action_rows, batch_size=DEMO_M2M_BATCH_SIZE)
+
+
 def _create_rb_demo_starter_rules():
-    """Seed nsm_rb_demo with a 20×20 zone matrix (400 rules, random permit/deny)."""
+    """Seed nsm_rb_demo with a 250×250 zone matrix (62.5k rules, random permit/deny)."""
     from netbox_custom_objects.models import CustomObjectType
 
     cot = CustomObjectType.objects.get(slug=DEMO_RULEBOOK_SLUG)
@@ -319,9 +375,7 @@ def _create_rb_demo_starter_rules():
     model.objects.all().delete()
 
     zones = _ensure_demo_zones()
-    services_by_name = _get_custom_objects_by_name("nsm_service")
     actions_by_name = _get_custom_objects_by_name("nsm_action")
-    https = services_by_name.get("https")
     act_rng = random.Random(DEMO_ACTION_RANDOM_SEED)
 
     rules = model.objects.bulk_create(
@@ -337,27 +391,22 @@ def _create_rb_demo_starter_rules():
             for rule_idx in range(DEMO_RULE_COUNT)
             for src_i, dst_i in [_matrix_indices(rule_idx)]
         ],
-        batch_size=100,
+        batch_size=DEMO_RULE_BATCH_SIZE,
     )
 
-    for rule_idx, rule in enumerate(rules):
-        src_i, dst_i = _matrix_indices(rule_idx)
-        rule.source_zones.set([zones[src_i]])
-        rule.destination_zones.set([zones[dst_i]])
-        action_key = "permit" if act_rng.random() < 0.5 else "deny"
-        action = actions_by_name.get(action_key) or next(
-            iter(actions_by_name.values()), None
-        )
-        if action is not None:
-            rule.actions.set([action])
-        if https is not None:
-            rule.services_applications.set([https])
+    _bulk_seed_demo_matrix_relations(
+        cot=cot,
+        rules=rules,
+        zones=zones,
+        actions_by_name=actions_by_name,
+        act_rng=act_rng,
+    )
 
     return cot
 
 
 def create_demo_starter():
-    """Built-in COTs/TypeConfigs (if needed) and nsm_rb_demo with 20×20 zone matrix."""
+    """Built-in COTs/TypeConfigs (if needed) and nsm_rb_demo with 250×250 zone matrix."""
     _ensure_demo_prerequisites()
     _ensure_rulebook_templates()
     _ensure_nsm_rb_demo_rulebook()
@@ -411,8 +460,8 @@ def handle_demo_action(request, action: str):
             _(
                 "Starter demo created: %(zone_count)s zones, %(rule_count)s rules "
                 "(random permit/deny) in custom-object type '%(rb_slug)s' "
-                "(template 0003, zones only). "
-                "Custom Object Types / TypeConfigs were imported if missing."
+                "(portable schema, zones only). "
+                "Custom Object Types / Object Configs were imported if missing."
             )
             % {
                 "zone_count": DEMO_ZONE_COUNT,
@@ -431,16 +480,6 @@ def handle_demo_action(request, action: str):
             return redirect(reverse("plugins:netbox_nsm:setup"))
         run_enterprise_demo(request)
     elif action == "create_demo_scale_50k":
-        if IPAddress.objects.exists():
-            messages.error(
-                request,
-                _(
-                    "%(label)s requires an empty IP address database "
-                    "(IPAM → IP addresses)."
-                )
-                % {"label": _("Address bench (50k)")},
-            )
-            return redirect(reverse("plugins:netbox_nsm:setup"))
         _queue_demo_import(
             request,
             import_path=SCALE_DEMO_50K_IMPORT,

@@ -1,8 +1,8 @@
 """100×100 zone matrix demo (10 000 COT rules) — not part of Setup wizard.
 
-Creates ``demo-0001`` … ``demo-0100`` zones and rules on ``nsm_rb_scale_test``
-(template 0003 — zones only). Rules are Custom Object rows with
-``source_zones`` / ``destination_zones`` multiobject fields.
+Creates ``demo-0001`` … ``demo-0100`` zones and rules on ``nsm_rb_scale_test``.
+Rules are Custom Object rows with ``source`` / ``destination`` multiobject fields
+(zones only, from the demo rulebook schema).
 
 Ausführung::
 
@@ -22,6 +22,7 @@ from netbox_nsm.demos.cot_demo_common import (
     ensure_rulebook_cot,
     get_cot_model,
 )
+from netbox_nsm.rulebooks.templates import demo_rulebook_schema_yaml
 
 __all__ = (
     "ACTION_RANDOM_SEED",
@@ -41,7 +42,6 @@ ZONE_NAME_PREFIX = "demo-"
 ACTION_RANDOM_SEED = 7
 
 SCALE_RULEBOOK_SLUG = "nsm_rb_scale_test"
-SCALE_RULEBOOK_TEMPLATE = "nsm_rb_0003_template"
 _DEMO_RULE_PREFIX = "demo-rule-"
 
 
@@ -56,7 +56,7 @@ def _zone_name(zone_idx: int) -> str:
 def _ensure_scale_rulebook():
     return ensure_rulebook_cot(
         slug=SCALE_RULEBOOK_SLUG,
-        template_slug=SCALE_RULEBOOK_TEMPLATE,
+        schema_yaml=demo_rulebook_schema_yaml(),
         display_name="Scale Test",
     )
 
@@ -82,13 +82,12 @@ def _create_matrix_rules(
     if recreate:
         RuleModel.objects.filter(name__startswith=_DEMO_RULE_PREFIX).delete()
 
-    services = list(get_cot_model("nsm_service", "nsm_services")[0].objects.all())
     actions = {
         obj.name.lower(): obj
         for obj in get_cot_model("nsm_action")[0].objects.all()
     }
-    if not services or not actions:
-        raise RuntimeError("Missing nsm_service or nsm_action seed objects.")
+    if not actions:
+        raise RuntimeError("Missing nsm_action seed objects.")
 
     act_rng = random.Random(ACTION_RANDOM_SEED)
     object_items = 0
@@ -98,12 +97,11 @@ def _create_matrix_rules(
         index = rule_idx + 1
         name = f"{_DEMO_RULE_PREFIX}{rule_idx + 1:05d}"
         rule = RuleModel.objects.create(index=index, status=True, name=name)
-        rule.source_zones.set([zones[src_i]])
-        rule.destination_zones.set([zones[dst_i]])
-        rule.services_applications.set([services[rule_idx % len(services)]])
+        rule.source.set([zones[src_i]])
+        rule.destination.set([zones[dst_i]])
         action_key = "permit" if act_rng.random() < 0.5 else "deny"
         rule.actions.set([actions.get(action_key) or next(iter(actions.values()))])
-        object_items += 4
+        object_items += 3
 
     return RULE_COUNT, object_items
 

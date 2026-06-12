@@ -8,6 +8,7 @@ from django.utils.translation import gettext_lazy as _
 
 from netbox_nsm.core.branch_urls import with_branch_query
 from netbox_nsm.security.panel_link_actions import append_return_url
+from netbox_nsm.rulebooks.cot_rule_clone import build_rule_clone_url
 from netbox_nsm.rulebooks.grid_payload import (
     _description_cell_html,
     _description_line_count,
@@ -18,6 +19,7 @@ from netbox_nsm.rulebooks.grid_payload import (
     filter_spec_to_column_quick_value,
 )
 from netbox_nsm.rulebooks.cell_html import (
+    rules_filter_target_html,
     CELL_MODE_COMPACT,
     CELL_MODE_DEFAULT,
     CELL_MODE_INLINE,
@@ -31,6 +33,8 @@ from utilities.paginator import EnhancedPaginator, get_paginate_count
 __all__ = (
     "RULES_HTML_ROW_LIMIT",
     "RULES_FILTER_PREFIX",
+    "format_rules_tab_badge",
+    "rules_tab_badge_for_object",
     "build_rules_page_url",
     "build_rules_sort_url",
     "build_rules_sort_url_for_order",
@@ -60,6 +64,27 @@ RULES_DEFAULT_SORT = ("index", "asc")
 RULES_SYSTEM_FIELDS = frozenset({"rulebook", "index", "name", "enabled", "description"})
 
 
+def format_rules_tab_badge(
+    filtered_count: int,
+    total_count: int,
+    *,
+    filter_active: bool,
+) -> int | str:
+    """Rules nav-tab badge: ``filtered/total`` when filters apply, else total only."""
+    if filter_active:
+        return f"{filtered_count}/{total_count}"
+    return total_count
+
+
+def rules_tab_badge_for_object(obj) -> int | str | None:
+    """Badge value for virtual rulebook tab navigation."""
+    badge = getattr(obj, "rules_tab_badge", None)
+    if badge is not None and badge != "":
+        return badge
+    rule_count = getattr(obj, "rule_count", None)
+    return rule_count if rule_count is not None else None
+
+
 def normalize_rules_column_mode(raw: str | None) -> str:
     """Return supported rules-table column layout mode (expanded or collapsed)."""
     mode = (raw or "").strip().lower()
@@ -79,7 +104,7 @@ def parse_rules_cell_mode(request) -> str:
 
 
 def _rules_query_field(col: dict) -> str | None:
-    if col.get("kind") == "actions":
+    if col.get("kind") in ("actions", "rule_group"):
         return None
     if col.get("kind") == "system":
         return "enabled" if col.get("slug") == "status" else col.get("slug")
@@ -187,14 +212,9 @@ def rules_object_column_header_parts(
         return title, subtitle
 
     if group_in_parens and type_label and legacy_group and legacy_group != type_label:
-        from netbox_nsm.rulebooks.rulebook_groups import (
-            resolve_group_name_for_display,
-            strip_rulebook_group_sort_prefix,
-        )
+        from netbox_nsm.rulebooks.rulebook_groups import resolve_group_name_for_display
 
-        group_suffix = resolve_group_name_for_display(legacy_group)
-        if not group_suffix:
-            group_suffix = strip_rulebook_group_sort_prefix(legacy_group)
+        group_suffix = resolve_group_name_for_display(legacy_group) or legacy_group
         title = (
             f"{type_label} ({group_suffix})"
             if group_suffix and group_suffix != type_label
@@ -672,30 +692,34 @@ def _render_status_cell_html(enabled: bool) -> str:
     labels = enabled_status_labels()
     label = labels["on"] if enabled else labels["off"]
     bg_color = "success" if enabled else "secondary"
-    return f'<span class="badge text-bg-{bg_color}">{escape(label)}</span>'
+    badge = (
+        f'<span class="badge text-bg-{bg_color}"'
+        f' data-nsm-filter-value="{escape(label)}">{escape(label)}</span>'
+    )
+    return rules_filter_target_html(badge, label)
 
 
 def _render_name_cell_html(name: str, url: str) -> str:
     text = str(name or "")
-    return (
+    link = (
         f'<a href="{conditional_escape(url)}"'
         f' class="nsm-ag-cell-link text-decoration-none"'
-        f' draggable="false"'
         f' data-nsm-filter-value="{escape(text)}"'
         f' title="{escape(text)}">{escape(text)}</a>'
     )
+    return rules_filter_target_html(link, text)
 
 
 def _render_index_cell_html(index, url: str, rule_name: str) -> str:
     idx = "" if index is None else str(index)
     name = str(rule_name or "")
-    return (
+    link = (
         f'<a href="{conditional_escape(url)}"'
         f' class="nsm-ag-cell-link text-decoration-none"'
-        f' draggable="false"'
         f' data-nsm-filter-value="{escape(idx)}"'
         f' title="{escape(name)}">{escape(idx)}</a>'
     )
+    return rules_filter_target_html(link, idx)
 
 
 def _render_description_cell_html(description: str) -> str:
@@ -814,11 +838,22 @@ def _build_rules_cell_html(
     can_change: bool,
     can_delete: bool,
     can_add: bool = False,
+    rulebook_slug: str = "",
     object_fields_by_slug: dict,
     cell_mode: str = CELL_MODE_DEFAULT,
 ) -> str:
     system = row.get("system") or {}
     detail_url = with_branch_query(system.get("url") or row.get("url") or "", request)
+
+    if col["kind"] == "rule_group":
+        group_label = (row.get("parent_group_label") or "").strip()
+        if group_label:
+            return (
+                '<span class="nsm-cell-empty">-</span>'
+                f' <span class="nsm-rule-group-hint text-muted">'
+                f"{escape(_('Group:'))} {escape(group_label)}</span>"
+            )
+        return '<span class="nsm-cell-empty">-</span>'
 
     if col["kind"] == "system":
         slug = col["slug"]
@@ -914,10 +949,18 @@ def _build_rules_cell_html(
             with_branch_query(row.get("delete_url") or "", request),
             return_path,
         )
+        clone_url = None
+        if can_add and rulebook_slug and row.get("pk"):
+            clone_url = build_rule_clone_url(
+                request,
+                rulebook_slug,
+                row["pk"],
+                return_path=return_path,
+            )
         return _render_actions_cell_html(
             edit_url,
             delete_url,
-            None,
+            clone_url,
             can_change=can_change,
             can_delete=can_delete,
             can_add=can_add,
@@ -934,6 +977,7 @@ def _attach_rules_cells(
     can_change: bool,
     can_delete: bool,
     can_add: bool = False,
+    rulebook_slug: str = "",
     object_fields_by_slug: dict,
     cell_mode: str = CELL_MODE_DEFAULT,
 ) -> None:
@@ -953,6 +997,7 @@ def _attach_rules_cells(
                     can_change=can_change,
                     can_delete=can_delete,
                     can_add=can_add,
+                    rulebook_slug=rulebook_slug,
                     object_fields_by_slug=object_fields_by_slug,
                     cell_mode=cell_mode,
                 ),

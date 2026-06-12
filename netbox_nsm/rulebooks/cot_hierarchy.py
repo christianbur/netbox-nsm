@@ -14,9 +14,11 @@ __all__ = (
     "deployed_rulebook_parent_choices",
     "get_cot_matrix_tab_enabled",
     "get_cot_parent_slug",
+    "get_cot_row_group_by_col_id",
     "invalid_parent_slugs",
     "load_cot_parent_map",
     "set_cot_matrix_tab_enabled",
+    "set_cot_row_group_by_col_id",
     "set_cot_rulebook_parent",
     "validate_cot_parent_slug",
 )
@@ -58,6 +60,30 @@ def set_cot_matrix_tab_enabled(slug: str, enabled: bool) -> None:
     CotRulebook.objects.update_or_create(
         slug=slug,
         defaults={"matrix_tab_enabled": enabled},
+    )
+
+
+def get_cot_row_group_by_col_id(slug: str) -> str:
+    """Return configured rules-tab row group column id, or empty string."""
+    from netbox_nsm.models import CotRulebook
+
+    try:
+        return (
+            CotRulebook.objects.values_list("row_group_by_col_id", flat=True).get(
+                slug=slug
+            )
+            or ""
+        )
+    except CotRulebook.DoesNotExist:
+        return ""
+
+
+def set_cot_row_group_by_col_id(slug: str, col_id: str) -> None:
+    from netbox_nsm.models import CotRulebook
+
+    CotRulebook.objects.update_or_create(
+        slug=slug,
+        defaults={"row_group_by_col_id": (col_id or "").strip()},
     )
 
 

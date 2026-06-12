@@ -6,7 +6,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
 from ipam.models import Prefix
 
-from netbox_nsm.models import MatchingClassChoices, TypeConfig
+from netbox_nsm.models import TypeConfig
 from utilities.testing import TestCase
 
 
@@ -28,7 +28,6 @@ class ObjectTypeElementsApiViewTests(TestCase):
         cls.type_config = TypeConfig.objects.create(
             name="Picker Prefix Zones",
             content_type=cls.prefix_ct,
-            matching_class=MatchingClassChoices.ZONE,
             display_template="{prefix}",
         )
 

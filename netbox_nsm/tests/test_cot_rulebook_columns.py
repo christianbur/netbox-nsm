@@ -86,9 +86,14 @@ class CotFieldTypeDisplayTests(TestCase):
             related_object_type=None,
             related_object_types=SimpleNamespace(all=lambda: [zone_type, label_type]),
         )
+        def _cot_for_mock_object_type(object_type):
+            if object_type.model == "table1model":
+                return zone_cot
+            return label_cot
+
         with patch(
             "netbox_nsm.rulebooks.rules_layout._cot_for_object_type",
-            side_effect=[zone_cot, label_cot],
+            side_effect=_cot_for_mock_object_type,
         ):
             self.assertEqual(
                 cot_field_allowed_object_labels(field),

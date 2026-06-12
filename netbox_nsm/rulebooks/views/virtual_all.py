@@ -79,14 +79,23 @@ class AllRulesRulebookRulesView(_VirtualAllRulesMixin, View):
         from netbox_nsm.rulebooks.virtual_all_rules_tab import (
             build_virtual_all_rules_rules_tab_context,
         )
+        from netbox_nsm.rulebooks.virtual_all_tabs import build_virtual_rulebook_tabs
 
-        return self.render_virtual(
+        instance = self.get_virtual_object()
+        rules_ctx = build_virtual_all_rules_rules_tab_context(
             request,
-            build_virtual_all_rules_rules_tab_context(
-                request,
-                self.get_virtual_object(),
-            ),
+            instance,
         )
+        if rules_ctx.get("rules_tab_badge") is not None:
+            instance.rules_tab_badge = rules_ctx["rules_tab_badge"]
+        ctx = self.build_base_context(request)
+        ctx["virtual_rulebook_tabs"] = build_virtual_rulebook_tabs(
+            request,
+            instance,
+            active_key=self.tab_key,
+        )
+        ctx.update(rules_ctx)
+        return render(request, self.template_name, ctx)
 
 
 class _VirtualAllRulesFeatureTabMixin(_VirtualAllRulesMixin):

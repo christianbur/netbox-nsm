@@ -9,8 +9,8 @@ from netbox_nsm.matrix.cot_matrix_tab_context import build_cot_matrix_tab_contex
 
 
 class CotMatrixTabPrefetchTests(SimpleTestCase):
-    @patch("netbox_nsm.matrix.cot_matrix_tab_context.wrap_matrix_cell_hrefs")
-    @patch("netbox_nsm.matrix.cot_matrix_tab_context.build_matrix_cell_rules_filter_url")
+    @patch("netbox_nsm.matrix.cot_matrix_tab_context.build_sparse_matrix_cells")
+    @patch("netbox_nsm.matrix.cot_matrix_tab_context.serialize_matrix_zone_axis")
     @patch("netbox_nsm.matrix.cot_matrix_tab_context._action_legend")
     @patch("netbox_nsm.matrix.cot_matrix_tab_context.resolve_matrix_object_type_selection")
     @patch("netbox_nsm.matrix.cot_matrix_tab_context.dedupe_matrix_object_types")
@@ -27,8 +27,8 @@ class CotMatrixTabPrefetchTests(SimpleTestCase):
         mock_dedupe,
         mock_resolve_ct,
         mock_legend,
-        mock_filter_url,
-        mock_wrap_hrefs,
+        mock_serialize_axis,
+        mock_sparse_cells,
     ):
         mock_enabled.return_value = True
         rule = SimpleNamespace(pk=1)
@@ -39,10 +39,12 @@ class CotMatrixTabPrefetchTests(SimpleTestCase):
         mock_dedupe.return_value = [{"ct_id": 7, "label": "Zones"}]
         mock_resolve_ct.return_value = 7
         mock_legend.return_value = []
-        mock_filter_url.return_value = "/rules/"
-        mock_wrap_hrefs.side_effect = lambda cells, _request: None
+        mock_serialize_axis.return_value = []
+        mock_sparse_cells.return_value = {}
 
-        cot = SimpleNamespace(slug="nsm_rb_demo")
+        fields = MagicMock()
+        fields.values_list.return_value = ["source_zones", "destination_zones"]
+        cot = SimpleNamespace(slug="nsm_rb_demo", fields=fields)
         virtual_rb = SimpleNamespace(cot=cot, slug="nsm_rb_demo")
         request = RequestFactory().get("/matrix/")
 

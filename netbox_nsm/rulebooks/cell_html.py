@@ -3,7 +3,14 @@
 from __future__ import annotations
 
 from django.utils.html import conditional_escape, escape
+from django.utils.translation import gettext as _
 from django.utils.translation import ngettext
+
+from netbox_nsm.core.nsm_object_status import (
+    NSM_OBJECT_STATUS_DEPRECATED,
+    NSM_OBJECT_STATUS_RESERVED,
+    nsm_object_status_icon_html,
+)
 
 DEFAULT_MAX_VISIBLE_PILLS = 5
 
@@ -33,6 +40,34 @@ def normalize_rules_cell_mode(raw: str | None) -> str:
     return CELL_MODE_DEFAULT
 
 
+def rules_filter_loupe_button_html(filter_value: str) -> str:
+    """Magnifier to add one cell value to the rules quick-filter query."""
+    value = str(filter_value or "").strip()
+    if not value:
+        return ""
+    title = _("Add to quick filter")
+    return (
+        f'<button type="button" class="nsm-rules-filter-loupe"'
+        f' data-nsm-filter-value="{conditional_escape(value)}"'
+        f' title="{conditional_escape(title)}"'
+        f' aria-label="{conditional_escape(title)}">'
+        f'<i class="mdi mdi-magnify" aria-hidden="true"></i></button>'
+    )
+
+
+def rules_filter_target_html(inner_html: str, filter_value: str) -> str:
+    """Wrap one filterable rules cell value with a hover loupe."""
+    loupe = rules_filter_loupe_button_html(filter_value)
+    if not loupe:
+        return inner_html
+    return (
+        f'<span class="nsm-rules-filter-target nsm-rules-filter-target--has-loupe">'
+        f'<span class="nsm-rules-filter-target-body">{inner_html}</span>'
+        f"{loupe}"
+        f"</span>"
+    )
+
+
 def ipa_loupe_button_html(
     *,
     ct,
@@ -53,13 +88,13 @@ def ipa_loupe_button_html(
 
 
 def ipa_cell_loupe_button_html(*, object_count: int = 1) -> str:
-    """One loupe per rules cell — analyzes all address objects in the cell."""
+    """One analyzer control per rules cell — analyzes all address objects in the cell."""
     title = "Objekte analysieren" if object_count > 1 else "Objekt analysieren"
     return (
         f'<button type="button" class="nsm-ipa-loupe nsm-ipa-cell-loupe"'
         f' title="{conditional_escape(title)}"'
         f' aria-label="{conditional_escape(title)}">'
-        f'<i class="mdi mdi-magnify" aria-hidden="true"></i></button>'
+        f'<i class="mdi mdi-ip-network" aria-hidden="true"></i></button>'
     )
 
 
@@ -107,6 +142,35 @@ def _wrap_rules_cell_list(
     )
 
 
+
+def _object_status_icon_html(item) -> str:
+    return nsm_object_status_icon_html(item.get("status"))
+
+
+def _items_status_icon_html(items) -> str:
+    statuses = {item.get("status") for item in (items or []) if item.get("status")}
+    if NSM_OBJECT_STATUS_DEPRECATED in statuses:
+        return nsm_object_status_icon_html(NSM_OBJECT_STATUS_DEPRECATED)
+    if NSM_OBJECT_STATUS_RESERVED in statuses:
+        return nsm_object_status_icon_html(NSM_OBJECT_STATUS_RESERVED)
+    return ""
+
+
+
+def _interface_parent_link_html(item) -> str:
+    parent_url = (item.get("parent_url") or "").strip()
+    parent_name = (item.get("parent_name") or "").strip()
+    if not parent_url or not parent_name:
+        return ""
+    return (
+        f'<a href="{conditional_escape(parent_url)}"'
+        f' class="nsm-ag-cell-parent-link text-decoration-none"'
+        f' title="{conditional_escape(parent_name)}">'
+        f"{escape(parent_name)}</a>"
+        f'<span class="nsm-ag-cell-parent-sep text-muted" aria-hidden="true"> / </span>'
+    )
+
+
 def rules_pill_html_ag(item, *, hidden=False, colored=True):
     """Colored dot + plain text link (no pill chrome)."""
     color = (item.get("color") or "").strip() if colored else ""
@@ -131,16 +195,23 @@ def rules_pill_html_ag(item, *, hidden=False, colored=True):
         if analyzable:
             data_attrs += ' data-addr-analyzable="1"'
     name = item.get("name") or ""
+    loupe = rules_filter_loupe_button_html(name)
+    loupe_class = " nsm-rules-filter-target--has-loupe" if loupe else ""
+    status_icon = _object_status_icon_html(item)
     return (
-        f'<span class="nsm-ag-cell-item{hidden_class}{excluded_class}"{data_attrs}>'
+        f'<span class="nsm-ag-cell-item nsm-rules-filter-target{loupe_class}{hidden_class}{excluded_class}"{data_attrs}>'
+        f'<span class="nsm-rules-filter-target-body">'
         f"{dot_html}"
+        f"{_interface_parent_link_html(item)}"
         f'<a href="{conditional_escape(item["url"])}" '
         f' class="nsm-ag-cell-link text-decoration-none"'
-        f' draggable="false"'
         f' data-nsm-filter-value="{conditional_escape(name)}"'
         f' title="{conditional_escape(name)}">'
         f"{escape(name)}"
         f"</a>"
+        f"{status_icon}"
+        f"</span>"
+        f"{loupe}"
         f"</span>"
     )
 
@@ -233,13 +304,15 @@ def _render_rules_object_cell_compact(
                 f' style="background-color:{conditional_escape(color)};'
                 f'border-color:{conditional_escape(color)};color:#fff;"'
             )
-    inner = (
+    counter = (
         f'<span class="nsm-rule-pill nsm-rule-pill--counter nsm-ag-cell-counter"'
         f' title="{conditional_escape(title)}"'
         f' aria-label="{conditional_escape(count_label)}"'
         f' data-nsm-filter-value="{conditional_escape(title)}"{style}>'
         f"{escape(count_label)}</span>"
     )
+    status_icon = _items_status_icon_html(items)
+    inner = rules_filter_target_html(counter, title) + status_icon
     return _wrap_rules_cell_list(
         items,
         inner,

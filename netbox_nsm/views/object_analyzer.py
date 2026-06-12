@@ -9,7 +9,7 @@ from django.shortcuts import render
 from django.utils.translation import gettext_lazy as _
 from django.views import View
 
-from netbox_nsm.models import TypeConfig
+from netbox_nsm.objects.nsm_config import build_nsm_config_lookup
 
 __all__ = ("ObjectAnalyzerView",)
 
@@ -63,27 +63,36 @@ class ObjectAnalyzerView(LoginRequiredMixin, View):
         sel_pk = request.GET.get("pk", "")
         sel_name = request.GET.get("name", "")
 
-        # Build search types: TypeConfig + extras
+        # Build search types: NSM configs + extras
         seen_ct_ids: set[int] = set()
         api_types = []
 
-        for tc in TypeConfig.objects.select_related("content_type").order_by(
-            "name", "content_type__app_label", "content_type__model"
-        ):
-            if tc.content_type_id in seen_ct_ids:
+        configs = sorted(
+            build_nsm_config_lookup().values(),
+            key=lambda c: (
+                (c.name or "").lower(),
+                c.content_type_id,
+            ),
+        )
+        for config in configs:
+            if config.content_type_id in seen_ct_ids:
                 continue
-            mc = tc.content_type.model_class()
+            try:
+                ct = ContentType.objects.get(pk=config.content_type_id)
+            except ContentType.DoesNotExist:
+                continue
+            mc = ct.model_class()
             if not mc:
                 continue
-            api_url = _get_api_url_for_content_type(tc.content_type)
+            api_url = _get_api_url_for_content_type(ct)
             if not api_url:
                 continue
-            seen_ct_ids.add(tc.content_type_id)
+            seen_ct_ids.add(config.content_type_id)
             api_types.append(
                 {
-                    "ct_id": tc.content_type.pk,
+                    "ct_id": ct.pk,
                     "api_url": api_url,
-                    "name": str(tc),  # e.g. "Custom Objects › Labels"
+                    "name": config.name or str(mc._meta.verbose_name_plural).title(),
                 }
             )
 

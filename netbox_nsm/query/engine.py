@@ -82,7 +82,6 @@ class RulebookContext:
                         SimpleNamespace(
                             type_config=SimpleNamespace(
                                 name=ot.model,
-                                matching_class="",
                                 content_type=ct,
                             ),
                             sort_order=sort_order,
@@ -114,7 +113,6 @@ class RulebookContext:
             ct_id = ct.id
             candidates = [
                 tc.name,
-                tc.matching_class,
                 ct.model,
                 ct.model.replace("_", " "),
                 ct.model.replace("_", "-"),
@@ -791,8 +789,14 @@ _TYPE_PROPERTY_HINTS: Dict[str, List[str]] = {
 
 
 def type_search_properties(type_config) -> List[str]:
-    mc = getattr(type_config, "matching_class", "") or ""
-    return list(_TYPE_PROPERTY_HINTS.get(mc, ["name"]))
+    from netbox_nsm.core.type_kind import search_properties_for_model
+
+    model = getattr(getattr(type_config, "content_type", None), "model", "") or ""
+    hints = search_properties_for_model(model)
+    if hints != ["name"]:
+        return list(hints)
+    slug = type_segment_slug(type_config)
+    return list(_TYPE_PROPERTY_HINTS.get(slug, hints))
 
 
 def type_segment_slug(type_config) -> str:
@@ -800,9 +804,6 @@ def type_segment_slug(type_config) -> str:
     name_key = _segment_key(type_config.name)
     if name_key:
         return name_key
-    mc = _segment_key(type_config.matching_class or "")
-    if mc:
-        return mc
     model = type_config.content_type.model
     if model.startswith("nsm_"):
         return model[4:].replace("_", "")

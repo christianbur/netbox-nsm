@@ -25,14 +25,23 @@ from netbox_nsm.rulebooks.rulebook_groups import (
 
 __all__ = (
     "BUNDLED_RULEBOOK_TEMPLATE_SLUGS",
+    "DEFAULT_RULEBOOK_SCHEMA_YAML",
+    "DEMO_RULEBOOK_SCHEMA_YAML",
     "DEMO_RULEBOOK_SLUG",
-    "DEMO_RULEBOOK_TEMPLATE_SLUG",
     "RULEBOOK_GROUP",
     "RULEBOOK_TEMPLATE_GROUP",
     "RULEBOOK_TEMPLATE_SLUGS",
     "RULEBOOK_TEMPLATE_BY_SLUG",
     "build_rulebook_document",
+    "build_rulebook_document_from_schema",
     "build_rulebook_template_type_defs",
+    "default_rulebook_schema_yaml",
+    "demo_rulebook_schema_yaml",
+    "export_rulebook_schema_yaml_for_copy",
+    "extract_rulebook_wizard_metadata_from_schema_yaml",
+    "resolve_rulebook_schema_yaml_for_validation",
+    "validate_substituted_rulebook_schema_yaml",
+    "substitute_rulebook_schema_placeholders",
     "format_rulebook_display_name",
     "get_rulebook_template_slugs",
     "iter_rulebook_template_choices",
@@ -40,7 +49,10 @@ __all__ = (
     "get_template",
     "is_deployed_rulebook_slug",
     "is_rulebook_template_slug",
+    "parse_rulebook_schema_yaml",
     "template_wizard_columns",
+    "wizard_columns_from_fields",
+    "wizard_columns_from_schema_yaml",
 )
 
 RULEBOOK_TEMPLATE_GROUP = "NSM Rulebook Templates"
@@ -79,6 +91,40 @@ _FIELD_CATALOG: dict[str, dict] = {
         "weight": 3,
         "group_name": GROUP_COMMON,
     },
+    "source": {
+        "id": 4,
+        "name": "source",
+        "type": "multiobject",
+        "label": "Source",
+        "group_name": GROUP_SOURCE,
+        "description": "Source objects: zones, labels, addresses, and address groups.",
+        "required": True,
+        "weight": 11,
+        "is_polymorphic": True,
+        "related_object_types": [
+            "custom-objects/nsm_zone",
+            "custom-objects/nsm_label",
+            "custom-objects/nsm_address",
+            "custom-objects/nsm_address_group",
+        ],
+    },
+    "destination": {
+        "id": 5,
+        "name": "destination",
+        "type": "multiobject",
+        "label": "Destination",
+        "group_name": GROUP_DESTINATION,
+        "description": "Destination objects: zones, labels, addresses, and address groups.",
+        "required": True,
+        "weight": 21,
+        "is_polymorphic": True,
+        "related_object_types": [
+            "custom-objects/nsm_zone",
+            "custom-objects/nsm_label",
+            "custom-objects/nsm_address",
+            "custom-objects/nsm_address_group",
+        ],
+    },
     "source_zones": {
         "id": 4,
         "name": "source_zones",
@@ -92,7 +138,7 @@ _FIELD_CATALOG: dict[str, dict] = {
         "related_object_types": ["custom-objects/nsm_zone"],
     },
     "destination_zones": {
-        "id": 5,
+        "id": 14,
         "name": "destination_zones",
         "type": "multiobject",
         "label": "Zones",
@@ -219,87 +265,424 @@ _OBJECT_TYPE_LABELS: dict[str, str] = {
     "custom-objects/nsm_app_business": "Business App",
 }
 
-_RULEBOOK_TEMPLATES: tuple[dict, ...] = (
-    {
-        "id": "0001",
-        "slug": "nsm_rb_0001_template",
-        "label": "Template 0001 — Full",
-        "summary": "Zones, labels, addresses, services, actions, info.",
-        "field_names": (
-            "index",
-            "status",
-            "name",
-            "source_zones",
-            "destination_zones",
-            "source_labels",
-            "destination_labels",
-            "source_addresses",
-            "destination_addresses",
-            "services_applications",
-            "actions",
-            "infos",
-            "description",
-        ),
-    },
-    {
-        "id": "0002",
-        "slug": "nsm_rb_0002_template",
-        "label": "Template 0002 — Addresses only",
-        "summary": "Addresses, services, actions, info.",
-        "field_names": (
-            "index",
-            "status",
-            "name",
-            "source_addresses",
-            "destination_addresses",
-            "services_applications",
-            "actions",
-            "infos",
-            "description",
-        ),
-    },
-    {
-        "id": "0003",
-        "slug": "nsm_rb_0003_template",
-        "label": "Template 0003 — Zones only",
-        "summary": "Zones, services, actions, info.",
-        "field_names": (
-            "index",
-            "status",
-            "name",
-            "source_zones",
-            "destination_zones",
-            "services_applications",
-            "actions",
-            "infos",
-            "description",
-        ),
-    },
-    {
-        "id": "0004",
-        "slug": "nsm_rb_0004_template",
-        "label": "Template 0004 — Labels only",
-        "summary": "Labels, services, actions, info.",
-        "field_names": (
-            "index",
-            "status",
-            "name",
-            "source_labels",
-            "destination_labels",
-            "services_applications",
-            "actions",
-            "infos",
-            "description",
-        ),
-    },
-)
+_RULEBOOK_TEMPLATES: tuple[dict, ...] = ()
 
 RULEBOOK_TEMPLATE_SLUGS = [spec["slug"] for spec in _RULEBOOK_TEMPLATES]
 BUNDLED_RULEBOOK_TEMPLATE_SLUGS = RULEBOOK_TEMPLATE_SLUGS
 RULEBOOK_TEMPLATE_BY_SLUG = {spec["slug"]: spec for spec in _RULEBOOK_TEMPLATES}
 
 DEMO_RULEBOOK_SLUG = "nsm_rb_demo"
-DEMO_RULEBOOK_TEMPLATE_SLUG = "nsm_rb_0003_template"
+
+DEFAULT_RULEBOOK_SCHEMA_YAML = """schema_version: "1"
+types:
+  - name: nsm_rb_{{name}}
+    slug: nsm_rb_{{name}}
+    verbose_name: "{{display_name}}"
+    verbose_name_plural: "{{display_name}}"
+    description: "{{description}}"
+    group_name: NSM Rulebooks
+    fields:
+      - id: 1
+        name: index
+        type: integer
+        label: Index
+        required: true
+        weight: 1
+        primary: true
+      - id: 2
+        name: status
+        type: boolean
+        label: Status
+        required: false
+        weight: 2
+      - id: 3
+        name: name
+        type: text
+        label: Name
+        required: true
+        weight: 3
+      - id: 4
+        name: source
+        type: multiobject
+        label: Source
+        required: true
+        weight: 11
+        is_polymorphic: true
+        related_object_types:
+          - custom-objects/nsm_zone
+          - custom-objects/nsm_label
+          - custom-objects/nsm_address
+          - custom-objects/nsm_address_group
+      - id: 5
+        name: destination
+        type: multiobject
+        label: Destination
+        required: true
+        weight: 21
+        is_polymorphic: true
+        related_object_types:
+          - custom-objects/nsm_zone
+          - custom-objects/nsm_label
+          - custom-objects/nsm_address
+          - custom-objects/nsm_address_group
+      - id: 8
+        name: services_applications
+        type: multiobject
+        label: Services & Applications
+        required: true
+        weight: 40
+        is_polymorphic: true
+        related_object_types:
+          - custom-objects/nsm_service
+          - custom-objects/nsm_service_group
+          - custom-objects/nsm_app_network
+      - id: 9
+        name: actions
+        type: multiobject
+        label: Actions
+        required: true
+        weight: 50
+        related_object_type: custom-objects/nsm_action
+      - id: 10
+        name: infos
+        type: multiobject
+        label: Infos
+        required: false
+        weight: 60
+        related_object_type: custom-objects/nsm_app_business
+      - id: 11
+        name: description
+        type: longtext
+        label: Description
+        required: false
+        weight: 100
+    removed_fields: []
+"""
+
+DEMO_RULEBOOK_SCHEMA_YAML = """schema_version: "1"
+types:
+  - name: nsm_rb_{{name}}
+    slug: nsm_rb_{{name}}
+    verbose_name: "{{display_name}}"
+    verbose_name_plural: "{{display_name}}"
+    description: "{{description}}"
+    group_name: NSM Rulebooks
+    fields:
+      - id: 1
+        name: index
+        type: integer
+        label: Index
+        required: true
+        weight: 1
+        primary: true
+      - id: 2
+        name: status
+        type: boolean
+        label: Status
+        required: false
+        weight: 2
+      - id: 3
+        name: name
+        type: text
+        label: Name
+        required: true
+        weight: 3
+      - id: 4
+        name: source
+        type: multiobject
+        label: Source
+        required: true
+        weight: 11
+        is_polymorphic: true
+        related_object_types:
+          - custom-objects/nsm_zone
+      - id: 5
+        name: destination
+        type: multiobject
+        label: Destination
+        required: true
+        weight: 21
+        is_polymorphic: true
+        related_object_types:
+          - custom-objects/nsm_zone
+      - id: 9
+        name: actions
+        type: multiobject
+        label: Actions
+        required: true
+        weight: 50
+        related_object_type: custom-objects/nsm_action
+      - id: 11
+        name: description
+        type: longtext
+        label: Description
+        required: false
+        weight: 100
+    removed_fields: []
+"""
+
+
+def default_rulebook_schema_yaml() -> str:
+    """Return the default editable YAML schema for the rulebook add wizard."""
+    return DEFAULT_RULEBOOK_SCHEMA_YAML
+
+
+_SCHEMA_YAML_PLACEHOLDER_TOKENS = (
+    "{{name}}",
+    "{{display_name}}",
+    "{{description}}",
+)
+
+
+def _schema_yaml_value_is_literal(value: str) -> bool:
+    text = str(value or "")
+    if not text.strip():
+        return False
+    return not any(token in text for token in _SCHEMA_YAML_PLACEHOLDER_TOKENS)
+
+
+def _rulebook_name_from_schema_slug(raw: str) -> str:
+    text = (raw or "").strip()
+    if text.startswith("nsm_rb_"):
+        return text[len("nsm_rb_") :]
+    return text
+
+
+def extract_rulebook_wizard_metadata_from_schema_yaml(text: str) -> dict[str, str]:
+    """Read concrete rulebook metadata from wizard YAML (no template placeholders)."""
+    import yaml
+
+    raw = (text or "").strip()
+    if not raw:
+        return {}
+    try:
+        document = yaml.safe_load(raw)
+    except yaml.YAMLError:
+        return {}
+    if not isinstance(document, dict):
+        return {}
+    types = document.get("types")
+    if not isinstance(types, list) or not types:
+        return {}
+    type_def = types[0]
+    if not isinstance(type_def, dict):
+        return {}
+
+    result: dict[str, str] = {}
+    slug = str(type_def.get("slug") or type_def.get("name") or "").strip()
+    if _schema_yaml_value_is_literal(slug):
+        name = _rulebook_name_from_schema_slug(slug)
+        if name:
+            result["name"] = name
+
+    verbose_name = str(type_def.get("verbose_name") or "").strip()
+    if _schema_yaml_value_is_literal(verbose_name):
+        result["verbose_name"] = verbose_name
+
+    if "description" in type_def:
+        description = str(type_def.get("description") or "").strip()
+        if _schema_yaml_value_is_literal(str(type_def.get("description") or "")):
+            result["description"] = description
+    return result
+
+
+_SCHEMA_VALIDATE_FALLBACK_NAME = "preview"
+_SCHEMA_VALIDATE_FALLBACK_DISPLAY = "Schema Preview"
+
+
+def resolve_rulebook_schema_yaml_for_validation(
+    text: str,
+    *,
+    display_name: str = "",
+    name: str = "",
+    description: str = "",
+) -> str:
+    """Substitute wizard placeholders before schema validation."""
+    preview_name = (name or "").strip()
+    preview_display = (display_name or "").strip()
+    preview_description = (description or "").strip()
+    raw = text or ""
+    if any(
+        token in raw
+        for token in _SCHEMA_YAML_PLACEHOLDER_TOKENS
+    ):
+        if not preview_name and not preview_display:
+            preview_name = _SCHEMA_VALIDATE_FALLBACK_NAME
+        if not preview_display:
+            preview_display = _SCHEMA_VALIDATE_FALLBACK_DISPLAY
+    return substitute_rulebook_schema_placeholders(
+        raw,
+        display_name=preview_display,
+        name=preview_name,
+        description=preview_description,
+    )
+
+
+def validate_substituted_rulebook_schema_yaml(
+    text: str,
+    *,
+    display_name: str = "",
+    name: str = "",
+    description: str = "",
+) -> None:
+    """Validate portable-schema YAML using existing parser (no custom logic)."""
+    resolved = resolve_rulebook_schema_yaml_for_validation(
+        text,
+        display_name=display_name,
+        name=name,
+        description=description,
+    )
+    parse_rulebook_schema_yaml(resolved)
+
+
+def substitute_rulebook_schema_placeholders(
+    text: str,
+    *,
+    display_name: str = "",
+    name: str = "",
+    description: str = "",
+) -> str:
+    """Replace ``{{display_name}}``, ``{{name}}``, and ``{{description}}`` in wizard YAML."""
+    from netbox_nsm.rulebooks.create import (
+        derive_rulebook_name,
+        normalize_rulebook_display_name,
+    )
+
+    raw_display = (display_name or "").strip()
+    slug_name = (name or "").strip()
+    if not slug_name and raw_display:
+        slug_name = derive_rulebook_name(raw_display)
+    resolved_display = (
+        normalize_rulebook_display_name(raw_display) if raw_display else ""
+    )
+    resolved_description = (description or "").strip()
+    replacements = {
+        "{{display_name}}": resolved_display,
+        "{{name}}": slug_name,
+        "{{description}}": resolved_description,
+    }
+    result = text or ""
+    for placeholder, value in replacements.items():
+        result = result.replace(placeholder, value)
+    return result
+
+
+def demo_rulebook_schema_yaml() -> str:
+    """Return resolved portable-schema YAML for the starter demo rulebook."""
+    return substitute_rulebook_schema_placeholders(
+        DEMO_RULEBOOK_SCHEMA_YAML,
+        display_name=format_rulebook_display_name("Demo"),
+        name="demo",
+        description="",
+    )
+
+
+def export_rulebook_schema_yaml_for_copy(cot) -> str:
+    """Portable-schema YAML for clipboard copy (paste into Add Rulebook wizard)."""
+    import yaml
+
+    from netbox_custom_objects.schema.exporter import export_cot
+
+    type_def = export_cot(cot)
+    document = {
+        "schema_version": "1",
+        "types": [
+            {
+                "name": "nsm_rb_{{name}}",
+                "slug": "nsm_rb_{{name}}",
+                "verbose_name": "{{display_name}}",
+                "verbose_name_plural": "{{display_name}}",
+                "description": "{{description}}",
+                "group_name": RULEBOOK_GROUP,
+                "fields": list(type_def.get("fields") or []),
+                "removed_fields": list(type_def.get("removed_fields") or []),
+            }
+        ],
+    }
+    return yaml.dump(
+        document,
+        default_flow_style=False,
+        allow_unicode=True,
+        sort_keys=False,
+    ).strip() + "\n"
+
+
+def parse_rulebook_schema_yaml(text: str) -> dict:
+    """Parse and validate portable-schema YAML for rulebook creation."""
+    import yaml
+    from django.core.exceptions import ValidationError
+    from django.utils.translation import gettext_lazy as _
+
+    raw = (text or "").strip()
+    if not raw:
+        raise ValidationError(_("Enter a rulebook schema."))
+
+    try:
+        document = yaml.safe_load(raw)
+    except yaml.YAMLError as exc:
+        raise ValidationError(_("Invalid YAML: %(error)s") % {"error": exc}) from exc
+
+    if not isinstance(document, dict):
+        raise ValidationError(_("Schema must be a YAML mapping."))
+    if document.get("schema_version") != "1":
+        raise ValidationError(_("schema_version must be '1'."))
+
+    types = document.get("types")
+    if not isinstance(types, list) or not types:
+        raise ValidationError(_("Schema must contain at least one type in types."))
+
+    type_def = types[0]
+    if not isinstance(type_def, dict):
+        raise ValidationError(_("The first type entry must be a mapping."))
+
+    fields = type_def.get("fields")
+    if not isinstance(fields, list) or not fields:
+        raise ValidationError(_("Schema type must define at least one field."))
+
+    field_names: set[str] = set()
+    for index, field_def in enumerate(fields):
+        if not isinstance(field_def, dict):
+            raise ValidationError(
+                _("Field %(index)s must be a mapping.") % {"index": index + 1}
+            )
+        name = (field_def.get("name") or "").strip()
+        if not name:
+            raise ValidationError(
+                _("Field %(index)s is missing name.") % {"index": index + 1}
+            )
+        if name in field_names:
+            raise ValidationError(
+                _("Duplicate field name: %(name)s.") % {"name": name}
+            )
+        field_names.add(name)
+        field_type = (field_def.get("type") or "").strip()
+        if not field_type:
+            raise ValidationError(
+                _("Field %(name)s is missing type.") % {"name": name}
+            )
+
+    return type_def
+
+
+def wizard_columns_from_fields(fields: list[dict]) -> list[dict]:
+    """Build wizard preview rows from portable-schema field definitions."""
+    rows = []
+    for field_def in fields:
+        rows.append(
+            {
+                "name": field_def["name"],
+                "label": _field_display_label(field_def),
+                "allowed_objects": _allowed_object_labels(field_def),
+                "required": bool(field_def.get("required")),
+            }
+        )
+    return rows
+
+
+def wizard_columns_from_schema_yaml(text: str) -> list[dict]:
+    """Parse *text* and return wizard preview rows."""
+    type_def = parse_rulebook_schema_yaml(text)
+    return wizard_columns_from_fields(list(type_def.get("fields") or []))
 
 
 def _query_rulebook_template_cots():
@@ -320,6 +703,8 @@ def is_rulebook_template_slug(slug: str) -> bool:
     slug = (slug or "").strip()
     if not slug:
         return False
+    if slug.startswith("nsm_rb_") and slug.endswith("_template"):
+        return True
     if slug in RULEBOOK_TEMPLATE_BY_SLUG:
         return True
     try:
@@ -552,6 +937,31 @@ def default_rulebook_description(template_slug: str) -> str:
     return f"NSM rulebook created from template {template_slug}."
 
 
+def resolve_rulebook_cot_description(
+    *,
+    description: str | None,
+    schema_type_def: dict,
+    rulebook_slug: str,
+    display_name: str = "",
+    name: str = "",
+) -> str:
+    """Pick the COT description and resolve wizard placeholders."""
+    explicit = (description or "").strip()
+    if explicit:
+        return explicit
+
+    schema_desc = substitute_rulebook_schema_placeholders(
+        (schema_type_def.get("description") or "").strip(),
+        display_name=display_name,
+        name=name,
+        description=explicit,
+    ).strip()
+    if schema_desc:
+        return schema_desc
+
+    return default_rulebook_description(rulebook_slug)
+
+
 def format_rulebook_display_name(name: str) -> str:
     """Return the default UI label for a rulebook: ``Rulebook <name>``."""
     label = (name or "").strip()
@@ -568,6 +978,50 @@ def normalize_rulebook_display_name(name: str) -> str:
     if label.lower().startswith("rulebook "):
         return label
     return format_rulebook_display_name(label)
+
+
+def build_rulebook_document_from_schema(
+    *,
+    schema_type_def: dict,
+    rulebook_slug: str,
+    verbose_name: str,
+    verbose_name_plural: str | None = None,
+    description: str | None = None,
+    name: str = "",
+) -> dict:
+    """Build a portable-schema document for a concrete rulebook from parsed YAML."""
+    if not is_deployed_rulebook_slug(rulebook_slug):
+        raise ValueError(
+            f"Rulebook slug must match nsm_rb_<name> and not be a template: {rulebook_slug!r}"
+        )
+    display_name = verbose_name.strip()
+    plural_name = (verbose_name_plural or display_name).strip()
+    fields = list(schema_type_def.get("fields") or [])
+    name_segment = (name or "").strip()
+    if not name_segment and rulebook_slug.startswith("nsm_rb_"):
+        name_segment = rulebook_slug[len("nsm_rb_") :]
+    resolved_description = resolve_rulebook_cot_description(
+        description=description,
+        schema_type_def=schema_type_def,
+        rulebook_slug=rulebook_slug,
+        display_name=display_name,
+        name=name_segment,
+    )
+    return {
+        "schema_version": "1",
+        "types": [
+            {
+                "name": rulebook_slug,
+                "slug": rulebook_slug,
+                "verbose_name": display_name,
+                "verbose_name_plural": plural_name,
+                "description": resolved_description,
+                "group_name": RULEBOOK_GROUP,
+                "fields": fields,
+                "removed_fields": list(schema_type_def.get("removed_fields") or []),
+            }
+        ],
+    }
 
 
 def build_rulebook_document(

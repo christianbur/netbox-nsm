@@ -13,12 +13,10 @@ understand, extend or contribute to `netbox-nsm`.
 2. [Dependency: netbox-custom-objects](#dependency-netbox-custom-objects)
 3. [Data Model](#data-model)
    - [Database tables (PostgreSQL)](#database-tables-postgresql)
-   - [ObjectLink](#objectlink)
+   - [COT storage (rules, links, policy objects)](#cot-storage-rules-links-policy-objects)
    - [TypeConfig](#typeconfig)
-   - [Rulebook](#rulebook)
-   - [RulebookField / RulebookFieldType](#rulebookfield--rulebookfieldtype)
-   - [Rule](#rule)
-   - [RulebookAssignment](#rulebookassignment)
+   - [CotRulebook](#cotrulebook)
+   - [CotRulebookAssignment](#cotrulebookassignment)
 4. [Built-in Types (builtin_types.py)](#built-in-types)
 5. [Views](#views)
 6. [Template Extensions (Security Panel)](#template-extensions-security-panel)
@@ -109,17 +107,18 @@ without changing the NSM plugin itself.
 ## Naming
 
 Model and module names do **not** use an `NSM` prefix (the app label `netbox_nsm` is enough).
-See `scripts/drop_nsm_prefix.py` when migrating legacy names.
+Legacy rename scripts were removed with the pre-COT archive; use git history if needed.
 
 ### Glossary (one language per layer)
 
 | Layer | Convention | Examples |
 |-------|------------|----------|
-| UI / URL | **Rules** | Tab label „Rules“, route `rulebook_rules`, REST `/rules/` unchanged |
+| UI / URL | **Rules** | Tab label „Rules“, route `cot_rulebook_rules`, COT rule rows |
 | Domain | **Security rules** (rulebook type) | `RulebookTypeChoices.SECURITY_RULES` |
 | Grid stack (Python) | `rulebook_rules_grid_*` | `rulebook_rules_grid_service.py`, `RulebookRulesGridApiView` |
-| Grouping | `rulebook_rules_grouping.py` | `build_rulebook_rules_group_options()` |
-| Tab context | `rulebook_rules_tab.py` | `build_rulebook_rules_tab_context()` |
+| Grouping (legacy grid) | `rulebook_rules_grouping.py` | `build_rulebook_rules_group_options()` |
+| Row-group tabs (COT) | `rules_row_grouping.py` | `build_row_group_tab_summaries()`, `prepare_row_grouping_tab_columns()` |
+| Tab context | `rules_tab.py` | `build_cot_rulebook_rules_tab_context()` |
 | Grid API paths | `/api/rulebooks/<pk>/rules-grid/` | validate: `…/rules-grid/validate/` |
 | Cache keys | `nsm:rulebook_rules_grid:…` | — |
 | Grid DOM/CSS (JS) | `nsm-rules-*` | Rules table chrome, profile key `rules` |
@@ -154,182 +153,114 @@ See `netbox_nsm/models/__init__.py` for the authoritative inline summary.
 ### Database tables (PostgreSQL)
 
 All NSM-owned rows use the Django app label `netbox_nsm` (tables `netbox_nsm_*`).
-Security object **instances** (zones, addresses, etc.) are stored by `netbox-custom-objects`,
-not in NSM tables — NSM only stores links, configuration, rulebooks, and generic references.
+Security object **instances**, rulebook **rules**, and panel **links** are stored by
+`netbox-custom-objects` (COT), not in native NSM tables — NSM stores configuration,
+hierarchy metadata, and generic assignments.
 
-| UI / concept | Tables |
-|--------------|--------|
-| Rulebook | `netbox_nsm_rulebook` |
-| Field (column) | `netbox_nsm_rulebookfield` |
-| Type in field | `netbox_nsm_rulebookfieldtype` + `netbox_nsm_typeconfig` |
-| Rule | `netbox_nsm_rule` |
-| Rule cell objects / groups | `netbox_nsm_ruleobjectitem`, `netbox_nsm_rulegroupitem` |
-| Panel links | COT `nsm_object_link` rows |
+| UI / concept | Storage |
+|--------------|---------|
+| Rulebook hierarchy | `netbox_nsm_cotrulebook` |
+| Rulebook assignment to host | `netbox_nsm_cotrulebookassignment` |
+| Type behaviour | `netbox_nsm_typeconfig` |
+| Rule rows / cell objects | COT tables per `nsm_rb_*` slug |
+| Panel links | COT `nsm_object_link` |
 | Group membership | COT `group` M2M on Custom Objects |
 
-Full table list, M2M tables, and SQL examples: **[docs/DATABASE.md](docs/DATABASE.md)**.
+Full table list, removed legacy tables, migrations, and SQL examples: **[docs/DATABASE.md](docs/DATABASE.md)**.
 
 ---
 
-### ObjectLink
+### COT storage (rules, links, policy objects)
 
-```
-ObjectLink
-├── object_a_type  (ForeignKey → ContentType)
-├── object_a_id    (PositiveBigIntegerField)
-├── object_a       (GenericForeignKey)
-├── object_b_type  (ForeignKey → ContentType)
-├── object_b_id    (PositiveBigIntegerField)
-├── object_b       (GenericForeignKey)
-├── propagation    (CharField — LinkPropagationChoices: direct | inherit_ipam | inherit_group)
-├── propagate_stop_on_own  (BooleanField — suppress inheritance when child has direct link of same type)
-└── comment        (TextField, optional)
-```
+Policy **instances**, **rule rows**, and Security Panel **links** are Custom Object Type rows
+managed by `netbox-custom-objects`. NSM does not define Django models for them.
 
-**Purpose:** Bidirectional link between any two NetBox objects.
+| COT slug | Purpose |
+|----------|---------|
+| `nsm_zone`, `nsm_address`, `nsm_label`, `nsm_service`, `nsm_action`, … | Built-in policy object types (`builtin_types.py`) |
+| `nsm_object_link` | Bidirectional Security Panel link between two NetBox objects |
+| `nsm_rb_<name>` | Deployed rulebook — one COT per rulebook; each **rule** is a COT row |
 
-**Link type (`propagation`):** Set on the **Assign Link** form. `direct` — stored on object A,
-visible on both sides, not propagated. `inherit_ipam` — child Prefixes, IP addresses, and IP
-ranges under object A inherit the link in their Security Panel. `inherit_group` — members of a
-group/container inherit the link. All three modes are always offered in the dropdown;
-`ipam_inheritance.py` / `group_inheritance.py` resolve inherited rows at panel load. See
-[Creating an inheriting assignment](docs/using_netbox_nsm.md#creating-an-inheriting-assignment).
+**Rulebook schema** (columns, allowed object types per cell) is defined as COT **fields** on the
+`nsm_rb_*` type — see `rulebooks/templates.py` (`_FIELD_CATALOG`, `build_rulebook_document()`).
+Applying a template calls `POST /api/plugins/custom-objects/schema/apply/`.
 
-**Unique constraint:** `(object_a_type, object_a_id, object_b_type, object_b_id)` — one link
-per pair per direction.
+**Rule cell contents** are `multiobject` (polymorphic) COT fields on each rule row, e.g.
+`source`, `destination`, `service` — not junction tables in `netbox_nsm_*`.
 
-**Indexes:** separate DB indexes on `(object_a_type, object_a_id)` and
-`(object_b_type, object_b_id)` for fast lookup in both directions.
+**Object links** (`nsm_object_link` COT rows) store `object_a`, `object_b`, `propagation`
+(`LinkPropagationChoices`: `direct`, `inherit_ipam`, `inherit_group`), and optional comment.
+The REST API exposes them as `object-links/` (serializer maps COT rows). Native `ObjectLink`
+was removed in migration `0004`.
 
-The Security Panel queries both directions in a single page render:
+**Group membership** uses COT `group` M2M fields on custom objects, not native
+`ObjectGroup` tables (removed in `0005`).
 
-```python
-fwd = ObjectLink.objects.filter(object_a_type=ct, object_a_id=obj.pk)
-rev = ObjectLink.objects.filter(object_b_type=ct, object_b_id=obj.pk)
-```
+See [RULE_DATA_STORAGE.md](docs/RULE_DATA_STORAGE.md) for the layer model and
+[DATABASE.md](docs/DATABASE.md) for table inventory.
 
 ---
 
 ### TypeConfig
 
 ```
-TypeConfig
-├── name                 (CharField)
-├── content_type         (FK → ContentType)
-├── matching_class       (CharField, choices: MatchingClassChoices)
-├── display_template     (CharField, default: "{name}")
-├── panel_slugs          (JSONField, panel section slugs)
-├── order_id             (PositiveIntegerField)
-├── allow_virtual_groups (BooleanField)
-├── inherit_links        (BooleanField)
-├── inherit_stop_on_own  (BooleanField)
-└── panel_linkable       (BooleanField — Security Panel assign picker master switch)
+TypeConfig (NetBoxModel)
+├── name                   (CharField)
+├── content_type           (FK → ContentType)
+├── matching_class         (CharField — MatchingClassChoices)
+├── display_template       (CharField, default: "{name}")
+├── allow_virtual_groups   (BooleanField)
+├── inherit_links          (BooleanField)
+├── inherit_stop_on_own    (BooleanField)
+└── panel_linkable_types   (JSONField — allowed host types for + Assign; [] = all)
 ```
 
-**Purpose:** Per-ContentType configuration for NSM behaviour. Unique together:
-`(content_type, matching_class)`.
+**Purpose:** Per-ContentType configuration for NSM panels, rulebook columns, and display.
+Unique together: `(content_type, matching_class)`.
 
-`matching_class` values: `address`, `zone`, `label`, `trust`, `service`, `action`, `info`, `user`,
-`application`, `group`, `other`.
+`matching_class` values include `address`, `zone`, `label`, `service`, `action`, `info`,
+`user`, `application`, `group`, `other`.
 
-`display_template` is evaluated in `display_utils.render_object_display()` by substituting
-`{field_name}` placeholders with the object's attributes. Falls back to `str(obj)`.
+`display_template` is evaluated in `display_utils.render_object_display()`.
 
-`panel_linkable` controls whether objects of this type can be linked from the NSM Security Panel
-(**+ Assign**). Implemented in `forms/object_link.py` and `views/object_link.py`.
+`panel_linkable_types` replaces the legacy `panel_linkable` boolean: empty list means all host
+types may assign this NSM type from the Security Panel; `[0]` disables linking.
 
-`inherit_links` / `inherit_stop_on_own` control the Security Panel's inheritance logic in
-`NsmSecurityLinksExtension` (see Template Extensions). See `docs/DATABASE.md`.
+`inherit_links` / `inherit_stop_on_own` drive IPAM inheritance in `ipam_inheritance.py` and the
+Security Panel extension. See `docs/DATABASE.md`.
 
 ---
 
-### Rulebook
+### CotRulebook
 
 ```
-Rulebook (PrimaryModel, ContactsMixin)
-├── name                   (CharField, unique)
-├── rulebook_type          (CharField, currently only "policy")
-└── rule_comment_template  (TextField, Markdown, supports {rule_name}/{index}/{rulebook})
+CotRulebook
+├── slug                 (SlugField, PK — deployed COT slug, e.g. nsm_rb_demo_zones)
+├── parent_slug          (SlugField, optional hierarchy parent)
+└── matrix_tab_enabled   (BooleanField)
 ```
 
-Has a `@property matching_classes` that auto-derives the set of matching class strings from
-all linked `RulebookFieldType` entries — used by the Analysis view.
+**Purpose:** NSM-owned metadata for deployed COT rulebooks. The actual rulebook definition
+and rule rows live in `netbox-custom-objects`; this table only stores hierarchy and UI flags
+(matrix tab visibility).
 
 ---
 
-### RulebookField / RulebookFieldType
+### CotRulebookAssignment
 
 ```
-RulebookField
-├── rulebook    (FK → Rulebook, related_name="fields")
-├── slug        (SlugField, unique within rulebook)
-├── name        (CharField)
-├── sort_order  (PositiveIntegerField)
-└── placement   (CharField: source / destination / fixed)
-
-RulebookFieldType
-├── field       (FK → RulebookField, related_name="type_configs")
-├── type_config (FK → TypeConfig)
-├── sort_order  (PositiveIntegerField)
-└── max_items   (PositiveIntegerField, nullable)
-```
-
-**Purpose:** Defines the columns of a Rulebook's rule editor. Each field can accept objects
-of multiple TypeConfig types (e.g. a "Source" field might accept both Zones and Addresses).
-
----
-
-### Rule
-
-```
-Rule (PrimaryModel, ContactsMixin)
-├── rulebook           (FK → Rulebook, related_name="rules")
-├── index              (PositiveIntegerField, ordering)
-├── enabled            (BooleanField)
-├── name               (CharField)
-├── policy_action      (CharField, ActionChoices)
-├── log_enabled        (BooleanField)
-├── virtual_group_config (JSONField)
-├── source_users       (M2M → User)
-└── destination_users  (M2M → User)
-```
-
-Rule items (the actual object references per field) are stored in two separate models:
-
-```
-RuleObjectItem
-├── rule        (FK → Rule)
-├── field       (FK → RulebookField)
-├── object_type (FK → ContentType)
-├── object_id   (PositiveBigIntegerField)
-└── object      (GenericForeignKey)
-
-RuleGroupItem (legacy native schema — removed; COT rulebooks use group M2M / nested rules)
-├── rule   (FK → Rule)
-├── field  (FK → RulebookField)
-└── group  (COT group object or nested rule reference)
-```
-
-This separation allows mixing direct object references and group references within the same
-rule field.
-
-`virtual_group_config` is a JSON structure controlling AND-group rendering in the policy table
-(multiple objects shown as a single "AND bubble" instead of separate rows).
-
----
-
-### RulebookAssignment
-
-```
-RulebookAssignment (NetBoxModel)
-├── rulebook              (FK → Rulebook)
+CotRulebookAssignment (NetBoxModel)
 ├── assigned_object_type  (FK → ContentType, limited to RULESET_ASSIGNMENT_MODELS)
 ├── assigned_object_id    (PositiveBigIntegerField)
-└── assigned_object       (GenericForeignKey)
+├── assigned_object       (GenericForeignKey)
+├── cot_slug              (SlugField — nsm_rb_* rulebook)
+└── description           (CharField, optional)
 ```
 
-`RULESET_ASSIGNMENT_MODELS` (defined in `constants/`) limits assignments to:
-`dcim.Device`, `dcim.VirtualDeviceContext`, `virtualization.VirtualMachine`.
+`RULESET_ASSIGNMENT_MODELS` limits assignments to `dcim.Device`,
+`dcim.VirtualDeviceContext`, `virtualization.VirtualMachine`.
+
+Unique: `(assigned_object_type, assigned_object_id, cot_slug)`.
 
 ---
 
@@ -355,18 +286,20 @@ These are synced to the database via `custom_objects_schema.py` which builds the
 
 | Module | View(s) | URL prefix |
 |---|---|---|
-| `views/setup.py` | `SetupView` | `setup/` |
-| `views/nsm_type_config.py` | List / Add / Edit / Delete | `type-config/` |
-| `views/rulebook.py` | Rulebook CRUD + Rules tab (embedded matrix) | `rulebooks/` |
-| `views/object_link.py` | CRUD for ObjectLink | `object-link/` |
+| `views/setup/view.py` | `SetupView` | `setup/` |
+| `views/type_config.py` | TypeConfig CRUD | `type-config/` |
+| `rulebooks/views/list.py` | Rulebook list (COT registry) | `rulebooks/` |
+| `rulebooks/views/cot.py` | COT rulebook detail, rules tab, matrix | `rulebooks/cot/<slug>/` |
+| `rulebooks/views/cot_rule.py` | Add / edit / delete COT rules | `rulebooks/cot/<slug>/rules/…` |
+| `rulebooks/views/virtual_all.py` | All Rules (read-only aggregate) | `rulebooks/0/rules/` |
+| `rulebooks/views/assignment.py` | CotRulebookAssignment CRUD | `rulebook-assignment/` |
+| `views/object_link.py` | CRUD for COT `nsm_object_link` | `object-link/` |
 | `views/ip_analysis.py` | `IPAnalysisView` | `ip-analysis/` |
 | `views/object_analyzer.py` | `ObjectAnalyzerView` | `object-analyzer/` |
-| `panel_sections.py` | Static panel slugs (source, destination, …) | — |
-| `views/setup/demo.py` | Demo rulebooks (Matrix imports COTs/TypeConfigs if needed) | Setup POST |
+| `views/setup/demo.py` | Demo rulebooks (imports COTs/TypeConfigs if needed) | Setup POST |
 | `views/custom_objects_sync.py` | Sync helper (manual trigger) | `setup/sync/custom-objects/` |
 | `views/inherited_links_api.py` | Internal JSON API for inherited links | `api/inherited-links/` |
-| `views/object_rules_api.py` | Internal JSON API for rule lookup | `api/object-rules/` |
-| `views/rulebook_field.py` | RulebookField CRUD | `rulebook-field/` |
+| `security/views/object_rules_api.py` | Internal JSON API for rule lookup | `api/object-rules/` |
 
 The `SetupView` POST handler dispatches on the `action` form field:
 
@@ -400,7 +333,7 @@ Registered in `template_content.py` as `template_extensions = [...]`:
 
 `NsmSecurityLinksExtension.right_page()` builds link groups from several sources:
 
-1. **ObjectLink** records (forward and reverse) — explicit NSM assignments with edit/delete actions.
+1. **COT `nsm_object_link`** rows (forward and reverse) — explicit NSM assignments with edit/delete actions.
 2. **nsm_addresses FK** — Custom Object rows pointing at this IPAM object via `prefix_id`, `ip_address_id`, or `range_id`.
 3. **group M2M** — via `group_m2m.iter_group_m2m_relations()` (parent groups as *Member of*, contained objects as *Member*).
 4. **Inherited links** — resolved at page load for IPAddress, IPRange, and Prefix (via `iter_inherited_nsm_links`).
@@ -422,9 +355,9 @@ level; micro zones are usually direct on Interfaces or specific prefixes.
 
 Rule columns and Security Panel assignments both flow through **TypeConfig** → ContentType.
 Built-in COTs ship with TypeConfigs from Setup; additional types are added by creating a
-Custom Object Type (`netbox-custom-objects`) and a matching TypeConfig, then wiring
-**RulebookFieldType** rows on the Rulebook **Fields** card. No NSM code changes required for
-a new security object class.
+Custom Object Type (`netbox-custom-objects`) and a matching TypeConfig, then extending the
+rulebook COT schema (`multiobject` fields / `related_object_types`). No NSM code changes
+required for a new security object class when using polymorphic columns.
 
 ### Inheritance Resolution
 
@@ -434,7 +367,7 @@ the type groups with a `(from <prefix>)` suffix. The JSON endpoint `inherited-li
 
 For a child IPAM object (IP Address, IP Range, sub-Prefix), `ipam_inheritance.ancestor_prefixes_for_ipam()` finds
 containing Prefixes (most-specific first). IP Ranges require a Prefix that contains **both** start and end address.
-The API then collects ObjectLinks and inherited `nsm_addresses` FK rows from those ancestors, respecting per-TypeConfig
+The API then collects `nsm_object_link` rows and inherited `nsm_addresses` FK rows from those ancestors, respecting per-TypeConfig
 `inherit_links` and `inherit_stop_on_own` settings.
 
 ---
@@ -445,18 +378,33 @@ REST API modules under `netbox_nsm/api/`:
 
 ```
 api/
+├── ip_analysis.py           IpAnalysisRestApiView (address resolution, JSON)
 ├── serializers_/
-│   ├── object_link.py     ObjectLinkSerializer (with UniqueTogetherValidator)
-│   ├── nsm_type_config.py
-│   ├── nsm_policy.py
-│   └── ...
-├── views.py                   ModelViewSet subclasses
-└── urls.py                    Router registration
+│   ├── type_config.py       TypeConfigSerializer
+│   ├── cot_rulebook_assignment.py
+│   ├── object_link.py       ObjectLinkSerializer (COT nsm_object_link rows)
+│   └── section.py
+├── serializers.py           Re-exports from serializers_/
+├── views.py                 ModelViewSet subclasses + API root
+└── urls.py                  Router + ip-analysis/ path
 ```
 
+| Endpoint | Auth | Purpose |
+|---|---|---|
+| `type-configs/` | Token | TypeConfig CRUD |
+| `object-links/` | Token | Security Panel links (COT `nsm_object_link`) |
+| `rulebook-assignments/` | Token | CotRulebookAssignment CRUD |
+| `ip-analysis/` | Token | IP tree merge/diff for IPAM + analyzable address objects |
+
+There are **no** REST endpoints for COT rulebook rules or policy object instances — use
+`netbox-custom-objects` for those. IP Analysis REST accepts generic `content_type` + `id`
+references only; it does not add COT-specific routes.
+
+The UI plugin API at `/plugins/netbox-nsm/api/ip-analysis/` shares
+`analysis/ip_analysis_service.py` but returns HTML for the Security Panel applet.
+
 The `ObjectLinkSerializer` uses a `ContentTypeField` (writable, accepts
-`"app_label.model"` strings) and a custom `UniqueTogetherValidator` to enforce the
-`unique_together` constraint at API level.
+`"app_label.model"` strings) and validates uniqueness at the COT row level.
 
 ---
 

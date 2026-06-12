@@ -1,15 +1,14 @@
-"""Tests for TypeConfig.panel_linkable_types (Security Panel assign picker)."""
+"""Tests for Security Panel assign picker (nsm_config-backed)."""
+
+from unittest.mock import patch
 
 from django.contrib.contenttypes.models import ContentType
 
 from dcim.models import Device, Interface
 from ipam.models import Prefix
 
-from rest_framework.test import APIRequestFactory
-
-from netbox_nsm.api.serializers_.type_config import TypeConfigSerializer
 from netbox_nsm.forms.object_link import ObjectLinkAssignForm, _build_type_choices
-from netbox_nsm.models import PANEL_LINKABLE_DISABLED, TypeConfig
+from netbox_nsm.objects.nsm_config import NsmTypeConfig
 from utilities.testing import TestCase
 
 
@@ -20,110 +19,49 @@ class PanelLinkableTests(TestCase):
         cls.prefix_ct = ContentType.objects.get_for_model(Prefix)
         cls.device_ct = ContentType.objects.get_for_model(Device)
 
-        cls.zone_tc = TypeConfig.objects.create(
+        cls.zone_config = NsmTypeConfig(
+            slug="nsm_zone",
+            content_type_id=cls.prefix_ct.pk,
             name="Test Zones",
-            content_type=cls.prefix_ct,
-            matching_class="zone",
-            panel_linkable_types=[],
+            sort_order=10,
         )
-        cls.label_tc = TypeConfig.objects.create(
+        cls.label_config = NsmTypeConfig(
+            slug="nsm_label",
+            content_type_id=cls.device_ct.pk,
             name="Test Labels",
-            content_type=cls.device_ct,
-            matching_class="label",
-            panel_linkable_types=[],
+            sort_order=11,
         )
 
-    def test_serializer_exposes_panel_linkable_types(self):
-        request = APIRequestFactory().get("/")
-        data = TypeConfigSerializer(
-            self.zone_tc,
-            context={"request": request},
-        ).data
-        self.assertIn("panel_linkable_types", data)
-        self.assertEqual(data["panel_linkable_types"], [])
-
-    def test_serializer_inheritance_fields_are_read_only(self):
-        serializer = TypeConfigSerializer(
-            self.zone_tc,
-            data={"inherit_links": False, "inherit_stop_on_own": True},
-            partial=True,
-        )
-        self.assertTrue(serializer.is_valid(), serializer.errors)
-        saved = serializer.save()
-        saved.refresh_from_db()
-        self.assertFalse(saved.inherit_links)
-        self.assertFalse(saved.inherit_stop_on_own)
-
-    def test_queryset_panel_linkable_includes_enabled_types(self):
-        qs = TypeConfig.queryset_panel_linkable()
-        self.assertIn(self.zone_tc, qs)
-        self.assertIn(self.label_tc, qs)
-
-    def test_queryset_panel_linkable_excludes_disabled_types(self):
-        self.zone_tc.panel_linkable_types = [PANEL_LINKABLE_DISABLED]
-        self.zone_tc.save(update_fields=["panel_linkable_types"])
-        qs = TypeConfig.queryset_panel_linkable()
-        self.assertNotIn(self.zone_tc, qs)
-        self.assertIn(self.label_tc, qs)
-
-    def test_build_type_choices_lists_unrestricted_types(self):
-        choices = dict(_build_type_choices())
-        self.assertIn(self.zone_tc.content_type.pk, choices)
-        self.assertIn(self.label_tc.content_type.pk, choices)
-
-    def test_build_type_choices_skips_disabled_types(self):
-        self.zone_tc.panel_linkable_types = [PANEL_LINKABLE_DISABLED]
-        self.zone_tc.save(update_fields=["panel_linkable_types"])
-        choices = dict(_build_type_choices())
-        self.assertNotIn(self.zone_tc.content_type.pk, choices)
-        self.assertIn(self.label_tc.content_type.pk, choices)
-
-    def test_build_type_choices_filters_by_assigner_type(self):
-        self.zone_tc.panel_linkable_types = [self.interface_ct.pk]
-        self.zone_tc.save(update_fields=["panel_linkable_types"])
-        iface_choices = dict(_build_type_choices(self.interface_ct.pk))
-        prefix_choices = dict(_build_type_choices(self.prefix_ct.pk))
-        self.assertIn(self.zone_tc.content_type.pk, iface_choices)
-        self.assertNotIn(self.zone_tc.content_type.pk, prefix_choices)
-        self.assertIn(self.label_tc.content_type.pk, prefix_choices)
-
-    def test_form_clean_rejects_disabled_type(self):
-        self.zone_tc.panel_linkable_types = [PANEL_LINKABLE_DISABLED]
-        self.zone_tc.save(update_fields=["panel_linkable_types"])
-        form = ObjectLinkAssignForm(
-            data={
-                "object_a_type_id": self.interface_ct.pk,
-                "object_a_id": 1,
-                "object_b_type": self.zone_tc.content_type.pk,
-                "propagation": "direct",
+    def _patch_lookup(self):
+        return patch(
+            "netbox_nsm.objects.nsm_config.build_nsm_config_lookup",
+            return_value={
+                self.zone_config.content_type_id: self.zone_config,
+                self.label_config.content_type_id: self.label_config,
             },
         )
-        self.assertFalse(form.is_valid())
-        self.assertIn("object_b_type", form.errors)
 
-    def test_form_clean_rejects_restricted_assigner_type(self):
-        self.zone_tc.panel_linkable_types = [self.interface_ct.pk]
-        self.zone_tc.save(update_fields=["panel_linkable_types"])
-        form = ObjectLinkAssignForm(
-            data={
-                "object_a_type_id": self.prefix_ct.pk,
-                "object_a_id": 1,
-                "object_b_type": self.zone_tc.content_type.pk,
-                "propagation": "direct",
-            },
-        )
-        self.assertFalse(form.is_valid())
-        self.assertIn("object_b_type", form.errors)
+    def test_build_type_choices_lists_ui_configs(self):
+        with self._patch_lookup():
+            choices = dict(_build_type_choices())
+        self.assertIn(self.zone_config.content_type_id, choices)
+        self.assertIn(self.label_config.content_type_id, choices)
 
-    def test_form_clean_allows_restricted_assigner_type(self):
-        self.zone_tc.panel_linkable_types = [self.interface_ct.pk]
-        self.zone_tc.save(update_fields=["panel_linkable_types"])
-        form = ObjectLinkAssignForm(
-            data={
-                "object_a_type_id": self.interface_ct.pk,
-                "object_a_id": 1,
-                "object_b_type": self.zone_tc.content_type.pk,
-                "propagation": "direct",
-            },
-        )
+    def test_build_type_choices_same_for_any_assigner(self):
+        with self._patch_lookup():
+            iface_choices = dict(_build_type_choices(self.interface_ct.pk))
+            prefix_choices = dict(_build_type_choices(self.prefix_ct.pk))
+        self.assertIn(self.zone_config.content_type_id, iface_choices)
+        self.assertIn(self.zone_config.content_type_id, prefix_choices)
+
+    def test_form_clean_allows_ui_config_types(self):
+        with self._patch_lookup():
+            form = ObjectLinkAssignForm(
+                data={
+                    "object_a_type_id": self.prefix_ct.pk,
+                    "object_a_id": 1,
+                    "object_b_type": self.zone_config.content_type_id,
+                    "propagation": "direct",
+                },
+            )
         self.assertNotIn("object_b_type", form.errors)

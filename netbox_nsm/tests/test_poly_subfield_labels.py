@@ -42,7 +42,6 @@ class PolySubfieldLabelTests(TestCase):
         TypeConfig.objects.create(
             name="Address Groups",
             content_type=self.cot_ct,
-            matching_class="address",
         )
         self.assertEqual(poly_subfield_type_label(self.cot_ct.pk), "Address Group")
 

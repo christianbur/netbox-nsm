@@ -92,6 +92,9 @@ class ReleaseConfig:
     project_name: str
     git_user: str
     repo_url: str
+    dev_branch: str
+    release_branch: str
+    auto_promote_to_main: bool
     changelog_path: Path
     changelog_sections: tuple[str, ...]
     changelog_import_unreleased: bool
@@ -159,6 +162,9 @@ def _default_config(root: Path) -> ReleaseConfig:
         project_name=root.name,
         git_user=_default_git_user(),
         repo_url=_detect_repo_url(root),
+        dev_branch="dev",
+        release_branch="main",
+        auto_promote_to_main=False,
         changelog_path=root / "CHANGELOG.md",
         changelog_sections=DEFAULT_CHANGELOG_SECTIONS,
         changelog_import_unreleased=True,
@@ -243,6 +249,9 @@ def _load_config(root: Path, config_path: Path | None) -> ReleaseConfig:
         project_name=project.get("name", defaults.project_name),
         git_user=project.get("git_user", defaults.git_user),
         repo_url=repo.get("url") or defaults.repo_url,
+        dev_branch=repo.get("dev_branch", defaults.dev_branch),
+        release_branch=repo.get("release_branch", defaults.release_branch),
+        auto_promote_to_main=repo.get("auto_promote_to_main", defaults.auto_promote_to_main),
         changelog_path=root / changelog.get("file", "CHANGELOG.md"),
         changelog_sections=changelog_sections,
         changelog_import_unreleased=changelog.get("import_unreleased", True),
@@ -724,6 +733,38 @@ class ReleaseWizard:
                 print(result.stdout.strip())
         print(f"Push complete (branch + tag, as {git_user} when run as root).")
 
+    def _git_promote_to_main(self, version: str, dry_run: bool) -> None:
+        script = self.config.root / "scripts" / "promote_release_to_main.sh"
+        if not script.is_file():
+            raise RuntimeError(f"Missing promote script: {script}")
+        cmd: list[str] = [str(script), "--version", version]
+        if dry_run:
+            cmd.append("--dry-run")
+        env = os.environ.copy()
+        env.setdefault("GIT_USER", self.config.git_user)
+        env.setdefault("DEV_BRANCH", self.config.dev_branch)
+        env.setdefault("MAIN_BRANCH", self.config.release_branch)
+        if dry_run:
+            print(f"[dry-run] {' '.join(cmd)}")
+            return
+        if not self._running_as_git_user() and os.geteuid() == 0:
+            cmd = ["sudo", "-u", self.config.git_user, "--", *cmd]
+        result = subprocess.run(
+            cmd,
+            cwd=self.config.root,
+            env=env,
+            text=True,
+            capture_output=True,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(result.stderr.strip() or "promote_release_to_main.sh failed")
+        if result.stdout.strip():
+            print(result.stdout.strip())
+        print(
+            f"Promoted {self.config.dev_branch} → {self.config.release_branch} "
+            f"(merge commit; tag v{version} reachable from default branch)."
+        )
+
     def _print_final_reminders(self, version: str, watch_changed: dict[str, bool]) -> None:
         _print_header("Next steps")
         step = 1
@@ -943,6 +984,22 @@ class ReleaseWizard:
             except RuntimeError as exc:
                 print(f"ERROR: {exc}", file=sys.stderr)
                 return 1
+
+            do_promote = args.promote_main or config.auto_promote_to_main
+            if interactive and not args.promote_main and config.auto_promote_to_main:
+                do_promote = _ask_yes_no(
+                    f"Merge {config.dev_branch} into {config.release_branch} "
+                    f"(so tag v{new_version} stays on default branch)?",
+                    default=True,
+                )
+            elif interactive and args.promote_main:
+                do_promote = True
+            if do_promote:
+                try:
+                    self._git_promote_to_main(new_version, dry_run=False)
+                except RuntimeError as exc:
+                    print(f"ERROR: {exc}", file=sys.stderr)
+                    return 1
         elif interactive:
             print()
             print("Push deliberately skipped — you can push manually later:")
@@ -991,6 +1048,11 @@ def _build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--commit", action="store_true", help="Create git commit")
     parser.add_argument("--tag", action="store_true", help="Create git tag vX.Y.Z")
     parser.add_argument("--push", action="store_true", help="Push branch and tag to origin")
+    parser.add_argument(
+        "--promote-main",
+        action="store_true",
+        help=f"After push, merge dev into main (see scripts/promote_release_to_main.sh)",
+    )
     parser.add_argument("--dry-run", action="store_true", help="Show actions only, do not write")
     parser.add_argument(
         "--skip-watch-check",

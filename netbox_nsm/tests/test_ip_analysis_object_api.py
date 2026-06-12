@@ -68,3 +68,5 @@ class IpAnalysisObjectDrilldownApiTests(SimpleTestCase):
         render_ctx = render_fn.call_args[0][1]
         self.assertEqual(render_ctx["depth"], 2)
         self.assertEqual(render_ctx["prefix"], "ipa")
+        self.assertIs(render_ctx["ipa_cell_pill"], False)
+        self.assertIs(render_ctx["show_copy"], False)

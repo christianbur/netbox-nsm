@@ -1,8 +1,7 @@
 (function () {
   "use strict";
 
-  var NSM_FILTER_DRAG_MIME = "application/x-nsm-filter-cell";
-  var FILTER_DRAG_EXCLUDED_COLS = { _actions: true };
+  var FILTER_LOUPE_EXCLUDED_COLS = { _actions: true };
 
   function readConfig() {
     var el = document.getElementById("rules-chrome-config");
@@ -133,6 +132,18 @@
     return shorthand + "(" + formatted + ")";
   }
 
+  function readQuickFilterQueryText(input, config) {
+    var fromInput = input ? String(input.value == null ? "" : input.value).trim() : "";
+    if (fromInput) {
+      return fromInput;
+    }
+    if (config && String(config.filterQuery || "").trim()) {
+      return String(config.filterQuery).trim();
+    }
+    var params = new URLSearchParams(window.location.search);
+    return (params.get("filter_q") || params.get("q") || "").trim();
+  }
+
   function mergeFilterQueryFragment(existing, fragment) {
     var left = String(existing == null ? "" : existing).trim();
     var right = String(fragment == null ? "" : fragment).trim();
@@ -142,109 +153,136 @@
     if (!left) {
       return right;
     }
+    if (left.toUpperCase() === right.toUpperCase()) {
+      return left;
+    }
+    if (/\s(AND|OR)\s/i.test(left) && !(left.charAt(0) === "(" && left.charAt(left.length - 1) === ")")) {
+      left = "(" + left + ")";
+    }
     return left + " AND " + right;
   }
 
-  function filterDragGhostLabel(config, colId, displayValue) {
-    var shorthandNames = (config && config.filterColumnShorthand) || {};
-    var columnMap = (config && config.filterColumnMap) || {};
-    var shorthand =
-      shorthandNames && Object.prototype.hasOwnProperty.call(shorthandNames, colId)
-        ? shorthandNames[colId]
-        : columnMap[colId] || colId;
-    var label = shorthand === "__bare_name__" ? "Name" : shorthand;
-    return label + ": " + displayValue;
-  }
-
-  function isFilterCellDragEvent(event) {
-    if (!event || !event.dataTransfer || !event.dataTransfer.types) {
-      return false;
+  function findColumnQuicksearchInput(colId) {
+    if (!colId) {
+      return null;
     }
-    var types = event.dataTransfer.types;
-    for (var i = 0; i < types.length; i += 1) {
-      if (types[i] === NSM_FILTER_DRAG_MIME) {
-        return true;
+    var inputs = document.querySelectorAll(
+      "#rules .nsm-rules-filter-input[data-col-id]"
+    );
+    for (var i = 0; i < inputs.length; i++) {
+      if (inputs[i].getAttribute("data-col-id") === colId) {
+        return inputs[i];
       }
     }
-    return false;
+    return null;
   }
 
-  function parseFilterCellDropPayload(event) {
-    if (!isFilterCellDragEvent(event) || !event.dataTransfer) {
-      return null;
+  function applyFilterFragmentToQuickSearch(config, colId, filterValue) {
+    var text = String(filterValue == null ? "" : filterValue).trim();
+    if (!text) {
+      return;
     }
-    var raw = event.dataTransfer.getData(NSM_FILTER_DRAG_MIME);
-    if (!raw) {
-      return null;
+    var columnInput = findColumnQuicksearchInput(colId);
+    if (columnInput) {
+      var merged = mergeFilterQueryFragment(
+        String(columnInput.value == null ? "" : columnInput.value).trim(),
+        text
+      );
+      columnInput.value = merged;
+      columnInput.focus();
+      submitRulesQuicksearch();
+      return;
     }
-    try {
-      return JSON.parse(raw);
-    } catch (e) {
-      return null;
+    var input = document.getElementById("nsm-ag-filter-query");
+    if (!input) {
+      return;
     }
+    var fragment = buildFilterFragmentFromCell(config, colId, filterValue);
+    if (!fragment) {
+      return;
+    }
+    var liveConfig = readConfig() || config;
+    var mergedQuery = mergeFilterQueryFragment(
+      readQuickFilterQueryText(input, liveConfig),
+      fragment
+    );
+    input.value = mergedQuery;
+    input.focus();
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    if (config.queryValidateUrl) {
+      return;
+    }
+    navigateWithFilterQuery(mergedQuery);
   }
 
-  function resolveRulesCellFilterDragContext(cellEl, event) {
-    if (!cellEl) {
+  function resolveRulesFilterLoupeButton(event) {
+    var button = event.target.closest(".nsm-rules-filter-loupe");
+    if (button) {
+      return button;
+    }
+    if (event.target.closest("a.nsm-ag-cell-link")) {
       return null;
     }
-    var colId = cellEl.getAttribute("data-col-id");
-    if (!colId || FILTER_DRAG_EXCLUDED_COLS[colId]) {
+    var target = event.target.closest(".nsm-rules-filter-target--has-loupe");
+    if (!target) {
       return null;
     }
-    if (event && event.target && event.target.closest) {
-      if (
-        event.target.closest(
-          ".nsm-ag-action-edit, .nsm-ag-action-delete, .nsm-ag-action-clone, .form-check-input, .nsm-ipa-loupe"
-        )
-      ) {
-        return null;
-      }
-    }
-    var filterValue = "";
-    var displayValue = "";
-    var link =
-      event && event.target && event.target.closest
-        ? event.target.closest("a[href]")
-        : null;
-    if (link && cellEl.contains(link)) {
-      displayValue = (
-        link.getAttribute("data-nsm-filter-value") ||
-        link.textContent ||
-        link.getAttribute("title") ||
-        ""
-      ).trim();
-      filterValue = displayValue;
-    }
-    if (!filterValue) {
-      displayValue = (cellEl.textContent || "").trim();
-      filterValue = displayValue;
-    }
-    if (!filterValue) {
+    button = target.querySelector(".nsm-rules-filter-loupe");
+    if (!button) {
       return null;
     }
-    return {
-      colId: colId,
-      filterValue: filterValue,
-      displayValue: displayValue || filterValue,
-    };
+    var loupeRect = button.getBoundingClientRect();
+    if (!loupeRect.width || !loupeRect.height) {
+      return button;
+    }
+    if (
+      event.clientX < loupeRect.left ||
+      event.clientX > loupeRect.right ||
+      event.clientY < loupeRect.top ||
+      event.clientY > loupeRect.bottom
+    ) {
+      return null;
+    }
+    return button;
   }
 
-  function disableNativeLinkDragInCell(cell) {
+  function handleRulesFilterLoupeClick(event) {
+    var button = resolveRulesFilterLoupeButton(event);
+    if (!button) {
+      return;
+    }
+    var rulesRoot = document.getElementById("rules");
+    if (!rulesRoot || !rulesRoot.contains(button)) {
+      return;
+    }
+    if (!button.closest("#rules .nsm-rules-table")) {
+      return;
+    }
+    var cell = button.closest("td.nsm-rules-td[data-col-id]");
     if (!cell) {
       return;
     }
-    cell.querySelectorAll("a[href]").forEach(function (anchor) {
-      anchor.setAttribute("draggable", "false");
-    });
+    var colId = cell.getAttribute("data-col-id");
+    if (!colId || FILTER_LOUPE_EXCLUDED_COLS[colId]) {
+      return;
+    }
+    var filterValue = String(
+      button.getAttribute("data-nsm-filter-value") || ""
+    ).trim();
+    if (!filterValue) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    applyFilterFragmentToQuickSearch(readConfig(), colId, filterValue);
   }
 
-  function markFilterDropTargetsActive(active) {
-    /* Column filter inputs only — filter query bar removed. */
-  }
-
-  function bindRulesFilterQueryDropTarget(_config, _applyFilterQuery) {
-    /* Filter query bar removed — column filters only. */
+  function bindRulesFilterLoupes() {
+    if (document.documentElement.dataset.nsmRulesFilterLoupeBound === "1") {
+      return;
+    }
+    document.documentElement.dataset.nsmRulesFilterLoupeBound = "1";
+    document.addEventListener("click", handleRulesFilterLoupeClick, true);
   }
 
   function exportRulesCsv(config) {
@@ -317,171 +355,6 @@
     callback(false);
   }
 
-  function bindRulesCellFilterDrag(config) {
-    if (!config || !config.filterColumnMap) {
-      return;
-    }
-    var table = document.querySelector("#rules .nsm-rules-table");
-    if (!table || table.dataset.nsmFilterCellDragBound === "1") {
-      return;
-    }
-    table.dataset.nsmFilterCellDragBound = "1";
-
-    table.addEventListener(
-      "mousedown",
-      function (event) {
-        if (event.button !== 0) {
-          return;
-        }
-        var cell = event.target.closest("td.nsm-rules-td[data-col-id]");
-        if (!cell || !table.contains(cell)) {
-          return;
-        }
-        var colId = cell.getAttribute("data-col-id");
-        if (!colId || !config.filterColumnMap[colId]) {
-          return;
-        }
-        var ctx = resolveRulesCellFilterDragContext(cell, event);
-        if (!ctx) {
-          return;
-        }
-        cell.setAttribute("draggable", "true");
-        disableNativeLinkDragInCell(cell);
-      },
-      true
-    );
-
-    table.addEventListener(
-      "dragstart",
-      function (event) {
-        var cell = event.target.closest("td.nsm-rules-td[data-col-id]");
-        if (!cell || !table.contains(cell)) {
-          return;
-        }
-        var ctx = resolveRulesCellFilterDragContext(cell, event);
-        if (!ctx || !config.filterColumnMap[ctx.colId]) {
-          return;
-        }
-        if (!event.dataTransfer) {
-          return;
-        }
-        disableNativeLinkDragInCell(cell);
-        event.stopPropagation();
-        event.dataTransfer.setData(
-          NSM_FILTER_DRAG_MIME,
-          JSON.stringify({
-            colId: ctx.colId,
-            filterValue: ctx.filterValue,
-            displayValue: ctx.displayValue,
-          })
-        );
-        event.dataTransfer.setData("text/plain", ctx.displayValue);
-        event.dataTransfer.effectAllowed = "copy";
-        var ghost = document.createElement("div");
-        ghost.className = "nsm-rules-filter-drag-ghost";
-        ghost.textContent = filterDragGhostLabel(config, ctx.colId, ctx.displayValue);
-        ghost.setAttribute("aria-hidden", "true");
-        document.body.appendChild(ghost);
-        event.dataTransfer.setDragImage(ghost, 16, 14);
-        window.setTimeout(function () {
-          if (ghost.parentNode) {
-            ghost.parentNode.removeChild(ghost);
-          }
-        }, 0);
-        cell.classList.add("nsm-rules-cell-filter-dragging");
-        markFilterDropTargetsActive(true);
-      },
-      true
-    );
-
-    table.addEventListener(
-      "dragend",
-      function (event) {
-        var cell = event.target.closest("td.nsm-rules-td[data-col-id]");
-        if (cell) {
-          cell.removeAttribute("draggable");
-          cell.classList.remove("nsm-rules-cell-filter-dragging");
-        }
-        markFilterDropTargetsActive(false);
-      },
-      true
-    );
-  }
-
-
-  function bindRulesColumnFilterDropTarget(config) {
-    if (!config || !config.filterColumnMap) {
-      return;
-    }
-    var table = document.querySelector("#rules .nsm-rules-table");
-    if (!table || table.dataset.nsmFloatingFilterDropBound === "1") {
-      return;
-    }
-    table.dataset.nsmFloatingFilterDropBound = "1";
-
-    table.addEventListener(
-      "dragover",
-      function (event) {
-        var input = event.target.closest(".nsm-rules-filter-input[data-col-id]");
-        if (!input || !isFilterCellDragEvent(event)) {
-          return;
-        }
-        var colId = input.getAttribute("data-col-id");
-        if (!colId || !config.filterColumnMap[colId]) {
-          return;
-        }
-        event.preventDefault();
-        if (event.dataTransfer) {
-          event.dataTransfer.dropEffect = "copy";
-        }
-        input.classList.add("nsm-ag-floating-filter-drop-hover");
-      },
-      true
-    );
-
-    table.addEventListener(
-      "dragleave",
-      function (event) {
-        var input = event.target.closest(".nsm-rules-filter-input[data-col-id]");
-        if (
-          input &&
-          (!input.contains(event.relatedTarget) ||
-            !event.relatedTarget ||
-            !event.relatedTarget.closest(".nsm-rules-filter-input"))
-        ) {
-          input.classList.remove("nsm-ag-floating-filter-drop-hover");
-        }
-      },
-      true
-    );
-
-    table.addEventListener(
-      "drop",
-      function (event) {
-        var input = event.target.closest(".nsm-rules-filter-input[data-col-id]");
-        if (!input) {
-          return;
-        }
-        input.classList.remove("nsm-ag-floating-filter-drop-hover");
-        var payload = parseFilterCellDropPayload(event);
-        if (!payload) {
-          return;
-        }
-        var colId = input.getAttribute("data-col-id");
-        if (!colId || !config.filterColumnMap[colId]) {
-          return;
-        }
-        event.preventDefault();
-        event.stopPropagation();
-        markFilterDropTargetsActive(false);
-        input.value = String(payload.filterValue == null ? "" : payload.filterValue).trim();
-        input.focus();
-        submitRulesQuicksearch();
-      },
-      true
-    );
-  }
-
   function navigateWithCellMode(mode) {
     var url = new URL(window.location.href);
     url.searchParams.delete("page");
@@ -538,6 +411,41 @@
     window.location.assign(url.toString());
   }
 
+  function syncRulesFilterClearButton(input) {
+    var field = input.closest(".nsm-rules-filter-field");
+    if (!field) {
+      return;
+    }
+    var hasValue = !!(input.value || "").trim();
+    field.classList.toggle("nsm-rules-filter-field--has-value", hasValue);
+  }
+
+  function bindRulesFilterClearButtons() {
+    document.querySelectorAll("#rules .nsm-rules-filter-field").forEach(function (field) {
+      if (field.dataset.nsmFilterClearBound === "1") {
+        return;
+      }
+      field.dataset.nsmFilterClearBound = "1";
+      var input = field.querySelector(".nsm-rules-filter-input");
+      var clearBtn = field.querySelector(".nsm-rules-filter-clear");
+      if (!input || !clearBtn) {
+        return;
+      }
+      syncRulesFilterClearButton(input);
+      input.addEventListener("input", function () {
+        syncRulesFilterClearButton(input);
+      });
+      clearBtn.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        input.value = "";
+        syncRulesFilterClearButton(input);
+        input.focus();
+        submitRulesQuicksearch();
+      });
+    });
+  }
+
   function bindRulesQuicksearchFilters() {
     var form = document.getElementById("rules-quicksearch");
     if (!form || form.dataset.nsmQuicksearchBound === "1") {
@@ -591,9 +499,13 @@
     if (!toggle) {
       return;
     }
-    toggle.addEventListener("change", function () {
-      var nextMode = toggle.checked ? "collapsed" : "expanded";
-      var currentMode = config.columnMode || "collapsed";
+    toggle.addEventListener("click", function () {
+      if (toggle.disabled) {
+        return;
+      }
+      var nextMode =
+        toggle.getAttribute("aria-pressed") === "true" ? "expanded" : "collapsed";
+      var currentMode = config.columnMode || "expanded";
       if (nextMode === currentMode) {
         return;
       }
@@ -702,9 +614,6 @@
       });
     }
 
-    bindRulesCellFilterDrag(config);
-    bindRulesFilterQueryDropTarget(config, applyFilterQuery);
-    bindRulesColumnFilterDropTarget(config);
     bindRulesCellModeSelector(config);
     bindRulesColumnModeToggle(config);
   }
@@ -737,11 +646,23 @@
       if (fromUrl) {
         input.value = fromUrl;
       }
+      syncRulesFilterClearButton(input);
     });
+  }
+
+  function initRulesFilterLoupes() {
+    bindRulesFilterLoupes();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initRulesFilterLoupes);
+  } else {
+    initRulesFilterLoupes();
   }
 
   document.addEventListener("DOMContentLoaded", function () {
     prefillRulesFiltersFromUrl();
+    bindRulesFilterClearButtons();
     bindRulesQuicksearchFilters();
     var config = readConfig();
     if (!config) {

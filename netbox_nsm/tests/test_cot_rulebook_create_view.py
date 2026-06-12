@@ -4,6 +4,8 @@ from django.urls import reverse
 
 from utilities.testing import TestCase
 
+from netbox_nsm.rulebooks.templates import default_rulebook_schema_yaml
+
 
 class CotRulebookCreateViewTests(TestCase):
     def test_get_requires_login(self):
@@ -22,34 +24,60 @@ class CotRulebookCreateViewTests(TestCase):
         self.assertIn("form", response.context)
         self.assertContains(response, "Add Rulebook")
 
-    def test_get_shows_columns_for_selected_template(self):
+    def test_get_renders_define_and_preview_tabs(self):
         self.add_permissions("netbox_nsm.add_rulebook")
         url = reverse("plugins:netbox_nsm:cot_rulebook_add")
-        response = self.client.get(
-            url,
-            {"template_slug": "nsm_rb_0002_template"},
-        )
+        response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Addresses (Source)")
-        self.assertNotContains(response, "Zones (Source)")
+        self.assertContains(response, "YAML")
+        self.assertContains(response, "Preview")
+        self.assertContains(response, "schema-define")
+        self.assertContains(response, "schema-preview")
+        self.assertContains(response, "name: source")
 
-        response = self.client.get(
-            url,
-            {"template_slug": "nsm_rb_0003_template"},
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Zones (Source)")
-        self.assertNotContains(response, "Addresses (Source)")
-
-    def test_htmx_template_change_returns_partial_columns(self):
+    def test_get_shows_columns_from_default_schema(self):
         self.add_permissions("netbox_nsm.add_rulebook")
         url = reverse("plugins:netbox_nsm:cot_rulebook_add")
-        response = self.client.get(
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Source")
+        self.assertContains(response, "Destination")
+        self.assertContains(response, "Zone, Label, Address, Address Group")
+
+    def test_get_prefills_default_schema_yaml(self):
+        self.add_permissions("netbox_nsm.add_rulebook")
+        response = self.client.get(reverse("plugins:netbox_nsm:cot_rulebook_add"))
+        self.assertContains(response, default_rulebook_schema_yaml().splitlines()[0])
+
+    def test_get_includes_schema_validity_indicator(self):
+        self.add_permissions("netbox_nsm.add_rulebook")
+        response = self.client.get(reverse("plugins:netbox_nsm:cot_rulebook_add"))
+        self.assertContains(response, "nsm-schema-yaml-validity")
+        self.assertContains(response, "cot_rulebook_schema_validate")
+
+    def test_schema_validate_endpoint_accepts_valid_yaml(self):
+        self.add_permissions("netbox_nsm.add_rulebook")
+        url = reverse("plugins:netbox_nsm:cot_rulebook_schema_validate")
+        response = self.client.post(
             url,
-            {"template_slug": "nsm_rb_0004_template"},
-            HTTP_HX_REQUEST="true",
+            {
+                "schema_yaml": default_rulebook_schema_yaml(),
+                "verbose_name": "Bench Addresses",
+                "name": "bench_addresses",
+                "description": "",
+            },
         )
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Labels (Source)")
-        self.assertNotContains(response, "Zones (Source)")
-        self.assertNotContains(response, "Addresses (Source)")
+        self.assertEqual(response.json(), {"valid": True})
+
+    def test_schema_validate_endpoint_rejects_invalid_yaml(self):
+        self.add_permissions("netbox_nsm.add_rulebook")
+        url = reverse("plugins:netbox_nsm:cot_rulebook_schema_validate")
+        response = self.client.post(
+            url,
+            {"schema_yaml": "not: [valid"},
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertFalse(payload["valid"])
+        self.assertIn("error", payload)

@@ -19,6 +19,16 @@
           "weight": 1
         },
         {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
+        },
+        {
           "id": 2,
           "name": "color",
           "type": "text",
@@ -60,6 +70,16 @@
           "weight": 1
         },
         {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
+        },
+        {
           "id": 2,
           "name": "color",
           "type": "text",
@@ -97,7 +117,6 @@
           "description": "Port 0–65535 (TCP/UDP/SCTP only).",
           "validation_minimum": 0,
           "validation_maximum": 65535,
-          "required": true,
           "weight": 11
         }
       ],
@@ -119,6 +138,16 @@
           "primary": true,
           "required": true,
           "weight": 1
+        },
+        {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
         },
         {
           "id": 2,
@@ -147,6 +176,7 @@
           "type": "multiobject",
           "label": "Group Members",
           "description": "Member service objects in this group.",
+          "required": true,
           "weight": 10,
           "related_object_type": "custom-objects/nsm_service"
         }
@@ -171,6 +201,16 @@
           "weight": 1
         },
         {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
+        },
+        {
           "id": 2,
           "name": "color",
           "type": "text",
@@ -192,34 +232,37 @@
           "weight": 100
         },
         {
+          "id": 104,
+          "name": "address",
+          "type": "object",
+          "label": "Address",
+          "description": "NetBox IP address, range, or prefix this policy object represents.",
+          "required": true,
+          "weight": 10,
+          "is_polymorphic": true,
+          "related_object_types": [
+            "ipam/ipaddress",
+            "ipam/iprange",
+            "ipam/prefix"
+          ]
+        }
+      ],
+      "removed_fields": [
+        {
           "id": 100,
           "name": "ip_address",
-          "type": "object",
-          "label": "IP Address",
-          "description": "Optional NetBox IP address this policy object represents.",
-          "weight": 10,
-          "related_object_type": "ipam/ipaddress"
+          "type": "object"
         },
         {
           "id": 101,
           "name": "range",
-          "type": "object",
-          "label": "Range",
-          "description": "Optional NetBox IP range this policy object represents.",
-          "weight": 11,
-          "related_object_type": "ipam/iprange"
+          "type": "object"
         },
         {
           "id": 102,
           "name": "prefix",
-          "type": "object",
-          "label": "Prefix",
-          "description": "Optional NetBox prefix this policy object represents.",
-          "weight": 12,
-          "related_object_type": "ipam/prefix"
-        }
-      ],
-      "removed_fields": [
+          "type": "object"
+        },
         {
           "id": 103,
           "name": "group",
@@ -243,6 +286,16 @@
           "primary": true,
           "required": true,
           "weight": 1
+        },
+        {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
         },
         {
           "id": 2,
@@ -271,6 +324,7 @@
           "type": "multiobject",
           "label": "Group Members",
           "description": "Member address objects in this group.",
+          "required": true,
           "weight": 10,
           "related_object_type": "custom-objects/nsm_address"
         }
@@ -293,6 +347,16 @@
           "primary": true,
           "required": true,
           "weight": 1
+        },
+        {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
         },
         {
           "id": 2,
@@ -323,17 +387,15 @@
           "required": true,
           "weight": 10,
           "choice_set": "nsm_label_type"
-        },
+        }
+      ],
+      "removed_fields": [
         {
           "id": 101,
           "name": "custom_type",
-          "type": "text",
-          "label": "Custom Type",
-          "description": "Required when Label Type = custom (e.g. Department).",
-          "weight": 11
+          "type": "text"
         }
-      ],
-      "removed_fields": []
+      ]
     },
     {
       "name": "nsm_zone",
@@ -351,6 +413,16 @@
           "primary": true,
           "required": true,
           "weight": 1
+        },
+        {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
         },
         {
           "id": 2,
@@ -392,6 +464,16 @@
           "primary": true,
           "required": true,
           "weight": 1
+        },
+        {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
         },
         {
           "id": 2,
@@ -459,6 +541,16 @@
           "weight": 1
         },
         {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
+        },
+        {
           "id": 2,
           "name": "color",
           "type": "text",
@@ -482,19 +574,17 @@
         {
           "id": 100,
           "name": "app_category",
-          "type": "select",
+          "type": "text",
           "label": "Category",
-          "weight": 10,
-          "choice_set": "nsm_app_network_category"
+          "weight": 10
         },
         {
           "id": 101,
           "name": "app_risk",
-          "type": "select",
+          "type": "text",
           "label": "Risk Level",
           "description": "Risk level 1 (lowest) to 5 (highest), matching Palo Alto App-ID convention.",
-          "weight": 11,
-          "choice_set": "nsm_app_network_risk"
+          "weight": 11
         },
         {
           "id": 102,
@@ -523,6 +613,16 @@
           "primary": true,
           "required": true,
           "weight": 1
+        },
+        {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
         },
         {
           "id": 2,

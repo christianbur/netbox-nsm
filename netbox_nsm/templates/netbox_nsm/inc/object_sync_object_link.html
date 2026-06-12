@@ -1,0 +1,9 @@
+{% if obj %}
+  {% if obj.get_absolute_url %}
+    <a href="{{ obj.get_absolute_url }}">{{ obj }}</a>
+  {% else %}
+    {{ obj }}
+  {% endif %}
+{% else %}
+  &mdash;
+{% endif %}

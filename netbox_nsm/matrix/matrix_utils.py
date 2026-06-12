@@ -2,10 +2,17 @@
 
 from __future__ import annotations
 
-MATRIX_AXIS_MAX = 250
-MATRIX_FILTER_AUTO_THRESHOLD = 200
-MATRIX_FILTER_AUTO_COUNT = 10
+MATRIX_AXIS_MAX = 400
 MATRIX_AXIS_LABEL_MAX_CHARS = 100
+MATRIX_CELL_WIDTH_PX = 48
+MATRIX_CELL_HEIGHT_PX = 48
+MATRIX_CELL_WIDTH_DENSE_PX = 38
+MATRIX_CELL_HEIGHT_DENSE_PX = 38
+MATRIX_CORNER_WIDTH_PX = 104
+MATRIX_VIEWPORT_DEFAULT_ROWS = 50
+MATRIX_VIEWPORT_DEFAULT_COLS = 50
+MATRIX_VIEWPORT_ROW_BUFFER = 5
+MATRIX_VIEWPORT_COL_BUFFER = 4
 
 
 def dedupe_matrix_object_types(entries: list[dict]) -> list[dict]:
@@ -46,21 +53,6 @@ def resolve_matrix_object_type_selection(
             if str(entry.get("label") or "").casefold() == selected_label:
                 return entry["ct_id"]
     return available_types[0]["ct_id"]
-
-
-def apply_default_matrix_axis_filters(
-    all_zones: list,
-    *,
-    src_filter_pks: set[int],
-    dst_filter_pks: set[int],
-) -> tuple[set[int], set[int]]:
-    """Pre-select the first N zones on both axes when the list is very large."""
-    if len(all_zones) <= MATRIX_FILTER_AUTO_THRESHOLD:
-        return src_filter_pks, dst_filter_pks
-    if src_filter_pks or dst_filter_pks:
-        return src_filter_pks, dst_filter_pks
-    default_pks = {zone.pk for zone in all_zones[:MATRIX_FILTER_AUTO_COUNT]}
-    return default_pks, set(default_pks)
 
 
 def matrix_axis_display_label(

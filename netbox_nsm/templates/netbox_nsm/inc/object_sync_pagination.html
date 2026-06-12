@@ -1,0 +1,50 @@
+{% load i18n %}
+
+{% if sync_page_obj %}
+  <div class="d-flex justify-content-between align-items-center border-top p-2">
+    {% if sync_paginator.num_pages > 1 %}
+      <nav aria-label="{% trans "Page selection" %}">
+        <ul class="pagination mb-0">
+          {% if sync_page_obj.has_previous %}
+            <li class="page-item">
+              <a href="{% querystring sync_page=sync_page_obj.previous_page_number %}" class="page-link" rel="prev" aria-label="{% trans "Previous page" %}">
+                <i class="mdi mdi-chevron-left" aria-hidden="true"></i>
+              </a>
+            </li>
+          {% endif %}
+          {% for p in sync_page_obj.smart_pages %}
+            <li class="page-item{% if sync_page_obj.number == p %} active{% endif %}"{% if sync_page_obj.number == p %} aria-current="page"{% endif %}>
+              {% if p %}
+                <a href="{% querystring sync_page=p %}" class="page-link{% if sync_page_obj.number == p %} active{% endif %}" aria-label="{% blocktrans with num=p %}Page {{ num }}{% endblocktrans %}">{{ p }}</a>
+              {% else %}
+                <span class="page-link" disabled aria-hidden="true">&hellip;</span>
+              {% endif %}
+            </li>
+          {% endfor %}
+          {% if sync_page_obj.has_next %}
+            <li class="page-item">
+              <a href="{% querystring sync_page=sync_page_obj.next_page_number %}" class="page-link" rel="next" aria-label="{% trans "Next page" %}">
+                <i class="mdi mdi-chevron-right" aria-hidden="true"></i>
+              </a>
+            </li>
+          {% endif %}
+        </ul>
+      </nav>
+    {% endif %}
+    <small class="text-end text-muted">
+      {% blocktrans trimmed with start=sync_page_obj.start_index end=sync_page_obj.end_index total=sync_paginator.count %}
+        Showing {{ start }}-{{ end }} of {{ total }}
+      {% endblocktrans %}
+    </small>
+    <nav aria-label="{% trans "Pagination options" %}">
+      <div class="dropdown dropdown-menu-end">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">{% trans "Per Page" %}</button>
+        <ul class="dropdown-menu">
+          {% for n in sync_paginator.get_page_lengths %}
+            <li><a href="{% querystring sync_per_page=n sync_page=1 %}" class="dropdown-item">{{ n }}</a></li>
+          {% endfor %}
+        </ul>
+      </div>
+    </nav>
+  </div>
+{% endif %}

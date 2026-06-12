@@ -18,7 +18,11 @@ from netbox_nsm.rulebooks.forms.cot import (
     CotRulebookDetailForm,
     CotRulebookMetadataForm,
 )
-from netbox_nsm.rulebooks.templates import RULEBOOK_GROUP
+from netbox_nsm.rulebooks.templates import (
+    default_rulebook_schema_yaml,
+    substitute_rulebook_schema_placeholders,
+    RULEBOOK_GROUP,
+)
 
 
 class CotRulebookMetadataFormTests(TestCase):
@@ -40,21 +44,86 @@ class CotRulebookMetadataFormTests(TestCase):
             form = CotRulebookCreateForm()
         self.assertIn("description", form.fields)
 
-    def test_create_form_defaults_display_name(self):
+    def test_create_form_requires_name(self):
         with patch(
             "netbox_nsm.rulebooks.forms.cot.deployed_rulebook_parent_choices",
             return_value=[("", "—")],
         ):
             form = CotRulebookCreateForm(
                 data={
-                    "template_slug": "nsm_rb_0001_template",
-                    "name": "Test 01",
+                    "schema_yaml": default_rulebook_schema_yaml(),
+                    "name": "",
                     "verbose_name": "",
                     "description": "",
                     "parent_slug": "",
                 }
             )
+        self.assertFalse(form.is_valid())
+        self.assertIn("verbose_name", form.errors)
+        self.assertIn("name", form.errors)
+
+    def test_create_form_locks_metadata_from_literal_schema_yaml(self):
+        schema_yaml = substitute_rulebook_schema_placeholders(
+            default_rulebook_schema_yaml(),
+            display_name="Bench Addresses",
+            name="bench_addresses",
+            description="Copied schema",
+        )
+        with patch(
+            "netbox_nsm.rulebooks.forms.cot.deployed_rulebook_parent_choices",
+            return_value=[("", "—")],
+        ):
+            form = CotRulebookCreateForm(
+                data={
+                    "schema_yaml": schema_yaml,
+                    "name": "tampered",
+                    "verbose_name": "Tampered",
+                    "description": "Tampered",
+                    "parent_slug": "",
+                }
+            )
         self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["name"], "bench_addresses")
+        self.assertEqual(
+            form.cleaned_data["verbose_name"],
+            format_rulebook_display_name("Bench Addresses"),
+        )
+        self.assertEqual(form.cleaned_data["description"], "Copied schema")
+        self.assertEqual(
+            form.fields["name"].widget.attrs.get("readonly"),
+            "readonly",
+        )
+        self.assertEqual(
+            form.fields["verbose_name"].widget.attrs.get("readonly"),
+            "readonly",
+        )
+
+    def test_create_form_keeps_fields_editable_with_placeholder_schema(self):
+        with patch(
+            "netbox_nsm.rulebooks.forms.cot.deployed_rulebook_parent_choices",
+            return_value=[("", "—")],
+        ):
+            form = CotRulebookCreateForm()
+        self.assertNotIn("readonly", form.fields["name"].widget.attrs)
+        self.assertNotIn("readonly", form.fields["verbose_name"].widget.attrs)
+        self.assertEqual(form.schema_metadata_locked, {})
+
+    def test_create_form_derives_name_from_display_name(self):
+        with patch(
+            "netbox_nsm.rulebooks.forms.cot.deployed_rulebook_parent_choices",
+            return_value=[("", "—")],
+        ):
+            form = CotRulebookCreateForm(
+                data={
+                    "schema_yaml": default_rulebook_schema_yaml(),
+                    "name": "",
+                    "verbose_name": "Test 01",
+                    "description": "",
+                    "parent_slug": "",
+                }
+            )
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["name"], "test_01")
         self.assertEqual(
             form.cleaned_data["verbose_name"],
             format_rulebook_display_name("Test 01"),
@@ -276,3 +345,49 @@ class CotRulebookMatrixTabMetadataTests(TestCase):
         self.assertEqual(response.status_code, 302)
         row = CotRulebook.objects.get(slug=self.cot.slug)
         self.assertTrue(row.matrix_tab_enabled)
+
+
+class CotRulebookRowGroupSettingTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        from netbox_custom_objects.models import CustomObjectType
+
+        cls.cot = CustomObjectType.objects.create(
+            name="nsm_rb_rowgroup_test",
+            slug="nsm_rb_rowgroup_test",
+            verbose_name="Row Group Rulebook",
+            description="",
+            group_name=RULEBOOK_GROUP,
+        )
+
+    def test_detail_form_includes_row_group_field(self):
+        form = CotRulebookDetailForm(cot=self.cot, rulebook_slug=self.cot.slug)
+        self.assertIn("row_group_by_col_id", form.fields)
+        self.assertEqual(form.initial["row_group_by_col_id"], "")
+
+    def test_set_row_group_by_col_id_persists(self):
+        from netbox_nsm.rulebooks.cot_hierarchy import (
+            get_cot_row_group_by_col_id,
+            set_cot_row_group_by_col_id,
+        )
+
+        set_cot_row_group_by_col_id(self.cot.slug, "name")
+        row = CotRulebook.objects.get(slug=self.cot.slug)
+        self.assertEqual(row.row_group_by_col_id, "name")
+        self.assertEqual(get_cot_row_group_by_col_id(self.cot.slug), "name")
+
+    def test_row_group_by_col_id_includes_none_choice(self):
+        form = CotRulebookDetailForm(cot=self.cot, rulebook_slug=self.cot.slug)
+        self.assertEqual(form.fields["row_group_by_col_id"].choices[0], ("", "— none —"))
+
+    def test_clear_row_group_by_col_id_persists(self):
+        from netbox_nsm.rulebooks.cot_hierarchy import (
+            get_cot_row_group_by_col_id,
+            set_cot_row_group_by_col_id,
+        )
+
+        set_cot_row_group_by_col_id(self.cot.slug, "name")
+        set_cot_row_group_by_col_id(self.cot.slug, "")
+        row = CotRulebook.objects.get(slug=self.cot.slug)
+        self.assertEqual(row.row_group_by_col_id, "")
+        self.assertEqual(get_cot_row_group_by_col_id(self.cot.slug), "")

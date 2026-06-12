@@ -15,6 +15,10 @@ from netbox_nsm.objects.custom_objects_schema import (
     iter_types,
     slugify_identifier,
 )
+from netbox_nsm.objects.type_config_export import (
+    sync_cot_nsm_config_comments,
+    sync_cot_nsm_config_comments_for_slugs,
+)
 from netbox_nsm.objects.type_config_specs import (
     REQUIRED_COT_SLUGS,
     TYPECONFIG_SPEC_BY_SLUG,
@@ -22,7 +26,9 @@ from netbox_nsm.objects.type_config_specs import (
 from netbox_nsm.rulebooks.templates import (
     RULEBOOK_TEMPLATE_SLUGS,
     build_rulebook_document,
+    build_rulebook_document_from_schema,
     build_rulebook_template_type_defs,
+    default_rulebook_schema_yaml,
     format_rulebook_display_name,
 )
 
@@ -100,12 +106,15 @@ def _import_all_types() -> None:
         _ensure_choice_sets(choice_specs)
         apply_document(document, allow_destructive=True)
         _seed_default_objects(BUILTIN_CUSTOM_TYPES)
+        sync_cot_nsm_config_comments_for_slugs(
+            t["slug"] for t in document["types"]
+        )
 
 
 def _create_all_typeconfigs() -> None:
     from django.contrib.contenttypes.models import ContentType
 
-    from netbox_nsm.models import Section, TypeConfig
+    from netbox_nsm.models import Section
 
     _AREA_ORDER = {"srcdst": 10, "services": 30, "action": 40, "info": 50}
 
@@ -132,32 +141,14 @@ def _create_all_typeconfigs() -> None:
         except CustomObjectType.DoesNotExist:
             continue
 
-        ct = ContentType.objects.get_for_model(cot.get_model())
         spec = TYPECONFIG_SPEC_BY_SLUG.get(slug)
-        matching_class = spec["matching_class"] if spec else ""
-        tc, _ = TypeConfig.objects.update_or_create(
-            content_type=ct,
-            matching_class=matching_class,
-            defaults={
-                "name": spec["label"] if spec else typedef.get("name", slug),
-                "display_template": (
-                    spec["display_template"]
-                    if spec
-                    else typedef.get("display_template", "{name}")
-                ),
-                "panel_linkable_types": spec.get("panel_linkable_types", [])
-                if spec
-                else [],
-            },
-        )
+        sync_cot_nsm_config_comments(cot, spec=spec)
         for area in areas:
-            section_by_slug[area].types.add(tc)
+            section_by_slug[area].custom_object_types.add(cot)
 
 
 def _typeconfigs_ok(cot_status: dict) -> bool:
-    from django.contrib.contenttypes.models import ContentType
-
-    from netbox_nsm.models import TypeConfig
+    from netbox_nsm.objects.nsm_config import has_nsm_config_in_comments
 
     if not _all_cots_ok(cot_status):
         return False
@@ -165,8 +156,7 @@ def _typeconfigs_ok(cot_status: dict) -> bool:
         cot = cot_status[slug]
         if cot is None:
             return False
-        ct = ContentType.objects.get_for_model(cot.get_model())
-        if not TypeConfig.objects.filter(content_type=ct).exists():
+        if not has_nsm_config_in_comments(cot.comments or ""):
             return False
     return True
 
@@ -237,18 +227,30 @@ def get_cot_model(*slugs: str):
 def ensure_rulebook_cot(
     *,
     slug: str,
-    template_slug: str,
+    template_slug: str | None = None,
+    schema_yaml: str | None = None,
     display_name: str,
 ) -> CustomObjectType:
-    """Deploy a concrete ``nsm_rb_*`` rulebook COT from a bundled template."""
+    """Deploy a concrete ``nsm_rb_*`` rulebook COT from a template or YAML schema."""
     existing = CustomObjectType.objects.filter(slug=slug).first()
     if existing is not None:
         return existing
 
-    document = build_rulebook_document(
-        template_slug=template_slug,
-        rulebook_slug=slug,
-        verbose_name=format_rulebook_display_name(display_name),
-    )
+    verbose_name = format_rulebook_display_name(display_name)
+    if schema_yaml is not None:
+        from netbox_nsm.rulebooks.templates import parse_rulebook_schema_yaml
+
+        schema_type_def = parse_rulebook_schema_yaml(schema_yaml)
+        document = build_rulebook_document_from_schema(
+            schema_type_def=schema_type_def,
+            rulebook_slug=slug,
+            verbose_name=verbose_name,
+        )
+    else:
+        document = build_rulebook_document(
+            template_slug=template_slug or "",
+            rulebook_slug=slug,
+            verbose_name=verbose_name,
+        )
     apply_document(document, allow_destructive=False)
     return CustomObjectType.objects.get(slug=slug)

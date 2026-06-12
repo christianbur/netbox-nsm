@@ -150,6 +150,29 @@
     });
   }
 
+  function syncResizeHandleSpans(table) {
+    var primaryRow = table.querySelector("thead .nsm-rules-head-row--primary");
+    if (!primaryRow) {
+      return;
+    }
+    var primaryHeight = Math.ceil(primaryRow.getBoundingClientRect().height);
+    table.style.setProperty(
+      "--nsm-rules-head-primary-height",
+      primaryHeight + "px"
+    );
+  }
+
+  function observePrimaryHeadRow(table) {
+    var primaryRow = table.querySelector("thead .nsm-rules-head-row--primary");
+    if (!primaryRow || typeof ResizeObserver === "undefined") {
+      return;
+    }
+    var observer = new ResizeObserver(function () {
+      syncResizeHandleSpans(table);
+    });
+    observer.observe(primaryRow);
+  }
+
   function initRulesColumnResize() {
     var table = document.querySelector("#rules .nsm-rules-table");
     var config = readConfig();
@@ -157,7 +180,12 @@
       return;
     }
     initColumnWidths(table, config);
+    syncResizeHandleSpans(table);
+    observePrimaryHeadRow(table);
     bindColumnResize(table, config);
+    window.addEventListener("resize", function () {
+      syncResizeHandleSpans(table);
+    });
   }
 
   document.addEventListener("DOMContentLoaded", initRulesColumnResize);

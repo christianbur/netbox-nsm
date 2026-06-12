@@ -100,6 +100,7 @@
   display: flex;
   align-items: center;
   gap: 0.35rem;
+  width: 100%;
   min-height: 0;
   padding: 0.28rem 0.4rem;
   border-bottom: 1px solid var(--nsm-ag-border, var(--nsm-ipa-border));
@@ -243,8 +244,7 @@
   border-radius: 3px;
 }
 
-.nsm-ipa-applet-tab-actions,
-.nsm-ipa-applet-toolbar-actions {
+.nsm-ipa-applet-tab-actions {
   display: inline-flex;
   align-items: center;
   gap: 0.28rem;
@@ -596,6 +596,14 @@
   touch-action: none;
 }
 
+.nsm-ipa-applet-resize-handle--n {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  cursor: ns-resize;
+}
+
 .nsm-ipa-applet-resize-handle--se {
   right: 0;
   bottom: 0;
@@ -633,9 +641,9 @@
 
 .nsm-ipa-applet-resize-handle--s {
   left: 0;
-  right: 16px;
+  right: 0;
   bottom: 0;
-  height: 6px;
+  height: 8px;
   cursor: ns-resize;
 }
 
@@ -924,8 +932,34 @@
   color: var(--bs-warning-text-emphasis, var(--bs-warning, #fd7e14)) !important;
 }
 
+.nsm-ipa-applet .nsm-addr-diff-group--in-some > .nsm-addr-summary {
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
 .nsm-ipa-applet .nsm-addr-diff-group--in-some > .nsm-addr-summary .nsm-addr-link {
   color: var(--bs-warning-text-emphasis, var(--bs-warning));
+}
+
+.nsm-ipa-applet .nsm-addr-diff-in-some-head {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.nsm-ipa-applet .nsm-addr-diff-present-labels {
+  display: flex;
+  flex-direction: column;
+  padding-left: 0.65rem;
+}
+
+.nsm-ipa-applet .nsm-addr-diff-present-label {
+  color: var(--bs-warning-text-emphasis, var(--bs-warning));
+  font-weight: 400;
+  font-size: 0.72rem;
+  line-height: 1.25;
+  white-space: normal;
 }
 
 .nsm-ipa-applet .nsm-addr-diff-group--in-some > .nsm-addr-summary .nsm-addr-count,

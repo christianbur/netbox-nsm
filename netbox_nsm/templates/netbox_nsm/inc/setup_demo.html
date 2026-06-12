@@ -1,7 +1,7 @@
 {% load i18n %}
 
 <h5 class="d-flex align-items-center gap-2 mb-2 mt-2">
-  <span class="badge text-bg-secondary">4</span>
+  <span class="badge text-bg-secondary">3</span>
   <i class="mdi mdi-flask-outline"></i>
   {% trans "Demo" %}
 </h5>
@@ -9,23 +9,25 @@
   <div class="card-body">
     {% if setup_allow_destructive_actions %}
     {% if not all_tcs_ok %}
-    <p class="text-muted small mb-3">{% trans "Available after section 3 is complete." %}</p>
+    <p class="text-muted small mb-3">{% trans "Available after section 2 is complete." %}</p>
     {% endif %}
     <div class="row g-3">
       <div class="col-md-6">
         <div class="card h-100 border-primary-subtle">
           <div class="card-body">
-            <h6 class="card-title fw-semibold">{% trans "Starter-Demo" %}</h6>
+            <h6 class="card-title fw-semibold">{% trans "Starter demo" %}</h6>
             <p class="card-text text-muted small mb-3">
-              {% trans "Legt nsm_rb_demo (Vorlage 0003, nur Zonen) mit 20 Zonen und 400 Regeln (zufällig permit/deny) in einer 20×20-Matrix an." %}
+              {% blocktrans with zones=starter_demo_zone_count rules=starter_demo_rule_count size=starter_demo_grid_size %}
+              Creates nsm_rb_demo (portable-schema YAML, zones only) with {{ zones }} zones and {{ rules }} rules (random permit/deny) in a {{ size }}×{{ size }} matrix.
+              {% endblocktrans %}
             </p>
             <form method="post" class="m-0">
               {% csrf_token %}
               <input type="hidden" name="action" value="create_demo_starter">
               <button type="submit" class="btn btn-outline-primary btn-sm"
                       {% if not can_run_demo %}disabled{% endif %}
-                      title="{% if not all_tcs_ok %}{% trans 'Abschnitt 3 zuerst abschließen' %}{% endif %}">
-                <i class="mdi mdi-plus me-1"></i>{% trans "Anlegen" %}
+                      title="{% if not all_tcs_ok %}{% trans 'Complete section 3 first' %}{% endif %}">
+                <i class="mdi mdi-plus me-1"></i>{% trans "Create" %}
               </button>
             </form>
           </div>
@@ -34,27 +36,42 @@
       <div class="col-md-6">
         <div class="card h-100 border-warning-subtle">
           <div class="card-body">
-            <h6 class="card-title fw-semibold">{% trans "Address Bench (50.000 Adressen)" %}</h6>
+            <h6 class="card-title fw-semibold">{% trans "Address bench (50,000 addresses)" %}</h6>
             <p class="card-text text-muted small mb-3">
               {% blocktrans with leaves=scale_demo_50k_leaf_count rules=scale_demo_50k_rule_count %}
-              Bench-Skalierungstest: {{ leaves }} verschachtelte nsm_address-Hosts, {{ rules }} COT-Regeln auf «Bench Addresses» (nsm_rb_bench_addresses). Läuft im Hintergrund über den RQ-Worker. Volllauf (200.000 Adressen) nur per CLI: scripts/create_addresses_million_scale.py
+              Bench scaling test: {{ leaves }} nested nsm_address hosts, {{ rules }} COT rules on «Bench Addresses» (nsm_rb_bench_addresses). Uses dedicated bench-* objects in 10.128.0.0/9 — can run in parallel with the community demo. Runs in the background via the RQ worker. Full run (200,000 addresses) only via CLI: scripts/create_addresses_million_scale.py
               {% endblocktrans %}
             </p>
-            {% if ipam_has_ip_addresses %}
-            <p class="text-warning small mb-2">
-              <i class="mdi mdi-alert-outline me-1"></i>
-              {% trans "Nur verfügbar, wenn IPAM → IP-Adressen leer ist." %}
-            </p>
-            {% endif %}
-            <form method="post" class="m-0">
+            <form method="post" class="m-0" id="nsm-scale-50k-form">
               {% csrf_token %}
               <input type="hidden" name="action" value="create_demo_scale_50k">
-              <button type="submit" class="btn btn-outline-warning btn-sm"
-                      {% if not can_run_scale_demo_50k %}disabled{% endif %}
-                      title="{% if not all_tcs_ok %}{% trans 'Abschnitt 3 zuerst abschließen' %}{% elif ipam_has_ip_addresses %}{% trans 'IPAM → IP-Adressen muss leer sein' %}{% endif %}">
-                <i class="mdi mdi-database-plus me-1"></i>{% trans "Anlegen" %}
+              <div class="form-check mb-2">
+                <input type="checkbox" class="form-check-input" id="nsm-scale-50k-confirm"
+                       name="scale_demo_50k_confirm" value="1"
+                       {% if not can_run_scale_demo_50k %}disabled{% endif %}>
+                <label class="form-check-label small" for="nsm-scale-50k-confirm">
+                  {% trans "I confirm that IP addresses may be created in IPAM." %}
+                </label>
+              </div>
+              <button type="submit" class="btn btn-outline-warning btn-sm" id="nsm-scale-50k-submit"
+                      disabled
+                      title="{% if not all_tcs_ok %}{% trans 'Complete section 3 first' %}{% else %}{% trans 'Confirmation required' %}{% endif %}">
+                <i class="mdi mdi-database-plus me-1"></i>{% trans "Create" %}
               </button>
             </form>
+            <script>
+            (function () {
+              const confirm = document.getElementById('nsm-scale-50k-confirm');
+              const submit = document.getElementById('nsm-scale-50k-submit');
+              if (!confirm || !submit) return;
+              const sectionReady = {{ can_run_scale_demo_50k|yesno:"true,false" }};
+              function syncSubmit() {
+                submit.disabled = !sectionReady || !confirm.checked;
+              }
+              confirm.addEventListener('change', syncSubmit);
+              syncSubmit();
+            })();
+            </script>
           </div>
         </div>
       </div>

@@ -1,7 +1,7 @@
 """Tests for nsm_addresses → IPAM FK panel references."""
 
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 
@@ -44,6 +44,32 @@ class AddressIpamFkRefTests(SimpleTestCase):
         self.assertEqual(refs[1].field_name, "ip_address")
         self.assertEqual(refs[2].field_name, "range")
 
+    @patch("django.contrib.contenttypes.models.ContentType.objects.get")
+    @patch("django.contrib.contenttypes.models.ContentType.objects.get_for_model")
+    def test_iter_polymorphic_address_field(self, get_for_model, get_ct):
+        prefix = SimpleNamespace(pk=10, prefix="10.245.10.0/24")
+        ct = SimpleNamespace(pk=55, app_label="ipam", model="prefix")
+        get_ct.return_value = ct
+
+        model = MagicMock()
+        model.objects.filter.return_value.first.return_value = prefix
+        ct.model_class = MagicMock(return_value=model)
+
+        addr = SimpleNamespace(
+            address_content_type_id=55,
+            address_object_id=10,
+            prefix_id=None,
+            prefix=None,
+            ip_address_id=None,
+            ip_address=None,
+            range_id=None,
+            range=None,
+        )
+        refs = list(iter_address_ipam_fk_refs(addr))
+        self.assertEqual(len(refs), 1)
+        self.assertEqual(refs[0].field_name, "address")
+        self.assertIs(refs[0].ipam_obj, prefix)
+
     @patch("django.contrib.contenttypes.models.ContentType.objects.get_for_model")
     def test_iter_skips_empty_fk(self, get_for_model):
         addr = SimpleNamespace(
@@ -61,6 +87,12 @@ class AddressIpamFkRefTests(SimpleTestCase):
 
         self.assertEqual(fk_field_name_from_filter({"prefix_id": 5}), "prefix")
         self.assertEqual(fk_field_name_from_filter({"ip_address_id": 1}), "ip_address")
+        self.assertEqual(
+            fk_field_name_from_filter(
+                {"address_content_type_id": 1, "address_object_id": 2}
+            ),
+            "address",
+        )
         self.assertIsNone(fk_field_name_from_filter({}))
 
     def test_panel_link_type_labels_prefix(self):

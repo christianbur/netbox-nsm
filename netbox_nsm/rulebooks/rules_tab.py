@@ -34,7 +34,6 @@ from netbox_nsm.rulebooks.rules_row_grouping import (
     prepare_row_grouping_tab_columns,
     resolve_row_group_tab,
     resolve_stored_row_group_column_id,
-    row_group_column_display_label,
     row_group_sort_applies_to_groups,
     row_group_tab_summaries_cache_key,
     system_group_db_field,
@@ -376,7 +375,6 @@ def build_cot_rulebook_rules_tab_context(request, virtual_rb, *, readonly=False)
     cell_mode = parse_rules_cell_mode(request)
 
     row_group_column = None
-    row_group_label = ""
     row_group_tabs: list[dict] = []
     row_group_tab_active = ""
     total_rule_count = 0
@@ -398,7 +396,6 @@ def build_cot_rulebook_rules_tab_context(request, virtual_rb, *, readonly=False)
                 )
             )
     if row_group_col_id and row_group_column:
-        row_group_label = row_group_column_display_label(row_group_column)
         _annotate_rules_columns(
             flat_columns,
             request=request,
@@ -537,10 +534,8 @@ def build_cot_rulebook_rules_tab_context(request, virtual_rb, *, readonly=False)
         "rules_column_mode": column_mode,
         "rules_row_group_active": bool(row_group_col_id),
         "rules_row_group_col_id": row_group_col_id or "",
-        "rules_row_group_label": row_group_label,
         "rules_row_group_tabs": row_group_tabs,
         "rules_row_group_tab_active": row_group_tab_active,
-        "rules_col_mode_locked": False,
         "rules_chrome_config": {
             "queryValidateUrl": "",
             "rulebookId": virtual_rb.slug,
@@ -553,9 +548,6 @@ def build_cot_rulebook_rules_tab_context(request, virtual_rb, *, readonly=False)
             "filterColumnShorthand": filter_column_shorthand,
             "cellMode": cell_mode,
             "columnMode": column_mode,
-            "rowGroupActive": bool(row_group_col_id),
-            "rowGroupColId": row_group_col_id or "",
-            "rowGroupTabActive": row_group_tab_active or "",
             "rowLimit": RULES_HTML_ROW_LIMIT,
             "readonly": readonly,
         },

@@ -7,7 +7,11 @@ from django.urls import reverse
 
 from utilities.testing import TestCase
 
-from netbox_nsm.models import CotRulebook
+from netbox_nsm.objects.rulebook_config import (
+    parse_rulebook_config_from_comments,
+    resolve_rulebook_config_for_cot,
+    save_rulebook_config_for_cot,
+)
 from netbox_nsm.rulebooks.create import (
     format_rulebook_display_name,
     normalize_rulebook_display_name,
@@ -287,10 +291,16 @@ class CotRulebookMatrixTabMetadataTests(TestCase):
         self.assertTrue(form.initial["matrix_tab_enabled"])
 
     @patch(
+        "netbox_nsm.rulebooks.virtual_cot.cot_rulebook_matrix_enabled",
+        return_value=True,
+    )
+    @patch(
         "netbox_nsm.rulebooks.virtual_cot.cot_rulebook_matrix_capable",
         return_value=True,
     )
-    def test_detail_readonly_shows_matrix_tab_row(self, _mock_capable):
+    def test_detail_readonly_shows_matrix_tab_row(
+        self, _mock_capable, _mock_enabled
+    ):
         self.add_permissions("netbox_nsm.view_rulebook")
         url = reverse(
             "plugins:netbox_nsm:cot_rulebook",
@@ -302,7 +312,7 @@ class CotRulebookMatrixTabMetadataTests(TestCase):
         self.assertContains(response, "Show")
 
     @patch(
-        "netbox_nsm.rulebooks.virtual_cot.cot_rulebook_matrix_capable",
+        "netbox_nsm.matrix.cot_matrix_tab_context.cot_rulebook_matrix_capable",
         return_value=True,
     )
     def test_post_detail_form_disables_matrix_tab(self, _mock_capable):
@@ -320,11 +330,12 @@ class CotRulebookMatrixTabMetadataTests(TestCase):
             },
         )
         self.assertEqual(response.status_code, 302)
-        row = CotRulebook.objects.get(slug=self.cot.slug)
-        self.assertFalse(row.matrix_tab_enabled)
+        self.cot.refresh_from_db()
+        config = parse_rulebook_config_from_comments(self.cot.comments or "")
+        self.assertFalse(config["matrix_tab_enabled"])
 
     @patch(
-        "netbox_nsm.rulebooks.virtual_cot.cot_rulebook_matrix_capable",
+        "netbox_nsm.matrix.cot_matrix_tab_context.cot_rulebook_matrix_capable",
         return_value=True,
     )
     def test_post_detail_form_keeps_matrix_tab_enabled(self, _mock_capable):
@@ -343,8 +354,9 @@ class CotRulebookMatrixTabMetadataTests(TestCase):
             },
         )
         self.assertEqual(response.status_code, 302)
-        row = CotRulebook.objects.get(slug=self.cot.slug)
-        self.assertTrue(row.matrix_tab_enabled)
+        self.cot.refresh_from_db()
+        config = parse_rulebook_config_from_comments(self.cot.comments or "")
+        self.assertTrue(config["matrix_tab_enabled"])
 
 
 class CotRulebookRowGroupSettingTests(TestCase):
@@ -366,14 +378,12 @@ class CotRulebookRowGroupSettingTests(TestCase):
         self.assertEqual(form.initial["row_group_by_col_id"], "")
 
     def test_set_row_group_by_col_id_persists(self):
-        from netbox_nsm.rulebooks.cot_hierarchy import (
-            get_cot_row_group_by_col_id,
-            set_cot_row_group_by_col_id,
-        )
+        save_rulebook_config_for_cot(self.cot, {"row_group_by_col_id": "name"})
+        self.cot.refresh_from_db()
+        config = resolve_rulebook_config_for_cot(self.cot)
+        self.assertEqual(config["row_group_by_col_id"], "name")
+        from netbox_nsm.rulebooks.cot_hierarchy import get_cot_row_group_by_col_id
 
-        set_cot_row_group_by_col_id(self.cot.slug, "name")
-        row = CotRulebook.objects.get(slug=self.cot.slug)
-        self.assertEqual(row.row_group_by_col_id, "name")
         self.assertEqual(get_cot_row_group_by_col_id(self.cot.slug), "name")
 
     def test_row_group_by_col_id_includes_none_choice(self):
@@ -381,13 +391,11 @@ class CotRulebookRowGroupSettingTests(TestCase):
         self.assertEqual(form.fields["row_group_by_col_id"].choices[0], ("", "— none —"))
 
     def test_clear_row_group_by_col_id_persists(self):
-        from netbox_nsm.rulebooks.cot_hierarchy import (
-            get_cot_row_group_by_col_id,
-            set_cot_row_group_by_col_id,
-        )
+        save_rulebook_config_for_cot(self.cot, {"row_group_by_col_id": "name"})
+        save_rulebook_config_for_cot(self.cot, {"row_group_by_col_id": ""})
+        self.cot.refresh_from_db()
+        config = resolve_rulebook_config_for_cot(self.cot)
+        self.assertEqual(config["row_group_by_col_id"], "")
+        from netbox_nsm.rulebooks.cot_hierarchy import get_cot_row_group_by_col_id
 
-        set_cot_row_group_by_col_id(self.cot.slug, "name")
-        set_cot_row_group_by_col_id(self.cot.slug, "")
-        row = CotRulebook.objects.get(slug=self.cot.slug)
-        self.assertEqual(row.row_group_by_col_id, "")
         self.assertEqual(get_cot_row_group_by_col_id(self.cot.slug), "")

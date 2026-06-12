@@ -776,43 +776,6 @@ body.nsm-rules-column-resizing {
   width: 100%;
 }
 
-#rules .nsm-rules-th--rule-group .nsm-rules-th-title {
-  font-size: 0.625rem;
-  font-weight: var(--bs-body-font-weight);
-  text-transform: uppercase;
-}
-
-#rules .nsm-rules-group-row {
-  background-color: color-mix(in srgb, var(--bs-table-bg) 88%, var(--bs-primary) 12%);
-}
-
-#rules .nsm-rules-group-row .nsm-rules-group-toggle {
-  text-decoration: none;
-  color: inherit;
-  font-weight: 600;
-}
-
-#rules .nsm-rules-group-row .nsm-rules-group-chevron {
-  transition: transform 0.15s ease;
-}
-
-#rules .nsm-rules-group-row.is-expanded .nsm-rules-group-chevron {
-  transform: rotate(90deg);
-}
-
-#rules .nsm-rules-group-child--collapsed {
-  display: none !important;
-}
-
-#rules .nsm-rules-td--empty {
-  background-color: transparent;
-}
-
-#rules .nsm-rule-group-hint {
-  margin-left: 0.5rem;
-  font-size: 0.875em;
-}
-
 #rules .nsm-rules-body--with-side-tabs {
   display: flex;
   align-items: stretch;

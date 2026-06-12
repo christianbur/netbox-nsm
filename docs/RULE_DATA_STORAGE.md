@@ -64,7 +64,6 @@ flowchart TB
 
 ```mermaid
 erDiagram
-    CotRulebook ||--o| "COT nsm_rb_*" : "metadata slug"
     "COT nsm_rb_*" ||--o{ "COT rule row" : "contains"
     "COT nsm_rb_*" ||--|{ "COT field def" : "defines columns"
     TypeConfig }o--|| ContentType : "behaviour for referenced types"
@@ -77,10 +76,9 @@ erDiagram
         json multiobject_destination
     }
 
-    CotRulebook {
-        string slug PK
-        string parent_slug
-        bool matrix_tab_enabled
+    "COT nsm_rb_*" {
+        string slug
+        text comments_nsm_config_rulebook
     }
 
     CotRulebookAssignment {
@@ -134,7 +132,7 @@ flowchart LR
 
 | UI concept | Where it lives | What is stored |
 |------------|----------------|----------------|
-| Rulebook (deployed) | COT `nsm_rb_<name>` + `netbox_nsm_cotrulebook` | COT schema + hierarchy/matrix flags |
+| Rulebook (deployed) | COT `nsm_rb_<name>` + `comments.nsm_config.rulebook` | COT schema + hierarchy/matrix flags in comments |
 | Column “Source” | COT field `source` (or `source_zones`, …) | `multiobject` definition, `group_name`, `related_object_types` |
 | Sub-type “Zones” under Source | Polymorphic `related_object_types` + `TypeConfig` | UI splits one field by content type |
 | Rule row | COT table for `nsm_rb_*` | `index`, `status`, `name`, system + policy fields |
@@ -182,7 +180,7 @@ flowchart TB
 
 | URL | Purpose |
 |-----|---------|
-| `/plugins/netbox-nsm/rulebooks/cot/<slug>/rules/` | Rules grid for one deployed COT rulebook; optional vertical **Grouped rows** tabs (`row_group_by_col_id` on `CotRulebook`, active tab `?row_group_tab=…`) |
+| `/plugins/netbox-nsm/rulebooks/cot/<slug>/rules/` | Rules grid for one deployed COT rulebook; optional vertical **Grouped rows** tabs (`nsm_config.rulebook.row_group_by_col_id`, active tab `?row_group_tab=…`) |
 | `/plugins/netbox-nsm/rulebooks/0/rules/` | Aggregated read-only view across rulebooks |
 
 The legacy global `/plugins/netbox-nsm/rules/` native list was removed with the COT migration.

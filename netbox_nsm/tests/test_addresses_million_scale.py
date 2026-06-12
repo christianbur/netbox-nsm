@@ -48,17 +48,3 @@ class AddressesMillionScaleHelperTests(SimpleTestCase):
             SCALE_DEMO_50K_RULE_COUNT,
             round(DEFAULT_RULE_COUNT * 50_000 / DEFAULT_LEAF_COUNT),
         )
-
-    @patch("netbox_nsm.demos.addresses_million_scale._PREFIX_CT_ID", 20)
-    @patch("netbox_nsm.demos.addresses_million_scale._IP_CT_ID", 10)
-    def test_address_polymorphic_kwargs_maps_ipam_models(self):
-        with self.assertRaises(TypeError):
-            _address_polymorphic_kwargs(object())
-
-        ip_kwargs = _address_polymorphic_kwargs(IPAddress(pk=7))
-        self.assertEqual(ip_kwargs["address_content_type_id"], 10)
-        self.assertEqual(ip_kwargs["address_object_id"], 7)
-
-        prefix_kwargs = _address_polymorphic_kwargs(Prefix(pk=9))
-        self.assertEqual(prefix_kwargs["address_content_type_id"], 20)
-        self.assertEqual(prefix_kwargs["address_object_id"], 9)

@@ -89,8 +89,6 @@ def build_virtual_all_rules_rules_tab_context(request, virtual_all_rules) -> dic
             "rules_empty": True,
             "rules_row_group_active": False,
             "rules_row_group_col_id": "",
-            "rules_row_group_label": "",
-            "rules_col_mode_locked": False,
         }
 
     base_ctx = build_cot_rulebook_rules_tab_context(

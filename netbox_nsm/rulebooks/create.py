@@ -71,7 +71,8 @@ def create_cot_rulebook_from_schema_yaml(
 ):
     from netbox_custom_objects.models import CustomObjectType
     from netbox_custom_objects.schema.executor import apply_document
-    from netbox_nsm.rulebooks.cot_hierarchy import set_cot_rulebook_parent, validate_cot_parent_slug
+    from netbox_nsm.objects.rulebook_config import save_rulebook_config_for_cot
+    from netbox_nsm.rulebooks.cot_hierarchy import validate_cot_parent_slug
 
     slug = resolve_rulebook_slug(name)
     parent_slug = (parent_slug or "").strip() or None
@@ -100,8 +101,9 @@ def create_cot_rulebook_from_schema_yaml(
         name=name,
     )
     apply_document(document, allow_destructive=False)
-    set_cot_rulebook_parent(slug, parent_slug)
     cot = CustomObjectType.objects.get(slug=slug)
+    if parent_slug:
+        save_rulebook_config_for_cot(cot, {"parent_slug": parent_slug})
     from netbox_nsm.rulebooks.rulebook_groups import apply_schema_yaml_field_groups
 
     apply_schema_yaml_field_groups(cot, list(schema_type_def.get("fields") or []))
@@ -118,7 +120,8 @@ def create_cot_rulebook_from_template(
 ):
     from netbox_custom_objects.models import CustomObjectType
     from netbox_custom_objects.schema.executor import apply_document
-    from netbox_nsm.rulebooks.cot_hierarchy import set_cot_rulebook_parent, validate_cot_parent_slug
+    from netbox_nsm.objects.rulebook_config import save_rulebook_config_for_cot
+    from netbox_nsm.rulebooks.cot_hierarchy import validate_cot_parent_slug
 
     slug = resolve_rulebook_slug(name)
     parent_slug = (parent_slug or "").strip() or None
@@ -139,8 +142,9 @@ def create_cot_rulebook_from_template(
         description=description,
     )
     apply_document(document, allow_destructive=False)
-    set_cot_rulebook_parent(slug, parent_slug)
     cot = CustomObjectType.objects.get(slug=slug)
+    if parent_slug:
+        save_rulebook_config_for_cot(cot, {"parent_slug": parent_slug})
     from netbox_nsm.rulebooks.rulebook_groups import sync_rulebook_field_groups
 
     sync_rulebook_field_groups(cot)

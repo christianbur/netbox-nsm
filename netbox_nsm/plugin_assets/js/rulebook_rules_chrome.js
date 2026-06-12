@@ -500,9 +500,6 @@
       return;
     }
     toggle.addEventListener("click", function () {
-      if (toggle.disabled) {
-        return;
-      }
       var nextMode =
         toggle.getAttribute("aria-pressed") === "true" ? "expanded" : "collapsed";
       var currentMode = config.columnMode || "expanded";

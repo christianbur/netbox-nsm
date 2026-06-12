@@ -56,8 +56,6 @@ class CotRulebookCreateForm(forms.Form):
         widget=forms.TextInput(
             attrs={
                 "class": "form-control",
-                "readonly": "readonly",
-                "tabindex": "-1",
             }
         ),
     )

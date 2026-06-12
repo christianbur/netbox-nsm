@@ -2,23 +2,16 @@
 
 from django.test import RequestFactory, SimpleTestCase
 
-from netbox_nsm.rulebooks.rules_tab_base import (
-    _build_rules_cell_html,
-    format_rules_tab_badge,
-)
+from netbox_nsm.rulebooks.rules_tab_base import format_rules_tab_badge
 from netbox_nsm.rulebooks.rules_row_grouping import (
-    RULE_GROUP_COLUMN_ID,
     RULES_ROW_GROUP_TAB_QUERY_PARAM,
     build_group_key,
     build_row_group_column_choices,
     build_row_group_tab_summaries,
-    build_row_grouped_display_rows,
     build_system_row_group_tab_summaries_from_queryset,
     filter_queryset_by_system_group_key,
     filter_rows_by_group_key,
     is_row_groupable_column,
-    paginate_grouped_rule_rows,
-    prepare_row_grouping_columns,
     prepare_row_grouping_tab_columns,
     resolve_row_group_tab,
     resolve_stored_row_group_column_id,
@@ -129,11 +122,11 @@ class RulesRowGroupingTests(SimpleTestCase):
             column_defs,
             "source_zones::ct_1",
         )
-        self.assertNotIn(RULE_GROUP_COLUMN_ID, [c.get("col_id") for c in visible_flat])
+        self.assertNotIn("_rule_group", [c.get("col_id") for c in visible_flat])
         self.assertEqual(visible_flat[0]["col_id"], "source_zones::ct_1")
         self.assertEqual(group_col["col_id"], "source_zones::ct_1")
         col_ids = [c.get("colId") for c in visible_defs]
-        self.assertNotIn(RULE_GROUP_COLUMN_ID, col_ids)
+        self.assertNotIn("_rule_group", col_ids)
         child_fields = [
             child.get("field")
             for col in visible_defs
@@ -212,96 +205,6 @@ class RulesRowGroupingTests(SimpleTestCase):
         )
         self.assertEqual(badge, "62500/62500")
 
-    def test_prepare_row_grouping_columns_hides_grouped_column(self):
-        flat_columns = [
-            self._zone_column(),
-            {"kind": "system", "slug": "index", "col_id": "index", "label": "Index"},
-            {"kind": "system", "slug": "name", "col_id": "name", "label": "Name"},
-            {"kind": "actions", "col_id": "_actions"},
-        ]
-        column_defs = [
-            {
-                "headerName": "Zones",
-                "children": [{"field": "source_zones::ct_1", "headerName": "Zone"}],
-            },
-            {"colId": "index", "headerName": "Index"},
-            {"colId": "name", "headerName": "Name"},
-            {"colId": "_actions"},
-        ]
-        visible_flat, visible_defs, group_col = prepare_row_grouping_columns(
-            flat_columns,
-            column_defs,
-            "source_zones::ct_1",
-        )
-        self.assertEqual(visible_flat[0]["col_id"], RULE_GROUP_COLUMN_ID)
-        self.assertEqual(visible_flat[1]["col_id"], "index")
-        self.assertEqual(
-            [col.get("col_id") for col in visible_flat],
-            [RULE_GROUP_COLUMN_ID, "index", "name", "_actions"],
-        )
-        self.assertEqual(visible_defs[0]["colId"], RULE_GROUP_COLUMN_ID)
-        self.assertEqual(visible_defs[1]["colId"], "index")
-        self.assertEqual(visible_defs[0]["headerName"], "Rule-Group")
-        self.assertEqual(group_col["col_id"], "source_zones::ct_1")
-        child_fields = [
-            child.get("field")
-            for col in visible_defs
-            if col.get("children")
-            for child in col["children"]
-        ]
-        self.assertNotIn("source_zones::ct_1", child_fields)
-
-    def test_build_row_grouped_display_rows_structure(self):
-        rows = [
-            {
-                "pk": 1,
-                "index": 1,
-                "name": "r1",
-                "enabled": True,
-                "cells_items": {"source_zones::ct_1": [{"name": "dmz"}]},
-            },
-            {
-                "pk": 2,
-                "index": 2,
-                "name": "r2",
-                "enabled": True,
-                "cells_items": {
-                    "source_zones::ct_1": [{"name": "dmz"}, {"name": "untrust"}]
-                },
-            },
-        ]
-        grouped = build_row_grouped_display_rows(
-            rows,
-            self._zone_column(),
-            sort_field="index",
-            sort_order="asc",
-        )
-        kinds = [row.get("kind") for row in grouped]
-        self.assertEqual(kinds, ["group", "rule", "group", "rule"])
-        self.assertEqual(grouped[0]["group_label"], "dmz")
-        self.assertEqual(grouped[2]["group_label"], "dmz, untrust")
-        self.assertEqual(grouped[1]["parent_group_label"], "dmz")
-        self.assertEqual(grouped[3]["parent_group_label"], "dmz, untrust")
-
-    def test_paginate_grouped_rule_rows_includes_children_for_page_groups(self):
-        grouped = [
-            {"kind": "group", "group_id": "a", "group_label": "A", "rule_count": 1},
-            {"kind": "rule", "parent_group_id": "a", "pk": 1},
-            {"kind": "group", "group_id": "b", "group_label": "B", "rule_count": 1},
-            {"kind": "rule", "parent_group_id": "b", "pk": 2},
-        ]
-        page_rows, paginator, page_obj = paginate_grouped_rule_rows(
-            grouped,
-            per_page=25,
-            page_num=1,
-        )
-        self.assertEqual(paginator.count, 2)
-        self.assertEqual(page_rows[0]["kind"], "group")
-        self.assertEqual(page_rows[1]["kind"], "rule")
-        self.assertEqual(page_rows[2]["kind"], "group")
-        self.assertEqual(page_rows[3]["kind"], "rule")
-        self.assertEqual(len(page_obj.object_list), 2)
-
     def test_row_group_sort_applies_to_groups_for_name(self):
         column = {"kind": "system", "slug": "name", "col_id": "name"}
         self.assertTrue(row_group_sort_applies_to_groups("name", column))
@@ -359,20 +262,6 @@ class RulesRowGroupingTests(SimpleTestCase):
     def test_is_row_groupable_column(self):
         self.assertTrue(is_row_groupable_column({"kind": "object", "col_id": "x"}))
         self.assertFalse(is_row_groupable_column({"kind": "actions", "col_id": "_actions"}))
-
-    def test_rule_group_child_cell_shows_muted_group_hint(self):
-        html = _build_rules_cell_html(
-            {"kind": "rule_group", "col_id": "_rule_group"},
-            {"parent_group_label": "zone_001"},
-            request=RequestFactory().get("/"),
-            can_change=False,
-            can_delete=False,
-            object_fields_by_slug={},
-        )
-        self.assertIn('nsm-cell-empty">-', html)
-        self.assertIn('nsm-rule-group-hint text-muted', html)
-        self.assertIn("Group:", html)
-        self.assertIn("zone_001", html)
 
     def test_resolve_stored_row_group_column_id_requires_expanded_leaf_ids(self):
         stored = "source::ct_281"

@@ -15,7 +15,6 @@ understand, extend or contribute to `netbox-nsm`.
    - [Database tables (PostgreSQL)](#database-tables-postgresql)
    - [COT storage (rules, links, policy objects)](#cot-storage-rules-links-policy-objects)
    - [TypeConfig](#typeconfig)
-   - [CotRulebook](#cotrulebook)
    - [CotRulebookAssignment](#cotrulebookassignment)
 4. [Built-in Types (builtin_types.py)](#built-in-types)
 5. [Views](#views)
@@ -130,11 +129,10 @@ Legacy rename scripts were removed with the pre-COT archive; use git history if 
 
 ### Native models (SOLL)
 
-Five Django models owned by `netbox_nsm` form the active domain layer:
+Four Django models owned by `netbox_nsm` form the active domain layer:
 
 | Model | UI title | Purpose |
 |-------|----------|---------|
-| `CotRulebook` | COT Rulebook | Parent/child hierarchy for deployed COT rulebooks (`nsm_rb_*`) |
 | `CotRulebookAssignment` | Rulebook Assignment | Assign a COT rulebook to Device / VM / VDC |
 | `NsmUiSettings` | NSM UI Settings | Singleton menu/panel labels and Setup menu flags |
 | `Section` | NSM Section | Logical grouping of Custom Object Types (source, destination, …) |
@@ -159,7 +157,7 @@ hierarchy metadata, and generic assignments.
 
 | UI / concept | Storage |
 |--------------|---------|
-| Rulebook hierarchy | `netbox_nsm_cotrulebook` |
+| Rulebook hierarchy / matrix / grouped rows | COT `comments` (`nsm_config.rulebook`) |
 | Rulebook assignment to host | `netbox_nsm_cotrulebookassignment` |
 | Type behaviour | `netbox_nsm_typeconfig` |
 | Rule rows / cell objects | COT tables per `nsm_rb_*` slug |
@@ -231,18 +229,21 @@ Security Panel extension. See `docs/DATABASE.md`.
 
 ---
 
-### CotRulebook
+### Rulebook metadata (`nsm_config.rulebook`)
 
-```
-CotRulebook
-├── slug                 (SlugField, PK — deployed COT slug, e.g. nsm_rb_demo_zones)
-├── parent_slug          (SlugField, optional hierarchy parent)
-└── matrix_tab_enabled   (BooleanField)
+Deployed COT rulebooks (`nsm_rb_*`) store NSM-specific UI metadata in the
+`CustomObjectType.comments` field as a YAML `nsm_config` list entry:
+
+```yaml
+nsm_config:
+  - rulebook:
+      parent_slug: nsm_rb_global
+      matrix_tab_enabled: true
+      row_group_by_col_id: destination_zones::ct_2
 ```
 
-**Purpose:** NSM-owned metadata for deployed COT rulebooks. The actual rulebook definition
-and rule rows live in `netbox-custom-objects`; this table only stores hierarchy and UI flags
-(matrix tab visibility).
+Parsed and written by `netbox_nsm/objects/rulebook_config.py`. Defaults:
+`parent_slug=""`, `matrix_tab_enabled=true`, `row_group_by_col_id=""`.
 
 ---
 

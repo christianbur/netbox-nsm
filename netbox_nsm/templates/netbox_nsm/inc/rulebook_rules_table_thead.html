@@ -11,17 +11,7 @@
   </th>
   {% endif %}
   {% for col in rules_column_defs %}
-    {% if col.colId == "_rule_group" %}
-      <th scope="col"
-          class="nsm-rules-th nsm-rules-th--rule-group nsm-rules-th--_rule_group"
-          data-col-id="_rule_group">
-        <div class="nsm-rules-th-inner">
-          <div class="nsm-rules-th-label-row">
-            <span class="nsm-rules-th-title">{{ col.headerName }}</span>
-          </div>
-        </div>
-      </th>
-    {% elif col.children %}
+    {% if col.children %}
       {% for child in col.children %}
         <th scope="col"
             class="nsm-rules-th nsm-rules-th--type nsm-rules-th--groupable orderable{% if rules_draggable_headers %} nsm-rules-col-draggable{% endif %}{% if child.rules_meta.sort_active %} {{ child.rules_meta.sort_order }}{% endif %}"
@@ -51,14 +41,12 @@
           aria-label="{% trans 'Actions' %}"></th>
     {% elif col.colId and col.rules_meta %}
       <th scope="col"
-          class="nsm-rules-th nsm-rules-th--{% if col.rules_column_kind == 'object' %}type{% elif col.rules_column_kind == 'rule_group' %}rule-group{% else %}system{% endif %} nsm-rules-th--groupable nsm-rules-th--{{ col.colId }} orderable{% if col.rules_meta.sort_active %} {{ col.rules_meta.sort_order }}{% endif %}"
+          class="nsm-rules-th nsm-rules-th--{% if col.rules_column_kind == 'object' %}type{% else %}system{% endif %} nsm-rules-th--groupable nsm-rules-th--{{ col.colId }} orderable{% if col.rules_meta.sort_active %} {{ col.rules_meta.sort_order }}{% endif %}"
           data-col-id="{{ col.colId }}">
         <div class="nsm-rules-th-inner">
           <div class="nsm-rules-th-label-row">
             {% if col.rules_column_kind == "object" %}
               {% include "netbox_nsm/inc/rulebook_rules_sort_header.html" with meta=col.rules_meta title=col.header_title subtitle=col.header_subtitle label=col.display_label %}
-            {% elif col.rules_column_kind == "rule_group" %}
-              <span class="nsm-rules-th-title">{{ col.headerName }}</span>
             {% else %}
               {% include "netbox_nsm/inc/rulebook_rules_sort_header.html" with meta=col.rules_meta label=col.headerName %}
             {% endif %}

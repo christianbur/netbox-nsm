@@ -8,8 +8,10 @@ NSM persists its own data in the **NetBox PostgreSQL database**. Django uses the
 Security **object instances** (zones, addresses, labels, services, actions, rulebook rules,
 object links) are **not** stored in these native NSM tables. They live in
 `netbox-custom-objects` (and standard NetBox apps such as IPAM/DCIM when referenced by rules).
-NSM native tables hold configuration, hierarchy metadata, and generic assignments via
-`content_type_id` + `object_id`.
+NSM native tables hold configuration and generic assignments via
+`content_type_id` + `object_id`. Deployed COT rulebook hierarchy, matrix tab,
+and **Grouped rows** settings live in each rulebook type's `comments` field
+(`nsm_config.rulebook` YAML block).
 
 ---
 
@@ -31,7 +33,6 @@ python manage.py dbshell -c "\dt netbox_nsm_*"
 
 | Table | Model | Purpose |
 |-------|--------|---------|
-| `netbox_nsm_cotrulebook` | `CotRulebook` | Parent/child hierarchy, matrix tab flag, and **Grouped rows** column id (`row_group_by_col_id`) for deployed COT rulebooks (`nsm_rb_*` slugs) |
 | `netbox_nsm_cotrulebookassignment` | `CotRulebookAssignment` | Assign a COT rulebook to Device / VM / VDC (generic FK) |
 | `netbox_nsm_typeconfig` | `TypeConfig` | Global type behaviour: content type, matching class, display template, panel/inheritance flags |
 | `netbox_nsm_section` | `Section` | Security panel section definitions |
@@ -84,16 +85,11 @@ python manage.py migrate netbox_nsm
 | Migration | Purpose |
 |-----------|---------|
 | `0001_initial` | Squashed baseline for **fresh empty databases** (includes transitional legacy models later removed). Depends on `netbox_custom_objects` through `0014_fix_mixed_case_field_names`. |
-| `0002_add_rulebook_permission` | Custom permissions on `CotRulebookAssignment` |
-| `0003_cot_rulebook_hierarchy` | Adds `CotRulebook` parent/child slugs |
-| `0004_delete_objectlink` | Drops native `ObjectLink` (migrate to COT first) |
-| `0005_remove_legacy_object_and_property_models` | Drops `ObjectGroup*`, `Property*` |
-| `0006_cotrulebook_matrix_tab_enabled` | Adds `matrix_tab_enabled` on `CotRulebook` |
-| `0007_remove_typeconfig_panel_slugs_order_id` | Removes deprecated `TypeConfig.panel_slugs` / `order_id` |
-| `0002_cotrulebook_row_group_by_col_id` | Adds `row_group_by_col_id` on `CotRulebook` (Rules tab **Grouped rows** setting) |
+| `0002_cotrulebook_row_group_by_col_id` | Adds `row_group_by_col_id` on transitional `CotRulebook` (superseded by `0003`) |
+| `0003_migrate_cotrulebook_to_nsm_config` | Moves `CotRulebook` metadata into COT `comments` (`nsm_config.rulebook`) and drops `CotRulebook` |
 
 **Squashing:** `0001_initial` is already regenerated as a squashed baseline for new installs
-(`docker/netbox_dev/scripts/generate_nsm_0001.sh`). Incremental migrations `0002`–`0007` must
+(`docker/netbox_dev/scripts/generate_nsm_0001.sh`). Incremental migrations `0002`–`0003` must
 remain for existing databases that applied them; do not squash further without a coordinated
 release and migration replacement plan.
 

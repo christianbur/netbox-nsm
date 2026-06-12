@@ -18,44 +18,6 @@
     }
   }
 
-  function toggleGroupChildren(groupId, expanded) {
-    var selector =
-      'tbody tr.nsm-rules-data-row[data-parent-group="' +
-      CSS.escape(groupId) +
-      '"]';
-    document.querySelectorAll(selector).forEach(function (row) {
-      row.classList.toggle("nsm-rules-group-child--collapsed", !expanded);
-    });
-    var header = document.querySelector(
-      'tbody tr.nsm-rules-group-row[data-group-id="' + CSS.escape(groupId) + '"]'
-    );
-    if (header) {
-      header.classList.toggle("is-expanded", expanded);
-      var toggle = header.querySelector(".nsm-rules-group-toggle");
-      if (toggle) {
-        toggle.setAttribute("aria-expanded", expanded ? "true" : "false");
-      }
-    }
-  }
-
-  function bindGroupToggles() {
-    document.querySelectorAll("#rules .nsm-rules-group-toggle").forEach(function (btn) {
-      if (btn.dataset.nsmRowGroupBound === "1") {
-        return;
-      }
-      btn.dataset.nsmRowGroupBound = "1";
-      btn.addEventListener("click", function () {
-        var groupId = btn.getAttribute("data-group-id");
-        if (!groupId) {
-          return;
-        }
-        var header = btn.closest("tr.nsm-rules-group-row");
-        var expanded = !(header && header.classList.contains("is-expanded"));
-        toggleGroupChildren(groupId, expanded);
-      });
-    });
-  }
-
   function updateTabScrollButtons(viewport, prevBtn, nextBtn, vertical) {
     if (!viewport || !prevBtn || !nextBtn) {
       return;
@@ -259,29 +221,10 @@
       });
   }
 
-  function ensureGroupsCollapsedByDefault() {
-    document.querySelectorAll("#rules tbody tr.nsm-rules-group-row").forEach(function (header) {
-      var groupId = header.getAttribute("data-group-id");
-      if (!groupId) {
-        return;
-      }
-      header.classList.remove("is-expanded");
-      var toggle = header.querySelector(".nsm-rules-group-toggle");
-      if (toggle) {
-        toggle.setAttribute("aria-expanded", "false");
-      }
-      toggleGroupChildren(groupId, false);
-    });
-  }
-
   function init() {
     var config = readConfig() || {};
     bindRowGroupTabScroll();
     bindTabSidebarResizeAll(config);
-    if (config.rowGroupActive && !config.rowGroupTabActive) {
-      bindGroupToggles();
-      ensureGroupsCollapsedByDefault();
-    }
   }
 
   if (document.readyState === "loading") {

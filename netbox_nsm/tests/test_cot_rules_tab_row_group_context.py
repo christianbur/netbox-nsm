@@ -71,7 +71,6 @@ class CotRulesTabRowGroupContextTests(SimpleTestCase):
 
         self.assertTrue(ctx["rules_row_group_active"])
         self.assertEqual(ctx["rules_row_group_col_id"], "source_addresses::ct_1")
-        self.assertFalse(ctx["rules_col_mode_locked"])
         self.assertEqual(ctx["rules_column_mode"], "collapsed")
 
     @patch("netbox_nsm.rulebooks.rules_tab.get_paginate_count", return_value=50)
@@ -104,7 +103,6 @@ class CotRulesTabRowGroupContextTests(SimpleTestCase):
         )
 
         self.assertFalse(ctx["rules_row_group_active"])
-        self.assertFalse(ctx["rules_col_mode_locked"])
         mock_rules_page.assert_called_once()
 
 

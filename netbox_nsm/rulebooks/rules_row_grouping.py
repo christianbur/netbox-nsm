@@ -1,4 +1,4 @@
-"""Grouped Rows: group rules by column value with expand/collapse."""
+"""Grouped Rows: side-tab navigation by column value on the COT rules tab."""
 
 from __future__ import annotations
 
@@ -12,28 +12,20 @@ from django.db.models import Count, Q
 from django.utils.translation import gettext_lazy as _
 
 from netbox_nsm.rulebooks.grid_payload import enabled_status_labels
-from utilities.paginator import EnhancedPaginator
-
-from .rules_tab_base import _rules_clamp_page
 
 __all__ = (
-    "RULE_GROUP_COLUMN_ID",
     "RULES_ROW_GROUP_TAB_QUERY_PARAM",
     "ROW_GROUP_TAB_SUMMARIES_CACHE_TIMEOUT",
     "build_cot_row_group_column_choices",
-    "build_rule_group_column_def",
     "build_group_key",
     "build_row_group_column_choices",
     "build_row_group_tab_summaries",
-    "build_row_grouped_display_rows",
     "build_system_row_group_tab_summaries_from_queryset",
     "cached_row_group_tab_summaries",
     "filter_queryset_by_system_group_key",
     "filter_rows_by_group_key",
     "find_row_group_column",
     "is_row_groupable_column",
-    "paginate_grouped_rule_rows",
-    "prepare_row_grouping_columns",
     "prepare_row_grouping_tab_columns",
     "resolve_row_group_tab",
     "resolve_stored_row_group_column_id",
@@ -48,7 +40,6 @@ __all__ = (
 ROW_GROUP_TAB_SUMMARIES_CACHE_TIMEOUT = 300
 
 RULES_ROW_GROUP_TAB_QUERY_PARAM = "row_group_tab"
-RULE_GROUP_COLUMN_ID = "_rule_group"
 
 
 def _empty_group_label() -> str:
@@ -157,22 +148,6 @@ def row_group_column_display_label(col: dict) -> str:
         or col.get("col_id")
         or ""
     )
-
-
-def build_rule_group_column_def() -> dict:
-    label = str(_("Rule-Group"))
-    return {
-        "kind": "rule_group",
-        "col_id": RULE_GROUP_COLUMN_ID,
-        "slug": RULE_GROUP_COLUMN_ID,
-        "label": label,
-        "header_title": label,
-        "header_subtitle": "",
-        "display_label": label,
-        "default_width_px": 280,
-        "min_width_px": 160,
-        "width_px": 280,
-    }
 
 
 def build_group_key(row: dict, column: dict) -> str:
@@ -450,164 +425,6 @@ def _sort_group_keys(keys: list[str], *, sort_order: str) -> list[str]:
     return sorted(keys, key=lambda value: value.lower(), reverse=reverse)
 
 
-def _sort_rules_within_group(rows: list[dict], sort_field: str, sort_order: str) -> None:
-    reverse = sort_order == "desc"
-
-    def _key(row: dict):
-        system = row.get("system") or {}
-        if sort_field == "enabled":
-            return (0 if system.get("enabled") else 1, row.get("index") or 0)
-        if sort_field == "name":
-            return (system.get("name") or row.get("name") or "").lower()
-        if sort_field == "description":
-            return (system.get("description") or row.get("description") or "").lower()
-        if sort_field == "index":
-            return row.get("index") or 0
-        if sort_field == "rulebook":
-            return (row.get("rulebook_name") or "").lower()
-        cells_filter = row.get("cells_filter") or {}
-        area = sort_field.split("::", 1)[0]
-        text = cells_filter.get(sort_field) or cells_filter.get(area) or ""
-        return text.lower()
-
-    rows.sort(key=_key, reverse=reverse)
-
-
-def build_row_grouped_display_rows(
-    rows: list[dict],
-    group_column: dict,
-    *,
-    sort_field: str = "index",
-    sort_order: str = "asc",
-) -> list[dict]:
-    """Flat list of group header rows followed by child rule rows (all collapsed)."""
-    buckets: dict[str, list[dict]] = defaultdict(list)
-    for row in rows:
-        key = build_group_key(row, group_column)
-        buckets[key].append(row)
-
-    if row_group_sort_applies_to_groups(sort_field, group_column):
-        sorted_keys = _sort_group_keys(list(buckets.keys()), sort_order=sort_order)
-    else:
-        sorted_keys = _sort_group_keys(list(buckets.keys()), sort_order="asc")
-
-    display: list[dict] = []
-    for key in sorted_keys:
-        members = list(buckets[key])
-        if not row_group_sort_applies_to_groups(sort_field, group_column):
-            _sort_rules_within_group(members, sort_field, sort_order)
-        group_id = _slugify_group_id(key)
-        display.append(
-            {
-                "kind": "group",
-                "group_key": key,
-                "group_label": key,
-                "group_id": group_id,
-                "rule_count": len(members),
-                "rules_group_collapsed": True,
-            }
-        )
-        for member in members:
-            child = dict(member)
-            child["kind"] = "rule"
-            child["parent_group_id"] = group_id
-            child["parent_group_label"] = key
-            child["rules_group_collapsed"] = True
-            display.append(child)
-    return display
-
-
-def paginate_grouped_rule_rows(
-    grouped_rows: list[dict],
-    *,
-    per_page: int,
-    page_num: int,
-) -> tuple[list[dict], EnhancedPaginator, object]:
-    """Paginate top-level group headers; include all child rules for groups on page."""
-    group_headers = [row for row in grouped_rows if row.get("kind") == "group"]
-    children_by_group: dict[str, list[dict]] = defaultdict(list)
-    for row in grouped_rows:
-        if row.get("kind") == "rule":
-            children_by_group[row.get("parent_group_id") or ""].append(row)
-
-    paginator = EnhancedPaginator(group_headers, per_page)
-    page_num = _rules_clamp_page(page_num, paginator)
-    page_obj = paginator.get_page(page_num)
-
-    page_rows: list[dict] = []
-    for header in page_obj.object_list:
-        page_rows.append(header)
-        for child in children_by_group.get(header.get("group_id") or "", []):
-            page_rows.append(child)
-    return page_rows, paginator, page_obj
-
-
-def _order_grouped_flat_columns(columns: list[dict]) -> list[dict]:
-    """Rule-Group first, Index second, actions last."""
-    rule_group = [c for c in columns if c.get("col_id") == RULE_GROUP_COLUMN_ID]
-    index_cols = [c for c in columns if c.get("col_id") == "index"]
-    action_cols = [c for c in columns if c.get("kind") == "actions"]
-    rest = [
-        c
-        for c in columns
-        if c not in rule_group and c not in index_cols and c not in action_cols
-    ]
-    return [*rule_group, *index_cols, *rest, *action_cols]
-
-
-def _order_grouped_column_defs(column_defs: list[dict]) -> list[dict]:
-    """Rule-Group header first, Index second, actions last."""
-    rule_group = [c for c in column_defs if c.get("colId") == RULE_GROUP_COLUMN_ID]
-    index_cols = [c for c in column_defs if c.get("colId") == "index"]
-    action_cols = [c for c in column_defs if c.get("colId") == "_actions"]
-    rest = [
-        c
-        for c in column_defs
-        if c not in rule_group and c not in index_cols and c not in action_cols
-    ]
-    return [*rule_group, *index_cols, *rest, *action_cols]
-
-
-def _filter_columns_hiding_grouped(
-    flat_columns: list[dict],
-    column_defs: list[dict],
-    group_col_id: str,
-) -> tuple[list[dict], list[dict]]:
-    visible_flat = [
-        col for col in flat_columns if group_col_id not in _column_match_ids(col)
-    ]
-    visible_defs: list[dict] = []
-    for col_def in column_defs or []:
-        if col_def.get("colId") == "_actions":
-            continue
-        children = col_def.get("children")
-        if children:
-            kept = [
-                child
-                for child in children
-                if group_col_id
-                not in {
-                    child.get("field") or "",
-                    child.get("colId") or "",
-                }
-            ]
-            if not kept:
-                continue
-            if len(kept) == len(children):
-                visible_defs.append(col_def)
-            else:
-                clone = dict(col_def)
-                clone["children"] = kept
-                visible_defs.append(clone)
-            continue
-        col_id = col_def.get("colId") or ""
-        field = col_def.get("field") or ""
-        if col_id == group_col_id or field == group_col_id:
-            continue
-        visible_defs.append(col_def)
-    return visible_flat, visible_defs
-
-
 def _assign_column_positions(flat_columns: list[dict]) -> None:
     position = 0
     for col in flat_columns:
@@ -633,37 +450,4 @@ def prepare_row_grouping_tab_columns(
     visible_flat = list(flat_columns)
     visible_defs = list(column_defs or [])
     _assign_column_positions(visible_flat)
-    return visible_flat, visible_defs, group_column
-
-
-def prepare_row_grouping_columns(
-    flat_columns: list[dict],
-    column_defs: list[dict],
-    group_col_id: str,
-) -> tuple[list[dict], list[dict], dict]:
-    """Hide grouped column; prepend Rule-Group column (Index becomes second)."""
-    group_column = find_row_group_column(flat_columns, group_col_id)
-    if group_column is None:
-        raise ValueError(f"Unknown row_group_by column: {group_col_id}")
-
-    visible_flat, visible_defs = _filter_columns_hiding_grouped(
-        flat_columns, column_defs, group_col_id
-    )
-    rule_group_col = build_rule_group_column_def()
-    visible_flat = _order_grouped_flat_columns([rule_group_col, *visible_flat])
-
-    visible_defs = [
-        {
-            "colId": RULE_GROUP_COLUMN_ID,
-            "headerName": rule_group_col["label"],
-            "display_label": rule_group_col["label"],
-            "header_title": rule_group_col["label"],
-            "rules_column_kind": "rule_group",
-            "rules_meta": {},
-        },
-        *visible_defs,
-    ]
-    visible_defs = _order_grouped_column_defs(visible_defs)
-    _assign_column_positions(visible_flat)
-
     return visible_flat, visible_defs, group_column

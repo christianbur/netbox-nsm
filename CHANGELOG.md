@@ -4,18 +4,14 @@ All notable changes to **netbox-nsm** are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [0.5.0] - 2026-06-12
-
-### Notes
-
-- Release
-
 ## [Unreleased]
+
+## [0.4.1] - 2026-06-12
 
 ### Added
 
-- **Rules tab row grouping** — per-rulebook column grouping (`row_group_by_col_id`), chrome tabs, and
-  client-side row-group behaviour on the rules table
+- **Rules tab row grouping** — per-rulebook column grouping (`row_group_by_col_id`), vertical side tabs,
+  and resizable tab sidebar on the COT rules table
 - **Object sync** — filterable NSM custom-object browser with pagination and object-link display
 - **IP analysis** — service-layer refactor and expanded applet/API coverage
 - **TypeConfig / custom objects** — list UI, schema setup panel, export and builder helpers
@@ -24,13 +20,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
-- **Migrations** — squash to `0001_initial` with upgrade migration `0002_cotrulebook_row_group_by_col_id`
-  (see `docs/DATABASE.md`)
+- **Rulebook metadata** — `parent_slug`, `matrix_tab_enabled`, and `row_group_by_col_id` move from
+  `CotRulebook` into `nsm_config.rulebook` on the rulebook COT comments (migration `0003`)
+- **Permissions** — `Rulebook` and `RulebookAssignment` anchor models for `view_rulebook` /
+  `add_rulebook` and assignment custom perms (migration `0004`)
+- **Migrations** — squash to `0001_initial` with upgrade migrations `0002`–`0004` (see `docs/DATABASE.md`)
 - **Documentation** — architecture, rule storage, database, and usage guides aligned with row grouping
 
 ### Removed
 
 - Legacy `OLD/` shim tree and superseded incremental migrations merged into the squash
+- In-table Rule-Group rows and `rules_col_mode_locked` stub (tab-based Grouped rows only)
 
 ## [0.4.0] - 2026-06-09
 
@@ -285,4 +285,4 @@ First release in the 0.2.x line.
 [0.3.1]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.3.1
 [0.3.0]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.3.0
 [0.2.5]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.2.5
-[0.5.0]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.5.0
+[0.4.1]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.1

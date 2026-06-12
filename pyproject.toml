@@ -1,6 +1,6 @@
 [project]
 name = "netbox-nsm"
-version = "0.5.0"
+version = "0.4.1"
 description = "A NetBox plugin for documenting network security policy: rulebooks, zones, and NSM object links"
 authors = [
     {name = "Christian Burmeister"},

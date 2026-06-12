@@ -104,7 +104,7 @@ def parse_rules_cell_mode(request) -> str:
 
 
 def _rules_query_field(col: dict) -> str | None:
-    if col.get("kind") in ("actions", "rule_group"):
+    if col.get("kind") == "actions":
         return None
     if col.get("kind") == "system":
         return "enabled" if col.get("slug") == "status" else col.get("slug")
@@ -844,16 +844,6 @@ def _build_rules_cell_html(
 ) -> str:
     system = row.get("system") or {}
     detail_url = with_branch_query(system.get("url") or row.get("url") or "", request)
-
-    if col["kind"] == "rule_group":
-        group_label = (row.get("parent_group_label") or "").strip()
-        if group_label:
-            return (
-                '<span class="nsm-cell-empty">-</span>'
-                f' <span class="nsm-rule-group-hint text-muted">'
-                f"{escape(_('Group:'))} {escape(group_label)}</span>"
-            )
-        return '<span class="nsm-cell-empty">-</span>'
 
     if col["kind"] == "system":
         slug = col["slug"]

@@ -152,27 +152,22 @@ class CotRulebookView(_CotRulebookMixin, View):
         cot = self.get_virtual_object(slug).cot
         form = CotRulebookDetailForm(cot=cot, rulebook_slug=slug, data=request.POST)
         if form.is_valid():
-            from netbox_nsm.rulebooks.cot_hierarchy import (
-                set_cot_matrix_tab_enabled,
-                set_cot_row_group_by_col_id,
-                set_cot_rulebook_parent,
-            )
+            from netbox_nsm.objects.rulebook_config import save_rulebook_config_for_cot
 
             update_cot_rulebook_metadata(
                 slug,
                 verbose_name=form.cleaned_data["verbose_name"],
                 description=form.cleaned_data.get("description") or "",
             )
-            set_cot_rulebook_parent(slug, form.cleaned_data.get("parent_slug") or None)
+            rulebook_config = {
+                "parent_slug": form.cleaned_data.get("parent_slug") or "",
+                "row_group_by_col_id": form.cleaned_data.get("row_group_by_col_id") or "",
+            }
             if "matrix_tab_enabled" in form.cleaned_data:
-                set_cot_matrix_tab_enabled(
-                    slug,
-                    form.cleaned_data["matrix_tab_enabled"],
-                )
-            set_cot_row_group_by_col_id(
-                slug,
-                form.cleaned_data.get("row_group_by_col_id") or "",
-            )
+                rulebook_config["matrix_tab_enabled"] = form.cleaned_data[
+                    "matrix_tab_enabled"
+                ]
+            save_rulebook_config_for_cot(cot, rulebook_config)
             messages.success(request, _("Rulebook updated."))
             return redirect(
                 reverse(

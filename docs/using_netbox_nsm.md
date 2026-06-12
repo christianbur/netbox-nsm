@@ -1130,7 +1130,7 @@ described here instead.
 
 | Setting | Purpose |
 |---|---|
-| **Grouped rows** | Choose a column for **vertical side tabs** on the Rules tab (e.g. **Source - Zone**). Select **— none —** to disable. Stored per rulebook in `CotRulebook.row_group_by_col_id`. |
+| **Grouped rows** | Choose a column for **vertical side tabs** on the Rules tab (e.g. **Source - Zone**). Select **— none —** to disable. Stored per rulebook in `CustomObjectType.comments` (`nsm_config.rulebook.row_group_by_col_id`). |
 | **Matrix tab** | Show or hide the Matrix tab when the schema has matching source/destination zone columns. |
 
 **Rules tab chrome bar** (right side):

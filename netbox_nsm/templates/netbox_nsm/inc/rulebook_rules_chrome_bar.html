@@ -1,14 +1,17 @@
 {% load i18n %}
 <div class="nsm-ag-chrome-bar">
   <div class="nsm-ag-chrome-bar-row d-flex align-items-start gap-2">
-    {% if rules_show_add_rule %}
+    {% if rules_show_add_rule or rules_show_bulk_delete %}
     <div class="nsm-ag-toolbar-actions nsm-ag-toolbar-actions-start d-flex flex-nowrap align-items-center gap-2 flex-shrink-0">
+      {% if rules_show_add_rule %}
       <a id="nsm-ag-add-rule"
          href="{{ nsm_rule_add_url|default:'' }}"
          class="btn btn-sm btn-primary text-nowrap{% if not nsm_rule_add_url %} disabled{% endif %}"
          {% if not nsm_rule_add_url %}aria-disabled="true" tabindex="-1"{% endif %}>
         <span class="mdi mdi-plus-thick" aria-hidden="true"></span> {% trans "Add Rule" %}
       </a>
+      {% endif %}
+      {% include "netbox_nsm/inc/rulebook_rules_sticky_actions.html" %}
     </div>
     {% endif %}
     <div class="nsm-ag-toolbar-actions nsm-ag-toolbar-actions-end d-flex flex-nowrap align-items-center gap-2 flex-shrink-0 ms-auto">

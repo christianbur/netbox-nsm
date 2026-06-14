@@ -221,10 +221,57 @@
       });
   }
 
+  function syncSidebarToTableHeight() {
+    var body = document.querySelector("#rules .nsm-rules-body--with-side-tabs");
+    if (!body) {
+      return;
+    }
+    var tableScroll = body.querySelector(".nsm-rules-table-scroll");
+    var nav = body.querySelector(".nsm-rules-row-group-tabs--vertical");
+    if (!tableScroll || !nav) {
+      return;
+    }
+    var height = tableScroll.offsetHeight;
+    if (height > 0) {
+      nav.style.height = height + "px";
+      nav.style.maxHeight = height + "px";
+    }
+    var viewport = nav.querySelector(".nsm-rules-row-group-tabs-viewport");
+    var prevBtn = nav.querySelector(".nsm-rules-row-group-tabs-scroll--prev");
+    var nextBtn = nav.querySelector(".nsm-rules-row-group-tabs-scroll--next");
+    if (viewport && prevBtn && nextBtn) {
+      updateTabScrollButtons(viewport, prevBtn, nextBtn, true);
+    }
+  }
+
+  function bindSidebarHeightSync() {
+    var body = document.querySelector("#rules .nsm-rules-body--with-side-tabs");
+    if (!body || body.dataset.nsmSidebarHeightSyncBound === "1") {
+      return;
+    }
+    body.dataset.nsmSidebarHeightSyncBound = "1";
+
+    var refresh = function () {
+      syncSidebarToTableHeight();
+    };
+
+    refresh();
+    window.addEventListener("resize", refresh);
+    window.addEventListener("nsm:rules-panel-height", refresh);
+    if (typeof ResizeObserver !== "undefined") {
+      var tableScroll = body.querySelector(".nsm-rules-table-scroll");
+      if (tableScroll) {
+        var observer = new ResizeObserver(refresh);
+        observer.observe(tableScroll);
+      }
+    }
+  }
+
   function init() {
     var config = readConfig() || {};
     bindRowGroupTabScroll();
     bindTabSidebarResizeAll(config);
+    bindSidebarHeightSync();
   }
 
   if (document.readyState === "loading") {

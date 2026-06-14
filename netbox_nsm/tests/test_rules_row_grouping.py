@@ -2,7 +2,7 @@
 
 from django.test import RequestFactory, SimpleTestCase
 
-from netbox_nsm.rulebooks.rules_tab_base import format_rules_tab_badge
+from netbox_nsm.rulebooks.rules_tab.badge import format_rules_tab_badge
 from netbox_nsm.rulebooks.rules_row_grouping import (
     RULES_ROW_GROUP_TAB_QUERY_PARAM,
     build_group_key,

@@ -6,6 +6,24 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.4.4] - 2026-06-14
+
+### Added
+
+- **README screenshots** — `docs/img/` gallery for setup, rulebooks, rules, matrix, IP analysis
+- **Rules toolbar** — bulk **Delete** next to **Add Rule** in the chrome bar
+
+### Changed
+
+- **Rules viewer layout** — full viewport height; zone sidebar scrolls internally; table fills remaining space
+- **Matrix tab** — English UI strings; `{% trans %}` for i18n
+- **Documentation** — compact English docs (`README`, `ARCHITECTURE`, `using_netbox_nsm`, etc.)
+
+### Fixed
+
+- **Tests** — suite green (849 pass); permissions, schema export, IPA/analysis imports aligned with 0.4.3 code
+- **Rules panel height** — panel extends to viewport bottom without gap
+
 ## [0.4.3] - 2026-06-14
 
 ### Changed

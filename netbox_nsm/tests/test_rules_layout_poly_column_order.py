@@ -1,6 +1,7 @@
 """Polymorphic rules-tab columns follow TypeConfig.sort_order (left to right)."""
 
 import uuid
+from unittest.mock import patch
 
 from django.contrib.contenttypes.models import ContentType
 from extras.choices import CustomFieldTypeChoices
@@ -50,6 +51,9 @@ class RulesLayoutPolyColumnOrderTests(TestCase):
             app_label="netbox_custom_objects",
             model=cls.address_cot.get_model()._meta.model_name,
         )
+        cls.zone_ct = ContentType.objects.get_for_model(cls.zone_cot.get_model())
+        cls.label_ct = ContentType.objects.get_for_model(cls.label_cot.get_model())
+        cls.address_ct = ContentType.objects.get_for_model(cls.address_cot.get_model())
 
         for cot, sort_order, name in (
             (cls.zone_cot, 10, "Zones"),
@@ -83,6 +87,22 @@ class RulesLayoutPolyColumnOrderTests(TestCase):
         cls.source_field.related_object_types.set(
             [cls.address_ot, cls.label_ot, cls.zone_ot]
         )
+
+    def setUp(self):
+        super().setUp()
+        self._sort_lookup_patcher = patch(
+            "netbox_nsm.rulebooks.rules_layout._build_type_config_sort_lookup",
+            return_value={
+                self.zone_ct.pk: (10, "Zone"),
+                self.label_ct.pk: (11, "Label"),
+                self.address_ct.pk: (12, "Address"),
+            },
+        )
+        self._sort_lookup_patcher.start()
+
+    def tearDown(self):
+        self._sort_lookup_patcher.stop()
+        super().tearDown()
 
     def test_grouped_columns_follow_typeconfig_sort_order(self):
         layout = build_cot_rules_layout(self.rulebook)

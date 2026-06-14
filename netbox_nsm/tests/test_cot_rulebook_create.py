@@ -26,7 +26,7 @@ class CotRulebookCreateTests(TestCase):
             resolve_rulebook_slug("0001_template")
 
     @patch("netbox_nsm.rulebooks.rulebook_groups.apply_schema_yaml_field_groups")
-    @patch("netbox_nsm.rulebooks.create.save_rulebook_config_for_cot")
+    @patch("netbox_nsm.objects.rulebook_config.save_rulebook_config_for_cot")
     @patch("netbox_custom_objects.schema.executor.apply_document")
     @patch("netbox_nsm.rulebooks.templates._query_rulebook_template_cots")
     @patch("netbox_custom_objects.models.CustomObjectType")
@@ -60,7 +60,7 @@ class CotRulebookCreateTests(TestCase):
         self.assertNotIn("group_name", type_def["fields"][3])
 
     @patch("netbox_nsm.rulebooks.rulebook_groups.apply_schema_yaml_field_groups")
-    @patch("netbox_nsm.rulebooks.create.save_rulebook_config_for_cot")
+    @patch("netbox_nsm.objects.rulebook_config.save_rulebook_config_for_cot")
     @patch("netbox_custom_objects.schema.executor.apply_document")
     @patch("netbox_nsm.rulebooks.templates.get_template")
     @patch("netbox_nsm.rulebooks.templates._query_rulebook_template_cots")

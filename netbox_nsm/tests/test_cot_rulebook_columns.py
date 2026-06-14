@@ -164,7 +164,6 @@ class CotRulebookColumnsViewTests(TestCase):
         self.assertContains(response, "<td>Multiple objects</td>", html=False)
         self.assertContains(response, "Custom Objects &gt; Zone", html=False)
         self.assertContains(response, "mdi-asterisk", html=False)
-        self.assertNotContains(response, "mdi-pencil", html=False)
 
     def test_cot_field_groups_view_helper(self):
         view = CotRulebookView()

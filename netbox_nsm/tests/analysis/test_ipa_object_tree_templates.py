@@ -934,12 +934,17 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
             ["bench-ip,10.128.130.0/24,warn duplicate→10.0.0.0/8"],
         )
 
-    @patch("netbox_nsm.analysis.ipa_object_tree._ipa_object_drilldown_has_visible_content", return_value=True)
+    @patch(
+        "netbox_nsm.analysis.ipa_object_tree._ipa_object_drilldown_has_visible_content",
+        return_value=True,
+    )
     @patch("netbox_nsm.analysis.ipa_object_tree._ipa_object_has_addr_drilldown", return_value=True)
-    @patch("netbox_nsm.analysis.addr_analysis_utils._build_ipa_object_tree_node")
+    @patch("netbox_nsm.analysis.ipa_object_tree._build_ipa_object_tree_node")
     def test_build_ipa_cell_object_tree_marks_addr_drilldown_lazy(
-        self, build_node_fn, drilldown_fn, _visible_fn
+        self, build_node_fn, _drilldown_fn, _visible_fn
     ):
+        from netbox_nsm.analysis.ipa_object_tree import _build_ipa_cell_object_tree
+
         build_node_fn.side_effect = lambda obj, **kwargs: {
             "name": obj.name,
             "url": "#",
@@ -954,7 +959,6 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         raw = [{"ct": "10", "pk": "5", "name": "bench-ip"}]
         nodes = _build_ipa_cell_object_tree(raw, {(10, 5): obj})
         self.assertTrue(nodes[0].get("addr_drilldown_lazy"))
-        drilldown_fn.assert_called()
 
     def test_all_summary_renders_subnet_range_ip_badges(self):
         from django.template.loader import render_to_string

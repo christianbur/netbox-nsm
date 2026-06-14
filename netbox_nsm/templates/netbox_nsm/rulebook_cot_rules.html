@@ -4,7 +4,7 @@
 
 {% block head %}
 {{ block.super }}
-<link rel="stylesheet" href="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='css/rulebook_rules.css' %}?v=20260612f">
+<link rel="stylesheet" href="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='css/rulebook_rules.css' %}?v=20260614g">
 {% include "netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html" %}
 {% endblock head %}
 
@@ -41,11 +41,10 @@
       </div>
     </div>
   </div>
-  {% include "netbox_nsm/inc/rulebook_rules_sticky_actions.html" %}
 </form>
 {{ rules_chrome_config|json_script:"rules-chrome-config" }}
 <script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/nsm_branch_api.js' %}?v=1"></script>
-<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/rulebook_rules_chrome.js' %}?v=20260612g"></script>
+<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/rulebook_rules_chrome.js' %}?v=20260614g"></script>
 <script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/rulebook_rules_columns.js' %}?v=20260612f"></script>
-<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/rulebook_rules_row_group.js' %}?v=20260612f"></script>
+<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/rulebook_rules_row_group.js' %}?v=20260614g"></script>
 {% endblock content %}

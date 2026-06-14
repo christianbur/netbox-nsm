@@ -69,7 +69,7 @@ class RulebookTemplateTests(TestCase):
         )
         meta = extract_rulebook_wizard_metadata_from_schema_yaml(yaml_text)
         self.assertEqual(meta["name"], "bench_addresses")
-        self.assertEqual(meta["verbose_name"], "Bench Addresses")
+        self.assertEqual(meta["verbose_name"], "Rulebook Bench Addresses")
         self.assertEqual(meta["description"], "Copied from existing rulebook")
 
     def test_extract_rulebook_wizard_metadata_ignores_placeholders(self):

@@ -651,6 +651,58 @@
     bindRulesFilterLoupes();
   }
 
+  function resolveRulesPanelBottom(top) {
+    var bottom = window.innerHeight;
+    var footer = document.querySelector(".page-footer, footer.footer");
+    if (footer) {
+      var footerTop = footer.getBoundingClientRect().top;
+      if (footerTop > top && footerTop < bottom) {
+        bottom = footerTop;
+      }
+    }
+    return bottom;
+  }
+
+  function syncRulesPanelHeight() {
+    var rules = document.getElementById("rules");
+    if (!rules) {
+      return;
+    }
+    var panel = rules.closest(".container-fluid.tab-content");
+    if (!panel) {
+      return;
+    }
+    var panelTop = panel.getBoundingClientRect().top;
+    var rulesTop = rules.getBoundingClientRect().top;
+    var bottom = resolveRulesPanelBottom(panelTop);
+    var panelHeight = Math.max(320, Math.floor(bottom - panelTop));
+    var rulesHeight = Math.max(280, Math.floor(bottom - rulesTop));
+    panel.style.setProperty("--nsm-rules-panel-height", panelHeight + "px");
+    rules.style.setProperty("--nsm-rules-card-height", rulesHeight + "px");
+    if (typeof window.dispatchEvent === "function") {
+      window.dispatchEvent(new CustomEvent("nsm:rules-panel-height"));
+    }
+  }
+
+  function initRulesPanelHeight() {
+    if (!document.getElementById("rules")) {
+      return;
+    }
+    syncRulesPanelHeight();
+    window.addEventListener("resize", syncRulesPanelHeight);
+    if (typeof ResizeObserver !== "undefined") {
+      var observer = new ResizeObserver(syncRulesPanelHeight);
+      var footer = document.querySelector(".page-footer");
+      if (footer) {
+        observer.observe(footer);
+      }
+      var header = document.querySelector(".navbar, .page-header");
+      if (header) {
+        observer.observe(header);
+      }
+    }
+  }
+
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initRulesFilterLoupes);
   } else {
@@ -658,6 +710,7 @@
   }
 
   document.addEventListener("DOMContentLoaded", function () {
+    initRulesPanelHeight();
     prefillRulesFiltersFromUrl();
     bindRulesFilterClearButtons();
     bindRulesQuicksearchFilters();

@@ -16,23 +16,55 @@ from netbox_nsm.objects.link_propagation import (
 
 __all__ = (
     "NSM_OBJECT_LINK_SLUG",
+    "LINK_TYPE_POLICY",
+    "LINK_TYPE_RULEBOOK",
+    "LINK_TYPE_ENFORCEMENT_POINT",
     "ObjectLinkRecord",
+    "RulebookLinkRecord",
+    "EnforcementPointLinkRecord",
     "build_panel_link_groups",
     "classify_link_endpoints",
     "create_or_update_links",
+    "create_or_update_rulebook_link",
+    "create_or_update_enforcement_point_link",
     "delete_link",
+    "delete_rulebook_link",
+    "delete_enforcement_point_link",
     "direct_nsm_type_keys_for_object",
     "find_link_between",
+    "find_rulebook_link",
+    "find_enforcement_point_host_link",
+    "find_enforcement_point_iface_link",
     "get_link_by_pk",
     "get_object_link_model",
+    "get_rulebook_link_by_pk",
+    "get_enforcement_point_link_by_pk",
+    "is_policy_link_instance",
+    "is_rulebook_link_instance",
+    "is_enforcement_point_host_link",
+    "is_enforcement_point_iface_nsm_link",
+    "is_enforcement_point_link_instance",
     "iter_links_for_object",
     "iter_links_on_container",
     "iter_links_stored_on_netbox_object",
+    "iter_policy_links_for_object",
+    "iter_rulebook_links_for_object",
+    "iter_rulebook_links_for_slug",
+    "iter_enforcement_point_links_for_object",
+    "iter_enforcement_point_links_for_slug",
+    "iter_enforcement_point_links_for_interface",
+    "iter_enforcement_point_links_stored_on_object",
     "link_name_for_endpoints",
+    "link_name_for_rulebook",
+    "object_link_permission",
     "update_link",
 )
 
 NSM_OBJECT_LINK_SLUG = "nsm_object_link"
+LINK_TYPE_POLICY = "policy"
+LINK_TYPE_RULEBOOK = "rulebook"
+LINK_TYPE_ENFORCEMENT_POINT = "enforcement_point"
+LINK_TYPE_ENFORCEMENT_TARGET_LEGACY = "enforcement_target"
 
 _INHERIT_IPAM_COT = (
     CotObjectLinkPropagationChoices.INHERIT_IPAM,
@@ -55,6 +87,32 @@ def get_object_link_model():
         return cot.get_model()
     except Exception:
         return None
+
+
+def object_link_permission(action: str) -> str | None:
+    """Return ``netbox_custom_objects`` permission codename for ``nsm_object_link``."""
+    model = get_object_link_model()
+    if model is None:
+        return None
+    return f"netbox_custom_objects.{action}_{model._meta.model_name}"
+
+
+def _link_type_value(instance) -> str:
+    value = getattr(instance, "link_type", None) or LINK_TYPE_POLICY
+    return str(value).strip() or LINK_TYPE_POLICY
+
+
+def is_policy_link_instance(instance) -> bool:
+    return _link_type_value(instance) == LINK_TYPE_POLICY
+
+
+def is_rulebook_link_instance(instance) -> bool:
+    return _link_type_value(instance) == LINK_TYPE_RULEBOOK
+
+
+def is_enforcement_point_link_instance(instance) -> bool:
+    value = _link_type_value(instance)
+    return value in (LINK_TYPE_ENFORCEMENT_POINT, LINK_TYPE_ENFORCEMENT_TARGET_LEGACY)
 
 
 def _poly_filter_param(field_name: str, content_type: ContentType) -> str:
@@ -110,6 +168,113 @@ def classify_link_endpoints(object_a, object_b):
 
 def link_name_for_endpoints(netbox_obj, policy_obj) -> str:
     return f"{netbox_obj} → {policy_obj}"[:200]
+
+
+def link_name_for_rulebook(netbox_obj, rulebook_slug: str) -> str:
+    return f"{netbox_obj} → {rulebook_slug}"[:200]
+
+
+def link_name_for_enforcement_point(
+    netbox_obj,
+    rulebook_slug: str,
+    *,
+    policy_obj=None,
+) -> str:
+    if policy_obj is None:
+        return link_name_for_rulebook(netbox_obj, rulebook_slug)
+    return f"{netbox_obj} → {policy_obj} @ {rulebook_slug}"[:200]
+
+
+def _is_enforcement_point_host_object(obj) -> bool:
+    from dcim.models import Device, VirtualDeviceContext
+    from virtualization.models import VirtualMachine
+
+    return isinstance(obj, (Device, VirtualMachine, VirtualDeviceContext))
+
+
+def _is_enforcement_point_interface_object(obj) -> bool:
+    from dcim.models import Interface
+    from virtualization.models import VMInterface
+
+    return isinstance(obj, (Interface, VMInterface))
+
+
+def is_enforcement_point_host_link(link: EnforcementPointLinkRecord) -> bool:
+    host = link.netbox_object
+    return host is not None and link.policy_object is None and _is_enforcement_point_host_object(host)
+
+
+def is_enforcement_point_iface_nsm_link(link: EnforcementPointLinkRecord) -> bool:
+    iface = link.netbox_object
+    return (
+        iface is not None
+        and link.policy_object is not None
+        and _is_enforcement_point_interface_object(iface)
+    )
+
+
+@dataclass
+class RulebookLinkRecord:
+    """Adapter: one ``nsm_object_link`` row with ``link_type=rulebook``."""
+
+    pk: int
+    instance: object | None
+    netbox_object: object | None
+    rulebook_slug: str
+    comment: str = ""
+
+    @classmethod
+    def from_instance(cls, instance) -> RulebookLinkRecord:
+        return cls(
+            pk=instance.pk,
+            instance=instance,
+            netbox_object=getattr(instance, "netbox_object", None),
+            rulebook_slug=(getattr(instance, "rulebook_slug", None) or "").strip(),
+            comment=(getattr(instance, "comment", None) or "").strip(),
+        )
+
+    @property
+    def rulebook(self):
+        from netbox_nsm.rulebooks.registry import get_deployed_cot_rulebook
+        from netbox_nsm.rulebooks.virtual_cot import build_virtual_cot_rulebook_row
+
+        cot = get_deployed_cot_rulebook(self.rulebook_slug)
+        if cot is None:
+            return None
+        return build_virtual_cot_rulebook_row(cot)
+
+
+@dataclass
+class EnforcementPointLinkRecord:
+    """Adapter: one ``nsm_object_link`` row with ``link_type=enforcement_point``."""
+
+    pk: int
+    instance: object | None
+    netbox_object: object | None
+    policy_object: object | None
+    rulebook_slug: str
+    comment: str = ""
+
+    @classmethod
+    def from_instance(cls, instance) -> EnforcementPointLinkRecord:
+        return cls(
+            pk=instance.pk,
+            instance=instance,
+            netbox_object=getattr(instance, "netbox_object", None),
+            policy_object=getattr(instance, "policy_object", None),
+            rulebook_slug=(getattr(instance, "rulebook_slug", None) or "").strip(),
+            comment=(getattr(instance, "comment", None) or "").strip(),
+        )
+
+    @property
+    def rulebook(self):
+        from netbox_nsm.rulebooks.registry import get_deployed_cot_rulebook
+        from netbox_nsm.rulebooks.virtual_cot import build_virtual_cot_rulebook_row
+
+        cot = get_deployed_cot_rulebook(self.rulebook_slug)
+        if cot is None:
+            return None
+        return build_virtual_cot_rulebook_row(cot)
 
 
 @dataclass
@@ -186,9 +351,12 @@ def get_link_by_pk(pk: int) -> ObjectLinkRecord | None:
     if model is None:
         return None
     try:
-        return ObjectLinkRecord.from_instance(model.objects.get(pk=pk))
+        row = model.objects.get(pk=pk)
     except model.DoesNotExist:
         return None
+    if not is_policy_link_instance(row):
+        return None
+    return ObjectLinkRecord.from_instance(row)
 
 
 def find_link_between(object_a, object_b) -> ObjectLinkRecord | None:
@@ -201,6 +369,8 @@ def find_link_between(object_a, object_b) -> ObjectLinkRecord | None:
 
     netbox, policy = classify_link_endpoints(object_a, object_b)
     for row in _filter_instances_by_object_ref(model, "netbox_object", netbox):
+        if not is_policy_link_instance(row):
+            continue
         row_policy = getattr(row, "policy_object", None)
         if row_policy is None:
             continue
@@ -220,27 +390,287 @@ def iter_links_stored_on_netbox_object(netbox_obj) -> Iterator[ObjectLinkRecord]
 
 def iter_links_for_object(obj) -> Iterator[tuple[ObjectLinkRecord, str]]:
     """
-    Yield ``(link, direction)`` for Security Panel display.
+    Yield ``(link, direction)`` for Security Panel display (policy links only).
 
     ``direction`` is ``fwd`` when *obj* is ``netbox_object`` (shows policy_object),
     ``rev`` when *obj* is ``policy_object`` (shows netbox_object).
     """
+    yield from iter_policy_links_for_object(obj)
+
+
+def iter_policy_links_for_object(obj) -> Iterator[tuple[ObjectLinkRecord, str]]:
     model = get_object_link_model()
     if model is None or obj is None:
         return
 
     seen: set[int] = set()
     for row in _filter_instances_by_object_ref(model, "netbox_object", obj):
-        if row.pk in seen:
+        if row.pk in seen or not is_policy_link_instance(row):
             continue
         seen.add(row.pk)
         yield ObjectLinkRecord.from_instance(row), "fwd"
 
     for row in _filter_instances_by_object_ref(model, "policy_object", obj):
-        if row.pk in seen:
+        if row.pk in seen or not is_policy_link_instance(row):
             continue
         seen.add(row.pk)
         yield ObjectLinkRecord.from_instance(row), "rev"
+
+
+def iter_rulebook_links_for_object(obj) -> Iterator[RulebookLinkRecord]:
+    """Yield rulebook assignment links stored on *obj*."""
+    model = get_object_link_model()
+    if model is None or obj is None:
+        return
+    seen: set[int] = set()
+    for row in _filter_instances_by_object_ref(model, "netbox_object", obj):
+        if row.pk in seen or not is_rulebook_link_instance(row):
+            continue
+        seen.add(row.pk)
+        yield RulebookLinkRecord.from_instance(row)
+
+
+def iter_rulebook_links_for_slug(rulebook_slug: str) -> Iterator[RulebookLinkRecord]:
+    """Yield all hosts assigned to *rulebook_slug*."""
+    model = get_object_link_model()
+    if model is None or not rulebook_slug:
+        return
+    slug = rulebook_slug.strip()
+    for row in model.objects.filter(rulebook_slug=slug).order_by("created", "pk"):
+        if is_rulebook_link_instance(row):
+            yield RulebookLinkRecord.from_instance(row)
+
+
+def find_rulebook_link(netbox_obj, rulebook_slug: str) -> RulebookLinkRecord | None:
+    model = get_object_link_model()
+    if model is None or netbox_obj is None or not rulebook_slug:
+        return None
+    for row in _filter_instances_by_object_ref(model, "netbox_object", netbox_obj):
+        if not is_rulebook_link_instance(row):
+            continue
+        if (getattr(row, "rulebook_slug", None) or "").strip() == rulebook_slug.strip():
+            return RulebookLinkRecord.from_instance(row)
+    return None
+
+
+def get_rulebook_link_by_pk(pk: int) -> RulebookLinkRecord | None:
+    model = get_object_link_model()
+    if model is None:
+        return None
+    try:
+        row = model.objects.get(pk=pk)
+    except model.DoesNotExist:
+        return None
+    if not is_rulebook_link_instance(row):
+        return None
+    return RulebookLinkRecord.from_instance(row)
+
+
+def create_or_update_rulebook_link(
+    netbox_obj,
+    rulebook_slug: str,
+    *,
+    comment: str = "",
+) -> tuple[RulebookLinkRecord, bool]:
+    model = get_object_link_model()
+    if model is None:
+        raise RuntimeError("nsm_object_link COT is not deployed")
+    slug = (rulebook_slug or "").strip()
+    if not slug:
+        raise ValueError("rulebook_slug is required")
+
+    existing = find_rulebook_link(netbox_obj, slug)
+    if existing is not None and existing.instance is not None:
+        inst = existing.instance
+        changed = False
+        new_comment = comment or ""
+        if (getattr(inst, "comment", None) or "") != new_comment:
+            inst.comment = new_comment
+            changed = True
+        if changed:
+            inst.save()
+        return RulebookLinkRecord.from_instance(inst), False
+
+    inst = model.objects.create(
+        name=link_name_for_rulebook(netbox_obj, slug),
+        link_type=LINK_TYPE_RULEBOOK,
+        netbox_object=netbox_obj,
+        rulebook_slug=slug,
+        comment=comment or "",
+    )
+    return RulebookLinkRecord.from_instance(inst), True
+
+
+def delete_rulebook_link(link: RulebookLinkRecord) -> None:
+    if link.instance is None:
+        raise ValueError("Cannot delete pseudo link record without instance")
+    link.instance.delete()
+
+
+def iter_enforcement_point_links_for_object(
+    obj,
+) -> Iterator[EnforcementPointLinkRecord]:
+    """Yield enforcement-point host links stored on *obj*."""
+    model = get_object_link_model()
+    if model is None or obj is None:
+        return
+    seen: set[int] = set()
+    for row in _filter_instances_by_object_ref(model, "netbox_object", obj):
+        if row.pk in seen or not is_enforcement_point_link_instance(row):
+            continue
+        link = EnforcementPointLinkRecord.from_instance(row)
+        if not is_enforcement_point_host_link(link):
+            continue
+        seen.add(row.pk)
+        yield link
+
+
+def iter_enforcement_point_links_stored_on_object(
+    obj,
+) -> Iterator[EnforcementPointLinkRecord]:
+    """Yield enforcement-point rows stored on *obj* (host or interface netbox side)."""
+    model = get_object_link_model()
+    if model is None or obj is None:
+        return
+    seen: set[int] = set()
+    for row in _filter_instances_by_object_ref(model, "netbox_object", obj):
+        if row.pk in seen or not is_enforcement_point_link_instance(row):
+            continue
+        seen.add(row.pk)
+        yield EnforcementPointLinkRecord.from_instance(row)
+
+
+def iter_enforcement_point_links_for_slug(
+    rulebook_slug: str,
+) -> Iterator[EnforcementPointLinkRecord]:
+    """Yield all enforcement-point links for *rulebook_slug*."""
+    model = get_object_link_model()
+    if model is None or not rulebook_slug:
+        return
+    slug = rulebook_slug.strip()
+    for row in model.objects.filter(rulebook_slug=slug).order_by("created", "pk"):
+        if is_enforcement_point_link_instance(row):
+            yield EnforcementPointLinkRecord.from_instance(row)
+
+
+def iter_enforcement_point_links_for_interface(
+    iface,
+    rulebook_slug: str,
+) -> Iterator[EnforcementPointLinkRecord]:
+    """Yield interface NSM enforcement-point links for *rulebook_slug*."""
+    for link in iter_enforcement_point_links_for_slug(rulebook_slug):
+        if link.netbox_object is None or link.policy_object is None:
+            continue
+        if not _is_enforcement_point_interface_object(link.netbox_object):
+            continue
+        if link.netbox_object.pk != iface.pk:
+            continue
+        if ContentType.objects.get_for_model(link.netbox_object) != ContentType.objects.get_for_model(iface):
+            continue
+        yield link
+
+
+def find_enforcement_point_host_link(
+    netbox_obj,
+    rulebook_slug: str,
+) -> EnforcementPointLinkRecord | None:
+    model = get_object_link_model()
+    if model is None or netbox_obj is None or not rulebook_slug:
+        return None
+    for row in _filter_instances_by_object_ref(model, "netbox_object", netbox_obj):
+        if not is_enforcement_point_link_instance(row):
+            continue
+        if (getattr(row, "rulebook_slug", None) or "").strip() != rulebook_slug.strip():
+            continue
+        if getattr(row, "policy_object", None) is not None:
+            continue
+        return EnforcementPointLinkRecord.from_instance(row)
+    return None
+
+
+def find_enforcement_point_iface_link(
+    iface,
+    policy_obj,
+    rulebook_slug: str,
+) -> EnforcementPointLinkRecord | None:
+    if iface is None or policy_obj is None or not rulebook_slug:
+        return None
+    policy_ct = ContentType.objects.get_for_model(policy_obj)
+    for link in iter_enforcement_point_links_for_interface(iface, rulebook_slug):
+        row_policy = link.policy_object
+        if row_policy is None:
+            continue
+        if row_policy.pk == policy_obj.pk and ContentType.objects.get_for_model(row_policy) == policy_ct:
+            return link
+    return None
+
+
+def get_enforcement_point_link_by_pk(pk: int) -> EnforcementPointLinkRecord | None:
+    model = get_object_link_model()
+    if model is None:
+        return None
+    try:
+        row = model.objects.get(pk=pk)
+    except model.DoesNotExist:
+        return None
+    if not is_enforcement_point_link_instance(row):
+        return None
+    return EnforcementPointLinkRecord.from_instance(row)
+
+
+def create_or_update_enforcement_point_link(
+    netbox_obj,
+    rulebook_slug: str,
+    *,
+    policy_object=None,
+    comment: str = "",
+) -> tuple[EnforcementPointLinkRecord, bool]:
+    model = get_object_link_model()
+    if model is None:
+        raise RuntimeError("nsm_object_link COT is not deployed")
+    slug = (rulebook_slug or "").strip()
+    if not slug:
+        raise ValueError("rulebook_slug is required")
+
+    if policy_object is None:
+        existing = find_enforcement_point_host_link(netbox_obj, slug)
+    else:
+        existing = find_enforcement_point_iface_link(netbox_obj, policy_object, slug)
+
+    if existing is not None and existing.instance is not None:
+        inst = existing.instance
+        changed = False
+        new_comment = comment or ""
+        if (getattr(inst, "comment", None) or "") != new_comment:
+            inst.comment = new_comment
+            changed = True
+        if changed:
+            inst.save()
+        return EnforcementPointLinkRecord.from_instance(inst), False
+
+    create_kwargs = {
+        "name": link_name_for_enforcement_point(
+            netbox_obj,
+            slug,
+            policy_obj=policy_object,
+        ),
+        "link_type": LINK_TYPE_ENFORCEMENT_POINT,
+        "netbox_object": netbox_obj,
+        "rulebook_slug": slug,
+        "comment": comment or "",
+    }
+    if policy_object is not None:
+        create_kwargs["policy_object"] = policy_object
+        create_kwargs["propagation"] = CotObjectLinkPropagationChoices.DIRECT
+
+    inst = model.objects.create(**create_kwargs)
+    return EnforcementPointLinkRecord.from_instance(inst), True
+
+
+def delete_enforcement_point_link(link: EnforcementPointLinkRecord) -> None:
+    if link.instance is None:
+        raise ValueError("Cannot delete pseudo link record without instance")
+    link.instance.delete()
 
 
 def iter_links_on_container(
@@ -261,6 +691,8 @@ def iter_links_on_container(
         return
 
     for row in _filter_instances_by_object_ref(model, "netbox_object", container_obj):
+        if not is_policy_link_instance(row):
+            continue
         prop = getattr(row, "propagation", "")
         if prop not in allowed_cot:
             continue
@@ -288,8 +720,6 @@ def build_panel_link_groups(
     type_label_fn,
 ) -> tuple[list[dict], int]:
     """Build link-type groups for ``NsmSecurityLinksExtension``."""
-    from django.db.models import prefetch_related_objects
-
     from netbox_nsm.core.display_utils import get_display_template_map
     from netbox_nsm.core.interface_parent import prefetch_interface_parents
     from netbox_nsm.objects.link_propagation import object_link_panel_user_comment
@@ -303,8 +733,6 @@ def build_panel_link_groups(
     seen_keys: set[tuple] = set()
 
     link_pairs = list(iter_links_for_object(obj))
-    instances = [link.instance for link, _ in link_pairs if link.instance is not None]
-    prefetch_related_objects(instances, "netbox_object", "policy_object")
     linked_for_prefetch = []
     for link, direction in link_pairs:
         linked = link.policy_object if direction == "fwd" else link.netbox_object
@@ -383,6 +811,7 @@ def create_or_update_links(
 
     inst = model.objects.create(
         name=link_name_for_endpoints(netbox_obj, policy_obj),
+        link_type=LINK_TYPE_POLICY,
         netbox_object=netbox_obj,
         policy_object=policy_obj,
         propagation=cot_propagation,

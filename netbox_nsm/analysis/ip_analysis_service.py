@@ -217,15 +217,25 @@ def build_ip_analysis_payload(
     leaf_count = _leaf_count_for_addr_analysis(addr_analysis)
 
     object_tree = []
+    object_tree_metadata = []
     if mode != "diff" and raw_selections and obj_by_key:
-        object_tree = _build_ipa_cell_object_tree(raw_selections, obj_by_key)
-        if not _ipa_cell_object_tree_visible(object_tree, len(raw_selections)):
-            object_tree = []
+        object_tree_metadata = _build_ipa_cell_object_tree(raw_selections, obj_by_key)
+        prefer_logical_merge = bool(
+            addr_analysis and _leaf_count_for_addr_analysis(addr_analysis) > 0
+        )
+        if _ipa_cell_object_tree_visible(
+            object_tree_metadata,
+            len(raw_selections),
+            prefer_logical_merge=prefer_logical_merge,
+        ):
+            object_tree = object_tree_metadata
 
     if object_tree:
         addr_analysis = _apply_object_tree_copy_lines(addr_analysis, object_tree)
 
-    type_counts = _resolve_summary_type_counts(addr_analysis, object_tree)
+    type_counts = _resolve_summary_type_counts(
+        addr_analysis, object_tree or object_tree_metadata or None
+    )
     if addr_analysis:
         _apply_summary_type_counts_to_addr_analysis(addr_analysis, type_counts)
 
@@ -236,6 +246,7 @@ def build_ip_analysis_payload(
         "count_ranges": type_counts.get("count_ranges") or 0,
         "count_ips": type_counts.get("count_ips") or 0,
         "count_duplicates": type_counts.get("count_duplicates") or 0,
+        "count_group_duplicates": type_counts.get("count_group_duplicates") or 0,
         "objects": selections,
         "unsupported": unsupported,
     }
@@ -284,6 +295,7 @@ def execute_ip_analysis_merge(
             "count_ranges": 0,
             "count_ips": 0,
             "count_duplicates": 0,
+            "count_group_duplicates": 0,
             "objects": selections,
             "unsupported": unsupported,
             "message": (
@@ -308,6 +320,7 @@ def execute_ip_analysis_merge(
             "count_ranges": 0,
             "count_ips": 0,
             "count_duplicates": 0,
+            "count_group_duplicates": 0,
             "objects": selections,
             "unsupported": unsupported,
             "message": (
@@ -361,6 +374,7 @@ def execute_ip_analysis_diff(
             "count_ranges": 0,
             "count_ips": 0,
             "count_duplicates": 0,
+            "count_group_duplicates": 0,
             "objects": selections,
             "unsupported": unsupported,
             "message": (

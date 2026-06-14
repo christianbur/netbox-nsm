@@ -33,22 +33,16 @@ class CotPropagationFormChoicesTests(SimpleTestCase):
 
 
 class ClassifyLinkEndpointsTests(SimpleTestCase):
-    @patch("netbox_nsm.objects.object_link_service.TypeConfig")
+    @patch("netbox_nsm.objects.object_link_service.is_panel_linkable_content_type")
     @patch("netbox_nsm.objects.object_link_service.ContentType")
-    def test_netbox_host_and_policy_object_order(self, ct_cls, tc_cls):
+    def test_netbox_host_and_policy_object_order(self, ct_cls, is_panel_linkable):
         prefix = SimpleNamespace(pk=1)
         zone = SimpleNamespace(pk=2)
 
-        def _exists_side_effect(*, content_type):
-            return content_type.model == "nsmzone"
+        def _panel_linkable(content_type_id):
+            return content_type_id == 20
 
-        panel_qs = MagicMock()
-        panel_qs.filter.side_effect = lambda **kwargs: MagicMock(
-            exists=MagicMock(
-                return_value=_exists_side_effect(content_type=kwargs["content_type"])
-            )
-        )
-        tc_cls.queryset_panel_linkable.return_value = panel_qs
+        is_panel_linkable.side_effect = _panel_linkable
 
         prefix_ct = SimpleNamespace(pk=10, model="prefix")
         zone_ct = SimpleNamespace(pk=20, model="nsmzone")

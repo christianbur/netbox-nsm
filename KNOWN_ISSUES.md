@@ -40,14 +40,24 @@ This applies to all template changes (CSS inside `<style>` blocks included).
 
 ---
 
-## i18n: `rule index`, `rule description` translations
+## i18n: `de.po` quality
 
-The strings `"rule index"` and `"rule description"` have German translations
-(`"Regelindex"`, `"Beschreibung"`) but appear verbatim (English) in the rule editor
-because they're used as JavaScript placeholder strings, not Django `{% trans %}` blocks.
-These need to be injected via a `data-i18n` attribute or a JSON translation dict.
+Many `de` entries are still empty (English fallback) or marked `fuzzy` with incorrect
+translations. Refresh with:
 
----
+```bash
+docker exec -u root netbox-dev bash -c 'cd /opt/netbox/netbox && /opt/netbox/venv/bin/python -c "
+import os, django
+os.environ.setdefault(\"DJANGO_SETTINGS_MODULE\", \"netbox.settings\")
+django.setup()
+os.chdir(\"/opt/netbox-nsm/netbox_nsm\")
+from django.core.management import call_command
+call_command(\"makemessages\", locale=[\"de\", \"en\"], verbosity=1)
+"'
+./scripts/netbox-compilemessages.sh   # or msgfmt as root if mount permissions block writes
+```
+
+Source strings (`msgid`) must stay **English**; only `de/LC_MESSAGES/django.po` carries German `msgstr`.
 
 ## Security Panel: inherited links need manual "Load" click
 

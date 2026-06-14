@@ -3,17 +3,18 @@
 from django.test import RequestFactory, SimpleTestCase
 
 from netbox_nsm.rulebooks.cell_html import render_rules_merged_object_cell_html
-from netbox_nsm.rulebooks.grid_payload import (
+from netbox_nsm.rulebooks.grid import (
     _record_field_filter_text,
     build_rulebook_rules_grid_column_defs,
 )
-from netbox_nsm.rulebooks.rules_tab_base import (
+from netbox_nsm.rulebooks.rules_tab import (
     COLUMN_MODE_COLLAPSED,
     COLUMN_MODE_EXPANDED,
     _annotate_rules_columns,
     attach_rules_column_defs_meta,
     collapse_rules_column_defs,
     flatten_rules_column_defs,
+    prepare_rules_column_defs,
     normalize_rules_column_mode,
     parse_rules_column_mode,
     parse_rules_filter_model,
@@ -47,6 +48,40 @@ def _sample_grouped():
                             "key": "source_addresses::ct_2",
                             "label": "Address Group",
                             "area_slug": "source_addresses",
+                        },
+                    ],
+                },
+            },
+        ],
+    }
+
+
+def _sample_zone_polymorphic():
+    return {
+        "rules_layout": [
+            {
+                "kind": "object",
+                "slug": "source_zones",
+                "label": "Zones (Source)",
+                "field_label": "Zones",
+                "field_group": "Source",
+                "is_polymorphic": True,
+                "group": {
+                    "slug": "source_zones",
+                    "label": "Zones (Source)",
+                    "field_label": "Zones",
+                    "field_group": "Source",
+                    "is_polymorphic": True,
+                    "columns": [
+                        {
+                            "key": "source_zones::ct_10",
+                            "label": "Zone",
+                            "area_slug": "source_zones",
+                        },
+                        {
+                            "key": "source_zones::ct_11",
+                            "label": "Label",
+                            "area_slug": "source_zones",
                         },
                     ],
                 },
@@ -107,7 +142,7 @@ class RulesColumnModeTests(SimpleTestCase):
         self.assertEqual(len(col["type_segments"]), 2)
         self.assertTrue(col["is_polymorphic"])
 
-    def test_flatten_expanded_mode_keeps_type_columns(self):
+    def test_flatten_expanded_mode_merges_address_types_only(self):
         grouped = _sample_grouped()
         column_defs = build_rulebook_rules_grid_column_defs(grouped)["columnDefs"]
         flat_columns = flatten_rules_column_defs(
@@ -115,9 +150,49 @@ class RulesColumnModeTests(SimpleTestCase):
         )
 
         object_cols = [col for col in flat_columns if col["kind"] == "object"]
+        self.assertEqual(len(object_cols), 1)
+        col = object_cols[0]
+        self.assertEqual(col["col_id"], "source_addresses")
+        self.assertEqual(col["header_subtitle"], "")
+        self.assertEqual(
+            col["merged_keys"],
+            ["source_addresses::ct_1", "source_addresses::ct_2"],
+        )
+        self.assertEqual(len(col["type_segments"]), 2)
+        self.assertTrue(col["is_polymorphic"])
+
+    def test_flatten_expanded_mode_keeps_non_address_type_columns(self):
+        grouped = _sample_zone_polymorphic()
+        column_defs = build_rulebook_rules_grid_column_defs(grouped)["columnDefs"]
+        flat_columns = flatten_rules_column_defs(
+            column_defs, column_mode=COLUMN_MODE_EXPANDED
+        )
+
+        object_cols = [col for col in flat_columns if col["kind"] == "object"]
         self.assertEqual(len(object_cols), 2)
-        self.assertEqual(object_cols[0]["header_subtitle"], "Address")
-        self.assertEqual(object_cols[1]["header_subtitle"], "Address Group")
+        self.assertEqual(object_cols[0]["header_subtitle"], "Zone")
+        self.assertEqual(object_cols[1]["header_subtitle"], "Label")
+
+    def test_prepare_rules_column_defs_expanded_merges_address_only(self):
+        grouped = {
+            "rules_layout": [
+                _sample_grouped()["rules_layout"][1],
+                _sample_zone_polymorphic()["rules_layout"][0],
+            ],
+        }
+        column_defs = build_rulebook_rules_grid_column_defs(grouped)["columnDefs"]
+        prepared = prepare_rules_column_defs(
+            column_defs, column_mode=COLUMN_MODE_EXPANDED
+        )
+
+        address_col = next(
+            col for col in prepared if col.get("colId") == "source_addresses"
+        )
+        zone_col = next(
+            col for col in prepared if (col.get("headerName") or "").startswith("Zones")
+        )
+        self.assertIn("merged_keys", address_col)
+        self.assertIn("children", zone_col)
 
     def test_flatten_assigns_col_position_excluding_actions(self):
         grouped = _sample_grouped()
@@ -141,6 +216,7 @@ class RulesColumnModeTests(SimpleTestCase):
 
         class FakeRequest:
             GET = {}
+            COOKIES = {}
             path = "/plugins/netbox_nsm/rulebooks/cot/demo/rules/"
 
         _annotate_rules_columns(
@@ -162,7 +238,9 @@ class RulesColumnModeTests(SimpleTestCase):
 
     def test_record_field_filter_text_merges_polymorphic_keys(self):
         record = {
+            "source_addresses::ct_1": "",
             "source_addresses::ct_1__filter": "web-server",
+            "source_addresses::ct_2": "",
             "source_addresses::ct_2__filter": "dmz-group",
         }
         text = _record_field_filter_text(record, "source_addresses")

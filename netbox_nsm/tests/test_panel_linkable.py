@@ -1,5 +1,6 @@
 """Tests for Security Panel assign picker (nsm_config-backed)."""
 
+from contextlib import contextmanager
 from unittest.mock import patch
 
 from django.contrib.contenttypes.models import ContentType
@@ -32,14 +33,20 @@ class PanelLinkableTests(TestCase):
             sort_order=11,
         )
 
+    def _panel_configs(self):
+        return [self.zone_config, self.label_config]
+
+    @contextmanager
     def _patch_lookup(self):
-        return patch(
-            "netbox_nsm.objects.nsm_config.build_nsm_config_lookup",
-            return_value={
-                self.zone_config.content_type_id: self.zone_config,
-                self.label_config.content_type_id: self.label_config,
-            },
-        )
+        configs = self._panel_configs()
+        with patch(
+            "netbox_nsm.forms.object_link.filter_assignable_configs",
+            return_value=configs,
+        ), patch(
+            "netbox_nsm.forms.object_link.iter_panel_linkable_configs",
+            return_value=configs,
+        ):
+            yield
 
     def test_build_type_choices_lists_ui_configs(self):
         with self._patch_lookup():
@@ -55,13 +62,18 @@ class PanelLinkableTests(TestCase):
         self.assertIn(self.zone_config.content_type_id, prefix_choices)
 
     def test_form_clean_allows_ui_config_types(self):
-        with self._patch_lookup():
+        prefix = Prefix.objects.create(prefix="10.62.0.0/24", status="active")
+        with self._patch_lookup(), patch(
+            "netbox_nsm.forms.object_link.is_assignable_from_content_type",
+            return_value=True,
+        ):
             form = ObjectLinkAssignForm(
                 data={
                     "object_a_type_id": self.prefix_ct.pk,
-                    "object_a_id": 1,
-                    "object_b_type": self.zone_config.content_type_id,
+                    "object_a_id": prefix.pk,
+                    "object_b_type": str(self.zone_config.content_type_id),
                     "propagation": "direct",
                 },
+                source_object=prefix,
             )
-        self.assertNotIn("object_b_type", form.errors)
+            self.assertTrue(form.is_valid(), form.errors)

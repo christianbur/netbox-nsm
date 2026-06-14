@@ -1,0 +1,106 @@
+"""Tests for ``nsm_config`` REST API (CustomObjectType.comments)."""
+
+import yaml
+from django.urls import reverse
+
+from netbox_nsm.rulebooks.templates import RULEBOOK_GROUP
+from utilities.testing import APITestCase
+from netbox_nsm.tests.rulebook_permission_helpers import grant_rulebook_cot_perms
+
+
+class NsmConfigApiTests(APITestCase):
+    def setUp(self):
+        super().setUp()
+        try:
+            from netbox_custom_objects.models import CustomObjectType
+        except ImportError:
+            self.skipTest("netbox-custom-objects not installed")
+        self.zone_cot = CustomObjectType.objects.create(
+            name="nsm_zone_api_test",
+            slug="nsm_zone_api_test",
+            verbose_name="Zone API Test",
+            description="",
+            group_name="NSM Panel",
+        )
+        self.rulebook_cot = CustomObjectType.objects.create(
+            name="nsm_rb_api_test",
+            slug="nsm_rb_api_test",
+            verbose_name="Rulebook API Test",
+            description="",
+            group_name=RULEBOOK_GROUP,
+        )
+
+    def _url(self, slug: str) -> str:
+        return reverse(
+            "plugins-api:netbox_nsm-api:nsmconfig-detail",
+            kwargs={"slug": slug},
+        )
+
+    def test_get_requires_permission(self):
+        self.client.force_authenticate(self.user)
+        response = self.client.get(self._url(self.zone_cot.slug))
+        self.assertEqual(response.status_code, 403)
+
+    def test_get_returns_nsm_config(self):
+        self.zone_cot.comments = "nsm_config:\n  - rule_view:\n      sort_order: 7\n"
+        self.zone_cot.save(update_fields=["comments"])
+        self.add_permissions("netbox_nsm.view_typeconfig")
+        self.client.force_authenticate(self.user)
+
+        response = self.client.get(self._url(self.zone_cot.slug))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["slug"], self.zone_cot.slug)
+        self.assertEqual(response.data["nsm_config"]["rule_view"]["sort_order"], 7)
+        self.assertIn("nsm_config:", response.data["comments"])
+
+    def test_patch_updates_rule_view(self):
+        self.add_permissions("netbox_nsm.change_typeconfig")
+        self.client.force_authenticate(self.user)
+
+        response = self.client.patch(
+            self._url(self.zone_cot.slug),
+            {"rule_view": {"sort_order": 15, "display_template": "{name}"}},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.zone_cot.refresh_from_db()
+        parsed = yaml.safe_load(self.zone_cot.comments)
+        self.assertEqual(parsed["nsm_config"][0]["rule_view"]["sort_order"], 15)
+
+    def test_patch_rulebook_preserves_rule_view(self):
+        self.zone_cot.comments = (
+            "nsm_config:\n  - rule_view:\n      sort_order: 3\n      display_template: '{name}'\n"
+        )
+        self.zone_cot.save(update_fields=["comments"])
+        self.rulebook_cot.comments = self.zone_cot.comments
+        self.rulebook_cot.save(update_fields=["comments"])
+        grant_rulebook_cot_perms(self, self.rulebook_cot, change=True)
+        self.client.force_authenticate(self.user)
+
+        response = self.client.patch(
+            self._url(self.rulebook_cot.slug),
+            {"rulebook": {"matrix_tab_enabled": False}},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.rulebook_cot.refresh_from_db()
+        document = yaml.safe_load(self.rulebook_cot.comments)
+        keys = [next(iter(segment)) for segment in document["nsm_config"]]
+        self.assertEqual(keys, ["rule_view", "rulebook"])
+
+    def test_delete_clears_nsm_config(self):
+        self.zone_cot.comments = "nsm_config:\n  - rule_view:\n      sort_order: 1\n"
+        self.zone_cot.save(update_fields=["comments"])
+        self.add_permissions("netbox_nsm.change_typeconfig")
+        self.client.force_authenticate(self.user)
+
+        response = self.client.delete(self._url(self.zone_cot.slug))
+        self.assertEqual(response.status_code, 204)
+        self.zone_cot.refresh_from_db()
+        self.assertEqual(self.zone_cot.comments, "")
+
+    def test_unknown_slug_returns_404(self):
+        self.add_permissions("netbox_nsm.view_typeconfig")
+        self.client.force_authenticate(self.user)
+        response = self.client.get(self._url("does-not-exist"))
+        self.assertEqual(response.status_code, 404)

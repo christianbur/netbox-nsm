@@ -179,13 +179,13 @@ BUILTIN_CUSTOM_TYPES = [
                 "type": "object_ref",
                 "label": "Address",
                 "description": "NetBox IP address, range, or prefix this policy object represents.",
-                "required": True,
+                "required": False,
                 "model": [
                     "ipam.IPAddress",
                     "ipam.IPRange",
                     "ipam.Prefix",
                 ],
-                "weight": 10,
+                "weight": 11,
             },
         ],
         "default_objects": [],
@@ -314,11 +314,25 @@ BUILTIN_CUSTOM_TYPES = [
         "display_template": "{name}",
         "field_definitions": [
             {
+                "name": "link_type",
+                "type": "choice",
+                "label": "Link Type",
+                "description": (
+                    "policy: inventory ↔ policy object with propagation; "
+                    "rulebook: device/VM/VDC ↔ deployed rulebook (Security Panel); "
+                    "enforcement_point: rulebook enforcement host assignment or interface ↔ NSM object."
+                ),
+                "required": True,
+                "choices": ["policy", "rulebook", "enforcement_point"],
+                "group_name": "NSM Object Link",
+                "weight": 9,
+            },
+            {
                 "name": "policy_object",
                 "type": "object_ref",
                 "label": "Policy Object",
                 "description": "NSM policy object (zone, address, label, service, …).",
-                "required": True,
+                "required": False,
                 "model": [
                     "custom-objects.nsm_zone",
                     "custom-objects.nsm_address",
@@ -343,6 +357,7 @@ BUILTIN_CUSTOM_TYPES = [
                 "model": [
                     "dcim.Device",
                     "virtualization.VirtualMachine",
+                    "dcim.VirtualDeviceContext",
                     "dcim.Interface",
                     "virtualization.VMInterface",
                     "ipam.Prefix",
@@ -359,7 +374,7 @@ BUILTIN_CUSTOM_TYPES = [
                     "How the link is stored and inherited to IPAM children "
                     "or group members."
                 ),
-                "required": True,
+                "required": False,
                 "choices": [
                     "direct",
                     "inherit_ipam",
@@ -369,6 +384,17 @@ BUILTIN_CUSTOM_TYPES = [
                 ],
                 "group_name": "NSM Object Link Propagation",
                 "weight": 12,
+            },
+            {
+                "name": "rulebook_slug",
+                "type": "text",
+                "label": "Rulebook Slug",
+                "description": (
+                    "Deployed COT rulebook slug (nsm_rb_*) when link_type is "
+                    "rulebook or enforcement_point."
+                ),
+                "required": False,
+                "weight": 14,
             },
             {
                 "name": "comment",

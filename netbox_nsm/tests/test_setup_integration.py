@@ -5,8 +5,6 @@ from unittest.mock import patch
 from django.test import override_settings
 from django.urls import reverse
 
-from netbox_nsm.models import NsmUiSettings
-from netbox_nsm.views.setup import ui_settings
 from utilities.testing import TestCase
 
 _SETUP_PLUGINS_CONFIG = {
@@ -33,7 +31,6 @@ class SetupIntegrationTests(TestCase):
             "can_create_typeconfigs": False,
             "can_run_demo": False,
             "setup_allow_destructive_actions": True,
-            "ui_settings": ui_settings.get_ui_settings(),
         },
     )
     def test_setup_page_renders(self, _build_context):
@@ -42,33 +39,6 @@ class SetupIntegrationTests(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200, response.content)
         self.assertContains(response, "setup")
-
-    def test_save_ui_settings_updates_db(self):
-        self.add_permissions("netbox_nsm.view_typeconfig")
-        url = reverse("plugins:netbox_nsm:setup")
-        response = self.client.post(
-            url,
-            {
-                "action": "save_ui_settings",
-                "menu_label": "Test Menu",
-                "panel_label": "Test Panel",
-            },
-        )
-        self.assertEqual(response.status_code, 302, response.content)
-        settings_obj = NsmUiSettings.get_solo()
-        self.assertEqual(settings_obj.menu_label, "Test Menu")
-        self.assertEqual(settings_obj.panel_label, "Test Panel")
-
-    def test_hide_setup_menu_dismisses_entry(self):
-        self.add_permissions("netbox_nsm.view_typeconfig")
-        url = reverse("plugins:netbox_nsm:setup")
-        response = self.client.post(url, {"action": "hide_setup_menu"})
-        self.assertEqual(response.status_code, 302, response.content)
-        settings_obj = NsmUiSettings.get_solo()
-        self.assertTrue(settings_obj.setup_menu_dismissed)
-        from netbox_nsm.core.setup_flags import setup_menu_enabled
-
-        self.assertFalse(setup_menu_enabled())
 
 
 class SetupHiddenTests(TestCase):

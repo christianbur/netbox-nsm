@@ -52,9 +52,9 @@ class _VirtualRulebookMeta:
     """Shim for plugin template panels (ContentType via ``_meta.model``)."""
 
     def __init__(self):
-        from netbox_nsm.models import CotRulebookAssignment
+        from netbox_nsm.models import TypeConfig
 
-        self._delegate = CotRulebookAssignment._meta
+        self._delegate = TypeConfig._meta
 
     @property
     def model(self):
@@ -66,7 +66,7 @@ class _VirtualRulebookMeta:
 
     @property
     def label_lower(self):
-        return "netbox_nsm.cotrulebookassignment"
+        return "netbox_nsm.rulebook"
 
     def __getattr__(self, name):
         return getattr(self._delegate, name)

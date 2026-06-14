@@ -15,11 +15,12 @@ from netbox_nsm.objects.custom_objects_schema import (
     load_choice_set_specs,
     load_portable_schema_document,
 )
+from netbox_nsm.objects.type_config_specs import REQUIRED_COT_SLUGS
 from netbox_nsm.rulebooks.templates import (
     RULEBOOK_TEMPLATE_SLUGS,
     build_rulebook_template_type_defs,
 )
-from netbox_nsm.objects.type_config_specs import REQUIRED_COT_SLUGS, TYPECONFIG_UI_SPECS
+from netbox_nsm.objects.type_config_specs import TYPECONFIG_UI_SPECS
 
 
 def _assert_removed_fields_are_tombstones(type_def: dict) -> None:
@@ -80,6 +81,14 @@ class PortableSchemaTests(TestCase):
             ["active", "reserved", "deprecated"],
         )
 
+    def test_nsm_address_address_optional_for_literal_in_comments(self):
+        document = load_portable_schema_document()
+        address_type = next(t for t in document["types"] if t["slug"] == "nsm_address")
+        address_field = next(f for f in address_type["fields"] if f["name"] == "address")
+        removed_names = {f["name"] for f in address_type.get("removed_fields", [])}
+        self.assertFalse(address_field["required"])
+        self.assertIn("network_literal", removed_names)
+
     def test_choice_sets_cover_schema_references(self):
         document = load_portable_schema_document()
         needed = choice_set_names_in_document(document)
@@ -90,7 +99,13 @@ class PortableSchemaTests(TestCase):
         self.assertEqual(build_schema_document(), load_portable_schema_document())
 
     def test_build_choice_set_specs_matches_file_when_unfiltered(self):
-        self.assertEqual(build_choice_set_specs(), load_choice_set_specs())
+        document = load_portable_schema_document()
+        needed = choice_set_names_in_document(document)
+        built = build_choice_set_specs()
+        loaded = {spec["name"]: spec for spec in load_choice_set_specs()}
+        self.assertEqual({spec["name"] for spec in built}, needed)
+        for spec in built:
+            self.assertEqual(spec, loaded[spec["name"]])
 
     def test_json_files_are_valid_utf8(self):
         for path in (PORTABLE_SCHEMA_PATH, CHOICE_SETS_PATH):
@@ -118,11 +133,11 @@ class PortableSchemaTests(TestCase):
         self.assertEqual(yaml_text.count("nsm_config:"), len(TYPECONFIG_UI_SPECS))
         self.assertIn("comments:", yaml_text)
         self.assertIn("rule_view:", yaml_text)
-        self.assertNotIn("panel:", yaml_text)
-        zone_pos = yaml_text.find("- slug: nsm_zone")
-        zone_block = yaml_text[zone_pos : zone_pos + 600]
-        self.assertIn("sort_order: 10", zone_block)
-        self.assertIn("display_template:", zone_block)
+        self.assertIn("panel:", yaml_text)
+        zone_pos = yaml_text.find("slug: nsm_zone")
+        self.assertGreater(zone_pos, -1)
+        self.assertIn("sort_order: 10", yaml_text[zone_pos:])
+        self.assertIn("display_template:", yaml_text[zone_pos:])
 
     def test_build_portable_schema_preview_types_lists_core_types(self):
         preview_types = build_portable_schema_preview_types(

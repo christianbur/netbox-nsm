@@ -16,7 +16,7 @@ from netbox_nsm.demos.addresses_million_scale import (
     SCALE_DEMO_50K_RULE_COUNT,
 )
 
-from . import custom_objects, demo, typeconfig, ui_settings
+from . import custom_objects, demo, typeconfig
 
 __all__ = ("SetupView",)
 
@@ -88,7 +88,6 @@ class SetupView(LoginRequiredMixin, View):
             "scale_demo_50k_rule_count": SCALE_DEMO_50K_RULE_COUNT,
             "ipam_has_ip_addresses": ipam_has_ip_addresses,
             "setup_allow_destructive_actions": setup_allow_destructive_actions(),
-            "ui_settings": ui_settings.get_ui_settings(),
         }
 
     def get(self, request):
@@ -170,8 +169,6 @@ class SetupView(LoginRequiredMixin, View):
                 return redirect(reverse("plugins:netbox_nsm:setup"))
 
         try:
-            if ui_settings.handles_action(action):
-                return ui_settings.handle_ui_settings_action(request, action)
             if custom_objects.handles_action(action):
                 return custom_objects.handle_custom_objects_action(request, action)
             if typeconfig.handles_action(action):

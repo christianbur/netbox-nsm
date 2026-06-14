@@ -94,13 +94,13 @@ class CotRulesRowGroupPageTests(SimpleTestCase):
     def _name_group_column(self):
         return {"kind": "system", "slug": "name", "col_id": "name", "label": "Name"}
 
-    @patch("netbox_nsm.rulebooks.rules_tab._cot_load_display_rows")
-    @patch("netbox_nsm.rulebooks.rules_tab.build_system_row_group_tab_summaries_from_queryset")
-    @patch("netbox_nsm.rulebooks.rules_tab.cached_row_group_tab_summaries")
-    @patch("netbox_nsm.rulebooks.rules_tab.filter_queryset_by_system_group_key")
-    @patch("netbox_nsm.rulebooks.rules_tab.apply_cot_system_field_filters")
-    @patch("netbox_nsm.rulebooks.rules_tab.cot_rule_instances_queryset")
-    @patch("netbox_nsm.rulebooks.rules_tab.cot_multiobject_prefetch_plan")
+    @patch("netbox_nsm.rulebooks.rules_tab.context._cot_load_display_rows")
+    @patch("netbox_nsm.rulebooks.rules_tab.context.build_system_row_group_tab_summaries_from_queryset")
+    @patch("netbox_nsm.rulebooks.rules_tab.context.cached_row_group_tab_summaries")
+    @patch("netbox_nsm.rulebooks.rules_tab.context.filter_queryset_by_system_group_key")
+    @patch("netbox_nsm.rulebooks.rules_tab.context.apply_cot_system_field_filters")
+    @patch("netbox_nsm.rulebooks.rules_tab.context.cot_rule_instances_queryset")
+    @patch("netbox_nsm.rulebooks.rules_tab.context.cot_multiobject_prefetch_plan")
     def test_system_group_uses_db_path_without_full_scan(
         self,
         mock_prefetch_plan,
@@ -142,7 +142,7 @@ class CotRulesRowGroupPageTests(SimpleTestCase):
         paginator.num_pages = 1
 
         with patch(
-            "netbox_nsm.rulebooks.rules_tab.EnhancedPaginator",
+            "netbox_nsm.rulebooks.rules_tab.context.EnhancedPaginator",
             return_value=paginator,
         ) as mock_paginator_cls:
             request = RequestFactory().get("/rules/")
@@ -182,13 +182,13 @@ class CotRulesRowGroupPageTests(SimpleTestCase):
         self.assertIs(paginator_out, paginator)
         self.assertIs(page_out, page_obj)
 
-    @patch("netbox_nsm.rulebooks.rules_tab._cot_load_display_rows")
-    @patch("netbox_nsm.rulebooks.rules_tab.build_cot_grouped_rules_table_data")
-    @patch("netbox_nsm.rulebooks.rules_tab.prefetch_cot_multiobject_fields")
-    @patch("netbox_nsm.rulebooks.rules_tab.cached_row_group_tab_summaries")
-    @patch("netbox_nsm.rulebooks.rules_tab.apply_cot_system_field_filters")
-    @patch("netbox_nsm.rulebooks.rules_tab.cot_rule_instances_queryset")
-    @patch("netbox_nsm.rulebooks.rules_tab.cot_multiobject_prefetch_plan")
+    @patch("netbox_nsm.rulebooks.rules_tab.context._cot_load_display_rows")
+    @patch("netbox_nsm.rulebooks.rules_tab.context.build_cot_grouped_rules_table_data")
+    @patch("netbox_nsm.rulebooks.rules_tab.context.prefetch_cot_multiobject_fields")
+    @patch("netbox_nsm.rulebooks.rules_tab.context.cached_row_group_tab_summaries")
+    @patch("netbox_nsm.rulebooks.rules_tab.context.apply_cot_system_field_filters")
+    @patch("netbox_nsm.rulebooks.rules_tab.context.cot_rule_instances_queryset")
+    @patch("netbox_nsm.rulebooks.rules_tab.context.cot_multiobject_prefetch_plan")
     def test_object_group_loads_only_group_field_for_summaries(
         self,
         mock_prefetch_plan,
@@ -236,11 +236,11 @@ class CotRulesRowGroupPageTests(SimpleTestCase):
         paginator.num_pages = 1
 
         with patch(
-            "netbox_nsm.rulebooks.rules_tab.EnhancedPaginator",
+            "netbox_nsm.rulebooks.rules_tab.context.EnhancedPaginator",
             return_value=paginator,
         ):
             with patch(
-                "netbox_nsm.rulebooks.rules_tab.build_row_group_tab_summaries",
+                "netbox_nsm.rulebooks.rules_tab.context.build_row_group_tab_summaries",
                 return_value=[
                     {
                         "group_key": "trust",

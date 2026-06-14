@@ -6,90 +6,27 @@ types. The catch-all ``_generic_fallback`` at the bottom handles everything
 else (e.g. netbox_custom_objects Table*Models).
 
 Import dependency:
-    registry.py  ←  _helpers.py  ←  relations.py
+    registry.py  ←  edge_sources.py  ←  relations.py
 """
 
 from __future__ import annotations
 
 from django.contrib.contenttypes.models import ContentType
 
+from .all_edges import compose_all_edges
 from .registry import (
     AnalyzerEdge,
-    AnalyzerRegistry,
     AnalyzerNode,
     node_from_object,
     registry,
 )
-from ._helpers import (
-    nsm_link_edges,
-    rule_object_item_edges,
-    group_m2m_edges,
-    addr_fk_edges,
-    inherited_nsm_link_edges,
-    _MAX,
-)
-
-# ── Shared host helpers ─────────────────────────────────────────────────────
-
-
-def _host_edges(obj, *, iface_model, iface_fk: str) -> list[AnalyzerEdge]:
-    """Common edges for Device and VirtualMachine."""
-    edges = []
-
-    for iface in iface_model.objects.filter(**{iface_fk: obj})[:_MAX]:
-        edges.append(
-            AnalyzerEdge("Interface", "has_interface", node_from_object(iface))
-        )
-
-    for attr, label, edge_type in (
-        ("primary_ip4", "Primary IPv4", "primary_ip4"),
-        ("primary_ip6", "Primary IPv6", "primary_ip6"),
-        ("site", "Site", "in_site"),
-        ("tenant", "Tenant", "in_tenant"),
-    ):
-        val = getattr(obj, attr, None)
-        if val:
-            edges.append(AnalyzerEdge(label, edge_type, node_from_object(val)))
-
-    # Bidirectional ObjectLinks (Security Panel parity: zones, labels, prefixes, etc.)
-    ct = ContentType.objects.get_for_model(obj)
-    edges.extend(nsm_link_edges(obj, ct))
-
-    # Rules that reference this host (one edge per rule)
-    edges.extend(rule_object_item_edges(obj, ct))
-
-    return edges
-
-
-def _iface_edges(iface, *, parent_attr: str, parent_label: str) -> list[AnalyzerEdge]:
-    """Common edges for dcim.Interface and virtualization.VMInterface."""
-    from ipam.models import IPAddress
-
-    edges = []
-    parent = getattr(iface, parent_attr, None)
-    if parent:
-        edges.append(AnalyzerEdge(parent_label, "belongs_to", node_from_object(parent)))
-
-    iface_ct = ContentType.objects.get_for_model(iface)
-    for ip in IPAddress.objects.filter(
-        assigned_object_type=iface_ct, assigned_object_id=iface.pk
-    )[:_MAX]:
-        edges.append(AnalyzerEdge("IP", "has_ip", node_from_object(ip)))
-
-    vlan = getattr(iface, "untagged_vlan", None)
-    if vlan:
-        edges.append(AnalyzerEdge("Untagged VLAN", "in_vlan", node_from_object(vlan)))
-
-    return edges
-
-
 # ── Device ──────────────────────────────────────────────────────────────────
 from dcim.models import Device, Interface  # noqa: E402
 
 
 @registry.register(Device)
 def _device(device):
-    return _host_edges(device, iface_model=Interface, iface_fk="device")
+    return compose_all_edges(device)
 
 
 # ── VirtualMachine ───────────────────────────────────────────────────────────
@@ -98,19 +35,19 @@ from virtualization.models import VirtualMachine, VMInterface  # noqa: E402
 
 @registry.register(VirtualMachine)
 def _vm(vm):
-    return _host_edges(vm, iface_model=VMInterface, iface_fk="virtual_machine")
+    return compose_all_edges(vm)
 
 
 # ── Interface (dcim) ────────────────────────────────────────────────────────
 @registry.register(Interface)
 def _interface(iface):
-    return _iface_edges(iface, parent_attr="device", parent_label="Device")
+    return compose_all_edges(iface)
 
 
 # ── VMInterface ─────────────────────────────────────────────────────────────
 @registry.register(VMInterface)
 def _vminterface(iface):
-    return _iface_edges(iface, parent_attr="virtual_machine", parent_label="VM")
+    return compose_all_edges(iface)
 
 
 # ── IPAddress ───────────────────────────────────────────────────────────────
@@ -119,110 +56,68 @@ from ipam.models import IPAddress, Prefix  # noqa: E402
 
 @registry.register(IPAddress)
 def _ipaddress(ip):
-    edges = []
+    extras: list[AnalyzerEdge] = []
 
     if ip.assigned_object:
-        edges.append(
+        extras.append(
             AnalyzerEdge(
                 "Assigned to", "assigned_to", node_from_object(ip.assigned_object)
             )
         )
-    if ip.vrf:
-        edges.append(AnalyzerEdge("VRF", "in_vrf", node_from_object(ip.vrf)))
 
-    # Most-specific containing prefix (direct parent)
     try:
         ip_str = str(ip.address).split("/")[0]
         matches = list(Prefix.objects.filter(prefix__net_contains=ip_str)[:10])
         matches.sort(key=lambda p: p.prefix.prefixlen, reverse=True)
         if matches:
-            edges.append(
+            extras.append(
                 AnalyzerEdge("Subnet", "in_prefix", node_from_object(matches[0]))
             )
     except Exception:
         pass
 
-    ct = ContentType.objects.get_for_model(ip)
-    edges.extend(rule_object_item_edges(ip, ct))
-    edges.extend(nsm_link_edges(ip, ct))
-    edges.extend(addr_fk_edges(ip))
-    edges.extend(inherited_nsm_link_edges(ip))
-    return edges
+    return compose_all_edges(ip, extras=extras)
 
 
 # ── Prefix ──────────────────────────────────────────────────────────────────
 @registry.register(Prefix)
 def _prefix(pfx):
-    edges = []
+    extras: list[AnalyzerEdge] = []
 
-    for ip in IPAddress.objects.filter(address__net_contained_or_equal=str(pfx.prefix))[
-        :_MAX
-    ]:
-        edges.append(AnalyzerEdge("IP", "contains_ip", node_from_object(ip)))
+    for ip in IPAddress.objects.filter(address__net_contained_or_equal=str(pfx.prefix)):
+        extras.append(AnalyzerEdge("IP", "contains_ip", node_from_object(ip)))
 
-    for attr, label, edge_type in (
-        ("vrf", "VRF", "in_vrf"),
-        ("_site", "Site", "in_site"),
-        ("tenant", "Tenant", "in_tenant"),
-        ("vlan", "VLAN", "in_vlan"),
-    ):
-        val = getattr(pfx, attr, None)
-        if val:
-            edges.append(AnalyzerEdge(label, edge_type, node_from_object(val)))
-
-    ct = ContentType.objects.get_for_model(pfx)
-    edges.extend(rule_object_item_edges(pfx, ct))
-    edges.extend(nsm_link_edges(pfx, ct))
-    edges.extend(addr_fk_edges(pfx))
-    edges.extend(inherited_nsm_link_edges(pfx))
-    return edges
+    return compose_all_edges(pfx, extras=extras)
 
 
 # ── Generic fallback (netbox_custom_objects + any unregistered model) ────────
 
 
 def _generic_fallback(obj) -> list[AnalyzerEdge]:
-    """Resolver for netbox_custom_objects Table*Models and any other unregistered type.
-
-    Traverses:
-    - Forward FK fields
-    - Forward M2M fields (excluding tags)
-    - group M2M members + reverse parent groups (Security Panel)
-    - Reverse through-table M2M (netbox_custom_objects only)
-    - Bidirectional ObjectLink
-    - COT rulebook references (Security Panel scan)
-    """
+    """Resolver for netbox_custom_objects Table*Models and any other unregistered type."""
     from netbox_nsm.security.panel import scan_cot_security_references
 
     ct = ContentType.objects.get_for_model(obj)
-    edges = []
+    extras: list[AnalyzerEdge] = []
 
-    # Forward FK fields
-    for f in obj._meta.fields:
-        if type(f).__name__ == "ForeignKey":
-            related = getattr(obj, f.name, None)
-            if related is not None:
-                label = str(f.verbose_name).title() if f.verbose_name else f.name
-                edges.append(AnalyzerEdge(label, f.name, node_from_object(related)))
-
-    # Forward M2M fields (skip group — handled by group_m2m_edges below)
-    for f in obj._meta.many_to_many:
-        if f.name in ("tags", "group"):
+    seen_rb: dict = {}
+    for match in scan_cot_security_references(ct, obj.pk):
+        rb = match.get("rulebook")
+        if rb is None:
             continue
-        label = str(f.verbose_name).title() if f.verbose_name else f.name
-        for rel in getattr(obj, f.name).all()[:25]:
-            edges.append(AnalyzerEdge(label, f.name, node_from_object(rel)))
+        key = getattr(rb, "slug", None) or getattr(rb, "pk", None)
+        if key is not None and key not in seen_rb:
+            seen_rb[key] = rb
+    for rb in seen_rb.values():
+        extras.append(AnalyzerEdge("Rulebook", "in_rulebook", node_from_object(rb)))
 
-    # group M2M: members (forward) + parent groups (reverse) — Security Panel parity
-    edges.extend(group_m2m_edges(obj))
+    edges = compose_all_edges(obj, extras=extras)
 
-    # Reverse through-table M2M (netbox_custom_objects):
-    # The reverse M2M accessor has related_name='+' (not navigable via Python
-    # attribute), so we query through-tables directly to find groups that
-    # contain this object as a target.
+    # Reverse through-table M2M (netbox_custom_objects only)
     if obj._meta.app_label == "netbox_custom_objects":
         from django.apps import apps
 
+        seen: set[tuple[str, str]] = {(e.edge_label, e.node.id) for e in edges}
         for m in apps.get_app_config("netbox_custom_objects").get_models():
             if "through" not in m.__name__.lower():
                 continue
@@ -234,26 +129,14 @@ def _generic_fallback(obj) -> list[AnalyzerEdge]:
             if tgt_fk.related_model is not type(obj):
                 continue
             lbl = str(src_fk.related_model._meta.verbose_name).title()
-            for row in m.objects.filter(target_id=obj.pk).select_related("source")[
-                :_MAX
-            ]:
+            for row in m.objects.filter(target_id=obj.pk).select_related("source"):
+                key = (lbl, f"{ContentType.objects.get_for_model(row.source).pk}:{row.source.pk}")
+                if key in seen:
+                    continue
+                seen.add(key)
                 edges.append(
                     AnalyzerEdge(lbl, "member_of", node_from_object(row.source))
                 )
-
-    # Bidirectional ObjectLink
-    edges.extend(nsm_link_edges(obj, ct))
-
-    seen_rb: dict = {}
-    for match in scan_cot_security_references(ct, obj.pk):
-        rb = match.get("rulebook")
-        if rb is None:
-            continue
-        key = getattr(rb, "slug", None) or getattr(rb, "pk", None)
-        if key is not None and key not in seen_rb:
-            seen_rb[key] = rb
-    for rb in seen_rb.values():
-        edges.append(AnalyzerEdge("Rulebook", "in_rulebook", node_from_object(rb)))
 
     return edges
 

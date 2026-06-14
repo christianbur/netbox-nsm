@@ -9,7 +9,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.shortcuts import render
 from django.views import View
 
-from netbox_nsm.analysis.addr_analysis_utils import _parse_ipa_column_selections
+from netbox_nsm.analysis.addr_analysis_utils import parse_ipa_column_selections
 from netbox_nsm.core.api_urls import get_api_url_for_content_type as _get_api_url_for_content_type
 from netbox_nsm.objects.nsm_config import build_nsm_config_lookup
 
@@ -51,8 +51,8 @@ class IPAnalysisView(LoginRequiredMixin, View):
                 }
             )
 
-        ip_selections, ip_addr_columns = _parse_ipa_column_selections(request, "")
-        ip2_selections, ip2_addr_columns = _parse_ipa_column_selections(request, "2")
+        ip_selections, ip_addr_columns = parse_ipa_column_selections(request, "")
+        ip2_selections, ip2_addr_columns = parse_ipa_column_selections(request, "2")
 
         return render(
             request,

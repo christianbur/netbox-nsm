@@ -7,7 +7,6 @@ from django.test import SimpleTestCase
 
 from netbox_nsm.analysis.addr_analysis_utils import (
     _attach_addr_node_prefix_display,
-    _build_addr_tree_node,
 )
 
 _PLUGIN_ROOT = Path(__file__).resolve().parents[1]
@@ -29,7 +28,13 @@ class AddrTreePrefixDisplayTests(SimpleTestCase):
         prefix.__str__ = lambda self: "172.16.0.0/12"
         prefix.get_absolute_url.return_value = "/ipam/prefixes/2/"
 
-        node = _build_addr_tree_node(prefix)
+        node = {"name": "172.16.0.0/12", "kind": "leaf", "children": []}
+        ip_ref = {
+            "str": "172.16.0.0/12",
+            "url": "/ipam/prefixes/2/",
+            "type": "Prefix",
+        }
+        _attach_addr_node_prefix_display(node, ip_ref=ip_ref)
         self.assertEqual(node["prefix_display_cidr"], "172.16.0.0/12")
         self.assertEqual(node["prefix_display_netmask"], "172.16.0.0/255.240.0.0")
 
@@ -55,17 +60,13 @@ class AddrTreePrefixDisplayTests(SimpleTestCase):
         self.assertEqual(node["prefix_display_netmask"], "10.246.2.1/255.255.255.255")
 
     def test_display_labels_for_ipam_ipaddress_object(self):
-        ip = MagicMock()
-        ip._meta.app_label = "ipam"
-        ip._meta.model_name = "ipaddress"
-        ip.address = "10.246.2.1/32"
-        ip.prefix = None
-        ip.ip_address = None
-        ip.range = None
-        ip.__str__ = lambda self: "10.246.2.1/32"
-        ip.get_absolute_url.return_value = "/ipam/ip-addresses/2/"
-
-        node = _build_addr_tree_node(ip)
+        node = {"name": "10.246.2.1/32", "kind": "leaf", "children": []}
+        ip_ref = {
+            "str": "10.246.2.1/32",
+            "url": "/ipam/ip-addresses/2/",
+            "type": "IP Address",
+        }
+        _attach_addr_node_prefix_display(node, ip_ref=ip_ref)
         self.assertEqual(node["prefix_display_cidr"], "10.246.2.1/32")
         self.assertEqual(node["prefix_display_netmask"], "10.246.2.1/255.255.255.255")
 
@@ -80,21 +81,32 @@ class AddrTreePrefixDisplayTests(SimpleTestCase):
         self.assertNotIn("prefix_display_cidr", node)
 
 
-class AddrCopyPrefixFormatTests(SimpleTestCase):
-    """Copy buttons should respect the active CIDR/Mask toggle."""
+class AddrPrefixFormatTests(SimpleTestCase):
+    """CIDR/Mask toggle assets; CSV copy buttons removed in favor of YAML export."""
 
-    def test_copy_assets_apply_prefix_format_on_copy(self):
+    def test_prefix_format_assets_expose_toggle_without_copy_buttons(self):
         assets = (
             _PLUGIN_ROOT / "templates/netbox_nsm/inc/addr_analysis_assets.html"
         ).read_text(encoding="utf-8")
-        self.assertIn("window.nsmFormatAddrCopyLines", assets)
-        self.assertIn("applyPrefixFormatToCopyLines", assets)
-        self.assertIn("buildPrefixFormatMap", assets)
-        self.assertIn("nsm-addr-prefix-format", assets)
-        self.assertIn("window.nsmFormatAddrCopyLines(text, btn)", assets)
-        self.assertIn("btn.closest('.nsm-addr-top')", assets)
+        panel = (
+            _PLUGIN_ROOT / "templates/netbox_nsm/inc/addr_analysis_panel.html"
+        ).read_text(encoding="utf-8")
+        tree = (
+            _PLUGIN_ROOT / "templates/netbox_nsm/inc/addr_tree_node.html"
+        ).read_text(encoding="utf-8")
+        self.assertIn("netmaskLabelForCidr", assets)
+        self.assertIn("toggleScopeFromGroup", assets)
+        self.assertIn("prefixNetmaskLabel", assets)
         self.assertIn("runLazyCategoryLoad", assets)
         self.assertIn("nsm-addr-lazy-progress", assets)
+        self.assertIn("var currentFormat = 'cidr'", assets)
+        self.assertNotIn("localStorage", assets)
+        self.assertNotIn("nsmCopyPaths", assets)
+        self.assertNotIn("nsmFormatAddrCopyLines", assets)
+        self.assertNotIn("Copy CSV paths", panel)
+        self.assertNotIn("mdi-content-copy", panel)
+        self.assertNotIn("Copy CSV paths", tree)
+        self.assertNotIn("mdi-content-copy", tree)
 
     def test_lazy_load_button_exposes_progress_metadata(self):
         template = (

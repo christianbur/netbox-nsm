@@ -1,0 +1,26 @@
+{% extends 'generic/object_edit.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Assign Rulebook" %}{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-8">
+    <div class="card">
+      <h5 class="card-header">{% trans "Assign Rulebook" %}</h5>
+      <div class="card-body">
+        <p class="text-muted">{% blocktrans with obj=object %}Assign a deployed rulebook to {{ obj }}.{% endblocktrans %}</p>
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="ct_id" value="{{ content_type.pk }}">
+          <input type="hidden" name="obj_id" value="{{ object.pk }}">
+          <input type="hidden" name="return_url" value="{{ return_url }}">
+          {{ form.as_p }}
+          <button type="submit" class="btn btn-primary">{% trans "Assign" %}</button>
+          <a href="{{ return_url }}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,17 +1,11 @@
+from netbox.filtersets import NetBoxModelFilterSet
 import django_filters
 from django.db.models import Q
 from django_filters import FilterSet
 
-from netbox.filtersets import NetBoxModelFilterSet
-from utilities.filtersets import register_filterset
-
-from netbox_nsm.models import TypeConfig
 from netbox_nsm.objects.object_link_service import get_object_link_model
 
-__all__ = (
-    "ObjectLinkFilterSet",
-    "TypeConfigFilterSet",
-)
+__all__ = ("ObjectLinkFilterSet",)
 
 
 class ObjectLinkFilterSet(FilterSet):
@@ -55,19 +49,4 @@ class ObjectLinkFilterSet(FilterSet):
             return queryset
         return queryset.filter(
             Q(comment__icontains=value) | Q(name__icontains=value)
-        )
-
-
-@register_filterset
-class TypeConfigFilterSet(NetBoxModelFilterSet):
-    class Meta:
-        model = TypeConfig
-        fields = ("id",)
-
-    def search(self, queryset, name, value):
-        if not value.strip():
-            return queryset
-        return queryset.filter(
-            Q(content_type__app_label__icontains=value)
-            | Q(content_type__model__icontains=value)
         )

@@ -1,0 +1,9 @@
+{% load i18n %}
+{% comment %}
+Human-readable NSM object type for IPA cell-tree pills (not IPAM drilldown).
+{% endcomment %}
+{% if node.node_role == "nsm_group" or "dm-grp-" in node.name %}
+<span class="text-muted small nsm-ipa-cell-type">{% trans "Group" %}</span>
+{% else %}
+<span class="text-muted small nsm-ipa-cell-type">{% trans "Address" %}</span>
+{% endif %}

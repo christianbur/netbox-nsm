@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from django.contrib.contenttypes.models import ContentType
-from django.db.models import prefetch_related_objects
 
 from netbox_nsm.core.display_utils import (
     get_display_template_map,
@@ -32,8 +31,6 @@ def build_object_link_rows(obj, return_url: str | None) -> list[dict]:
 
     rows: list[dict] = []
     link_pairs = list(iter_links_for_object(obj))
-    instances = [link.instance for link, _ in link_pairs if link.instance is not None]
-    prefetch_related_objects(instances, "netbox_object", "policy_object")
 
     for link, direction in link_pairs:
         linked = link.policy_object if direction == "fwd" else link.netbox_object

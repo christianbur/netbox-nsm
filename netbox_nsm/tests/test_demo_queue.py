@@ -6,7 +6,7 @@ from django.test import RequestFactory, SimpleTestCase
 
 from netbox_nsm.views.setup import demo
 
-SCALE_IMPORT = "netbox_nsm.demos.scale_test.create_scale_test_demo"
+DEMO_IMPORT = "netbox_nsm.demos.addresses_million_scale.create_addresses_million_scale"
 
 
 class DemoQueueTests(SimpleTestCase):
@@ -20,9 +20,9 @@ class DemoQueueTests(SimpleTestCase):
     ):
         ok = demo._queue_demo_import(
             self.request,
-            import_path=SCALE_IMPORT,
-            label="Scale test",
-            rulebook_name="Demo - Scale Test",
+            import_path=DEMO_IMPORT,
+            label="Addresses bench",
+            rulebook_name="Demo - Addresses",
         )
         self.assertFalse(ok)
         mock_messages.error.assert_called_once()
@@ -38,9 +38,9 @@ class DemoQueueTests(SimpleTestCase):
         mock_pending.return_value = pending
         ok = demo._queue_demo_import(
             self.request,
-            import_path=SCALE_IMPORT,
-            label="Scale test",
-            rulebook_name="Demo - Scale Test",
+            import_path=DEMO_IMPORT,
+            label="Addresses bench",
+            rulebook_name="Demo - Addresses",
         )
         self.assertTrue(ok)
         mock_messages.info.assert_called_once()
@@ -64,9 +64,9 @@ class DemoQueueTests(SimpleTestCase):
 
         ok = demo._queue_demo_import(
             self.request,
-            import_path=SCALE_IMPORT,
-            label="Scale test",
-            rulebook_name="Demo - Scale Test",
+            import_path=DEMO_IMPORT,
+            label="Addresses bench",
+            rulebook_name="Demo - Addresses",
         )
         self.assertTrue(ok)
         mock_messages.success.assert_called_once()

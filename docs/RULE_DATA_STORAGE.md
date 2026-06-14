@@ -222,4 +222,4 @@ schema provides it); object references remain in the underlying `multiobject` fi
 
 - [DATABASE.md](DATABASE.md) — native NSM tables, removed legacy tables, migrations
 - [ARCHITECTURE.md](../ARCHITECTURE.md) — developer model reference
-- [Using netbox-nsm — Rules grid](using_netbox_nsm.md#rules-grid) — operator UI guide
+- [Using netbox-nsm](using_netbox_nsm.md) — operator guide (rulebooks, panel)

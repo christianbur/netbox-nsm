@@ -1,12 +1,12 @@
 """Tests for Assign Link element picker API (ObjectTypeElementsApiView)."""
 
 import json
+from unittest.mock import patch
 
 from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
 from ipam.models import Prefix
 
-from netbox_nsm.models import TypeConfig
 from utilities.testing import TestCase
 
 
@@ -25,18 +25,14 @@ class ObjectTypeElementsApiViewTests(TestCase):
         cls.prefix_a = _prefix("10.60.0.0/24")
         cls.prefix_b = _prefix("10.60.1.0/24")
         cls.prefix_ct = ContentType.objects.get_for_model(Prefix)
-        cls.type_config = TypeConfig.objects.create(
-            name="Picker Prefix Zones",
-            content_type=cls.prefix_ct,
-            display_template="{prefix}",
-        )
 
     def _api_url(self, **params):
         base = reverse("plugins:netbox_nsm:object_type_elements_api")
         query = "&".join(f"{k}={v}" for k, v in params.items())
         return f"{base}?{query}" if query else base
 
-    def test_empty_query_returns_first_page(self):
+    @patch("netbox_nsm.views.object_link.is_panel_linkable_content_type", return_value=True)
+    def test_empty_query_returns_first_page(self, _panel_linkable):
         url = self._api_url(ct_id=self.prefix_ct.pk, q="")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200, response.content)
@@ -48,7 +44,8 @@ class ObjectTypeElementsApiViewTests(TestCase):
         self.assertIn(self.prefix_a.pk, ids)
         self.assertIn(self.prefix_b.pk, ids)
 
-    def test_single_char_query_not_rejected(self):
+    @patch("netbox_nsm.views.object_link.is_panel_linkable_content_type", return_value=True)
+    def test_single_char_query_not_rejected(self, _panel_linkable):
         url = self._api_url(ct_id=self.prefix_ct.pk, q="1")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200, response.content)

@@ -1,7 +1,6 @@
 from django.urls import include, path
 from django.views.generic import RedirectView
 
-from netbox_nsm.views.object_sync import ObjectSyncView
 from utilities.urls import get_model_urls
 
 from netbox_nsm.analyzer.api_view import AnalyzerAPIView
@@ -19,6 +18,11 @@ from .views.nsm_objects import (
     NsmCustomObjectView,
 )
 from .views.plugin_static import PluginAssetView
+from .views.rulebook_link import RulebookLinkAssignView, RulebookLinkDeleteView
+from .views.enforcement_point_link import (
+    EnforcementPointInterfaceAssignView,
+    EnforcementPointLinkDeleteView,
+)
 from netbox_nsm.rulebooks.views.list import RulebookListView
 
 app_name = "netbox_nsm"
@@ -45,11 +49,10 @@ urlpatterns = [
         SyncTypeConfigsView.as_view(),
         name="typeconfigs_sync",
     ),
-    path("object-sync/", ObjectSyncView.as_view(), name="object_sync"),
     path(
         "object-builder/",
         RedirectView.as_view(
-            pattern_name="plugins:netbox_nsm:object_sync",
+            pattern_name="plugins:netbox_nsm:objectconfig_list",
             permanent=True,
         ),
         name="object_builder",
@@ -200,6 +203,11 @@ urlpatterns = [
         name="cot_rulebook_bulk_assign",
     ),
     path(
+        "rulebooks/cot/<slug:slug>/enforcement-point/assign/",
+        EnforcementPointInterfaceAssignView.as_view(),
+        name="enforcement_point_link_assign",
+    ),
+    path(
         "rulebooks/cot/<slug:slug>/rules/",
         CotRulebookRulesView.as_view(),
         name="cot_rulebook_rules",
@@ -213,16 +221,6 @@ urlpatterns = [
         "rulebooks/cot/<slug:slug>/changelog/",
         CotRulebookChangelogView.as_view(),
         name="cot_rulebook_changelog",
-    ),
-    path(
-        "rulebook-assignments/",
-        include(
-            get_model_urls("netbox_nsm", "cotrulebookassignment", detail=False)
-        ),
-    ),
-    path(
-        "rulebook-assignments/<int:pk>/",
-        include(get_model_urls("netbox_nsm", "cotrulebookassignment")),
     ),
     path(
         "rules/search/",
@@ -276,6 +274,21 @@ urlpatterns = [
         "object-link/<int:pk>/delete/",
         ObjectLinkDeleteView.as_view(),
         name="object_link_delete",
+    ),
+    path(
+        "rulebook-link/assign/",
+        RulebookLinkAssignView.as_view(),
+        name="rulebook_link_assign",
+    ),
+    path(
+        "rulebook-link/<int:pk>/delete/",
+        RulebookLinkDeleteView.as_view(),
+        name="rulebook_link_delete",
+    ),
+    path(
+        "enforcement-point-link/<int:pk>/delete/",
+        EnforcementPointLinkDeleteView.as_view(),
+        name="enforcement_point_link_delete",
     ),
     path(
         "panel-link/address-ipam-fk/<slug:slug>/clear/",

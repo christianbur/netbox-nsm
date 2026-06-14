@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 from django.test import RequestFactory, SimpleTestCase
 from django.urls import reverse
 
+from netbox_nsm.tests.rulebook_permission_helpers import grant_rulebook_cot_perms
 from utilities.testing import TestCase
 
 from netbox_nsm.matrix.cot_matrix_tab_context import (
@@ -102,11 +103,19 @@ class CotVirtualRulebookTabsTests(TestCase):
         )
 
     def setUp(self):
-        self.request = RequestFactory().get("/")
-        self.request.user = SimpleNamespace(
-            has_perm=lambda perm: perm
-            in ("netbox_nsm.view_rulebook", "core.view_objectchange")
+        super().setUp()
+        grant_rulebook_cot_perms(self, self.cot, view=True)
+        self._can_view_patcher = patch(
+            "netbox_nsm.rulebooks.virtual_cot_tabs.can_view_rulebook",
+            return_value=True,
         )
+        self._can_view_patcher.start()
+        self.request = RequestFactory().get("/")
+        self.request.user = self.user
+
+    def tearDown(self):
+        self._can_view_patcher.stop()
+        super().tearDown()
 
     def test_matrix_tab_present_for_zone_rulebook(self):
         cot = _cot_with_fields("source_zones", "destination_zones")
@@ -137,6 +146,7 @@ class CotVirtualRulebookTabsTests(TestCase):
         self.assertNotIn("matrix", [tab["key"] for tab in tabs])
 
     def test_changelog_tab_present_after_matrix(self):
+        self.add_permissions("core.view_objectchange")
         cot = _cot_with_fields("source_zones", "destination_zones")
         virtual = VirtualCotRulebook(cot, rule_count=2)
         tabs = build_virtual_cot_rulebook_tabs(self.request, virtual)
@@ -154,9 +164,7 @@ class CotVirtualRulebookTabsTests(TestCase):
 
     def test_changelog_tab_hidden_without_permission(self):
         request = RequestFactory().get("/")
-        request.user = SimpleNamespace(
-            has_perm=lambda perm: perm == "netbox_nsm.view_rulebook"
-        )
+        request.user = self.user
         cot = _cot_with_fields("source_zones", "destination_zones")
         virtual = VirtualCotRulebook(cot, rule_count=1)
         tabs = build_virtual_cot_rulebook_tabs(request, virtual)

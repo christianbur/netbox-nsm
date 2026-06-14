@@ -2,7 +2,7 @@
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.rulebooks.grid_payload import (
+from netbox_nsm.rulebooks.grid import (
     apply_ag_grid_row_filter,
     build_ag_grid_filter_model_from_query_text,
     build_column_quick_filter_spec,

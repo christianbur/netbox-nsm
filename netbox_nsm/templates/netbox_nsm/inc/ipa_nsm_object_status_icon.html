@@ -1,0 +1,6 @@
+{% load i18n %}
+{% if status == "deprecated" %}
+<i class="mdi mdi-information-outline nsm-object-status-icon nsm-object-status-icon--deprecated nsm-ipa-cell-pill-status-icon" title="{% trans 'This object is deprecated.' %}" aria-label="{% trans 'This object is deprecated.' %}"></i>
+{% elif status == "reserved" %}
+<i class="mdi mdi-information-outline nsm-object-status-icon nsm-object-status-icon--reserved nsm-ipa-cell-pill-status-icon" title="{% trans 'This object is reserved.' %}" aria-label="{% trans 'This object is reserved.' %}"></i>
+{% endif %}

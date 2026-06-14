@@ -33,10 +33,10 @@ class CotRulesTabFastPathTests(SimpleTestCase):
             "header_groups": [],
         }
 
-    @patch("netbox_nsm.rulebooks.rules_tab.prefetch_cot_multiobject_fields")
-    @patch("netbox_nsm.rulebooks.rules_tab.cot_multiobject_prefetch_plan")
-    @patch("netbox_nsm.rulebooks.rules_tab.build_cot_grouped_rules_table_data")
-    @patch("netbox_nsm.rulebooks.rules_tab.cot_rule_instances_queryset")
+    @patch("netbox_nsm.rulebooks.rules_tab.context.prefetch_cot_multiobject_fields")
+    @patch("netbox_nsm.rulebooks.rules_tab.context.cot_multiobject_prefetch_plan")
+    @patch("netbox_nsm.rulebooks.rules_tab.context.build_cot_grouped_rules_table_data")
+    @patch("netbox_nsm.rulebooks.rules_tab.context.cot_rule_instances_queryset")
     def test_unfiltered_system_sort_uses_queryset_pagination(
         self, mock_qs_fn, mock_build_rows, mock_prefetch_plan, mock_m2m_prefetch
     ):
@@ -58,7 +58,7 @@ class CotRulesTabFastPathTests(SimpleTestCase):
         mock_build_rows.return_value = {"rows": [{"pk": 99}]}
 
         with patch(
-            "netbox_nsm.rulebooks.rules_tab.EnhancedPaginator",
+            "netbox_nsm.rulebooks.rules_tab.context.EnhancedPaginator",
             return_value=paginator,
         ) as mock_paginator_cls:
             rows, paginator_out, page_out = _cot_rules_page(
@@ -84,10 +84,10 @@ class CotRulesTabFastPathTests(SimpleTestCase):
         self.assertIs(paginator_out, paginator)
         self.assertIs(page_out, page_obj)
 
-    @patch("netbox_nsm.rulebooks.rules_tab.prefetch_cot_multiobject_fields")
-    @patch("netbox_nsm.rulebooks.rules_tab.cot_multiobject_prefetch_plan")
-    @patch("netbox_nsm.rulebooks.rules_tab.build_cot_grouped_rules_table_data")
-    @patch("netbox_nsm.rulebooks.rules_tab.cot_rule_instances_queryset")
+    @patch("netbox_nsm.rulebooks.rules_tab.context.prefetch_cot_multiobject_fields")
+    @patch("netbox_nsm.rulebooks.rules_tab.context.cot_multiobject_prefetch_plan")
+    @patch("netbox_nsm.rulebooks.rules_tab.context.build_cot_grouped_rules_table_data")
+    @patch("netbox_nsm.rulebooks.rules_tab.context.cot_rule_instances_queryset")
     def test_system_field_filter_uses_db_queryset(
         self, mock_qs_fn, mock_build_rows, mock_prefetch_plan, mock_m2m_prefetch
     ):
@@ -112,7 +112,7 @@ class CotRulesTabFastPathTests(SimpleTestCase):
         mock_build_rows.return_value = {"rows": [{"pk": 7}]}
 
         with patch(
-            "netbox_nsm.rulebooks.rules_tab.EnhancedPaginator",
+            "netbox_nsm.rulebooks.rules_tab.context.EnhancedPaginator",
             return_value=paginator,
         ) as mock_paginator_cls:
             _cot_rules_page(
@@ -139,10 +139,10 @@ class CotRulesTabFastPathTests(SimpleTestCase):
             [page_instance], virtual_rb, layout=layout
         )
 
-    @patch("netbox_nsm.rulebooks.rules_tab.prefetch_cot_multiobject_fields")
-    @patch("netbox_nsm.rulebooks.rules_tab.cot_multiobject_prefetch_plan")
-    @patch("netbox_nsm.rulebooks.rules_tab.build_cot_grouped_rules_table_data")
-    @patch("netbox_nsm.rulebooks.rules_tab.cot_rule_instances_queryset")
+    @patch("netbox_nsm.rulebooks.rules_tab.context.prefetch_cot_multiobject_fields")
+    @patch("netbox_nsm.rulebooks.rules_tab.context.cot_multiobject_prefetch_plan")
+    @patch("netbox_nsm.rulebooks.rules_tab.context.build_cot_grouped_rules_table_data")
+    @patch("netbox_nsm.rulebooks.rules_tab.context.cot_rule_instances_queryset")
     def test_object_field_filter_still_loads_all_rows(
         self, mock_qs_fn, mock_build_rows, mock_prefetch_plan, mock_m2m_prefetch
     ):
@@ -154,7 +154,7 @@ class CotRulesTabFastPathTests(SimpleTestCase):
             "rows": [{"pk": 1, "cells_filter": {}}, {"pk": 2, "cells_filter": {}}]
         }
 
-        with patch("netbox_nsm.rulebooks.rules_tab.EnhancedPaginator") as mock_paginator_cls:
+        with patch("netbox_nsm.rulebooks.rules_tab.context.EnhancedPaginator") as mock_paginator_cls:
             paginator = MagicMock()
             page_obj = MagicMock()
             page_obj.object_list = [{"pk": 1}]

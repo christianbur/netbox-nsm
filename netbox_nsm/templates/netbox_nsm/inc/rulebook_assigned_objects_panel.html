@@ -134,7 +134,7 @@
       <div class="nsm-rb-assigned-host-body">
         {% if host.has_unlinked_interfaces and not host.linked_interface_count %}
         <div class="nsm-rb-assigned-iface-row nsm-rb-assigned-iface-filter-empty text-muted fst-italic">
-          {% trans "No linked interfaces. Enable “All interfaces” to assign links." %}
+          {% trans "No linked NSM objects. Enable “All interfaces” to assign enforcement points." %}
         </div>
         {% endif %}
         {% for iface in host.interfaces %}
@@ -178,8 +178,8 @@
             </span>
             {% empty %}
             <span class="text-muted"
-                  title="{% trans 'No zone or label links assigned' %}"
-                  aria-label="{% trans 'No zone or label links assigned' %}">
+                  title="{% trans 'No NSM object linked' %}"
+                  aria-label="{% trans 'No NSM object linked' %}">
               <i class="mdi mdi-link-off" aria-hidden="true"></i>
             </span>
             {% endfor %}
@@ -187,8 +187,8 @@
           {% if iface.assign_url and not rulebook_readonly %}
           <a href="{{ iface.assign_url }}"
              class="btn btn-sm btn-ghost-primary py-0 nsm-rb-assigned-edit-only"
-             title="{% trans 'Assign link' %}"
-             aria-label="{% trans 'Assign link' %}">
+             title="{% trans 'Assign NSM object' %}"
+             aria-label="{% trans 'Assign NSM object' %}">
             <i class="mdi mdi-plus-thick" aria-hidden="true"></i>
           </a>
           {% endif %}

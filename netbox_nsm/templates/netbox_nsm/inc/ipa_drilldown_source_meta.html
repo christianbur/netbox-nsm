@@ -1,0 +1,16 @@
+{% load i18n %}
+{% comment %}
+NSM object INFO for cell prefix/range rows (tenant + IPAM child counts).
+meta: { name, url, tenant_name, tenant_url, count_subnets, count_ranges, count_ips }
+{% endcomment %}
+<span class="nsm-ipa-drilldown-meta nsm-ipa-drilldown-meta--info">
+  <span class="nsm-ipa-drilldown-meta-info-type">{% trans "Info" %}</span>
+  <span class="nsm-ipa-drilldown-meta-info-body">
+    <a href="{{ meta.url }}" class="nsm-ipa-drilldown-meta-info-link" onclick="event.stopPropagation();">{{ meta.name }}</a>{% if meta.tenant_name %}<span class="nsm-ipa-drilldown-meta-info-sep"> · </span>{% if meta.tenant_url %}<a href="{{ meta.tenant_url }}" class="nsm-ipa-drilldown-meta-info-link nsm-ipa-drilldown-meta-info-link--tenant" onclick="event.stopPropagation();">{{ meta.tenant_name }}</a>{% else %}<span class="nsm-ipa-drilldown-meta-info-tenant">{{ meta.tenant_name }}</span>{% endif %}{% endif %}
+    <span class="nsm-ipa-drilldown-meta-info-stats">
+      <span class="nsm-ipa-drilldown-meta-info-stat" title="{% trans 'Child prefixes in IPAM' %}"><span class="nsm-ipa-drilldown-meta-info-stat-label">{% trans "Subnets" %}</span><span class="nsm-ipa-drilldown-meta-info-stat-val">{{ meta.count_subnets|default:0 }}</span></span>
+      <span class="nsm-ipa-drilldown-meta-info-stat" title="{% trans 'IP ranges in IPAM' %}"><span class="nsm-ipa-drilldown-meta-info-stat-label">{% trans "Ranges" %}</span><span class="nsm-ipa-drilldown-meta-info-stat-val">{{ meta.count_ranges|default:0 }}</span></span>
+      <span class="nsm-ipa-drilldown-meta-info-stat" title="{% trans 'Client IP addresses in IPAM' %}"><span class="nsm-ipa-drilldown-meta-info-stat-label">{% trans "Client IPs" %}</span><span class="nsm-ipa-drilldown-meta-info-stat-val">{{ meta.count_ips|default:0 }}</span></span>
+    </span>
+  </span>
+</span>

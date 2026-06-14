@@ -15,7 +15,8 @@
 .nsm-oa-input:focus { outline: 0; border-color: var(--bs-primary); box-shadow: 0 0 0 .15rem rgba(13,110,253,.2); }
 .nsm-oa-drop {
   position: absolute; left: 0; right: 0; top: 100%;
-  background: var(--bs-body-bg); border: 1px solid var(--bs-border-color);
+  background: var(--tblr-bg-surface, var(--bs-body-bg, #fff));
+  border: 1px solid var(--tblr-border-color, var(--bs-border-color));
   border-top: 0; border-radius: 0 0 .35rem .35rem;
   max-height: 18rem; overflow-y: auto; z-index: 400;
   box-shadow: 0 6px 16px rgba(0,0,0,.18);
@@ -23,10 +24,17 @@
 .nsm-oa-drop-item {
   padding: .32rem .8rem; cursor: pointer; font-size: .83rem;
   display: flex; align-items: baseline; gap: .4rem;
+  background: var(--tblr-bg-surface, var(--bs-body-bg, #fff));
 }
-.nsm-oa-drop-item:hover { background: var(--bs-primary-bg-subtle); }
-.nsm-oa-drop-type { font-size: .7rem; color: var(--bs-secondary-color); }
-.nsm-oa-drop-msg  { padding: .4rem .8rem; font-size: .8rem; color: var(--bs-secondary-color); }
+.nsm-oa-drop-item:hover {
+  background: var(--tblr-bg-surface-secondary, var(--bs-tertiary-bg, #f1f5f9));
+}
+.nsm-oa-drop-type { font-size: .7rem; color: var(--tblr-secondary-color, var(--bs-secondary-color)); }
+.nsm-oa-drop-msg {
+  padding: .4rem .8rem; font-size: .8rem;
+  color: var(--tblr-secondary-color, var(--bs-secondary-color));
+  background: var(--tblr-bg-surface, var(--bs-body-bg, #fff));
+}
 .nsm-oa-sel {
   display: inline-flex; align-items: center; gap: .4rem;
   background: var(--bs-primary-bg-subtle); border: 1px solid var(--bs-primary-border-subtle);
@@ -48,7 +56,65 @@
 .react-flow__controls-button { background: var(--bs-body-bg); border-color: var(--bs-border-color); color: var(--bs-body-color); }
 .react-flow__minimap { border: 1px solid var(--bs-border-color); border-radius: .35rem; overflow: hidden; }
 .react-flow__node.nsm-oa-node { overflow: visible; }
+.react-flow__edges { z-index: 1; }
+.react-flow__edge-path { stroke-width: 2; }
 .nsm-oa-toggle { touch-action: manipulation; }
+.nsm-oa-toggle-row { display: flex; gap: 4px; align-items: center; justify-content: center; }
+.nsm-oa-graph-wrap { position: relative; width: 100%; height: 100%; }
+.nsm-oa-link-picker-backdrop {
+  position: absolute; inset: 0; z-index: 30;
+  background: rgba(15, 23, 42, .45);
+  display: flex; align-items: center; justify-content: center;
+  padding: 1rem;
+}
+.nsm-oa-link-picker {
+  width: min(28rem, 100%);
+  max-height: min(32rem, 90%);
+  display: flex; flex-direction: column;
+  background: var(--tblr-bg-surface, var(--bs-body-bg, #fff));
+  border: 1px solid var(--tblr-border-color, var(--bs-border-color));
+  border-radius: .5rem;
+  box-shadow: 0 12px 32px rgba(0,0,0,.28);
+  overflow: hidden;
+}
+.nsm-oa-link-picker-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: .55rem .75rem;
+  border-bottom: 1px solid var(--tblr-border-color, var(--bs-border-color));
+  font-size: .85rem; font-weight: 600;
+}
+.nsm-oa-link-picker-body {
+  overflow-y: auto; padding: .35rem 0;
+  font-size: .8rem;
+}
+.nsm-oa-link-picker-row {
+  display: flex; align-items: center; gap: .45rem;
+  padding: .22rem .75rem;
+}
+.nsm-oa-link-picker-row:hover { background: var(--tblr-bg-surface-secondary, var(--bs-tertiary-bg, #f1f5f9)); }
+.nsm-oa-link-picker-row.depth-1 { padding-left: 1.35rem; }
+.nsm-oa-link-picker-row-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nsm-oa-link-picker-l2-count {
+  flex-shrink: 0;
+  font-size: .68rem;
+  font-weight: 600;
+  color: var(--tblr-secondary-color, var(--bs-secondary-color));
+  background: var(--tblr-bg-surface-secondary, var(--bs-tertiary-bg, #f1f5f9));
+  border-radius: 999px;
+  padding: .05rem .45rem;
+  line-height: 1.35;
+}
+.nsm-oa-link-picker-foot {
+  display: flex; justify-content: flex-end; gap: .4rem;
+  padding: .55rem .75rem;
+  border-top: 1px solid var(--tblr-border-color, var(--bs-border-color));
+}
 
 .nsm-oa-legend { font-size: .75rem; }
 .nsm-oa-legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; }
@@ -64,7 +130,7 @@
       <i class="mdi mdi-graph text-primary"></i>
       <strong>{% trans "Object Analyzer" %}</strong>
       <span class="text-muted small ms-1">
-        {% trans "Select object · click to expand · double-click to open" %}
+        {% trans "Select object · + opens link tree · View shows selection · edge ▾ hides" %}
       </span>
 
     </div>
@@ -153,9 +219,17 @@ window.NSM_OA_I18N = {
   noResults: "{% trans 'No results'|escapejs %}",
   collapse: "{% trans 'Collapse'|escapejs %}",
   expand: "{% trans 'Expand'|escapejs %}",
+  collapseAll: "{% trans 'Collapse all'|escapejs %}",
   openObject: "{% trans 'Open object'|escapejs %}",
   removeNode: "{% trans 'Remove node'|escapejs %}",
   errorPrefix: "{% trans 'Error:'|escapejs %}",
+  allOption: "{% trans '-- all --'|escapejs %}",
+  viewLinks: "{% trans 'View'|escapejs %}",
+  linkPickerTitle: "{% trans 'Select links'|escapejs %}",
+  cancel: "{% trans 'Cancel'|escapejs %}",
+  loadingLinks: "{% trans 'Loading links…'|escapejs %}",
+  cloudLinks: "{% trans 'links'|escapejs %}",
+  secondaryLinks: "{% trans 'Secondary links'|escapejs %}",
   typePlural: {
     device: "{% trans 'Devices'|escapejs %}",
     vm: "{% trans 'VMs'|escapejs %}",
@@ -214,7 +288,10 @@ const NS = {
   site:     { icon: '📍',  color: '#0369a1', bg: '#eff6ff' },
   tenant:   { icon: '🏢',  color: '#15803d', bg: '#f0fdf4' },
   object:   { icon: '◆',   color: '#64748b', bg: '#f8fafc' },
+  cloud:    { icon: '☁',   color: '#94a3b8', bg: '#f8fafc' },
 };
+
+const L2_CLOUD_THRESHOLD = 3;
 
 /* ─────────── Edge factory ────────────────────────────────────── */
 function mkEdge(id, source, target, label) {
@@ -228,11 +305,18 @@ function mkEdge(id, source, target, label) {
 /* shared graph callbacks — set by App, used by NsmNode / NsmEdge */
 const _graphCb = {};
 
+function branchTargetId(parentId, label, count) {
+  const slug = label.replace(/[^a-zA-Z0-9_-]/g, '_');
+  return count === 1 ? null : `grp:${parentId}:${slug}`;
+}
+
 function rebuildGroupData(grpId, apiChildrenCache) {
-  const m = grpId.match(/^grp:([^:]+):(.+)$/);
-  if (!m) return null;
-  const parentId = m[1];
-  const slug = m[2];
+  if (!grpId.startsWith('grp:')) return null;
+  const rest = grpId.slice(4);
+  const sep = rest.lastIndexOf(':');
+  if (sep < 0) return null;
+  const parentId = rest.slice(0, sep);
+  const slug = rest.slice(sep + 1);
   const cached = apiChildrenCache[parentId];
   if (!cached) return null;
   const byLabel = {};
@@ -286,7 +370,11 @@ const TYPE_PLURAL = {
   object: oaTypePlural('object', 'Objects'),
 };
 /* ─────────── Layout helper ──────────────────────────────────── */
-const HGAP = 230, VGAP = 160;
+const NODE_W = 250, NODE_H = 220;
+const HGAP = NODE_W + 80;
+const VGAP = NODE_H + 80;
+const BRANCH_PAD = 36;
+
 function childPositions(parentPos, count) {
   if (!count) return [];
   const totalW = (count - 1) * HGAP;
@@ -296,43 +384,218 @@ function childPositions(parentPos, count) {
   }));
 }
 
-/* ─────────── Tree auto-layout ──────────────────────────────── */
-function treeLayout(allNodes, allEdges) {
-  if (allNodes.length <= 1) return allNodes;
-  const childMap = {}, parentSet = new Set();
+function buildChildMap(allEdges, childrenOrderMap) {
+  const edgeChildMap = {};
   allEdges.forEach(e => {
-    (childMap[e.source] = childMap[e.source] || []).push(e.target);
-    parentSet.add(e.target);
+    (edgeChildMap[e.source] = edgeChildMap[e.source] || []);
+    if (!edgeChildMap[e.source].includes(e.target)) edgeChildMap[e.source].push(e.target);
   });
-  const roots = allNodes.filter(n => !parentSet.has(n.id));
-  if (!roots.length) return allNodes;
+  const childMap = {};
+  Object.keys(edgeChildMap).forEach(src => {
+    const order = childrenOrderMap[src];
+    if (order && order.length) {
+      const ordered = order.filter(id => edgeChildMap[src].includes(id));
+      const extras = edgeChildMap[src].filter(id => !ordered.includes(id));
+      childMap[src] = [...ordered, ...extras];
+    } else {
+      childMap[src] = edgeChildMap[src];
+    }
+  });
+  return childMap;
+}
 
-  /* subtree width = number of leaves × HGAP (minimum spacing between leaves) */
-  const wCache = {};
-  function subtreeW(id) {
-    if (wCache[id] !== undefined) return wCache[id];
-    const kids = childMap[id] || [];
-    return (wCache[id] = kids.length ? kids.reduce((s, k) => s + subtreeW(k), 0) : HGAP);
+/* ─────────── Alternating L/R tree (picker order, no overlap) ─ */
+function treeLayout(allNodes, allEdges, childrenOrderMap) {
+  childrenOrderMap = childrenOrderMap || {};
+  if (!allNodes.length) return allNodes;
+  if (allNodes.length === 1) {
+    const n = allNodes[0];
+    return [{ ...n, data: { ...n.data, layoutSide: 0 } }];
   }
 
-  /* place each node centered above its subtree */
+  const childMap = buildChildMap(allEdges, childrenOrderMap);
+  const parentOf = {};
+  allEdges.forEach(e => { parentOf[e.target] = e.source; });
+  const nodeIds = new Set(allNodes.map(n => n.id));
+  let roots = allNodes.filter(n => !parentOf[n.id]);
+  if (!roots.length) roots = [allNodes[0]];
+
+  const hCache = {};
+  function subtreeH(id) {
+    if (hCache[id] !== undefined) return hCache[id];
+    const kids = (childMap[id] || []).filter(k => nodeIds.has(k));
+    if (!kids.length) {
+      hCache[id] = NODE_H;
+      return hCache[id];
+    }
+    hCache[id] = kids.reduce((sum, k, i) => sum + subtreeH(k) + (i ? BRANCH_PAD : 0), 0);
+    return hCache[id];
+  }
+
   const pos = {};
-  function place(id, leftX, depth) {
-    const w = subtreeW(id);
-    pos[id] = { x: leftX + w / 2, y: depth * VGAP };
-    let x = leftX;
-    (childMap[id] || []).forEach(k => { place(k, x, depth + 1); x += subtreeW(k); });
+  const sideMap = {};
+
+  function placeChildren(parentId) {
+    const kids = (childMap[parentId] || []).filter(k => nodeIds.has(k));
+    if (!kids.length) return;
+
+    const parentPos = pos[parentId];
+    const parentSide = sideMap[parentId] ?? 0;
+
+    if (parentSide === 0) {
+      let leftY = parentPos.y;
+      let rightY = parentPos.y;
+      kids.forEach((kidId, i) => {
+        const side = i % 2 === 0 ? -1 : 1;
+        sideMap[kidId] = side;
+        const h = subtreeH(kidId);
+        const bandY = side === -1 ? leftY : rightY;
+        pos[kidId] = {
+          x: parentPos.x + side * HGAP,
+          y: bandY + h / 2 - NODE_H / 2,
+        };
+        placeChildren(kidId);
+        if (side === -1) leftY += h + BRANCH_PAD;
+        else rightY += h + BRANCH_PAD;
+      });
+      return;
+    }
+
+    const side = parentSide;
+    const totalH = kids.reduce((s, k, i) => s + subtreeH(k) + (i ? BRANCH_PAD : 0), 0);
+    let y = parentPos.y - totalH / 2;
+    kids.forEach(kidId => {
+      sideMap[kidId] = side;
+      const h = subtreeH(kidId);
+      pos[kidId] = {
+        x: parentPos.x + side * HGAP,
+        y: y + h / 2,
+      };
+      placeChildren(kidId);
+      y += h + BRANCH_PAD;
+    });
   }
 
-  /* start all roots centered at x=0 */
-  let rx = -roots.reduce((s, r) => s + subtreeW(r.id), 0) / 2;
-  roots.forEach(r => { place(r.id, rx, 0); rx += subtreeW(r.id); });
+  roots.forEach((root, ri) => {
+    const rootOrig = allNodes.find(n => n.id === root.id);
+    const rootX = (rootOrig?.position?.x ?? 400) + ri * HGAP * 2;
+    const rootY = rootOrig?.position?.y ?? 50;
+    pos[root.id] = { x: rootX, y: rootY };
+    sideMap[root.id] = 0;
+    placeChildren(root.id);
+  });
 
-  return allNodes.map(n => pos[n.id] !== undefined ? { ...n, position: pos[n.id] } : n);
+  /* Fallback: place nodes missed by traversal (never leave at 0,0) */
+  allNodes.forEach((n, ni) => {
+    if (pos[n.id] !== undefined) return;
+    const par = parentOf[n.id];
+    if (par && pos[par]) {
+      const pSide = sideMap[par] ?? 0;
+      const sibs = (childMap[par] || []).filter(k => nodeIds.has(k));
+      const idx = Math.max(0, sibs.indexOf(n.id));
+      const side = pSide === 0 ? (idx % 2 === 0 ? -1 : 1) : pSide;
+      sideMap[n.id] = side;
+      pos[n.id] = {
+        x: pos[par].x + side * HGAP,
+        y: pos[par].y + idx * (NODE_H + BRANCH_PAD),
+      };
+      return;
+    }
+    sideMap[n.id] = 0;
+    pos[n.id] = { x: 400 + (ni % 4) * HGAP, y: 50 + Math.floor(ni / 4) * VGAP };
+  });
+
+  return allNodes.map(n => ({
+    ...n,
+    position: pos[n.id],
+    data: { ...n.data, layoutSide: sideMap[n.id] ?? 0 },
+  }));
+}
+
+function layoutGraph(allNodes, allEdges, childrenOrderMap) {
+  return treeLayout(allNodes, allEdges, childrenOrderMap);
+}
+
+function assignRootSourceHandles(nodes, edges) {
+  const parentOf = {};
+  edges.forEach(e => { parentOf[e.target] = e.source; });
+  const roots = new Set(nodes.filter(n => !parentOf[n.id]).map(n => n.id));
+  const sideById = {};
+  nodes.forEach(n => {
+    if (n.data?.layoutSide != null) sideById[n.id] = n.data.layoutSide;
+  });
+  return edges.map(e => {
+    if (!roots.has(e.source)) return e;
+    const side = sideById[e.target];
+    if (side === -1) return { ...e, sourceHandle: 'sl' };
+    if (side === 1) return { ...e, sourceHandle: 'sr' };
+    return e;
+  });
+}
+
+/* ─────────── Link picker modal ──────────────────────────────── */
+function LinkPickerModal({ picker, onToggle, onToggleAll, onClose, onView }) {
+  if (!picker) return null;
+  const selectable = picker.rows.filter(r => r.kind !== 'all');
+  const allChecked = selectable.length > 0 && selectable.every(r => picker.checked.has(r.key));
+  return React.createElement('div', {
+    className: 'nsm-oa-link-picker-backdrop nodrag nopan',
+    onClick: e => { if (e.target === e.currentTarget) onClose(); },
+  },
+    React.createElement('div', { className: 'nsm-oa-link-picker nodrag nopan', onClick: e => e.stopPropagation() },
+      React.createElement('div', { className: 'nsm-oa-link-picker-head' },
+        React.createElement('span', null, oaT('linkPickerTitle', 'Select links'), picker.nodeLabel ? ` — ${picker.nodeLabel}` : ''),
+        React.createElement('button', {
+          type: 'button', className: 'btn-close btn-close-sm', 'aria-label': 'Close',
+          onClick: onClose,
+        }),
+      ),
+      React.createElement('div', { className: 'nsm-oa-link-picker-body' },
+        picker.loading
+          ? React.createElement('div', { style: { padding: '1rem .75rem', color: '#64748b' } }, oaT('loadingLinks', 'Loading links…'))
+          : picker.error
+            ? React.createElement('div', { style: { padding: '1rem .75rem', color: '#dc3545' } }, picker.error)
+            : picker.rows.map(row => React.createElement('label', {
+                key: row.key,
+                className: `nsm-oa-link-picker-row depth-${row.depth}`,
+              },
+              React.createElement('input', {
+                type: 'checkbox',
+                checked: row.kind === 'all' ? allChecked : picker.checked.has(row.key),
+                onChange: e => row.kind === 'all' ? onToggleAll(e.target.checked) : onToggle(row.key, e.target.checked),
+              }),
+              React.createElement('span', { className: 'nsm-oa-link-picker-row-label' }, row.label),
+              row.l2Count > 0
+                ? React.createElement('span', {
+                    className: 'nsm-oa-link-picker-l2-count',
+                    title: oaT('secondaryLinks', 'Secondary links'),
+                  }, row.l2Count)
+                : null,
+            )),
+      ),
+      React.createElement('div', { className: 'nsm-oa-link-picker-foot' },
+        React.createElement('button', { type: 'button', className: 'btn btn-sm btn-outline-secondary', onClick: onClose },
+          oaT('cancel', 'Cancel')),
+        React.createElement('button', {
+          type: 'button', className: 'btn btn-sm btn-primary',
+          disabled: picker.loading || !!picker.error || picker.checked.size === 0,
+          onClick: onView,
+        }, oaT('viewLinks', 'View')),
+      ),
+    ),
+  );
 }
 
 /* ─────────── Custom node component ──────────────────────────── */
-function nsmToggleExpand(id, expanded) {
+function nsmUsesBranchLinks(id, data) {
+  return (data.childCount > 0)
+    && !id.startsWith('grp:')
+    && !id.startsWith('cloud:')
+    && data.nodeType !== 'group'
+    && data.nodeType !== 'cloud';
+}
+
+function nsmToggleExpand(id, expanded, data) {
   if (expanded) {
     _graphCb.collapse?.(id);
   } else {
@@ -340,38 +603,51 @@ function nsmToggleExpand(id, expanded) {
   }
 }
 
+function nsmHandlePositions(layoutSide) {
+  if (layoutSide === -1) return { target: Position.Right, source: Position.Left };
+  if (layoutSide === 1) return { target: Position.Left, source: Position.Right };
+  return { target: Position.Top, source: Position.Bottom };
+}
+
 function NsmNode({ id, data, selected }) {
   const s = NS[data.nodeType] || NS.object;
   const textColor = selected ? '#fff' : '#1a202c';
+  const isCloud = data.nodeType === 'cloud';
+  const handles = nsmHandlePositions(data.layoutSide ?? 0);
+  const isRoot = (data.layoutSide ?? 0) === 0;
 
   return React.createElement('div', {
-    className: 'nsm-oa-node',
+    className: 'nsm-oa-node' + (isCloud ? ' nsm-oa-node-cloud' : ''),
     style: {
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       fontFamily: 'system-ui, -apple-system, sans-serif',
-      minWidth: 140,
-      maxWidth: 210,
+      minWidth: isCloud ? 120 : 140,
+      maxWidth: isCloud ? 160 : 210,
     },
   },
-    /* ── target handle (top) ── */
+    /* ── target handle ── */
     React.createElement(Handle, {
-      type: 'target', position: Position.Top,
+      type: 'target', position: handles.target,
       style: { background: s.color, width: 8, height: 8, border: '2px solid #fff' },
     }),
     /* ── node body ── */
     React.createElement('div', {
       style: {
         width: '100%',
-        padding: '18px 12px 8px', borderRadius: 10, position: 'relative',
+        padding: isCloud ? '22px 16px 14px' : '18px 12px 8px',
+        borderRadius: isCloud ? '55% 55% 45% 45% / 50% 50% 50% 50%' : 10,
+        position: 'relative',
         background: selected ? s.color : s.bg,
-        border: `2px solid ${s.color}`,
+        border: isCloud ? `2px dashed ${s.color}` : `2px solid ${s.color}`,
         color: textColor,
         boxShadow: data.loading ? `0 0 0 3px ${s.color}88`
+          : isCloud ? `0 4px 14px ${s.color}33`
           : selected ? `0 0 0 3px ${s.color}44` : '0 2px 8px rgba(0,0,0,.12)',
         transition: 'all .15s', userSelect: 'none',
         cursor: 'default',
+        textAlign: 'center',
       },
     },
       /* top-left: link to object */
@@ -400,68 +676,167 @@ function NsmNode({ id, data, selected }) {
         className: 'nodrag nopan',
         onClick: (e) => { e.stopPropagation(); _graphCb.remove?.(id); },
       }, '×'),
-      /* header row */
-      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 7 } },
-        React.createElement('span', { style: { fontSize: 17, lineHeight: 1, flexShrink: 0 } },
-          data.loading ? '⏳' : s.icon),
-        React.createElement('div', { style: { flex: 1, overflow: 'hidden' } },
-          React.createElement('div', {
-            style: { fontWeight: 700, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-          }, data.label),
-          React.createElement('div', {
-            style: { fontSize: 10, opacity: .6, letterSpacing: '.3px', marginTop: 1 },
-          }, (data.typeLabel || data.nodeType) + (data.childCount != null ? ` · ${data.childCount}` : '')),
-        ),
-        !data.loading && data.expanded
-          ? React.createElement('span', { style: { width: 7, height: 7, borderRadius: '50%', background: selected ? '#fff' : s.color, flexShrink: 0 } })
-          : null,
-      ),
+      /* name — full card width */
+      React.createElement('div', {
+        style: {
+          width: '100%',
+          fontWeight: 700,
+          fontSize: 12,
+          lineHeight: 1.25,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          paddingLeft: data.url && data.url !== '#' ? 12 : 0,
+          paddingRight: 12,
+          textAlign: 'center',
+        },
+      }, data.loading ? '…' : (isCloud ? `☁ ${data.label}` : data.label)),
+      /* meta row: icon · type · counter */
+      !data.loading
+        ? React.createElement('div', {
+            style: {
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 5,
+              width: '100%',
+              marginTop: 5,
+              fontSize: 10,
+              opacity: 0.72,
+              letterSpacing: '.2px',
+              flexWrap: 'nowrap',
+            },
+          },
+          React.createElement('span', { style: { fontSize: 15, lineHeight: 1, flexShrink: 0 } }, s.icon),
+          React.createElement('span', {
+            style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '58%' },
+          }, data.typeLabel || data.nodeType),
+          data.childCount != null
+            ? React.createElement('span', { style: { flexShrink: 0, fontWeight: 600 } }, `\u00b7 ${data.childCount}`)
+            : null,
+          data.expanded
+            ? React.createElement('span', {
+                style: {
+                  width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
+                  background: selected ? '#fff' : s.color,
+                },
+              })
+            : null,
+        )
+        : React.createElement('div', {
+            style: { marginTop: 5, fontSize: 15, lineHeight: 1, textAlign: 'center' },
+          }, '⏳'),
     ),
     /* ── connector + expand/collapse (inside node bounds for React Flow hit-testing) ── */
     !data.loading
       ? React.createElement('div', {
           className: 'nodrag nopan nsm-oa-toggle',
-          role: 'button',
-          tabIndex: 0,
-          title: data.expanded ? oaT('collapse', 'Collapse') : oaT('expand', 'Expand'),
-          onClick: e => { e.stopPropagation(); nsmToggleExpand(id, data.expanded); },
-          onKeyDown: e => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              e.stopPropagation();
-              nsmToggleExpand(id, data.expanded);
-            }
-          },
           style: {
             display: 'flex', flexDirection: 'column', alignItems: 'center',
             marginTop: 2, paddingBottom: 2,
-            cursor: 'pointer', pointerEvents: 'all',
+            pointerEvents: 'all',
           },
         },
         React.createElement('div', {
           style: { width: 2, height: 14, background: s.color, opacity: 0.65, borderRadius: 1 },
         }),
-        React.createElement('div', {
-          style: {
-            width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
-            background: s.color, color: '#fff',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 15, fontWeight: 700, lineHeight: 1,
-            boxShadow: '0 1px 4px rgba(0,0,0,.25)',
-          },
-        }, data.expanded ? '\u2212' : '+'),
+        nsmUsesBranchLinks(id, data)
+          ? React.createElement('div', { className: 'nsm-oa-toggle-row' },
+              React.createElement('div', {
+                role: 'button',
+                tabIndex: 0,
+                title: oaT('expand', 'Expand'),
+                onClick: e => { e.stopPropagation(); _graphCb.openLinkPicker?.(id); },
+                onKeyDown: e => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    _graphCb.openLinkPicker?.(id);
+                  }
+                },
+                style: {
+                  width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+                  background: s.color, color: '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 15, fontWeight: 700, lineHeight: 1, cursor: 'pointer',
+                  boxShadow: '0 1px 4px rgba(0,0,0,.25)',
+                },
+              }, '+'),
+              data.expanded
+                ? React.createElement('div', {
+                    role: 'button',
+                    tabIndex: 0,
+                    title: oaT('collapseAll', 'Collapse all'),
+                    onClick: e => { e.stopPropagation(); _graphCb.collapse?.(id); },
+                    onKeyDown: e => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        _graphCb.collapse?.(id);
+                      }
+                    },
+                    style: {
+                      width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+                      background: selected ? '#fff' : s.bg,
+                      color: s.color,
+                      border: `2px solid ${s.color}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 15, fontWeight: 700, lineHeight: 1, cursor: 'pointer',
+                    },
+                  }, '\u2212')
+                : null,
+            )
+          : React.createElement('div', {
+              role: 'button',
+              tabIndex: 0,
+              title: data.expanded ? oaT('collapse', 'Collapse') : oaT('expand', 'Expand'),
+              onClick: e => { e.stopPropagation(); nsmToggleExpand(id, data.expanded, data); },
+              onKeyDown: e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  nsmToggleExpand(id, data.expanded, data);
+                }
+              },
+              style: {
+                width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+                background: s.color, color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 15, fontWeight: 700, lineHeight: 1, cursor: 'pointer',
+                boxShadow: '0 1px 4px rgba(0,0,0,.25)',
+              },
+            }, data.expanded ? '\u2212' : '+'),
       )
       : null,
-    /* ── source handle (below toggle) ── */
-    React.createElement(Handle, {
-      type: 'source', position: Position.Bottom,
-      style: {
-        background: s.color, border: '2px solid #fff',
-        width: data.loading || data.expanded ? 8 : 0,
-        height: data.loading || data.expanded ? 8 : 0,
-        opacity: data.loading || data.expanded ? 1 : 0,
-      },
-    }),
+    /* ── source handle(s) ── */
+    isRoot
+      ? React.createElement(React.Fragment, null,
+          React.createElement(Handle, {
+            type: 'source', position: Position.Left, id: 'sl',
+            style: {
+              background: s.color, border: '2px solid #fff',
+              width: data.expanded ? 8 : 0, height: data.expanded ? 8 : 0,
+              opacity: data.expanded ? 1 : 0,
+            },
+          }),
+          React.createElement(Handle, {
+            type: 'source', position: Position.Right, id: 'sr',
+            style: {
+              background: s.color, border: '2px solid #fff',
+              width: data.expanded ? 8 : 0, height: data.expanded ? 8 : 0,
+              opacity: data.expanded ? 1 : 0,
+            },
+          }),
+        )
+      : React.createElement(Handle, {
+          type: 'source', position: handles.source,
+          style: {
+            background: s.color, border: '2px solid #fff',
+            width: data.loading || data.expanded ? 8 : 0,
+            height: data.loading || data.expanded ? 8 : 0,
+            opacity: data.loading || data.expanded ? 1 : 0,
+          },
+        }),
   );
 }
 
@@ -477,9 +852,14 @@ function apiHeaders(extra) {
   return (window.NSM_BRANCH_API && window.NSM_BRANCH_API.mergeBranchHeaders(extra)) || extra;
 }
 async function fetchNodeData(ctId, pk) {
-  const r = await fetch(`/plugins/netbox-nsm/api/analyzer/?ct=${ctId}&pk=${pk}`, {
+  const url = `/plugins/netbox-nsm/api/analyzer/?ct=${ctId}&pk=${pk}`;
+  const opts = {
     headers: apiHeaders({ Accept: 'application/json', 'X-CSRFToken': getCsrf() }),
-  });
+    credentials: 'same-origin',
+  };
+  const r = (window.NSM_BRANCH_API && window.NSM_BRANCH_API.fetch)
+    ? await window.NSM_BRANCH_API.fetch(url, opts)
+    : await fetch(url, opts);
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   return r.json();
 }
@@ -489,6 +869,7 @@ function App({ initialCt, initialPk }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [status, setStatus] = useState('');
+  const [linkPicker, setLinkPicker] = useState(null);
 
   /* stable refs */
   const rfInstanceRef  = useRef(null);
@@ -503,6 +884,8 @@ function App({ initialCt, initialPk }) {
   const removeFnRef    = useRef(null);
   const resetFnRef     = useRef(null);
   const applyChildrenRef = useRef(null);
+  const openLinkPickerRef = useRef(null);
+  const applyLinkPickerRef = useRef(null);
 
   /* stable callbacks passed into node data */
   const stableExpand   = useCallback((id) => expandFnRef.current?.(id),  []);
@@ -572,7 +955,300 @@ function App({ initialCt, initialPk }) {
       if (e.source === sourceId && e.target === targetId) return false;
       return true;
     }));
+    syncParentExpandedRef.current?.(sourceId);
     setTimeout(() => rfInstanceRef.current?.fitView({ duration: 300, padding: 0.15 }), 80);
+  }, []);
+
+  const syncParentExpandedRef = useRef(null);
+
+  function buildBranchCatalog(parentId) {
+    const children = apiChildrenCacheRef.current[parentId] || [];
+    const byLabel = {};
+    children.forEach(c => {
+      (byLabel[c.edge_label] = byLabel[c.edge_label] || []).push(c);
+    });
+    const directKids = new Set(childrenMapRef.current[parentId] || []);
+    return Object.keys(byLabel).sort().map(label => {
+      const group = byLabel[label];
+      const visible = group.every(c => directKids.has(c.node.id));
+      return { label, count: group.length, visible };
+    });
+  }
+
+  function syncParentExpanded(parentId) {
+    const hasKids = (childrenMapRef.current[parentId] || []).length > 0;
+    const catalog = buildBranchCatalog(parentId);
+    const hasHiddenBranches = catalog.some(b => !b.visible);
+    if (hasKids) {
+      expandedRef.current.add(parentId);
+    } else {
+      expandedRef.current.delete(parentId);
+    }
+    setNodes(ns => ns.map(n => n.id === parentId
+      ? { ...n, data: { ...n.data, expanded: hasKids, hasHiddenBranches } }
+      : n));
+  }
+  syncParentExpandedRef.current = syncParentExpanded;
+
+  function runTreeLayoutPatch(nodeId, newNodes, newEdges) {
+    const curEdges = rfInstanceRef.current?.getEdges() || [];
+    const allEdgesForLayout = [...curEdges, ...newEdges];
+    let laidNodes = null;
+    setNodes(ns => {
+      const ids = new Set(ns.map(n => n.id));
+      laidNodes = layoutGraph(
+        [...ns, ...newNodes.filter(n => !ids.has(n.id))],
+        allEdgesForLayout,
+        childrenMapRef.current,
+      );
+      return laidNodes;
+    });
+    setEdges(es => {
+      const ids = new Set(es.map(e => e.id));
+      const merged = [...es, ...newEdges.filter(e => !ids.has(e.id))];
+      const nodesForHandles = laidNodes || rfInstanceRef.current?.getNodes() || [];
+      return assignRootSourceHandles(nodesForHandles, merged);
+    });
+    const newIds = newNodes.map(n => n.id);
+    setTimeout(() => {
+      const rfi = rfInstanceRef.current;
+      if (rfi?.updateNodeInternals) {
+        [nodeId, ...newIds].forEach(id => rfi.updateNodeInternals(id));
+      }
+      rfi?.fitView({ duration: 400, padding: 0.18 });
+    }, 120);
+  }
+
+  function mkNodeFromApiChild(c, pos) {
+    const cid = c.node.id;
+    const childCache = apiChildrenCacheRef.current[cid];
+    return mkNode(cid, pos || { x: 0, y: 0 }, {
+      label: c.node.label, nodeType: c.node.node_type, typeLabel: c.node.type_label,
+      ctId: c.node.ct_id, objectId: c.node.object_id,
+      url: c.node.url, loading: false, expanded: false,
+      childCount: childCache ? childCache.length : null,
+      hasHiddenBranches: childCache ? childCache.length > 0 : false,
+    });
+  }
+
+  function syncChildrenMapFromPicker(rows, keys, rootId) {
+    const l1Needed = new Set();
+    rows.filter(r => r.kind === 'l1' && keys.has(r.key)).forEach(r => l1Needed.add(r.item.node.id));
+
+    const pickerL1 = rows.filter(r => r.kind === 'l1').map(r => r.item.node.id);
+    const prevRootKids = childrenMapRef.current[rootId] || [];
+    const allL1 = new Set([...prevRootKids, ...l1Needed]);
+    childrenMapRef.current[rootId] = [
+      ...pickerL1.filter(id => allL1.has(id)),
+      ...prevRootKids.filter(id => !pickerL1.includes(id) && allL1.has(id)),
+    ];
+
+    pickerL1.forEach(l1Id => {
+      const l1Row = rows.find(r => r.kind === 'l1' && r.item.node.id === l1Id);
+      if (!l1Row || !keys.has(l1Row.key) || !(l1Row.l2Count > 0)) return;
+      childrenMapRef.current[l1Id] = l1Row.useCloud
+        ? [`cloud:${l1Id}`]
+        : (l1Row.l2Items || []).map(c2 => c2.node.id);
+    });
+  }
+
+  function addBranchChildren(nodeId, label, items) {
+    if (!items.length) return;
+    const existingIds = new Set((rfInstanceRef.current?.getNodes() || []).map(n => n.id));
+    const existingEdges = new Set((rfInstanceRef.current?.getEdges() || []).map(e => `${e.source}|${e.target}`));
+    const newNodes = [];
+    const newEdges = [];
+    const directKids = [...(childrenMapRef.current[nodeId] || [])];
+
+    items.forEach(c => {
+      const cid = c.node.id;
+      if (!existingIds.has(cid)) {
+        newNodes.push(mkNodeFromApiChild(c));
+        existingIds.add(cid);
+      }
+      const ek = `${nodeId}|${cid}`;
+      if (!existingEdges.has(ek)) {
+        newEdges.push(mkEdge(`e-${nodeId}-${cid}`, nodeId, cid, label));
+        existingEdges.add(ek);
+      }
+      if (!directKids.includes(cid)) directKids.push(cid);
+    });
+
+    childrenMapRef.current[nodeId] = directKids;
+    runTreeLayoutPatch(nodeId, newNodes, newEdges);
+    syncParentExpanded(nodeId);
+  }
+
+  async function buildLinkPickerTree(nodeId, ctId, objectId) {
+    let children = apiChildrenCacheRef.current[nodeId];
+    if (!children && ctId && objectId) {
+      const data = await fetchNodeData(ctId, objectId);
+      children = data.children || [];
+      apiChildrenCacheRef.current[nodeId] = children;
+    }
+    children = children || [];
+    const seen = new Set();
+    const l1Items = children.filter(c => seen.has(c.node.id) ? false : (seen.add(c.node.id), true));
+    l1Items.sort((a, b) => {
+      const la = `${a.edge_label} ${a.node.label}`;
+      const lb = `${b.edge_label} ${b.node.label}`;
+      return la.localeCompare(lb);
+    });
+
+    const l2ByL1 = await Promise.all(l1Items.map(async (c) => {
+      if (!c.node.ct_id || !c.node.object_id) return { l1: c, l2: [] };
+      let l2Children = apiChildrenCacheRef.current[c.node.id];
+      if (!l2Children) {
+        try {
+          const d = await fetchNodeData(c.node.ct_id, c.node.object_id);
+          l2Children = d.children || [];
+          apiChildrenCacheRef.current[c.node.id] = l2Children;
+        } catch (_) {
+          l2Children = [];
+        }
+      }
+      const seen2 = new Set();
+      const l2 = l2Children
+        .filter(c2 => seen2.has(c2.node.id) ? false : (seen2.add(c2.node.id), true))
+        .sort((a, b) => `${a.edge_label} ${a.node.label}`.localeCompare(`${b.edge_label} ${b.node.label}`));
+      return { l1: c, l2 };
+    }));
+
+    const rows = [{
+      key: '__all__',
+      depth: 0,
+      kind: 'all',
+      label: oaT('allOption', '-- all --'),
+    }];
+
+    l2ByL1.forEach(({ l1: c, l2 }) => {
+      rows.push({
+        key: `l1:${c.node.id}`,
+        depth: 1,
+        kind: 'l1',
+        label: `${c.edge_label} · ${c.node.label}`,
+        item: c,
+        l1Item: c,
+        l2Count: l2.length,
+        l2Items: l2,
+        useCloud: l2.length > L2_CLOUD_THRESHOLD,
+      });
+    });
+    return rows;
+  }
+
+  const openLinkPicker = useCallback(async (nodeId) => {
+    const rfNode = rfInstanceRef.current?.getNode(nodeId);
+    if (!rfNode || rfNode.data.loading) return;
+
+    setLinkPicker({
+      nodeId,
+      nodeLabel: rfNode.data.label,
+      rows: [],
+      checked: new Set(),
+      loading: true,
+      error: null,
+    });
+
+    try {
+      if (!apiChildrenCacheRef.current[nodeId] && rfNode.data.ctId && rfNode.data.objectId) {
+        setNodes(ns => ns.map(n => n.id === nodeId
+          ? { ...n, data: { ...n.data, loading: true } }
+          : n));
+      }
+      const rows = await buildLinkPickerTree(nodeId, rfNode.data.ctId, rfNode.data.objectId);
+      const childCount = (apiChildrenCacheRef.current[nodeId] || []).length;
+      setNodes(ns => ns.map(n => n.id === nodeId
+        ? {
+            ...n,
+            data: {
+              ...n.data,
+              loading: false,
+              childCount,
+              hasHiddenBranches: buildBranchCatalog(nodeId).some(b => !b.visible),
+            },
+          }
+        : n));
+      setLinkPicker({
+        nodeId,
+        nodeLabel: rfNode.data.label,
+        rows,
+        checked: new Set(),
+        loading: false,
+        error: rows.length <= 1 ? oaT('noResults', 'No results') : null,
+      });
+    } catch (e) {
+      setStatus(oaT('errorPrefix', 'Error:') + ' ' + e.message);
+      setNodes(ns => ns.map(n => n.id === nodeId
+        ? { ...n, data: { ...n.data, loading: false } }
+        : n));
+      setLinkPicker(prev => prev ? { ...prev, loading: false, error: e.message } : null);
+    }
+  }, []);
+
+  const applyLinkPicker = useCallback((nodeId, rows, checked) => {
+    const selectable = rows.filter(r => r.kind !== 'all');
+    const keys = checked.has('__all__')
+      ? new Set(selectable.map(r => r.key))
+      : new Set([...checked].filter(k => k !== '__all__'));
+    if (!keys.size) return;
+
+    const l1Needed = rows.filter(r => r.kind === 'l1' && keys.has(r.key));
+
+    const existingIds = new Set((rfInstanceRef.current?.getNodes() || []).map(n => n.id));
+    const existingEdges = new Set((rfInstanceRef.current?.getEdges() || []).map(e => `${e.source}|${e.target}`));
+    const newNodes = [];
+    const newEdges = [];
+
+    function ensureNode(c) {
+      const cid = c.node.id;
+      if (!existingIds.has(cid)) {
+        newNodes.push(mkNodeFromApiChild(c));
+        existingIds.add(cid);
+      }
+      return cid;
+    }
+    function ensureEdge(src, tgt, label) {
+      const ek = `${src}|${tgt}`;
+      if (!existingEdges.has(ek)) {
+        newEdges.push(mkEdge(`e-${src}-${tgt}`, src, tgt, label));
+        existingEdges.add(ek);
+      }
+    }
+
+    l1Needed.forEach(r => {
+      const l1Id = ensureNode(r.item);
+      ensureEdge(nodeId, l1Id, r.item.edge_label);
+      const l2Items = r.l2Items || [];
+      if (!l2Items.length) return;
+      if (r.useCloud) {
+        const cloudId = `cloud:${l1Id}`;
+        if (!existingIds.has(cloudId)) {
+          newNodes.push(mkNode(cloudId, { x: 0, y: 0 }, {
+            label: String(l2Items.length),
+            nodeType: 'cloud',
+            typeLabel: l2Items[0]?.edge_label || oaT('cloudLinks', 'links'),
+            ctId: null, objectId: null, url: null,
+            loading: false, expanded: false,
+            childCount: l2Items.length,
+          }));
+          groupDataRef.current[cloudId] = { children: l2Items };
+          existingIds.add(cloudId);
+        }
+        ensureEdge(l1Id, cloudId, oaT('cloudLinks', 'links'));
+        return;
+      }
+      l2Items.forEach(c2 => {
+        const cid = ensureNode(c2);
+        ensureEdge(l1Id, cid, c2.edge_label);
+      });
+    });
+
+    syncChildrenMapFromPicker(rows, keys, nodeId);
+    runTreeLayoutPatch(nodeId, newNodes, newEdges);
+    syncParentExpanded(nodeId);
+    setLinkPicker(null);
+    setTimeout(() => rfInstanceRef.current?.fitView({ duration: 400, padding: 0.2 }), 120);
   }, []);
 
   /* ── Collapse all (legacy, kept for completeness) ──────────── */
@@ -636,10 +1312,12 @@ function App({ initialCt, initialPk }) {
       if (e.source === nodeId && directKids.has(e.target)) return false;
       return true;
     }));
+    syncParentExpanded(nodeId);
   }, []);
 
   /* ── Place children into graph (groups by edge_label) ──────── */
-  function applyChildren(nodeId, parentPos, apiChildren) {
+  function applyChildren(nodeId, parentPos, apiChildren, opts) {
+    opts = opts || {};
     /* deduplicate by node id */
     const seenIds = new Set();
     const unique  = apiChildren.filter(c => seenIds.has(c.node.id) ? false : (seenIds.add(c.node.id), true));
@@ -676,7 +1354,7 @@ function App({ initialCt, initialPk }) {
         /* multiple → group node labelled after edge_label */
         const gid = `grp:${nodeId}:${label.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
         newNodes.push(mkNode(gid, typePos, {
-          label: `${label} · ${group.length}`, nodeType: firstType, typeLabel: group[0].node.type_label,
+          label: `${label} · ${group.length}`, nodeType: 'group', typeLabel: group[0].node.type_label,
           ctId: null, objectId: null, url: null,
           loading: false, expanded: false, childCount: group.length,
         }));
@@ -689,13 +1367,37 @@ function App({ initialCt, initialPk }) {
     childrenMapRef.current[nodeId] = directKids;
     const curEdges = rfInstanceRef.current?.getEdges() || [];
     const allEdgesForLayout = [...curEdges, ...newEdges];
+    let laidNodes = null;
     setNodes(ns => {
       const ids = new Set(ns.map(n => n.id));
-      const merged = [...ns, ...newNodes.filter(n => !ids.has(n.id))];
-      return treeLayout(merged, allEdgesForLayout);
+      const merged = [...ns, ...newNodes.filter(n => !ids.has(n.id))].map(n => {
+        if (!opts.markExpanded || n.id !== nodeId) return n;
+        return {
+          ...n,
+          data: {
+            ...n.data,
+            loading: false,
+            expanded: true,
+            childCount: apiChildren.length,
+          },
+        };
+      });
+      laidNodes = layoutGraph(merged, allEdgesForLayout, childrenMapRef.current);
+      return laidNodes;
     });
-    setEdges(es => { const ids = new Set(es.map(e => e.id)); return [...es, ...newEdges.filter(e => !ids.has(e.id))]; });
-    setTimeout(() => rfInstanceRef.current?.fitView({ duration: 400, padding: 0.18 }), 80);
+    setEdges(es => {
+      const ids = new Set(es.map(e => e.id));
+      const merged = [...es, ...newEdges.filter(e => !ids.has(e.id))];
+      return assignRootSourceHandles(laidNodes || [], merged);
+    });
+    const newIds = newNodes.map(n => n.id);
+    setTimeout(() => {
+      const rfi = rfInstanceRef.current;
+      if (rfi?.updateNodeInternals) {
+        [nodeId, ...newIds].forEach(id => rfi.updateNodeInternals(id));
+      }
+      rfi?.fitView({ duration: 400, padding: 0.22 });
+    }, 120);
   }
   applyChildrenRef.current = applyChildren;
 
@@ -713,34 +1415,32 @@ function App({ initialCt, initialPk }) {
       if (rebuilt) groupDataRef.current[nodeId] = rebuilt;
     }
     if (groupDataRef.current[nodeId]) {
-      const gd      = groupDataRef.current[nodeId];
-      const pos     = rfInstanceRef.current?.getNode(nodeId)?.position || { x: 400, y: 200 };
+      const gd = groupDataRef.current[nodeId];
       const seenIds = new Set();
-      const unique  = gd.children.filter(c => seenIds.has(c.node.id) ? false : (seenIds.add(c.node.id), true));
-      const positions = childPositions(pos, unique.length);
-      const newNodes = [], newEdges = [], directKids = [];
-      unique.forEach((c, i) => {
+      const unique = gd.children.filter(c => seenIds.has(c.node.id) ? false : (seenIds.add(c.node.id), true));
+      const existingIds = new Set((rfInstanceRef.current?.getNodes() || []).map(n => n.id));
+      const existingEdges = new Set((rfInstanceRef.current?.getEdges() || []).map(e => `${e.source}|${e.target}`));
+      const newNodes = [];
+      const newEdges = [];
+      const directKids = [];
+      unique.forEach(c => {
         const cid = c.node.id;
-        newNodes.push(mkNode(cid, positions[i], {
-          label: c.node.label, nodeType: c.node.node_type, typeLabel: c.node.type_label,
-          ctId: c.node.ct_id, objectId: c.node.object_id,
-          url: c.node.url, loading: false, expanded: false, childCount: null,
-        }));
-        newEdges.push(mkEdge(`e-${nodeId}-${cid}`, nodeId, cid, c.edge_label));
+        if (!existingIds.has(cid)) {
+          newNodes.push(mkNodeFromApiChild(c));
+          existingIds.add(cid);
+        }
+        const ek = `${nodeId}|${cid}`;
+        if (!existingEdges.has(ek)) {
+          newEdges.push(mkEdge(`e-${nodeId}-${cid}`, nodeId, cid, c.edge_label));
+          existingEdges.add(ek);
+        }
         directKids.push(cid);
       });
       childrenMapRef.current[nodeId] = directKids;
-      const curEdges = rfInstanceRef.current?.getEdges() || [];
-      const allEdgesForLayout = [...curEdges, ...newEdges];
-      setNodes(ns => {
-        const ids = new Set(ns.map(n => n.id));
-        const merged = [...ns, ...newNodes.filter(n => !ids.has(n.id))].map(n =>
-          n.id === nodeId ? { ...n, data: { ...n.data, expanded: true } } : n
-        );
-        return treeLayout(merged, allEdgesForLayout);
-      });
-      setEdges(es => { const ids = new Set(es.map(e => e.id)); return [...es, ...newEdges.filter(e => !ids.has(e.id))]; });
-      setTimeout(() => rfInstanceRef.current?.fitView({ duration: 400, padding: 0.18 }), 80);
+      runTreeLayoutPatch(nodeId, newNodes, newEdges);
+      setNodes(ns => ns.map(n => n.id === nodeId
+        ? { ...n, data: { ...n.data, expanded: true } }
+        : n));
       return;
     }
 
@@ -754,24 +1454,7 @@ function App({ initialCt, initialPk }) {
       return;
     }
 
-    setNodes(ns => ns.map(n => n.id === nodeId ? { ...n, data: { ...n.data, loading: true } } : n));
-
-    let data;
-    try { data = await fetchNodeData(ctId, pk); }
-    catch (e) {
-      setStatus(oaT('errorPrefix', 'Error:') + ' ' + e.message);
-      expandedRef.current.delete(nodeId);
-      setNodes(ns => ns.map(n => n.id === nodeId ? { ...n, data: { ...n.data, loading: false } } : n));
-      return;
-    }
-
-    const apiChildren = data.children || [];
-    apiChildrenCacheRef.current[nodeId] = apiChildren;
-    const parentPos   = rfInstanceRef.current?.getNode(nodeId)?.position || { x: 400, y: 50 };
-    setNodes(ns => ns.map(n => n.id === nodeId
-      ? { ...n, data: { ...n.data, loading: false, expanded: true, childCount: apiChildren.length } }
-      : n));
-    applyChildrenRef.current?.(nodeId, parentPos, apiChildren);
+    openLinkPickerRef.current?.(nodeId);
   }, []);
 
   /* ── Remove single node + its edges ─────────────────────── */
@@ -801,12 +1484,14 @@ function App({ initialCt, initialPk }) {
     })]);
     fetchNodeData(initialCt, initialPk)
       .then(d => {
-        apiChildrenCacheRef.current[rootId] = d.children || [];
+        const children = d.children || [];
+        apiChildrenCacheRef.current[rootId] = children;
         setNodes([mkNode(rootId, rootPos, {
           label: d.node.label, nodeType: d.node.node_type, typeLabel: d.node.type_label,
           ctId: d.node.ct_id, objectId: d.node.object_id,
           url: d.node.url, loading: false, expanded: false,
-          childCount: d.children?.length ?? 0,
+          childCount: children.length,
+          hasHiddenBranches: children.length > 0,
         })]);
         setTimeout(() => rfInstanceRef.current?.fitView({ duration: 300, padding: 0.25 }), 80);
       })
@@ -822,40 +1507,85 @@ function App({ initialCt, initialPk }) {
   collapseEdgeFnRef.current = collapseEdge;
   removeFnRef.current = removeNode;
   resetFnRef.current = resetGraph;
+  openLinkPickerRef.current = openLinkPicker;
+  applyLinkPickerRef.current = applyLinkPicker;
   _graphCb.expand = (id) => expandFnRef.current?.(id);
   _graphCb.collapse = (id) => collapseFnRef.current?.(id);
   _graphCb.collapseEdge = (s, t) => collapseEdgeFnRef.current?.(s, t);
   _graphCb.remove = (id) => removeFnRef.current?.(id);
+  _graphCb.openLinkPicker = (id) => openLinkPickerRef.current?.(id);
 
   const onNodeClick = useCallback((evt, node) => {
     const target = evt?.target;
-    if (target?.closest?.('a, button, .nsm-oa-toggle')) return;
-    if (node?.data?.loading || node?.data?.expanded) return;
+    if (target?.closest?.('a, button, .nsm-oa-toggle, .nsm-oa-link-picker')) return;
+    if (node?.data?.loading) return;
+    if (nsmUsesBranchLinks(node.id, node.data)) {
+      _graphCb.openLinkPicker?.(node.id);
+      return;
+    }
+    if (node?.data?.expanded) return;
     _graphCb.expand?.(node.id);
   }, []);
 
-  return React.createElement(ReactFlow, {
-    nodes, edges, onNodesChange, onEdgesChange,
-    nodeTypes, edgeTypes,
-    onInit: (rfi) => { rfInstanceRef.current = rfi; },
-    onNodeClick,
-    fitView: true, minZoom: 0.1, maxZoom: 3,
-    nodesDraggable: true, nodesConnectable: false,
-    noDragClassName: 'nodrag',
-    noPanClassName: 'nopan',
-    nodeClickDistance: 8,
-  },
-    React.createElement(Background, { gap: 18, size: 1, color: '#cbd5e1' }),
-    React.createElement(Controls),
-    React.createElement(MiniMap, {
-      nodeColor: n => (NS[n.data?.nodeType] || NS.object).color,
-      nodeStrokeWidth: 3, zoomable: true, pannable: true,
+  const togglePickerRow = useCallback((key, on) => {
+    setLinkPicker(prev => {
+      if (!prev) return prev;
+      const next = new Set(prev.checked);
+      if (on) next.add(key); else next.delete(key);
+      const selectable = prev.rows.filter(r => r.kind !== 'all');
+      if (selectable.length && selectable.every(r => next.has(r.key))) next.add('__all__');
+      else next.delete('__all__');
+      return { ...prev, checked: next };
+    });
+  }, []);
+
+  const togglePickerAll = useCallback((on) => {
+    setLinkPicker(prev => {
+      if (!prev) return prev;
+      const next = new Set();
+      if (on) {
+        prev.rows.forEach(r => { if (r.kind !== 'all') next.add(r.key); });
+        next.add('__all__');
+      }
+      return { ...prev, checked: next };
+    });
+  }, []);
+
+  return React.createElement('div', { className: 'nsm-oa-graph-wrap' },
+    React.createElement(ReactFlow, {
+      nodes, edges, onNodesChange, onEdgesChange,
+      nodeTypes, edgeTypes,
+      onInit: (rfi) => { rfInstanceRef.current = rfi; },
+      onNodeClick,
+      fitView: true, minZoom: 0.1, maxZoom: 3,
+      nodesDraggable: true, nodesConnectable: false,
+      noDragClassName: 'nodrag',
+      noPanClassName: 'nopan',
+      nodeClickDistance: 8,
+      style: { width: '100%', height: '100%' },
+    },
+      React.createElement(Background, { gap: 18, size: 1, color: '#cbd5e1' }),
+      React.createElement(Controls),
+      React.createElement(MiniMap, {
+        nodeColor: n => (NS[n.data?.nodeType] || NS.object).color,
+        nodeStrokeWidth: 3, zoomable: true, pannable: true,
+      }),
+      status ? React.createElement(Panel, { position: 'top-center' },
+        React.createElement('div', {
+          style: { background: '#dc354599', color: '#fff', padding: '5px 14px', borderRadius: 6, fontSize: 12 },
+        }, status)
+      ) : null,
+    ),
+    React.createElement(LinkPickerModal, {
+      picker: linkPicker,
+      onToggle: togglePickerRow,
+      onToggleAll: togglePickerAll,
+      onClose: () => setLinkPicker(null),
+      onView: () => {
+        if (!linkPicker) return;
+        applyLinkPickerRef.current?.(linkPicker.nodeId, linkPicker.rows, linkPicker.checked);
+      },
     }),
-    status ? React.createElement(Panel, { position: 'top-center' },
-      React.createElement('div', {
-        style: { background: '#dc354599', color: '#fff', padding: '5px 14px', borderRadius: 6, fontSize: 12 },
-      }, status)
-    ) : null,
   );
 }
 

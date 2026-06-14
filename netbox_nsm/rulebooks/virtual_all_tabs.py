@@ -5,7 +5,8 @@ from __future__ import annotations
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from netbox_nsm.rulebooks.rules_tab_base import rules_tab_badge_for_object
+from netbox_nsm.rulebooks.permissions import user_can_access_rulebooks
+from netbox_nsm.rulebooks.rules_tab import rules_tab_badge_for_object
 from utilities.views import ViewTab
 
 __all__ = (
@@ -26,9 +27,9 @@ _VIRTUAL_TAB_SPECS = (
         "view_tab": ViewTab(
             label=_("Rules"),
             badge=rules_tab_badge_for_object,
-            permission="netbox_nsm.view_rulebook",
             weight=100,
         ),
+        "requires_rulebook_access": True,
     },
     {
         "key": "contacts",
@@ -70,7 +71,10 @@ def build_virtual_rulebook_tabs(
     tabs: list[dict] = []
     for spec in _VIRTUAL_TAB_SPECS:
         view_tab = spec["view_tab"]
-        if view_tab.permission and not user.has_perm(view_tab.permission):
+        if spec.get("requires_rulebook_access"):
+            if not user_can_access_rulebooks(user):
+                continue
+        elif view_tab.permission and not user.has_perm(view_tab.permission):
             continue
         rendered = view_tab.render(instance)
         if rendered is None:

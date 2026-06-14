@@ -8,6 +8,7 @@ from netbox_nsm.rulebooks.virtual_all_tabs import (
     PRIMARY_TAB_KEY,
     build_virtual_rulebook_tabs,
 )
+from netbox_nsm.tests.rulebook_permission_helpers import grant_rulebook_list_access
 from utilities.testing import TestCase
 
 
@@ -15,11 +16,11 @@ class VirtualRulebookTabsTests(TestCase):
     def setUp(self):
         super().setUp()
         self.add_permissions(
-            "netbox_nsm.view_rulebook",
             "tenancy.view_contactassignment",
             "extras.view_journalentry",
             "core.view_objectchange",
         )
+        grant_rulebook_list_access(self)
 
     def test_tabs_match_security_rules_rulebook_subpages(self):
         request = RequestFactory().get("/")

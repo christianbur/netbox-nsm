@@ -149,7 +149,7 @@ def _ensure_nsm_rb_demo_rulebook() -> None:
 
 
 def _ensure_builtin_default_objects() -> None:
-    """Seed Permit/HTTPS/etc. when COTs exist but default rows were never created."""
+    """Seed bundled defaults (Permit, zones, …) when COTs exist but rows are missing."""
     from netbox_custom_objects.models import CustomObjectType
 
     from netbox_nsm.objects.builtin_types import BUILTIN_CUSTOM_TYPES
@@ -165,6 +165,7 @@ def _ensure_builtin_default_objects() -> None:
         if not cot.get_model().objects.exists():
             needs_seed = True
             break
+
     if needs_seed:
         _seed_default_objects(BUILTIN_CUSTOM_TYPES)
 

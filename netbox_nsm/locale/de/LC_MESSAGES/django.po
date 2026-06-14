@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-10 12:49+0200\n"
+"POT-Creation-Date: 2026-06-14 22:20+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,167 +18,153 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: netbox_nsm/__init__.py:8
+#: __init__.py:8
 msgid "NetBox NSM - Network Security Management"
 msgstr "NetBox NSM - Netzwerk-Sicherheitsmanagement"
 
-#: netbox_nsm/__init__.py:10
+#: __init__.py:10
 msgid ""
 "Document network security policy in NetBox: rulebooks, zones, NSM links, and "
 "the Security Panel (requires netbox-custom-objects)."
 msgstr ""
 
-#: netbox_nsm/analysis/addr_analysis_utils.py:277
-#: netbox_nsm/analysis/addr_analysis_utils.py:284
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:111
-#, fuzzy
-#| msgid "All interfaces"
-msgid "Interface"
-msgstr "Alle Interfaces"
-
-#: netbox_nsm/analysis/addr_analysis_utils.py:280
-#: netbox_nsm/analysis/addr_analysis_utils.py:291
-#: netbox_nsm/rulebooks/assigned_objects.py:22
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:109
-#: netbox_nsm/views/object_analyzer.py:22
-msgid "Device"
-msgstr "Gerät"
-
-#: netbox_nsm/analysis/addr_analysis_utils.py:287
-#: netbox_nsm/analysis/addr_analysis_utils.py:295
-#: netbox_nsm/rulebooks/assigned_objects.py:24
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:110
-msgid "VM"
-msgstr ""
-
-#: netbox_nsm/analysis/addr_analysis_utils.py:315
-#, fuzzy
-#| msgid "Assigned Objects"
-msgid "Assigned to"
-msgstr "Zugewiesene Objekte"
-
-#: netbox_nsm/analysis/addr_analysis_utils.py:492
-msgid "IPAM > Prefixes"
-msgstr ""
-
-#: netbox_nsm/analysis/addr_analysis_utils.py:493
-#, fuzzy
-#| msgid "IP Address"
-msgid "IPAM > IP Addresses"
-msgstr "IP-Adresse"
-
-#: netbox_nsm/analysis/addr_analysis_utils.py:494
-msgid "IPAM > IP Ranges"
-msgstr ""
-
-#: netbox_nsm/analysis/addr_analysis_utils.py:495
-#, fuzzy
-#| msgid "Custom Object Groups"
-msgid "Custom Objects > Addresses"
-msgstr "Custom-Object-Gruppen"
-
-#: netbox_nsm/analysis/addr_analysis_utils.py:1646
+#: analysis/addr_diff_fund.py:53
 msgid "Same IP address/range/prefix, but different object names"
 msgstr ""
 
-#: netbox_nsm/analysis/addr_analysis_utils.py:1650
+#: analysis/addr_diff_fund.py:57
 #, python-format
 msgid "Same IP address/range/prefix linked to multiple object names: %(names)s"
 msgstr ""
 
-#: netbox_nsm/analysis/addr_analysis_utils.py:1660
+#: analysis/addr_diff_fund.py:67
 #, python-format
 msgid "Same IP address/range/prefix, but different object names (%(details)s)"
 msgstr ""
 
-#: netbox_nsm/analysis/addr_analysis_utils.py:1669
+#: analysis/addr_diff_fund.py:76
 #, python-format
 msgid ""
 "Same IP address/range/prefix, but different object names (%(side_a)s: "
 "%(names_a)s; %(side_b)s: %(names_b)s)"
 msgstr ""
 
-#: netbox_nsm/analysis/ip_analysis_service.py:249
-#: netbox_nsm/analysis/ip_analysis_service.py:316
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:47
+#: analysis/addr_navigation.py:40 analysis/addr_navigation.py:47
+#: templates/netbox_nsm/object_analyzer.html:179
+#, fuzzy
+#| msgid "All interfaces"
+msgid "Interface"
+msgstr "Alle Interfaces"
+
+#: analysis/addr_navigation.py:43 analysis/addr_navigation.py:54
+#: rulebooks/assigned_objects.py:31
+#: templates/netbox_nsm/object_analyzer.html:177 views/object_analyzer.py:24
+msgid "Device"
+msgstr "Gerät"
+
+#: analysis/addr_navigation.py:50 analysis/addr_navigation.py:58
+#: rulebooks/assigned_objects.py:33
+#: templates/netbox_nsm/object_analyzer.html:178
+msgid "VM"
+msgstr ""
+
+#: analysis/addr_navigation.py:78
+#, fuzzy
+#| msgid "Assigned Objects"
+msgid "Assigned to"
+msgstr "Zugewiesene Objekte"
+
+#: analysis/ip_analysis_service.py:260 analysis/ip_analysis_service.py:329
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:49
 msgid "No IP addresses resolved."
 msgstr "Keine IP-Adressen aufgelöst."
 
-#: netbox_nsm/analysis/ip_analysis_service.py:290
-#: netbox_nsm/analysis/ip_analysis_service.py:314
-#: netbox_nsm/analysis/ip_analysis_service.py:367
+#: analysis/ip_analysis_service.py:302 analysis/ip_analysis_service.py:327
+#: analysis/ip_analysis_service.py:381
 msgid "No analyzable address objects."
 msgstr "Keine analysierbaren Adressobjekte."
 
-#: netbox_nsm/analysis/ip_analysis_service.py:292
+#: analysis/ip_analysis_service.py:304
 msgid "No valid objects selected."
 msgstr "Keine gültigen Objekte ausgewählt."
 
-#: netbox_nsm/analysis/ip_analysis_service.py:369
+#: analysis/ip_analysis_service.py:383
 msgid "No valid objects selected for diff."
 msgstr "Keine gültigen Objekte für den Diff ausgewählt."
 
-#: netbox_nsm/analysis/ipa_add_object_types.py:13
-#: netbox_nsm/objects/address_ipam_fk.py:89
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:113
-#: netbox_nsm/views/object_analyzer.py:37
+#: analysis/ipa_add_object_types.py:13 objects/address_ipam_fk.py:245
+#: templates/netbox_nsm/object_analyzer.html:181 views/object_analyzer.py:39
+#: views/type_config.py:40
 msgid "Prefix"
 msgstr "Präfix"
 
-#: netbox_nsm/analysis/ipa_add_object_types.py:14
-#: netbox_nsm/views/object_analyzer.py:32
+#: analysis/ipa_add_object_types.py:14 views/object_analyzer.py:34
+#: views/type_config.py:39
 msgid "IP Address"
 msgstr "IP-Adresse"
 
-#: netbox_nsm/analysis/ipa_add_object_types.py:15
+#: analysis/ipa_add_object_types.py:15 views/type_config.py:41
 msgid "IP Range"
 msgstr ""
 
-#: netbox_nsm/analysis/ipa_add_object_types.py:19
-#: netbox_nsm/models/type_config.py:19
+#: analysis/ipa_add_object_types.py:19 objects/address_ipam_fk.py:244
+#: templates/netbox_nsm/inc/ipa_cell_object_type_label.html:8
 #, fuzzy
 #| msgid "IP Address"
 msgid "Address"
 msgstr "IP-Adresse"
 
-#: netbox_nsm/analysis/ipa_add_object_types.py:20
+#: analysis/ipa_add_object_types.py:20
 #, fuzzy
 #| msgid "Parent Groups"
 msgid "Address Group"
 msgstr "Übergeordnete Gruppen"
 
-#: netbox_nsm/analysis/ipa_add_object_types.py:64
+#: analysis/ipa_add_object_types.py:64
 msgid "IPAM"
 msgstr ""
 
-#: netbox_nsm/core/nsm_object_status.py:23
+#: analysis/ipam_drilldown.py:30
+msgid "IPAM > Prefixes"
+msgstr ""
+
+#: analysis/ipam_drilldown.py:31
+#, fuzzy
+#| msgid "IP Address"
+msgid "IPAM > IP Addresses"
+msgstr "IP-Adresse"
+
+#: analysis/ipam_drilldown.py:32
+msgid "IPAM > IP Ranges"
+msgstr ""
+
+#: analysis/ipam_drilldown.py:33
+#, fuzzy
+#| msgid "Custom Object Groups"
+msgid "Custom Objects > Addresses"
+msgstr "Custom-Object-Gruppen"
+
+#: core/nsm_object_status.py:25
+#: templates/netbox_nsm/inc/ipa_nsm_object_status_icon.html:5
 #, fuzzy
 #| msgid "No valid objects selected."
 msgid "This object is reserved."
 msgstr "Keine gültigen Objekte ausgewählt."
 
-#: netbox_nsm/core/nsm_object_status.py:24
+#: core/nsm_object_status.py:26
+#: templates/netbox_nsm/inc/ipa_nsm_object_status_icon.html:3
 #, fuzzy
 #| msgid "No valid objects selected."
 msgid "This object is deprecated."
 msgstr "Keine gültigen Objekte ausgewählt."
 
-#: netbox_nsm/filtersets/cot_rulebook_assignment.py:17
-#: netbox_nsm/models/cot_rulebook.py:14
-#: netbox_nsm/rulebooks/forms/assignment.py:53
-#, fuzzy
-#| msgid "Rulebook"
-msgid "Rulebook slug"
-msgstr "Regelbuch"
-
-#: netbox_nsm/forms/object_link.py:17
-#: netbox_nsm/templates/netbox_nsm/object_link_assign.html:107
-#: netbox_nsm/templates/netbox_nsm/object_link_assign.html:142
-#: netbox_nsm/templates/netbox_nsm/object_link_edit.html:46
+#: forms/object_link.py:22 templates/netbox_nsm/object_link_assign.html:113
+#: templates/netbox_nsm/object_link_assign.html:149
+#: templates/netbox_nsm/object_link_edit.html:46
 msgid "Link type"
 msgstr "Link-Typ"
 
-#: netbox_nsm/forms/object_link.py:21
+#: forms/object_link.py:26
 #, fuzzy
 #| msgid ""
 #| "Direct: stored on object A and shown on both A and B; not propagated to "
@@ -193,762 +179,641 @@ msgstr ""
 "an Kinder. Vererben: Kind-Objekte sehen den Link ebenfalls im Security Panel "
 "(gleiche Darstellung wie direkt)."
 
-#: netbox_nsm/forms/object_link.py:40
+#: forms/object_link.py:45
 msgid "Invalid link type."
 msgstr ""
 
-#: netbox_nsm/forms/object_link.py:59
+#: forms/object_link.py:59
 msgid "── Select type ──"
 msgstr ""
 
-#: netbox_nsm/forms/object_link.py:91
-#: netbox_nsm/templates/netbox_nsm/object_link_assign.html:65
+#: forms/object_link.py:89 forms/object_link.py:169
+#: templates/netbox_nsm/object_link_assign.html:70
 msgid "Type (Object B)"
 msgstr ""
 
-#: netbox_nsm/forms/object_link.py:95
-#: netbox_nsm/templates/netbox_nsm/object_link_assign.html:141
+#: forms/object_link.py:93 forms/object_link.py:173
+#: templates/netbox_nsm/object_link_assign.html:148
 msgid "Element"
 msgstr ""
 
-#: netbox_nsm/forms/object_link.py:98
+#: forms/object_link.py:96
 msgid "ID of the object. Select a type first, then a dropdown will appear."
 msgstr ""
 
-#: netbox_nsm/forms/object_link.py:104
-#: netbox_nsm/rulebooks/assigned_objects.py:27
+#: forms/object_link.py:102 forms/object_link.py:179
+#: rulebooks/assigned_objects.py:36
 #, fuzzy
 #| msgid "Objects"
 msgid "Object"
 msgstr "Objekte"
 
-#: netbox_nsm/forms/object_link.py:110 netbox_nsm/forms/object_link.py:174
-#: netbox_nsm/templates/netbox_nsm/object_link_assign.html:118
-#: netbox_nsm/templates/netbox_nsm/object_link_assign.html:143
-#: netbox_nsm/templates/netbox_nsm/object_link_edit.html:57
+#: forms/object_link.py:108 forms/object_link.py:184 forms/object_link.py:226
+#: templates/netbox_nsm/object_link_assign.html:125
+#: templates/netbox_nsm/object_link_assign.html:150
+#: templates/netbox_nsm/object_link_edit.html:57
 msgid "Comment"
 msgstr ""
 
-#: netbox_nsm/forms/object_link.py:144
+#: forms/object_link.py:142 forms/object_link.py:203
 msgid "Please select a type."
 msgstr ""
 
-#: netbox_nsm/forms/object_link.py:151 netbox_nsm/forms/object_link.py:164
+#: forms/object_link.py:149 forms/object_link.py:156 forms/object_link.py:210
+#: forms/object_link.py:217
 msgid "This type is not linkable from the Security Panel."
 msgstr ""
 
-#: netbox_nsm/forms/type_config.py:31 netbox_nsm/models/type_config.py:38
-#: netbox_nsm/rulebooks/forms/cot.py:49
-#: netbox_nsm/rulebooks/tables/rulebook.py:125
-#: netbox_nsm/tables/type_config.py:31
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_detail_content.html:10
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_fields_table.html:14
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_fields_table_rules.html:14
-#: netbox_nsm/templates/netbox_nsm/property.html:11
-#: netbox_nsm/templates/netbox_nsm/propertytype.html:11
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_detail.html:91
-#: netbox_nsm/templates/netbox_nsm/typeconfig.html:11
-msgid "Name"
+#: forms/type_config.py:25 objects/nsm_config.py:609 tables/type_config.py:16
+#: templates/netbox_nsm/inc/rulebook_field_flags.html:32
+#: templates/netbox_nsm/inc/rulebook_field_type_flags.html:45
+#: templates/netbox_nsm/typeconfig.html:34
+#: templates/netbox_nsm/typeconfig_list.html:25
+msgid "Sort order"
 msgstr ""
 
-#: netbox_nsm/forms/type_config.py:33
-msgid "— none —"
-msgstr "— keine —"
-
-#: netbox_nsm/forms/type_config.py:35 netbox_nsm/models/type_config.py:54
-#: netbox_nsm/tables/type_config.py:40
-#: netbox_nsm/templates/netbox_nsm/inc/setup_typeconfig.html:33
-#: netbox_nsm/templates/netbox_nsm/typeconfig.html:13
-msgid "Matching Class"
+#: forms/type_config.py:26
+msgid "Lower values appear first in the Rule Viewer and Object Config list."
 msgstr ""
 
-#: netbox_nsm/forms/type_config.py:41 netbox_nsm/models/type_config.py:64
-#: netbox_nsm/tables/type_config.py:41
-#: netbox_nsm/templates/netbox_nsm/typeconfig.html:14
+#: forms/type_config.py:32 objects/nsm_config.py:620 tables/type_config.py:29
+#: templates/netbox_nsm/typeconfig.html:36
+#: templates/netbox_nsm/typeconfig_list.html:26
 #, fuzzy
 #| msgid "Display name"
 msgid "Display Template"
 msgstr "Anzeigename"
 
-#: netbox_nsm/forms/type_config.py:49 netbox_nsm/models/type_config.py:97
-#: netbox_nsm/templates/netbox_nsm/typeconfig.html:16
-msgid "Linkable in panel"
+#: forms/type_config.py:36 forms/type_config.py:93
+#: templates/netbox_nsm/inc/setup_custom_object_schema.html:138
+#: templates/netbox_nsm/typeconfig.html:32 tests/test_type_config_form.py:25
+#: tests/test_type_config_form.py:52
+msgid "Rule View"
 msgstr ""
 
-#: netbox_nsm/forms/type_config.py:51 netbox_nsm/models/type_config.py:99
-msgid ""
-"NetBox object types that may assign this NSM type via + Assign in the "
-"Security Panel. Leave empty to allow all object types."
+#: forms/type_config.py:63
+#, fuzzy
+#| msgid "Object Analyzer"
+msgid "Object Sync enabled"
+msgstr "Objektanalysator"
+
+#: forms/type_config.py:68
+msgid "Build template — IP Address"
 msgstr ""
 
-#: netbox_nsm/forms/type_config.py:57 netbox_nsm/forms/type_config.py:116
-msgid "Identity"
-msgstr "Bezeichner"
-
-#: netbox_nsm/forms/type_config.py:62 netbox_nsm/forms/type_config.py:122
-#: netbox_nsm/navigation.py:36
-msgid "Configuration"
+#: forms/type_config.py:69
+#, python-brace-format
+msgid "Use {host} for the address without CIDR, or {address} with mask."
 msgstr ""
 
-#: netbox_nsm/forms/type_config.py:112 netbox_nsm/forms/type_config.py:117
-#: netbox_nsm/models/type_config.py:47 netbox_nsm/tables/type_config.py:36
-#: netbox_nsm/templates/netbox_nsm/property.html:12
-#: netbox_nsm/templates/netbox_nsm/typeconfig.html:12
+#: forms/type_config.py:75
+msgid "Build template — Prefix"
+msgstr ""
+
+#: forms/type_config.py:76
+#, python-brace-format
+msgid "Use {network} and {prefix_length} (e.g. N-{network}-{prefix_length})."
+msgstr ""
+
+#: forms/type_config.py:82
+msgid "Build template — IP Range"
+msgstr ""
+
+#: forms/type_config.py:83
+#, python-brace-format
+msgid "Use {start_host} / {end_host} for bounds without CIDR."
+msgstr ""
+
+#: forms/type_config.py:89
+msgid "Copy description from IP Address"
+msgstr ""
+
+#: forms/type_config.py:100 templates/netbox_nsm/typeconfig.html:41
+#: tests/test_type_config_form.py:53
 #, fuzzy
 #| msgid "Objects"
-msgid "Object Type"
+msgid "Object Sync"
 msgstr "Objekte"
 
-#: netbox_nsm/mixins/assignment_filterset.py:19
+#: mixins/assignment_filterset.py:19
 msgid "Device (name)"
 msgstr "Gerät (Name)"
 
-#: netbox_nsm/mixins/assignment_filterset.py:24
+#: mixins/assignment_filterset.py:24
 msgid "Device (ID)"
 msgstr "Gerät (ID)"
 
-#: netbox_nsm/mixins/assignment_filterset.py:29
+#: mixins/assignment_filterset.py:29
 msgid "Virtual Device Context (name)"
 msgstr "Virtueller Gerätekontext (Name)"
 
-#: netbox_nsm/mixins/assignment_filterset.py:34
+#: mixins/assignment_filterset.py:34
 #, fuzzy
 #| msgid "Virtual Device Context (name)"
 msgid "Virtual Device Context (ID)"
 msgstr "Virtueller Gerätekontext (Name)"
 
-#: netbox_nsm/mixins/ports.py:35
+#: mixins/ports.py:35
 msgid "Source Port numbers"
 msgstr "Quell-Port-Nummern"
 
-#: netbox_nsm/mixins/ports.py:46
+#: mixins/ports.py:46
 #, fuzzy
 #| msgid "Source Port numbers"
 msgid "Destination Port numbers"
 msgstr "Quell-Port-Nummern"
 
-#: netbox_nsm/models/cot_rulebook.py:15
-#: netbox_nsm/models/cot_rulebook_assignment.py:32
-msgid "Slug of the deployed COT rulebook (nsm_rb_<name>)."
-msgstr ""
-
-#: netbox_nsm/models/cot_rulebook.py:21
-#, fuzzy
-#| msgid "Create demo rulebooks"
-msgid "Parent rulebook slug"
-msgstr "Demo-Rulebooks anlegen"
-
-#: netbox_nsm/models/cot_rulebook.py:22
-msgid "Optional parent rulebook slug for hierarchical grouping."
-msgstr ""
-
-#: netbox_nsm/models/cot_rulebook.py:26
-msgid "Matrix tab enabled"
-msgstr ""
-
-#: netbox_nsm/models/cot_rulebook.py:28
-msgid ""
-"When enabled, show the Matrix tab for rulebooks with source and destination "
-"zone columns."
-msgstr ""
-
-#: netbox_nsm/models/cot_rulebook.py:34
-#, fuzzy
-#| msgid "Rulebook"
-msgid "COT Rulebook"
-msgstr "Regelbuch"
-
-#: netbox_nsm/models/cot_rulebook.py:35
-#, fuzzy
-#| msgid "Rulebook"
-msgid "COT Rulebooks"
-msgstr "Regelbuch"
-
-#: netbox_nsm/models/cot_rulebook_assignment.py:31
-#: netbox_nsm/rulebooks/forms/assignment.py:32
-#: netbox_nsm/rulebooks/tables/rulebook.py:183
-#: netbox_nsm/rulebooks/virtual_all_detail.py:92
-#: netbox_nsm/rulebooks/virtual_all_tabs.py:17
-#: netbox_nsm/rulebooks/virtual_cot.py:98
-#: netbox_nsm/templates/netbox_nsm/inc/cot_rulebook_create_fields.html:115
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_detail.html:15
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_object.html:24
-#: netbox_nsm/templates/netbox_nsm/virtual_rulebook_object.html:24
-#: netbox_nsm/views/object_analyzer.py:47
-#, fuzzy
-#| msgid "Rulebook"
-msgid "Rulebook"
-msgstr "Regelbuch"
-
-#: netbox_nsm/models/cot_rulebook_assignment.py:37
-#: netbox_nsm/rulebooks/forms/cot.py:65 netbox_nsm/rulebooks/forms/cot.py:177
-#: netbox_nsm/rulebooks/forms/cot.py:209
-#: netbox_nsm/rulebooks/tables/rulebook.py:157
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_detail_content.html:50
-#: netbox_nsm/templates/netbox_nsm/inc/setup_custom_objects.html:93
-#: netbox_nsm/templates/netbox_nsm/property.html:28
-#: netbox_nsm/templates/netbox_nsm/propertytype.html:15
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_detail.html:133
-msgid "Description"
-msgstr ""
-
-#: netbox_nsm/models/cot_rulebook_assignment.py:51
-#, fuzzy
-#| msgid "Security Rulebook Assignments"
-msgid "Rulebook Assignment"
-msgstr "Sicherheitsregelbuch-Zuweisungen"
-
-#: netbox_nsm/models/cot_rulebook_assignment.py:52 netbox_nsm/navigation.py:80
-#, fuzzy
-#| msgid "Security Rulebook Assignments"
-msgid "Rulebook Assignments"
-msgstr "Sicherheitsregelbuch-Zuweisungen"
-
-#: netbox_nsm/models/object_link.py:16
-#: netbox_nsm/objects/link_propagation.py:124
+#: models/object_link.py:16 objects/link_propagation.py:124
 msgid "Direct (bidirectional, visible on both sides)"
 msgstr "Direkt (bidirektional, auf beiden Seiten sichtbar)"
 
-#: netbox_nsm/models/object_link.py:19
-#: netbox_nsm/objects/link_propagation.py:127
+#: models/object_link.py:19 objects/link_propagation.py:127
 msgid "Inherit to IPAM children (prefixes, addresses, ranges)"
 msgstr "An IPAM-Kinder vererben (Präfixe, Adressen, Bereiche)"
 
-#: netbox_nsm/models/object_link.py:21
-#: netbox_nsm/objects/link_propagation.py:132
+#: models/object_link.py:21 objects/link_propagation.py:132
 msgid "Inherit to group members"
 msgstr "An Gruppenmitglieder vererben"
 
-#: netbox_nsm/models/section.py:22
-msgid "Unique identifier (e.g. 'source', 'destination', 'services')."
-msgstr ""
-
-#: netbox_nsm/models/section.py:27
-msgid "Lower comes first in lists and navigation."
-msgstr ""
-
-#: netbox_nsm/models/section.py:33
-msgid "CustomObjectTypes that belong to this section."
-msgstr ""
-
-#: netbox_nsm/models/section.py:37
-#, fuzzy
-#| msgid "NSM Section"
-msgid "NSM Section"
-msgstr "NSM-Einrichtung"
-
-#: netbox_nsm/models/section.py:38
-#, fuzzy
-#| msgid "NSM Object Links"
-msgid "NSM Sections"
-msgstr "NSM-Objektverknüpfungen"
-
-#: netbox_nsm/models/setup_settings.py:16
-#: netbox_nsm/templates/netbox_nsm/inc/setup_ui_labels.html:16
-msgid "Menu label"
-msgstr "Menübezeichnung"
-
-#: netbox_nsm/models/setup_settings.py:17
-msgid "Top-level plugin menu entry in the NetBox sidebar."
-msgstr "Eintrag des Plugins im NetBox-Seitenmenü."
-
-#: netbox_nsm/models/setup_settings.py:22
-#: netbox_nsm/templates/netbox_nsm/inc/setup_ui_labels.html:21
-msgid "Panel label"
-msgstr "Panel-Bezeichnung"
-
-#: netbox_nsm/models/setup_settings.py:23
-msgid "Security card title on object detail pages."
-msgstr "Titel der Security-Karte auf Objektdetailseiten."
-
-#: netbox_nsm/models/setup_settings.py:27
-msgid "Setup menu dismissed"
-msgstr "Setup-Menü ausgeblendet"
-
-#: netbox_nsm/models/setup_settings.py:29
-msgid ""
-"When True, the Setup menu entry stays hidden until restored via plugin "
-"configuration."
-msgstr ""
-"Wenn True, bleibt der Setup-Menüeintrag ausgeblendet, bis er über die Plugin-"
-"Konfiguration wiederhergestellt wird."
-
-#: netbox_nsm/models/setup_settings.py:35
-msgid "Last seen setup_menu config"
-msgstr "Zuletzt gesehene setup_menu-Konfiguration"
-
-#: netbox_nsm/models/setup_settings.py:37
-msgid ""
-"Tracks the last observed PLUGINS_CONFIG setup_menu value for restore after "
-"toggling false → true."
-msgstr ""
-
-#: netbox_nsm/models/setup_settings.py:43
-#: netbox_nsm/models/setup_settings.py:44
-msgid "NSM UI Settings"
-msgstr "NSM-UI-Einstellungen"
-
-#: netbox_nsm/models/type_config.py:20
-#, fuzzy
-#| msgid "Zone"
-msgid "Zone"
-msgstr "Zone"
-
-#: netbox_nsm/models/type_config.py:21
-msgid "Label-Scope"
-msgstr ""
-
-#: netbox_nsm/models/type_config.py:22
-#: netbox_nsm/templates/netbox_nsm/inc/cot_fields_readonly_table.html:7
-#: netbox_nsm/templates/netbox_nsm/inc/setup_custom_objects.html:92
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:114
-#, fuzzy
-#| msgid "Label"
-msgid "Label"
-msgstr "Bezeichnung"
-
-#: netbox_nsm/models/type_config.py:23
-msgid "Trust"
-msgstr ""
-
-#: netbox_nsm/models/type_config.py:24
-#, fuzzy
-#| msgid "Service"
-msgid "Service"
-msgstr "Dienst"
-
-#: netbox_nsm/models/type_config.py:25 netbox_nsm/security/panel_sections.py:9
-msgid "Action"
-msgstr ""
-
-#: netbox_nsm/models/type_config.py:26 netbox_nsm/security/panel_sections.py:10
-msgid "Info"
-msgstr ""
-
-#: netbox_nsm/models/type_config.py:27
-msgid "User"
-msgstr ""
-
-#: netbox_nsm/models/type_config.py:28
-msgid "Application"
-msgstr ""
-
-#: netbox_nsm/models/type_config.py:29
-#: netbox_nsm/rulebooks/grid_payload.py:1156
-#: netbox_nsm/templates/netbox_nsm/propertytype.html:14
-#: netbox_nsm/views/panel_link_actions.py:61
-msgid "Group"
-msgstr ""
-
-#: netbox_nsm/models/type_config.py:30
-msgid "Other"
-msgstr ""
-
-#: netbox_nsm/models/type_config.py:40
-msgid "Display name used as column header and type label throughout NSM."
-msgstr ""
-
-#: netbox_nsm/models/type_config.py:56
-msgid ""
-"Semantic category of this type. Used to automatically derive the matching "
-"strategy of a Rulebook (e.g. 'label', 'zone', 'address')."
-msgstr ""
-
-#: netbox_nsm/models/type_config.py:66
-#, python-brace-format
-msgid ""
-"Format string used to render an object's display name. Field names in curly "
-"braces are substituted (e.g. '{name} ({protocol})')."
-msgstr ""
-
-#: netbox_nsm/models/type_config.py:72
-#: netbox_nsm/templates/netbox_nsm/typeconfig.html:31
-msgid "Allow Virtual Groups"
-msgstr ""
-
-#: netbox_nsm/models/type_config.py:74
-msgid ""
-"Allows building virtual groups (AND-linking) for this type in the panel and "
-"rule editor. Multiple groups are linked with OR."
-msgstr ""
-
-#: netbox_nsm/models/type_config.py:80
-#: netbox_nsm/templates/netbox_nsm/typeconfig.html:32
-msgid "Inherit from parent"
-msgstr ""
-
-#: netbox_nsm/models/type_config.py:82
-msgid ""
-"When enabled, Security Panel shows NSM links of the containing Prefix on "
-"child objects (IP Address, IP Range, sub-Prefix)."
-msgstr ""
-
-#: netbox_nsm/models/type_config.py:88
-#: netbox_nsm/templates/netbox_nsm/typeconfig.html:33
-msgid "Stop inheritance if own link present"
-msgstr ""
-
-#: netbox_nsm/models/type_config.py:90
-msgid ""
-"If the child object already has its own direct NSM link of the same type, "
-"inherited links of that type are suppressed."
-msgstr ""
-
-#: netbox_nsm/models/type_config.py:105 netbox_nsm/navigation.py:17
-#: netbox_nsm/templates/netbox_nsm/typeconfig.html:9
+#: models/permission_anchors.py:21 navigation.py:18
+#: templates/netbox_nsm/inc/setup_typeconfig.html:6
+#: templates/netbox_nsm/typeconfig.html:5
+#: templates/netbox_nsm/typeconfig.html:12
+#: templates/netbox_nsm/typeconfig_list.html:4
+#: templates/netbox_nsm/typeconfig_list.html:9
 #, fuzzy
 #| msgid "Rulebook"
-msgid "Type Config"
+msgid "Object Config"
 msgstr "Typkonfigurationen"
 
-#: netbox_nsm/models/type_config.py:106
+#: models/permission_anchors.py:22
 #, fuzzy
 #| msgid "Rulebook"
-msgid "Type Configs"
+msgid "Object Configs"
 msgstr "Typkonfigurationen"
 
-#: netbox_nsm/navigation.py:23
+#: navigation.py:24
 msgid "Setup"
 msgstr "Einrichtung"
 
-#: netbox_nsm/navigation.py:64 netbox_nsm/navigation.py:100
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_breadcrumbs.html:3
-#: netbox_nsm/templates/netbox_nsm/inc/security_links.html:178
-#: netbox_nsm/templates/netbox_nsm/inc/security_links.html:322
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:170
-#: netbox_nsm/templates/netbox_nsm/rulebook_list.html:9
+#: navigation.py:37
+msgid "Configuration"
+msgstr ""
+
+#: navigation.py:65 navigation.py:99 rulebooks/permissions.py:34
+#: templates/netbox_nsm/inc/rulebook_breadcrumbs.html:3
+#: templates/netbox_nsm/inc/security_links.html:214
+#: templates/netbox_nsm/inc/security_links.html:363
+#: templates/netbox_nsm/object_analyzer.html:246
+#: templates/netbox_nsm/rulebook_list.html:9
 msgid "Rulebooks"
 msgstr "Regelbuch"
 
-#: netbox_nsm/navigation.py:69 netbox_nsm/rulebooks/object_actions.py:14
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:77
+#: navigation.py:71 navigation_objects.py:39 rulebooks/object_actions.py:14
+#: templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:77
+#: templates/netbox_nsm/typeconfig_list.html:14
 msgid "Add"
 msgstr "Hinzufügen"
 
-#: netbox_nsm/navigation.py:90
-#: netbox_nsm/templates/netbox_nsm/inc/security_links.html:140
-#: netbox_nsm/templates/netbox_nsm/inc/security_links.html:141
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:4
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:63
+#: navigation.py:84 templates/netbox_nsm/inc/security_links.html:176
+#: templates/netbox_nsm/inc/security_links.html:177
+#: templates/netbox_nsm/object_analyzer.html:4
+#: templates/netbox_nsm/object_analyzer.html:131
 msgid "Object Analyzer"
 msgstr "Objektanalysator"
 
-#: netbox_nsm/navigation.py:101
+#: navigation.py:100 templates/netbox_nsm/inc/security_links.html:406
 msgid "Analysis"
 msgstr "Analyse"
 
-#: netbox_nsm/navigation.py:104
-#, fuzzy
-#| msgid "Assigned Objects"
-msgid "Assignments"
-msgstr "Zugewiesene Objekte"
+#: navigation_objects.py:48
+msgid "Import"
+msgstr ""
 
-#: netbox_nsm/objects/address_ipam_fk.py:90
+#: navigation_objects.py:74 templates/netbox_nsm/object_analyzer.html:249
+#: templates/netbox_nsm/propertytype.html:38 tests/test_navigation.py:70
+msgid "Objects"
+msgstr "Objekte"
+
+#: objects/address_ipam_fk.py:246
 #, fuzzy
 #| msgid "IP Address"
 msgid "IP address"
 msgstr "IP-Adresse"
 
-#: netbox_nsm/objects/address_ipam_fk.py:91
+#: objects/address_ipam_fk.py:247
 msgid "IP range"
 msgstr ""
 
-#: netbox_nsm/objects/address_ipam_fk.py:94
+#: objects/address_ipam_fk.py:250
 #, python-brace-format
 msgid "IPAM reference ({field})"
 msgstr ""
 
-#: netbox_nsm/objects/link_propagation.py:130
+#: objects/address_object_builder.py:539
+msgid "Rename"
+msgstr ""
+
+#: objects/address_object_builder.py:542
+msgid "Rename this object to the expected name"
+msgstr ""
+
+#: objects/address_object_builder.py:546
+#, fuzzy
+#| msgid "Create"
+msgid "Create new"
+msgstr "Erstellen"
+
+#: objects/address_object_builder.py:550
+msgid ""
+"Create a correctly named object, unlink this one, and set it to deprecated"
+msgstr ""
+
+#: objects/address_object_builder.py:562
+msgid "Fix status"
+msgstr ""
+
+#: objects/address_object_builder.py:565
+msgid "Set status to the expected value"
+msgstr ""
+
+#: objects/address_object_builder.py:577
+#: templates/netbox_custom_objects/customobject_edit.html:46
+#: templates/netbox_nsm/cot_rulebook_create.html:14
+#: templates/netbox_nsm/inc/setup_demo.html:30
+#: templates/netbox_nsm/inc/setup_demo.html:59
+msgid "Create"
+msgstr "Erstellen"
+
+#: objects/address_object_builder.py:580
+msgid "Create the missing NSM address object"
+msgstr ""
+
+#: objects/link_propagation.py:130
 msgid "Inherit to IPAM children — stop when child has own link of same type"
 msgstr ""
 
-#: netbox_nsm/objects/link_propagation.py:134
+#: objects/link_propagation.py:134
 msgid "Inherit to group members — stop when child has own link of same type"
 msgstr ""
 
-#: netbox_nsm/objects/link_propagation.py:168
+#: objects/link_propagation.py:168
 msgid "stop on own"
 msgstr ""
 
-#: netbox_nsm/rulebooks/assigned_objects.py:26
+#: objects/nsm_config.py:607 rulebooks/forms/cot.py:49
+#: rulebooks/tables/rulebook.py:121 tables/type_config.py:20
+#: templates/netbox_nsm/inc/rulebook_detail_content.html:10
+#: templates/netbox_nsm/inc/rulebook_fields_table.html:14
+#: templates/netbox_nsm/inc/rulebook_fields_table_rules.html:14
+#: templates/netbox_nsm/property.html:11
+#: templates/netbox_nsm/propertytype.html:11
+#: templates/netbox_nsm/rulebook_cot_detail.html:101
+msgid "Name"
+msgstr ""
+
+#: objects/nsm_config.py:614
+#: templates/netbox_nsm/inc/cot_rulebook_create_fields.html:123
+#: templates/netbox_nsm/inc/setup_custom_object_schema.html:204
+#: templates/netbox_nsm/inc/setup_custom_objects.html:188
+#: templates/netbox_nsm/propertytype.html:13
+#: templates/netbox_nsm/rulebook_cot_detail.html:38
+#: templates/netbox_nsm/rulebook_cot_detail.html:105
+msgid "Slug"
+msgstr ""
+
+#: objects/type_config_export.py:144 tables/type_config.py:25
+#: templates/netbox_nsm/property.html:12
+#: templates/netbox_nsm/typeconfig.html:35
+#: templates/netbox_nsm/typeconfig_list.html:24
+#, fuzzy
+#| msgid "Objects"
+msgid "Object Type"
+msgstr "Objekte"
+
+#: rulebooks/assigned_objects.py:35
 msgid "VDC"
 msgstr ""
 
-#: netbox_nsm/rulebooks/cell_html.py:48
+#: rulebooks/assigned_objects.py:73
+msgid "Enforcement point"
+msgstr ""
+
+#: rulebooks/cell_html.py:51
 msgid "Add to quick filter"
 msgstr ""
 
-#: netbox_nsm/rulebooks/cell_html.py:279
+#: rulebooks/cell_html.py:298
 #, python-format
 msgid "%(count)s object"
 msgid_plural "%(count)s objects"
 msgstr[0] "%(count)s Objekt"
 msgstr[1] "%(count)s Objekte"
 
-#: netbox_nsm/rulebooks/cot_rule_clone.py:28
+#: rulebooks/cot_hierarchy.py:113 rulebooks/rules_row_grouping.py:116
+#: templates/netbox_nsm/inc/security_links.html:199
+#: templates/netbox_nsm/rulebook_cot_detail.html:118
+#: templates/netbox_nsm/rulebook_cot_detail.html:148
+msgid "None"
+msgstr ""
+
+#: rulebooks/cot_rule_clone.py:28
 #, python-format
 msgid "Copy of %(name)s"
 msgstr ""
 
-#: netbox_nsm/rulebooks/create.py:38
+#: rulebooks/create.py:38
 msgid "Enter a valid rulebook name."
 msgstr ""
 
-#: netbox_nsm/rulebooks/create.py:41
+#: rulebooks/create.py:41
 msgid "Invalid rulebook slug."
 msgstr ""
 
-#: netbox_nsm/rulebooks/create.py:55
+#: rulebooks/create.py:55
 msgid "Rulebook not found."
 msgstr ""
 
-#: netbox_nsm/rulebooks/create.py:84 netbox_nsm/rulebooks/create.py:131
+#: rulebooks/create.py:85 rulebooks/create.py:134
 #, python-format
 msgid "A rulebook with slug %(slug)s already exists."
 msgstr ""
 
-#: netbox_nsm/rulebooks/forms/assignment.py:62
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:158
+#: rulebooks/forms/bulk_assign.py:17
+#: templates/netbox_nsm/object_analyzer.html:234
 msgid "Devices"
 msgstr "Gerät"
 
-#: netbox_nsm/rulebooks/forms/assignment.py:67
+#: rulebooks/forms/bulk_assign.py:22
 #, fuzzy
 #| msgid "Virtual Machine"
 msgid "Virtual Machines"
 msgstr "Virtuelle Maschine"
 
-#: netbox_nsm/rulebooks/forms/assignment.py:72
+#: rulebooks/forms/bulk_assign.py:27
 #, fuzzy
 #| msgid "Virtual Device Context (name)"
 msgid "Virtual Device Contexts"
 msgstr "Virtueller Gerätekontext (Name)"
 
-#: netbox_nsm/rulebooks/forms/assignment.py:82
+#: rulebooks/forms/bulk_assign.py:37
 msgid "Select at least one device, VM, or VDC."
 msgstr ""
 
-#: netbox_nsm/rulebooks/forms/cot.py:33
+#: rulebooks/forms/cot.py:33
 msgid "Portable-schema YAML defining rulebook columns."
 msgstr ""
 
-#: netbox_nsm/rulebooks/forms/cot.py:44 netbox_nsm/rulebooks/forms/cot.py:172
-#: netbox_nsm/rulebooks/forms/cot.py:201
-#: netbox_nsm/templates/netbox_nsm/propertytype.html:12
+#: rulebooks/forms/cot.py:44 rulebooks/forms/cot.py:171
+#: rulebooks/forms/cot.py:200 templates/netbox_nsm/propertytype.html:12
 msgid "Display name"
 msgstr "Anzeigename"
 
-#: netbox_nsm/rulebooks/forms/cot.py:46
+#: rulebooks/forms/cot.py:46
 msgid "Label in the rulebook list and detail page."
 msgstr ""
 
-#: netbox_nsm/rulebooks/forms/cot.py:52
+#: rulebooks/forms/cot.py:52
 msgid ""
 "Derived from the display name (lowercase, spaces as _, no special "
 "characters). Creates slug nsm_rb_<name>."
 msgstr ""
 
-#: netbox_nsm/rulebooks/forms/cot.py:68
+#: rulebooks/forms/cot.py:63 rulebooks/forms/cot.py:176
+#: rulebooks/forms/cot.py:208 rulebooks/tables/rulebook.py:153
+#: templates/netbox_nsm/inc/rulebook_detail_content.html:50
+#: templates/netbox_nsm/inc/setup_custom_object_schema.html:206
+#: templates/netbox_nsm/inc/setup_custom_objects.html:190
+#: templates/netbox_nsm/property.html:28
+#: templates/netbox_nsm/propertytype.html:15
+#: templates/netbox_nsm/rulebook_cot_detail.html:153
+msgid "Description"
+msgstr ""
+
+#: rulebooks/forms/cot.py:66
 msgid "Optional rulebook description (defaults to template text)."
 msgstr ""
 
-#: netbox_nsm/rulebooks/forms/cot.py:71 netbox_nsm/rulebooks/forms/cot.py:215
-#: netbox_nsm/rulebooks/forms/cot.py:280
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_detail_content.html:22
+#: rulebooks/forms/cot.py:69 rulebooks/forms/cot.py:214
+#: rulebooks/forms/cot.py:307
+#: templates/netbox_nsm/inc/rulebook_detail_content.html:22
 #, fuzzy
 #| msgid "Create demo rulebooks"
 msgid "Parent rulebook"
 msgstr "Demo-Rulebooks anlegen"
 
-#: netbox_nsm/rulebooks/forms/cot.py:73 netbox_nsm/rulebooks/forms/cot.py:217
-#: netbox_nsm/rulebooks/forms/cot.py:282
+#: rulebooks/forms/cot.py:72 rulebooks/forms/cot.py:217
+#: rulebooks/forms/cot.py:310
 msgid "Optional parent for hierarchical grouping in the rulebook list."
 msgstr ""
 
-#: netbox_nsm/rulebooks/forms/cot.py:126 netbox_nsm/rulebooks/forms/cot.py:193
-#: netbox_nsm/rulebooks/forms/cot.py:265
+#: rulebooks/forms/cot.py:125 rulebooks/forms/cot.py:192
+#: rulebooks/forms/cot.py:283
 #, fuzzy
 #| msgid "Display name"
 msgid "Enter a display name."
 msgstr "Anzeigename"
 
-#: netbox_nsm/rulebooks/forms/cot.py:135
+#: rulebooks/forms/cot.py:134
 msgid "Enter a name."
 msgstr ""
 
-#: netbox_nsm/rulebooks/forms/cot.py:137
+#: rulebooks/forms/cot.py:136
 msgid "Enter a valid name."
 msgstr ""
 
-#: netbox_nsm/rulebooks/forms/cot.py:174
+#: rulebooks/forms/cot.py:173
 msgid "Label shown in the rulebook list and detail page."
 msgstr ""
 
-#: netbox_nsm/rulebooks/forms/cot.py:204
+#: rulebooks/forms/cot.py:203
 msgid ""
 "Sets both singular and plural display names on the custom object type "
 "(defaults to \"Rulebook <name>\" when the prefix is omitted)."
 msgstr ""
 
-#: netbox_nsm/rulebooks/forms/cot.py:221
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_detail_content.html:40
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_detail.html:122
+#: rulebooks/forms/cot.py:221
+#: templates/netbox_nsm/inc/rulebook_detail_content.html:40
+#: templates/netbox_nsm/rulebook_cot_detail.html:132
 msgid "Matrix tab"
 msgstr ""
 
-#: netbox_nsm/rulebooks/forms/cot.py:224
+#: rulebooks/forms/cot.py:224
 msgid ""
 "Show the Matrix tab for rulebooks with source and destination zone columns."
 msgstr ""
 
-#: netbox_nsm/rulebooks/grid_payload.py:52
+#: rulebooks/forms/cot.py:228 templates/netbox_nsm/rulebook_cot_detail.html:143
+msgid "Grouped rows"
+msgstr "Grouped Rows"
+
+#: rulebooks/forms/cot.py:232
+msgid ""
+"Group rules on the Rules tab into a vertical tab column by the selected "
+"column (e.g. Source - Zone). Choose None to disable."
+msgstr ""
+
+#: rulebooks/forms/cot.py:299
+msgid "Select a valid column."
+msgstr ""
+
+#: rulebooks/forms/rulebook_link.py:11 rulebooks/permissions.py:33
+#: rulebooks/virtual_all_detail.py:90 rulebooks/virtual_all_tabs.py:19
+#: rulebooks/virtual_cot.py:98
+#: templates/netbox_nsm/inc/cot_rulebook_create_fields.html:115
+#: templates/netbox_nsm/rulebook_cot_detail.html:15
+#: templates/netbox_nsm/rulebook_cot_object.html:24
+#: templates/netbox_nsm/virtual_rulebook_object.html:24
+#, fuzzy
+#| msgid "Rulebook"
+msgid "Rulebook"
+msgstr "Regelbuch"
+
+#: rulebooks/grid/cells.py:12
 msgid "On"
 msgstr ""
 
-#: netbox_nsm/rulebooks/grid_payload.py:52
+#: rulebooks/grid/cells.py:12
 msgid "Off"
 msgstr ""
 
-#: netbox_nsm/rulebooks/rules_tab_base.py:721
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_row_actions.html:13
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_type_row_actions.html:13
+#: rulebooks/grid/column_defs.py:27
+#: templates/netbox_nsm/inc/ipa_cell_object_type_label.html:6
+#: templates/netbox_nsm/propertytype.html:14 views/panel_link_actions.py:61
+msgid "Group"
+msgstr ""
+
+#: rulebooks/rules_row_grouping.py:46
+msgid "(empty)"
+msgstr ""
+
+#: rulebooks/rules_tab/cells.py:104
+#: templates/netbox_nsm/inc/rulebook_field_row_actions.html:13
+#: templates/netbox_nsm/inc/rulebook_field_type_row_actions.html:13
 msgid "Toggle Dropdown"
 msgstr ""
 
-#: netbox_nsm/rulebooks/rules_tab_base.py:725
-#: netbox_nsm/templates/netbox_nsm/htmx/bulk_delete_form.html:79
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_row_actions.html:25
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_type_row_actions.html:18
-#: netbox_nsm/templates/netbox_nsm/object_link_assign.html:172
+#: rulebooks/rules_tab/cells.py:108
+#: templates/netbox_nsm/htmx/bulk_delete_form.html:79
+#: templates/netbox_nsm/inc/rulebook_field_row_actions.html:25
+#: templates/netbox_nsm/inc/rulebook_field_type_row_actions.html:18
+#: templates/netbox_nsm/object_link_assign.html:201
+#: templates/netbox_nsm/typeconfig.html:24
+#: templates/netbox_nsm/typeconfig_list.html:40
 msgid "Delete"
 msgstr ""
 
-#: netbox_nsm/rulebooks/rules_tab_base.py:733
+#: rulebooks/rules_tab/cells.py:116
 msgid "Clone"
 msgstr ""
 
-#: netbox_nsm/rulebooks/rules_tab_base.py:742
-#: netbox_nsm/rulebooks/rules_tab_base.py:751
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:82
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:86
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_row_actions.html:7
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_type_row_actions.html:8
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_detail.html:18
+#: rulebooks/rules_tab/cells.py:125 rulebooks/rules_tab/cells.py:134
+#: templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:82
+#: templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:86
+#: templates/netbox_nsm/inc/rulebook_field_row_actions.html:7
+#: templates/netbox_nsm/inc/rulebook_field_type_row_actions.html:8
+#: templates/netbox_nsm/rulebook_cot_detail.html:18
+#: templates/netbox_nsm/typeconfig.html:21
+#: templates/netbox_nsm/typeconfig_list.html:37
 msgid "Edit"
 msgstr ""
 
-#: netbox_nsm/rulebooks/status.py:17
-#: netbox_nsm/rulebooks/tables/rulebook.py:116
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_status_badge.html:5
+#: rulebooks/status.py:17 rulebooks/tables/rulebook.py:112
+#: templates/netbox_nsm/inc/rulebook_status_badge.html:5
 msgid "Active"
 msgstr ""
 
-#: netbox_nsm/rulebooks/status.py:18
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_status_badge.html:7
+#: rulebooks/status.py:18 templates/netbox_nsm/inc/rulebook_status_badge.html:7
 msgid "Deprecated"
 msgstr ""
 
-#: netbox_nsm/rulebooks/status.py:19
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_status_badge.html:9
+#: rulebooks/status.py:19 templates/netbox_nsm/inc/rulebook_status_badge.html:9
 msgid "Reserved"
 msgstr ""
 
-#: netbox_nsm/rulebooks/status.py:20
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_status_badge.html:11
+#: rulebooks/status.py:20
+#: templates/netbox_nsm/inc/rulebook_status_badge.html:11
 msgid "Container"
 msgstr ""
 
-#: netbox_nsm/rulebooks/status.py:38
+#: rulebooks/status.py:38
 msgid "Unknown"
 msgstr ""
 
-#: netbox_nsm/rulebooks/tables/rulebook.py:26
+#: rulebooks/tables/rulebook.py:26
 msgid "Target of enforcement targets"
 msgstr ""
 
-#: netbox_nsm/rulebooks/tables/rulebook.py:130
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_detail_content.html:18
-#: netbox_nsm/templates/netbox_nsm/inc/setup_custom_objects.html:94
-#: netbox_nsm/templates/netbox_nsm/inc/setup_typeconfig.html:34
+#: rulebooks/tables/rulebook.py:126
+#: templates/netbox_nsm/inc/rulebook_detail_content.html:18
+#: templates/netbox_nsm/inc/setup_custom_object_schema.html:207
+#: templates/netbox_nsm/inc/setup_custom_objects.html:191
+#: templates/netbox_nsm/inc/setup_typeconfig.html:34
 msgid "Status"
 msgstr ""
 
-#: netbox_nsm/rulebooks/tables/rulebook.py:149
-#: netbox_nsm/rulebooks/virtual_all_tabs.py:26
-#: netbox_nsm/rulebooks/virtual_cot_tabs.py:21
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:169
+#: rulebooks/tables/rulebook.py:145 rulebooks/virtual_all_tabs.py:28
+#: rulebooks/virtual_cot_tabs.py:23
+#: templates/netbox_nsm/object_analyzer.html:245
 msgid "Rules"
 msgstr ""
 
-#: netbox_nsm/rulebooks/tables/rulebook.py:172
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_detail.html:103
-#, fuzzy
-#| msgid "Parent Groups"
-msgid "Parent"
-msgstr "Übergeordnete Gruppen"
-
-#: netbox_nsm/rulebooks/tables/rulebook.py:177
-#, fuzzy
-#| msgid "Assigned Objects"
-msgid "Assigned Object"
-msgstr "Zugewiesene Objekte"
-
-#: netbox_nsm/rulebooks/templates.py:618
+#: rulebooks/templates.py:618
 msgid "Enter a rulebook schema."
 msgstr ""
 
-#: netbox_nsm/rulebooks/templates.py:623
+#: rulebooks/templates.py:623
 #, python-format
 msgid "Invalid YAML: %(error)s"
 msgstr ""
 
-#: netbox_nsm/rulebooks/templates.py:626
+#: rulebooks/templates.py:626
 msgid "Schema must be a YAML mapping."
 msgstr ""
 
-#: netbox_nsm/rulebooks/templates.py:628
+#: rulebooks/templates.py:628
 msgid "schema_version must be '1'."
 msgstr ""
 
-#: netbox_nsm/rulebooks/templates.py:632
+#: rulebooks/templates.py:632
 msgid "Schema must contain at least one type in types."
 msgstr ""
 
-#: netbox_nsm/rulebooks/templates.py:636
+#: rulebooks/templates.py:636
 msgid "The first type entry must be a mapping."
 msgstr ""
 
-#: netbox_nsm/rulebooks/templates.py:640
+#: rulebooks/templates.py:640
 msgid "Schema type must define at least one field."
 msgstr ""
 
-#: netbox_nsm/rulebooks/templates.py:646
+#: rulebooks/templates.py:646
 #, python-format
 msgid "Field %(index)s must be a mapping."
 msgstr ""
 
-#: netbox_nsm/rulebooks/templates.py:651
+#: rulebooks/templates.py:651
 #, python-format
 msgid "Field %(index)s is missing name."
 msgstr ""
 
-#: netbox_nsm/rulebooks/templates.py:655
+#: rulebooks/templates.py:655
 #, python-format
 msgid "Duplicate field name: %(name)s."
 msgstr ""
 
-#: netbox_nsm/rulebooks/templates.py:661
+#: rulebooks/templates.py:661
 #, python-format
 msgid "Field %(name)s is missing type."
 msgstr ""
 
-#: netbox_nsm/rulebooks/views/cot.py:161
+#: rulebooks/views/cot.py:185
 #, fuzzy
 #| msgid "Rulebook (Name)"
 msgid "Rulebook updated."
 msgstr "Regelbuch (Name)"
 
-#: netbox_nsm/rulebooks/views/cot.py:235
+#: rulebooks/views/cot.py:250
 #, fuzzy, python-format
 #| msgid ""
 #| "Demo applied: %(types)d CustomObjectTypes, %(created)d new objects "
@@ -958,158 +823,149 @@ msgstr ""
 "Demo angewendet: %(types)d CustomObjectTypes, %(created)d neue Objekte "
 "erstellt, %(skipped)d bereits vorhanden."
 
-#: netbox_nsm/rulebooks/views/cot.py:313
-#: netbox_nsm/rulebooks/views/virtual_all.py:144
-#: netbox_nsm/rulebooks/virtual_all_tabs.py:56
-#: netbox_nsm/rulebooks/virtual_cot_tabs.py:42
+#: rulebooks/views/cot.py:328 rulebooks/views/virtual_all.py:163
+#: rulebooks/virtual_all_tabs.py:58 rulebooks/virtual_cot_tabs.py:44
+#: templates/netbox_nsm/customobject.html:13
 msgid "Changelog"
 msgstr ""
 
-#: netbox_nsm/rulebooks/views/cot.py:368
+#: rulebooks/views/cot.py:394
 #, fuzzy, python-format
 #| msgid "Rulebook (Name)"
 msgid "Rulebook %(name)s created."
 msgstr "Regelbuch (Name)"
 
-#: netbox_nsm/rulebooks/views/virtual_all.py:111
-#: netbox_nsm/rulebooks/virtual_all_tabs.py:36
+#: rulebooks/views/virtual_all.py:128 rulebooks/virtual_all_tabs.py:38
 msgid "Contacts"
 msgstr ""
 
-#: netbox_nsm/rulebooks/views/virtual_all.py:129
-#: netbox_nsm/rulebooks/virtual_all_tabs.py:46
+#: rulebooks/views/virtual_all.py:147 rulebooks/virtual_all_tabs.py:48
+#: templates/netbox_nsm/customobject.html:10
 msgid "Journal"
 msgstr ""
 
-#: netbox_nsm/rulebooks/virtual_all.py:86
-#: netbox_nsm/templates/netbox_nsm/virtual_rulebook_object.html:6
+#: rulebooks/virtual_all.py:86
+#: templates/netbox_nsm/virtual_rulebook_object.html:6
 #, fuzzy
 #| msgid "Firewall Rule"
 msgid "All Rules"
 msgstr "Firewall-Regel"
 
-#: netbox_nsm/rulebooks/virtual_all.py:94
+#: rulebooks/virtual_all.py:94
 msgid "Read-only view across all COT policy rulebooks."
 msgstr ""
 
-#: netbox_nsm/rulebooks/virtual_all.py:117
+#: rulebooks/virtual_all.py:117
 msgid "Policy (aggregated)"
 msgstr ""
 
-#: netbox_nsm/rulebooks/virtual_cot_tabs.py:31
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_matrix.html:201
+#: rulebooks/virtual_cot_tabs.py:33
+#: templates/netbox_nsm/rulebook_cot_matrix.html:225
 msgid "Matrix"
 msgstr ""
 
-#: netbox_nsm/security/panel_sections.py:6
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_group_row_multiline.html:32
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_row.html:13
+#: security/panel_sections.py:6
+#: templates/netbox_nsm/inc/rulebook_field_group_row_multiline.html:32
+#: templates/netbox_nsm/inc/rulebook_field_row.html:13
 msgid "Source"
 msgstr ""
 
-#: netbox_nsm/security/panel_sections.py:7
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_group_row_multiline.html:34
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_row.html:15
+#: security/panel_sections.py:7
+#: templates/netbox_nsm/inc/rulebook_field_group_row_multiline.html:34
+#: templates/netbox_nsm/inc/rulebook_field_row.html:15
 msgid "Destination"
 msgstr ""
 
-#: netbox_nsm/security/panel_sections.py:8
+#: security/panel_sections.py:8
 #, fuzzy
 #| msgid "Service"
 msgid "Services"
 msgstr "Dienst"
 
-#: netbox_nsm/tables/type_config.py:43
-#, fuzzy
-#| msgid "NSM Panel"
-msgid "Panel"
-msgstr "NSM Panel"
+#: security/panel_sections.py:9
+msgid "Action"
+msgstr ""
 
-#: netbox_nsm/tables/type_config.py:98
-#: netbox_nsm/templates/netbox_nsm/typeconfig.html:25
-#, fuzzy
-#| msgid "All interfaces"
-msgid "All types"
-msgstr "Alle Interfaces"
+#: security/panel_sections.py:10
+#: templates/netbox_nsm/inc/ipa_drilldown_source_meta.html:7
+msgid "Info"
+msgstr ""
 
-#: netbox_nsm/templates/netbox_custom_objects/customobject_edit.html:17
+#: templates/netbox_custom_objects/customobject_edit.html:17
 msgid "Editing"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_custom_objects/customobject_edit.html:19
+#: templates/netbox_custom_objects/customobject_edit.html:19
 #, python-format
 msgid "Add a new %(custom_object_type)s"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_custom_objects/customobject_edit.html:38
-#: netbox_nsm/templates/netbox_nsm/address_ipam_fk_clear.html:44
-#: netbox_nsm/templates/netbox_nsm/address_ipam_fk_edit.html:36
-#: netbox_nsm/templates/netbox_nsm/cot_rulebook_bulk_assign.html:27
-#: netbox_nsm/templates/netbox_nsm/cot_rulebook_create.html:13
-#: netbox_nsm/templates/netbox_nsm/group_m2m_edit.html:38
-#: netbox_nsm/templates/netbox_nsm/group_m2m_remove.html:37
-#: netbox_nsm/templates/netbox_nsm/htmx/bulk_delete_form.html:78
-#: netbox_nsm/templates/netbox_nsm/object_link_delete.html:33
-#: netbox_nsm/templates/netbox_nsm/object_link_edit.html:68
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_detail.html:84
+#: templates/netbox_custom_objects/customobject_edit.html:38
+#: templates/netbox_nsm/address_ipam_fk_clear.html:44
+#: templates/netbox_nsm/address_ipam_fk_edit.html:36
+#: templates/netbox_nsm/cot_rulebook_bulk_assign.html:27
+#: templates/netbox_nsm/cot_rulebook_create.html:13
+#: templates/netbox_nsm/group_m2m_edit.html:38
+#: templates/netbox_nsm/group_m2m_remove.html:37
+#: templates/netbox_nsm/htmx/bulk_delete_form.html:78
+#: templates/netbox_nsm/object_analyzer.html:229
+#: templates/netbox_nsm/object_link_delete.html:33
+#: templates/netbox_nsm/object_link_edit.html:68
+#: templates/netbox_nsm/objectconfig_add.html:26
+#: templates/netbox_nsm/rulebook_cot_detail.html:94
+#: templates/netbox_nsm/rulebook_link_assign.html:20
 msgid "Cancel"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_custom_objects/customobject_edit.html:41
-#: netbox_nsm/templates/netbox_nsm/address_ipam_fk_edit.html:34
-#: netbox_nsm/templates/netbox_nsm/group_m2m_edit.html:36
-#: netbox_nsm/templates/netbox_nsm/inc/setup_ui_labels.html:27
-#: netbox_nsm/templates/netbox_nsm/object_link_edit.html:66
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_detail.html:85
+#: templates/netbox_custom_objects/customobject_edit.html:41
+#: templates/netbox_nsm/address_ipam_fk_edit.html:34
+#: templates/netbox_nsm/group_m2m_edit.html:36
+#: templates/netbox_nsm/object_link_edit.html:66
+#: templates/netbox_nsm/rulebook_cot_detail.html:95
 msgid "Save"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_custom_objects/customobject_edit.html:44
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_fields_table.html:17
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_fields_table_rules.html:17
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_table_thead.html:36
+#: templates/netbox_custom_objects/customobject_edit.html:44
+#: templates/netbox_nsm/inc/rulebook_fields_table.html:17
+#: templates/netbox_nsm/inc/rulebook_fields_table_rules.html:17
+#: templates/netbox_nsm/inc/rulebook_rules_table_thead.html:41
 msgid "Actions"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_custom_objects/customobject_edit.html:46
-#: netbox_nsm/templates/netbox_nsm/cot_rulebook_create.html:14
-#: netbox_nsm/templates/netbox_nsm/inc/setup_demo.html:28
-#: netbox_nsm/templates/netbox_nsm/inc/setup_demo.html:57
-msgid "Create"
-msgstr "Erstellen"
-
-#: netbox_nsm/templates/netbox_custom_objects/customobject_edit.html:49
+#: templates/netbox_custom_objects/customobject_edit.html:49
 msgid "Create & Add Another"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/address_ipam_fk_clear.html:4
-#: netbox_nsm/templates/netbox_nsm/address_ipam_fk_clear.html:9
-#: netbox_nsm/templates/netbox_nsm/address_ipam_fk_clear.html:42
-#: netbox_nsm/templates/netbox_nsm/group_m2m_remove.html:4
-#: netbox_nsm/templates/netbox_nsm/group_m2m_remove.html:9
-#: netbox_nsm/templates/netbox_nsm/group_m2m_remove.html:35
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:128
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:129
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:171
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:172
-#: netbox_nsm/templates/netbox_nsm/inc/security_links.html:298
-#: netbox_nsm/templates/netbox_nsm/object_link_delete.html:4
-#: netbox_nsm/templates/netbox_nsm/object_link_delete.html:9
-#: netbox_nsm/templates/netbox_nsm/object_link_delete.html:31
+#: templates/netbox_nsm/address_ipam_fk_clear.html:4
+#: templates/netbox_nsm/address_ipam_fk_clear.html:9
+#: templates/netbox_nsm/address_ipam_fk_clear.html:42
+#: templates/netbox_nsm/group_m2m_remove.html:4
+#: templates/netbox_nsm/group_m2m_remove.html:9
+#: templates/netbox_nsm/group_m2m_remove.html:35
+#: templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:128
+#: templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:129
+#: templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:171
+#: templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:172
+#: templates/netbox_nsm/inc/security_links.html:334
+#: templates/netbox_nsm/inc/security_links.html:384
+#: templates/netbox_nsm/object_link_delete.html:4
+#: templates/netbox_nsm/object_link_delete.html:9
+#: templates/netbox_nsm/object_link_delete.html:31
 msgid "Remove assignment"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/address_ipam_fk_clear.html:12
-#: netbox_nsm/templates/netbox_nsm/address_ipam_fk_edit.html:12
-#: netbox_nsm/templates/netbox_nsm/group_m2m_edit.html:12
-#: netbox_nsm/templates/netbox_nsm/group_m2m_remove.html:12
-#: netbox_nsm/templates/netbox_nsm/object_link_assign.html:18
-#: netbox_nsm/templates/netbox_nsm/object_link_delete.html:12
-#: netbox_nsm/templates/netbox_nsm/object_link_edit.html:12
+#: templates/netbox_nsm/address_ipam_fk_clear.html:12
+#: templates/netbox_nsm/address_ipam_fk_edit.html:12
+#: templates/netbox_nsm/group_m2m_edit.html:12
+#: templates/netbox_nsm/group_m2m_remove.html:12
+#: templates/netbox_nsm/object_link_assign.html:18
+#: templates/netbox_nsm/object_link_delete.html:12
+#: templates/netbox_nsm/object_link_edit.html:12
+#: templates/netbox_nsm/objectconfig_add.html:32
 msgid "Back"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/address_ipam_fk_clear.html:22
+#: templates/netbox_nsm/address_ipam_fk_clear.html:22
 #, python-format
 msgid ""
 "\n"
@@ -1120,7 +976,7 @@ msgid ""
 "            "
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/address_ipam_fk_clear.html:28
+#: templates/netbox_nsm/address_ipam_fk_clear.html:28
 #, python-format
 msgid ""
 "\n"
@@ -1130,12 +986,12 @@ msgid ""
 "            "
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/address_ipam_fk_edit.html:4
-#: netbox_nsm/templates/netbox_nsm/address_ipam_fk_edit.html:9
+#: templates/netbox_nsm/address_ipam_fk_edit.html:4
+#: templates/netbox_nsm/address_ipam_fk_edit.html:9
 msgid "Edit IPAM reference"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/address_ipam_fk_edit.html:21
+#: templates/netbox_nsm/address_ipam_fk_edit.html:21
 #, python-format
 msgid ""
 "\n"
@@ -1143,35 +999,36 @@ msgid ""
 "          "
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/cot_rulebook_bulk_assign.html:10
+#: templates/netbox_nsm/cot_rulebook_bulk_assign.html:10
 msgid "Assign Policy to Multiple Devices / VMs"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/cot_rulebook_bulk_assign.html:14
+#: templates/netbox_nsm/cot_rulebook_bulk_assign.html:14
 msgid ""
 "Select one or more devices, virtual machines, and/or virtual device contexts "
 "to assign to this policy. Existing assignments are silently skipped."
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/cot_rulebook_bulk_assign.html:24
-#: netbox_nsm/templates/netbox_nsm/inc/security_links.html:156
+#: templates/netbox_nsm/cot_rulebook_bulk_assign.html:24
+#: templates/netbox_nsm/inc/security_links.html:192
+#: templates/netbox_nsm/rulebook_link_assign.html:19
 msgid "Assign"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/cot_rulebook_create.html:4
+#: templates/netbox_nsm/cot_rulebook_create.html:4
 #, fuzzy
 #| msgid "Rulebook"
 msgid "Add Rulebook"
 msgstr "Regelbuch"
 
-#: netbox_nsm/templates/netbox_nsm/group_m2m_edit.html:4
-#: netbox_nsm/templates/netbox_nsm/group_m2m_edit.html:9
+#: templates/netbox_nsm/group_m2m_edit.html:4
+#: templates/netbox_nsm/group_m2m_edit.html:9
 #, fuzzy
 #| msgid "Inherit to group members"
 msgid "Edit group membership"
 msgstr "An Gruppenmitglieder vererben"
 
-#: netbox_nsm/templates/netbox_nsm/group_m2m_edit.html:21
+#: templates/netbox_nsm/group_m2m_edit.html:21
 #, python-format
 msgid ""
 "\n"
@@ -1180,7 +1037,7 @@ msgid ""
 "          "
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/group_m2m_remove.html:21
+#: templates/netbox_nsm/group_m2m_remove.html:21
 #, python-format
 msgid ""
 "\n"
@@ -1190,930 +1047,1141 @@ msgid ""
 "          "
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/htmx/bulk_delete_form.html:12
+#: templates/netbox_nsm/htmx/bulk_delete_form.html:12
 msgid "Confirm Deletion"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/htmx/bulk_delete_form.html:18
+#: templates/netbox_nsm/htmx/bulk_delete_form.html:18
 #, python-format
 msgid ""
 "Are you sure you want to <strong class=\"text-danger\">delete</strong> this "
 "%(object_type)s?"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/htmx/bulk_delete_form.html:29
+#: templates/netbox_nsm/htmx/bulk_delete_form.html:29
 #, python-format
 msgid ""
 "Are you sure you want to <strong class=\"text-danger\">delete</strong> "
 "%(count)s %(type_plural)s?"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/htmx/bulk_delete_form.html:37
+#: templates/netbox_nsm/htmx/bulk_delete_form.html:37
 msgid "The following objects will be deleted as a result of this action."
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/addr_analysis_panel.html:16
-#: netbox_nsm/templates/netbox_nsm/inc/addr_analysis_panel.html:60
+#: templates/netbox_nsm/inc/addr_analysis_panel.html:16
+#: templates/netbox_nsm/inc/addr_analysis_panel.html:53
 msgid "All"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/addr_analysis_panel.html:30
-#: netbox_nsm/templates/netbox_nsm/inc/addr_tree_node.html:82
-#: netbox_nsm/templates/netbox_nsm/inc/addr_tree_node.html:161
-msgid "Copy CSV paths"
-msgstr ""
-
-#: netbox_nsm/templates/netbox_nsm/inc/addr_intersection_flat_node.html:10
-#: netbox_nsm/templates/netbox_nsm/inc/addr_tree_node.html:125
-#: netbox_nsm/templates/netbox_nsm/inc/addr_type_count_badges.html:14
+#: templates/netbox_nsm/inc/addr_diff_fund_row.html:8
+#: templates/netbox_nsm/inc/addr_type_count_badges.html:15
 msgid "Fund"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/addr_intersection_flat_node.html:22
-#: netbox_nsm/templates/netbox_nsm/inc/addr_tree_node.html:56
+#: templates/netbox_nsm/inc/addr_intersection_flat_node.html:19
+#: templates/netbox_nsm/inc/addr_tree_node.html:88
 msgid "Resolved paths in tree preview"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/addr_intersection_flat_node.html:24
-#: netbox_nsm/templates/netbox_nsm/inc/addr_tree_node.html:58
-#: netbox_nsm/templates/netbox_nsm/inc/addr_tree_node.html:140
+#: templates/netbox_nsm/inc/addr_intersection_flat_node.html:21
+#: templates/netbox_nsm/inc/addr_tree_node.html:91
+#: templates/netbox_nsm/inc/addr_tree_node.html:166
 msgid "Analyze IP object"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/addr_ipam_info_leaves.html:8
+#: templates/netbox_nsm/inc/addr_ipam_info_leaves.html:8
 msgid "tree preview"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/addr_tree_node.html:30
+#: templates/netbox_nsm/inc/addr_tree_node.html:19
+#: templates/netbox_nsm/inc/addr_tree_node.html:47
 msgid "Vorschau laden"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/addr_tree_node.html:31
+#: templates/netbox_nsm/inc/addr_tree_node.html:20
+#: templates/netbox_nsm/inc/addr_tree_node.html:48
 msgid "Laden…"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/addr_tree_node.html:32
+#: templates/netbox_nsm/inc/addr_tree_node.html:21
+#: templates/netbox_nsm/inc/addr_tree_node.html:49
 msgid "Laden fehlgeschlagen — erneut versuchen"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/addr_tree_node.html:33
+#: templates/netbox_nsm/inc/addr_tree_node.html:22
+#: templates/netbox_nsm/inc/addr_tree_node.html:50
 #, python-format
 msgid "Vorschau laden (%(loaded)s/%(total)s)"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/addr_tree_node.html:63
+#: templates/netbox_nsm/inc/addr_tree_node.html:96
 msgid "Excluded from total IP count"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/addr_tree_node.html:64
-#: netbox_nsm/templates/netbox_nsm/inc/addr_tree_node.html:72
-#: netbox_nsm/templates/netbox_nsm/inc/addr_tree_node.html:151
+#: templates/netbox_nsm/inc/addr_tree_node.html:97
+#: templates/netbox_nsm/inc/addr_tree_node.html:105
+#: templates/netbox_nsm/inc/addr_tree_node.html:178
 msgid "duplicate"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/addr_tree_node.html:65
-#: netbox_nsm/templates/netbox_nsm/inc/addr_tree_node.html:73
-#: netbox_nsm/templates/netbox_nsm/inc/addr_tree_node.html:152
+#: templates/netbox_nsm/inc/addr_tree_node.html:98
+#: templates/netbox_nsm/inc/addr_tree_node.html:106
+#: templates/netbox_nsm/inc/addr_tree_node.html:179
 msgid "in"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/addr_tree_node.html:71
-#: netbox_nsm/templates/netbox_nsm/inc/addr_tree_node.html:150
+#: templates/netbox_nsm/inc/addr_tree_node.html:104
+#: templates/netbox_nsm/inc/addr_tree_node.html:177
 msgid "Same object already shown elsewhere in this tree"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/addr_tree_node.html:79
-#: netbox_nsm/templates/netbox_nsm/inc/addr_tree_node.html:158
-#: netbox_nsm/templates/netbox_nsm/inc/ipa_object_tree_expanded_warnings.html:14
-msgid ""
-"Duplicate cell entry — the same object is listed more than once in the rule "
-"cell"
+#: templates/netbox_nsm/inc/addr_type_count_badges.html:10
+msgid "Addresses that belong to more than one address group in this cell"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/addr_tree_node.html:79
-#: netbox_nsm/templates/netbox_nsm/inc/addr_tree_node.html:158
-msgid "Duplicate cell entry"
+#: templates/netbox_nsm/inc/addr_type_count_badges.html:10
+msgid "Duplicates"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/addr_type_count_badges.html:10
+#: templates/netbox_nsm/inc/addr_type_count_badges.html:11
 msgid ""
 "Objects with overlap warnings in the cell tree: subnet already covered by a "
 "parent prefix, listed twice in the cell (doppelt), or repeated elsewhere in "
 "the tree"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/addr_type_count_badges.html:10
+#: templates/netbox_nsm/inc/addr_type_count_badges.html:11
 msgid "Warnings"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/addr_type_count_badges.html:12
+#: templates/netbox_nsm/inc/addr_type_count_badges.html:13
 msgid "IPAM keys present in all diff tabs"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/addr_type_count_badges.html:12
+#: templates/netbox_nsm/inc/addr_type_count_badges.html:13
 msgid "In all"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/addr_type_count_badges.html:12
+#: templates/netbox_nsm/inc/addr_type_count_badges.html:13
 msgid "IPAM keys present on both diff sides"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/addr_type_count_badges.html:12
+#: templates/netbox_nsm/inc/addr_type_count_badges.html:13
 msgid "In both"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/addr_type_count_badges.html:13
+#: templates/netbox_nsm/inc/addr_type_count_badges.html:14
 msgid "IPAM keys present in some but not all diff tabs"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/addr_type_count_badges.html:13
+#: templates/netbox_nsm/inc/addr_type_count_badges.html:14
 msgid "In some"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/addr_type_count_badges.html:14
+#: templates/netbox_nsm/inc/addr_type_count_badges.html:15
 msgid "Same IPAM key with different object names on diff sides"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/cot_fields_readonly_table.html:6
-#: netbox_nsm/templates/netbox_nsm/property.html:46
+#: templates/netbox_nsm/inc/cot_fields_readonly_table.html:6
+#: templates/netbox_nsm/property.html:46
 msgid "Field"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/cot_fields_readonly_table.html:8
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_detail_content.html:14
-#: netbox_nsm/templates/netbox_nsm/inc/setup_typeconfig.html:32
-#: netbox_nsm/templates/netbox_nsm/property.html:47
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_detail.html:42
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_detail.html:99
+#: templates/netbox_nsm/inc/cot_fields_readonly_table.html:7
+#: templates/netbox_nsm/inc/setup_custom_object_schema.html:205
+#: templates/netbox_nsm/inc/setup_custom_objects.html:189
+#: templates/netbox_nsm/inc/setup_typeconfig.html:33
+#: templates/netbox_nsm/object_analyzer.html:182
+#, fuzzy
+#| msgid "Label"
+msgid "Label"
+msgstr "Bezeichnung"
+
+#: templates/netbox_nsm/inc/cot_fields_readonly_table.html:8
+#: templates/netbox_nsm/inc/rulebook_detail_content.html:14
+#: templates/netbox_nsm/inc/setup_custom_object_schema.html:156
+#: templates/netbox_nsm/inc/setup_custom_objects.html:153
+#: templates/netbox_nsm/inc/setup_typeconfig.html:32
+#: templates/netbox_nsm/property.html:47
+#: templates/netbox_nsm/rulebook_cot_detail.html:42
+#: templates/netbox_nsm/rulebook_cot_detail.html:109
 msgid "Type"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/cot_fields_readonly_table.html:9
+#: templates/netbox_nsm/inc/cot_fields_readonly_table.html:9
 msgid "Related type"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/cot_fields_readonly_table.html:11
-#: netbox_nsm/templates/netbox_nsm/inc/cot_fields_readonly_table.html:43
-#: netbox_nsm/templates/netbox_nsm/inc/cot_rulebook_create_fields.html:80
+#: templates/netbox_nsm/inc/cot_fields_readonly_table.html:11
+#: templates/netbox_nsm/inc/cot_fields_readonly_table.html:43
+#: templates/netbox_nsm/inc/cot_rulebook_create_fields.html:80
+#: templates/netbox_nsm/inc/setup_custom_object_schema.html:157
+#: templates/netbox_nsm/inc/setup_custom_objects.html:154
 msgid "Required"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/cot_fields_readonly_table.html:14
+#: templates/netbox_nsm/inc/cot_fields_readonly_table.html:14
 msgid "Primary"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/cot_fields_readonly_table.html:53
+#: templates/netbox_nsm/inc/cot_fields_readonly_table.html:53
 msgid "Primary name field"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/cot_fields_readonly_table.html:61
+#: templates/netbox_nsm/inc/cot_fields_readonly_table.html:61
 msgid "No fields defined."
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/cot_rulebook_create_fields.html:3
+#: templates/netbox_nsm/inc/cot_rulebook_create_fields.html:3
+#: templates/netbox_nsm/inc/setup_custom_object_schema.html:286
 msgid "Schema valid"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/cot_rulebook_create_fields.html:4
+#: templates/netbox_nsm/inc/cot_rulebook_create_fields.html:4
+#: templates/netbox_nsm/inc/setup_custom_object_schema.html:288
 msgid "Schema invalid"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/cot_rulebook_create_fields.html:5
+#: templates/netbox_nsm/inc/cot_rulebook_create_fields.html:5
+#: templates/netbox_nsm/inc/setup_custom_object_schema.html:295
 msgid "Validation request failed."
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/cot_rulebook_create_fields.html:26
+#: templates/netbox_nsm/inc/cot_rulebook_create_fields.html:26
+#: templates/netbox_nsm/inc/setup_custom_object_schema.html:81
 msgid "Schema"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/cot_rulebook_create_fields.html:44
+#: templates/netbox_nsm/inc/cot_rulebook_create_fields.html:44
+#: templates/netbox_nsm/inc/setup_custom_object_schema.html:92
+#: templates/netbox_nsm/inc/setup_custom_objects.html:105
 msgid "YAML"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/cot_rulebook_create_fields.html:56
+#: templates/netbox_nsm/inc/cot_rulebook_create_fields.html:56
+#: templates/netbox_nsm/inc/setup_custom_object_schema.html:107
+#: templates/netbox_nsm/inc/setup_custom_objects.html:117
 msgid "Preview"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/cot_rulebook_create_fields.html:78
+#: templates/netbox_nsm/inc/cot_rulebook_create_fields.html:78
+#: templates/netbox_nsm/inc/setup_custom_object_schema.html:155
+#: templates/netbox_nsm/inc/setup_custom_objects.html:152
 msgid "Column"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/cot_rulebook_create_fields.html:79
+#: templates/netbox_nsm/inc/cot_rulebook_create_fields.html:79
 #, fuzzy
 #| msgid "Assigned Objects"
 msgid "Allowed objects"
 msgstr "Zugewiesene Objekte"
 
-#: netbox_nsm/templates/netbox_nsm/inc/cot_rulebook_create_fields.html:95
+#: templates/netbox_nsm/inc/cot_rulebook_create_fields.html:95
+#: templates/netbox_nsm/inc/setup_custom_object_schema.html:166
+#: templates/netbox_nsm/inc/setup_custom_objects.html:163
+#: templates/netbox_nsm/typeconfig.html:45
 msgid "Yes"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/cot_rulebook_create_fields.html:95
+#: templates/netbox_nsm/inc/cot_rulebook_create_fields.html:95
+#: templates/netbox_nsm/inc/setup_custom_object_schema.html:166
+#: templates/netbox_nsm/inc/setup_custom_objects.html:163
+#: templates/netbox_nsm/typeconfig.html:45
 msgid "No"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/cot_rulebook_create_fields.html:100
+#: templates/netbox_nsm/inc/cot_rulebook_create_fields.html:100
+#: templates/netbox_nsm/inc/setup_custom_object_schema.html:171
+#: templates/netbox_nsm/inc/setup_custom_objects.html:168
 msgid "No columns defined."
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/cot_rulebook_create_fields.html:123
-#: netbox_nsm/templates/netbox_nsm/inc/setup_custom_objects.html:91
-#: netbox_nsm/templates/netbox_nsm/propertytype.html:13
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_detail.html:38
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_detail.html:95
-msgid "Slug"
+#: templates/netbox_nsm/inc/ipa_cell_object_group_labels.html:7
+msgid "Address belongs to more than one address group in this cell"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/ipa_object_addr_drilldown.html:4
-msgid "Loading address tree…"
-msgstr ""
-
-#: netbox_nsm/templates/netbox_nsm/inc/ipa_object_analysis_table.html:13
-#: netbox_nsm/templates/netbox_nsm/ip_analysis.html:329
-#: netbox_nsm/templates/netbox_nsm/object_link_assign.html:54
-msgid "Remove"
-msgstr ""
-
-#: netbox_nsm/templates/netbox_nsm/inc/ipa_object_tree_expanded_warnings.html:8
-#: netbox_nsm/templates/netbox_nsm/inc/ipa_object_tree_subnet_warning.html:3
+#: templates/netbox_nsm/inc/ipa_cell_object_row_labels.html:8
+#: templates/netbox_nsm/inc/ipa_cell_object_row_labels.html:19
 #, python-format
 msgid "warn duplicate → %(cidr)s"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/ipa_object_tree_subnet_warning.html:3
-#, python-format
-msgid "Prefix is already covered by %(cidr)s"
+#: templates/netbox_nsm/inc/ipa_cell_object_row_labels.html:30
+msgid "Multiple address names share this network in the rule cell"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:10
+#: templates/netbox_nsm/inc/ipa_cell_object_row_labels.html:30
+msgid ""
+"Duplicate cell entry — the same object is listed more than once in the rule "
+"cell"
+msgstr ""
+
+#: templates/netbox_nsm/inc/ipa_drilldown_source_meta.html:11
+msgid "Child prefixes in IPAM"
+msgstr ""
+
+#: templates/netbox_nsm/inc/ipa_drilldown_source_meta.html:11
+msgid "Subnets"
+msgstr ""
+
+#: templates/netbox_nsm/inc/ipa_drilldown_source_meta.html:12
+#, fuzzy
+#| msgid "IP ranges"
+msgid "IP ranges in IPAM"
+msgstr "IP-Bereiche"
+
+#: templates/netbox_nsm/inc/ipa_drilldown_source_meta.html:12
+#, fuzzy
+#| msgid "IP ranges"
+msgid "Ranges"
+msgstr "IP-Bereiche"
+
+#: templates/netbox_nsm/inc/ipa_drilldown_source_meta.html:13
+msgid "Client IP addresses in IPAM"
+msgstr ""
+
+#: templates/netbox_nsm/inc/ipa_drilldown_source_meta.html:13
+msgid "Client IPs"
+msgstr ""
+
+#: templates/netbox_nsm/inc/ipa_object_addr_drilldown.html:4
+msgid "Loading address tree…"
+msgstr ""
+
+#: templates/netbox_nsm/inc/ipa_object_analysis_table.html:13
+#: templates/netbox_nsm/ip_analysis.html:329
+#: templates/netbox_nsm/object_link_assign.html:54
+msgid "Remove"
+msgstr ""
+
+#: templates/netbox_nsm/inc/ipa_subnet_containment_meta.html:6
+#, python-format
+msgid "Contained in %(parent)s (%(name)s)"
+msgstr ""
+
+#: templates/netbox_nsm/inc/ipa_subnet_containment_meta.html:6
+#, python-format
+msgid "Contained in %(parent)s"
+msgstr ""
+
+#: templates/netbox_nsm/inc/ipa_subnet_containment_meta.html:7
+#: templates/netbox_nsm/rulebook_cot_detail.html:113
+#, fuzzy
+#| msgid "Parent Groups"
+msgid "Parent"
+msgstr "Übergeordnete Gruppen"
+
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:10
 #, fuzzy
 #| msgid "Analysis"
 msgid "IP Analysis"
 msgstr "IP-Analyse"
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:11
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:11
 #, python-format
 msgid "Subnets: %%(count)s"
 msgstr "Subnetze: %(count)s"
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:12
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:12
 #, python-format
 msgid "Ranges: %%(count)s"
 msgstr "Bereiche: %(count)s"
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:13
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:13
 #, python-format
 msgid "IPs: %%(count)s"
 msgstr "IPs: %(count)s"
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:14
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:14
 #, python-format
 msgid "Warnings: %%(count)s"
 msgstr "Warnungen: %(count)s"
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:15
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:15
+#, fuzzy, python-format
+#| msgid "Ranges: %%(count)s"
+msgid "Duplicates: %%(count)s"
+msgstr "Bereiche: %(count)s"
+
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:16
 #, python-format
 msgid "Rule %%(index)s/%%(col)s"
 msgstr "Regel %(index)s/%(col)s"
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:16
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:17
 #, python-format
 msgid "Rule %%(index)s / %%(col)s"
 msgstr "Regel %(index)s / %(col)s"
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:17
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:18
 #, python-format
 msgid "Rule %%(name)s (%%(index)s) / %%(col)s"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:18
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:19
 #, python-format
 msgid "Rule %%(name)s (%%(index)s)"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:19
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:20
+#, fuzzy, python-format
+#| msgid "Rule %%(index)s/%%(col)s"
+msgid "Rule %%(index)s/%%(total)s"
+msgstr "Regel %(index)s/%(col)s"
+
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:21
 #, fuzzy, python-format
 #| msgid "%(count)s object"
 #| msgid_plural "%(count)s objects"
 msgid "%%(count)s objects"
 msgstr "%(count)s Objekte"
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:20
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:22
 #, fuzzy, python-format
 #| msgid "%(count)s object"
 #| msgid_plural "%(count)s objects"
 msgid "Merged (%%(count)s objects)"
 msgstr "Merged (%(count)s Objekte)"
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:21
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:23
 msgid "Diff"
 msgstr "Diff"
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:22
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:24
 #, python-format
 msgid "Diff %%(a)s - %%(b)s"
 msgstr "Diff %(a)s - %(b)s"
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:23
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:25
 #, python-format
 msgid "Diff %%(labels)s"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:24
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:26
 #, python-format
 msgid "Diff (%%(a)s ↔ %%(b)s)"
 msgstr "Diff (%(a)s ↔ %(b)s)"
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:25
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:27
 #, python-format
 msgid "Diff (%%(labels)s)"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:26
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:28
 #, python-format
 msgid "Diff (%%(count)s tabs)"
 msgstr "Diff (%(count)s Tabs)"
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:27
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:29
 #, python-format
 msgid " | Fund: %%(count)s"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:28
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:30
 #, python-format
 msgid "%%(label)s: +%%(count)s"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:29
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:31
 #, python-format
 msgid "in all: %%(count)s"
 msgstr "in allen: %(count)s"
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:30
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:32
 #, python-format
 msgid "in some: %%(count)s"
 msgstr "in einigen: %(count)s"
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:31
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:33
 #, python-format
 msgid ""
 "%%(label_a)s: +%%(count_a)s | %%(label_b)s: +%%(count_b)s | shared: %%(both)s"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:32
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:34
 msgid "Analyze object"
 msgstr "Objekt analysieren"
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:33
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:35
 msgid "Analysis running…"
 msgstr "Analyse läuft…"
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:34
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:36
 msgid "Analysis failed."
 msgstr "Analyse fehlgeschlagen."
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:35
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:37
 msgid "Minimize"
 msgstr "Minimieren"
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:36
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:38
 msgid "Close"
 msgstr "Schließen"
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:37
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:39
 msgid "Add object"
 msgstr "Objekt hinzufügen"
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:38
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:40
 msgid "Merge"
 msgstr "Merge"
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:39
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:41
 msgid "Search…"
 msgstr "Suchen…"
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:40
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:42
 #, python-format
 msgid "Add object — %%(category)s"
 msgstr "Objekt hinzufügen — %(category)s"
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:41
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:43
 msgid "Enter search term…"
 msgstr "Suchbegriff eingeben…"
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:42
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:44
 msgid "No matches"
 msgstr "Keine Treffer"
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:43
-#: netbox_nsm/templates/netbox_nsm/ip_analysis.html:391
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:150
-#: netbox_nsm/templates/netbox_nsm/object_link_assign.html:49
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:45
+#: templates/netbox_nsm/ip_analysis.html:391
+#: templates/netbox_nsm/object_analyzer.html:218
+#: templates/netbox_nsm/object_link_assign.html:49
 msgid "Searching…"
 msgstr "Suche…"
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:44
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:46
 msgid "Diff (at least 2 tabs required)"
 msgstr "Diff (mindestens 2 Tabs erforderlich)"
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:45
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:47
 msgid "Close tab"
 msgstr "Tab schließen"
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:46
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:48
 msgid "No object types available"
 msgstr "Keine Objekttypen verfügbar"
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:48
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:50
 #, fuzzy, python-format
 #| msgid "%(count)s object"
 #| msgid_plural "%(count)s objects"
 msgid "%%(count)s skipped"
 msgstr "%(count)s Objekt"
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:49
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:51
 msgid "Analysis could not be loaded."
 msgstr "Analyse konnte nicht geladen werden."
 
-#: netbox_nsm/templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:50
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:52
 #, python-format
 msgid "IP Analysis (%%(count)s)"
 msgstr "IP-Analyse (%(count)s)"
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:70
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:53
+msgid "Export YAML"
+msgstr ""
+
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:54
+msgid "Exporting…"
+msgstr ""
+
+#: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:55
+msgid "YAML export failed."
+msgstr ""
+
+#: templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:70
 msgid "Enforcement targets"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:83
+#: templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:83
 msgid "Done"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:95
+#: templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:95
 msgid "No devices or virtual machines assigned to this rulebook."
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:97
+#: templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:97
 msgid "Assign now."
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:119
+#: templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:119
 msgid "Show all interfaces on this object"
 msgstr "Alle Interfaces dieses Objekts anzeigen"
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:122
+#: templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:122
 msgid "All interfaces"
 msgstr "Alle Interfaces"
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:137
-msgid "No linked interfaces. Enable “All interfaces” to assign links."
+#: templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:137
+msgid ""
+"No linked NSM objects. Enable “All interfaces” to assign enforcement points."
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:163
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:164
-#: netbox_nsm/templates/netbox_nsm/inc/security_links.html:292
+#: templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:163
+#: templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:164
+#: templates/netbox_nsm/inc/security_links.html:328
 msgid "Edit assignment"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:181
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:182
-msgid "No zone or label links assigned"
-msgstr "Keine Zone-/Label-Verknüpfungen"
+#: templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:181
+#: templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:182
+#, fuzzy
+#| msgid "NSM Objects"
+msgid "No NSM object linked"
+msgstr "NSM Objekte"
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:190
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:191
-msgid "Assign link"
-msgstr ""
+#: templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:190
+#: templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:191
+#, fuzzy
+#| msgid "Assigned Objects"
+msgid "Assign NSM object"
+msgstr "Zugewiesene Objekte"
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:198
+#: templates/netbox_nsm/inc/rulebook_assigned_objects_panel.html:198
 #, fuzzy
 #| msgid "Show all interfaces on this object"
 msgid "No interfaces on this object."
 msgstr "Alle Interfaces dieses Objekts anzeigen"
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_detail_content.html:7
+#: templates/netbox_nsm/inc/rulebook_detail_content.html:7
 msgid "Security Policy"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_detail_content.html:26
+#: templates/netbox_nsm/inc/rulebook_detail_content.html:26
 msgid "Platform"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_detail_content.html:30
+#: templates/netbox_nsm/inc/rulebook_detail_content.html:30
 msgid "Management URL"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_detail_content.html:43
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_detail.html:125
+#: templates/netbox_nsm/inc/rulebook_detail_content.html:43
+#: templates/netbox_nsm/rulebook_cot_detail.html:135
 msgid "Show"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_detail_content.html:45
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_detail.html:127
+#: templates/netbox_nsm/inc/rulebook_detail_content.html:45
+#: templates/netbox_nsm/rulebook_cot_detail.html:137
 msgid "Hide"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_detail_content.html:54
+#: templates/netbox_nsm/inc/rulebook_detail_content.html:54
 msgid "Rule Comment Template"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_detail_content.html:70
+#: templates/netbox_nsm/inc/rulebook_detail_content.html:70
 msgid "Tags"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_detail_content.html:72
+#: templates/netbox_nsm/inc/rulebook_detail_content.html:72
 msgid "No tags assigned"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_detail_content.html:86
-#: netbox_nsm/templates/netbox_nsm/propertytype.html:28
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_detail.html:142
+#: templates/netbox_nsm/inc/rulebook_detail_content.html:86
+#: templates/netbox_nsm/propertytype.html:28
+#: templates/netbox_nsm/rulebook_cot_detail.html:162
 msgid "Fields"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_detail_content.html:90
+#: templates/netbox_nsm/inc/rulebook_detail_content.html:90
 msgid "Add Field"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_detail_content.html:101
+#: templates/netbox_nsm/inc/rulebook_detail_content.html:101
 msgid "Noch keine Fields konfiguriert."
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_detail_content.html:103
+#: templates/netbox_nsm/inc/rulebook_detail_content.html:103
 msgid "Add now."
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_flags.html:5
+#: templates/netbox_nsm/inc/rulebook_field_flags.html:5
 msgid "Field options"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_flags.html:8
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_type_flags.html:6
+#: templates/netbox_nsm/inc/rulebook_field_flags.html:8
+#: templates/netbox_nsm/inc/rulebook_field_type_flags.html:6
 msgid "Visible in policy table"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_flags.html:10
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_type_flags.html:8
+#: templates/netbox_nsm/inc/rulebook_field_flags.html:10
+#: templates/netbox_nsm/inc/rulebook_field_type_flags.html:8
 msgid "Visible"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_flags.html:15
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_type_flags.html:13
+#: templates/netbox_nsm/inc/rulebook_field_flags.html:15
+#: templates/netbox_nsm/inc/rulebook_field_type_flags.html:13
 #, python-format
 msgid "Facet filter (%(mode)s)"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_flags.html:17
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_type_flags.html:15
+#: templates/netbox_nsm/inc/rulebook_field_flags.html:17
+#: templates/netbox_nsm/inc/rulebook_field_type_flags.html:15
 msgid "Facet filter"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_flags.html:22
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_type_flags.html:20
+#: templates/netbox_nsm/inc/rulebook_field_flags.html:22
+#: templates/netbox_nsm/inc/rulebook_field_type_flags.html:20
 #, python-format
 msgid "Max visible pills per cell: %(n)s"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_flags.html:25
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_type_flags.html:23
+#: templates/netbox_nsm/inc/rulebook_field_flags.html:25
+#: templates/netbox_nsm/inc/rulebook_field_type_flags.html:23
 msgid "Max visible pills"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_flags.html:29
+#: templates/netbox_nsm/inc/rulebook_field_flags.html:29
 #, python-format
 msgid "Column sort order: %(n)s"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_flags.html:32
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_type_flags.html:45
-msgid "Sort order"
-msgstr ""
-
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_group_row_multiline.html:19
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_row.html:43
+#: templates/netbox_nsm/inc/rulebook_field_group_row_multiline.html:19
+#: templates/netbox_nsm/inc/rulebook_field_row.html:43
 msgid "No types yet — use + to add one."
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_group_row_multiline.html:30
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_row.html:10
+#: templates/netbox_nsm/inc/rulebook_field_group_row_multiline.html:30
+#: templates/netbox_nsm/inc/rulebook_field_row.html:10
 msgid "System"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_group_row_multiline.html:36
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_row.html:17
+#: templates/netbox_nsm/inc/rulebook_field_group_row_multiline.html:36
+#: templates/netbox_nsm/inc/rulebook_field_row.html:17
 msgid "Fixed"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_row_actions.html:19
+#: templates/netbox_nsm/inc/rulebook_field_row_actions.html:19
 msgid "Add type"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_type_flags.html:3
+#: templates/netbox_nsm/inc/rulebook_field_type_flags.html:3
 #, fuzzy
 #| msgid "Rulebook"
 msgid "Type options"
 msgstr "Typkonfigurationen"
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_type_flags.html:28
+#: templates/netbox_nsm/inc/rulebook_field_type_flags.html:28
 #, python-format
 msgid "Maximum objects per rule: %(n)s"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_type_flags.html:31
+#: templates/netbox_nsm/inc/rulebook_field_type_flags.html:31
 msgid "Max items"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_type_flags.html:36
+#: templates/netbox_nsm/inc/rulebook_field_type_flags.html:36
 #, python-format
 msgid "Name filter (regex): %(r)s"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_type_flags.html:38
+#: templates/netbox_nsm/inc/rulebook_field_type_flags.html:38
 msgid "Name filter"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_field_type_flags.html:42
+#: templates/netbox_nsm/inc/rulebook_field_type_flags.html:42
 #, python-format
 msgid "Sort order: %(field_order)s|%(type_order)s"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_fields_table.html:15
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_fields_table_rules.html:15
+#: templates/netbox_nsm/inc/rulebook_fields_table.html:15
+#: templates/netbox_nsm/inc/rulebook_fields_table_rules.html:15
 msgid "Kind"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_fields_table.html:16
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_fields_table_rules.html:16
+#: templates/netbox_nsm/inc/rulebook_fields_table.html:16
+#: templates/netbox_nsm/inc/rulebook_fields_table_rules.html:16
 msgid "Options"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_chrome_bar.html:10
+#: templates/netbox_nsm/inc/rulebook_rules_chrome_bar.html:10
 msgid "Add Rule"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_chrome_bar.html:16
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_chrome_bar.html:23
+#: templates/netbox_nsm/inc/rulebook_rules_chrome_bar.html:19
+#: templates/netbox_nsm/inc/rulebook_rules_chrome_bar.html:20
 msgid "Group object types into one column per field"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_chrome_bar.html:25
+#: templates/netbox_nsm/inc/rulebook_rules_chrome_bar.html:22
 msgid "Grouped columns"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_chrome_bar.html:31
+#: templates/netbox_nsm/inc/rulebook_rules_chrome_bar.html:27
 msgid "Object cell display"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_chrome_bar.html:36
+#: templates/netbox_nsm/inc/rulebook_rules_chrome_bar.html:32
 msgid "Comma-separated text"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_chrome_bar.html:38
+#: templates/netbox_nsm/inc/rulebook_rules_chrome_bar.html:34
 msgid "Comma"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_chrome_bar.html:44
+#: templates/netbox_nsm/inc/rulebook_rules_chrome_bar.html:40
 msgid "One object per line"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_chrome_bar.html:46
+#: templates/netbox_nsm/inc/rulebook_rules_chrome_bar.html:42
 msgid "Lines"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_chrome_bar.html:52
+#: templates/netbox_nsm/inc/rulebook_rules_chrome_bar.html:48
 msgid "First object visible, rest as +N pill (click to expand cell)"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_chrome_bar.html:58
+#: templates/netbox_nsm/inc/rulebook_rules_chrome_bar.html:54
 msgid "More"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_chrome_bar.html:65
+#: templates/netbox_nsm/inc/rulebook_rules_chrome_bar.html:61
 msgid "Export visible data as CSV"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_chrome_bar.html:67
+#: templates/netbox_nsm/inc/rulebook_rules_chrome_bar.html:63
 msgid "Export CSV"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_filter_query.html:5
+#: templates/netbox_nsm/inc/rulebook_rules_filter_query.html:5
 msgid ""
 "Syntax: Feld(wert OR wert) AND Feld2(a AND b). Bei doppelten Labels z. B. "
 "Source.Zones oder Destination.Zones."
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_filter_query.html:11
+#: templates/netbox_nsm/inc/rulebook_rules_filter_query.html:11
 msgid "Name(server OR db) AND Source.Zones(dmz)"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_filter_query.html:12
+#: templates/netbox_nsm/inc/rulebook_rules_filter_query.html:12
 msgid "Column filters: Name(x OR y) AND Source.Zones(z)."
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_filter_query.html:13
+#: templates/netbox_nsm/inc/rulebook_rules_filter_query.html:13
 msgid "Spaltenfilter als Abfrage"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_filter_query.html:19
+#: templates/netbox_nsm/inc/rulebook_rules_filter_query.html:19
 msgid "Filter anwenden"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_filter_query.html:21
+#: templates/netbox_nsm/inc/rulebook_rules_filter_query.html:21
 msgid "Anwenden"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_filter_query.html:26
+#: templates/netbox_nsm/inc/rulebook_rules_filter_query.html:26
 msgid "Clear column filters"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_filter_query.html:27
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_filter_query.html:31
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_table_thead.html:89
+#: templates/netbox_nsm/inc/rulebook_rules_filter_query.html:27
+#: templates/netbox_nsm/inc/rulebook_rules_filter_query.html:31
+#: templates/netbox_nsm/inc/rulebook_rules_table_thead.html:119
 msgid "Clear filters"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_filter_query.html:28
+#: templates/netbox_nsm/inc/rulebook_rules_filter_query.html:28
 msgid "row"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_filter_query.html:29
+#: templates/netbox_nsm/inc/rulebook_rules_filter_query.html:29
 msgid "rows"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_filter_query.html:37
+#: templates/netbox_nsm/inc/rulebook_rules_filter_query.html:37
 msgid "Filter-Abfrage in Zwischenablage kopieren"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_filter_query.html:39
+#: templates/netbox_nsm/inc/rulebook_rules_filter_query.html:39
 msgid "Kopieren"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_pagination.html:15
+#: templates/netbox_nsm/inc/rulebook_rules_pagination.html:14
 msgid "Page selection"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_pagination.html:21
+#: templates/netbox_nsm/inc/rulebook_rules_pagination.html:20
 msgid "Previous page"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_pagination.html:32
+#: templates/netbox_nsm/inc/rulebook_rules_pagination.html:31
 #, python-format
 msgid "Page %(num)s"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_pagination.html:45
+#: templates/netbox_nsm/inc/rulebook_rules_pagination.html:44
 msgid "Next page"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_pagination.html:59
+#: templates/netbox_nsm/inc/rulebook_rules_pagination.html:58
 #, python-format
 msgid "Showing %(start)s-%(end)s of %(total)s"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_pagination.html:66
+#: templates/netbox_nsm/inc/rulebook_rules_pagination.html:65
 msgid "Pagination options"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_pagination.html:69
+#: templates/netbox_nsm/inc/rulebook_rules_pagination.html:68
 msgid "Per Page"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_sort_header.html:13
+#: templates/netbox_nsm/inc/rulebook_rules_row_group_tabs.html:4
+msgid "Rule groups"
+msgstr "Regelgruppen"
+
+#: templates/netbox_nsm/inc/rulebook_rules_row_group_tabs.html:7
+#: templates/netbox_nsm/inc/rulebook_rules_row_group_tabs.html:8
+msgid "Previous rule groups"
+msgstr "Vorherige Regelgruppen"
+
+#: templates/netbox_nsm/inc/rulebook_rules_row_group_tabs.html:20
+#, python-format
+msgid "%(label)s (%(count)s rules)"
+msgstr "%(label)s (%(count)s Regeln)"
+
+#: templates/netbox_nsm/inc/rulebook_rules_row_group_tabs.html:30
+#: templates/netbox_nsm/inc/rulebook_rules_row_group_tabs.html:31
+msgid "Next rule groups"
+msgstr "Nächste Regelgruppen"
+
+#: templates/netbox_nsm/inc/rulebook_rules_row_group_tabs.html:38
+msgid "Resize tab column"
+msgstr ""
+
+#: templates/netbox_nsm/inc/rulebook_rules_sort_header.html:13
 msgid "Z–A"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_sort_header.html:13
+#: templates/netbox_nsm/inc/rulebook_rules_sort_header.html:13
 msgid "A–Z"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_sort_header.html:13
+#: templates/netbox_nsm/inc/rulebook_rules_sort_header.html:13
 msgid "Sort"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_sort_header.html:14
+#: templates/netbox_nsm/inc/rulebook_rules_sort_header.html:14
 #, python-format
 msgid "Sort %(column)s Z–A"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_sort_header.html:14
+#: templates/netbox_nsm/inc/rulebook_rules_sort_header.html:14
 #, python-format
 msgid "Sort %(column)s A–Z"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_sort_header.html:14
+#: templates/netbox_nsm/inc/rulebook_rules_sort_header.html:14
 #, python-format
 msgid "Sort %(column)s"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_sticky_actions.html:16
+#: templates/netbox_nsm/inc/rulebook_rules_sticky_actions.html:16
 msgid "Delete Selected"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_table.html:19
+#: templates/netbox_nsm/inc/rulebook_rules_table.html:19
 #, fuzzy, python-format
 #| msgid "Device (name)"
 msgid "Select %(name)s"
 msgstr "Gerät (Name)"
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_table.html:35
+#: templates/netbox_nsm/inc/rulebook_rules_table.html:35
 msgid "No rules match the current filters."
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_table.html:37
+#: templates/netbox_nsm/inc/rulebook_rules_table.html:37
 msgid "No rules in this rulebook."
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_table_thead.html:6
+#: templates/netbox_nsm/inc/rulebook_rules_table_thead.html:6
 msgid "Select all"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_table_thead.html:9
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_table_thead.html:10
+#: templates/netbox_nsm/inc/rulebook_rules_table_thead.html:9
+#: templates/netbox_nsm/inc/rulebook_rules_table_thead.html:10
 msgid "Toggle all"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_table_thead.html:67
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_table_thead.html:68
-msgid "Search: a OR b … a AND b"
-msgstr ""
-
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_table_thead.html:74
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_table_thead.html:75
-msgid "Clear filter"
-msgstr ""
-
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_table_thead.html:83
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_matrix.html:237
-msgid "Apply filters"
-msgstr ""
-
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_table_thead.html:98
+#: templates/netbox_nsm/inc/rulebook_rules_table_thead.html:79
+#: templates/netbox_nsm/inc/rulebook_rules_table_thead.html:128
 msgid "Resize column"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_status_badge.html:13
+#: templates/netbox_nsm/inc/rulebook_rules_table_thead.html:97
+#: templates/netbox_nsm/inc/rulebook_rules_table_thead.html:98
+msgid "Search: a OR b … a AND b"
+msgstr ""
+
+#: templates/netbox_nsm/inc/rulebook_rules_table_thead.html:104
+#: templates/netbox_nsm/inc/rulebook_rules_table_thead.html:105
+msgid "Clear filter"
+msgstr ""
+
+#: templates/netbox_nsm/inc/rulebook_rules_table_thead.html:113
+#: templates/netbox_nsm/rulebook_cot_matrix.html:261
+msgid "Apply filters"
+msgstr ""
+
+#: templates/netbox_nsm/inc/rulebook_status_badge.html:13
 msgid "Read-only"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/security_links.html:149
-#: netbox_nsm/templates/netbox_nsm/inc/security_links.html:150
-#: netbox_nsm/templates/netbox_nsm/inc/security_links.html:285
-#: netbox_nsm/templates/netbox_nsm/inc/security_links.html:286
+#: templates/netbox_nsm/inc/security_links.html:185
+#: templates/netbox_nsm/inc/security_links.html:186
+#: templates/netbox_nsm/inc/security_links.html:321
+#: templates/netbox_nsm/inc/security_links.html:322
 #, fuzzy
 #| msgid "Object Analyzer"
 msgid "Objekt analysieren"
 msgstr "Objektanalysator"
 
-#: netbox_nsm/templates/netbox_nsm/inc/security_links.html:163
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_detail.html:108
-msgid "None"
-msgstr ""
-
-#: netbox_nsm/templates/netbox_nsm/inc/security_links.html:175
+#: templates/netbox_nsm/inc/security_links.html:211
 #, fuzzy
 #| msgid "Rulebook"
 msgid "Toggle Rulebooks"
 msgstr "Regelbuch"
 
-#: netbox_nsm/templates/netbox_nsm/inc/security_links.html:195
+#: templates/netbox_nsm/inc/security_links.html:231
+#: templates/netbox_nsm/inc/security_links.html:461
 #, python-format
 msgid "Toggle %(rb)s"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/security_links.html:214
+#: templates/netbox_nsm/inc/security_links.html:250
+#: templates/netbox_nsm/inc/security_links.html:480
 #, python-format
 msgid "Toggle %(field)s"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/security_links.html:231
+#: templates/netbox_nsm/inc/security_links.html:267
+#: templates/netbox_nsm/inc/security_links.html:497
 msgid "Loading…"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/security_links.html:272
+#: templates/netbox_nsm/inc/security_links.html:308
 msgid "from"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/security_links.html:328
-#: netbox_nsm/templates/netbox_nsm/inc/security_links.html:329
+#: templates/netbox_nsm/inc/security_links.html:358
+msgid "Enforcement Point"
+msgstr ""
+
+#: templates/netbox_nsm/inc/security_links.html:368
+#: templates/netbox_nsm/inc/security_links.html:369
 msgid "Assign rulebook"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/setup_custom_objects.html:39
-msgid "Custom Objects"
+#: templates/netbox_nsm/inc/security_links.html:418
+#, fuzzy, python-format
+#| msgid "Device (name)"
+msgid "Toggle %(name)s"
+msgstr "Gerät (Name)"
+
+#: templates/netbox_nsm/inc/setup_custom_object_schema.html:51
+#, fuzzy
+#| msgid "Custom Objects"
+msgid "Custom Object Schema"
 msgstr "Custom Objects"
 
-#: netbox_nsm/templates/netbox_nsm/inc/setup_custom_objects.html:46
+#: templates/netbox_nsm/inc/setup_custom_object_schema.html:58
+#: templates/netbox_nsm/inc/setup_custom_objects.html:56
 msgid "Plugin ready"
 msgstr "Plugin bereit"
 
-#: netbox_nsm/templates/netbox_nsm/inc/setup_custom_objects.html:50
+#: templates/netbox_nsm/inc/setup_custom_object_schema.html:62
+#: templates/netbox_nsm/inc/setup_custom_objects.html:60
 msgid "Migrations pending"
 msgstr "Migrationen ausstehend"
 
-#: netbox_nsm/templates/netbox_nsm/inc/setup_custom_objects.html:54
+#: templates/netbox_nsm/inc/setup_custom_object_schema.html:66
+#: templates/netbox_nsm/inc/setup_custom_objects.html:64
 msgid "Plugin not installed"
 msgstr "Plugin nicht installiert"
 
-#: netbox_nsm/templates/netbox_nsm/inc/setup_custom_objects.html:58
+#: templates/netbox_nsm/inc/setup_custom_object_schema.html:70
+#, fuzzy
+#| msgid ""
+#| "<strong>netbox-custom-objects</strong> — applies bundled portable schema "
+#| "(<code>schema/nsm_portable_schema.json</code>)."
+msgid ""
+"<strong>netbox-custom-objects</strong> — portable schema with "
+"<code>comments.nsm_config</code> per type."
+msgstr ""
+"<strong>netbox-custom-objects</strong> — wendet das gebündelte portable "
+"Schema an (<code>schema/nsm_portable_schema.json</code>)."
+
+#: templates/netbox_nsm/inc/setup_custom_object_schema.html:76
+#: templates/netbox_nsm/inc/setup_custom_objects.html:74
+msgid "Run migrations before importing types:"
+msgstr "Migrationen ausführen, bevor Typen importiert werden:"
+
+#: templates/netbox_nsm/inc/setup_custom_object_schema.html:121
+#, fuzzy
+#| msgid "Custom Objects"
+msgid "Custom Object Schema YAML"
+msgstr "Custom Objects"
+
+#: templates/netbox_nsm/inc/setup_custom_object_schema.html:179
+#: templates/netbox_nsm/inc/setup_custom_objects.html:176
+msgid "No types defined."
+msgstr ""
+
+#: templates/netbox_nsm/inc/setup_custom_object_schema.html:189
+#: templates/netbox_nsm/inc/setup_custom_objects.html:85
+msgid "Install netbox-custom-objects first"
+msgstr "Zuerst netbox-custom-objects installieren"
+
+#: templates/netbox_nsm/inc/setup_custom_object_schema.html:189
+#: templates/netbox_nsm/inc/setup_custom_objects.html:85
+msgid "Run migrations first"
+msgstr "Zuerst Migrationen ausführen"
+
+#: templates/netbox_nsm/inc/setup_custom_object_schema.html:189
+#: templates/netbox_nsm/inc/setup_custom_objects.html:85
+msgid "All types already present"
+msgstr "Alle Typen bereits vorhanden"
+
+#: templates/netbox_nsm/inc/setup_custom_object_schema.html:190
+#, fuzzy
+#| msgid "Add all Custom Object Types"
+msgid "Add all Custom Objects"
+msgstr "Alle Custom-Object-Typen hinzufügen"
+
+#: templates/netbox_nsm/inc/setup_custom_object_schema.html:194
+msgid ""
+"Imports Custom Object Types and writes nsm_config into each type's comments "
+"field."
+msgstr ""
+
+#: templates/netbox_nsm/inc/setup_custom_object_schema.html:197
+#: templates/netbox_nsm/inc/setup_custom_objects.html:181
+msgid "Custom Object Groups"
+msgstr "Custom-Object-Gruppen"
+
+#: templates/netbox_nsm/inc/setup_custom_object_schema.html:219
+#: templates/netbox_nsm/inc/setup_custom_objects.html:203
+msgid "present"
+msgstr "vorhanden"
+
+#: templates/netbox_nsm/inc/setup_custom_object_schema.html:223
+#: templates/netbox_nsm/inc/setup_custom_objects.html:207
+#: templates/netbox_nsm/inc/setup_typeconfig.html:55
+msgid "missing"
+msgstr "fehlt"
+
+#: templates/netbox_nsm/inc/setup_custom_object_schema.html:235
+#: templates/netbox_nsm/inc/setup_custom_objects.html:219
+msgid "Section 2 complete."
+msgstr "Abschnitt 2 abgeschlossen."
+
+#: templates/netbox_nsm/inc/setup_custom_objects.html:49
+msgid "Custom Objects"
+msgstr "Custom Objects"
+
+#: templates/netbox_nsm/inc/setup_custom_objects.html:68
 msgid ""
 "<strong>netbox-custom-objects</strong> — applies bundled portable schema "
 "(<code>schema/nsm_portable_schema.json</code>)."
@@ -2121,77 +2189,61 @@ msgstr ""
 "<strong>netbox-custom-objects</strong> — wendet das gebündelte portable "
 "Schema an (<code>schema/nsm_portable_schema.json</code>)."
 
-#: netbox_nsm/templates/netbox_nsm/inc/setup_custom_objects.html:64
-msgid "Run migrations before importing types:"
-msgstr "Migrationen ausführen, bevor Typen importiert werden:"
-
-#: netbox_nsm/templates/netbox_nsm/inc/setup_custom_objects.html:75
-msgid "Install netbox-custom-objects first"
-msgstr "Zuerst netbox-custom-objects installieren"
-
-#: netbox_nsm/templates/netbox_nsm/inc/setup_custom_objects.html:75
-msgid "Run migrations first"
-msgstr "Zuerst Migrationen ausführen"
-
-#: netbox_nsm/templates/netbox_nsm/inc/setup_custom_objects.html:75
-msgid "All types already present"
-msgstr "Alle Typen bereits vorhanden"
-
-#: netbox_nsm/templates/netbox_nsm/inc/setup_custom_objects.html:76
+#: templates/netbox_nsm/inc/setup_custom_objects.html:86
 msgid "Add all Custom Object Types"
 msgstr "Alle Custom-Object-Typen hinzufügen"
 
-#: netbox_nsm/templates/netbox_nsm/inc/setup_custom_objects.html:80
+#: templates/netbox_nsm/inc/setup_custom_objects.html:90
 msgid "Includes built-in NSM types and NSM Panel links."
 msgstr "Enthält integrierte NSM-Typen und NSM-Panel-Links."
 
-#: netbox_nsm/templates/netbox_nsm/inc/setup_custom_objects.html:84
-msgid "Custom Object Groups"
-msgstr "Custom-Object-Gruppen"
+#: templates/netbox_nsm/inc/setup_custom_objects.html:94
+msgid "Portable schema"
+msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/setup_custom_objects.html:106
-msgid "present"
-msgstr "vorhanden"
+#: templates/netbox_nsm/inc/setup_custom_objects.html:129
+msgid "Portable schema YAML"
+msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/setup_custom_objects.html:110
-#: netbox_nsm/templates/netbox_nsm/inc/setup_typeconfig.html:55
-msgid "missing"
-msgstr "fehlt"
-
-#: netbox_nsm/templates/netbox_nsm/inc/setup_custom_objects.html:122
-msgid "Section 2 complete."
-msgstr "Abschnitt 2 abgeschlossen."
-
-#: netbox_nsm/templates/netbox_nsm/inc/setup_demo.html:6
+#: templates/netbox_nsm/inc/setup_demo.html:6
 msgid "Demo"
 msgstr "Demo"
 
-#: netbox_nsm/templates/netbox_nsm/inc/setup_demo.html:12
-msgid "Available after section 3 is complete."
-msgstr "Verfügbar nach Abschluss von Abschnitt 3."
+#: templates/netbox_nsm/inc/setup_demo.html:12
+#: templates/netbox_nsm/inc/setup_typeconfig.html:25
+msgid "Available after section 2 is complete."
+msgstr "Verfügbar nach Abschluss von Abschnitt 2."
 
-#: netbox_nsm/templates/netbox_nsm/inc/setup_demo.html:18
+#: templates/netbox_nsm/inc/setup_demo.html:18
 msgid "Starter demo"
 msgstr "Starter-Demo"
 
-#: netbox_nsm/templates/netbox_nsm/inc/setup_demo.html:20
+#: templates/netbox_nsm/inc/setup_demo.html:20
+#, fuzzy, python-format
+#| msgid ""
+#| "Creates nsm_rb_demo (portable-schema YAML, zones only) with %(zones)s "
+#| "zones and %(rules)s rules (random permit/deny) in a %(size)s×%(size)s "
+#| "matrix."
 msgid ""
-"Creates nsm_rb_demo (portable-schema YAML, zones only) with %(zones)s zones "
-"and %(rules)s rules (random permit/deny) in a %(size)s×%(size)s matrix."
+"\n"
+"              Creates nsm_rb_demo (portable-schema YAML, zones only) with "
+"%(zones)s zones and %(rules)s rules (random permit/deny) in a "
+"%(size)s×%(size)s matrix.\n"
+"              "
 msgstr ""
 "Legt nsm_rb_demo (portable-schema YAML, nur Zonen) mit %(zones)s Zonen und "
 "%(rules)s Regeln (zufällig permit/deny) in einer %(size)s×%(size)s-Matrix an."
 
-#: netbox_nsm/templates/netbox_nsm/inc/setup_demo.html:27
-#: netbox_nsm/templates/netbox_nsm/inc/setup_demo.html:56
+#: templates/netbox_nsm/inc/setup_demo.html:29
+#: templates/netbox_nsm/inc/setup_demo.html:58
 msgid "Complete section 3 first"
 msgstr "Abschnitt 3 zuerst abschließen"
 
-#: netbox_nsm/templates/netbox_nsm/inc/setup_demo.html:37
+#: templates/netbox_nsm/inc/setup_demo.html:39
 msgid "Address bench (50,000 addresses)"
 msgstr "Address Bench (50.000 Adressen)"
 
-#: netbox_nsm/templates/netbox_nsm/inc/setup_demo.html:39
+#: templates/netbox_nsm/inc/setup_demo.html:41
 #, python-format
 msgid ""
 "\n"
@@ -2210,301 +2262,307 @@ msgstr ""
 "Adressen) nur per CLI: scripts/create_addresses_million_scale.py\n"
 "              "
 
-#: netbox_nsm/templates/netbox_nsm/inc/setup_demo.html:51
+#: templates/netbox_nsm/inc/setup_demo.html:53
 msgid "I confirm that IP addresses may be created in IPAM."
 msgstr "Ich bestätige, dass IP-Adressen im IPAM angelegt werden dürfen."
 
-#: netbox_nsm/templates/netbox_nsm/inc/setup_demo.html:56
+#: templates/netbox_nsm/inc/setup_demo.html:58
 msgid "Confirmation required"
 msgstr "Bestätigung erforderlich"
 
-#: netbox_nsm/templates/netbox_nsm/inc/setup_demo.html:79
-#: netbox_nsm/views/setup/view.py:130
+#: templates/netbox_nsm/inc/setup_demo.html:81 views/setup/view.py:144
 msgid "Demo actions are disabled (setup_allow_destructive_actions)."
 msgstr "Demo-Aktionen sind deaktiviert (setup_allow_destructive_actions)."
 
-#: netbox_nsm/templates/netbox_nsm/inc/setup_hide_menu.html:6
-msgid "Hide Setup"
-msgstr "Setup ausblenden"
-
-#: netbox_nsm/templates/netbox_nsm/inc/setup_hide_menu.html:11
+#: templates/netbox_nsm/inc/setup_typeconfig.html:11
+#, fuzzy
+#| msgid ""
+#| "Links each Custom Object Type to NSM behaviour (matching class, display, "
+#| "panel). Inheritance is configured per link under Assign, not here."
 msgid ""
-"\n"
-"      Remove the <strong>Setup</strong> entry from the Configuration menu. "
-"The page\n"
-"      stays hidden until you set <code>\"setup_menu\": true</code> in\n"
-"      <code>PLUGINS_CONFIG[\"netbox_nsm\"]</code> again (toggle\n"
-"      <code>false</code> → restart → <code>true</code> → restart).\n"
-"      "
-msgstr ""
-"\n"
-"      Entfernt den Eintrag <strong>Setup</strong> aus dem "
-"Konfigurationsmenü. Die Seite\n"
-"      bleibt ausgeblendet, bis Sie <code>\"setup_menu\": true</code> in\n"
-"      <code>PLUGINS_CONFIG[\"netbox_nsm\"]</code> wieder setzen (Toggle\n"
-"      <code>false</code> → Neustart → <code>true</code> → Neustart).\n"
-"      "
-
-#: netbox_nsm/templates/netbox_nsm/inc/setup_hide_menu.html:22
-msgid "Hide Setup menu"
-msgstr "Setup-Menü ausblenden"
-
-#: netbox_nsm/templates/netbox_nsm/inc/setup_typeconfig.html:6
-msgid "TypeConfig"
-msgstr "TypeConfig"
-
-#: netbox_nsm/templates/netbox_nsm/inc/setup_typeconfig.html:11
-msgid ""
-"Links each Custom Object Type to NSM behaviour (matching class, display, "
-"panel). Inheritance is configured per link under Assign, not here."
+"Links each Custom Object Type to NSM behaviour (display template, sort "
+"order). Inheritance is configured per link under Assign, not here."
 msgstr ""
 "Verknüpft jeden Custom-Object-Typ mit NSM-Verhalten (Matching Class, "
 "Anzeige, Panel). Vererbung wird pro Link unter Assign konfiguriert, nicht "
 "hier."
 
-#: netbox_nsm/templates/netbox_nsm/inc/setup_typeconfig.html:20
+#: templates/netbox_nsm/inc/setup_typeconfig.html:20
 msgid "Complete section 2 first"
 msgstr "Abschnitt 2 zuerst abschließen"
 
-#: netbox_nsm/templates/netbox_nsm/inc/setup_typeconfig.html:20
-msgid "All TypeConfigs already configured"
+#: templates/netbox_nsm/inc/setup_typeconfig.html:20
+#, fuzzy
+#| msgid "All TypeConfigs already configured"
+msgid "All Object Configs already configured"
 msgstr "Alle TypeConfigs bereits konfiguriert"
 
-#: netbox_nsm/templates/netbox_nsm/inc/setup_typeconfig.html:21
-msgid "Add all TypeConfigs"
+#: templates/netbox_nsm/inc/setup_typeconfig.html:21
+#, fuzzy
+#| msgid "Add all TypeConfigs"
+msgid "Add all Object Configs"
 msgstr "Alle TypeConfigs hinzufügen"
 
-#: netbox_nsm/templates/netbox_nsm/inc/setup_typeconfig.html:25
-msgid "Available after section 2 is complete."
-msgstr "Verfügbar nach Abschluss von Abschnitt 2."
-
-#: netbox_nsm/templates/netbox_nsm/inc/setup_typeconfig.html:51
+#: templates/netbox_nsm/inc/setup_typeconfig.html:51
 msgid "waiting"
 msgstr "wartend"
 
-#: netbox_nsm/templates/netbox_nsm/inc/setup_typeconfig.html:66
+#: templates/netbox_nsm/inc/setup_typeconfig.html:66
 msgid "Section 3 complete."
 msgstr "Abschnitt 3 abgeschlossen."
 
-#: netbox_nsm/templates/netbox_nsm/inc/setup_ui_labels.html:5
-msgid "Menu & panel title"
-msgstr "Menü- & Panel-Titel"
+#: templates/netbox_nsm/inc/setup_typeconfig.html:71
+#, fuzzy
+#| msgid "Object Config settings YAML"
+msgid "Object Config definitions"
+msgstr "Object-Config-Einstellungen als YAML"
 
-#: netbox_nsm/templates/netbox_nsm/inc/setup_ui_labels.html:10
+#: templates/netbox_nsm/inc/setup_typeconfig.html:73
 msgid ""
-"Titles for the sidebar menu and the object-detail card. Default for both: "
-"<strong>Security</strong>."
+"Reference YAML for all nine Object Config types (sort order and display "
+"template)."
 msgstr ""
-"Titel für das Seitenmenü und die Objektdetail-Karte. Standard für beide: "
-"<strong>Security</strong>."
 
-#: netbox_nsm/templates/netbox_nsm/ip_analysis.html:138
+#: templates/netbox_nsm/inc/setup_typeconfig.html:78
+#, fuzzy
+#| msgid "Object Config settings YAML"
+msgid "Object Config definitions YAML"
+msgstr "Object-Config-Einstellungen als YAML"
+
+#: templates/netbox_nsm/ip_analysis.html:138
 msgid "Add one or more objects per column to compare IP resolution"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/ip_analysis.html:164
-#: netbox_nsm/templates/netbox_nsm/ip_analysis.html:187
-#: netbox_nsm/templates/netbox_nsm/ip_analysis.html:216
-#: netbox_nsm/templates/netbox_nsm/ip_analysis.html:239
-#: netbox_nsm/templates/netbox_nsm/ip_analysis.html:319
+#: templates/netbox_nsm/ip_analysis.html:164
+#: templates/netbox_nsm/ip_analysis.html:187
+#: templates/netbox_nsm/ip_analysis.html:216
+#: templates/netbox_nsm/ip_analysis.html:239
+#: templates/netbox_nsm/ip_analysis.html:319
 #, fuzzy
 #| msgid "Search (min. 2 chars)…"
 msgid "Search and add objects…"
 msgstr "Suchen (mind. 2 Zeichen)…"
 
-#: netbox_nsm/templates/netbox_nsm/ip_analysis.html:166
-#: netbox_nsm/templates/netbox_nsm/ip_analysis.html:218
+#: templates/netbox_nsm/ip_analysis.html:166
+#: templates/netbox_nsm/ip_analysis.html:218
 msgid "Search and add objects"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/ip_analysis.html:170
-#: netbox_nsm/templates/netbox_nsm/ip_analysis.html:222
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:83
+#: templates/netbox_nsm/ip_analysis.html:170
+#: templates/netbox_nsm/ip_analysis.html:222
+#: templates/netbox_nsm/object_analyzer.html:151
 #, fuzzy
 #| msgid "Analysis"
 msgid "Analyze"
 msgstr "Analysieren"
 
-#: netbox_nsm/templates/netbox_nsm/ip_analysis.html:174
-#: netbox_nsm/templates/netbox_nsm/ip_analysis.html:226
+#: templates/netbox_nsm/ip_analysis.html:174
+#: templates/netbox_nsm/ip_analysis.html:226
 msgid "Clear all"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/ip_analysis.html:183
-#: netbox_nsm/templates/netbox_nsm/ip_analysis.html:235
-#: netbox_nsm/templates/netbox_nsm/ip_analysis.html:334
+#: templates/netbox_nsm/ip_analysis.html:183
+#: templates/netbox_nsm/ip_analysis.html:235
+#: templates/netbox_nsm/ip_analysis.html:334
 msgid "Click Analyze to resolve IP addresses."
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/ip_analysis.html:406
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:151
-#: netbox_nsm/templates/netbox_nsm/object_link_assign.html:50
+#: templates/netbox_nsm/ip_analysis.html:406
+#: templates/netbox_nsm/object_analyzer.html:219
+#: templates/netbox_nsm/object_link_assign.html:50
 msgid "No results"
 msgstr "Keine Treffer"
 
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:65
-msgid "Select object · click to expand · double-click to open"
-msgstr "Objekt auswählen · Klicken zum Aufklappen · Doppelklick zum Öffnen"
+#: templates/netbox_nsm/object_analyzer.html:133
+msgid "Select object · + opens link tree · View shows selection · edge ▾ hides"
+msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:77
+#: templates/netbox_nsm/object_analyzer.html:145
 msgid "Search: Device, VM, IP, Prefix, Label, Zone, Rule …"
 msgstr "Suche: Gerät, VM, IP, Präfix, Label, Zone, Regel …"
 
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:97
+#: templates/netbox_nsm/object_analyzer.html:165
 msgid "Click a node in the graph to load its connections."
 msgstr ""
 "Klicken Sie auf einen Knoten im Graphen, um dessen Verbindungen zu laden."
 
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:112
+#: templates/netbox_nsm/object_analyzer.html:180
 msgid "IP"
 msgstr "IP"
 
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:115
+#: templates/netbox_nsm/object_analyzer.html:183
 msgid "Zone / Rule"
 msgstr "Zone / Regel"
 
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:125
+#: templates/netbox_nsm/object_analyzer.html:193
 msgid "Select object"
 msgstr "Objekt auswählen"
 
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:126
+#: templates/netbox_nsm/object_analyzer.html:194
 msgid "Select an object above – the graph starts with this node."
 msgstr "Oben ein Objekt auswählen – der Graph startet mit diesem Knoten."
 
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:152
+#: templates/netbox_nsm/object_analyzer.html:220
 msgid "Collapse"
 msgstr "Einklappen"
 
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:153
+#: templates/netbox_nsm/object_analyzer.html:221
 msgid "Expand"
 msgstr "Aufklappen"
 
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:154
+#: templates/netbox_nsm/object_analyzer.html:222
+#, fuzzy
+#| msgid "Collapse"
+msgid "Collapse all"
+msgstr "Einklappen"
+
+#: templates/netbox_nsm/object_analyzer.html:223
 msgid "Open object"
 msgstr "Objekt öffnen"
 
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:155
+#: templates/netbox_nsm/object_analyzer.html:224
 msgid "Remove node"
 msgstr "Knoten entfernen"
 
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:156
+#: templates/netbox_nsm/object_analyzer.html:225
 msgid "Error:"
 msgstr "Fehler:"
 
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:159
+#: templates/netbox_nsm/object_analyzer.html:226
+msgid "-- all --"
+msgstr ""
+
+#: templates/netbox_nsm/object_analyzer.html:227
+msgid "View"
+msgstr ""
+
+#: templates/netbox_nsm/object_analyzer.html:228
+#, fuzzy
+#| msgid "Device (name)"
+msgid "Select links"
+msgstr "Gerät (Name)"
+
+#: templates/netbox_nsm/object_analyzer.html:230
+msgid "Loading links…"
+msgstr ""
+
+#: templates/netbox_nsm/object_analyzer.html:231
+msgid "links"
+msgstr ""
+
+#: templates/netbox_nsm/object_analyzer.html:232
+msgid "Secondary links"
+msgstr ""
+
+#: templates/netbox_nsm/object_analyzer.html:235
 msgid "VMs"
 msgstr "VMs"
 
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:160
+#: templates/netbox_nsm/object_analyzer.html:236
 msgid "Interfaces"
 msgstr "Interfaces"
 
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:161
+#: templates/netbox_nsm/object_analyzer.html:237
 msgid "IPs"
 msgstr "IPs"
 
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:162
+#: templates/netbox_nsm/object_analyzer.html:238
 msgid "Prefixes"
 msgstr "Präfixe"
 
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:163
+#: templates/netbox_nsm/object_analyzer.html:239
 msgid "IP ranges"
 msgstr "IP-Bereiche"
 
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:164
+#: templates/netbox_nsm/object_analyzer.html:240
 msgid "VLANs"
 msgstr "VLANs"
 
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:165
+#: templates/netbox_nsm/object_analyzer.html:241
 msgid "VRFs"
 msgstr "VRFs"
 
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:166
+#: templates/netbox_nsm/object_analyzer.html:242
 msgid "Labels"
 msgstr "Labels"
 
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:167
+#: templates/netbox_nsm/object_analyzer.html:243
 msgid "Zones"
 msgstr "Zone"
 
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:168
+#: templates/netbox_nsm/object_analyzer.html:244
 msgid "Groups"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:171
+#: templates/netbox_nsm/object_analyzer.html:247
 msgid "Sites"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:172
+#: templates/netbox_nsm/object_analyzer.html:248
 msgid "Tenants"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/object_analyzer.html:173
-#: netbox_nsm/templates/netbox_nsm/propertytype.html:38
-msgid "Objects"
-msgstr "Objekte"
-
-#: netbox_nsm/templates/netbox_nsm/object_link_assign.html:5
-#: netbox_nsm/templates/netbox_nsm/object_link_assign.html:15
+#: templates/netbox_nsm/object_link_assign.html:5
+#: templates/netbox_nsm/object_link_assign.html:15
 msgid "Assign Link"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/object_link_assign.html:27
+#: templates/netbox_nsm/object_link_assign.html:27
 msgid "New Link"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/object_link_assign.html:31
+#: templates/netbox_nsm/object_link_assign.html:31
 msgid "Objekt A (dieses Objekt)"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/object_link_assign.html:51
+#: templates/netbox_nsm/object_link_assign.html:51
 msgid "Error loading"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/object_link_assign.html:52
+#: templates/netbox_nsm/object_link_assign.html:52
 msgid "Load more…"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/object_link_assign.html:53
+#: templates/netbox_nsm/object_link_assign.html:53
 msgid "No selection"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/object_link_assign.html:83
+#: templates/netbox_nsm/object_link_assign.html:88
 msgid "Element (Objekt B)"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/object_link_assign.html:92
+#: templates/netbox_nsm/object_link_assign.html:97
 msgid "Search or browse…"
 msgstr "Suchen oder durchblättern…"
 
-#: netbox_nsm/templates/netbox_nsm/object_link_assign.html:120
+#: templates/netbox_nsm/object_link_assign.html:127
 msgid "Optional…"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/object_link_assign.html:124
-#: netbox_nsm/templates/netbox_nsm/object_link_edit.html:19
+#: templates/netbox_nsm/object_link_assign.html:131
+#: templates/netbox_nsm/object_link_edit.html:19
 #, fuzzy
 #| msgid "Link type"
 msgid "Link"
 msgstr "Link-Typ"
 
-#: netbox_nsm/templates/netbox_nsm/object_link_assign.html:134
+#: templates/netbox_nsm/object_link_assign.html:141
 msgid "Existing Links"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/object_link_assign.html:140
+#: templates/netbox_nsm/object_link_assign.html:147
 msgid "Typ"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/object_link_assign.html:168
+#: templates/netbox_nsm/object_link_assign.html:198
 msgid "Delete Link?"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/object_link_assign.html:182
+#: templates/netbox_nsm/object_link_assign.html:211
 msgid "No links found."
 msgstr "Keine Verknüpfungen gefunden."
 
-#: netbox_nsm/templates/netbox_nsm/object_link_delete.html:21
+#: templates/netbox_nsm/object_link_delete.html:21
 #, python-format
 msgid ""
 "\n"
@@ -2514,212 +2572,255 @@ msgid ""
 "          "
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/object_link_edit.html:4
-#: netbox_nsm/templates/netbox_nsm/object_link_edit.html:9
+#: templates/netbox_nsm/object_link_edit.html:4
+#: templates/netbox_nsm/object_link_edit.html:9
 msgid "Edit Link"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/object_link_edit.html:23
+#: templates/netbox_nsm/object_link_edit.html:23
 #, fuzzy
 #| msgid "Objects"
 msgid "Object A"
 msgstr "Objekte"
 
-#: netbox_nsm/templates/netbox_nsm/object_link_edit.html:31
+#: templates/netbox_nsm/object_link_edit.html:31
 #, fuzzy
 #| msgid "Objects"
 msgid "Object B"
 msgstr "Objekte"
 
-#: netbox_nsm/templates/netbox_nsm/property.html:9
+#: templates/netbox_nsm/objectconfig_add.html:4
+#: templates/netbox_nsm/objectconfig_add.html:7
+#, fuzzy
+#| msgid "Add object"
+msgid "Add Object Config"
+msgstr "Objekt hinzufügen"
+
+#: templates/netbox_nsm/objectconfig_add.html:13
+msgid "Select a Custom Object Type without nsm_config in comments."
+msgstr ""
+
+#: templates/netbox_nsm/objectconfig_add.html:25
+msgid "Create with defaults"
+msgstr ""
+
+#: templates/netbox_nsm/objectconfig_add.html:31
+#, fuzzy
+#| msgid "All Custom Object Types are already present."
+msgid "All UI object types already have nsm_config in comments."
+msgstr "Alle Custom-Object-Typen sind bereits vorhanden."
+
+#: templates/netbox_nsm/property.html:9
 #, fuzzy
 #| msgid "NSM Objects"
 msgid "NSM Object"
 msgstr "NSM Objekte"
 
-#: netbox_nsm/templates/netbox_nsm/property.html:14
+#: templates/netbox_nsm/property.html:14
 msgid "Color"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/property.html:26
+#: templates/netbox_nsm/property.html:26
 msgid "Source Model"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/property.html:27
+#: templates/netbox_nsm/property.html:27
 msgid "Source PK"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/property.html:41
+#: templates/netbox_nsm/property.html:41
 #, fuzzy
 #| msgid "Objects"
 msgid "Object Data"
 msgstr "Objekte"
 
-#: netbox_nsm/templates/netbox_nsm/property.html:48
+#: templates/netbox_nsm/property.html:48
 msgid "Value"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/property.html:66
+#: templates/netbox_nsm/property.html:66
 msgid "No fields defined for this object type."
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/propertytype.html:9
+#: templates/netbox_nsm/propertytype.html:9
 #, fuzzy
 #| msgid "NSM Objects"
 msgid "NSM Object Type"
 msgstr "NSM Objekte"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_all_rules_changelog.html:16
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_changelog.html:16
+#: templates/netbox_nsm/rulebook_all_rules_changelog.html:16
+#: templates/netbox_nsm/rulebook_cot_changelog.html:16
 msgid "Change log retention"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_all_rules_changelog.html:16
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_changelog.html:16
+#: templates/netbox_nsm/rulebook_all_rules_changelog.html:16
+#: templates/netbox_nsm/rulebook_cot_changelog.html:16
 msgid "days"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_all_rules_changelog.html:16
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_changelog.html:16
+#: templates/netbox_nsm/rulebook_all_rules_changelog.html:16
+#: templates/netbox_nsm/rulebook_cot_changelog.html:16
 msgid "retaining create & last update records for non-deleted objects"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_all_rules_changelog.html:16
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_changelog.html:16
+#: templates/netbox_nsm/rulebook_all_rules_changelog.html:16
+#: templates/netbox_nsm/rulebook_cot_changelog.html:16
 msgid "Indefinite"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_detail.html:56
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_detail.html:113
+#: templates/netbox_nsm/rulebook_cot_detail.html:56
+#: templates/netbox_nsm/rulebook_cot_detail.html:123
 msgid "Rule Counter"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_detail.html:146
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_detail.html:147
+#: templates/netbox_nsm/rulebook_cot_detail.html:166
+#: templates/netbox_nsm/rulebook_cot_detail.html:167
 msgid "Copy field schema YAML for Add Rulebook"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_detail.html:149
+#: templates/netbox_nsm/rulebook_cot_detail.html:169
 msgid "Copy"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_matrix.html:209
+#: templates/netbox_nsm/rulebook_cot_matrix.html:233
 #, fuzzy
 #| msgid "Objects"
 msgid "Object type"
 msgstr "Objekte"
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_matrix.html:220
+#: templates/netbox_nsm/rulebook_cot_matrix.html:244
 msgid "Source (Rows)"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_matrix.html:228
+#: templates/netbox_nsm/rulebook_cot_matrix.html:252
 msgid "Destination (Columns)"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_matrix.html:236
+#: templates/netbox_nsm/rulebook_cot_matrix.html:260
 msgid "Apply"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_matrix.html:247
+#: templates/netbox_nsm/rulebook_cot_matrix.html:271
 #, python-format
 msgid ""
+"\n"
+"        The matrix shows at most %(limit)s entries per axis. The rules "
+"contain %(src_total)s sources and %(dst_total)s destinations; only the first "
+"%(limit)s of each are shown.\n"
+"        "
+msgstr ""
 "\n"
 "        Die Matrix zeigt höchstens %(limit)s Einträge pro Achse. In den "
 "Regeln sind %(src_total)s Quellen und %(dst_total)s Ziele vorhanden; es "
 "werden jeweils die ersten %(limit)s angezeigt.\n"
 "        "
-msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_matrix.html:251
+#: templates/netbox_nsm/rulebook_cot_matrix.html:275
 #, python-format
 msgid ""
+"\n"
+"        The matrix shows at most %(limit)s sources. The rules contain "
+"%(src_total)s sources; only the first %(limit)s are shown.\n"
+"        "
+msgstr ""
 "\n"
 "        Die Matrix zeigt höchstens %(limit)s Quellen. In den Regeln sind "
 "%(src_total)s Quellen vorhanden; es werden die ersten %(limit)s angezeigt.\n"
 "        "
-msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_matrix.html:255
+#: templates/netbox_nsm/rulebook_cot_matrix.html:279
 #, python-format
 msgid ""
+"\n"
+"        The matrix shows at most %(limit)s destinations. The rules contain "
+"%(dst_total)s destinations; only the first %(limit)s are shown.\n"
+"        "
+msgstr ""
 "\n"
 "        Die Matrix zeigt höchstens %(limit)s Ziele. In den Regeln sind "
 "%(dst_total)s Ziele vorhanden; es werden die ersten %(limit)s angezeigt.\n"
 "        "
+
+#: templates/netbox_nsm/rulebook_cot_matrix.html:310
+msgid "Loading matrix…"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_cot_matrix.html:307
+#: templates/netbox_nsm/rulebook_cot_matrix.html:318
 msgid "No zones match the current filter."
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_list.html:23
+#: templates/netbox_nsm/rulebook_link_assign.html:4
+#: templates/netbox_nsm/rulebook_link_assign.html:10
+#, fuzzy
+#| msgid "Rulebook"
+msgid "Assign Rulebook"
+msgstr "Regelbuch"
+
+#: templates/netbox_nsm/rulebook_link_assign.html:12
+#, python-format
+msgid "Assign a deployed rulebook to %(obj)s."
+msgstr ""
+
+#: templates/netbox_nsm/rulebook_list.html:23
 msgid "Results"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_list.html:37
+#: templates/netbox_nsm/rulebook_list.html:37
 msgid "Filters"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/rulebook_list.html:67
+#: templates/netbox_nsm/rulebook_list.html:67
 #, python-format
 msgid ""
 "Select <strong>all <span class=\"total-object-count\">%(count)s</span> "
 "%(object_type_plural)s</strong> matching query"
 msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/setup.html:4
+#: templates/netbox_nsm/setup.html:4
 msgid "NSM Setup"
 msgstr "NSM-Einrichtung"
 
-#: netbox_nsm/templates/netbox_nsm/typeconfig.html:19
-msgid "Disabled"
+#: templates/netbox_nsm/typeconfig.html:44
+#, fuzzy
+#| msgid "Disabled"
+msgid "Enabled"
 msgstr "Deaktiviert"
 
-#: netbox_nsm/templates/netbox_nsm/inc/typeconfig_export_panel.html:18
-msgid "Settings export"
-msgstr "Einstellungen exportieren"
+#: templates/netbox_nsm/typeconfig.html:59
+msgid "Comments"
+msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/typeconfig_export_panel.html:55
-msgid "Object Config settings YAML"
-msgstr "Object-Config-Einstellungen als YAML"
+#: templates/netbox_nsm/typeconfig_list.html:10
+msgid "NSM settings stored in Custom Object Type comments (nsm_config)."
+msgstr ""
 
-#: netbox_nsm/objects/type_config_export.py:149
-msgid "All object types"
-msgstr "Alle Objekttypen"
+#: templates/netbox_nsm/typeconfig_list.html:47
+msgid "No Object Configs found. Add one or complete Setup section 2."
+msgstr ""
 
-#: netbox_nsm/objects/type_config_export.py:157
-msgid "Restricted"
-msgstr "Eingeschränkt"
-
-#: netbox_nsm/templates/netbox_nsm/virtual_rulebook_object.html:6
+#: templates/netbox_nsm/virtual_rulebook_object.html:6
 msgid "read-only"
 msgstr ""
 
-#: netbox_nsm/tests/test_type_config_form.py:33
-msgid "Inheritance"
-msgstr ""
-
-#: netbox_nsm/validators/fqdn.py:10 netbox_nsm/validators/fqdn.py:14
+#: validators/fqdn.py:10 validators/fqdn.py:14
 #, python-brace-format
 msgid "{name} is not a valid fully qualified DNS host name"
 msgstr ""
 
-#: netbox_nsm/views/custom_objects_sync.py:232
+#: views/custom_objects_sync.py:186
 msgid "Full sync is disabled (setup_allow_destructive_actions)."
 msgstr ""
 
-#: netbox_nsm/views/custom_objects_sync.py:241
-#: netbox_nsm/views/custom_objects_sync.py:307
+#: views/custom_objects_sync.py:195 views/custom_objects_sync.py:268
 msgid "Plugin netbox_custom_objects is not installed."
 msgstr ""
 
-#: netbox_nsm/views/custom_objects_sync.py:259
+#: views/custom_objects_sync.py:220
 #, python-format
 msgid "Sync failed: %(exc_type)s: %(exc)s"
 msgstr "Sync fehlgeschlagen: %(exc_type)s: %(exc)s"
 
-#: netbox_nsm/views/custom_objects_sync.py:267
+#: views/custom_objects_sync.py:228
 #, fuzzy, python-format
 #| msgid ""
 #| "Sync complete — %(types)d CustomObjectTypes, %(cs_created)d new "
@@ -2731,7 +2832,7 @@ msgid ""
 "Custom Object Types synced — %(types)d types, %(cs_created)d new ChoiceSets "
 "(%(cs_kept)d existing), %(obj_created)d new objects, %(obj_updated)d "
 "updated, %(obj_skipped)d skipped, %(cots_pruned)d old types + "
-"%(secs_pruned)d old sections removed. Run TypeConfig sync (step 2) "
+"%(secs_pruned)d old sections removed. Run Object Config sync (step 2) "
 "separately."
 msgstr ""
 "Sync abgeschlossen — %(types)d CustomObjectTypes, %(cs_created)d neue "
@@ -2740,99 +2841,150 @@ msgstr ""
 "aktualisiert, %(obj_skipped)d übersprungen, %(cots_pruned)d alte Types + "
 "%(secs_pruned)d alte Sections entfernt."
 
-#: netbox_nsm/views/custom_objects_sync.py:298
-msgid "TypeConfig sync is disabled (setup_allow_destructive_actions)."
-msgstr ""
+#: views/custom_objects_sync.py:259
+#, fuzzy
+#| msgid "Demo actions are disabled (setup_allow_destructive_actions)."
+msgid "Object Config sync is disabled (setup_allow_destructive_actions)."
+msgstr "Demo-Aktionen sind deaktiviert (setup_allow_destructive_actions)."
 
-#: netbox_nsm/views/custom_objects_sync.py:319
+#: views/custom_objects_sync.py:278
 #, fuzzy, python-format
 #| msgid "Sync failed: %(exc_type)s: %(exc)s"
-msgid "TypeConfig sync failed: %(exc_type)s: %(exc)s"
+msgid "Object Config sync failed: %(exc_type)s: %(exc)s"
 msgstr "Sync fehlgeschlagen: %(exc_type)s: %(exc)s"
 
-#: netbox_nsm/views/custom_objects_sync.py:327
+#: views/custom_objects_sync.py:286
 #, python-format
 msgid ""
-"TypeConfig sync complete — %(cfg_count)d TypeConfigs, %(sec_links)d section "
-"links."
+"Object Config sync complete — %(cfg_count)d Object Configs updated in COT "
+"comments."
 msgstr ""
 
-#: netbox_nsm/views/object_analyzer.py:27
-msgid "Virtual Machine"
-msgstr "Virtuelle Maschine"
+#: views/enforcement_point_link.py:42 views/enforcement_point_link.py:231
+#: views/rulebook_link.py:40 views/rulebook_link.py:96
+msgid "Permission denied."
+msgstr ""
 
-#: netbox_nsm/views/object_analyzer.py:42
-msgid "Firewall Rule"
-msgstr "Firewall-Regel"
-
-#: netbox_nsm/views/object_link.py:54 netbox_nsm/views/object_link.py:96
+#: views/enforcement_point_link.py:52 views/enforcement_point_link.py:91
+#: views/object_link.py:57 views/object_link.py:99 views/rulebook_link.py:50
+#: views/rulebook_link.py:70
 msgid "Object not found."
 msgstr ""
 
-#: netbox_nsm/views/object_link.py:129
+#: views/enforcement_point_link.py:122 views/object_link.py:132
 msgid "Please select at least one object."
 msgstr ""
 
-#: netbox_nsm/views/object_link.py:142
+#: views/enforcement_point_link.py:136 views/object_link.py:145
 msgid "Invalid type."
 msgstr ""
 
-#: netbox_nsm/views/object_link.py:168
+#: views/enforcement_point_link.py:166
+#, python-format
+msgid "Could not save enforcement point for %(obj)s: %(error)s"
+msgstr ""
+
+#: views/enforcement_point_link.py:174 views/object_link.py:171
 #, python-brace-format
 msgid "{n} link(s) created."
 msgstr ""
 
-#: netbox_nsm/views/object_link.py:170
+#: views/enforcement_point_link.py:186 views/object_link.py:173
 msgid "All links already existed."
 msgstr ""
 
-#: netbox_nsm/views/object_link.py:260
+#: views/enforcement_point_link.py:218
+msgid "Assign Enforcement Point"
+msgstr ""
+
+#: views/enforcement_point_link.py:238 views/enforcement_point_link.py:253
+msgid "Enforcement point link not found."
+msgstr ""
+
+#: views/enforcement_point_link.py:256
+msgid "Enforcement point assignment removed."
+msgstr ""
+
+#: views/object_analyzer.py:29
+msgid "Virtual Machine"
+msgstr "Virtuelle Maschine"
+
+#: views/object_analyzer.py:44
+msgid "Firewall Rule"
+msgstr "Firewall-Regel"
+
+#: views/object_link.py:263
 #, fuzzy
 #| msgid "Link type"
 msgid "Link updated."
 msgstr "Link-Typ"
 
-#: netbox_nsm/views/object_link.py:301
-#: netbox_nsm/views/panel_link_actions.py:155
-#: netbox_nsm/views/panel_link_actions.py:329
+#: views/object_link.py:304 views/panel_link_actions.py:155
+#: views/panel_link_actions.py:329
 msgid "Assignment removed."
 msgstr ""
 
-#: netbox_nsm/views/panel_link_actions.py:254
+#: views/panel_link_actions.py:254
 msgid "IPAM reference updated."
 msgstr ""
 
-#: netbox_nsm/views/panel_link_actions.py:420
+#: views/panel_link_actions.py:420
 msgid "Group membership updated."
 msgstr ""
 
-#: netbox_nsm/views/setup/custom_objects.py:31
+#: views/rulebook_link.py:76
+#, fuzzy
+#| msgid "Security Rulebook Assignments"
+msgid "Rulebook assigned."
+msgstr "Sicherheitsregelbuch-Zuweisungen"
+
+#: views/rulebook_link.py:103 views/rulebook_link.py:118
+#, fuzzy
+#| msgid "No links found."
+msgid "Rulebook link not found."
+msgstr "Keine Verknüpfungen gefunden."
+
+#: views/rulebook_link.py:121
+#, fuzzy
+#| msgid "Security Rulebook Assignments"
+msgid "Rulebook assignment removed."
+msgstr "Sicherheitsregelbuch-Zuweisungen"
+
+#: views/setup/custom_objects.py:36
 msgid "NSM Objects"
 msgstr "NSM Objekte"
 
-#: netbox_nsm/views/setup/custom_objects.py:33
+#: views/setup/custom_objects.py:38
 msgid "Built-in policy object types (zones, addresses, services, actions, …)."
 msgstr ""
 "Integrierte Policy-Objekttypen (Zonen, Adressen, Services, Actions, …)."
 
-#: netbox_nsm/views/setup/custom_objects.py:39
+#: views/setup/custom_objects.py:44
 msgid "NSM Panel"
 msgstr "NSM Panel"
 
-#: netbox_nsm/views/setup/custom_objects.py:41
+#: views/setup/custom_objects.py:46
 msgid "Panel assignment links (inventory ↔ policy objects)."
 msgstr "Panel-Zuweisungslinks (Inventar ↔ Policy-Objekte)."
 
-#: netbox_nsm/views/setup/custom_objects.py:287
-#, python-format
-msgid "Custom Object Type '%(slug)s' imported (TypeConfigs: use step 3)."
+#: views/setup/custom_objects.py:332
+#, fuzzy, python-format
+#| msgid "Custom Object Type '%(slug)s' imported (TypeConfigs: use step 3)."
+msgid "Custom Object Type '%(slug)s' imported."
 msgstr "Custom-Object-Typ „%(slug)s“ importiert (TypeConfigs: Schritt 3)."
 
-#: netbox_nsm/views/setup/custom_objects.py:295
-msgid "All Custom Object Types imported. Create TypeConfigs in step 3."
+#: views/setup/custom_objects.py:342
+#, python-format
+msgid "Schema YAML invalid: %(error)s"
+msgstr ""
+
+#: views/setup/custom_objects.py:348
+#, fuzzy
+#| msgid "All Custom Object Types imported. Create TypeConfigs in step 3."
+msgid "All Custom Object Types imported with Object Config (nsm_config)."
 msgstr "Alle Custom-Object-Typen importiert. TypeConfigs in Schritt 3 anlegen."
 
-#: netbox_nsm/views/setup/demo.py:223
+#: views/setup/demo.py:225
 #, python-format
 msgid ""
 "%(label)s import could not be queued: no RQ worker is running. Start the "
@@ -2843,7 +2995,7 @@ msgstr ""
 "Worker läuft. Starten Sie den NetBox-RQ-Worker (z. B. Container netbox-dev-"
 "worker oder `manage.py rqworker`) und versuchen Sie es erneut."
 
-#: netbox_nsm/views/setup/demo.py:236
+#: views/setup/demo.py:238
 #, python-format
 msgid ""
 "%(label)s import is already queued or running (job %(job_id)s). The rulebook "
@@ -2855,12 +3007,17 @@ msgstr ""
 "startet; rechnen Sie nach Beginn mit etwa %(minutes)s Minuten "
 "Verarbeitungszeit."
 
-#: netbox_nsm/views/setup/demo.py:262
-#, python-format
+#: views/setup/demo.py:264
+#, fuzzy, python-format
+#| msgid ""
+#| "%(label)s import queued (job %(job_id)s); %(backlog)s other job(s) are "
+#| "ahead in the worker queue. The rulebook «%(rulebook)s» will be recreated "
+#| "when this job starts (~%(minutes)s minutes of work). Find it under "
+#| "Security → Rulebooks."
 msgid ""
 "%(label)s import queued (job %(job_id)s); %(backlog)s other job(s) are ahead "
 "in the worker queue. The rulebook «%(rulebook)s» will be recreated when this "
-"job starts (~%(minutes)s minutes of work). Find it under Security → "
+"job starts (~%(minutes)s minutes of work). Find it under %(menu_label)s → "
 "Rulebooks."
 msgstr ""
 "%(label)s-Import in Warteschlange (Job %(job_id)s); %(backlog)s weitere "
@@ -2868,40 +3025,49 @@ msgstr ""
 "dieser Job startet (~%(minutes)s Minuten Arbeit). Finden Sie es unter "
 "Security → Rulebooks."
 
-#: netbox_nsm/views/setup/demo.py:279
-#, python-format
+#: views/setup/demo.py:282
+#, fuzzy, python-format
+#| msgid ""
+#| "%(label)s import started in the background (job %(job_id)s). The rulebook "
+#| "«%(rulebook)s» will be recreated in about %(minutes)s minutes (any "
+#| "existing rulebook with that name is removed when the job starts, not when "
+#| "you click Create). Find it under Security → Rulebooks."
 msgid ""
 "%(label)s import started in the background (job %(job_id)s). The rulebook "
 "«%(rulebook)s» will be recreated in about %(minutes)s minutes (any existing "
 "rulebook with that name is removed when the job starts, not when you click "
-"Create). Find it under Security → Rulebooks."
+"Create). Find it under %(menu_label)s → Rulebooks."
 msgstr ""
 "%(label)s-Import im Hintergrund gestartet (Job %(job_id)s). Das Regelbuch "
 "«%(rulebook)s» wird in etwa %(minutes)s Minuten neu angelegt (ein "
 "vorhandenes Regelbuch mit diesem Namen wird beim Jobstart entfernt, nicht "
 "beim Klick auf Erstellen). Finden Sie es unter Security → Rulebooks."
 
-#: netbox_nsm/views/setup/demo.py:441
+#: views/setup/demo.py:445
 msgid "Import finished."
 msgstr "Import abgeschlossen."
 
-#: netbox_nsm/views/setup/demo.py:444
+#: views/setup/demo.py:448
 #, python-format
 msgid "Enterprise Demo imported successfully. %(summary)s"
 msgstr "Enterprise-Demo erfolgreich importiert. %(summary)s"
 
-#: netbox_nsm/views/setup/demo.py:458
-#, python-format
+#: views/setup/demo.py:462
+#, fuzzy, python-format
+#| msgid ""
+#| "Starter demo created: %(zone_count)s zones, %(rule_count)s rules (random "
+#| "permit/deny) in custom-object type '%(rb_slug)s' (portable schema, zones "
+#| "only). Custom Object Types / TypeConfigs were imported if missing."
 msgid ""
 "Starter demo created: %(zone_count)s zones, %(rule_count)s rules (random "
 "permit/deny) in custom-object type '%(rb_slug)s' (portable schema, zones "
-"only). Custom Object Types / TypeConfigs were imported if missing."
+"only). Custom Object Types / Object Configs were imported if missing."
 msgstr ""
 "Starter-Demo angelegt: %(zone_count)s Zonen, %(rule_count)s Regeln (zufällig "
 "permit/deny) im Custom-Object-Typ „%(rb_slug)s“ (portables Schema, nur "
 "Zonen). Custom-Object-Typen / TypeConfigs wurden bei Bedarf importiert."
 
-#: netbox_nsm/views/setup/demo.py:474
+#: views/setup/demo.py:478
 msgid ""
 "Enterprise Demo cannot be imported: IP addresses already exist in the "
 "database."
@@ -2909,39 +3075,24 @@ msgstr ""
 "Enterprise-Demo kann nicht importiert werden: Es existieren bereits IP-"
 "Adressen in der Datenbank."
 
-#: netbox_nsm/views/setup/demo.py:483
+#: views/setup/demo.py:487
 msgid "Address bench (50k)"
 msgstr "Address Bench (50k)"
 
-#: netbox_nsm/views/setup/typeconfig.py:102
-#, python-format
-msgid "TypeConfig for '%(slug)s' created."
+#: views/setup/typeconfig.py:91
+#, fuzzy, python-format
+#| msgid "TypeConfig for '%(slug)s' created."
+msgid "Object Config for '%(slug)s' created."
 msgstr "TypeConfig für „%(slug)s“ angelegt."
 
-#: netbox_nsm/views/setup/typeconfig.py:108
-msgid "All TypeConfigs created/updated (including NSM section links)."
+#: views/setup/typeconfig.py:97
+#, fuzzy
+#| msgid "All TypeConfigs created/updated (including NSM section links)."
+msgid "All Object Configs created/updated in COT comments."
 msgstr ""
 "Alle TypeConfigs angelegt/aktualisiert (einschließlich NSM-Section-Links)."
 
-#: netbox_nsm/views/setup/ui_settings.py:40
-msgid ""
-"Setup has been hidden from the menu. To show it again, set \"setup_menu\": "
-"true in PLUGINS_CONFIG[\"netbox_nsm\"] after toggling it to false and "
-"restarting NetBox."
-msgstr ""
-"Setup wurde aus dem Menü ausgeblendet. Zum Wiederanzeigen setzen Sie "
-"„setup_menu“: true in PLUGINS_CONFIG[\"netbox_nsm\"], nachdem Sie es auf "
-"false gesetzt und NetBox neu gestartet haben."
-
-#: netbox_nsm/views/setup/ui_settings.py:53
-msgid "Menu label is required."
-msgstr "Menübezeichnung ist erforderlich."
-
-#: netbox_nsm/views/setup/ui_settings.py:60
-msgid "Menu and panel labels saved."
-msgstr "Menü- und Panel-Bezeichnungen gespeichert."
-
-#: netbox_nsm/views/setup/view.py:93
+#: views/setup/view.py:103
 msgid ""
 "netbox-custom-objects database tables are missing. Run: python manage.py "
 "migrate netbox_custom_objects"
@@ -2949,7 +3100,7 @@ msgstr ""
 "Datenbanktabellen von netbox-custom-objects fehlen. Ausführen: python "
 "manage.py migrate netbox_custom_objects"
 
-#: netbox_nsm/views/setup/view.py:106
+#: views/setup/view.py:116
 msgid ""
 "netbox-custom-objects is not ready. Install the plugin and run migrations "
 "first."
@@ -2957,30 +3108,39 @@ msgstr ""
 "netbox-custom-objects ist nicht bereit. Plugin installieren und zuerst "
 "Migrationen ausführen."
 
-#: netbox_nsm/views/setup/view.py:112
-msgid "All Custom Object Types are already present."
+#: views/setup/view.py:123
+#, fuzzy
+#| msgid "All Custom Object Types are already present."
+msgid "All Custom Object Types and Object Configs are already present."
 msgstr "Alle Custom-Object-Typen sind bereits vorhanden."
 
-#: netbox_nsm/views/setup/view.py:120
-msgid "Complete section 2 (Custom Objects) before adding TypeConfigs."
+#: views/setup/view.py:131
+#, fuzzy
+#| msgid "Complete section 2 (Custom Objects) before adding TypeConfigs."
+msgid "Complete section 2 (Custom Object Types) first."
 msgstr ""
 "Abschnitt 2 (Custom Objects) zuerst abschließen, bevor TypeConfigs "
 "hinzugefügt werden."
 
-#: netbox_nsm/views/setup/view.py:123
-msgid "All TypeConfigs are already configured."
-msgstr "Alle TypeConfigs sind bereits konfiguriert."
+#: views/setup/view.py:136
+#, fuzzy
+#| msgid "All Custom Object Types are already present."
+msgid "All Object Configs are already present."
+msgstr "Alle Custom-Object-Typen sind bereits vorhanden."
 
-#: netbox_nsm/views/setup/view.py:136
-msgid "Complete section 3 (TypeConfig) before running demos."
+#: views/setup/view.py:150
+#, fuzzy
+#| msgid "Complete section 2 (Custom Objects) before adding TypeConfigs."
+msgid "Complete section 2 (Custom Object Schema) before running demos."
 msgstr ""
-"Abschnitt 3 (TypeConfig) zuerst abschließen, bevor Demos gestartet werden."
+"Abschnitt 2 (Custom Objects) zuerst abschließen, bevor TypeConfigs "
+"hinzugefügt werden."
 
-#: netbox_nsm/views/setup/view.py:142
+#: views/setup/view.py:156
 msgid "Enterprise demo requires an empty IP address database."
 msgstr "Enterprise-Demo erfordert eine leere IP-Adressen-Datenbank."
 
-#: netbox_nsm/views/setup/view.py:151
+#: views/setup/view.py:165
 msgid ""
 "Please confirm that IP addresses may be created before starting the address "
 "bench."
@@ -2988,61 +3148,219 @@ msgstr ""
 "Bitte bestätigen Sie, dass IP-Adressen angelegt werden dürfen, bevor der "
 "Address Bench gestartet wird."
 
-#: netbox_nsm/views/setup/view.py:168
+#: views/setup/view.py:180
 #, python-format
 msgid "Unknown action: %(action)s"
 msgstr "Unbekannte Aktion: %(action)s"
 
-#: netbox_nsm/views/setup/view.py:171
+#: views/setup/view.py:183
 #, python-format
 msgid "Error: %(error)s"
 msgstr "Fehler: %(error)s"
 
-#: netbox_nsm/rulebooks/rules_row_grouping.py
-msgid "Rule-Group"
-msgstr "Rule-Group"
+#: views/type_config.py:153
+#, fuzzy
+#| msgid "Object Config settings YAML"
+msgid "Object Config updated."
+msgstr "Object-Config-Einstellungen als YAML"
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_row_group_checkbox.html
-msgid "Not available while Grouped columns is on"
-msgstr "Nicht verfügbar, solange „Grouped columns“ aktiv ist"
+#: views/type_config.py:176
+msgid "Object Config removed from comments."
+msgstr ""
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_row_group_checkbox.html
-msgid "Group rows by this column"
-msgstr "Zeilen nach dieser Spalte gruppieren"
+#: views/type_config.py:199
+#, fuzzy
+#| msgid "All object types"
+msgid "Invalid object type slug."
+msgstr "Alle Objekttypen"
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_row_group_checkbox.html
-msgid "Group"
-msgstr "Gruppieren"
+#: views/type_config.py:205
+#, fuzzy
+#| msgid "Object Config settings YAML"
+msgid "Object Config created."
+msgstr "Object-Config-Einstellungen als YAML"
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_chrome_bar.html
-msgid "Grouped rows active"
-msgstr "Grouped Rows aktiv"
+#, fuzzy
+#~| msgid "Rulebook"
+#~ msgid "Rulebook slug"
+#~ msgstr "Regelbuch"
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_chrome_bar.html
-msgid "Grouped rows"
-msgstr "Grouped Rows"
+#~ msgid "— none —"
+#~ msgstr "— keine —"
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_chrome_bar.html
-msgid "Disable grouped rows"
-msgstr "Grouped Rows deaktivieren"
+#~ msgid "Identity"
+#~ msgstr "Bezeichner"
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_row_group_tabs.html
-msgid "Rule groups"
-msgstr "Regelgruppen"
+#, fuzzy
+#~| msgid "Create demo rulebooks"
+#~ msgid "Parent rulebook slug"
+#~ msgstr "Demo-Rulebooks anlegen"
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_row_group_tabs.html
-msgid "Previous rule groups"
-msgstr "Vorherige Regelgruppen"
+#, fuzzy
+#~| msgid "Rulebook"
+#~ msgid "COT Rulebook"
+#~ msgstr "Regelbuch"
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_row_group_tabs.html
-msgid "Next rule groups"
-msgstr "Nächste Regelgruppen"
+#, fuzzy
+#~| msgid "Rulebook"
+#~ msgid "COT Rulebooks"
+#~ msgstr "Regelbuch"
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_row_group_tabs.html
-#, python-format
-msgid "%(label)s (%(count)s rules)"
-msgstr "%(label)s (%(count)s Regeln)"
+#, fuzzy
+#~| msgid "Security Rulebook Assignments"
+#~ msgid "Rulebook Assignments"
+#~ msgstr "Sicherheitsregelbuch-Zuweisungen"
 
-#: netbox_nsm/templates/netbox_nsm/inc/rulebook_rules_chrome_bar.html
-msgid "Not available while Grouped rows is active"
-msgstr "Nicht verfügbar, solange Grouped Rows aktiv ist"
+#, fuzzy
+#~| msgid "NSM Section"
+#~ msgid "NSM Section"
+#~ msgstr "NSM-Einrichtung"
+
+#, fuzzy
+#~| msgid "NSM Object Links"
+#~ msgid "NSM Sections"
+#~ msgstr "NSM-Objektverknüpfungen"
+
+#~ msgid "Menu label"
+#~ msgstr "Menübezeichnung"
+
+#~ msgid "Top-level plugin menu entry in the NetBox sidebar."
+#~ msgstr "Eintrag des Plugins im NetBox-Seitenmenü."
+
+#~ msgid "Panel label"
+#~ msgstr "Panel-Bezeichnung"
+
+#~ msgid "Security card title on object detail pages."
+#~ msgstr "Titel der Security-Karte auf Objektdetailseiten."
+
+#~ msgid "Setup menu dismissed"
+#~ msgstr "Setup-Menü ausgeblendet"
+
+#~ msgid ""
+#~ "When True, the Setup menu entry stays hidden until restored via plugin "
+#~ "configuration."
+#~ msgstr ""
+#~ "Wenn True, bleibt der Setup-Menüeintrag ausgeblendet, bis er über die "
+#~ "Plugin-Konfiguration wiederhergestellt wird."
+
+#~ msgid "Last seen setup_menu config"
+#~ msgstr "Zuletzt gesehene setup_menu-Konfiguration"
+
+#~ msgid "NSM UI Settings"
+#~ msgstr "NSM-UI-Einstellungen"
+
+#, fuzzy
+#~| msgid "Zone"
+#~ msgid "Zone"
+#~ msgstr "Zone"
+
+#, fuzzy
+#~| msgid "Service"
+#~ msgid "Service"
+#~ msgstr "Dienst"
+
+#, fuzzy
+#~| msgid "Assigned Objects"
+#~ msgid "Assignments"
+#~ msgstr "Zugewiesene Objekte"
+
+#, fuzzy
+#~| msgid "NSM Panel"
+#~ msgid "Panel"
+#~ msgstr "NSM Panel"
+
+#, fuzzy
+#~| msgid "All interfaces"
+#~ msgid "All types"
+#~ msgstr "Alle Interfaces"
+
+#~ msgid "No zone or label links assigned"
+#~ msgstr "Keine Zone-/Label-Verknüpfungen"
+
+#~ msgid "Available after section 3 is complete."
+#~ msgstr "Verfügbar nach Abschluss von Abschnitt 3."
+
+#~ msgid "Hide Setup"
+#~ msgstr "Setup ausblenden"
+
+#~ msgid ""
+#~ "\n"
+#~ "      Remove the <strong>Setup</strong> entry from the Configuration "
+#~ "menu. The page\n"
+#~ "      stays hidden until you set <code>\"setup_menu\": true</code> in\n"
+#~ "      <code>PLUGINS_CONFIG[\"netbox_nsm\"]</code> again (toggle\n"
+#~ "      <code>false</code> → restart → <code>true</code> → restart).\n"
+#~ "      "
+#~ msgstr ""
+#~ "\n"
+#~ "      Entfernt den Eintrag <strong>Setup</strong> aus dem "
+#~ "Konfigurationsmenü. Die Seite\n"
+#~ "      bleibt ausgeblendet, bis Sie <code>\"setup_menu\": true</code> in\n"
+#~ "      <code>PLUGINS_CONFIG[\"netbox_nsm\"]</code> wieder setzen (Toggle\n"
+#~ "      <code>false</code> → Neustart → <code>true</code> → Neustart).\n"
+#~ "      "
+
+#~ msgid "Hide Setup menu"
+#~ msgstr "Setup-Menü ausblenden"
+
+#~ msgid "TypeConfig"
+#~ msgstr "TypeConfig"
+
+#~ msgid "Menu & panel title"
+#~ msgstr "Menü- & Panel-Titel"
+
+#~ msgid ""
+#~ "Titles for the sidebar menu and the object-detail card. Default for both: "
+#~ "<strong>Security</strong>."
+#~ msgstr ""
+#~ "Titel für das Seitenmenü und die Objektdetail-Karte. Standard für beide: "
+#~ "<strong>Security</strong>."
+
+#~ msgid "Select object · click to expand · double-click to open"
+#~ msgstr "Objekt auswählen · Klicken zum Aufklappen · Doppelklick zum Öffnen"
+
+#~ msgid "Settings export"
+#~ msgstr "Einstellungen exportieren"
+
+#~ msgid "Restricted"
+#~ msgstr "Eingeschränkt"
+
+#~ msgid ""
+#~ "Setup has been hidden from the menu. To show it again, set "
+#~ "\"setup_menu\": true in PLUGINS_CONFIG[\"netbox_nsm\"] after toggling it "
+#~ "to false and restarting NetBox."
+#~ msgstr ""
+#~ "Setup wurde aus dem Menü ausgeblendet. Zum Wiederanzeigen setzen Sie "
+#~ "„setup_menu“: true in PLUGINS_CONFIG[\"netbox_nsm\"], nachdem Sie es auf "
+#~ "false gesetzt und NetBox neu gestartet haben."
+
+#~ msgid "Menu label is required."
+#~ msgstr "Menübezeichnung ist erforderlich."
+
+#~ msgid "Menu and panel labels saved."
+#~ msgstr "Menü- und Panel-Bezeichnungen gespeichert."
+
+#~ msgid "All TypeConfigs are already configured."
+#~ msgstr "Alle TypeConfigs sind bereits konfiguriert."
+
+#~ msgid "Complete section 3 (TypeConfig) before running demos."
+#~ msgstr ""
+#~ "Abschnitt 3 (TypeConfig) zuerst abschließen, bevor Demos gestartet werden."
+
+#~ msgid "Rule-Group"
+#~ msgstr "Rule-Group"
+
+#~ msgid "Not available while Grouped columns is on"
+#~ msgstr "Nicht verfügbar, solange „Grouped columns“ aktiv ist"
+
+#~ msgid "Group rows by this column"
+#~ msgstr "Zeilen nach dieser Spalte gruppieren"
+
+#~ msgid "Grouped rows active"
+#~ msgstr "Grouped Rows aktiv"
+
+#~ msgid "Disable grouped rows"
+#~ msgstr "Grouped Rows deaktivieren"
+
+#~ msgid "Not available while Grouped rows is active"
+#~ msgstr "Nicht verfügbar, solange Grouped Rows aktiv ist"

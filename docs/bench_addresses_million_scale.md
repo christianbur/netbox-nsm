@@ -4,77 +4,77 @@ Standalone load generator for performance and UI testing. **Not** part of the Se
 
 Policy rules are stored as **Custom Object rows** on a deployed COT rulebook (`nsm_rb_bench_addresses`) with `source_addresses` / `destination_addresses` multiobject fields — **not** native `Rulebook` / `Rule` / `RuleObjectItem`.
 
-## Dateien
+## Files
 
-| Path | Rolle |
-|------|--------|
-| `scripts/create_addresses_million_scale.py` | CLI-Einstieg |
-| `netbox_nsm/demos/addresses_million_scale.py` | Implementierung |
-| `netbox_nsm/demos/cot_demo_common.py` | Gemeinsame COT-Helfer |
+| Path | Role |
+|------|------|
+| `scripts/create_addresses_million_scale.py` | CLI entry point |
+| `netbox_nsm/demos/addresses_million_scale.py` | Implementation |
+| `netbox_nsm/demos/cot_demo_common.py` | Shared COT helpers |
 
-## Voraussetzungen
+## Prerequisites
 
-1. Stack läuft: `cd docker/netbox_dev && docker compose up -d netbox netbox-worker`
-2. Plugin-Mount aktiv: `./netbox-nsm` → `/opt/netbox-nsm` (sonst Image neu bauen)
-3. NSM Setup abgeschlossen:
+1. Stack running: `cd docker/netbox_dev && docker compose up -d netbox netbox-worker`
+2. Plugin mount active: `./netbox-nsm` → `/opt/netbox-nsm` (otherwise rebuild image)
+3. NSM setup complete:
    - **Import all types** (COTs: `nsm_address`, `nsm_service`, `nsm_action`, …)
    - **Create all TypeConfigs**
-   - Alternativ: Setup → **Starter demo** (legt u. a. Standard-Services/Actions an)
+   - Or: Setup → **Starter demo** (creates default services/actions, etc.)
 
-Das Skript legt bei Bedarf automatisch das Rulebook **`nsm_rb_bench_addresses`** an (Template 0002 — nur Adressen).
+The script creates rulebook **`nsm_rb_bench_addresses`** if missing (template 0002 — addresses only).
 
-## Datenmodell
+## Data model
 
-Alle Bench-Objekte nutzen das Präfix `bench-` (getrennt von Setup-Demos `demo-*`).
+All bench objects use the `bench-` prefix (separate from setup demos `demo-*`).
 
-### Adress-Hierarchie (vereinfacht für COT)
+### Address hierarchy (simplified for COT)
 
-Die frühere Selbst-Referenz über `nsm_addresses.group` entfällt. Stattdessen:
+The old self-reference via `nsm_addresses.group` is gone. Instead:
 
 ```
-2 000 Subnetze   bench-net-00000 … bench-net-01999   (nsm_address + ipam.Prefix /24)
-  └─ bis 200 000 Hosts   bench-ip-0000000 …          (nsm_address + ipam.IPAddress /32 + prefix-FK)
+2,000 subnets   bench-net-00000 … bench-net-01999   (nsm_address + ipam.Prefix /24)
+  └─ up to 200,000 hosts   bench-ip-0000000 …       (nsm_address + ipam.IPAddress /32 + prefix FK)
 ```
 
-IP-Raum: fortlaufende `/24`-Blöcke in **10.128.0.0/9** (2 000 Subnetze × 100 Hosts).
+IP space: consecutive `/24` blocks in **10.128.0.0/9** (2,000 subnets × 100 hosts).
 
-Region/Site-Container (`bench-reg-*`, `bench-site-*`) werden im COT-Modell nicht mehr erzeugt (Address Groups können nur `nsm_address`-Mitglieder halten, keine verschachtelten Gruppen).
+Region/site containers (`bench-reg-*`, `bench-site-*`) are not created in the COT model (address groups only hold `nsm_address` members, no nested groups).
 
-### Policy-Regeln (COT)
+### Policy rules (COT)
 
-Standard **13 000** Regeln in `nsm_rb_bench_addresses`:
+Default **13,000** rules in `nsm_rb_bench_addresses`:
 
 - Name: `bench-rule-00001` …
-- **Source / Destination:** je 1–20 zufällige Leaf-Adressen (deterministischer Seed)
-- **Service / Action:** eingebaute COT-Objekte (`HTTPS`, `SSH`, … / `Permit`, `Deny`)
+- **Source / destination:** 1–20 random leaf addresses each (deterministic seed)
+- **Service / action:** built-in COT objects (`HTTPS`, `SSH`, … / `Permit`, `Deny`)
 
-## Ausführung
+## Run
 
 ```bash
 cd /home/christian/homelab/docker/netbox_dev
 docker compose up -d netbox netbox-worker
 
-# Vollständiger Lauf (200k IPAM-Zeilen + Regeln — dauert lange)
+# Full run (200k IPAM rows + rules — slow)
 docker compose exec netbox python3 /opt/netbox-nsm/scripts/create_addresses_million_scale.py
 
-# Smoke-Test (Sekunden bis wenige Minuten)
+# Smoke test (seconds to a few minutes)
 docker compose exec netbox python3 /opt/netbox-nsm/scripts/create_addresses_million_scale.py \
   --leaf-count 1000 --rule-count 100
 
-# Nur Regeln (Leaves bereits vorhanden)
+# Rules only (leaves already present)
 docker compose exec netbox python3 /opt/netbox-nsm/scripts/create_addresses_million_scale.py \
   --skip-addresses
 
-# Nur Adressen
+# Addresses only
 docker compose exec netbox python3 /opt/netbox-nsm/scripts/create_addresses_million_scale.py \
   --skip-rules
 
-# Bench-Daten entfernen
+# Remove bench data
 docker compose exec netbox python3 /opt/netbox-nsm/scripts/create_addresses_million_scale.py \
   --purge
 ```
 
-Alternativ über Django-Shell (gleiche Logik):
+Or via Django shell (same logic):
 
 ```bash
 docker compose exec netbox python /opt/netbox/netbox/manage.py shell
@@ -85,39 +85,38 @@ from netbox_nsm.demos.addresses_million_scale import create_addresses_million_sc
 print(create_addresses_million_scale(leaf_count=1000, rule_count=100))
 ```
 
-### CLI-Optionen
+### CLI options
 
-| Option | Default | Beschreibung |
-|--------|---------|--------------|
-| `--rulebook-slug` | `nsm_rb_bench_addresses` | Ziel-COT-Rulebook |
-| `--rulebook-id` | — | Legacy: COT per Primary Key |
-| `--leaf-count` | `200000` | Anzahl Host-Adressen |
-| `--rule-count` | `13000` | COT-Regeln |
-| `--skip-addresses` | aus | IPAM + Adressen überspringen |
-| `--skip-rules` | aus | Regeln überspringen |
-| `--keep-rules` | aus | Bestehende `bench-rule-*` nicht löschen |
-| `--purge` | aus | Bench-Daten löschen und beenden |
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--rulebook-slug` | `nsm_rb_bench_addresses` | Target COT rulebook |
+| `--rulebook-id` | — | Legacy: COT by primary key |
+| `--leaf-count` | `200000` | Host address count |
+| `--rule-count` | `13000` | COT rules |
+| `--skip-addresses` | off | Skip IPAM + addresses |
+| `--skip-rules` | off | Skip rules |
+| `--keep-rules` | off | Do not delete existing `bench-rule-*` |
+| `--purge` | off | Delete bench data and exit |
 
-## Erwartete Laufzeit / Ausgabe
+## Runtime / output
 
-| Skalierung | Größenordnung |
-|------------|----------------|
-| 1 000 Leaves + 100 Regeln | Sekunden |
-| 200 000 Leaves | viele Minuten (DB, Platte, Postgres-Tuning) |
-| 13 000 Regeln | Minuten (M2M-Zuweisungen) |
+| Scale | Order of magnitude |
+|-------|-------------------|
+| 1,000 leaves + 100 rules | Seconds |
+| 200,000 leaves | Many minutes (DB, disk, Postgres tuning) |
+| 13,000 rules | Minutes (M2M assignments) |
 
-Beispielausgabe (Smoke-Test):
+Example output (smoke test):
 
 ```text
 Rulebook Bench Addresses (nsm_rb_bench_addresses, pk=…): 1,000 leaves, 100 new rules, … multiobject assignments, 12.34s
 ```
 
-Rulebook in der UI: **Security → Rulebooks → Bench Addresses**.
+Rulebook in UI: **Security → Rulebooks → Bench Addresses**.
 
-## Verwandte Demos
+## Related demos
 
-| Demo | Rulebook | Skript |
+| Demo | Rulebook | Script |
 |------|----------|--------|
-| Zone-Matrix 10k | `nsm_rb_scale_test` | `scripts/create_scale_demo.py` |
 | Starter | `nsm_rb_demo` | Setup → Starter demo |
-| Enterprise DC | (manuell COT) | `netbox_nsm/demos/enterprise_dc/import.py` — Rulebooks übersprungen |
+| Enterprise DC | (manual COT) | `netbox_nsm/demos/enterprise_dc/import.py` — rulebooks skipped |

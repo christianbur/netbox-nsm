@@ -26,6 +26,19 @@ def ipv4_netmask_for_cidr(cidr: str) -> str | None:
     return ipv4_prefix_length_to_netmask(network.prefixlen)
 
 
+def sync_prefix_display_netmask(node):
+    """Ensure ``prefix_display_netmask`` exists when ``prefix_display_cidr`` is IPv4."""
+    if not isinstance(node, dict):
+        return node
+    cidr = node.get("prefix_display_cidr")
+    if not cidr or node.get("prefix_display_netmask"):
+        return node
+    labels = prefix_display_labels_for_cidr(cidr)
+    if labels:
+        node["prefix_display_cidr"], node["prefix_display_netmask"] = labels
+    return node
+
+
 def prefix_display_labels_for_cidr(cidr: str) -> tuple[str, str] | None:
     """Return (cidr, host netmask) label pair for IPv4 prefix display toggling."""
     if not cidr or "/" not in cidr:

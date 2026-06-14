@@ -12,41 +12,14 @@ from django.http import JsonResponse
 from django.template.loader import render_to_string
 from django.views import View
 
-from netbox_nsm.analysis.addr_analysis_utils import (
-    _build_addr_tree_node,
-    _enrich_addr_tree_copy_lines,
-    _enrich_addr_tree_leaf_counts,
-    _flatten_addr_tree_paths,
-    _object_supports_addr_analysis,
-)
+from netbox_nsm.analysis.ipa_ipam_tree import _build_ipa_object_drilldown_nodes
 
 __all__ = ("IpAnalysisObjectDrilldownApiView",)
 
 
 def _build_object_drilldown_nodes(obj):
-    """Return enriched addr-tree child nodes for one cell object."""
-    if not obj or not _object_supports_addr_analysis(obj):
-        return [], []
-
-    node = _build_addr_tree_node(obj)
-    if not node:
-        return [], []
-
-    children = node.get("children") or []
-    if children:
-        for child in children:
-            _enrich_addr_tree_copy_lines(child)
-            _enrich_addr_tree_leaf_counts(child)
-        copy_lines = _flatten_addr_tree_paths(children)
-        return children, copy_lines
-
-    if node.get("kind") == "leaf":
-        _enrich_addr_tree_copy_lines(node)
-        _enrich_addr_tree_leaf_counts(node)
-        copy_lines = _flatten_addr_tree_paths([node])
-        return [node], copy_lines
-
-    return [], []
+    """Return enriched IPAM logical tree nodes for one cell object."""
+    return _build_ipa_object_drilldown_nodes(obj)
 
 
 class IpAnalysisObjectDrilldownApiView(LoginRequiredMixin, View):

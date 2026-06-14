@@ -13,6 +13,7 @@ from netbox_nsm.rulebooks.rules_layout import (
 )
 from netbox_nsm.rulebooks.templates import RULEBOOK_GROUP
 from netbox_nsm.rulebooks.views.cot import CotRulebookView
+from netbox_nsm.tests.rulebook_permission_helpers import grant_rulebook_cot_perms
 from utilities.testing import TestCase
 
 
@@ -146,7 +147,7 @@ class CotRulebookColumnsViewTests(TestCase):
         )
 
     def test_detail_page_renders_fields_card(self):
-        self.add_permissions("netbox_nsm.view_rulebook")
+        grant_rulebook_cot_perms(self, self.rulebook, view=True)
         url = reverse(
             "plugins:netbox_nsm:cot_rulebook",
             kwargs={"slug": self.rulebook.slug},

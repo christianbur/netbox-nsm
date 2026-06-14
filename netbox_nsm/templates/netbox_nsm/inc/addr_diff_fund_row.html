@@ -1,0 +1,60 @@
+{% load i18n %}
+{% comment %}
+Compact Fund diff row: Fund badge + network chip (once) + filtered two-color name pill.
+Expects node.diff_name_a/b, diff_url_a/b, diff_fund, ip_ref, prefix_display_cidr on node.
+{% endcomment %}
+<span class="nsm-addr-diff-fund-row">
+  <span class="badge bg-info-subtle text-info nsm-addr-fund" title="{{ node.fund_tooltip|default:'Same IP address/range/prefix, but different object names' }}">
+    {% trans "Fund" %}
+  </span>
+  {% if node.prefix_display_cidr %}
+  <span class="nsm-addr-diff-fund-network">
+    {% if node.ip_ref.url %}
+    <a href="{{ node.ip_ref.url }}" class="nsm-addr-diff-fund-network-link" onclick="event.stopPropagation();">
+      <span class="nsm-addr-prefix-text" data-cidr="{{ node.prefix_display_cidr }}" data-netmask="{{ node.prefix_display_netmask }}">{{ node.prefix_display_cidr }}</span>
+    </a>
+    {% else %}
+    <span class="nsm-addr-prefix-text" data-cidr="{{ node.prefix_display_cidr }}" data-netmask="{{ node.prefix_display_netmask }}">{{ node.prefix_display_cidr }}</span>
+    {% endif %}
+  </span>
+  {% elif node.ip_ref.str %}
+  <span class="nsm-addr-diff-fund-network">
+    {% if node.ip_ref.url %}
+    <a href="{{ node.ip_ref.url }}" class="nsm-addr-diff-fund-network-link" onclick="event.stopPropagation();">{{ node.ip_ref.str }}</a>
+    {% else %}
+    {{ node.ip_ref.str }}
+    {% endif %}
+  </span>
+  {% endif %}
+  {% if node.prefix_display_cidr %}
+  {% with network=node.prefix_display_cidr %}
+  <span class="nsm-ipa-cell-pill nsm-ipa-diff-name-pill">
+    {% if node.diff_name_a and node.diff_name_a != network and node.diff_name_b and node.diff_name_b != network %}
+    <a href="{{ node.diff_url_a|default:node.url }}" class="nsm-addr-obj-link nsm-ipa-diff-name-a" onclick="event.stopPropagation();">{{ node.diff_name_a }}</a>
+    <span class="nsm-ipa-diff-name-sep" aria-hidden="true">|</span>
+    <a href="{{ node.diff_url_b|default:node.url }}" class="nsm-addr-obj-link nsm-ipa-diff-name-b" onclick="event.stopPropagation();">{{ node.diff_name_b }}</a>
+    {% elif node.diff_name_a and node.diff_name_a != network %}
+    <a href="{{ node.diff_url_a|default:node.url }}" class="nsm-addr-obj-link nsm-ipa-diff-name-a" onclick="event.stopPropagation();">{{ node.diff_name_a }}</a>
+    {% elif node.diff_name_b and node.diff_name_b != network %}
+    <a href="{{ node.diff_url_b|default:node.url }}" class="nsm-addr-obj-link nsm-ipa-diff-name-b" onclick="event.stopPropagation();">{{ node.diff_name_b }}</a>
+    {% endif %}
+  </span>
+  {% endwith %}
+  {% elif node.ip_ref.str %}
+  {% with network=node.ip_ref.str %}
+  <span class="nsm-ipa-cell-pill nsm-ipa-diff-name-pill">
+    {% if node.diff_name_a and node.diff_name_a != network and node.diff_name_b and node.diff_name_b != network %}
+    <a href="{{ node.diff_url_a|default:node.url }}" class="nsm-addr-obj-link nsm-ipa-diff-name-a" onclick="event.stopPropagation();">{{ node.diff_name_a }}</a>
+    <span class="nsm-ipa-diff-name-sep" aria-hidden="true">|</span>
+    <a href="{{ node.diff_url_b|default:node.url }}" class="nsm-addr-obj-link nsm-ipa-diff-name-b" onclick="event.stopPropagation();">{{ node.diff_name_b }}</a>
+    {% elif node.diff_name_a and node.diff_name_a != network %}
+    <a href="{{ node.diff_url_a|default:node.url }}" class="nsm-addr-obj-link nsm-ipa-diff-name-a" onclick="event.stopPropagation();">{{ node.diff_name_a }}</a>
+    {% elif node.diff_name_b and node.diff_name_b != network %}
+    <a href="{{ node.diff_url_b|default:node.url }}" class="nsm-addr-obj-link nsm-ipa-diff-name-b" onclick="event.stopPropagation();">{{ node.diff_name_b }}</a>
+    {% endif %}
+  </span>
+  {% endwith %}
+  {% else %}
+  {% include "netbox_nsm/inc/addr_diff_name_pill.html" %}
+  {% endif %}
+</span>

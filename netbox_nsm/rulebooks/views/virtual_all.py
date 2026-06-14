@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import PermissionDenied
 from django.shortcuts import render
 from django.utils.translation import gettext_lazy as _
 from django.views import View
@@ -11,6 +12,7 @@ from core.tables import ObjectChangeTable
 from extras.tables import JournalEntryTable
 from tenancy.tables import ContactAssignmentTable
 
+from netbox_nsm.rulebooks.permissions import user_can_access_rulebooks
 from netbox_nsm.rulebooks.virtual_all import build_virtual_all_rules_row
 from netbox_nsm.rulebooks.virtual_all_detail import build_virtual_rulebook_detail_context
 from netbox_nsm.rulebooks.virtual_all_tabs import (
@@ -27,9 +29,15 @@ __all__ = (
 )
 
 
-class _VirtualAllRulesMixin(LoginRequiredMixin, PermissionRequiredMixin):
-    permission_required = "netbox_nsm.view_rulebook"
+class _VirtualAllRulesMixin(LoginRequiredMixin):
     tab_key = PRIMARY_TAB_KEY
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+        if not user_can_access_rulebooks(request.user):
+            raise PermissionDenied()
+        return super().dispatch(request, *args, **kwargs)
 
     def get_virtual_object(self):
         return build_virtual_all_rules_row()
@@ -73,7 +81,6 @@ class AllRulesRulebookRulesView(_VirtualAllRulesMixin, View):
 
     template_name = "netbox_nsm/rulebook_all_rules_rules.html"
     tab_key = "rules"
-    permission_required = "netbox_nsm.view_rulebook"
 
     def get(self, request):
         from netbox_nsm.rulebooks.virtual_all_rules_tab import (
@@ -108,11 +115,12 @@ class _VirtualAllRulesFeatureTabMixin(_VirtualAllRulesMixin):
 
 
 class AllRulesRulebookContactsView(_VirtualAllRulesFeatureTabMixin, View):
-    permission_required = "tenancy.view_contactassignment"
     template_name = "netbox_nsm/rulebook_all_rules_contacts.html"
     tab_key = "contacts"
 
     def get(self, request):
+        if not request.user.has_perm("tenancy.view_contactassignment"):
+            raise PermissionDenied()
         return self.render_virtual(
             request,
             {
@@ -123,11 +131,12 @@ class AllRulesRulebookContactsView(_VirtualAllRulesFeatureTabMixin, View):
 
 
 class AllRulesRulebookJournalView(_VirtualAllRulesFeatureTabMixin, View):
-    permission_required = "extras.view_journalentry"
     template_name = "netbox_nsm/rulebook_all_rules_journal.html"
     tab_key = "journal"
 
     def get(self, request):
+        if not request.user.has_perm("extras.view_journalentry"):
+            raise PermissionDenied()
         table = self._empty_table(JournalEntryTable, request)
         table.columns.hide("assigned_object_type")
         table.columns.hide("assigned_object")
@@ -141,11 +150,12 @@ class AllRulesRulebookJournalView(_VirtualAllRulesFeatureTabMixin, View):
 
 
 class AllRulesRulebookChangelogView(_VirtualAllRulesFeatureTabMixin, View):
-    permission_required = "core.view_objectchange"
     template_name = "netbox_nsm/rulebook_all_rules_changelog.html"
     tab_key = "changelog"
 
     def get(self, request):
+        if not request.user.has_perm("core.view_objectchange"):
+            raise PermissionDenied()
         return self.render_virtual(
             request,
             {

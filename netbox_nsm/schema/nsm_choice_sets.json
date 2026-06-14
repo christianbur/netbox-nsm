@@ -71,6 +71,14 @@
     ]
   },
   {
+    "name": "nsm_object_link_type",
+    "choices": [
+      "policy",
+      "rulebook",
+      "enforcement_point"
+    ]
+  },
+  {
     "name": "nsm_object_link_propagation",
     "choices": [
       "direct",

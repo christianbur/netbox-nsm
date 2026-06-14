@@ -263,6 +263,22 @@ class RulesRowGroupingTests(SimpleTestCase):
         self.assertTrue(is_row_groupable_column({"kind": "object", "col_id": "x"}))
         self.assertFalse(is_row_groupable_column({"kind": "actions", "col_id": "_actions"}))
 
+    def test_resolve_stored_row_group_column_id_accepts_merged_address_leaf_alias(self):
+        stored = "source_addresses::ct_1"
+        merged_flat = [
+            {
+                "kind": "object",
+                "col_id": "source_addresses",
+                "key": "source_addresses",
+                "area_slug": "source_addresses",
+                "merged_keys": ["source_addresses::ct_1", "source_addresses::ct_2"],
+            }
+        ]
+        self.assertEqual(
+            resolve_stored_row_group_column_id(stored, merged_flat),
+            "source_addresses",
+        )
+
     def test_resolve_stored_row_group_column_id_requires_expanded_leaf_ids(self):
         stored = "source::ct_281"
         collapsed_flat = [
@@ -313,7 +329,7 @@ class RulesRowGroupingTests(SimpleTestCase):
             {"kind": "actions", "col_id": "_actions"},
         ]
         choices = build_row_group_column_choices(flat_columns)
-        self.assertEqual(choices[0], ("", "— none —"))
+        self.assertEqual(choices[0], ("", "None"))
         self.assertEqual(
             choices[1],
             ("source_zones::ct_1", "Source - Zone"),

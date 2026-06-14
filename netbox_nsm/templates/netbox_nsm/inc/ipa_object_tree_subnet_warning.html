@@ -1,4 +1,0 @@
-{% load i18n %}
-{% if prefix == "ipa" and node.subnet_contained_in %}
-<span class="nsm-ipa-subnet-contained text-warning ms-1 flex-shrink-0" title="{% blocktrans with cidr=node.subnet_contained_in %}Prefix is already covered by {{ cidr }}{% endblocktrans %}{% if node.subnet_contained_in_name %} ({{ node.subnet_contained_in_name }}){% endif %}" aria-label="{% blocktrans with cidr=node.subnet_contained_in %}warn duplicate → {{ cidr }}{% endblocktrans %}"><i class="mdi mdi-alert-circle-outline" aria-hidden="true"></i></span>
-{% endif %}

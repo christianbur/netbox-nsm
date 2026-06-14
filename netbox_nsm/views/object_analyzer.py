@@ -5,11 +5,13 @@ Object Analyzer page view.
 from __future__ import annotations
 
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import PermissionDenied
 from django.shortcuts import render
 from django.utils.translation import gettext_lazy as _
 from django.views import View
 
 from netbox_nsm.objects.nsm_config import build_nsm_config_lookup
+from netbox_nsm.rulebooks.permissions import user_can_access_rulebooks
 
 __all__ = ("ObjectAnalyzerView",)
 
@@ -41,16 +43,18 @@ def _extra_analyzer_types():
             "api_url": None,
             "label": _("Firewall Rule"),
         },
-        {
-            "ct_key": ("netbox_nsm", "rulebook"),
-            "api_url": None,
-            "label": _("Rulebook"),
-        },
     ]
 
 
 class ObjectAnalyzerView(LoginRequiredMixin, View):
     template_name = "netbox_nsm/object_analyzer.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+        if not user_can_access_rulebooks(request.user):
+            raise PermissionDenied()
+        return super().dispatch(request, *args, **kwargs)
 
     def get(self, request):
         from django.contrib.contenttypes.models import ContentType

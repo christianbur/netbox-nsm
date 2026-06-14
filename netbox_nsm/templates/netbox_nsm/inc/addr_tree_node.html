@@ -6,7 +6,24 @@ Renders one node of the address tree.
   prefix = 'src' or 'dst'  (for unique HTML IDs)
   forloop_counter = parent forloop.counter (for unique IDs)
 {% endcomment %}
-{% if node.kind == "category" %}
+{% if node.kind == "lazy_batch" %}
+  <div class="nsm-addr-lazy-batch"{% if node.lazy_ctx.prefix_pk %} data-lazy-prefix="{{ node.lazy_ctx.prefix_pk }}"{% endif %}{% if node.lazy_ctx.range_pk %} data-lazy-range="{{ node.lazy_ctx.range_pk }}"{% endif %} data-lazy-category="{{ node.lazy_ctx.category }}">
+    {% for child in node.children %}
+      {% include "netbox_nsm/inc/addr_tree_node.html" with node=child depth=depth|add:1 prefix=prefix ipa_cell_pill=ipa_cell_pill|default_if_none:True forloop_counter=forloop.counter %}
+    {% endfor %}
+    {% if node.lazy_load %}
+    <button type="button" class="btn btn-sm btn-outline-secondary nsm-addr-lazy-load mt-1"
+      data-offset="{{ node.loaded_count }}"
+      data-loaded="{{ node.loaded_count }}"
+      data-total="{{ node.count }}"
+      data-label-load="{% trans 'Vorschau laden' %}"
+      data-label-loading="{% trans 'Laden…' %}"
+      data-label-retry="{% trans 'Laden fehlgeschlagen — erneut versuchen' %}">
+      {% blocktrans with loaded=node.loaded_count total=node.count %}Vorschau laden ({{ loaded }}/{{ total }}){% endblocktrans %}
+    </button>
+    {% endif %}
+  </div>
+{% elif node.kind == "category" %}
   {% if node.count == 0 and not node.children %}
   <div class="nsm-addr-category-empty">
     <a href="{{ node.url }}" class="text-muted text-decoration-none">{{ node.name }}</a>
@@ -37,10 +54,12 @@ Renders one node of the address tree.
   </details>
   {% endif %}
 {% elif node.kind == "group" %}
-  {% if node.children or node.ipam_stats or node.addr_drilldown_lazy %}
-  <details class="nsm-addr-details{% if prefix == "ipa" and node.ct %} nsm-ipa-object-node{% endif %}{% if depth == 0 and prefix != "ipa" %} nsm-addr-top{% endif %}{% if node.diff_group %} nsm-addr-diff-group nsm-addr-diff-group--{{ node.diff_group }}{% endif %}">
-    <summary class="nsm-addr-summary{% if prefix == "ipa" and node.is_cell_direct %} nsm-ipa-object-node--cell-direct{% endif %}{% if prefix == "ipa" and node.subnet_contained_in %} nsm-ipa-object-node--subnet-warning{% endif %}{% if prefix == "ipa" and node.is_doppelt %} nsm-ipa-object-node--doppelt-warning{% endif %}">
-      {% if node.diff_group %}
+  {% if node.children or node.ipam_stats or node.addr_drilldown_lazy or prefix == "ipa" and node.is_cell_direct %}
+  <details class="nsm-addr-details{% if prefix == "ipa" and node.ct %} nsm-ipa-object-node{% endif %}{% if depth == 0 and prefix != "ipa" %} nsm-addr-top{% endif %}{% if node.diff_group %} nsm-addr-diff-group nsm-addr-diff-group--{{ node.diff_group }}{% endif %}"{% if prefix == "ipa" and node.ipa_open_by_default %} open{% endif %}>
+    <summary class="nsm-addr-summary{% if prefix == "ipa" and node.is_cell_direct %} nsm-ipa-object-node--cell-direct{% if node.ipa_drilldown_meta %} nsm-ipa-cell-object-summary--has-info{% endif %}{% endif %}{% if prefix == "ipa" %}{% if node.subnet_contained_in or node.cell_addresses_multi or node.cell_groups_multi %} nsm-ipa-object-node--subnet-warning{% endif %}{% endif %}{% if prefix == "ipa" and node.is_doppelt %} nsm-ipa-object-node--doppelt-warning{% endif %}{% if prefix == "ipa" and node.cell_groups_multi %} nsm-ipa-object-node--groups-multi{% endif %}">
+      {% if prefix == "ipa" and node.layer == "ipam_prefix" %}
+      <span class="nsm-addr-link fw-semibold">{{ node.name }}</span>
+      {% elif node.diff_group %}
       {% if node.diff_present_labels %}
       <span class="nsm-addr-diff-in-some-head">
         <span class="nsm-addr-link fw-semibold">{{ node.name }}</span>
@@ -51,23 +70,28 @@ Renders one node of the address tree.
         </span>
       </span>
       {% elif prefix == "ipa" and node.is_cell_direct %}
-      <span class="nsm-ipa-cell-pill"><span class="nsm-addr-link fw-semibold">{{ node.name }}</span></span>
+      {% include "netbox_nsm/inc/ipa_cell_object_row.html" with link_mode="span" %}
       {% else %}
       <span class="nsm-addr-link fw-semibold">{{ node.name }}</span>
       {% endif %}
       {% else %}
-      {% if prefix == "ipa" and node.is_cell_direct %}
-      <span class="nsm-ipa-cell-pill"><a href="{{ node.url }}" class="nsm-addr-link" onclick="event.stopPropagation()">{{ node.name }}</a></span>
+      {% if prefix == "ipa" and ipa_cell_pill != False %}
+      {% if node.is_cell_direct %}
+      {% include "netbox_nsm/inc/ipa_cell_object_row.html" with link_mode="anchor_stop" %}
+      {% else %}
+      <div class="nsm-ipa-cell-object-row-main">{% include "netbox_nsm/inc/ipa_cell_object_row_labels.html" with link_mode="anchor_stop" %}</div>
+      {% endif %}
       {% else %}
       <a href="{{ node.url }}" class="nsm-addr-link" onclick="event.stopPropagation()">{{ node.name }}</a>
       {% endif %}
       {% endif %}
-      {% if node.leaf_count and not node.ipam_stats %}<span class="badge bg-secondary-subtle text-secondary nsm-addr-count" title="{% trans 'Resolved paths in tree preview' %}">{{ node.leaf_count }}</span>{% endif %}
-      {% if node.ip_ref %}
+      {% if node.leaf_count and not node.ipam_stats and not node.ipa_drilldown_meta %}<span class="badge bg-secondary-subtle text-secondary nsm-addr-count" title="{% trans 'Resolved paths in tree preview' %}">{{ node.leaf_count }}</span>{% endif %}
+      {% if prefix != "ipa" or ipa_cell_pill == False %}
+      {% if node.ip_ref and not node.ipa_drilldown_meta %}
       <span class="nsm-addr-ip">→ <a href="{{ node.ip_ref.url }}" class="text-muted" onclick="event.stopPropagation()">{% if node.prefix_display_cidr %}<span class="nsm-addr-prefix-text" data-cidr="{{ node.prefix_display_cidr }}" data-netmask="{{ node.prefix_display_netmask }}">{{ node.prefix_display_cidr }}</span>{% else %}{{ node.ip_ref.str }}{% endif %}</a>{% if node.ip_ref.ct and node.ip_ref.pk %}<button type="button" class="nsm-ipa-loupe btn btn-sm btn-ghost-secondary py-0 px-1" data-ct="{{ node.ip_ref.ct }}" data-pk="{{ node.ip_ref.pk }}" data-name="{{ node.ip_ref.str }}" title="{% trans 'Analyze IP object' %}" onclick="event.stopPropagation();"><i class="mdi mdi-magnify"></i></button>{% endif %}</span>
       {% endif %}
-      {% include "netbox_nsm/inc/ipa_object_tree_subnet_warning.html" %}
-      {% include "netbox_nsm/inc/addr_ipam_stats.html" %}
+      {% endif %}
+      {% if not node.ipa_drilldown_meta %}{% include "netbox_nsm/inc/addr_ipam_stats.html" %}{% endif %}
       {% if node.count_duplicate %}
       <span class="badge bg-warning-subtle text-warning nsm-addr-duplicate ms-1" title="{% trans 'Excluded from total IP count' %}">
         {% trans "duplicate" %}{% if node.count_duplicate_of %}
@@ -84,20 +108,9 @@ Renders one node of the address tree.
         </span>{% endif %}
       </span>
       {% endif %}
-      {% if node.is_doppelt %}
-      <span class="nsm-ipa-object-doppelt ms-1" title="{% trans 'Duplicate cell entry — the same object is listed more than once in the rule cell' %}" aria-label="{% trans 'Duplicate cell entry' %}"><i class="mdi mdi-exclamation-thick" aria-hidden="true"></i></span>
-      {% endif %}
-      {% if show_copy and node.copy_lines %}
-      <button type="button" class="btn btn-sm btn-ghost-secondary py-0 px-1 ms-auto" title="{% trans 'Copy CSV paths' %}"
-        onclick="nsmCopyPaths(this); event.stopPropagation();"
-        data-lines="{% for line in node.copy_lines %}{{ line }}{% if not forloop.last %}&#10;{% endif %}{% endfor %}">
-        <i class="mdi mdi-content-copy"></i>
-      </button>
-      {% endif %}
     </summary>
     <div class="nsm-addr-children">
       {% if prefix == "ipa" %}
-      {% include "netbox_nsm/inc/ipa_object_tree_expanded_warnings.html" %}
       {% if node.children %}
       <div class="nsm-ipa-cell-children">
         {% for child in node.children %}
@@ -123,32 +136,37 @@ Renders one node of the address tree.
   {% endif %}
 {% else %}
   {# Leaf node #}
-  {% if prefix == "ipa" and node.ct and node.addr_drilldown_lazy %}
-  <details class="nsm-addr-details nsm-ipa-object-node">
-    <summary class="nsm-addr-summary nsm-addr-leaf-summary{% if node.is_cell_direct %} nsm-ipa-object-node--cell-direct{% endif %}{% if node.subnet_contained_in %} nsm-ipa-object-node--subnet-warning{% endif %}{% if node.is_doppelt %} nsm-ipa-object-node--doppelt-warning{% endif %}{% if node.diff_status and not node.diff_suppress_status %} nsm-addr-diff-leaf nsm-addr-diff-leaf--{{ node.diff_status }}{% if node.diff_side %} nsm-addr-diff-leaf--side-{{ node.diff_side }}{% endif %}{% if node.diff_fund %} nsm-addr-diff-leaf--fund{% endif %}{% elif node.diff_fund %} nsm-addr-diff-leaf nsm-addr-diff-leaf--fund{% endif %}">
+  {% if prefix == "ipa" and node.ct and node.addr_drilldown_lazy or prefix == "ipa" and node.is_cell_direct and node.ipa_drilldown_meta %}
+  <details class="nsm-addr-details nsm-ipa-object-node"{% if node.ipa_open_by_default %} open{% endif %}>
+    <summary class="nsm-addr-summary nsm-addr-leaf-summary{% if node.is_cell_direct %} nsm-ipa-object-node--cell-direct{% if node.ipa_drilldown_meta %} nsm-ipa-cell-object-summary--has-info{% endif %}{% endif %}{% if prefix == "ipa" %}{% if node.subnet_contained_in or node.cell_addresses_multi or node.cell_groups_multi %} nsm-ipa-object-node--subnet-warning{% endif %}{% elif node.subnet_contained_in %} nsm-ipa-object-node--subnet-warning{% endif %}{% if node.is_doppelt %} nsm-ipa-object-node--doppelt-warning{% endif %}{% if prefix == "ipa" and node.cell_groups_multi %} nsm-ipa-object-node--groups-multi{% endif %}{% if node.diff_status and not node.diff_suppress_status %} nsm-addr-diff-leaf nsm-addr-diff-leaf--{{ node.diff_status }}{% if node.diff_side %} nsm-addr-diff-leaf--side-{{ node.diff_side }}{% endif %}{% if node.diff_fund %} nsm-addr-diff-leaf--fund{% endif %}{% elif node.diff_fund %} nsm-addr-diff-leaf nsm-addr-diff-leaf--fund{% endif %}">
   {% else %}
-  <div class="nsm-addr-leaf{% if prefix == "ipa" and node.is_cell_direct %} nsm-ipa-object-node--cell-direct{% endif %}{% if prefix == "ipa" and node.subnet_contained_in %} nsm-ipa-object-node--subnet-warning{% endif %}{% if prefix == "ipa" and node.is_doppelt %} nsm-ipa-object-node--doppelt-warning{% endif %}{% if node.diff_status and not node.diff_suppress_status %} nsm-addr-diff-leaf nsm-addr-diff-leaf--{{ node.diff_status }}{% if node.diff_side %} nsm-addr-diff-leaf--side-{{ node.diff_side }}{% endif %}{% if node.diff_fund %} nsm-addr-diff-leaf--fund{% endif %}{% elif node.diff_fund %} nsm-addr-diff-leaf nsm-addr-diff-leaf--fund{% endif %}">
+  <div class="nsm-addr-leaf{% if prefix == "ipa" and node.is_cell_direct %} nsm-ipa-object-node--cell-direct{% endif %}{% if prefix == "ipa" %}{% if node.subnet_contained_in or node.cell_addresses_multi or node.cell_groups_multi %} nsm-ipa-object-node--subnet-warning{% endif %}{% endif %}{% if prefix == "ipa" and node.is_doppelt %} nsm-ipa-object-node--doppelt-warning{% endif %}{% if prefix == "ipa" and node.cell_groups_multi %} nsm-ipa-object-node--groups-multi{% endif %}{% if node.diff_status and not node.diff_suppress_status %} nsm-addr-diff-leaf nsm-addr-diff-leaf--{{ node.diff_status }}{% if node.diff_side %} nsm-addr-diff-leaf--side-{{ node.diff_side }}{% endif %}{% if node.diff_fund %} nsm-addr-diff-leaf--fund{% endif %}{% elif node.diff_fund %} nsm-addr-diff-leaf nsm-addr-diff-leaf--fund{% endif %}">
   {% endif %}
-    {% if node.diff_fund %}
-    <span class="badge bg-info-subtle text-info nsm-addr-fund ms-1" title="{{ node.fund_tooltip|default:'Same IP address/range/prefix, but different object names' }}">
-      {% trans "Fund" %}
-    </span>
-    {% endif %}
-    {% if node.prefix_display_cidr and not node.ip_ref %}
+    {% if prefix == "ipa" and ipa_cell_pill != False %}
+      {% if node.diff_fund %}
+      {% include "netbox_nsm/inc/addr_diff_fund_row.html" %}
+      {% elif node.is_cell_direct %}
+      {% include "netbox_nsm/inc/ipa_cell_object_row.html" %}
+      {% else %}
+      <div class="nsm-ipa-cell-object-row-main">{% include "netbox_nsm/inc/ipa_cell_object_row_labels.html" %}</div>
+      {% endif %}
+    {% elif node.diff_fund %}
+    {% include "netbox_nsm/inc/addr_diff_fund_row.html" %}
+    {% elif node.prefix_display_cidr and not node.ip_ref %}
     <a href="{{ node.url }}" class="nsm-addr-obj-link">
       <span class="nsm-addr-prefix-text" data-cidr="{{ node.prefix_display_cidr }}" data-netmask="{{ node.prefix_display_netmask }}">{{ node.prefix_display_cidr }}</span>
     </a>
     {% elif node.diff_status %}
     {% include "netbox_nsm/inc/addr_diff_name_pill.html" %}
-    {% elif prefix == "ipa" and ipa_cell_pill != False %}
-    <span class="nsm-ipa-cell-pill"><a href="{{ node.url }}" class="nsm-addr-obj-link">{{ node.name }}</a></span>
     {% else %}
     <a href="{{ node.url }}" class="nsm-addr-obj-link">{{ node.name }}</a>
     {% endif %}
-    {% if node.ip_ref %}
+    {% if prefix != "ipa" or ipa_cell_pill == False %}
+      {% if node.ip_ref and not node.diff_fund %}
       <span class="nsm-addr-ip">→ <a href="{{ node.ip_ref.url }}" class="text-muted">{% if node.prefix_display_cidr %}<span class="nsm-addr-prefix-text" data-cidr="{{ node.prefix_display_cidr }}" data-netmask="{{ node.prefix_display_netmask }}">{{ node.prefix_display_cidr }}</span>{% else %}{{ node.ip_ref.str }}{% endif %}</a>{% if node.ip_ref.ct and node.ip_ref.pk %}<button type="button" class="nsm-ipa-loupe btn btn-sm btn-ghost-secondary py-0 px-1" data-ct="{{ node.ip_ref.ct }}" data-pk="{{ node.ip_ref.pk }}" data-name="{{ node.ip_ref.str }}" title="{% trans 'Analyze IP object' %}"><i class="mdi mdi-magnify"></i></button>{% endif %}</span>
+      {% endif %}
     {% endif %}
-    {% include "netbox_nsm/inc/ipa_object_tree_subnet_warning.html" %}
+
     {% for ref in node.related_refs %}
       <span class="nsm-addr-related">
         <span class="text-muted">{{ ref.label }}:</span>
@@ -163,22 +181,13 @@ Renders one node of the address tree.
       </span>{% endif %}
     </span>
     {% endif %}
-    {% if node.is_doppelt %}
-    <span class="nsm-ipa-object-doppelt ms-1" title="{% trans 'Duplicate cell entry — the same object is listed more than once in the rule cell' %}" aria-label="{% trans 'Duplicate cell entry' %}"><i class="mdi mdi-exclamation-thick" aria-hidden="true"></i></span>
-    {% endif %}
-    {% if show_copy and node.copy_lines %}
-    <button type="button" class="btn btn-sm btn-ghost-secondary py-0 px-1 ms-auto" title="{% trans 'Copy CSV paths' %}"
-      onclick="nsmCopyPaths(this); event.stopPropagation();"
-      data-lines="{% for line in node.copy_lines %}{{ line }}{% if not forloop.last %}&#10;{% endif %}{% endfor %}">
-      <i class="mdi mdi-content-copy"></i>
-    </button>
-    {% endif %}
-  {% if prefix == "ipa" and node.ct and node.addr_drilldown_lazy %}
+  {% if prefix == "ipa" and node.ct and node.addr_drilldown_lazy or prefix == "ipa" and node.is_cell_direct and node.ipa_drilldown_meta %}
     </summary>
+    {% if node.addr_drilldown_lazy %}
     <div class="nsm-addr-children">
-      {% include "netbox_nsm/inc/ipa_object_tree_expanded_warnings.html" %}
       {% include "netbox_nsm/inc/ipa_object_addr_drilldown.html" %}
     </div>
+    {% endif %}
   </details>
   {% else %}
   </div>

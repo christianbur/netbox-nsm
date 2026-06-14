@@ -15,11 +15,11 @@ class VirtualRulebookTabsTests(TestCase):
     def setUp(self):
         super().setUp()
         self.add_permissions(
-            "netbox_nsm.view_rulebook",
             "tenancy.view_contactassignment",
             "extras.view_journalentry",
             "core.view_objectchange",
         )
+        self.add_permissions("netbox_nsm.view_rulebook")
 
     def test_tabs_match_security_rules_rulebook_subpages(self):
         request = RequestFactory().get("/")

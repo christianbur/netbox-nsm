@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 from django.urls import reverse
 
+from netbox_nsm.tests.rulebook_permission_helpers import grant_rulebook_cot_perms
 from utilities.testing import TestCase
 
 from netbox_nsm.objects.rulebook_config import (
@@ -148,7 +149,7 @@ class CotRulebookMetadataViewTests(TestCase):
         )
 
     def test_detail_readonly_without_edit_query(self):
-        self.add_permissions("netbox_nsm.view_rulebook", "netbox_nsm.add_rulebook")
+        grant_rulebook_cot_perms(self, self.cot, view=True, change=True)
         url = reverse(
             "plugins:netbox_nsm:cot_rulebook",
             kwargs={"slug": self.cot.slug},
@@ -160,7 +161,7 @@ class CotRulebookMetadataViewTests(TestCase):
         self.assertNotContains(response, 'name="verbose_name"')
 
     def test_detail_edit_mode_shows_inline_form(self):
-        self.add_permissions("netbox_nsm.view_rulebook", "netbox_nsm.add_rulebook")
+        grant_rulebook_cot_perms(self, self.cot, view=True, change=True)
         url = reverse(
             "plugins:netbox_nsm:cot_rulebook",
             kwargs={"slug": self.cot.slug},
@@ -172,7 +173,7 @@ class CotRulebookMetadataViewTests(TestCase):
         self.assertContains(response, 'name="parent_slug"')
 
     def test_post_detail_form_updates_cot(self):
-        self.add_permissions("netbox_nsm.view_rulebook", "netbox_nsm.add_rulebook")
+        grant_rulebook_cot_perms(self, self.cot, view=True, change=True)
         url = reverse(
             "plugins:netbox_nsm:cot_rulebook",
             kwargs={"slug": self.cot.slug},
@@ -193,7 +194,7 @@ class CotRulebookMetadataViewTests(TestCase):
         self.assertEqual(self.cot.description, "Updated description")
 
     def test_post_detail_form_keeps_existing_rulebook_prefix(self):
-        self.add_permissions("netbox_nsm.view_rulebook", "netbox_nsm.add_rulebook")
+        grant_rulebook_cot_perms(self, self.cot, view=True, change=True)
         url = reverse(
             "plugins:netbox_nsm:cot_rulebook",
             kwargs={"slug": self.cot.slug},
@@ -212,7 +213,7 @@ class CotRulebookMetadataViewTests(TestCase):
         self.assertEqual(self.cot.verbose_name_plural, "Rulebook Custom Label")
 
     def test_post_detail_form_updates_list_name(self):
-        self.add_permissions("netbox_nsm.view_rulebook", "netbox_nsm.add_rulebook")
+        grant_rulebook_cot_perms(self, self.cot, view=True, change=True)
         detail_url = reverse(
             "plugins:netbox_nsm:cot_rulebook",
             kwargs={"slug": self.cot.slug},
@@ -301,7 +302,7 @@ class CotRulebookMatrixTabMetadataTests(TestCase):
     def test_detail_readonly_shows_matrix_tab_row(
         self, _mock_capable, _mock_enabled
     ):
-        self.add_permissions("netbox_nsm.view_rulebook")
+        grant_rulebook_cot_perms(self, self.cot, view=True)
         url = reverse(
             "plugins:netbox_nsm:cot_rulebook",
             kwargs={"slug": self.cot.slug},
@@ -316,7 +317,7 @@ class CotRulebookMatrixTabMetadataTests(TestCase):
         return_value=True,
     )
     def test_post_detail_form_disables_matrix_tab(self, _mock_capable):
-        self.add_permissions("netbox_nsm.view_rulebook", "netbox_nsm.add_rulebook")
+        grant_rulebook_cot_perms(self, self.cot, view=True, change=True)
         url = reverse(
             "plugins:netbox_nsm:cot_rulebook",
             kwargs={"slug": self.cot.slug},
@@ -339,7 +340,7 @@ class CotRulebookMatrixTabMetadataTests(TestCase):
         return_value=True,
     )
     def test_post_detail_form_keeps_matrix_tab_enabled(self, _mock_capable):
-        self.add_permissions("netbox_nsm.view_rulebook", "netbox_nsm.add_rulebook")
+        grant_rulebook_cot_perms(self, self.cot, view=True, change=True)
         url = reverse(
             "plugins:netbox_nsm:cot_rulebook",
             kwargs={"slug": self.cot.slug},
@@ -388,7 +389,7 @@ class CotRulebookRowGroupSettingTests(TestCase):
 
     def test_row_group_by_col_id_includes_none_choice(self):
         form = CotRulebookDetailForm(cot=self.cot, rulebook_slug=self.cot.slug)
-        self.assertEqual(form.fields["row_group_by_col_id"].choices[0], ("", "— none —"))
+        self.assertEqual(form.fields["row_group_by_col_id"].choices[0], ("", "None"))
 
     def test_clear_row_group_by_col_id_persists(self):
         save_rulebook_config_for_cot(self.cot, {"row_group_by_col_id": "name"})

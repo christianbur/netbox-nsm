@@ -6,6 +6,10 @@
   --nsm-ipa-text-muted: #64748b;
   --nsm-ipa-accent: #206bc4;
   --nsm-ipa-accent-subtle: color-mix(in srgb, #206bc4 10%, var(--nsm-ag-bg, var(--nsm-ipa-bg)));
+  --nsm-ipa-cell-pill-bg: color-mix(in srgb, var(--nsm-ipa-text-muted) 16%, var(--nsm-ipa-bg-subtle));
+  --nsm-ipa-cell-pill-border: color-mix(in srgb, var(--nsm-ipa-text-muted) 34%, var(--nsm-ipa-border));
+  --nsm-ipa-cell-pill-text: var(--nsm-ipa-text);
+  --nsm-ipa-cell-pill-type: color-mix(in srgb, var(--nsm-ipa-text) 72%, var(--nsm-ipa-text-muted));
   --nsm-ipa-tab-hover: color-mix(in srgb, #206bc4 6%, var(--nsm-ag-bg-subtle, var(--nsm-ipa-bg-subtle)));
   position: fixed;
   z-index: 1080;
@@ -40,6 +44,10 @@
   --nsm-ipa-text-muted: #94a3b8;
   --nsm-ipa-accent: #5b9bd5;
   --nsm-ipa-accent-subtle: color-mix(in srgb, #5b9bd5 14%, var(--nsm-ag-bg, var(--nsm-ipa-bg)));
+  --nsm-ipa-cell-pill-bg: color-mix(in srgb, var(--nsm-ipa-text-muted) 34%, var(--nsm-ipa-bg-subtle));
+  --nsm-ipa-cell-pill-border: color-mix(in srgb, var(--nsm-ipa-text-muted) 46%, var(--nsm-ipa-border));
+  --nsm-ipa-cell-pill-text: #f8fafc;
+  --nsm-ipa-cell-pill-type: color-mix(in srgb, #f8fafc 78%, var(--nsm-ipa-text-muted));
   --nsm-ipa-tab-hover: color-mix(in srgb, #5b9bd5 10%, var(--nsm-ag-bg-subtle, var(--nsm-ipa-bg-subtle)));
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
@@ -87,6 +95,13 @@
 .nsm-ipa-applet-title i {
   color: var(--bs-primary);
   margin-right: 0.25rem;
+}
+
+.nsm-ipa-applet-rule-badge {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 .nsm-ipa-applet-actions {
@@ -580,8 +595,9 @@
 }
 
 .nsm-ipa-applet-body-scale-host {
-  width: 100%;
+  width: max-content;
   min-width: 0;
+  max-width: none;
 }
 
 .nsm-ipa-applet-body-scale {
@@ -833,35 +849,60 @@
   display: flex;
   align-items: center;
   font-size: 0.78rem;
-  line-height: 1;
+  line-height: 1.2;
   flex-wrap: nowrap;
   white-space: nowrap;
   min-width: 0;
-  gap: 2px;
-  padding: 0;
+  gap: 4px;
+  padding: 1px 0;
   min-height: 0;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
 }
 
-.nsm-ipa-applet .nsm-addr-summary::before {
+.nsm-ipa-applet .nsm-addr-summary::before,
+.nsm-ipa-applet .nsm-addr-leaf-summary::before {
+  content: "▶";
   font-size: 0.6rem;
   line-height: 1;
+  color: var(--bs-secondary-color, #6c757d);
+  flex-shrink: 0;
+  width: 0.65rem;
+  text-align: center;
+  align-self: center;
+}
+
+.nsm-ipa-applet details[open] > .nsm-addr-summary::before,
+.nsm-ipa-applet details[open] > .nsm-addr-leaf-summary::before {
+  content: "▼";
 }
 
 .nsm-ipa-applet .nsm-addr-leaf {
   font-size: 0.78rem;
-  line-height: 1;
+  line-height: 1.2;
   flex-wrap: nowrap;
   white-space: nowrap;
-  gap: 2px;
-  padding: 0;
+  gap: 4px;
+  padding: 1px 0;
   min-height: 0;
   margin: 0;
 }
 
-.nsm-ipa-applet .nsm-addr-link,
-.nsm-ipa-applet .nsm-addr-ip,
-.nsm-ipa-applet .nsm-addr-ipam-short,
-.nsm-ipa-applet .nsm-addr-duplicate,
+.nsm-ipa-applet .nsm-addr-summary .nsm-addr-link,
+.nsm-ipa-applet .nsm-addr-summary .nsm-addr-ip,
+.nsm-ipa-applet .nsm-addr-leaf-summary .nsm-addr-link,
+.nsm-ipa-applet .nsm-addr-leaf-summary .nsm-addr-ip,
+.nsm-ipa-applet .nsm-addr-leaf .nsm-addr-link,
+.nsm-ipa-applet .nsm-addr-leaf .nsm-addr-ip,
+.nsm-ipa-applet .nsm-addr-summary .nsm-addr-ipam-short,
+.nsm-ipa-applet .nsm-addr-leaf .nsm-addr-ipam-short,
+.nsm-ipa-applet .nsm-addr-summary .nsm-addr-duplicate,
+.nsm-ipa-applet .nsm-addr-leaf .nsm-addr-duplicate {
+  border-top: none;
+  margin: 0;
+}
+
 .nsm-ipa-applet .nsm-addr-diff-intersection-separator {
   border: none;
   border-top: 1px dashed var(--nsm-ag-border, var(--nsm-ipa-border));
@@ -932,6 +973,64 @@
   color: var(--bs-warning-text-emphasis, var(--bs-warning, #fd7e14)) !important;
 }
 
+.nsm-ipa-applet .nsm-addr-diff-leaf--fund,
+.nsm-addr-diff-leaf--fund {
+  flex-wrap: nowrap;
+  min-height: auto;
+  gap: 0.35rem;
+}
+
+.nsm-ipa-applet .nsm-addr-diff-fund-row,
+.nsm-addr-diff-fund-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: nowrap;
+  min-height: auto;
+  min-width: 0;
+}
+
+.nsm-ipa-applet .nsm-addr-diff-fund-network,
+.nsm-addr-diff-fund-network {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--bs-secondary-color);
+  font-family: var(--bs-font-monospace, ui-monospace, monospace);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  padding: 0.08rem 0.35rem;
+  border-radius: 0.25rem;
+  background: var(--bs-secondary-bg);
+  white-space: nowrap;
+}
+
+.nsm-ipa-applet .nsm-addr-diff-fund-network-link,
+.nsm-addr-diff-fund-network-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.nsm-ipa-applet .nsm-addr-diff-fund-network-link:hover,
+.nsm-addr-diff-fund-network-link:hover {
+  text-decoration: underline;
+}
+
+.nsm-ipa-applet .nsm-addr-diff-fund-row .nsm-ipa-diff-name-pill,
+.nsm-addr-diff-fund-row .nsm-ipa-diff-name-pill {
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.nsm-ipa-applet .nsm-addr-diff-fund-row .nsm-addr-fund,
+.nsm-addr-diff-fund-row .nsm-addr-fund {
+  flex-shrink: 0;
+  margin: 0;
+}
+
 .nsm-ipa-applet .nsm-addr-diff-group--in-some > .nsm-addr-summary {
   align-items: flex-start;
   flex-wrap: wrap;
@@ -995,8 +1094,334 @@
   display: flex;
   flex-direction: column;
   gap: 0;
+  margin: 0 0 0 6px;
+  padding: 0 0 0 0.75rem;
+  border-left: 2px solid var(--nsm-ag-border, var(--nsm-ipa-border));
+}
+
+.nsm-ipa-applet .nsm-ipa-addr-drilldown {
+  margin: 2px 0 0 6px;
+  padding: 0 0 0 0.75rem;
+  border-left: 2px solid var(--nsm-ag-border, var(--nsm-ipa-border));
+}
+
+.nsm-ipa-applet .nsm-ipa-drilldown-meta {
+  display: inline-flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 0.32rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-object-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.18rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-object-row-main {
+  display: grid;
+  grid-template-columns: 12.5rem minmax(0, max-content) minmax(0, max-content) minmax(0, max-content);
+  grid-template-rows: minmax(0, auto);
+  grid-auto-flow: column;
+  align-items: stretch;
+  gap: 0.32rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.nsm-ipa-applet .nsm-addr-summary > .nsm-ipa-cell-object-row-main,
+.nsm-ipa-applet .nsm-addr-leaf > .nsm-ipa-cell-object-row-main,
+.nsm-ipa-applet .nsm-addr-leaf-summary > .nsm-ipa-cell-object-row-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.nsm-ipa-applet .nsm-addr-leaf:has(> .nsm-ipa-cell-object-row-main),
+.nsm-ipa-applet .nsm-addr-leaf-summary:has(> .nsm-ipa-cell-object-row-main) {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-object-row-main > .nsm-ipa-cell-cidr {
+  grid-column: 1;
+  margin-right: 0;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-object-row-main > .nsm-ipa-cell-pill--address {
+  grid-column: 2;
+  margin-left: 0;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-object-row-main > .nsm-ipa-cell-pill--group {
+  grid-column: 3;
+  margin-left: 0;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-object-row-main > .nsm-ipa-cell-pill--parent {
+  grid-column: 4;
+  margin-left: 0;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-object-row-main > .nsm-ipa-cell-pill--address,
+.nsm-ipa-applet .nsm-ipa-cell-object-row-main > .nsm-ipa-cell-pill--group {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.nsm-ipa-applet summary.nsm-ipa-object-node--cell-direct.nsm-ipa-cell-object-summary--has-info {
+  align-items: flex-start;
+  flex-wrap: wrap;
+  padding-top: 0.28rem;
+  padding-bottom: 0.3rem;
+}
+
+.nsm-ipa-applet .nsm-addr-leaf.nsm-ipa-object-node--cell-direct.nsm-ipa-cell-object-leaf--has-info {
+  align-items: flex-start;
+  flex-wrap: wrap;
+  padding-top: 0.28rem;
+  padding-bottom: 0.3rem;
+}
+
+.nsm-ipa-applet .nsm-ipa-drilldown-meta--info {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.08rem;
+  padding: 0.1rem 0;
+  max-width: 100%;
+}
+
+.nsm-ipa-applet .nsm-ipa-drilldown-meta-info-type {
+  display: block;
+  line-height: 1;
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.48rem;
+  font-weight: 500;
+  opacity: 0.82;
+  color: color-mix(in srgb, var(--bs-info) 55%, var(--bs-secondary-color));
+}
+
+.nsm-ipa-applet .nsm-ipa-drilldown-meta-info-stats {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.28rem;
+  margin-left: 0.15rem;
+}
+
+.nsm-ipa-applet .nsm-ipa-drilldown-meta-info-stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.18rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.nsm-ipa-applet .nsm-ipa-drilldown-meta-info-stat-label {
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--bs-secondary-color);
+}
+
+.nsm-ipa-applet .nsm-ipa-drilldown-meta-info-stat-val {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--bs-body-color, inherit);
+}
+
+.nsm-ipa-applet .nsm-ipa-drilldown-meta-info-body {
+  display: inline;
+  line-height: 1.25;
+  font-size: 0.8125rem;
+  color: var(--bs-secondary-color);
+  max-width: 100%;
+}
+
+.nsm-ipa-applet .nsm-ipa-drilldown-meta-info-link {
+  color: var(--bs-info-text-emphasis, var(--bs-info));
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.nsm-ipa-applet .nsm-ipa-drilldown-meta-info-link:hover {
+  text-decoration: underline;
+}
+
+.nsm-ipa-applet .nsm-ipa-drilldown-meta--warning {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.08rem;
+  padding: 0.1rem 0;
+  max-width: 100%;
+}
+
+.nsm-ipa-applet .nsm-ipa-drilldown-meta-warning-type {
+  display: block;
+  line-height: 1;
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.48rem;
+  font-weight: 500;
+  opacity: 0.82;
+  color: color-mix(in srgb, var(--bs-warning) 55%, var(--bs-secondary-color));
+}
+
+.nsm-ipa-applet .nsm-ipa-drilldown-meta-warning-body {
+  display: inline;
+  line-height: 1.25;
+  font-size: 0.8125rem;
+  color: var(--bs-warning-text-emphasis, var(--bs-warning));
+  max-width: 100%;
+}
+
+.nsm-ipa-applet .nsm-ipa-drilldown-meta-warning-link {
+  color: var(--bs-warning-text-emphasis, var(--bs-warning));
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.nsm-ipa-applet .nsm-ipa-drilldown-meta-warning-link:hover {
+  text-decoration: underline;
+}
+
+.nsm-ipa-applet .nsm-ipa-drilldown-meta-warning-name {
+  color: var(--bs-warning-text-emphasis, var(--bs-warning));
+  font-weight: 500;
+}
+
+.nsm-ipa-applet .nsm-ipa-drilldown-meta-warning-sep {
+  color: var(--bs-secondary-color);
+  user-select: none;
+}
+
+.nsm-ipa-applet .nsm-ipa-drilldown-meta-info-link--tenant {
+  font-weight: 500;
+}
+
+.nsm-ipa-applet .nsm-ipa-drilldown-meta-info-tenant {
+  color: var(--bs-secondary-color);
+  font-weight: 500;
+}
+
+.nsm-ipa-applet .nsm-ipa-drilldown-meta-info-sep {
+  color: var(--bs-secondary-color);
+  user-select: none;
+}
+
+.nsm-ipa-applet .nsm-ipa-drilldown-meta-info-stats {
+  color: var(--bs-secondary-color);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.nsm-ipa-applet .nsm-ipa-drilldown-meta-pill {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  flex-shrink: 0;
+  background: var(--nsm-ipa-accent-subtle);
+  border: 1px solid color-mix(in srgb, var(--nsm-ipa-accent) 28%, var(--nsm-ipa-border));
+  border-radius: 0.45rem;
+  padding: 0.12rem 0.38rem 0.14rem;
+  line-height: 1.15;
+  font-size: inherit;
+  gap: 0.08rem;
+  max-width: 100%;
+}
+
+.nsm-ipa-applet .nsm-ipa-drilldown-meta-type {
+  display: block;
+  line-height: 1;
+  white-space: nowrap;
+  flex-shrink: 0;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.48rem;
+  font-weight: 500;
+  margin: 0;
+  opacity: 0.82;
+  color: color-mix(in srgb, var(--nsm-ipa-accent) 55%, var(--bs-secondary-color));
+}
+
+.nsm-ipa-applet .nsm-ipa-drilldown-meta-body {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0;
+  line-height: 1.2;
+  max-width: 100%;
+}
+
+.nsm-ipa-applet .nsm-ipa-drilldown-meta-link {
+  color: var(--nsm-ipa-accent);
+  font-weight: 600;
+  text-decoration: none;
+  display: inline;
   margin: 0;
   padding: 0;
+  line-height: inherit;
+  font-size: inherit;
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nsm-ipa-applet .nsm-ipa-drilldown-meta-link:hover {
+  text-decoration: underline;
+}
+
+.nsm-ipa-applet .nsm-ipa-drilldown-meta-value {
+  color: var(--nsm-ipa-accent);
+  font-weight: 600;
+  line-height: inherit;
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nsm-ipa-applet .nsm-ipa-drilldown-meta-stat {
+  color: var(--bs-body-color, inherit);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: inherit;
+}
+
+.nsm-ipa-applet summary.nsm-ipa-drilldown-source-summary {
+  cursor: pointer;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  white-space: normal;
+  padding: 0.32rem 0 0.38rem;
+  min-height: 2rem;
+  gap: 0.32rem;
+}
+
+.nsm-ipa-applet .nsm-addr-children .nsm-addr-leaf {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.nsm-ipa-applet .nsm-addr-children .nsm-addr-leaf::before {
+  content: "";
+  display: inline-block;
+  width: 0.65rem;
+  flex-shrink: 0;
 }
 
 .nsm-ipa-applet .nsm-ipa-cell-children > .nsm-addr-details,
@@ -1028,8 +1453,11 @@
 }
 
 .nsm-ipa-applet .nsm-addr-children .nsm-ipa-object-tree-rows > details.nsm-ipa-object-node + details.nsm-ipa-object-node,
-.nsm-ipa-applet .nsm-ipa-cell-children > details.nsm-ipa-object-node + details.nsm-ipa-object-node {
-  margin-top: 0;
+.nsm-ipa-applet .nsm-ipa-cell-children > details.nsm-ipa-object-node + details.nsm-ipa-object-node,
+.nsm-ipa-applet .nsm-addr-children .nsm-ipa-object-tree-rows > .nsm-addr-leaf + .nsm-addr-leaf,
+.nsm-ipa-applet .nsm-addr-children .nsm-ipa-object-tree-rows > details.nsm-ipa-object-node + .nsm-addr-leaf,
+.nsm-ipa-applet .nsm-addr-children .nsm-ipa-object-tree-rows > .nsm-addr-leaf + details.nsm-ipa-object-node {
+  margin-top: 2px;
 }
 
 .nsm-ipa-applet .nsm-ipa-object-doppelt {
@@ -1041,15 +1469,27 @@
 }
 
 .nsm-ipa-applet .nsm-ipa-subnet-contained {
+  font-size: inherit;
+  line-height: inherit;
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: help;
+}
+
+.nsm-ipa-applet .nsm-ipa-duplicate-indicator {
   font-size: 0.95rem;
   line-height: 1;
   white-space: nowrap;
+  flex-shrink: 0;
+  cursor: help;
 }
 
-/* Warning rows — CIDR/prefix text matches icon (subnet = warning); pill = default + orange border */
+/* Warning rows — CIDR/prefix text matches icon; pills orange only via --multi (address/group duplicate) */
 .nsm-ipa-applet .nsm-ipa-object-node--subnet-warning .nsm-addr-ip,
 .nsm-ipa-applet .nsm-ipa-object-node--subnet-warning .nsm-addr-ip a,
-.nsm-ipa-applet .nsm-ipa-object-node--subnet-warning .nsm-addr-prefix-text {
+.nsm-ipa-applet .nsm-ipa-object-node--subnet-warning .nsm-addr-prefix-text,
+.nsm-ipa-applet .nsm-ipa-object-node--subnet-warning .nsm-ipa-cell-cidr,
+.nsm-ipa-applet .nsm-ipa-object-node--subnet-warning .nsm-ipa-cell-cidr-link {
   color: var(--bs-warning-text-emphasis, var(--bs-warning));
 }
 
@@ -1071,53 +1511,89 @@
   color: var(--bs-danger-text-emphasis, var(--bs-danger));
 }
 
-.nsm-ipa-applet .nsm-ipa-expanded-warnings {
-  font-size: 0.78rem;
-  line-height: 1.35;
-  margin: 0 0 0.35rem 0;
-  padding: 0.2rem 0.45rem;
-  border-radius: 0.25rem;
-  background: var(--nsm-ag-bg-subtle, var(--nsm-ipa-bg-subtle));
-  border: 1px solid var(--nsm-ag-border, var(--nsm-ipa-border));
-}
-
+/* Legacy expanded warnings — hidden; duplicate tooltips on pills / CIDR */
+.nsm-ipa-applet .nsm-ipa-expanded-warnings,
 .nsm-ipa-applet .nsm-ipa-expanded-warning {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.35rem;
+  display: none !important;
 }
 
-.nsm-ipa-applet .nsm-ipa-expanded-warning + .nsm-ipa-expanded-warning {
-  margin-top: 0.25rem;
-}
 
-.nsm-ipa-applet .nsm-ipa-expanded-warning .mdi {
+/* Rule-cell objects (All view) — CIDR + typed object pills */
+.nsm-ipa-applet .nsm-ipa-cell-cidr {
+  display: inline-flex;
+  align-items: center;
   flex-shrink: 0;
-  font-size: 0.95rem;
-  line-height: 1.35;
+  margin-right: 0.45rem;
+  color: var(--bs-secondary-color);
+  font-variant-numeric: tabular-nums;
 }
 
-.nsm-ipa-applet .nsm-ipa-addr-drilldown {
-  margin-top: 2px;
+.nsm-ipa-applet .nsm-ipa-cell-cidr-link {
+  color: inherit;
+  text-decoration: none;
 }
 
-/* Rule-cell objects (All view) — name pill only; CIDR/arrow stay plain text */
+.nsm-ipa-applet .nsm-ipa-cell-cidr-link:hover {
+  text-decoration: underline;
+}
+
 .nsm-ipa-applet .nsm-ipa-cell-pill {
-  display: inline-block;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
   flex-shrink: 0;
-  align-self: center;
-  background: var(--nsm-ipa-accent-subtle);
-  border: 1px solid color-mix(in srgb, var(--nsm-ipa-accent) 28%, var(--nsm-ipa-border));
-  border-radius: 999px;
-  padding: 0 0.28rem;
-  line-height: 1;
+  align-self: stretch;
+  background: var(--nsm-ipa-cell-pill-bg);
+  border: 1px solid var(--nsm-ipa-cell-pill-border);
+  border-radius: 0.45rem;
+  padding: 0.12rem 0.38rem 0.14rem;
+  line-height: 1.15;
   font-size: inherit;
   vertical-align: middle;
+  margin-left: 0.15rem;
+  gap: 0.08rem;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-pill-body {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0;
+  line-height: 1.2;
+  max-width: 100%;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-pill-body--stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  flex-wrap: nowrap;
+  gap: 0.1rem;
+  white-space: normal;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-pill-body--stack .nsm-ipa-cell-pill-entry {
+  display: block;
+  width: 100%;
+  line-height: 1.2;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-pill--multi {
+  align-self: stretch;
+  white-space: normal;
+}
+
+.nsm-ipa-applet .nsm-addr-summary:has(.nsm-ipa-cell-pill-body--stack),
+.nsm-ipa-applet .nsm-addr-leaf:has(.nsm-ipa-cell-pill-body--stack),
+.nsm-ipa-applet .nsm-addr-leaf-summary:has(.nsm-ipa-cell-pill-body--stack) {
+  align-items: flex-start;
+  align-items: center;
 }
 
 .nsm-ipa-applet .nsm-ipa-cell-pill .nsm-addr-link,
-.nsm-ipa-applet .nsm-ipa-cell-pill .nsm-addr-obj-link {
-  color: var(--nsm-ipa-accent);
+.nsm-ipa-applet .nsm-ipa-cell-pill .nsm-addr-obj-link,
+.nsm-ipa-applet .nsm-ipa-cell-pill .nsm-ipa-cell-pill-link {
+  color: var(--nsm-ipa-cell-pill-text);
   font-weight: 600;
   text-decoration: none;
   display: inline;
@@ -1130,15 +1606,171 @@
 }
 
 .nsm-ipa-applet .nsm-ipa-cell-pill .nsm-addr-link:hover,
-.nsm-ipa-applet .nsm-ipa-cell-pill .nsm-addr-obj-link:hover {
+.nsm-ipa-applet .nsm-ipa-cell-pill .nsm-addr-obj-link:hover,
+.nsm-ipa-applet .nsm-ipa-cell-pill .nsm-ipa-cell-pill-link:hover {
   text-decoration: underline;
 }
 
-/* Subnet warning pill — solid orange border (class on summary or leaf row, not details) */
-.nsm-ipa-applet summary.nsm-ipa-object-node--subnet-warning .nsm-ipa-cell-pill,
-.nsm-ipa-applet .nsm-ipa-object-node--subnet-warning .nsm-ipa-cell-pill {
+.nsm-ipa-applet .nsm-ipa-cell-pill--address .nsm-ipa-cell-pill-body,
+.nsm-ipa-applet .nsm-ipa-cell-pill--group .nsm-ipa-cell-pill-body {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-pill--address .nsm-ipa-cell-pill-entry,
+.nsm-ipa-applet .nsm-ipa-cell-pill--group .nsm-ipa-cell-pill-entry {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-pill--address .nsm-ipa-cell-pill-link,
+.nsm-ipa-applet .nsm-ipa-cell-pill--group .nsm-ipa-cell-pill-link {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-pill--address .nsm-ipa-cell-pill-entry--inactive .nsm-ipa-cell-pill-link,
+.nsm-ipa-applet .nsm-ipa-cell-pill--group .nsm-ipa-cell-pill-entry--inactive .nsm-ipa-cell-pill-link {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-pill-body--stack .nsm-ipa-cell-pill-link {
+  display: block;
+  white-space: nowrap;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-type {
+  display: block;
+  line-height: 1;
+  white-space: nowrap;
+  flex-shrink: 0;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-pill .nsm-ipa-cell-type,
+.nsm-ipa-applet .nsm-ipa-cell-pill--group .nsm-ipa-cell-type {
+  font-size: 0.48rem;
+  font-weight: 500;
+  margin: 0;
+  opacity: 0.82;
+  color: var(--nsm-ipa-cell-pill-type);
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-pill-sep {
+  color: color-mix(in srgb, var(--nsm-ipa-cell-pill-text) 72%, var(--nsm-ipa-text-muted));
+  user-select: none;
+  margin-right: 0.15em;
+  white-space: pre;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-pill--parent {
   border: 1px solid var(--bs-warning, var(--tblr-warning, #f59f0a)) !important;
-  border-color: var(--bs-warning, var(--tblr-warning, #f59f0a));
+  background: color-mix(in srgb, var(--bs-warning, #f59f0a) 18%, var(--nsm-ipa-accent-subtle)) !important;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-pill--parent .nsm-ipa-cell-type,
+.nsm-ipa-applet .nsm-ipa-cell-pill--parent .nsm-ipa-cell-pill-link,
+.nsm-ipa-applet .nsm-ipa-cell-pill--parent .nsm-addr-prefix-text {
+  color: var(--bs-warning, var(--tblr-warning, #f59f0a));
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-pill--parent .nsm-ipa-cell-pill-link:hover {
+  color: var(--bs-warning, var(--tblr-warning, #f59f0a));
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-pill--address.nsm-ipa-cell-pill--multi {
+  border: 1px solid var(--bs-warning, var(--tblr-warning, #f59f0a)) !important;
+  background: color-mix(in srgb, var(--bs-warning, #f59f0a) 18%, var(--nsm-ipa-accent-subtle)) !important;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-pill--group.nsm-ipa-cell-pill--multi {
+  border: 1px solid var(--bs-warning, var(--tblr-warning, #f59f0a)) !important;
+  background: color-mix(in srgb, var(--bs-warning, #f59f0a) 18%, var(--nsm-ipa-accent-subtle)) !important;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-pill--group-none {
+  border-color: color-mix(in srgb, var(--bs-secondary-color) 35%, var(--nsm-ipa-border)) !important;
+  background: color-mix(in srgb, var(--bs-secondary-color) 8%, var(--nsm-ipa-accent-subtle)) !important;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-pill--group-none .nsm-ipa-cell-type,
+.nsm-ipa-applet .nsm-ipa-cell-pill-link--none {
+  color: var(--bs-secondary-color);
+  font-weight: 500;
+  font-style: italic;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-pill--multi {
+  border-color: var(--bs-warning, var(--tblr-warning, #f59f0a)) !important;
+  background: color-mix(in srgb, var(--bs-warning, #f59f0a) 14%, transparent) !important;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-pill--multi .nsm-ipa-cell-type,
+.nsm-ipa-applet .nsm-ipa-cell-pill--multi .nsm-ipa-cell-pill-link,
+.nsm-ipa-applet .nsm-ipa-cell-pill--multi .nsm-ipa-cell-pill-sep {
+  color: var(--bs-warning, var(--tblr-warning, #f59f0a));
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-pill--multi .nsm-ipa-cell-type {
+  font-size: 0.48rem;
+  opacity: 0.9;
+}
+
+.nsm-ipa-applet .nsm-ipa-diff-name-pill .nsm-ipa-diff-name-a {
+  color: var(--bs-primary);
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-pill-entry--inactive {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.12rem;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-pill-link--inactive {
+  font-style: italic;
+  color: color-mix(in srgb, var(--nsm-ipa-cell-pill-text) 62%, var(--nsm-ipa-text-muted));
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-pill-status-icon,
+.nsm-ipa-applet .nsm-ipa-cell-pill-entry--inactive .nsm-object-status-icon {
+  font-size: 0.85rem;
+  line-height: 1;
+  flex-shrink: 0;
+  cursor: help;
+}
+
+.nsm-ipa-applet .nsm-object-status-icon--deprecated {
+  color: #dc3545 !important;
+}
+
+.nsm-ipa-applet .nsm-object-status-icon--reserved {
+  color: #fd7e14 !important;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-pill:has(.nsm-object-status-icon--deprecated) {
+  border: 1px solid #dc3545 !important;
+  background: color-mix(in srgb, #dc3545 10%, var(--nsm-ipa-cell-pill-bg));
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-pill:has(.nsm-object-status-icon--reserved) {
+  border: 1px solid #fd7e14 !important;
+  background: color-mix(in srgb, #fd7e14 10%, var(--nsm-ipa-cell-pill-bg));
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-pill-body--stack .nsm-ipa-cell-pill-entry--inactive {
+  display: flex;
+  width: 100%;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-pill--multi[title],
+.nsm-ipa-applet .nsm-ipa-cell-pill--address[title]:not(.nsm-ipa-cell-pill--multi),
+.nsm-ipa-applet .nsm-ipa-cell-cidr[title] {
+  cursor: help;
 }
 
 .nsm-ipa-applet .nsm-ipa-diff-name-pill .nsm-ipa-diff-name-a {

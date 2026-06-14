@@ -2,12 +2,10 @@
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.views.setup import custom_objects, demo, typeconfig, ui_settings
+from netbox_nsm.views.setup import custom_objects, demo, typeconfig
 
 # Actions emitted by templates under netbox_nsm/templates/netbox_nsm/inc/setup_*.html
 WIZARD_ACTIONS = {
-    "save_ui_settings": ui_settings.handles_action,
-    "hide_setup_menu": ui_settings.handles_action,
     "import_all_types": custom_objects.handles_action,
     "create_all_typeconfigs": typeconfig.handles_action,
     "create_demo_starter": demo.handles_action,

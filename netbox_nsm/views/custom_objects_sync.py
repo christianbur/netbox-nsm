@@ -26,7 +26,6 @@ from netbox_nsm.objects.custom_objects_schema import (
     iter_types,
     slugify_identifier,
 )
-from netbox_nsm.models import Section
 from netbox_nsm.objects.type_config_export import sync_cot_nsm_config_comments
 from netbox_nsm.objects.type_config_specs import TYPECONFIG_SPEC_BY_SLUG
 
@@ -70,11 +69,7 @@ def _prune_stale(document):
     cots_removed = stale_cots.count()
     stale_cots.delete()
 
-    stale_sections = Section.objects.exclude(slug__in=wanted_area_slugs)
-    sections_removed = stale_sections.count()
-    stale_sections.delete()
-
-    return cots_removed, sections_removed
+    return cots_removed, 0
 
 
 def _ensure_choice_sets(specs):
@@ -159,33 +154,12 @@ def _seed_default_objects(builtin_types):
     return created, updated, skipped
 
 
-def _sync_type_configs_and_sections(builtin_types):
-    """Populate TypeConfig display fields and Section (M2M) tables."""
+def _sync_type_configs(builtin_types):
+    """Write bundled ``nsm_config`` (areas, panel, rule_view) to COT comments."""
     from netbox_custom_objects.models import CustomObjectType
 
-    sections_touched = 0
     configs_touched = 0
-
-    # Collect all referenced areas (already collapsed) and (re)create sections.
-    referenced_areas = []
-    for _td, _bs, _slug, areas in iter_types(builtin_types):
-        for a in areas:
-            if a not in referenced_areas:
-                referenced_areas.append(a)
-
-    section_by_slug = {}
-    for area in referenced_areas:
-        section, _ = Section.objects.update_or_create(
-            slug=area,
-            defaults={
-                "name": area.replace("_", " ").replace("-", " ").title(),
-                "sort_order": _AREA_ORDER.get(area, 100),
-            },
-        )
-        section_by_slug[area] = section
-
-    # One COT per typedef; attach TypeConfig and add to each area section.
-    for typedef, _base_slug, slug, areas in iter_types(builtin_types):
+    for typedef, _base_slug, slug, _areas in iter_types(builtin_types):
         try:
             cot = CustomObjectType.objects.get(slug=slug)
         except CustomObjectType.DoesNotExist:
@@ -195,13 +169,7 @@ def _sync_type_configs_and_sections(builtin_types):
         sync_cot_nsm_config_comments(cot, spec=spec)
         configs_touched += 1
 
-        for area in areas:
-            sec = section_by_slug.get(area)
-            if sec:
-                sec.custom_object_types.add(cot)
-                sections_touched += 1
-
-    return configs_touched, sections_touched
+    return configs_touched
 
 
 class SyncBuiltinToCustomObjectsView(LoginRequiredMixin, View):
@@ -303,9 +271,7 @@ class SyncTypeConfigsView(LoginRequiredMixin, View):
 
         try:
             with transaction.atomic():
-                cfg_count, sec_links = _sync_type_configs_and_sections(
-                    BUILTIN_CUSTOM_TYPES
-                )
+                cfg_count = _sync_type_configs(BUILTIN_CUSTOM_TYPES)
         except Exception as exc:
             messages.error(
                 request,
@@ -317,9 +283,8 @@ class SyncTypeConfigsView(LoginRequiredMixin, View):
         messages.success(
             request,
             _(
-                "Object Config sync complete — %(cfg_count)d Object Configs, "
-                "%(sec_links)d section links."
+                "Object Config sync complete — %(cfg_count)d Object Configs updated in COT comments."
             )
-            % {"cfg_count": cfg_count, "sec_links": sec_links},
+            % {"cfg_count": cfg_count},
         )
         return redirect(redirect_url)

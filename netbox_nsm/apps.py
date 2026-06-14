@@ -8,12 +8,10 @@ class NetBoxSecurityConfig(AppConfig):
     def ready(self):
         from django.conf import settings
 
+        import netbox_nsm.signals.address_validation  # noqa: F401
+
         locale_path = os.path.join(os.path.dirname(__file__), "locale")
         if locale_path not in list(getattr(settings, "LOCALE_PATHS", [])):
             settings.LOCALE_PATHS = list(getattr(settings, "LOCALE_PATHS", [])) + [
                 locale_path
             ]
-
-        from netbox_nsm.core.setup_flags import sync_setup_menu_config_state
-
-        sync_setup_menu_config_state()

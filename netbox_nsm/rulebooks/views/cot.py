@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import PermissionDenied
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db.models import Q
@@ -17,7 +18,6 @@ from core.models import ObjectChange
 from core.tables import ObjectChangeTable
 from utilities.querydict import normalize_querydict
 
-from netbox_nsm.models import CotRulebookAssignment
 from netbox_nsm.rulebooks.assigned_objects import build_cot_rulebook_assigned_objects_panel
 from netbox_nsm.rulebooks.cot_hierarchy import (
     build_virtual_cot_rulebook_with_hierarchy,
@@ -28,7 +28,7 @@ from netbox_nsm.rulebooks.create import (
     create_cot_rulebook_from_schema_yaml,
     update_cot_rulebook_metadata,
 )
-from netbox_nsm.rulebooks.forms.assignment import CotRulebookBulkAssignForm
+from netbox_nsm.rulebooks.forms.bulk_assign import CotRulebookBulkAssignForm
 from netbox_nsm.rulebooks.registry import get_deployed_cot_rulebook
 from netbox_nsm.rulebooks.rules_tab import build_cot_rulebook_rules_tab_context
 from netbox_nsm.rulebooks.forms.cot import CotRulebookCreateForm, CotRulebookDetailForm
@@ -40,6 +40,11 @@ from netbox_nsm.rulebooks.templates import (
 from netbox_nsm.matrix.cot_matrix_tab_context import (
     build_cot_matrix_tab_context,
     cot_rulebook_matrix_enabled,
+)
+from netbox_nsm.rulebooks.permissions import (
+    can_change_rulebook,
+    can_create_rulebook,
+    can_view_rulebook,
 )
 from netbox_nsm.rulebooks.virtual_cot_tabs import build_virtual_cot_rulebook_tabs
 
@@ -54,8 +59,20 @@ __all__ = (
 )
 
 
-class _CotRulebookMixin(LoginRequiredMixin, PermissionRequiredMixin):
-    permission_required = "netbox_nsm.view_rulebook"
+class _CotRulebookMixin(LoginRequiredMixin):
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+        slug = kwargs.get("slug")
+        if slug:
+            cot = get_deployed_cot_rulebook(slug)
+            if cot is None:
+                from django.http import Http404
+
+                raise Http404()
+            if not can_view_rulebook(request.user, cot):
+                raise PermissionDenied()
+        return super().dispatch(request, *args, **kwargs)
 
     def get_virtual_object(self, slug: str):
         cot = get_deployed_cot_rulebook(slug)
@@ -107,7 +124,7 @@ class CotRulebookView(_CotRulebookMixin, View):
     ):
         instance = self.get_virtual_object(slug)
         cot = instance.cot
-        can_edit = request.user.has_perm("netbox_nsm.add_rulebook")
+        can_edit = can_change_rulebook(request.user, cot)
         if edit_mode is None:
             edit_mode = can_edit and request.GET.get("edit") == "1"
         if edit_form is None and edit_mode and can_edit:
@@ -144,12 +161,9 @@ class CotRulebookView(_CotRulebookMixin, View):
         )
 
     def post(self, request, slug: str):
-        if not request.user.has_perm("netbox_nsm.add_rulebook"):
-            from django.core.exceptions import PermissionDenied
-
-            raise PermissionDenied()
-
         cot = self.get_virtual_object(slug).cot
+        if not can_change_rulebook(request.user, cot):
+            raise PermissionDenied()
         form = CotRulebookDetailForm(cot=cot, rulebook_slug=slug, data=request.POST)
         if form.is_valid():
             from netbox_nsm.objects.rulebook_config import save_rulebook_config_for_cot
@@ -185,8 +199,12 @@ class CotRulebookView(_CotRulebookMixin, View):
 class CotRulebookBulkAssignView(_CotRulebookMixin, View):
     """Assign a COT rulebook to multiple devices / VMs / VDCs in one step."""
 
-    permission_required = "netbox_nsm.add_rulebookassignment"
     template_name = "netbox_nsm/cot_rulebook_bulk_assign.html"
+
+    def get_permission_required(self):
+        from netbox_nsm.objects.object_link_service import object_link_permission
+
+        return object_link_permission("add") or "netbox_custom_objects.add_customobject"
 
     def get(self, request, slug: str):
         instance = self.get_virtual_object(slug)
@@ -205,37 +223,24 @@ class CotRulebookBulkAssignView(_CotRulebookMixin, View):
         instance = self.get_virtual_object(slug)
         form = CotRulebookBulkAssignForm(request.POST)
         if form.is_valid():
+            from netbox_nsm.objects.object_link_service import create_or_update_enforcement_point_link
+
             created = 0
             skipped = 0
             for device in form.cleaned_data.get("devices") or []:
-                ct = ContentType.objects.get_for_model(device)
-                _assignment, was_created = CotRulebookAssignment.objects.get_or_create(
-                    cot_slug=slug,
-                    assigned_object_type=ct,
-                    assigned_object_id=device.pk,
-                )
+                _link, was_created = create_or_update_enforcement_point_link(device, slug)
                 if was_created:
                     created += 1
                 else:
                     skipped += 1
             for vm in form.cleaned_data.get("virtual_machines") or []:
-                ct = ContentType.objects.get_for_model(vm)
-                _assignment, was_created = CotRulebookAssignment.objects.get_or_create(
-                    cot_slug=slug,
-                    assigned_object_type=ct,
-                    assigned_object_id=vm.pk,
-                )
+                _link, was_created = create_or_update_enforcement_point_link(vm, slug)
                 if was_created:
                     created += 1
                 else:
                     skipped += 1
             for vdc in form.cleaned_data.get("virtual_device_contexts") or []:
-                ct = ContentType.objects.get_for_model(vdc)
-                _assignment, was_created = CotRulebookAssignment.objects.get_or_create(
-                    cot_slug=slug,
-                    assigned_object_type=ct,
-                    assigned_object_id=vdc.pk,
-                )
+                _link, was_created = create_or_update_enforcement_point_link(vdc, slug)
                 if was_created:
                     created += 1
                 else:
@@ -297,11 +302,12 @@ class CotRulebookMatrixView(_CotRulebookMixin, View):
 
 
 class CotRulebookChangelogView(_CotRulebookMixin, View):
-    permission_required = "core.view_objectchange"
     template_name = "netbox_nsm/rulebook_cot_changelog.html"
     tab_key = "changelog"
 
     def get(self, request, slug: str):
+        if not request.user.has_perm("core.view_objectchange"):
+            raise PermissionDenied()
         instance = self.get_virtual_object(slug)
         cot = instance.cot
         content_type = ContentType.objects.get_for_model(cot)
@@ -325,8 +331,13 @@ class CotRulebookChangelogView(_CotRulebookMixin, View):
         return render(request, self.template_name, ctx)
 
 
-class CotRulebookSchemaValidateView(LoginRequiredMixin, PermissionRequiredMixin, View):
-    permission_required = "netbox_nsm.add_rulebook"
+class CotRulebookSchemaValidateView(LoginRequiredMixin, View):
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+        if not can_create_rulebook(request.user):
+            raise PermissionDenied()
+        return super().dispatch(request, *args, **kwargs)
 
     def post(self, request):
         schema_yaml = request.POST.get("schema_yaml", "")
@@ -345,9 +356,15 @@ class CotRulebookSchemaValidateView(LoginRequiredMixin, PermissionRequiredMixin,
         return JsonResponse({"valid": True})
 
 
-class CotRulebookCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
-    permission_required = "netbox_nsm.add_rulebook"
+class CotRulebookCreateView(LoginRequiredMixin, View):
     template_name = "netbox_nsm/cot_rulebook_create.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+        if not can_create_rulebook(request.user):
+            raise PermissionDenied()
+        return super().dispatch(request, *args, **kwargs)
 
     def get(self, request):
         initial_data = normalize_querydict(request.GET)

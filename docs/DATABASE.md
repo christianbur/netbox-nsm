@@ -6,12 +6,11 @@ NSM persists its own data in the **NetBox PostgreSQL database**. Django uses the
 `netbox_nsm`; table names follow the pattern `netbox_nsm_<model_name>` (lowercase).
 
 Security **object instances** (zones, addresses, labels, services, actions, rulebook rules,
-object links) are **not** stored in these native NSM tables. They live in
-`netbox-custom-objects` (and standard NetBox apps such as IPAM/DCIM when referenced by rules).
-NSM native tables hold configuration and generic assignments via
-`content_type_id` + `object_id`. Deployed COT rulebook hierarchy, matrix tab,
-and **Grouped rows** settings live in each rulebook type's `comments` field
-(`nsm_config.rulebook` YAML block).
+policy links, rulebook host assignments) are **not** stored in native NSM tables. They live in
+`netbox-custom-objects` COT rows (`nsm_object_link` for panel links and rulebook assignments).
+Type metadata (`sort_order`, `display_template`, `areas`, `panel`, `object_builder`, `rulebook`)
+lives in each COT type's **`comments`** field (`nsm_config` YAML). Plugin-wide UI labels use
+**`PLUGINS_CONFIG`** only (`menu_label`, `panel_label`, `setup_menu`).
 
 ---
 
@@ -29,21 +28,29 @@ python manage.py dbshell -c "\dt netbox_nsm_*"
 
 ---
 
-## Native NSM models (current)
+## Native NSM models (0.4.2+)
 
-| Table | Model | Purpose |
-|-------|--------|---------|
-| `netbox_nsm_cotrulebookassignment` | `CotRulebookAssignment` | Assign a COT rulebook to Device / VM / VDC (generic FK) |
-| `netbox_nsm_typeconfig` | `TypeConfig` | Global type behaviour: content type, matching class, display template, panel/inheritance flags |
-| `netbox_nsm_section` | `Section` | Security panel section definitions |
-| `netbox_nsm_nsmuisettings` | `NsmUiSettings` | Singleton UI labels and Setup menu flags |
+| Model | Purpose |
+|-------|---------|
+| `TypeConfig` | **Unmanaged** permission anchor for Object Config / `nsm_config` API (`view_typeconfig`, …) |
+| `Rulebook` | **Unmanaged** permission anchor for COT rulebooks (`view_rulebook`, `add_rulebook`) |
 
-`Section` may reference custom object types via M2M table
-`netbox_nsm_section_custom_object_types`.
+No other `netbox_nsm_*` data tables exist in 0.4.2.
 
 ---
 
-## Removed legacy tables
+## Removed in 0.4.2 (migration `0005`)
+
+| Removed table | Replaced by |
+|---------------|-------------|
+| `netbox_nsm_cotrulebookassignment` | COT `nsm_object_link` with `link_type=rulebook` |
+| `netbox_nsm_typeconfig` (data rows) | `nsm_config` in COT `comments` |
+| `netbox_nsm_section` | `rule_view.areas` in COT `comments` |
+| `netbox_nsm_nsmuisettings` | `PLUGINS_CONFIG` |
+
+---
+
+## Earlier removed legacy tables
 
 These tables existed in early NSM versions and were dropped during the COT migration:
 
@@ -64,14 +71,27 @@ See migrations `0004_delete_objectlink` and `0005_remove_legacy_object_and_prope
 |------|--------|
 | Zone / Address / Label / Service / Action **instances** | `netbox-custom-objects` tables (per COT slug) |
 | Rulebook **rules** (grid rows) | COT tables for each `nsm_rb_*` rulebook |
-| Security Panel **links** | COT `nsm_object_link` |
+| Security Panel **links** (policy + rulebook) | COT `nsm_object_link` (`link_type`: `policy` \| `rulebook`) |
+| Type **metadata** (sort order, panel, areas, object builder) | COT type `comments` (`nsm_config`) |
+| Address sync analysis | `python manage.py nsm_analyze_address_sync` |
 | IP prefixes, IP addresses, devices, VMs | NetBox core (`ipam_*`, `dcim_*`, `virtualization_*`, …) |
 | Tags, custom fields, changelog | NetBox `extras_*` |
 
-`TypeConfig.content_type` points at the Django `django_content_type` row for the model
-that holds the actual objects (custom object table or core model).
+`TypeConfig` is an unmanaged permission anchor only; configuration is edited via Object Config
+UI or `/api/plugins/netbox-nsm/nsm-configs/<slug>/` (updates COT `comments`).
 
 ---
+
+## Address sync (CLI)
+
+Object Sync UI was removed in 0.4.2. Run:
+
+```bash
+python manage.py nsm_analyze_address_sync
+python manage.py nsm_analyze_address_sync --format json
+```
+
+Exit code is non-zero when issues are found (report only — no automatic fixes).
 
 ## Migrations
 
@@ -84,16 +104,11 @@ python manage.py migrate netbox_nsm
 
 | Migration | Purpose |
 |-----------|---------|
-| `0001_initial` | Squashed baseline for **fresh empty databases** (includes transitional legacy models later removed). Depends on `netbox_custom_objects` through `0014_fix_mixed_case_field_names`. |
-| `0002_cotrulebook_row_group_by_col_id` | Adds `row_group_by_col_id` on transitional `CotRulebook` (superseded by `0003`) |
-| `0003_migrate_cotrulebook_to_nsm_config` | Moves `CotRulebook` metadata into COT `comments` (`nsm_config.rulebook`) and drops `CotRulebook` |
+| `0001_initial` | **Squashed** baseline (unmanaged `TypeConfig` + `RulebookListProxy` permission shims only). Replaces migrations `0001`–`0007` from 0.4.1/0.4.2; existing DBs that already applied those migrations are marked applied without re-running data steps. |
 
-**Squashing:** `0001_initial` is already regenerated as a squashed baseline for new installs
-(`docker/netbox_dev/scripts/generate_nsm_0001.sh`). Incremental migrations `0002`–`0003` must
-remain for existing databases that applied them; do not squash further without a coordinated
-release and migration replacement plan.
-
-If migration planning fails with missing `netbox_custom_objects` parents, upgrade that plugin to a version that includes migration `0014` (NetBox dev stack: 0.5.x).
+**Squashing:** `0001_initial` is regenerated for new installs via
+`docker/netbox_dev/scripts/generate_nsm_0001.sh` (removes numbered migrations in the dev
+container, `makemigrations`, then add `replaces` for prior release migrations when shipping).
 
 To regenerate `0001_initial` after model changes (dev, writable plugin mount):
 

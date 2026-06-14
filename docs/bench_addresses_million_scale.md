@@ -118,6 +118,5 @@ Rulebook in der UI: **Security → Rulebooks → Bench Addresses**.
 
 | Demo | Rulebook | Skript |
 |------|----------|--------|
-| Zone-Matrix 10k | `nsm_rb_scale_test` | `scripts/create_scale_demo.py` |
 | Starter | `nsm_rb_demo` | Setup → Starter demo |
 | Enterprise DC | (manuell COT) | `netbox_nsm/demos/enterprise_dc/import.py` — Rulebooks übersprungen |

@@ -19,7 +19,7 @@ from netbox_nsm.rulebooks.templates import (
     RULEBOOK_TEMPLATE_SLUGS,
     build_rulebook_template_type_defs,
 )
-from netbox_nsm.objects.type_config_specs import REQUIRED_COT_SLUGS, TYPECONFIG_UI_SPECS
+from netbox_nsm.objects.type_config_specs import TYPECONFIG_UI_SPECS
 
 
 def _assert_removed_fields_are_tombstones(type_def: dict) -> None:
@@ -79,6 +79,14 @@ class PortableSchemaTests(TestCase):
             specs["nsm_object_status"],
             ["active", "reserved", "deprecated"],
         )
+
+    def test_nsm_address_address_optional_for_literal_in_comments(self):
+        document = load_portable_schema_document()
+        address_type = next(t for t in document["types"] if t["slug"] == "nsm_address")
+        address_field = next(f for f in address_type["fields"] if f["name"] == "address")
+        removed_names = {f["name"] for f in address_type.get("removed_fields", [])}
+        self.assertFalse(address_field["required"])
+        self.assertIn("network_literal", removed_names)
 
     def test_choice_sets_cover_schema_references(self):
         document = load_portable_schema_document()

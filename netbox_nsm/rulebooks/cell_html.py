@@ -1,4 +1,7 @@
-"""Shared HTML renderers for Rules table cells."""
+"""AG-grid rules table cell HTML: object pills, IPA loupe buttons, filter targets.
+
+For simple pill previews outside the grid, see ``rules_pill_render``.
+"""
 
 from __future__ import annotations
 

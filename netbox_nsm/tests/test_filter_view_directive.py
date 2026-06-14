@@ -3,7 +3,7 @@
 from django.test import SimpleTestCase
 
 from netbox_nsm.rulebooks.grid_filter import validate_rules_filter_query
-from netbox_nsm.rulebooks.grid_payload import (
+from netbox_nsm.rulebooks.grid import (
     VIEW_DIRECTIVE_MULTIPLE_ERROR,
     build_ag_grid_filter_model_from_column_map,
     count_view_directives,

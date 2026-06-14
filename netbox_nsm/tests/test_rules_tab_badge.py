@@ -2,9 +2,11 @@
 
 from types import SimpleNamespace
 
+from unittest.mock import patch
+
 from django.test import RequestFactory, SimpleTestCase
 
-from netbox_nsm.rulebooks.rules_tab_base import (
+from netbox_nsm.rulebooks.rules_tab import (
     format_rules_tab_badge,
     rules_tab_badge_for_object,
 )
@@ -52,13 +54,13 @@ class RulesTabBadgeForObjectTests(SimpleTestCase):
 
 
 class VirtualCotRulesTabBadgeTests(SimpleTestCase):
-    def test_tabs_render_rules_tab_badge_from_instance(self):
+    @patch("netbox_nsm.rulebooks.virtual_cot_tabs.can_view_rulebook", return_value=True)
+    def test_tabs_render_rules_tab_badge_from_instance(self, _mock_view):
         request = RequestFactory().get("/")
-        request.user = SimpleNamespace(
-            has_perm=lambda perm: perm == "netbox_nsm.view_rulebook"
-        )
+        request.user = SimpleNamespace(has_perm=lambda perm: False)
         instance = SimpleNamespace(
             slug="nsm_rb_demo",
+            cot=SimpleNamespace(),
             rules_tab_badge="120/62500",
             rule_count=62500,
         )

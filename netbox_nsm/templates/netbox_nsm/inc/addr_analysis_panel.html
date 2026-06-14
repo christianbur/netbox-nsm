@@ -26,13 +26,6 @@
               <input type="radio" class="btn-check nsm-addr-prefix-format-input" name="nsm-addr-pfx-{{ section.field_slug }}-{{ forloop.parentloop.counter }}-{{ forloop.counter }}" id="nsm-addr-pfx-netmask-{{ section.field_slug }}-{{ forloop.parentloop.counter }}-{{ forloop.counter }}" value="netmask" autocomplete="off">
               <label class="btn btn-outline-secondary py-0 px-1 small" for="nsm-addr-pfx-netmask-{{ section.field_slug }}-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">Mask</label>
             </span>
-          {% if type_block.all_copy_lines %}
-          <button type="button" class="btn btn-sm btn-ghost-secondary py-0 px-1" title="{% trans 'Copy CSV paths' %}"
-            onclick="nsmCopyPaths(this); event.stopPropagation();"
-            data-lines="{% for line in type_block.all_copy_lines %}{{ line }}{% if not forloop.last %}&#10;{% endif %}{% endfor %}">
-            <i class="mdi mdi-content-copy"></i>
-          </button>
-          {% endif %}
           </span>
         </summary>
         <div class="nsm-addr-children">
@@ -42,7 +35,7 @@
           </div>
           {% else %}
           {% for node in type_block.nodes %}
-            {% include "netbox_nsm/inc/addr_tree_node.html" with node=node depth=0 prefix=section.field_slug show_copy=True forloop_counter=forloop.counter diff_label_a=type_block.diff_summary.label_a diff_label_b=type_block.diff_summary.label_b %}
+            {% include "netbox_nsm/inc/addr_tree_node.html" with node=node depth=0 prefix=prefix|default:section.field_slug ipa_cell_pill=ipa_cell_pill|default:False forloop_counter=forloop.counter diff_label_a=type_block.diff_summary.label_a diff_label_b=type_block.diff_summary.label_b %}
           {% endfor %}
           {% endif %}
         </div>
@@ -61,6 +54,14 @@
       {% if summary_type_counts %}
       {% include "netbox_nsm/inc/addr_type_count_badges.html" with counts=summary_type_counts %}
       {% endif %}
+      <span class="ms-auto d-inline-flex align-items-center gap-1">
+        <span class="btn-group btn-group-sm nsm-addr-prefix-format" role="group" onclick="event.stopPropagation();">
+          <input type="radio" class="btn-check nsm-addr-prefix-format-input" name="nsm-addr-pfx-object-tree" id="nsm-addr-pfx-cidr-object-tree" value="cidr" autocomplete="off" checked>
+          <label class="btn btn-outline-secondary py-0 px-1 small" for="nsm-addr-pfx-cidr-object-tree">CIDR</label>
+          <input type="radio" class="btn-check nsm-addr-prefix-format-input" name="nsm-addr-pfx-object-tree" id="nsm-addr-pfx-netmask-object-tree" value="netmask" autocomplete="off">
+          <label class="btn btn-outline-secondary py-0 px-1 small" for="nsm-addr-pfx-netmask-object-tree">Mask</label>
+        </span>
+      </span>
     </summary>
     <div class="nsm-addr-children">
       <div class="nsm-ipa-object-tree-rows">

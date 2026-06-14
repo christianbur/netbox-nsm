@@ -5,13 +5,13 @@ from django.utils.translation import gettext_lazy as _
 
 from netbox.tables import NetBoxTable
 from netbox.tables.columns import ActionsColumn
-from netbox_nsm.models import CotRulebookAssignment
+from netbox_nsm.rulebooks.permissions import RulebookListProxy
+from netbox_nsm.objects.object_link_service import iter_enforcement_point_links_for_slug
 from netbox_nsm.rulebooks.status import rulebook_status_badge_html
 from netbox_nsm.rulebooks.virtual_cot import is_virtual_cot_rulebook
 
 __all__ = (
     "AssignedObjectsColumn",
-    "CotRulebookAssignmentTable",
     "RulebookTable",
 )
 
@@ -19,7 +19,7 @@ ASSIGNED_OBJECTS_MAX_VISIBLE = 2
 
 
 class AssignedObjectsColumn(tables.Column):
-    """Renders CotRulebookAssignment targets; collapses to +N when more than two."""
+    """Renders rulebook assignment targets from ``nsm_object_link`` COT rows."""
 
     def __init__(self, *args, **kwargs):
         kwargs.setdefault("orderable", False)
@@ -36,22 +36,18 @@ class AssignedObjectsColumn(tables.Column):
         )
 
     def _items_for_record(self, record):
-        from django.db.models import prefetch_related_objects
-
         if not is_virtual_cot_rulebook(record):
             return []
 
-        assignments = list(
-            CotRulebookAssignment.objects.filter(cot_slug=record.slug)
-            .select_related("assigned_object_type")
-            .order_by("assigned_object_type__model", "assigned_object_id")
-        )
-        prefetch_related_objects(assignments, "assigned_object")
-
         items = []
-        for assignment in assignments:
-            obj = assignment.assigned_object
-            if obj is None:
+        for link in iter_enforcement_point_links_for_slug(record.slug):
+            obj = link.netbox_object
+            if obj is None or link.policy_object is not None:
+                continue
+            from dcim.models import Device, VirtualDeviceContext
+            from virtualization.models import VirtualMachine
+
+            if not isinstance(obj, (Device, VirtualMachine, VirtualDeviceContext)):
                 continue
             url = getattr(obj, "get_absolute_url", lambda: "#")()
             items.append((url, str(obj)))
@@ -158,34 +154,6 @@ class RulebookTable(NetBoxTable):
     assigned_objects = AssignedObjectsColumn(accessor="slug")
 
     class Meta(NetBoxTable.Meta):
-        # Proxy for NetBoxTable custom-field/link resolution; rows are VirtualCotRulebook.
-        model = CotRulebookAssignment
+        model = RulebookListProxy
         fields = ("name", "status", "rule_count", "assigned_objects", "description")
         default_columns = ("name", "status", "rule_count", "assigned_objects", "description")
-
-
-class CotRulebookAssignmentTable(NetBoxTable):
-    assigned_object_parent = tables.Column(
-        accessor=tables.A("assigned_object__device"),
-        linkify=True,
-        orderable=False,
-        verbose_name=_("Parent"),
-    )
-    assigned_object = tables.Column(
-        linkify=True,
-        orderable=False,
-        verbose_name=_("Assigned Object"),
-    )
-    rulebook = tables.TemplateColumn(
-        template_code="""
-<a href="{{ record.rulebook.get_absolute_url }}">{{ record.rulebook.name }}</a>
-        """,
-        verbose_name=_("Rulebook"),
-        orderable=False,
-    )
-    actions = ActionsColumn(actions=("edit", "delete"))
-
-    class Meta(NetBoxTable.Meta):
-        model = CotRulebookAssignment
-        fields = ("id", "rulebook", "assigned_object", "assigned_object_parent")
-        default_columns = ("rulebook", "assigned_object", "assigned_object_parent")

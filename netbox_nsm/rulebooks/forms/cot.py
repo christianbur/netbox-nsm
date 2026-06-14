@@ -68,6 +68,7 @@ class CotRulebookCreateForm(forms.Form):
     parent_slug = forms.ChoiceField(
         label=_("Parent rulebook"),
         required=False,
+        widget=forms.Select(attrs={"class": "form-select no-ts"}),
         help_text=_("Optional parent for hierarchical grouping in the rulebook list."),
         choices=[],
     )
@@ -212,6 +213,7 @@ class CotRulebookDetailForm(forms.Form):
     parent_slug = forms.ChoiceField(
         label=_("Parent rulebook"),
         required=False,
+        widget=forms.Select(attrs={"class": "form-select no-ts"}),
         help_text=_("Optional parent for hierarchical grouping in the rulebook list."),
         choices=[],
     )
@@ -228,7 +230,7 @@ class CotRulebookDetailForm(forms.Form):
         widget=forms.Select(attrs={"class": "form-select no-ts"}),
         help_text=_(
             "Group rules on the Rules tab into a vertical tab column by the "
-            "selected column (e.g. Source - Zone). Choose — none — to disable."
+            "selected column (e.g. Source - Zone). Choose None to disable."
         ),
     )
 
@@ -304,6 +306,7 @@ class CotRulebookParentForm(forms.Form):
     parent_slug = forms.ChoiceField(
         label=_("Parent rulebook"),
         required=False,
+        widget=forms.Select(attrs={"class": "form-select no-ts"}),
         help_text=_("Optional parent for hierarchical grouping in the rulebook list."),
         choices=[],
     )

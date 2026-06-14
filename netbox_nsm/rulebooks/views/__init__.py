@@ -1,5 +1,4 @@
-from .list import RulebookListView
-from .cot import (
+from netbox_nsm.rulebooks.views.cot import (
     CotRulebookBulkAssignView,
     CotRulebookChangelogView,
     CotRulebookCreateView,
@@ -7,26 +6,12 @@ from .cot import (
     CotRulebookRulesView,
     CotRulebookView,
 )
-from .assignment import *
-from .virtual_all import (
-    AllRulesRulebookChangelogView,
-    AllRulesRulebookContactsView,
-    AllRulesRulebookJournalView,
-    AllRulesRulebookRulesView,
-    AllRulesRulebookView,
-)
 
-__all__ = [
-    "AllRulesRulebookChangelogView",
-    "AllRulesRulebookContactsView",
-    "AllRulesRulebookJournalView",
-    "AllRulesRulebookRulesView",
-    "AllRulesRulebookView",
+__all__ = (
     "CotRulebookBulkAssignView",
     "CotRulebookChangelogView",
     "CotRulebookCreateView",
     "CotRulebookMatrixView",
     "CotRulebookRulesView",
     "CotRulebookView",
-    "RulebookListView",
-]
+)

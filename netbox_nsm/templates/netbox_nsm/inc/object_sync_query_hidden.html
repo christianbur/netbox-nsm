@@ -1,8 +1,0 @@
-{% if source_filter %}<input type="hidden" name="source" value="{{ source_filter }}">{% endif %}
-{% if request.GET.sync_page %}<input type="hidden" name="sync_page" value="{{ request.GET.sync_page }}">{% endif %}
-{% if request.GET.sync_per_page %}<input type="hidden" name="sync_per_page" value="{{ request.GET.sync_per_page }}">{% endif %}
-{% for key, value in request.GET.items %}
-  {% if key|slice:":3" == "sf_" %}
-  <input type="hidden" name="{{ key }}" value="{{ value }}">
-  {% endif %}
-{% endfor %}

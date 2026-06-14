@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 
-from netbox_nsm.rulebooks.grid_payload import (
+from netbox_nsm.rulebooks.grid import (
     VIEW_DIRECTIVE_MULTIPLE_ERROR,
     build_ag_grid_filter_model_from_query_text,
     build_filter_column_query_map,

@@ -665,6 +665,44 @@ body.nsm-rules-column-resizing {
   pointer-events: auto;
 }
 
+#rules .table.nsm-rules-table tbody td.nsm-rules-td--object:has(.nsm-ag-cell-list--has-loupe) {
+  overflow: visible;
+}
+
+#rules .nsm-ag-cell-list--has-loupe {
+  padding-left: 0;
+  padding-right: 1.35rem;
+  padding-top: 0.1rem;
+  position: relative;
+}
+
+#rules .nsm-ag-cell-list--has-loupe > .nsm-ipa-cell-loupe {
+  left: auto;
+  margin-left: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  top: 0;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+  visibility: hidden;
+  z-index: 2;
+}
+
+#rules .nsm-ag-cell-list--has-loupe:hover > .nsm-ipa-cell-loupe,
+#rules .nsm-ag-cell-list--has-loupe:focus-within > .nsm-ipa-cell-loupe,
+#rules .table.nsm-rules-table tbody td.nsm-rules-td--object:hover .nsm-ag-cell-list--has-loupe > .nsm-ipa-cell-loupe {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+}
+
+#rules .nsm-ag-cell-list--has-loupe > .nsm-ipa-cell-loupe:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+}
+
 #rules .nsm-ag-cell-type-group {
   display: flex;
   flex-direction: column;

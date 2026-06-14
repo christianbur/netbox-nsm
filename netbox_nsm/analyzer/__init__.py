@@ -1,3 +1,12 @@
+"""Object Analyzer — graph edge registry and resolvers.
+
+``analyzer/`` builds the interactive relationship graph (React Flow). For
+address/IP tree analysis, diff, and the IP Analyzer applet see ``analysis/``.
+
+Public API: ``registry``, ``node_from_object``, ``AnalyzerNode``, ``AnalyzerEdge``.
+Edge builders for NSM-specific relations live in ``edge_sources``.
+"""
+
 from .registry import (
     AnalyzerNode,
     AnalyzerEdge,

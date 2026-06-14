@@ -11,7 +11,7 @@ from netbox_nsm.core.poly_subfield_labels import (
     poly_subfield_type_label,
     shorten_rulebook_poly_subfield_labels,
 )
-from netbox_nsm.models import TypeConfig
+from netbox_nsm.objects.nsm_config import format_nsm_config_comment_yaml
 from utilities.testing import TestCase
 
 
@@ -39,10 +39,14 @@ class PolySubfieldLabelTests(TestCase):
         cls.prefix_ct = ContentType.objects.get_for_model(Prefix)
 
     def test_uses_typeconfig_content_type_label(self):
-        TypeConfig.objects.create(
-            name="Address Groups",
-            content_type=self.cot_ct,
-        )
+        self.cot.comments = format_nsm_config_comment_yaml(
+            {
+                "sort_order": 0,
+                "display_template": "{name}",
+                "panel": {"panel_linkable": True},
+            }
+        ).rstrip()
+        self.cot.save(update_fields=["comments"])
         self.assertEqual(poly_subfield_type_label(self.cot_ct.pk), "Address Group")
 
     def test_fallback_omits_app_prefix_without_typeconfig(self):

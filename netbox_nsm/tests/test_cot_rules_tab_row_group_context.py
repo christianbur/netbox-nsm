@@ -9,7 +9,7 @@ from utilities.testing import TestCase
 
 from netbox_nsm.rulebooks.forms.cot import CotRulebookDetailForm
 from netbox_nsm.rulebooks.templates import RULEBOOK_GROUP
-from netbox_nsm.rulebooks.grid_payload import build_rulebook_rules_grid_column_defs
+from netbox_nsm.rulebooks.grid import build_rulebook_rules_grid_column_defs
 from netbox_nsm.rulebooks.rules_tab import build_cot_rulebook_rules_tab_context
 from netbox_nsm.tests.test_rules_column_mode import _sample_grouped
 
@@ -42,12 +42,12 @@ class CotRulesTabRowGroupContextTests(SimpleTestCase):
         grouped = {**layout, "rows": []}
         return layout, build_rulebook_rules_grid_column_defs(grouped)["columnDefs"]
 
-    @patch("netbox_nsm.rulebooks.rules_tab.get_paginate_count", return_value=50)
-    @patch("netbox_nsm.rulebooks.rules_tab._cot_rules_row_group_page")
-    @patch("netbox_nsm.rulebooks.rules_tab._resolve_rules_filter_model")
-    @patch("netbox_nsm.rulebooks.rules_tab.get_cot_row_group_by_col_id")
-    @patch("netbox_nsm.rulebooks.rules_tab.build_rulebook_rules_grid_column_defs")
-    @patch("netbox_nsm.rulebooks.rules_tab.build_cot_rules_layout")
+    @patch("netbox_nsm.rulebooks.rules_tab.context.get_paginate_count", return_value=50)
+    @patch("netbox_nsm.rulebooks.rules_tab.context._cot_rules_row_group_page")
+    @patch("netbox_nsm.rulebooks.rules_tab.context._resolve_rules_filter_model")
+    @patch("netbox_nsm.rulebooks.rules_tab.context.get_cot_row_group_by_col_id")
+    @patch("netbox_nsm.rulebooks.rules_tab.context.build_rulebook_rules_grid_column_defs")
+    @patch("netbox_nsm.rulebooks.rules_tab.context.build_cot_rules_layout")
     def test_row_group_allows_collapsed_column_mode(
         self,
         mock_build_layout,
@@ -70,16 +70,16 @@ class CotRulesTabRowGroupContextTests(SimpleTestCase):
         )
 
         self.assertTrue(ctx["rules_row_group_active"])
-        self.assertEqual(ctx["rules_row_group_col_id"], "source_addresses::ct_1")
+        self.assertEqual(ctx["rules_row_group_col_id"], "source_addresses")
         self.assertEqual(ctx["rules_column_mode"], "collapsed")
 
-    @patch("netbox_nsm.rulebooks.rules_tab.get_paginate_count", return_value=50)
-    @patch("netbox_nsm.rulebooks.rules_tab._cot_rules_page")
-    @patch("netbox_nsm.rulebooks.rules_tab._resolve_rules_filter_model")
-    @patch("netbox_nsm.rulebooks.rules_tab.cot_rule_instances_queryset")
-    @patch("netbox_nsm.rulebooks.rules_tab.get_cot_row_group_by_col_id")
-    @patch("netbox_nsm.rulebooks.rules_tab.build_rulebook_rules_grid_column_defs")
-    @patch("netbox_nsm.rulebooks.rules_tab.build_cot_rules_layout")
+    @patch("netbox_nsm.rulebooks.rules_tab.context.get_paginate_count", return_value=50)
+    @patch("netbox_nsm.rulebooks.rules_tab.context._cot_rules_page")
+    @patch("netbox_nsm.rulebooks.rules_tab.context._resolve_rules_filter_model")
+    @patch("netbox_nsm.rulebooks.rules_tab.context.cot_rule_instances_queryset")
+    @patch("netbox_nsm.rulebooks.rules_tab.context.get_cot_row_group_by_col_id")
+    @patch("netbox_nsm.rulebooks.rules_tab.context.build_rulebook_rules_grid_column_defs")
+    @patch("netbox_nsm.rulebooks.rules_tab.context.build_cot_rules_layout")
     def test_no_row_group_uses_standard_pagination(
         self,
         mock_build_layout,

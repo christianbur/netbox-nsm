@@ -112,39 +112,13 @@ def _import_all_types() -> None:
 
 
 def _create_all_typeconfigs() -> None:
-    from django.contrib.contenttypes.models import ContentType
-
-    from netbox_nsm.models import Section
-
-    _AREA_ORDER = {"srcdst": 10, "services": 30, "action": 40, "info": 50}
-
-    referenced_areas: list[str] = []
-    for _td, _bs, _slug, areas in iter_types(BUILTIN_CUSTOM_TYPES):
-        for area in areas:
-            if area not in referenced_areas:
-                referenced_areas.append(area)
-
-    section_by_slug: dict[str, Section] = {}
-    for area in referenced_areas:
-        section, _ = Section.objects.update_or_create(
-            slug=area,
-            defaults={
-                "name": area.replace("_", " ").replace("-", " ").title(),
-                "sort_order": _AREA_ORDER.get(area, 100),
-            },
-        )
-        section_by_slug[area] = section
-
-    for typedef, _base_slug, slug, areas in iter_types(BUILTIN_CUSTOM_TYPES):
+    for typedef, _base_slug, slug, _areas in iter_types(BUILTIN_CUSTOM_TYPES):
         try:
             cot = CustomObjectType.objects.get(slug=slug)
         except CustomObjectType.DoesNotExist:
             continue
-
         spec = TYPECONFIG_SPEC_BY_SLUG.get(slug)
         sync_cot_nsm_config_comments(cot, spec=spec)
-        for area in areas:
-            section_by_slug[area].custom_object_types.add(cot)
 
 
 def _typeconfigs_ok(cot_status: dict) -> bool:

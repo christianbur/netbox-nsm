@@ -12,7 +12,7 @@ from netbox_nsm.objects.link_propagation import (
     cot_propagation_choices_for_form,
 )
 
-__all__ = ("ObjectLinkAssignForm", "ObjectLinkEditForm")
+__all__ = ("ObjectLinkAssignForm", "ObjectLinkEditForm", "EnforcementPointInterfaceAssignForm")
 
 
 class ObjectLinkPropagationForm(forms.Form):
@@ -157,6 +157,66 @@ class ObjectLinkAssignForm(ObjectLinkPropagationForm):
             )
 
         return self._clean_propagation_fields(data)
+
+
+class EnforcementPointInterfaceAssignForm(forms.Form):
+    """Assign NSM objects to an interface enforcement point (no propagation field)."""
+
+    object_a_type_id = forms.IntegerField(widget=forms.HiddenInput())
+    object_a_id = forms.IntegerField(widget=forms.HiddenInput())
+
+    object_b_type = forms.ChoiceField(
+        label=_("Type (Object B)"),
+        choices=[],
+    )
+    object_b_id = forms.IntegerField(
+        label=_("Element"),
+        min_value=1,
+        widget=forms.HiddenInput(),
+        required=False,
+    )
+    object_b_display = forms.CharField(
+        label=_("Object"),
+        required=False,
+        widget=forms.Select(attrs={"id": "id_object_b_display"}),
+    )
+    comment = forms.CharField(
+        label=_("Comment"),
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 3}),
+    )
+
+    def __init__(self, *args, source_object=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.source_object = source_object
+        source_ct_id = ObjectLinkAssignForm._resolve_source_content_type_id(
+            source_object,
+            data=self.data if self.is_bound else None,
+            initial=self.initial,
+        )
+        self.fields["object_b_type"].choices = _build_type_choices(source_ct_id)
+
+    def clean(self):
+        data = super().clean()
+        ct_pk = data.get("object_b_type")
+        if not ct_pk:
+            self.add_error("object_b_type", _("Please select a type."))
+            return data
+
+        object_a_type_id = data.get("object_a_type_id")
+        if object_a_type_id is None:
+            self.add_error(
+                "object_b_type",
+                _("This type is not linkable from the Security Panel."),
+            )
+            return data
+
+        if not is_assignable_from_content_type(int(object_a_type_id), int(ct_pk)):
+            self.add_error(
+                "object_b_type",
+                _("This type is not linkable from the Security Panel."),
+            )
+        return data
 
 
 class ObjectLinkEditForm(ObjectLinkPropagationForm):

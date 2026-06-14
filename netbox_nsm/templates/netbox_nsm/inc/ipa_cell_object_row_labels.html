@@ -1,0 +1,58 @@
+{% load i18n %}
+{% comment %}
+IPA cell row: CIDR + [ADDRESS name] + [ADDRESS_GROUP …] with links.
+  link_mode: "anchor_stop" | "obj" | "span"
+  ADDRESS pill is orange only when ``cell_addresses_multi`` (≥2 object names).
+{% endcomment %}
+{% if node.prefix_display_cidr %}
+<span class="nsm-ipa-cell-cidr{% if node.subnet_contained_in %} nsm-ipa-subnet-contained{% endif %}"{% if node.subnet_contained_in %} title="{% blocktrans with cidr=node.subnet_contained_in %}warn duplicate → {{ cidr }}{% endblocktrans %}{% if node.subnet_contained_in_name %} ({{ node.subnet_contained_in_name }}){% endif %}"{% endif %}>
+  {% if node.ip_ref and node.ip_ref.url %}
+  <a href="{{ node.ip_ref.url }}" class="nsm-ipa-cell-cidr-link" onclick="event.stopPropagation();">
+    <span class="nsm-addr-prefix-text" data-cidr="{{ node.prefix_display_cidr }}"{% if node.prefix_display_netmask %} data-netmask="{{ node.prefix_display_netmask }}"{% endif %}>{{ node.prefix_display_cidr }}</span>
+  </a>
+  {% else %}
+  <span class="nsm-addr-prefix-text" data-cidr="{{ node.prefix_display_cidr }}"{% if node.prefix_display_netmask %} data-netmask="{{ node.prefix_display_netmask }}"{% endif %}>{{ node.prefix_display_cidr }}</span>
+  {% endif %}
+</span>
+{% elif node.ip_ref %}
+  {% if node.ip_ref.str %}
+<span class="nsm-ipa-cell-cidr{% if node.subnet_contained_in %} nsm-ipa-subnet-contained{% endif %}"{% if node.subnet_contained_in %} title="{% blocktrans with cidr=node.subnet_contained_in %}warn duplicate → {{ cidr }}{% endblocktrans %}{% if node.subnet_contained_in_name %} ({{ node.subnet_contained_in_name }}){% endif %}"{% endif %}>
+  {% if node.ip_ref.url %}
+  <a href="{{ node.ip_ref.url }}" class="nsm-ipa-cell-cidr-link" onclick="event.stopPropagation();">
+    <span class="nsm-addr-prefix-text" data-cidr="{{ node.ip_ref.str }}">{{ node.ip_ref.str }}</span>
+  </a>
+  {% else %}
+  <span class="nsm-addr-prefix-text" data-cidr="{{ node.ip_ref.str }}">{{ node.ip_ref.str }}</span>
+  {% endif %}
+</span>
+  {% endif %}
+{% endif %}
+<span class="nsm-ipa-cell-pill nsm-ipa-cell-pill--address{% if node.cell_addresses_multi %} nsm-ipa-cell-pill--multi{% endif %}"{% if node.cell_addresses_multi or node.is_doppelt %} title="{% if node.cell_addresses_multi %}{% trans 'Multiple address names share this network in the rule cell' %}{% endif %}{% if node.is_doppelt %}{% if node.cell_addresses_multi %} · {% endif %}{% trans 'Duplicate cell entry — the same object is listed more than once in the rule cell' %}{% endif %}"{% endif %}>
+  <span class="nsm-ipa-cell-type">ADDRESS</span>
+  <span class="nsm-ipa-cell-pill-body{% if node.cell_addresses_multi %} nsm-ipa-cell-pill-body--stack{% endif %}">
+  {% if node.cell_addresses_multi %}
+  {% for addr in node.cell_addresses %}
+  <span class="nsm-ipa-cell-pill-entry{% if addr.status %} nsm-ipa-cell-pill-entry--inactive{% endif %}">
+  {% if link_mode == "span" %}
+  <span class="nsm-ipa-cell-pill-link fw-semibold{% if addr.status %} nsm-ipa-cell-pill-link--inactive{% endif %}" title="{{ addr.name }}">{{ addr.name }}</span>
+  {% elif link_mode == "anchor_stop" %}
+  <a href="{{ addr.url }}" class="nsm-ipa-cell-pill-link{% if addr.status %} nsm-ipa-cell-pill-link--inactive{% endif %}" title="{{ addr.name }}" onclick="event.stopPropagation();">{{ addr.name }}</a>
+  {% else %}
+  <a href="{{ addr.url }}" class="nsm-ipa-cell-pill-link{% if addr.status %} nsm-ipa-cell-pill-link--inactive{% endif %}" title="{{ addr.name }}">{{ addr.name }}</a>
+  {% endif %}
+  {% if addr.status %}{% include "netbox_nsm/inc/ipa_nsm_object_status_icon.html" with status=addr.status %}{% endif %}
+  </span>
+  {% endfor %}
+  {% elif link_mode == "span" %}
+  <span class="nsm-ipa-cell-pill-link fw-semibold{% if node.status %} nsm-ipa-cell-pill-link--inactive{% endif %}" title="{{ node.name }}">{{ node.name }}</span>{% if node.status %}{% include "netbox_nsm/inc/ipa_nsm_object_status_icon.html" with status=node.status %}{% endif %}
+  {% elif link_mode == "anchor_stop" %}
+  <span class="nsm-ipa-cell-pill-entry{% if node.status %} nsm-ipa-cell-pill-entry--inactive{% endif %}"><a href="{{ node.url }}" class="nsm-ipa-cell-pill-link{% if node.status %} nsm-ipa-cell-pill-link--inactive{% endif %}" title="{{ node.name }}" onclick="event.stopPropagation();">{{ node.name }}</a>{% if node.status %}{% include "netbox_nsm/inc/ipa_nsm_object_status_icon.html" with status=node.status %}{% endif %}</span>
+  {% else %}
+  <span class="nsm-ipa-cell-pill-entry{% if node.status %} nsm-ipa-cell-pill-entry--inactive{% endif %}"><a href="{{ node.url }}" class="nsm-ipa-cell-pill-link{% if node.status %} nsm-ipa-cell-pill-link--inactive{% endif %}" title="{{ node.name }}">{{ node.name }}</a>{% if node.status %}{% include "netbox_nsm/inc/ipa_nsm_object_status_icon.html" with status=node.status %}{% endif %}</span>
+  {% endif %}
+  </span>
+</span>
+{% include "netbox_nsm/inc/ipa_cell_object_group_labels.html" %}
+{% if node.subnet_contained_in %}
+{% include "netbox_nsm/inc/ipa_subnet_containment_meta.html" %}
+{% endif %}

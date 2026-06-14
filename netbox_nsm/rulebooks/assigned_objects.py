@@ -1,15 +1,24 @@
-"""COT rulebook detail panel: assigned hosts and Security Panel interface links."""
+"""COT rulebook detail panel: enforcement points (hosts and interface NSM links)."""
 
 from __future__ import annotations
 
-from django.db.models import prefetch_related_objects
+from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from netbox_nsm.core.branch_urls import with_branch_query
-from netbox_nsm.models import CotRulebookAssignment
-from netbox_nsm.security.panel_link_actions import append_return_url, object_link_assign_url
-from netbox_nsm.security.panel_links import build_object_link_rows
+from netbox_nsm.core.display_utils import (
+    get_display_template_map,
+    render_object_display,
+    type_config_display_name_for_ct_id,
+)
+from netbox_nsm.objects.object_link_service import (
+    is_enforcement_point_host_link,
+    is_enforcement_point_iface_nsm_link,
+    iter_enforcement_point_links_for_slug,
+    object_link_permission,
+)
+from netbox_nsm.security.panel_link_actions import append_return_url
 
 __all__ = ("build_cot_rulebook_assigned_objects_panel",)
 
@@ -38,6 +47,61 @@ def _interfaces_for_host(host):
     return []
 
 
+def _enforcement_point_iface_assign_url(iface, cot_slug: str, return_url: str) -> str:
+    ct = ContentType.objects.get_for_model(iface)
+    url = (
+        reverse(
+            "plugins:netbox_nsm:enforcement_point_link_assign",
+            kwargs={"slug": cot_slug},
+        )
+        + f"?ct_id={ct.pk}&obj_id={iface.pk}"
+    )
+    return append_return_url(url, return_url)
+
+
+def _enforcement_point_nsm_link_row(
+    link,
+    return_url: str,
+    *,
+    can_delete: bool,
+    tmpl_map,
+    type_label_cache: dict[int, str],
+) -> dict:
+    policy_obj = link.policy_object
+    if policy_obj is None:
+        return {
+            "type_label": _("Enforcement point"),
+            "name": link.rulebook_slug,
+            "url": None,
+            "edit_url": None,
+            "delete_url": None,
+        }
+
+    lct = ContentType.objects.get_for_model(policy_obj)
+    ct_id = lct.pk
+    if ct_id not in type_label_cache:
+        type_label_cache[ct_id] = type_config_display_name_for_ct_id(ct_id)
+
+    delete_url = None
+    if can_delete:
+        delete_url = append_return_url(
+            reverse(
+                "plugins:netbox_nsm:enforcement_point_link_delete",
+                kwargs={"pk": link.pk},
+            ),
+            return_url,
+        )
+
+    url = policy_obj.get_absolute_url() if hasattr(policy_obj, "get_absolute_url") else None
+    return {
+        "type_label": type_label_cache[ct_id],
+        "name": render_object_display(policy_obj, lct.pk, tmpl_map),
+        "url": url,
+        "edit_url": None,
+        "delete_url": delete_url,
+    }
+
+
 def build_cot_rulebook_assigned_objects_panel(cot_slug: str, request) -> dict:
     return_url = request.path if request else reverse(
         "plugins:netbox_nsm:cot_rulebook",
@@ -47,9 +111,12 @@ def build_cot_rulebook_assigned_objects_panel(cot_slug: str, request) -> dict:
         return_url = with_branch_query(return_url, request)
 
     user = request.user if request else None
-    can_add = bool(user and user.has_perm("netbox_nsm.add_rulebookassignment"))
-    can_delete = bool(user and user.has_perm("netbox_nsm.delete_rulebookassignment"))
-    can_assign_links = bool(user and user.has_perm("netbox_nsm.add_objectlink"))
+    add_perm = object_link_permission("add")
+    delete_perm = object_link_permission("delete")
+    assign_perm = object_link_permission("add")
+    can_add = bool(user and add_perm and user.has_perm(add_perm))
+    can_delete = bool(user and delete_perm and user.has_perm(delete_perm))
+    can_assign_links = bool(user and assign_perm and user.has_perm(assign_perm))
 
     add_url = reverse(
         "plugins:netbox_nsm:cot_rulebook_bulk_assign",
@@ -58,16 +125,24 @@ def build_cot_rulebook_assigned_objects_panel(cot_slug: str, request) -> dict:
     if request:
         add_url = with_branch_query(add_url, request)
 
-    hosts: list[dict] = []
-    assignments = list(
-        CotRulebookAssignment.objects.filter(cot_slug=cot_slug)
-        .select_related("assigned_object_type")
-        .order_by("assigned_object_type__model", "assigned_object_id")
-    )
-    prefetch_related_objects(assignments, "assigned_object")
+    tmpl_map = get_display_template_map()
+    type_label_cache: dict[int, str] = {}
 
-    for assignment in assignments:
-        host = assignment.assigned_object
+    all_links = list(iter_enforcement_point_links_for_slug(cot_slug))
+    iface_nsm_links: dict[tuple[int, int], list] = {}
+    for link in all_links:
+        if not is_enforcement_point_iface_nsm_link(link):
+            continue
+        obj = link.netbox_object
+        ct = ContentType.objects.get_for_model(obj)
+        key = (ct.pk, obj.pk)
+        iface_nsm_links.setdefault(key, []).append(link)
+
+    hosts: list[dict] = []
+    for link in all_links:
+        if not is_enforcement_point_host_link(link):
+            continue
+        host = link.netbox_object
         if host is None:
             continue
 
@@ -78,23 +153,38 @@ def build_cot_rulebook_assigned_objects_panel(cot_slug: str, request) -> dict:
         if can_delete:
             remove_url = append_return_url(
                 reverse(
-                    "plugins:netbox_nsm:cotrulebookassignment_delete",
-                    kwargs={"pk": assignment.pk},
+                    "plugins:netbox_nsm:enforcement_point_link_delete",
+                    kwargs={"pk": link.pk},
                 ),
                 return_url,
             )
 
         interfaces = []
         for iface in _interfaces_for_host(host):
-            assign_url = (
-                object_link_assign_url(iface, return_url) if can_assign_links else None
-            )
-            if request and assign_url:
-                assign_url = with_branch_query(assign_url, request)
+            iface_ct = ContentType.objects.get_for_model(iface)
+            point_links = iface_nsm_links.get((iface_ct.pk, iface.pk), [])
+
+            assign_url = None
+            if can_assign_links:
+                assign_url = _enforcement_point_iface_assign_url(
+                    iface, cot_slug, return_url
+                )
+                if request:
+                    assign_url = with_branch_query(assign_url, request)
+
             iface_url = (
                 iface.get_absolute_url() if hasattr(iface, "get_absolute_url") else None
             )
-            link_rows = build_object_link_rows(iface, return_url)
+            link_rows = [
+                _enforcement_point_nsm_link_row(
+                    point_link,
+                    return_url,
+                    can_delete=can_delete,
+                    tmpl_map=tmpl_map,
+                    type_label_cache=type_label_cache,
+                )
+                for point_link in point_links
+            ]
             interfaces.append(
                 {
                     "name": str(getattr(iface, "name", iface)),
@@ -110,7 +200,7 @@ def build_cot_rulebook_assigned_objects_panel(cot_slug: str, request) -> dict:
         type_meta = _host_type_meta(host)
         hosts.append(
             {
-                "assignment_id": assignment.pk,
+                "assignment_id": link.pk,
                 "host_name": str(host),
                 "host_url": host_url,
                 "host_type_label": type_meta["label"],

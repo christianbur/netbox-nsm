@@ -5,490 +5,60 @@
 (function () {
   "use strict";
 
+  var U = window.NsmIpaUtil;
+  var ipaT = U.ipaT;
+  var ipaTf = U.ipaTf;
+  var escHtml = U.escHtml;
+  var formatTypeCountSummary = U.formatTypeCountSummary;
+  var apiUrl = U.apiUrl;
+  var addObjectTypesApiUrl = U.addObjectTypesApiUrl;
+  var debounce = U.debounce;
+  var getCsrfToken = U.getCsrfToken;
+  var nsmFetch = U.nsmFetch;
+  var mergeBranchHeaders = U.mergeBranchHeaders;
+  var normalizeObjects = U.normalizeObjects;
+  var collectRawObjects = U.collectRawObjects;
+  var objectsKey = U.objectsKey;
+  var tabDedupKey = U.tabDedupKey;
+  var rulesCellTabTitle = U.rulesCellTabTitle;
+  var rulesCellContextLabel = U.rulesCellContextLabel;
+  var rulesCellPositionTag = U.rulesCellPositionTag;
+  var rulesCellDiffSideLabel = U.rulesCellDiffSideLabel;
+  var diffSideLabel = U.diffSideLabel;
+  var diffTabContextLabel = U.diffTabContextLabel;
+  var tabTitle = U.tabTitle;
+  var mergedTabTitle = U.mergedTabTitle;
+  var diffRulesSideShortLabel = U.diffRulesSideShortLabel;
+  var diffTabTitleFromTabs = U.diffTabTitleFromTabs;
+  var diffObjectsKey = U.diffObjectsKey;
+  var formatDiffSummary = U.formatDiffSummary;
+  var collectObjectsFromTabs = U.collectObjectsFromTabs;
+  var truncateTitle = U.truncateTitle;
+  var buildQuery = U.buildQuery;
+  var buildDiffQuery = U.buildDiffQuery;
+  var buildExportQuery = U.buildExportQuery;
+  var parseContentDispositionFilename = U.parseContentDispositionFilename;
+  var triggerBlobDownload = U.triggerBlobDownload;
+  var defaultPosition = U.defaultPosition;
+  var createLoupeButton = U.createLoupeButton;
+  var loadingHtml = U.loadingHtml;
+  var errorHtml = U.errorHtml;
+  var TAB_TITLE_MAX = U.TAB_TITLE_MAX;
+
   var ROOT_ID = "nsm-ipa-applet-root";
   var DRAG_THRESHOLD = 4;
-  var TAB_TITLE_MAX = 28;
   var MIN_WIDTH = 320;
   var MIN_HEIGHT = 240;
   var VIEWPORT_MARGIN = 12;
   var SIZE_STORAGE_KEY = "nsm-ipa-applet-size";
   var MIN_BODY_SCALE = 0.55;
 
-  function ipaT(key, fallback) {
-    var i18n = window.NSM_IPA_I18N || {};
-    if (i18n[key] != null && i18n[key] !== "") {
-      return i18n[key];
-    }
-    return fallback != null ? fallback : key;
-  }
-
-  function ipaTf(key, params, fallback) {
-    var text = ipaT(key, fallback);
-    if (params) {
-      Object.keys(params).forEach(function (k) {
-        text = text.split("%(" + k + ")s").join(String(params[k]));
-      });
-    }
-    return text;
-  }
-
-  function escHtml(text) {
-    var div = document.createElement("div");
-    div.textContent = text == null ? "" : String(text);
-    return div.innerHTML;
-  }
-
-  function formatTypeCountSummary(tab) {
-    if (!tab) {
-      return "";
-    }
-    if (
-      tab.countSubnets != null ||
-      tab.countRanges != null ||
-      tab.countIps != null
-    ) {
-      var parts = [
-        ipaTf("Subnets: %(count)s", { count: tab.countSubnets || 0 }),
-        ipaTf("Ranges: %(count)s", { count: tab.countRanges || 0 }),
-        ipaTf("IPs: %(count)s", {
-          count: tab.countIps != null ? tab.countIps : tab.leafCount || 0,
-        }),
-      ];
-      if (tab.countDuplicates) {
-        parts.push(ipaTf("Warnings: %(count)s", { count: tab.countDuplicates }));
-      }
-      return parts.join("  ");
-    }
-    return tab.leafCount
-      ? ipaTf("IPs: %(count)s", { count: tab.leafCount })
-      : "";
-  }
-
-  function apiUrl() {
-    return window.NSM_IP_ANALYSIS_API || "/plugins/netbox-nsm/api/ip-analysis/";
-  }
-
-  function addObjectTypesApiUrl() {
-    return (
-      window.NSM_IP_ANALYSIS_ADD_OBJECT_TYPES_API ||
-      "/plugins/netbox-nsm/api/ip-analysis/add-object-types/"
-    );
-  }
-
-  function debounce(fn, ms) {
-    var timer;
-    return function () {
-      var args = arguments;
-      var ctx = this;
-      clearTimeout(timer);
-      timer = setTimeout(function () {
-        fn.apply(ctx, args);
-      }, ms);
-    };
-  }
-
-  function getCsrfToken() {
-    var m = document.cookie.match(/csrftoken=([^;]+)/);
-    return m ? m[1] : "";
-  }
-
-  function nsmFetch(url, options) {
-    if (window.NSM_BRANCH_API && window.NSM_BRANCH_API.fetch) {
-      return window.NSM_BRANCH_API.fetch(url, options);
-    }
-    return fetch(url, options);
-  }
-
-  function mergeBranchHeaders(headers) {
-    if (window.NSM_BRANCH_API && window.NSM_BRANCH_API.mergeBranchHeaders) {
-      return window.NSM_BRANCH_API.mergeBranchHeaders(headers || {});
-    }
-    return headers || {};
-  }
-
-  function normalizeObjects(objects) {
-    var out = [];
-    var seen = {};
-    (objects || []).forEach(function (obj) {
-      if (!obj) {
-        return;
-      }
-      var ct = obj.ct != null ? String(obj.ct) : "";
-      var pk = obj.pk != null ? String(obj.pk) : "";
-      if (!ct || !pk) {
-        return;
-      }
-      var key = ct + ":" + pk;
-      if (seen[key]) {
-        return;
-      }
-      seen[key] = true;
-      out.push({
-        ct: ct,
-        pk: pk,
-        name: obj.name != null ? String(obj.name) : "",
-      });
-    });
-    return out;
-  }
-
-  function collectRawObjects(objects) {
-    var out = [];
-    (objects || []).forEach(function (obj) {
-      if (!obj) {
-        return;
-      }
-      var ct = obj.ct != null ? String(obj.ct) : "";
-      var pk = obj.pk != null ? String(obj.pk) : "";
-      if (!ct || !pk) {
-        return;
-      }
-      out.push({
-        ct: ct,
-        pk: pk,
-        name: obj.name != null ? String(obj.name) : "",
-      });
-    });
-    return out;
-  }
-
-  function objectsKey(objects) {
-    return objects
-      .map(function (obj) {
-        return obj.ct + ":" + obj.pk;
-      })
-      .sort()
-      .join("|");
-  }
-
-  function tabDedupKey(objects, context) {
-    var base = objectsKey(objects);
-    if (!context) {
-      return base;
-    }
-    var ruleIndex = context.ruleIndex;
-    var colPosition = context.colPosition;
-    if (ruleIndex != null && ruleIndex !== "" && colPosition) {
-      return base + "|" + ruleIndex + "/" + colPosition;
-    }
-    return base;
-  }
-
-  function rulesCellTabTitle(context) {
-    if (!context) {
-      return null;
-    }
-    var ruleIndex = context.ruleIndex;
-    var colPosition = context.colPosition;
-    if (ruleIndex == null || ruleIndex === "" || !colPosition) {
-      return null;
-    }
-    return ipaTf("Rule %(index)s/%(col)s", {
-      index: ruleIndex,
-      col: colPosition,
-    });
-  }
-
-  function rulesCellContextLabel(context) {
-    if (!context) {
-      return "";
-    }
-    var ruleIndex = context.ruleIndex;
-    if (ruleIndex == null || ruleIndex === "") {
-      return "";
-    }
-    var ruleName = context.ruleName || "";
-    var colPart = context.colId || context.colPosition || "";
-    if (ruleName) {
-      return ipaTf("Rule %(name)s (%(index)s) / %(col)s", {
-        name: ruleName,
-        index: ruleIndex,
-        col: colPart,
-      });
-    }
-    return ipaTf("Rule %(index)s / %(col)s", {
-      index: ruleIndex,
-      col: colPart,
-    });
-  }
-
-  function rulesCellDiffSideLabel(context) {
-    if (!context) {
-      return "";
-    }
-    var ruleIndex = context.ruleIndex;
-    if (ruleIndex == null || ruleIndex === "") {
-      return "";
-    }
-    var ruleName = context.ruleName || "";
-    var colPart = context.colId || context.colPosition || "";
-    if (ruleName && colPart) {
-      return ipaTf("Rule %(name)s (%(index)s) / %(col)s", {
-        name: ruleName,
-        index: ruleIndex,
-        col: colPart,
-      });
-    }
-    if (ruleName) {
-      return ipaTf("Rule %(name)s (%(index)s)", {
-        name: ruleName,
-        index: ruleIndex,
-      });
-    }
-    if (colPart) {
-      return ipaTf("Rule %(index)s / %(col)s", {
-        index: ruleIndex,
-        col: colPart,
-      });
-    }
-    return ipaTf("Rule %(index)s/%(col)s", {
-      index: ruleIndex,
-      col: colPosition,
-    });
-  }
-
-  function diffSideLabel(tab) {
-    if (!tab) {
-      return "";
-    }
-    return (
-      rulesCellDiffSideLabel(tab.context) ||
-      tab.contextLabel ||
-      tab.title ||
-      ""
-    );
-  }
-
-  function diffTabContextLabel(tabs) {
-    if (!tabs || !tabs.length) {
-      return "";
-    }
-    var firstLabel = rulesCellContextLabel(tabs[0].context);
-    if (!firstLabel) {
-      return "";
-    }
-    for (var i = 1; i < tabs.length; i++) {
-      if (rulesCellContextLabel(tabs[i].context) !== firstLabel) {
-        return "";
-      }
-    }
-    return firstLabel;
-  }
-
-  function tabTitle(objects, customTitle, context) {
-    if (customTitle) {
-      return String(customTitle);
-    }
-    var rulesTitle = rulesCellTabTitle(context);
-    if (rulesTitle) {
-      return rulesTitle;
-    }
-    if (!objects.length) {
-      return ipaT("IP Analysis");
-    }
-    if (objects.length === 1) {
-      return objects[0].name || ipaT("IP Analysis");
-    }
-    return ipaTf("%(count)s objects", { count: objects.length });
-  }
-
-  function mergedTabTitle(objectCount) {
-    return ipaTf("Merged (%(count)s objects)", { count: objectCount });
-  }
-
-  function diffRulesSideShortLabel(context) {
-    if (!context) {
-      return "";
-    }
-    var ruleIndex = context.ruleIndex;
-    var colPosition = context.colPosition;
-    if (ruleIndex == null || ruleIndex === "" || !colPosition) {
-      return "";
-    }
-    return ruleIndex + "/" + colPosition;
-  }
-
-  function diffTabTitleFromTabs(tabs) {
-    if (!tabs || !tabs.length) {
-      return ipaT("Diff");
-    }
-    var ruleShorts = tabs.map(function (tab) {
-      return diffRulesSideShortLabel(tab.context);
-    });
-    if (
-      ruleShorts.length === tabs.length &&
-      ruleShorts.every(function (label) {
-        return !!label;
-      })
-    ) {
-      if (tabs.length === 2) {
-        return ipaTf("Diff %(a)s - %(b)s", {
-          a: ruleShorts[0],
-          b: ruleShorts[1],
-        });
-      }
-      if (tabs.length <= 4) {
-        return ipaTf("Diff %(labels)s", { labels: ruleShorts.join(" - ") });
-      }
-    }
-    if (tabs.length === 2) {
-      var a = truncateTitle(diffSideLabel(tabs[0]) || tabs[0].title || "A");
-      var b = truncateTitle(diffSideLabel(tabs[1]) || tabs[1].title || "B");
-      return ipaTf("Diff (%(a)s ↔ %(b)s)", { a: a, b: b });
-    }
-    if (tabs.length <= 4) {
-      var labels = tabs.map(function (tab) {
-        return truncateTitle(diffSideLabel(tab) || tab.title || "");
-      });
-      return ipaTf("Diff (%(labels)s)", { labels: labels.join(" ↔ ") });
-    }
-    return ipaTf("Diff (%(count)s tabs)", { count: tabs.length });
-  }
-
-  function diffObjectsKey(sides) {
-    return (
-      "diff:" +
-      (sides || [])
-        .map(function (side) {
-          return objectsKey((side && side.objects) || []);
-        })
-        .join("|")
-    );
-  }
-
-  function formatDiffSummary(summary) {
-    if (!summary) {
-      return "";
-    }
-    var fundPart =
-      summary.fund > 0
-        ? ipaTf(" | Fund: %(count)s", { count: summary.fund })
-        : "";
-    if (summary.side_count && summary.side_count > 2) {
-      var parts = [];
-      (summary.only_by_side || []).forEach(function (item) {
-        if (item.count > 0) {
-          parts.push(
-            ipaTf("%(label)s: +%(count)s", {
-              label: item.label || "?",
-              count: item.count,
-            })
-          );
-        }
-      });
-      if (summary.in_all > 0) {
-        parts.push(ipaTf("in all: %(count)s", { count: summary.in_all }));
-      }
-      if (summary.in_some > 0) {
-        parts.push(ipaTf("in some: %(count)s", { count: summary.in_some }));
-      }
-      return parts.join(" | ") + fundPart;
-    }
-    return (
-      ipaTf(
-        "%(label_a)s: +%(count_a)s | %(label_b)s: +%(count_b)s | shared: %(both)s",
-        {
-          label_a: summary.label_a || "A",
-          count_a: summary.only_a || 0,
-          label_b: summary.label_b || "B",
-          count_b: summary.only_b || 0,
-          both: summary.both || 0,
-        }
-      ) + fundPart
-    );
-  }
-
-  function collectObjectsFromTabs(tabs) {
-    var merged = [];
-    (tabs || []).forEach(function (tab) {
-      (tab.objects || []).forEach(function (obj) {
-        merged.push(obj);
-      });
-    });
-    return normalizeObjects(merged);
-  }
-
-  function truncateTitle(title) {
-    var text = title == null ? "" : String(title);
-    if (text.length <= TAB_TITLE_MAX) {
-      return text;
-    }
-    return text.slice(0, TAB_TITLE_MAX - 1) + "…";
-  }
-
-  function buildQuery(objects, rawObjects) {
-    var params = new URLSearchParams();
-    var list =
-      rawObjects && rawObjects.length ? rawObjects : objects || [];
-    list.forEach(function (obj) {
-      params.append("ct", obj.ct);
-      params.append("pk", obj.pk);
-    });
-    return params.toString();
-  }
-
-  function buildDiffQuery(sides) {
-    var params = new URLSearchParams();
-    params.append("mode", "diff");
-    (sides || []).forEach(function (side, index) {
-      var prefix = "s" + index + "_";
-      (side.objects || []).forEach(function (obj) {
-        params.append(prefix + "ct", obj.ct);
-        params.append(prefix + "pk", obj.pk);
-      });
-      var label = (side && (side.diffLabel || side.title)) || "";
-      if (label) {
-        params.append(prefix + "name", label);
-      }
-    });
-    return params.toString();
-  }
-
-  function defaultPosition(el) {
-    var vw = window.innerWidth || 1200;
-    var vh = window.innerHeight || 800;
-    var rect = el.getBoundingClientRect();
-    el.style.left = Math.max(12, vw - rect.width - 24) + "px";
-    el.style.top = Math.max(12, Math.min(vh * 0.12, vh - rect.height - 24)) + "px";
-  }
-
-  function createLoupeButton(title, obj) {
-    var btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "nsm-ipa-loupe";
-    btn.setAttribute("aria-label", title || ipaT("Analyze object"));
-    btn.title = title || ipaT("Analyze object");
-    btn.innerHTML = '<i class="mdi mdi-magnify" aria-hidden="true"></i>';
-    if (obj && obj.ct != null && obj.pk != null) {
-      btn.setAttribute("data-ct", String(obj.ct));
-      btn.setAttribute("data-pk", String(obj.pk));
-      btn.setAttribute("data-name", obj.name != null ? String(obj.name) : "");
-    }
-    return btn;
-  }
-
-  function loadingHtml() {
-    return (
-      '<div class="nsm-ipa-applet-loading">' +
-      '<span class="mdi mdi-loading mdi-spin" aria-hidden="true"></span> ' +
-      escHtml(ipaT("Analysis running…")) +
-      "</div>"
-    );
-  }
-
-  function errorHtml(message) {
-    return (
-      '<div class="nsm-ipa-applet-error">' +
-      escHtml(message || ipaT("Analysis failed.")) +
-      "</div>"
-    );
-  }
-
   function Applet() {
     this.el = null;
     this.bodyEl = null;
     this.footerEl = null;
     this.titleEl = null;
+    this.ruleBadgeEl = null;
     this.tabsEl = null;
     this.tabListEl = null;
     this.toolbarEl = null;
@@ -500,6 +70,7 @@
     this.addObjectTitleEl = null;
     this.mergeBtnEl = null;
     this.diffBtnEl = null;
+    this.exportBtnEl = null;
     this._addObjectCategories = null;
     this._addObjectCategory = null;
     this._addObjectSearchCtrl = null;
@@ -507,6 +78,7 @@
     this.minimized = false;
     this._merging = false;
     this._diffing = false;
+    this._exporting = false;
     this.dragState = null;
     this.resizeState = null;
     this.tabs = [];
@@ -540,6 +112,7 @@
         '<h6 class="nsm-ipa-applet-title"><i class="mdi mdi-ip-network-outline" aria-hidden="true"></i><span class="nsm-ipa-applet-title-text">' +
         escHtml(ipaT("IP Analysis")) +
         '</span></h6>' +
+        '<span class="badge bg-secondary-subtle text-secondary nsm-ipa-applet-rule-badge" hidden></span>' +
         '<div class="nsm-ipa-applet-actions">' +
           '<button type="button" class="btn btn-sm btn-ghost-secondary py-0 px-1 nsm-ipa-applet-minimize" title="' +
           escHtml(ipaT("Minimize")) +
@@ -579,6 +152,13 @@
           '"><i class="mdi mdi-compare" aria-hidden="true"></i><span>' +
           escHtml(ipaT("Diff")) +
           '</span></button>' +
+          '<button type="button" class="btn btn-sm btn-outline-secondary nsm-ipa-applet-export" title="' +
+          escHtml(ipaT("Export YAML")) +
+          '" aria-label="' +
+          escHtml(ipaT("Export YAML")) +
+          '"><i class="mdi mdi-download" aria-hidden="true"></i><span>' +
+          escHtml(ipaT("Export YAML")) +
+          '</span></button>' +
         "</div>" +
       "</div>" +
       '<div class="nsm-ipa-applet-tabs" hidden>' +
@@ -614,6 +194,7 @@
     this.bodyEl = panel.querySelector(".nsm-ipa-applet-body");
     this.footerEl = panel.querySelector(".nsm-ipa-applet-footer");
     this.titleEl = panel.querySelector(".nsm-ipa-applet-title-text");
+    this.ruleBadgeEl = panel.querySelector(".nsm-ipa-applet-rule-badge");
     this.tabsEl = panel.querySelector(".nsm-ipa-applet-tabs");
     this.tabListEl = panel.querySelector(".nsm-ipa-applet-tab-list");
     this.toolbarEl = panel.querySelector(".nsm-ipa-applet-toolbar");
@@ -625,6 +206,7 @@
     this.addObjectTitleEl = panel.querySelector(".nsm-ipa-applet-add-modal-title");
     this.mergeBtnEl = panel.querySelector(".nsm-ipa-applet-merge");
     this.diffBtnEl = panel.querySelector(".nsm-ipa-applet-diff");
+    this.exportBtnEl = panel.querySelector(".nsm-ipa-applet-export");
 
     var header = panel.querySelector(".nsm-ipa-applet-header");
     header.addEventListener("mousedown", this._onHeaderDown.bind(this));
@@ -634,6 +216,7 @@
     this.tabListEl.addEventListener("click", this._onTabListClick.bind(this));
     this.mergeBtnEl.addEventListener("click", this.mergeTabs.bind(this));
     this.diffBtnEl.addEventListener("click", this.diffTabs.bind(this));
+    this.exportBtnEl.addEventListener("click", this.exportYaml.bind(this));
     this._bindAddObjectHandlers();
 
     panel.querySelectorAll(".nsm-ipa-applet-resize-handle").forEach(
@@ -670,24 +253,52 @@
     if (!inner) {
       return;
     }
+    this._observeBodyScaleInner();
 
     inner.style.transform = "none";
+    inner.style.width = "";
+    host.style.width = "";
     host.style.height = "auto";
 
     var available = this.bodyEl.clientWidth;
     var contentW = inner.scrollWidth;
+    var contentH = inner.scrollHeight;
     var scale = 1;
     if (contentW > available && available > 0) {
       scale = Math.max(MIN_BODY_SCALE, available / contentW);
     }
 
+    var scaledW = Math.ceil(contentW * scale);
+    var scaledH = Math.ceil(contentH * scale);
+
     if (scale < 0.999) {
+      inner.style.width = contentW + "px";
       inner.style.transform = "scale(" + scale + ")";
-      host.style.height = Math.ceil(inner.offsetHeight * scale) + "px";
+      host.style.width = scaledW + "px";
+      host.style.height = scaledH + "px";
+      this.bodyEl.style.overflowX = scaledW > available + 1 ? "auto" : "hidden";
     } else {
       inner.style.transform = "";
+      inner.style.width = "";
+      host.style.width = "";
       host.style.height = "";
+      this.bodyEl.style.overflowX = "hidden";
     }
+  };
+
+  Applet.prototype._observeBodyScaleInner = function () {
+    if (!this._bodyScaleObserver || !this.bodyEl) {
+      return;
+    }
+    var inner = this.bodyEl.querySelector(".nsm-ipa-applet-body-scale");
+    if (!inner || inner === this._bodyScaleInner) {
+      return;
+    }
+    if (this._bodyScaleInner) {
+      this._bodyScaleObserver.unobserve(this._bodyScaleInner);
+    }
+    this._bodyScaleInner = inner;
+    this._bodyScaleObserver.observe(inner);
   };
 
   Applet.prototype._scheduleBodyScale = function () {
@@ -696,8 +307,10 @@
       cancelAnimationFrame(this._scaleRaf);
     }
     this._scaleRaf = requestAnimationFrame(function () {
-      self._scaleRaf = null;
-      self._fitBodyScale();
+      requestAnimationFrame(function () {
+        self._scaleRaf = null;
+        self._fitBodyScale();
+      });
     });
   };
 
@@ -718,6 +331,9 @@
     };
     window.addEventListener("resize", this._onWindowResizeForScale);
     this._bodyMutationObserver = new MutationObserver(function () {
+      if (window.nsmIpaStripLegacyExpandedWarnings) {
+        window.nsmIpaStripLegacyExpandedWarnings(self.bodyEl);
+      }
       self._scheduleBodyScale();
     });
   };
@@ -964,6 +580,21 @@
     return null;
   };
 
+  Applet.prototype.setRuleBadge = function () {
+    if (!this.ruleBadgeEl) {
+      return;
+    }
+    var tab = this.getActiveTab();
+    var label = tab && tab.context ? rulesCellPositionTag(tab.context) : "";
+    if (!label) {
+      this.ruleBadgeEl.hidden = true;
+      this.ruleBadgeEl.textContent = "";
+      return;
+    }
+    this.ruleBadgeEl.hidden = false;
+    this.ruleBadgeEl.textContent = label;
+  };
+
   Applet.prototype.setWindowTitle = function () {
     if (!this.titleEl) {
       return;
@@ -971,19 +602,23 @@
     var tab = this.getActiveTab();
     if (!tab) {
       this.titleEl.textContent = ipaT("IP Analysis");
+      this.setRuleBadge();
       return;
     }
     if (tab.mode === "diff") {
       this.titleEl.textContent = tab.title;
+      this.setRuleBadge();
       return;
     }
     if (this.tabs.length > 1) {
       this.titleEl.textContent = ipaTf("IP Analysis (%(count)s)", {
         count: this.tabs.length,
       });
+      this.setRuleBadge();
       return;
     }
     this.titleEl.textContent = tab.title;
+    this.setRuleBadge();
   };
 
   Applet.prototype.renderToolbar = function () {
@@ -999,14 +634,14 @@
         return tab.mode !== "diff";
       }).length;
       var canMerge = mergeSourceCount > 1;
-      this.mergeBtnEl.disabled = !canMerge || this._merging || this._diffing;
+      this.mergeBtnEl.disabled = !canMerge || this._merging || this._diffing || this._exporting;
     }
     if (this.diffBtnEl) {
       var diffSourceCount = this.tabs.filter(function (tab) {
         return tab.mode !== "diff";
       }).length;
       var canDiff = diffSourceCount >= 2;
-      this.diffBtnEl.disabled = !canDiff || this._merging || this._diffing;
+      this.diffBtnEl.disabled = !canDiff || this._merging || this._diffing || this._exporting;
       var diffDisabledLabel = ipaT("Diff (at least 2 tabs required)");
       this.diffBtnEl.title = canDiff ? ipaT("Diff") : diffDisabledLabel;
       this.diffBtnEl.setAttribute(
@@ -1014,6 +649,58 @@
         canDiff ? ipaT("Diff") : diffDisabledLabel
       );
     }
+    if (this.exportBtnEl) {
+      var activeTab = this.getActiveTab();
+      var canExport =
+        activeTab &&
+        activeTab.status === "ready" &&
+        !this._merging &&
+        !this._diffing &&
+        !this._exporting;
+      this.exportBtnEl.disabled = !canExport;
+      this.exportBtnEl.classList.toggle("disabled", !canExport);
+      var exportLabel = this._exporting
+        ? ipaT("Exporting…")
+        : ipaT("Export YAML");
+      this.exportBtnEl.title = exportLabel;
+      this.exportBtnEl.setAttribute("aria-label", exportLabel);
+    }
+  };
+
+  Applet.prototype.exportYaml = function () {
+    var tab = this.getActiveTab();
+    if (!tab || tab.status !== "ready" || this._exporting) {
+      return;
+    }
+    this._exporting = true;
+    this.renderToolbar();
+
+    var url = apiUrl() + "?" + buildExportQuery(tab);
+    var self = this;
+    nsmFetch(url, {
+      headers: mergeBranchHeaders({ "X-Requested-With": "XMLHttpRequest" }),
+    })
+      .then(function (resp) {
+        if (!resp.ok) {
+          throw new Error("HTTP " + resp.status);
+        }
+        var filename = parseContentDispositionFilename(
+          resp.headers.get("Content-Disposition")
+        );
+        return resp.blob().then(function (blob) {
+          return { blob: blob, filename: filename };
+        });
+      })
+      .then(function (result) {
+        triggerBlobDownload(result.blob, result.filename || "ipa-export.yaml");
+      })
+      .catch(function () {
+        window.alert(ipaT("YAML export failed."));
+      })
+      .finally(function () {
+        self._exporting = false;
+        self.renderToolbar();
+      });
   };
 
   Applet.prototype.renderTabs = function () {
@@ -1157,7 +844,8 @@
     if (!this.addObjectResultsEl) {
       return;
     }
-    if (message) {
+    items = items || [];
+    if (message && !items.length) {
       this.addObjectResultsEl.innerHTML =
         '<div class="nsm-ipa-applet-add-msg">' + escHtml(message) + "</div>";
       return;
@@ -1487,6 +1175,9 @@
         "</div>";
     } else if (tab.html) {
       this.bodyEl.innerHTML = contextBanner + this._wrapBodyContent(tab.html);
+      if (window.nsmIpaStripLegacyExpandedWarnings) {
+        window.nsmIpaStripLegacyExpandedWarnings(this.bodyEl);
+      }
       if (window.nsmInitAddrPrefixToggle) {
         window.nsmInitAddrPrefixToggle(this.bodyEl);
       }
@@ -1559,6 +1250,8 @@
           tab.countIps = data.count_ips != null ? data.count_ips : null;
           tab.countDuplicates =
             data.count_duplicates != null ? data.count_duplicates : null;
+          tab.countGroupDuplicates =
+            data.count_group_duplicates != null ? data.count_group_duplicates : null;
           tab.diffSummary = data.diff_summary || null;
           tab.unsupportedCount =
             data.unsupported && data.unsupported.length
@@ -1566,6 +1259,7 @@
               : 0;
           if (tab.id === this.activeTabId) {
             this.renderActiveContent();
+            this.renderToolbar();
           }
         }.bind(this)
       )
@@ -1582,6 +1276,7 @@
           tab.error = ipaT("Analysis could not be loaded.");
           if (tab.id === this.activeTabId) {
             this.renderActiveContent();
+            this.renderToolbar();
           }
         }.bind(this)
       );
@@ -1742,113 +1437,6 @@
 
   var singleton = new Applet();
 
-  function collectCellObjects(cell) {
-    var objects = [];
-    if (!cell) {
-      return objects;
-    }
-    // Visible pills carry ct/pk; compact cells only expose hidden probe markers.
-    // Never collect both — that duplicated every object and tripped false "doppelt".
-    var rows = cell.querySelectorAll(
-      '.nsm-ag-cell-item[data-addr-analyzable="1"]:not(.nsm-ag-cell-item--probe)'
-    );
-    if (!rows.length) {
-      rows = cell.querySelectorAll(
-        '.nsm-ag-cell-item--probe[data-addr-analyzable="1"]'
-      );
-    }
-    rows.forEach(function (row) {
-      objects.push({
-        ct: row.getAttribute("data-ct"),
-        pk: row.getAttribute("data-pk"),
-        name: row.getAttribute("data-name") || "",
-      });
-    });
-    return objects;
-  }
-
-  function loupeCellContainer(loupe) {
-    return (
-      loupe.closest(".nsm-ag-cell-list") ||
-      loupe.closest(".nsm-ag-cell-merged")
-    );
-  }
-
-  function readRulesCellContext(el) {
-    if (!el) {
-      return null;
-    }
-    var ruleIndex = el.getAttribute("data-rule-index");
-    if (ruleIndex == null || ruleIndex === "") {
-      return null;
-    }
-    return {
-      ruleIndex: ruleIndex,
-      ruleName: el.getAttribute("data-rule-name") || "",
-      colId: el.getAttribute("data-col-id") || "",
-      colPosition: el.getAttribute("data-col-position") || "",
-    };
-  }
-
-  function collectRulesCellContext(loupe) {
-    var cell = loupeCellContainer(loupe);
-    var context = readRulesCellContext(cell);
-    if (context) {
-      return context;
-    }
-    var td = loupe.closest("td.nsm-rules-td");
-    context = readRulesCellContext(td);
-    if (context) {
-      return context;
-    }
-    var tr = loupe.closest("tr.nsm-rules-data-row");
-    if (!tr) {
-      return null;
-    }
-    var ruleIndex = tr.getAttribute("data-rule-index");
-    if (ruleIndex == null || ruleIndex === "") {
-      return null;
-    }
-    return {
-      ruleIndex: ruleIndex,
-      ruleName: tr.getAttribute("data-rule-name") || "",
-      colId: td ? td.getAttribute("data-col-id") || "" : "",
-      colPosition: td ? td.getAttribute("data-col-position") || "" : "",
-    };
-  }
-
-  function bindGlobalHandlers() {
-    document.addEventListener("click", function (e) {
-      var loupe = e.target.closest(".nsm-ipa-loupe");
-      if (!loupe) {
-        return;
-      }
-      e.preventDefault();
-      e.stopPropagation();
-
-      var cell = loupeCellContainer(loupe);
-      var objects = [];
-      if (loupe.classList.contains("nsm-ipa-cell-loupe") && cell) {
-        objects = collectCellObjects(cell);
-      } else if (loupe.hasAttribute("data-ct") && loupe.hasAttribute("data-pk")) {
-        objects.push({
-          ct: loupe.getAttribute("data-ct"),
-          pk: loupe.getAttribute("data-pk"),
-          name: loupe.getAttribute("data-name") || "",
-        });
-      } else if (cell) {
-        objects = collectCellObjects(cell);
-      }
-      if (objects.length) {
-        var context = null;
-        if (loupe.classList.contains("nsm-ipa-cell-loupe")) {
-          context = collectRulesCellContext(loupe);
-        }
-        singleton.open({ objects: objects, context: context });
-      }
-    });
-  }
-
   window.NsmIpAnalyzerApplet = {
     open: function (opts) {
       singleton.open(opts);
@@ -1862,9 +1450,13 @@
     createLoupeButton: createLoupeButton,
   };
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", bindGlobalHandlers);
-  } else {
-    bindGlobalHandlers();
+  if (window.NsmIpaCell && window.NsmIpaCell.bindGlobalHandlers) {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", function () {
+        window.NsmIpaCell.bindGlobalHandlers(singleton);
+      });
+    } else {
+      window.NsmIpaCell.bindGlobalHandlers(singleton);
+    }
   }
 })();

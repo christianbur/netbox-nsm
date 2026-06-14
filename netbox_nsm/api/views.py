@@ -3,22 +3,9 @@ from rest_framework.reverse import reverse
 from rest_framework.routers import APIRootView
 from netbox.api.viewsets import NetBoxModelViewSet
 
-from .serializers import (
-    CotRulebookAssignmentSerializer,
-    ObjectLinkSerializer,
-    TypeConfigSerializer,
-)
+from .serializers import ObjectLinkSerializer
 
-from netbox_nsm.models import (
-    CotRulebookAssignment,
-    TypeConfig,
-)
-
-from netbox_nsm.filtersets import (
-    CotRulebookAssignmentFilterSet,
-    ObjectLinkFilterSet,
-    TypeConfigFilterSet,
-)
+from netbox_nsm.filtersets import ObjectLinkFilterSet
 
 from netbox_nsm.objects.object_link_service import (
     ObjectLinkRecord,
@@ -47,16 +34,10 @@ class NetBoxSecurityRootView(APIRootView):
         return Response(data)
 
 
-class CotRulebookAssignmentViewSet(NetBoxModelViewSet):
-    queryset = CotRulebookAssignment.objects.all()
-    serializer_class = CotRulebookAssignmentSerializer
-    filterset_class = CotRulebookAssignmentFilterSet
-
-
 class ObjectLinkViewSet(NetBoxModelViewSet):
     """CRUD for COT ``nsm_object_link`` rows (legacy ``/object-links/`` path)."""
 
-    queryset = TypeConfig.objects.none()
+    queryset = []
     serializer_class = ObjectLinkSerializer
     filterset_class = ObjectLinkFilterSet
 
@@ -76,11 +57,3 @@ class ObjectLinkViewSet(NetBoxModelViewSet):
 
     def perform_destroy(self, instance):
         delete_link(ObjectLinkRecord.from_instance(instance))
-
-
-class TypeConfigViewSet(NetBoxModelViewSet):
-    queryset = TypeConfig.objects.select_related("content_type").prefetch_related(
-        "tags"
-    )
-    serializer_class = TypeConfigSerializer
-    filterset_class = TypeConfigFilterSet

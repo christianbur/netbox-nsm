@@ -80,21 +80,32 @@ class AddrTreePrefixDisplayTests(SimpleTestCase):
         self.assertNotIn("prefix_display_cidr", node)
 
 
-class AddrCopyPrefixFormatTests(SimpleTestCase):
-    """Copy buttons should respect the active CIDR/Mask toggle."""
+class AddrPrefixFormatTests(SimpleTestCase):
+    """CIDR/Mask toggle assets; CSV copy buttons removed in favor of YAML export."""
 
-    def test_copy_assets_apply_prefix_format_on_copy(self):
+    def test_prefix_format_assets_expose_toggle_without_copy_buttons(self):
         assets = (
             _PLUGIN_ROOT / "templates/netbox_nsm/inc/addr_analysis_assets.html"
         ).read_text(encoding="utf-8")
-        self.assertIn("window.nsmFormatAddrCopyLines", assets)
-        self.assertIn("applyPrefixFormatToCopyLines", assets)
-        self.assertIn("buildPrefixFormatMap", assets)
-        self.assertIn("nsm-addr-prefix-format", assets)
-        self.assertIn("window.nsmFormatAddrCopyLines(text, btn)", assets)
-        self.assertIn("btn.closest('.nsm-addr-top')", assets)
+        panel = (
+            _PLUGIN_ROOT / "templates/netbox_nsm/inc/addr_analysis_panel.html"
+        ).read_text(encoding="utf-8")
+        tree = (
+            _PLUGIN_ROOT / "templates/netbox_nsm/inc/addr_tree_node.html"
+        ).read_text(encoding="utf-8")
+        self.assertIn("netmaskLabelForCidr", assets)
+        self.assertIn("toggleScopeFromGroup", assets)
+        self.assertIn("prefixNetmaskLabel", assets)
         self.assertIn("runLazyCategoryLoad", assets)
         self.assertIn("nsm-addr-lazy-progress", assets)
+        self.assertIn("var currentFormat = 'cidr'", assets)
+        self.assertNotIn("localStorage", assets)
+        self.assertNotIn("nsmCopyPaths", assets)
+        self.assertNotIn("nsmFormatAddrCopyLines", assets)
+        self.assertNotIn("Copy CSV paths", panel)
+        self.assertNotIn("mdi-content-copy", panel)
+        self.assertNotIn("Copy CSV paths", tree)
+        self.assertNotIn("mdi-content-copy", tree)
 
     def test_lazy_load_button_exposes_progress_metadata(self):
         template = (

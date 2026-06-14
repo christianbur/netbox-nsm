@@ -1,0 +1,17 @@
+{% load i18n %}
+{% comment %}
+Orange PARENT pill when a cell-direct row is contained in a parent subnet.
+Uses subnet_contained_in (parent CIDR); object name only in tooltip.
+{% endcomment %}
+<span class="nsm-ipa-cell-pill nsm-ipa-cell-pill--parent"{% if node.subnet_contained_in_name %} title="{% blocktrans with name=node.subnet_contained_in_name parent=node.subnet_contained_in %}Contained in {{ parent }} ({{ name }}){% endblocktrans %}"{% else %} title="{% blocktrans with parent=node.subnet_contained_in %}Contained in {{ parent }}{% endblocktrans %}"{% endif %}>
+  <span class="nsm-ipa-cell-type">{% trans "Parent" %}</span>
+  <span class="nsm-ipa-cell-pill-body">
+  {% if node.subnet_contained_in_url %}
+  <a href="{{ node.subnet_contained_in_url }}" class="nsm-ipa-cell-pill-link" onclick="event.stopPropagation();">
+    <span class="nsm-addr-prefix-text" data-cidr="{{ node.subnet_contained_in }}">{{ node.subnet_contained_in }}</span>
+  </a>
+  {% else %}
+  <span class="nsm-addr-prefix-text" data-cidr="{{ node.subnet_contained_in }}">{{ node.subnet_contained_in }}</span>
+  {% endif %}
+  </span>
+</span>

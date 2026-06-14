@@ -43,7 +43,7 @@ print("=" * 60)
 # ─── 0. Verify NSM COT types exist ────────────────────────────────────────────
 try:
     from netbox_custom_objects.models import CustomObjectType
-    from netbox_nsm.models import TypeConfig
+    from netbox_nsm.objects.nsm_config import has_nsm_config_in_comments
 
     REQUIRED = [
         "nsm_zones",
@@ -65,7 +65,7 @@ try:
         from django.contrib.contenttypes.models import ContentType
 
         ct = ContentType.objects.get_for_model(cot.get_model())
-        if not TypeConfig.objects.filter(content_type=ct).exists():
+        if not has_nsm_config_in_comments(cot.comments or ""):
             missing_tc.append(s)
     if missing_tc:
         print(f"ERROR: Missing TypeConfigs for: {missing_tc}")
@@ -855,21 +855,28 @@ ADDR_DEFS = [
 
 addrs_by_name = {}
 for addr_str, name in ADDR_DEFS:
-    # Try to link to the matching IPAM Prefix; fall back to storing CIDR in comments
+    from netbox_nsm.objects.address_literal import format_network_nsm_config_comments
+
     prefix_obj = None
     if addr_str != "0.0.0.0/0":
         try:
             prefix_obj = Prefix.objects.get(prefix=addr_str)
         except (Prefix.DoesNotExist, Prefix.MultipleObjectsReturned):
             pass
-    defaults = (
-        {"prefix": prefix_obj, "comments": ""} if prefix_obj else {"comments": addr_str}
-    )
+    if prefix_obj:
+        defaults = {"prefix": prefix_obj, "comments": ""}
+    else:
+        defaults = {"comments": format_network_nsm_config_comments(addr_str).rstrip()}
     obj, created = AddrModel.objects.get_or_create(name=name, defaults=defaults)
     if not created and prefix_obj and obj.prefix_id is None:
         obj.prefix = prefix_obj
         obj.comments = ""
         obj.save()
+    elif not created and not prefix_obj and addr_str == "0.0.0.0/0":
+        new_comments = format_network_nsm_config_comments(addr_str).rstrip()
+        if (obj.comments or "").strip() != new_comments:
+            obj.comments = new_comments
+            obj.save(update_fields=["comments"])
     addrs_by_name[name] = obj
 print(f"  ✓ {len(addrs_by_name)} addresses")
 

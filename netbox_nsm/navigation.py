@@ -19,12 +19,6 @@ _TYPE_CONFIG_MENU_ITEM = PluginMenuItem(
     permissions=["netbox_nsm.view_typeconfig"],
 )
 
-_OBJECT_SYNC_MENU_ITEM = PluginMenuItem(
-    link="plugins:netbox_nsm:object_sync",
-    link_text=_("Object Sync"),
-    permissions=["netbox_nsm.view_typeconfig"],
-)
-
 _SETUP_MENU_ITEM = PluginMenuItem(
     link="plugins:netbox_nsm:setup",
     link_text=_("Setup"),
@@ -40,7 +34,6 @@ def _build_configuration_menu():
     except Exception:
         pass
     config_items.append(_TYPE_CONFIG_MENU_ITEM)
-    config_items.append(_OBJECT_SYNC_MENU_ITEM)
     return ((_("Configuration"), tuple(config_items)),)
 
 
@@ -70,23 +63,16 @@ nsm_rulebook_menu_items = (
     PluginMenuItem(
         link="plugins:netbox_nsm:rulebook_list",
         link_text=_("Rulebooks"),
-        permissions=["netbox_nsm.view_rulebook"],
+        auth_required=True,
+        permissions=[],
         buttons=(
             PluginMenuButton(
                 "plugins:netbox_nsm:cot_rulebook_add",
                 _("Add"),
                 "mdi mdi-plus-thick",
-                permissions=["netbox_nsm.add_rulebook"],
+                permissions=[],
             ),
         ),
-    ),
-)
-
-assignments_menu_items = (
-    PluginMenuItem(
-        link="plugins:netbox_nsm:cotrulebookassignment_list",
-        link_text=_("Rulebook Assignments"),
-        permissions=["netbox_nsm.view_rulebookassignment"],
     ),
 )
 
@@ -96,7 +82,8 @@ def _analysis_menu_items():
         PluginMenuItem(
             link="plugins:netbox_nsm:object_analyzer",
             link_text=_("Object Analyzer"),
-            permissions=["netbox_nsm.view_rulebook"],
+            auth_required=True,
+            permissions=[],
         ),
     )
 
@@ -113,8 +100,6 @@ def build_menu_groups():
             + ((_("Analysis"), _analysis_menu_items()),)
         )
     )
-    if get_plugin_config("netbox_nsm", "assignments_menu", False):
-        groups = groups + ((_("Assignments"), assignments_menu_items),)
     return groups
 
 
@@ -127,5 +112,3 @@ if get_plugin_config("netbox_nsm", "top_level_menu", True):
     )
 else:
     menu_items = nsm_rulebook_menu_items
-    if get_plugin_config("netbox_nsm", "assignments_menu", False):
-        menu_items = menu_items + assignments_menu_items

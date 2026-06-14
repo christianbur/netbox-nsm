@@ -1,6 +1,6 @@
 {% load i18n %}
 {% include "netbox_nsm/inc/addr_analysis_assets.html" %}
-<link rel="stylesheet" href="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='css/nsm_ip_analyzer_applet.css' %}?v=202606143">
+<link rel="stylesheet" href="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='css/nsm_ip_analyzer_applet.css' %}?v=202606221">
 <script>
   window.NSM_IP_ANALYSIS_API = window.NSM_IP_ANALYSIS_API || "{% url 'plugins:netbox_nsm:ip_analysis_api' %}";
   window.NSM_IP_ANALYSIS_CATEGORY_API = window.NSM_IP_ANALYSIS_CATEGORY_API || "{% url 'plugins:netbox_nsm:ip_analysis_category_api' %}";
@@ -12,10 +12,12 @@
     "Ranges: %(count)s": "{% trans 'Ranges: %(count)s'|escapejs %}",
     "IPs: %(count)s": "{% trans 'IPs: %(count)s'|escapejs %}",
     "Warnings: %(count)s": "{% trans 'Warnings: %(count)s'|escapejs %}",
+    "Duplicates: %(count)s": "{% trans 'Duplicates: %(count)s'|escapejs %}",
     "Rule %(index)s/%(col)s": "{% trans 'Rule %(index)s/%(col)s'|escapejs %}",
     "Rule %(index)s / %(col)s": "{% trans 'Rule %(index)s / %(col)s'|escapejs %}",
     "Rule %(name)s (%(index)s) / %(col)s": "{% trans 'Rule %(name)s (%(index)s) / %(col)s'|escapejs %}",
     "Rule %(name)s (%(index)s)": "{% trans 'Rule %(name)s (%(index)s)'|escapejs %}",
+    "Rule %(index)s/%(total)s": "{% trans 'Rule %(index)s/%(total)s'|escapejs %}",
     "%(count)s objects": "{% trans '%(count)s objects'|escapejs %}",
     "Merged (%(count)s objects)": "{% trans 'Merged (%(count)s objects)'|escapejs %}",
     "Diff": "{% trans 'Diff'|escapejs %}",
@@ -47,7 +49,12 @@
     "No IP addresses resolved.": "{% trans 'No IP addresses resolved.'|escapejs %}",
     "%(count)s skipped": "{% trans '%(count)s skipped'|escapejs %}",
     "Analysis could not be loaded.": "{% trans 'Analysis could not be loaded.'|escapejs %}",
-    "IP Analysis (%(count)s)": "{% trans 'IP Analysis (%(count)s)'|escapejs %}"
+    "IP Analysis (%(count)s)": "{% trans 'IP Analysis (%(count)s)'|escapejs %}",
+    "Export YAML": "{% trans 'Export YAML'|escapejs %}",
+    "Exporting…": "{% trans 'Exporting…'|escapejs %}",
+    "YAML export failed.": "{% trans 'YAML export failed.'|escapejs %}"
   };
 </script>
-<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/nsm_ip_analyzer_applet.js' %}?v=202606143"></script>
+<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/nsm_ipa_util.js' %}?v=202606200"></script>
+<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/nsm_ipa_cell.js' %}?v=202606200"></script>
+<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/nsm_ip_analyzer_applet.js' %}?v=202606220"></script>

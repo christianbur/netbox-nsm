@@ -99,6 +99,16 @@ class CotRulebookHierarchyModelTests(TestCase):
 
 
 class CotRulebookHierarchyFormTests(SimpleTestCase):
+    def test_parent_choices_include_none_option(self):
+        from netbox_nsm.rulebooks.cot_hierarchy import deployed_rulebook_parent_choices
+
+        with patch(
+            "netbox_nsm.rulebooks.cot_hierarchy.iter_deployed_cot_rulebooks",
+            return_value=[],
+        ):
+            choices = deployed_rulebook_parent_choices()
+        self.assertEqual(choices[0], ("", "None"))
+
     def test_create_form_has_parent_field(self):
         from netbox_nsm.rulebooks.forms.cot import CotRulebookCreateForm
 
@@ -109,3 +119,14 @@ class CotRulebookHierarchyFormTests(SimpleTestCase):
             form = CotRulebookCreateForm()
         self.assertIn("parent_slug", form.fields)
         self.assertEqual(str(form.fields["parent_slug"].label), "Parent rulebook")
+
+    def test_parent_slug_widget_uses_native_select(self):
+        from netbox_nsm.rulebooks.forms.cot import CotRulebookCreateForm
+
+        with patch(
+            "netbox_nsm.rulebooks.forms.cot.deployed_rulebook_parent_choices",
+            return_value=[("", "None")],
+        ):
+            form = CotRulebookCreateForm()
+        classes = form.fields["parent_slug"].widget.attrs.get("class", "")
+        self.assertIn("no-ts", classes)

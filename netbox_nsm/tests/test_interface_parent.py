@@ -94,7 +94,7 @@ class InterfaceParentHostTests(SimpleTestCase):
                         ],
                     }
                 ],
-                "nsm_enforcer_assignments": [],
+                "nsm_enforcement_point": None,
             },
         )
         self.assertIn("/dcim/devices/7/", html)
@@ -108,7 +108,7 @@ class InterfaceParentHostTests(SimpleTestCase):
                 "nsm_unique_rules_total": 0,
                 "nsm_rulebook_groups": [],
                 "nsm_link_type_groups": [],
-                "nsm_enforcer_assignments": [],
+                "nsm_enforcement_point": None,
                 "nsm_interface_analysis": [
                     {
                         "pk": 170,

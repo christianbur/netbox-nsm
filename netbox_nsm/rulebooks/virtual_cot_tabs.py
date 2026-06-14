@@ -5,7 +5,8 @@ from __future__ import annotations
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from netbox_nsm.rulebooks.rules_tab_base import rules_tab_badge_for_object
+from netbox_nsm.rulebooks.permissions import can_view_rulebook
+from netbox_nsm.rulebooks.rules_tab import rules_tab_badge_for_object
 from utilities.views import ViewTab
 
 __all__ = ("build_virtual_cot_rulebook_tabs",)
@@ -21,20 +22,20 @@ _COT_TAB_SPECS = (
         "view_tab": ViewTab(
             label=_("Rules"),
             badge=rules_tab_badge_for_object,
-            permission="netbox_nsm.view_rulebook",
             weight=100,
         ),
+        "requires_rulebook_view": True,
     },
     {
         "key": "matrix",
         "url_name": "cot_rulebook_matrix",
         "view_tab": ViewTab(
             label=_("Matrix"),
-            permission="netbox_nsm.view_rulebook",
             weight=300,
             hide_if_empty=True,
             visible=_cot_matrix_tab_visible,
         ),
+        "requires_rulebook_view": True,
     },
     {
         "key": "changelog",
@@ -52,10 +53,14 @@ def build_virtual_cot_rulebook_tabs(
     request, instance, *, active_key: str | None = None
 ) -> list[dict]:
     user = request.user
+    cot = getattr(instance, "cot", None)
     tabs: list[dict] = []
     for spec in _COT_TAB_SPECS:
         view_tab = spec["view_tab"]
-        if view_tab.permission and not user.has_perm(view_tab.permission):
+        if spec.get("requires_rulebook_view"):
+            if cot is None or not can_view_rulebook(user, cot):
+                continue
+        elif view_tab.permission and not user.has_perm(view_tab.permission):
             continue
         rendered = view_tab.render(instance)
         if rendered is None:

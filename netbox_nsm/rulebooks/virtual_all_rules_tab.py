@@ -12,7 +12,7 @@ from netbox_nsm.rulebooks.rules_layout import (
     cot_rule_instances_queryset,
 )
 from netbox_nsm.rulebooks.rules_tab import build_cot_rulebook_rules_tab_context
-from netbox_nsm.rulebooks.grid_payload import (
+from netbox_nsm.rulebooks.grid import (
     apply_ag_grid_row_filter,
     build_rulebook_rules_grid_row,
 )
@@ -23,7 +23,7 @@ from netbox_nsm.rulebooks.rules_row_grouping import (
     resolve_row_group_tab,
     row_group_sort_applies_to_groups,
 )
-from netbox_nsm.rulebooks.rules_tab_base import (
+from netbox_nsm.rulebooks.rules_tab import (
     RULES_SYSTEM_FIELDS,
     _attach_rules_cells,
     _annotate_rules_columns,

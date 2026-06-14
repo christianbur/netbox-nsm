@@ -43,12 +43,12 @@ class NsmConfigFormatTests(TestCase):
         config = normalize_nsm_config_list(legacy)
         self.assertEqual(config["sort_order"], 11)
 
-    def test_panel_block_in_legacy_yaml_is_ignored(self):
+    def test_panel_block_in_yaml_is_parsed(self):
         legacy = [
             {"rule_view": {"sort_order": 10, "display_template": "{name}"}},
             {
                 "panel": {
-                    "allow_virtual_groups": True,
+                    "panel_linkable": True,
                     "inherit_links": True,
                     "inherit_stop_on_own": True,
                     "panel_linkable_types": ["ipam.prefix"],
@@ -56,4 +56,5 @@ class NsmConfigFormatTests(TestCase):
             },
         ]
         config = normalize_nsm_config_list(legacy)
-        self.assertEqual(config, {"sort_order": 10, "display_template": "{name}"})
+        self.assertEqual(config["sort_order"], 10)
+        self.assertEqual(config["panel"]["inherit_links"], True)

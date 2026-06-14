@@ -7,14 +7,14 @@ from collections import defaultdict
 from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
 
-from netbox_nsm.analysis.addr_analysis_utils import _object_is_addr_analyzable
+from netbox_nsm.analysis.addr_analysis_utils import object_is_addr_analyzable
 from netbox_nsm.rulebooks.templates import _OBJECT_TYPE_LABELS, _field_display_label
 from netbox_nsm.core.interface_parent import (
     interface_parent_host_payload,
     prefetch_interface_parents,
 )
 from netbox_nsm.core.nsm_object_status import get_nsm_object_status
-from netbox_nsm.rulebooks.cell_render import DEFAULT_MAX_VISIBLE_PILLS, _render_rules_cell
+from netbox_nsm.rulebooks.rules_pill_render import DEFAULT_MAX_VISIBLE_PILLS, render_rules_pill_cell
 
 __all__ = (
     "apply_cot_system_field_filters",
@@ -424,7 +424,7 @@ def _object_item_dict(
         "excluded": False,
         "ct": ct_pk,
         "pk": getattr(obj, "pk", None),
-        "addrAnalyzable": _object_is_addr_analyzable(
+        "addrAnalyzable": object_is_addr_analyzable(
             obj, ct_pk, address_ct_ids=address_ct_ids
         ),
         **interface_parent_host_payload(obj),
@@ -642,7 +642,7 @@ def build_cot_grouped_rules_table_data(
         for key, items in per_key.items():
             cells_items[key] = items
             if object_field_names is None:
-                cells[key] = _render_rules_cell(
+                cells[key] = render_rules_pill_cell(
                     items, max_pills=DEFAULT_MAX_VISIBLE_PILLS, colored=True
                 )
             cells_filter[key] = " ".join(item["name"] for item in items)

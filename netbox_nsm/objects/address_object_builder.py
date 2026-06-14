@@ -8,6 +8,7 @@ from typing import Any, Iterable
 from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
 
+from netbox_nsm.objects.address_literal import is_literal_address
 from netbox_nsm.objects.object_builder_config import (
     BUILDABLE_IPAM_STATUSES,
     BUILDER_IGNORE_STATUS,
@@ -284,8 +285,11 @@ def _iter_queryset_or_sequence(qs_or_iterable):
 
 
 def index_addresses_by_ipam_key(addr_qs) -> dict[IpamKey, list]:
+    """Index IPAM-linked addresses; literal-only rows (e.g. ANY) are excluded."""
     index: dict[IpamKey, list] = {}
     for addr in _iter_queryset_or_sequence(addr_qs):
+        if is_literal_address(addr):
+            continue
         key = ipam_key_for_address(addr)
         if key is None:
             continue
@@ -444,6 +448,8 @@ def scan_sync_state(
 
     if addr_model is not None:
         for addr in addr_model.objects.iterator():
+            if is_literal_address(addr):
+                continue
             key = ipam_key_for_address(addr)
             if key is None:
                 continue

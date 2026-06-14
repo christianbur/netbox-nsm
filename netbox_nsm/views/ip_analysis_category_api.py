@@ -1,7 +1,8 @@
 """
-Lazy-load prefix inventory categories for the IP Analyzer tree.
+Lazy-load prefix/range inventory for the IP Analyzer tree.
 
 GET /plugins/netbox-nsm/api/ip-analysis/category/?prefix_pk=&category=&offset=
+GET /plugins/netbox-nsm/api/ip-analysis/category/?range_pk=&offset=
 """
 
 from __future__ import annotations
@@ -13,10 +14,13 @@ from django.views import View
 
 from netbox_nsm.analysis.addr_analysis_utils import (
     _build_addr_tree_node,
+    _build_ipam_range_resolve_nodes,
     _enrich_addr_tree_copy_lines,
     _enrich_addr_tree_leaf_counts,
+    _ipam_range_ip_count,
     _prefix_ipam_stats,
     _query_ipam_category_objects,
+    _query_ipam_range_ip_objects,
 )
 
 __all__ = ("IpAnalysisCategoryApiView",)
@@ -26,21 +30,70 @@ _VALID_CATEGORIES = frozenset(
 )
 
 
+def _build_category_drilldown_nodes(obj, category):
+    """Build resolved tree nodes for one lazy-loaded inventory page."""
+    if category == "ip_ranges":
+        try:
+            from ipam.models import IPRange
+        except ImportError:
+            return []
+        if isinstance(obj, IPRange):
+            node = _build_ipam_range_resolve_nodes(obj, set())
+            return [node] if node else []
+    node = _build_addr_tree_node(obj, set())
+    return [node] if node else []
+
+
 class IpAnalysisCategoryApiView(LoginRequiredMixin, View):
     http_method_names = ["get"]
 
     def get(self, request):
         prefix_pk = request.GET.get("prefix_pk")
+        range_pk = request.GET.get("range_pk")
         category = request.GET.get("category")
         offset_raw = request.GET.get("offset", "0")
-
-        if not (str(prefix_pk).isdigit() and category in _VALID_CATEGORIES):
-            return JsonResponse({"error": "prefix_pk and category required"}, status=400)
 
         try:
             offset = max(int(offset_raw), 0)
         except (TypeError, ValueError):
             offset = 0
+
+        if str(range_pk).isdigit():
+            from ipam.models import IPRange
+
+            ip_range = IPRange.objects.filter(pk=int(range_pk)).first()
+            if ip_range is None:
+                return JsonResponse({"error": "range not found"}, status=404)
+
+            objs = _query_ipam_range_ip_objects(ip_range, offset=offset)
+            total = _ipam_range_ip_count(ip_range)
+            nodes = []
+            for obj in objs:
+                node = _build_addr_tree_node(obj, set())
+                if node:
+                    _enrich_addr_tree_copy_lines(node)
+                    _enrich_addr_tree_leaf_counts(node)
+                    nodes.append(node)
+            loaded = offset + len(nodes)
+            html = render_to_string(
+                "netbox_nsm/inc/addr_tree_nodes_fragment.html",
+                {"nodes": nodes, "depth": 2, "prefix": "lazy", "show_copy": True},
+                request=request,
+            )
+            return JsonResponse(
+                {
+                    "html": html,
+                    "loaded": loaded,
+                    "total": total,
+                    "has_more": loaded < total,
+                }
+            )
+
+        if not (str(prefix_pk).isdigit() and category in _VALID_CATEGORIES):
+            return JsonResponse(
+                {"error": "prefix_pk and category, or range_pk required"},
+                status=400,
+            )
 
         from ipam.models import Prefix
 
@@ -51,8 +104,7 @@ class IpAnalysisCategoryApiView(LoginRequiredMixin, View):
         objs = _query_ipam_category_objects(prefix, category, offset=offset)
         nodes = []
         for obj in objs:
-            node = _build_addr_tree_node(obj, set())
-            if node:
+            for node in _build_category_drilldown_nodes(obj, category):
                 _enrich_addr_tree_copy_lines(node)
                 _enrich_addr_tree_leaf_counts(node)
                 nodes.append(node)
@@ -60,7 +112,7 @@ class IpAnalysisCategoryApiView(LoginRequiredMixin, View):
         stats = _prefix_ipam_stats(prefix)
         stat = stats.get(category) or {}
         total = int(stat.get("count") or 0)
-        loaded = offset + len(nodes)
+        loaded = offset + len(objs)
 
         html = render_to_string(
             "netbox_nsm/inc/addr_tree_nodes_fragment.html",

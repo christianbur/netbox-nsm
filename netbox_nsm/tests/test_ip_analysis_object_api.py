@@ -50,7 +50,22 @@ class IpAnalysisObjectDrilldownApiTests(SimpleTestCase):
         content_type_cls.objects.filter.return_value.first.return_value = ct
 
         build_nodes_fn.return_value = (
-            [{"name": "child-prefix", "kind": "category", "children": []}],
+            [
+                {
+                    "name": "10.0.0.0/24",
+                    "kind": "group",
+                    "layer": "ipam_prefix",
+                    "node_role": "ipam_prefix",
+                    "children": [
+                        {
+                            "name": "10.0.0.1/32",
+                            "kind": "leaf",
+                            "node_role": "nsm_host",
+                            "children": [],
+                        }
+                    ],
+                }
+            ],
             ["bench-ip,10.0.0.1/32"],
         )
         render_fn.return_value = "<div>drilldown</div>"

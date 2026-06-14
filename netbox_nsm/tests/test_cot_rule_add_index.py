@@ -175,7 +175,7 @@ class CotRuleAddIndexFormTests(TestCase):
         self.assertContains(response, "Copy of source-rule")
 
     def test_rules_actions_dropdown_includes_clone_link(self):
-        from netbox_nsm.rulebooks.rules_tab_base import _render_actions_cell_html
+        from netbox_nsm.rulebooks.rules_tab import _render_actions_cell_html
 
         html = _render_actions_cell_html(
             "/edit/",

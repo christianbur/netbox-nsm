@@ -74,9 +74,9 @@ def create_typeconfig_for_slug(slug: str) -> None:
 def create_all_typeconfigs() -> None:
     """Write bundled nsm_config YAML to all UI Custom Object Types."""
     from netbox_nsm.objects.builtin_types import BUILTIN_CUSTOM_TYPES
-    from netbox_nsm.views.custom_objects_sync import _sync_type_configs_and_sections
+    from netbox_nsm.views.custom_objects_sync import _sync_type_configs
 
-    _sync_type_configs_and_sections(BUILTIN_CUSTOM_TYPES)
+    _sync_type_configs(BUILTIN_CUSTOM_TYPES)
 
 
 def handles_action(action: str) -> bool:
@@ -94,6 +94,6 @@ def handle_typeconfig_action(request, action: str):
         create_all_typeconfigs()
         messages.success(
             request,
-            _("All Object Configs created/updated (including NSM section links)."),
+            _("All Object Configs created/updated in COT comments."),
         )
     return redirect(reverse("plugins:netbox_nsm:setup"))

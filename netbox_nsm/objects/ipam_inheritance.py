@@ -73,7 +73,9 @@ def nsm_address_q_for_ancestor(addr_model, ancestor, _ipam_obj=None):
     IPAM object. Only addresses linked to the containing prefix are inherited;
     direct FK rows on the child IPAM object are shown as direct panel links.
     """
-    return addr_model.objects.filter(prefix_id=ancestor.pk)
+    from netbox_nsm.objects.address_ipam_fk import addresses_for_ipam_object_queryset
+
+    return addresses_for_ipam_object_queryset(addr_model, ancestor)
 
 
 def direct_nsm_type_keys_for_ipam(ipam_obj, ipam_ct) -> set[str]:

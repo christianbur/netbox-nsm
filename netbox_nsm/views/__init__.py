@@ -15,7 +15,6 @@ from netbox_nsm.rulebooks.views.virtual_all import (
     AllRulesRulebookRulesView,
     AllRulesRulebookView,
 )
-from netbox_nsm.rulebooks.views.assignment import *
 from netbox_nsm.security.views import ObjectRulesApiView
 from .ip_analysis import IPAnalysisView
 from .ip_analysis_api import IpAnalysisApiView
@@ -31,13 +30,17 @@ from .type_config import (
     ObjectConfigListView,
     ObjectConfigView,
 )
-from .object_sync import ObjectSyncView
 from .inherited_links_api import InheritedLinksApiView
 from .object_link import (
     ObjectLinkAssignView,
     ObjectLinkEditView,
     ObjectLinkDeleteView,
     ObjectTypeElementsApiView,
+)
+from .rulebook_link import RulebookLinkAssignView, RulebookLinkDeleteView
+from .enforcement_point_link import (
+    EnforcementPointInterfaceAssignView,
+    EnforcementPointLinkDeleteView,
 )
 from .panel_link_actions import (
     AddressIpamFkClearView,

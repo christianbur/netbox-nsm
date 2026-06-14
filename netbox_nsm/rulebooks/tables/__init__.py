@@ -1,3 +1,3 @@
-from .rulebook import AssignedObjectsColumn, CotRulebookAssignmentTable, RulebookTable
+from .rulebook import AssignedObjectsColumn, RulebookTable
 
-__all__ = ("AssignedObjectsColumn", "CotRulebookAssignmentTable", "RulebookTable")
+__all__ = ("AssignedObjectsColumn", "RulebookTable")

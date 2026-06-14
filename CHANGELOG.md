@@ -6,7 +6,51 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [0.4.1] - 2026-06-12
+## [0.4.3] - 2026-06-14
+
+### Changed
+
+- **Migrations** — squash `0001`–`0007` into a single `0001_initial` with `replaces` (fresh installs + upgrades from 0.4.1/0.4.2 without re-running data migrations)
+- **Rulebook permissions** — UI and `nsm_config` API use per-COT `netbox-custom-objects`
+  permissions (view / change / add / delete on each rulebook's rule model) instead of global
+  `view_rulebook` / `add_rulebook`; legacy anchors removed (migration `0006`)
+- **Navigation** — Rulebooks and Object Analyzer menu items require login only; Add rulebook
+  button and page access are gated in views
+
+### Removed
+
+- **`Rulebook` permission anchor model** — `view_rulebook` / `add_rulebook` remain as legacy
+  fallbacks in code but are no longer registered in Django
+
+## [0.4.2] - 2026-06-12
+
+### Added
+
+- **`nsm_object_link.link_type` + `rulebook_slug`** — policy vs rulebook links on one COT; VDC on
+  `netbox_object`; portable schema + choice set `nsm_object_link_type`
+- **`nsm_config` areas + panel** — `rule_view.areas` and `panel` blocks in COT comments (replaces
+  Section M2M and TypeConfig panel fields)
+- **`nsm_analyze_address_sync`** management command — report-only address/IPAM sync analysis
+  (`--format json`, exit code on issues)
+- **Rulebook link UI** — assign/remove rulebooks via `nsm_object_link` (`rulebook-link/assign`,
+  bulk assign on rulebook detail)
+
+### Changed
+
+- **Breaking:** native tables `CotRulebookAssignment`, `Section`, `NsmUiSettings`, and data
+  `TypeConfig` removed; data migrated to COT comments / `nsm_object_link` (migration `0005`)
+- **UI labels** — `menu_label`, `panel_label`, `setup_menu` only via `PLUGINS_CONFIG` (no Setup GUI)
+- **Permissions** — rulebook host assignments use `netbox_custom_objects` on `nsm_object_link`;
+  `TypeConfig` retained as unmanaged permission anchor only
+- **Object Sync UI** removed; use `python manage.py nsm_analyze_address_sync`
+- **`/type-configs/` API** removed; SSOT is `/nsm-configs/<slug>/`
+
+### Removed
+
+- Object Sync view, navigation entry, filters/pagination helpers
+- Setup UI for menu/panel labels and hide-setup button
+- Rulebook Assignment CRUD views, API, and sidebar menu
+
 
 ### Added
 

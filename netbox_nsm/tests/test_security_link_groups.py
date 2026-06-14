@@ -11,7 +11,6 @@ from netbox_nsm.template_content import (
     _row_has_link_actions,
 )
 
-
 class RowHasLinkActionsTests(SimpleTestCase):
     def test_addr_analyzable_only(self):
         self.assertTrue(_row_has_link_actions({"addr_analyzable": True}))
@@ -161,7 +160,7 @@ class SecurityRulebookTreeTemplateTests(SimpleTestCase):
                     }
                 ],
                 "nsm_link_type_groups": [],
-                "nsm_enforcer_assignments": [],
+                "nsm_enforcement_point": None,
                 "nsm_api_url": "/api/object-rules/?ct_id=1&obj_id=2",
             },
         )
@@ -235,7 +234,7 @@ class SecurityRulebookTreeTemplateTests(SimpleTestCase):
                         ],
                     }
                 ],
-                "nsm_enforcer_assignments": [],
+                "nsm_enforcement_point": None,
                 "nsm_api_url": "/api/object-rules/?ct_id=1&obj_id=2",
             },
         )
@@ -268,7 +267,7 @@ class SecurityRulebookTreeTemplateTests(SimpleTestCase):
                         "objects": [{"name": "dmz", "url": "/zones/1/"}],
                     }
                 ],
-                "nsm_enforcer_assignments": [],
+                "nsm_enforcement_point": None,
                 "nsm_unique_rules_total": 0,
                 "nsm_api_url": "",
             },
@@ -286,7 +285,7 @@ class SecurityPanelHeaderActionsTemplateTests(SimpleTestCase):
             "nsm_page_addr_analyzable": False,
             "nsm_rulebook_groups": [],
             "nsm_link_type_groups": [],
-            "nsm_enforcer_assignments": [],
+            "nsm_enforcement_point": None,
         }
         context.update(overrides)
         html = render_to_string("netbox_nsm/inc/security_links.html", context)
@@ -356,7 +355,7 @@ class SecurityLinkRowActionsTemplateTests(SimpleTestCase):
                         ],
                     }
                 ],
-                "nsm_enforcer_assignments": [],
+                "nsm_enforcement_point": None,
             },
         )
         self.assertIn('class="btn-group btn-group-sm nsm-link-actions"', html)
@@ -412,7 +411,7 @@ class SecurityLinkRowActionsTemplateTests(SimpleTestCase):
                         ],
                     }
                 ],
-                "nsm_enforcer_assignments": [],
+                "nsm_enforcement_point": None,
             },
         )
         row_html = html.split('class="nsm-link-row"', 1)[1].split("</tr>", 1)[0]
@@ -453,7 +452,7 @@ class SecurityLinkRowActionsTemplateTests(SimpleTestCase):
                         ],
                     }
                 ],
-                "nsm_enforcer_assignments": [],
+                "nsm_enforcement_point": None,
             },
         )
         row_html = html.split('class="nsm-link-row"', 1)[1].split("</tr>", 1)[0]
@@ -496,7 +495,7 @@ class SecurityLinkRowActionsTemplateTests(SimpleTestCase):
                         ],
                     }
                 ],
-                "nsm_enforcer_assignments": [],
+                "nsm_enforcement_point": None,
             },
         )
         row_html = html.split('class="nsm-link-row"', 1)[1].split("</tr>", 1)[0]
@@ -546,7 +545,7 @@ class SecurityLinkRowActionsTemplateTests(SimpleTestCase):
                         ],
                     }
                 ],
-                "nsm_enforcer_assignments": [],
+                "nsm_enforcement_point": None,
             },
         )
         row_html = html.split('class="nsm-link-row"', 1)[1].split("</tr>", 1)[0]
@@ -590,7 +589,7 @@ class SecurityLinkRowActionsTemplateTests(SimpleTestCase):
                         ],
                     }
                 ],
-                "nsm_enforcer_assignments": [],
+                "nsm_enforcement_point": None,
             },
         )
         self.assertIn('aria-label="Edit assignment"', html)
@@ -611,7 +610,7 @@ class SecurityLinkTableHeaderTests(SimpleTestCase):
                 "nsm_page_addr_analyzable": False,
                 "nsm_rulebook_groups": [],
                 "nsm_link_type_groups": groups,
-                "nsm_enforcer_assignments": [],
+                "nsm_enforcement_point": None,
             },
         )
 
@@ -674,3 +673,90 @@ class SecurityLinkTableHeaderTests(SimpleTestCase):
         row_html = html.split('class="nsm-link-row"', 1)[1].split("</tr>", 1)[0]
         self.assertIn('class="col-comment"', row_html)
         self.assertIn("edge firewall", row_html)
+
+
+class EnforcementPointPanelTemplateTests(SimpleTestCase):
+    def test_renders_enforcement_point_root_with_nested_rulebooks(self):
+        html = render_to_string(
+            "netbox_nsm/inc/security_links.html",
+            {
+                "nsm_panel_label": "Security",
+                "nsm_security_badge": 1,
+                "nsm_unique_rules_total": 0,
+                "nsm_analyzer_url": "/analyzer/",
+                "nsm_assign_url": "/assign/",
+                "nsm_page_addr_analyzable": False,
+                "nsm_rulebook_groups": [],
+                "nsm_link_type_groups": [],
+                "nsm_enforcement_point": {
+                    "count": 1,
+                    "add_url": "/rulebook-link/?ct_id=1&obj_id=2",
+                    "rulebooks": [
+                        {
+                            "name": "Rulebook Demo",
+                            "url": "/plugins/netbox-nsm/rulebooks/demo/",
+                            "delete_url": "/enforcement-point/1/delete/",
+                        }
+                    ],
+                },
+                "nsm_api_url": "",
+            },
+        )
+        enforced_pos = html.index('id="nsm-cat-enforced"')
+        root_hdr = html[:enforced_pos]
+        self.assertIn(">Enforcement Point<", root_hdr)
+        self.assertNotIn(">Rulebook Demo<", root_hdr)
+        self.assertIn(">Rulebooks<", html[enforced_pos:])
+        self.assertIn(">Rulebook Demo<", html)
+        self.assertIn("nsm-enforcement-rulebooks-table", html)
+        self.assertIn("nsm-rb-hdr", html)
+        self.assertNotIn('class="ps-3 py-2 text-muted">None', html)
+
+    def test_hides_none_empty_state_when_enforcement_point_present(self):
+        html = render_to_string(
+            "netbox_nsm/inc/security_links.html",
+            {
+                "nsm_panel_label": "Security",
+                "nsm_security_badge": 1,
+                "nsm_unique_rules_total": 0,
+                "nsm_analyzer_url": "/analyzer/",
+                "nsm_assign_url": "/assign/",
+                "nsm_page_addr_analyzable": False,
+                "nsm_rulebook_groups": [],
+                "nsm_link_type_groups": [],
+                "nsm_enforcement_point": {
+                    "count": 1,
+                    "add_url": None,
+                    "rulebooks": [
+                        {
+                            "name": "Rulebook Demo",
+                            "url": "/plugins/netbox-nsm/rulebooks/demo/",
+                            "delete_url": None,
+                        }
+                    ],
+                },
+                "nsm_interface_analysis": [],
+                "nsm_api_url": "",
+            },
+        )
+        self.assertIn(">Enforcement Point<", html)
+        self.assertNotIn('class="ps-3 py-2 text-muted">None', html)
+
+    def test_hides_enforcement_point_section_when_empty(self):
+        html = render_to_string(
+            "netbox_nsm/inc/security_links.html",
+            {
+                "nsm_panel_label": "Security",
+                "nsm_security_badge": None,
+                "nsm_unique_rules_total": 0,
+                "nsm_analyzer_url": "/analyzer/",
+                "nsm_assign_url": "/assign/",
+                "nsm_page_addr_analyzable": False,
+                "nsm_rulebook_groups": [],
+                "nsm_link_type_groups": [],
+                "nsm_enforcement_point": None,
+                "nsm_api_url": "",
+            },
+        )
+        self.assertNotIn('id="nsm-cat-enforced"', html)
+        self.assertNotIn(">Enforcement Point<", html)

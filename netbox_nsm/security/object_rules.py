@@ -6,7 +6,7 @@ from urllib.parse import quote
 
 from django.urls import reverse
 
-from netbox_nsm.rulebooks.rules_tab_base import RULES_FILTER_PREFIX, _rules_param_token
+from netbox_nsm.rulebooks.rules_tab import RULES_FILTER_PREFIX, _rules_param_token
 
 __all__ = (
     "build_cot_object_field_column_filter_url",

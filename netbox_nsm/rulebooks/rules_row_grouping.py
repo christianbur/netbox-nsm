@@ -11,7 +11,7 @@ from django.core.cache import cache
 from django.db.models import Count, Q
 from django.utils.translation import gettext_lazy as _
 
-from netbox_nsm.rulebooks.grid_payload import enabled_status_labels
+from netbox_nsm.rulebooks.grid import enabled_status_labels
 
 __all__ = (
     "RULES_ROW_GROUP_TAB_QUERY_PARAM",
@@ -58,6 +58,8 @@ def _column_match_ids(col: dict) -> set[str]:
         str(col.get("slug") or ""),
         str(col.get("area_slug") or ""),
     }
+    for merged_key in col.get("merged_keys") or []:
+        ids.add(str(merged_key))
     return {value for value in ids if value}
 
 
@@ -84,9 +86,9 @@ def resolve_stored_row_group_column_id(
 
 def build_cot_row_group_column_choices(cot) -> list[tuple[str, str]]:
     """Groupable rules columns for a COT rulebook (long display labels)."""
-    from netbox_nsm.rulebooks.grid_payload import build_rulebook_rules_grid_column_defs
+    from netbox_nsm.rulebooks.grid import build_rulebook_rules_grid_column_defs
     from netbox_nsm.rulebooks.rules_layout import build_cot_rules_layout
-    from netbox_nsm.rulebooks.rules_tab_base import (
+    from netbox_nsm.rulebooks.rules_tab import (
         COLUMN_MODE_EXPANDED,
         attach_rules_column_defs_meta,
         flatten_rules_column_defs,
@@ -111,7 +113,7 @@ def row_group_column_label_for_cot(cot, column_id: str) -> str:
 
 def build_row_group_column_choices(flat_columns: list[dict]) -> list[tuple[str, str]]:
     """Dropdown choices: empty option plus groupable columns (long labels)."""
-    choices: list[tuple[str, str]] = [("", str(_("— none —")))]
+    choices: list[tuple[str, str]] = [("", str(_("None")))]
     for col in flat_columns:
         if not is_row_groupable_column(col):
             continue

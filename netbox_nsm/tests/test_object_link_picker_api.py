@@ -6,7 +6,6 @@ from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
 from ipam.models import Prefix
 
-from netbox_nsm.models import TypeConfig
 from utilities.testing import TestCase
 
 
@@ -25,11 +24,6 @@ class ObjectTypeElementsApiViewTests(TestCase):
         cls.prefix_a = _prefix("10.60.0.0/24")
         cls.prefix_b = _prefix("10.60.1.0/24")
         cls.prefix_ct = ContentType.objects.get_for_model(Prefix)
-        cls.type_config = TypeConfig.objects.create(
-            name="Picker Prefix Zones",
-            content_type=cls.prefix_ct,
-            display_template="{prefix}",
-        )
 
     def _api_url(self, **params):
         base = reverse("plugins:netbox_nsm:object_type_elements_api")

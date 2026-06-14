@@ -149,7 +149,70 @@ class IpAnalysisApiTests(SimpleTestCase):
         return_value=False,
     )
     @patch("netbox_nsm.analysis.ip_analysis_service.ContentType")
-    def test_object_tree_hidden_for_single_unique_object(
+    def test_multi_object_cell_shows_object_tree_for_drilldown(
+        self,
+        content_type_cls,
+        _group_container,
+        addr_ip_ref_fn,
+        analyzable_fn,
+        build_fn,
+        render_fn,
+    ):
+        """Rules cell with address + group: show NSM object tree (lazy IPAM drilldown)."""
+        addr_ip_ref_fn.return_value = {"str": "10.0.0.0/8", "url": "#"}
+        obj_a = MagicMock()
+        obj_a.pk = 1
+        obj_a.name = "g-10.0.0.0/8"
+        obj_a.get_absolute_url.return_value = "/g/1/"
+        obj_b = MagicMock()
+        obj_b.pk = 2
+        obj_b.name = "bench-ip"
+        obj_b.get_absolute_url.return_value = "/a/2/"
+
+        model_cls = MagicMock()
+        model_cls.objects.filter.return_value.first.side_effect = [obj_a, obj_b]
+
+        ct = MagicMock()
+        ct.model_class.return_value = model_cls
+        content_type_cls.objects.get.return_value = ct
+
+        analyzable_fn.return_value = True
+        build_fn.return_value = [
+            {
+                "field_name": "",
+                "types": [
+                    {
+                        "leaf_count": 2,
+                        "count_ips": 2,
+                        "nodes": [{"name": "merged-root", "kind": "group", "children": []}],
+                    }
+                ],
+            }
+        ]
+        render_fn.return_value = "<div>logical-merge</div>"
+
+        response = self.view(
+            self._auth_request(
+                "/plugins/netbox-nsm/api/ip-analysis/?ct=10&pk=1&ct=10&pk=2"
+            )
+        )
+
+        self.assertEqual(response.status_code, 200)
+        render_fn.assert_called_once()
+        ctx = render_fn.call_args[0][1]
+        self.assertTrue(ctx.get("object_tree"))
+        self.assertTrue(ctx.get("addr_analysis"))
+
+    @patch("netbox_nsm.analysis.ip_analysis_service.render_to_string")
+    @patch("netbox_nsm.analysis.ip_analysis_service._build_multi_object_addr_analysis")
+    @patch("netbox_nsm.analysis.ip_analysis_service._object_is_addr_analyzable")
+    @patch("netbox_nsm.analysis.addr_analysis_utils._addr_ip_ref")
+    @patch(
+        "netbox_nsm.analysis.addr_analysis_utils._addr_is_group_container",
+        return_value=False,
+    )
+    @patch("netbox_nsm.analysis.ip_analysis_service.ContentType")
+    def test_object_tree_shown_for_single_unique_object(
         self,
         content_type_cls,
         _group_container,
@@ -184,7 +247,7 @@ class IpAnalysisApiTests(SimpleTestCase):
         self.assertEqual(response.status_code, 200)
         render_fn.assert_called_once()
         ctx = render_fn.call_args[0][1]
-        self.assertFalse(ctx.get("object_tree"))
+        self.assertTrue(ctx.get("object_tree"))
 
     @patch("netbox_nsm.analysis.ip_analysis_service.render_to_string")
     @patch("netbox_nsm.analysis.ip_analysis_service._build_multi_object_addr_analysis")
@@ -234,10 +297,8 @@ class IpAnalysisApiTests(SimpleTestCase):
         self.assertEqual(data["html"], "<div>with-tree</div>")
         render_fn.assert_called_once()
         ctx = render_fn.call_args[0][1]
-        object_tree = ctx.get("object_tree")
-        self.assertTrue(object_tree)
-        self.assertEqual(len(object_tree), 2)
-        self.assertTrue(object_tree[1].get("is_doppelt"))
+        # Cell object tree (incl. doppelt markers) is always shown when nodes exist.
+        self.assertTrue(ctx.get("object_tree"))
         self.assertEqual(len(data["objects"]), 1)
         build_fn.assert_called_once()
         self.assertEqual(len(build_fn.call_args[0][0]), 1)
@@ -246,6 +307,10 @@ class IpAnalysisApiTests(SimpleTestCase):
             "netbox_nsm/inc/addr_analysis_applet_body.html",
         )
 
+    @patch(
+        "netbox_nsm.analysis.ip_analysis_service._build_ipa_cell_object_tree",
+        return_value=[],
+    )
     @patch(
         "netbox_nsm.analysis.ip_analysis_service._leaf_count_for_addr_analysis", return_value=0
     )
@@ -258,6 +323,7 @@ class IpAnalysisApiTests(SimpleTestCase):
         analyzable_fn,
         build_fn,
         leaf_count_fn,
+        _cell_tree_fn,
     ):
         obj = MagicMock()
         obj.pk = 5
@@ -330,7 +396,7 @@ class IpAnalysisApiTests(SimpleTestCase):
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.content)
         self.assertEqual(data["html"], "<div>prefix-analysis</div>")
-        self.assertEqual(data["leaf_count"], 1)
+        self.assertEqual(data["leaf_count"], 2)
         self.assertEqual(data["count_subnets"], 1)
         self.assertEqual(data["count_ranges"], 0)
         self.assertEqual(data["count_ips"], 1)
@@ -482,3 +548,60 @@ class IpAnalysisApiTests(SimpleTestCase):
         self.assertEqual(len(side_specs), 3)
         self.assertEqual(side_specs[0]["label"], "Tab 1")
         self.assertEqual(side_specs[2]["label"], "Tab 3")
+
+    @patch("netbox_nsm.analysis.ip_analysis_service._build_multi_object_addr_analysis")
+    @patch("netbox_nsm.analysis.ip_analysis_service._object_is_addr_analyzable")
+    @patch("netbox_nsm.analysis.ip_analysis_service.ContentType")
+    def test_returns_yaml_attachment_for_format_yaml(
+        self,
+        content_type_cls,
+        analyzable_fn,
+        build_fn,
+    ):
+        obj = MagicMock()
+        obj.pk = 42
+        obj.name = "demo-addr"
+
+        model_cls = MagicMock()
+        model_cls.objects.filter.return_value.first.return_value = obj
+
+        ct = MagicMock()
+        ct.model_class.return_value = model_cls
+        content_type_cls.objects.get.return_value = ct
+
+        analyzable_fn.return_value = True
+        build_fn.return_value = [
+            {
+                "field_name": "",
+                "types": [
+                    {
+                        "leaf_count": 1,
+                        "all_copy_lines": ["all,demo-addr,10.0.0.1"],
+                        "nodes": [
+                            {
+                                "name": "demo-addr",
+                                "kind": "leaf",
+                                "ip_ref": {"str": "10.0.0.1"},
+                                "copy_lines": ["all,demo-addr,10.0.0.1"],
+                                "children": [],
+                            }
+                        ],
+                    }
+                ],
+            }
+        ]
+
+        response = self.view(
+            self._auth_request(
+                "/plugins/netbox-nsm/api/ip-analysis/"
+                "?format=yaml&ct=10&pk=42&export_title=demo-addr"
+            )
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "text/yaml; charset=utf-8")
+        self.assertIn('filename="demo-addr-merge.yaml"', response["Content-Disposition"])
+        self.assertIn(b"ipa_export_version:", response.content)
+        self.assertIn(b"copy_lines:", response.content)
+        self.assertIn(b"addr_analysis:", response.content)
+        self.assertNotIn(b'"html"', response.content)

@@ -9,6 +9,7 @@ from netbox_nsm.objects.address_ipam_fk import (
     NSM_ADDRESSES_SLUG,
     is_nsm_address_object,
     iter_address_ipam_fk_refs,
+    iter_addresses_for_ipam_object,
     panel_link_type_for_address_ipam_fk,
 )
 
@@ -81,6 +82,57 @@ class AddressIpamFkRefTests(SimpleTestCase):
             range=None,
         )
         self.assertEqual(list(iter_address_ipam_fk_refs(addr)), [])
+
+    @patch("netbox_nsm.objects.address_ipam_fk.get_nsm_address_model")
+    @patch("django.contrib.contenttypes.models.ContentType.objects.get_for_model")
+    def test_iter_addresses_for_ipam_object_polymorphic(
+        self, get_for_model, get_addr_model
+    ):
+        prefix = SimpleNamespace(pk=10, prefix="10.112.146.0/24")
+        addr_a = SimpleNamespace(pk=1, name="dm-addr-10-112-146-0-24")
+        addr_b = SimpleNamespace(pk=2, name="dm-addr-legacy")
+
+        addr_model = MagicMock()
+        addr_model.objects.filter.return_value.order_by.return_value = [addr_a]
+        get_addr_model.return_value = addr_model
+
+        ipam_ct = SimpleNamespace(pk=70)
+        get_for_model.return_value = ipam_ct
+
+        rows = list(iter_addresses_for_ipam_object(prefix))
+        self.assertEqual(len(rows), 1)
+        self.assertIs(rows[0][0], addr_a)
+        self.assertEqual(rows[0][1], "address")
+        addr_model.objects.filter.assert_called_with(
+            address_content_type_id=70,
+            address_object_id=10,
+        )
+
+    @patch("netbox_nsm.objects.address_ipam_fk.get_nsm_address_model")
+    @patch("django.contrib.contenttypes.models.ContentType.objects.get_for_model")
+    def test_addresses_for_ipam_object_queryset_polymorphic(
+        self, get_for_model, get_addr_model
+    ):
+        from django.db.models import Q
+
+        from netbox_nsm.objects.address_ipam_fk import (
+            addresses_for_ipam_object_queryset,
+        )
+
+        prefix = SimpleNamespace(pk=10)
+        addr_model = MagicMock()
+        none_qs = MagicMock()
+        addr_model.objects.none.return_value = none_qs
+        filtered_qs = MagicMock()
+        addr_model.objects.filter.return_value = filtered_qs
+        get_addr_model.return_value = addr_model
+        get_for_model.return_value = SimpleNamespace(pk=70)
+
+        result = addresses_for_ipam_object_queryset(addr_model, prefix)
+        self.assertIs(result, filtered_qs)
+        addr_model.objects.filter.assert_called_once()
+        q = addr_model.objects.filter.call_args[0][0]
+        self.assertIsInstance(q, Q)
 
     def test_fk_field_name_from_filter_prefix(self):
         from netbox_nsm.objects.address_ipam_fk import fk_field_name_from_filter

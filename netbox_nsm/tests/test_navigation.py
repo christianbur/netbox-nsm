@@ -56,7 +56,7 @@ class NavigationMenuTests(TestCase):
         config_group = navigation._build_configuration_menu()[0]
         links = {item.link for item in config_group[1]}
         self.assertIn("plugins:netbox_nsm:objectconfig_list", links)
-        self.assertIn("plugins:netbox_nsm:object_sync", links)
+        self.assertNotIn("plugins:netbox_nsm:object_sync", links)
 
     @patch("netbox_nsm.navigation_objects.iter_nsm_object_menu_items")
     def test_objects_group_present_when_items_exist(self, iter_items):

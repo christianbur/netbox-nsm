@@ -4,18 +4,14 @@ from .cot import (
     CotRulebookMetadataForm,
     CotRulebookParentForm,
 )
-from .assignment import (
-    CotRulebookAssignmentFilterForm,
-    CotRulebookAssignmentForm,
-    CotRulebookBulkAssignForm,
-)
+from .bulk_assign import CotRulebookBulkAssignForm
+from .rulebook_link import RulebookLinkAssignForm
 
 __all__ = (
-    "CotRulebookAssignmentFilterForm",
-    "CotRulebookAssignmentForm",
     "CotRulebookBulkAssignForm",
     "CotRulebookCreateForm",
     "CotRulebookDetailForm",
     "CotRulebookMetadataForm",
     "CotRulebookParentForm",
+    "RulebookLinkAssignForm",
 )

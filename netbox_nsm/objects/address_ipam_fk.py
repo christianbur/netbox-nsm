@@ -5,7 +5,7 @@ Supports the polymorphic ``address`` GFK (``address_content_type_id`` /
 ``address_object_id``) and legacy per-type FK fields.
 
 Reverse lookup (IPAM object → addresses) lives in ``template_content`` and
-``analyzer._helpers.addr_fk_edges``; this module covers address → IPAM.
+``analyzer.edge_sources.addr_fk_edges``; this module covers address → IPAM.
 """
 
 from __future__ import annotations
@@ -21,6 +21,8 @@ __all__ = (
     "get_nsm_address_model",
     "is_nsm_address_object",
     "iter_address_ipam_fk_refs",
+    "iter_addresses_for_ipam_object",
+    "addresses_for_ipam_object_queryset",
     "panel_link_type_for_address_ipam_fk",
     "fk_field_name_from_filter",
 )
@@ -129,6 +131,94 @@ def iter_address_ipam_fk_refs(addr_obj) -> Iterator[AddressIpamFkRef]:
         yield from polymorphic
         return
     yield from _iter_legacy_refs(addr_obj)
+
+
+def _legacy_fk_attr_for_ipam_object(ipam_obj) -> tuple[str, str] | None:
+    """Return ``(fk_attr, field_name)`` for a legacy IPAM FK on *ipam_obj*, if any."""
+    model_name = type(ipam_obj).__name__
+    mapping = {
+        "Prefix": ("prefix_id", "prefix"),
+        "IPAddress": ("ip_address_id", "ip_address"),
+        "IPRange": ("range_id", "range"),
+    }
+    entry = mapping.get(model_name)
+    if entry is None:
+        return None
+    return entry
+
+
+def _addr_model_supports_legacy_fk(addr_model, fk_attr: str) -> bool:
+    try:
+        addr_model._meta.get_field(fk_attr)
+        return True
+    except Exception:
+        return False
+
+
+def iter_addresses_for_ipam_object(ipam_obj) -> Iterator[tuple[object, str]]:
+    """
+    Yield ``(nsm_address, field_name)`` rows referencing *ipam_obj*.
+
+    Covers polymorphic ``address`` GFK and legacy ``prefix`` / ``ip_address`` /
+    ``range`` FK columns.
+    """
+    if ipam_obj is None or not getattr(ipam_obj, "pk", None):
+        return
+
+    addr_model = get_nsm_address_model()
+    if addr_model is None:
+        return
+
+    from django.contrib.contenttypes.models import ContentType
+
+    seen: set[int] = set()
+    ipam_ct = ContentType.objects.get_for_model(ipam_obj)
+
+    for addr in addr_model.objects.filter(
+        **{
+            _POLYMORPHIC_CT_ATTR: ipam_ct.pk,
+            _POLYMORPHIC_OBJ_ATTR: ipam_obj.pk,
+        }
+    ).order_by("name"):
+        if addr.pk in seen:
+            continue
+        seen.add(addr.pk)
+        yield addr, _POLYMORPHIC_FIELD
+
+    legacy = _legacy_fk_attr_for_ipam_object(ipam_obj)
+    if legacy is not None:
+        fk_attr, field_name = legacy
+        if _addr_model_supports_legacy_fk(addr_model, fk_attr):
+            for addr in addr_model.objects.filter(**{fk_attr: ipam_obj.pk}).order_by(
+                "name"
+            ):
+                if addr.pk in seen:
+                    continue
+                seen.add(addr.pk)
+                yield addr, field_name
+
+
+def addresses_for_ipam_object_queryset(addr_model, ipam_obj):
+    """QuerySet of ``nsm_addresses`` rows referencing *ipam_obj*."""
+    from django.contrib.contenttypes.models import ContentType
+    from django.db.models import Q
+
+    if addr_model is None or ipam_obj is None or not getattr(ipam_obj, "pk", None):
+        return addr_model.objects.none() if addr_model is not None else None
+
+    ipam_ct = ContentType.objects.get_for_model(ipam_obj)
+    q = Q(
+        **{
+            _POLYMORPHIC_CT_ATTR: ipam_ct.pk,
+            _POLYMORPHIC_OBJ_ATTR: ipam_obj.pk,
+        }
+    )
+    legacy = _legacy_fk_attr_for_ipam_object(ipam_obj)
+    if legacy is not None:
+        fk_attr, _field_name = legacy
+        if _addr_model_supports_legacy_fk(addr_model, fk_attr):
+            q |= Q(**{fk_attr: ipam_obj.pk})
+    return addr_model.objects.filter(q)
 
 
 def clear_address_ipam_link(addr) -> list[str]:

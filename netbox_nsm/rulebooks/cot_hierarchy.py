@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from django.utils.translation import gettext_lazy as _
+
 from netbox_nsm.rulebooks.hierarchy import cot_rulebook_tree_order, hierarchy_depth
 from netbox_nsm.rulebooks.registry import get_deployed_cot_rulebook, iter_deployed_cot_rulebooks
 from netbox_nsm.rulebooks.templates import is_deployed_rulebook_slug
@@ -108,7 +110,7 @@ def validate_cot_parent_slug(
 
 def deployed_rulebook_parent_choices(*, exclude_slugs: set[str] | None = None) -> list[tuple[str, str]]:
     exclude = exclude_slugs or set()
-    choices: list[tuple[str, str]] = [("", "──────────")]
+    choices: list[tuple[str, str]] = [("", str(_("None")))]
     for cot in iter_deployed_cot_rulebooks():
         if cot.slug in exclude:
             continue

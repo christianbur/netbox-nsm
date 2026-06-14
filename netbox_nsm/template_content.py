@@ -155,36 +155,28 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
             }
 
         # ── NSM address objects that reference this IPAM object via FK ────
-        # nsm_addresses has ip_address / prefix / range FK fields pointing to
-        # IPAM objects.  Show them in the panel even without an ObjectLink.
+        # Polymorphic ``address`` GFK and legacy prefix/ip/range FK columns.
         try:
             from ipam.models import (
                 Prefix as _Prefix,
                 IPAddress as _IPAddress,
                 IPRange as _IPRange,
             )
-            from netbox_custom_objects.models import CustomObjectType as _COT
 
-            from netbox_nsm.objects.address_ipam_fk import fk_field_name_from_filter
+            from netbox_nsm.objects.address_ipam_fk import (
+                get_nsm_address_model,
+                iter_addresses_for_ipam_object,
+            )
 
-            _addr_cot = _COT.objects.filter(slug="nsm_addresses").first()
-            if _addr_cot:
-                _AddrModel = _addr_cot.get_model()
-                _addr_ct = ContentType.objects.get_for_model(_AddrModel)
-                _addr_type_key = f"{_addr_ct.app_label}__{_addr_ct.model}"
-                _fk_filter = None
-                if isinstance(obj, _IPAddress):
-                    _fk_filter = {"ip_address_id": obj.pk}
-                elif isinstance(obj, _Prefix):
-                    _fk_filter = {"prefix_id": obj.pk}
-                elif isinstance(obj, _IPRange):
-                    _fk_filter = {"range_id": obj.pk}
-                _fk_field_name = fk_field_name_from_filter(_fk_filter)
-                if _fk_filter and _fk_field_name:
+            if isinstance(obj, (_IPAddress, _Prefix, _IPRange)):
+                _AddrModel = get_nsm_address_model()
+                if _AddrModel is not None:
+                    _addr_ct = ContentType.objects.get_for_model(_AddrModel)
+                    _addr_type_key = f"{_addr_ct.app_label}__{_addr_ct.model}"
                     _fk_existing_urls = {
                         o["url"] for g in links_by_type.values() for o in g["objects"]
                     }
-                    for _addr_obj in _AddrModel.objects.filter(**_fk_filter):
+                    for _addr_obj, _fk_field_name in iter_addresses_for_ipam_object(obj):
                         _addr_url = (
                             _addr_obj.get_absolute_url()
                             if hasattr(_addr_obj, "get_absolute_url")
@@ -367,26 +359,19 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
 
         security_badge = unique_rules_total + total_links or None
 
-        # ── Enforced rulebooks (Device/VM/VDC only) ───────────────────────
-        from netbox_nsm.models import CotRulebookAssignment
-
-        enforcer_assignments = []
-        enforcer_add_url = None
+        # ── Enforcement point rulebooks (Device/VM/VDC only) ─────────────
+        nsm_enforcement_point = None
         try:
-            from dcim.models import Device, VirtualDeviceContext
-            from virtualization.models import VirtualMachine
+            from netbox_nsm.security.enforcement_point_panel import (
+                build_enforcement_point_panel,
+            )
 
-            if isinstance(obj, (Device, VirtualMachine, VirtualDeviceContext)):
-                enforcer_assignments = list(
-                    CotRulebookAssignment.objects.filter(
-                        assigned_object_type=ct,
-                        assigned_object_id=obj.pk,
-                    ).order_by("cot_slug")
-                )
-                enforcer_add_url = (
-                    reverse("plugins:netbox_nsm:cotrulebookassignment_add")
-                    + f"?assigned_object_type={ct.pk}&assigned_object_id={obj.pk}&return_url={return_url}"
-                )
+            nsm_enforcement_point = build_enforcement_point_panel(
+                obj,
+                request=request,
+                panel_url=_panel_url,
+                return_url=return_url,
+            )
         except Exception:
             pass
 
@@ -424,8 +409,7 @@ class NsmSecurityLinksExtension(PluginTemplateExtension):
                 "nsm_page_object_ct": ct.pk,
                 "nsm_page_object_pk": obj.pk,
                 "nsm_page_object_name": obj_name,
-                "nsm_enforcer_assignments": enforcer_assignments,
-                "nsm_enforcer_add_url": enforcer_add_url,
+                "nsm_enforcement_point": nsm_enforcement_point,
                 "nsm_interface_analysis": nsm_interface_analysis,
             },
         )

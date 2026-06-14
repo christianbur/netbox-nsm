@@ -2,13 +2,13 @@
 
 from django.urls import reverse
 
-from utilities.testing import TestCase
-
 from netbox_nsm.rulebooks.templates import default_rulebook_schema_yaml
+from utilities.testing import TestCase
 
 
 class CotRulebookCreateViewTests(TestCase):
     def test_get_requires_login(self):
+        self.client.logout()
         response = self.client.get(reverse("plugins:netbox_nsm:cot_rulebook_add"))
         self.assertEqual(response.status_code, 302)
 
@@ -18,14 +18,14 @@ class CotRulebookCreateViewTests(TestCase):
         self.assertEqual(response.status_code, 403)
 
     def test_get_renders_wizard_with_add_permission(self):
-        self.add_permissions("netbox_nsm.add_rulebook")
+        self.add_permissions("netbox_custom_objects.add_customobjecttype")
         response = self.client.get(reverse("plugins:netbox_nsm:cot_rulebook_add"))
         self.assertEqual(response.status_code, 200)
         self.assertIn("form", response.context)
         self.assertContains(response, "Add Rulebook")
 
     def test_get_renders_define_and_preview_tabs(self):
-        self.add_permissions("netbox_nsm.add_rulebook")
+        self.add_permissions("netbox_custom_objects.add_customobjecttype")
         url = reverse("plugins:netbox_nsm:cot_rulebook_add")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -36,7 +36,7 @@ class CotRulebookCreateViewTests(TestCase):
         self.assertContains(response, "name: source")
 
     def test_get_shows_columns_from_default_schema(self):
-        self.add_permissions("netbox_nsm.add_rulebook")
+        self.add_permissions("netbox_custom_objects.add_customobjecttype")
         url = reverse("plugins:netbox_nsm:cot_rulebook_add")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -45,18 +45,24 @@ class CotRulebookCreateViewTests(TestCase):
         self.assertContains(response, "Zone, Label, Address, Address Group")
 
     def test_get_prefills_default_schema_yaml(self):
-        self.add_permissions("netbox_nsm.add_rulebook")
+        self.add_permissions("netbox_custom_objects.add_customobjecttype")
         response = self.client.get(reverse("plugins:netbox_nsm:cot_rulebook_add"))
-        self.assertContains(response, default_rulebook_schema_yaml().splitlines()[0])
+        self.assertEqual(
+            response.context["form"]["schema_yaml"].value().splitlines()[0],
+            default_rulebook_schema_yaml().splitlines()[0],
+        )
 
     def test_get_includes_schema_validity_indicator(self):
-        self.add_permissions("netbox_nsm.add_rulebook")
+        self.add_permissions("netbox_custom_objects.add_customobjecttype")
         response = self.client.get(reverse("plugins:netbox_nsm:cot_rulebook_add"))
         self.assertContains(response, "nsm-schema-yaml-validity")
-        self.assertContains(response, "cot_rulebook_schema_validate")
+        self.assertContains(
+            response,
+            reverse("plugins:netbox_nsm:cot_rulebook_schema_validate"),
+        )
 
     def test_schema_validate_endpoint_accepts_valid_yaml(self):
-        self.add_permissions("netbox_nsm.add_rulebook")
+        self.add_permissions("netbox_custom_objects.add_customobjecttype")
         url = reverse("plugins:netbox_nsm:cot_rulebook_schema_validate")
         response = self.client.post(
             url,
@@ -71,7 +77,7 @@ class CotRulebookCreateViewTests(TestCase):
         self.assertEqual(response.json(), {"valid": True})
 
     def test_schema_validate_endpoint_rejects_invalid_yaml(self):
-        self.add_permissions("netbox_nsm.add_rulebook")
+        self.add_permissions("netbox_custom_objects.add_customobjecttype")
         url = reverse("plugins:netbox_nsm:cot_rulebook_schema_validate")
         response = self.client.post(
             url,
@@ -81,3 +87,8 @@ class CotRulebookCreateViewTests(TestCase):
         payload = response.json()
         self.assertFalse(payload["valid"])
         self.assertIn("error", payload)
+
+    def test_legacy_add_rulebook_still_grants_create_access(self):
+        self.add_permissions("netbox_nsm.add_rulebook")
+        response = self.client.get(reverse("plugins:netbox_nsm:cot_rulebook_add"))
+        self.assertEqual(response.status_code, 200)

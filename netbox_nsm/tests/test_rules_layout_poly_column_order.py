@@ -5,7 +5,7 @@ import uuid
 from django.contrib.contenttypes.models import ContentType
 from extras.choices import CustomFieldTypeChoices
 
-from netbox_nsm.models import TypeConfig
+from netbox_nsm.objects.nsm_config import format_nsm_config_comment_yaml
 from netbox_nsm.rulebooks.rules_layout import (
     build_cot_rules_layout,
     cot_field_allowed_object_labels,
@@ -56,12 +56,14 @@ class RulesLayoutPolyColumnOrderTests(TestCase):
             (cls.label_cot, 11, "Labels"),
             (cls.address_cot, 12, "Addresses"),
         ):
-            ct = ContentType.objects.get_for_model(cot.get_model())
-            TypeConfig.objects.create(
-                name=name,
-                content_type=ct,
-                sort_order=sort_order,
-            )
+            cot.comments = format_nsm_config_comment_yaml(
+                {
+                    "sort_order": sort_order,
+                    "display_template": "{name}",
+                    "panel": {"panel_linkable": True},
+                }
+            ).rstrip()
+            cot.save(update_fields=["comments"])
 
         cls.rulebook = CustomObjectType.objects.create(
             name=f"nsm_rb_order_{suffix}",

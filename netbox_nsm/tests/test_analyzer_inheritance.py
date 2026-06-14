@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.analyzer._helpers import inherited_nsm_link_edges
+from netbox_nsm.analyzer.edge_sources import inherited_nsm_link_edges, rule_object_item_edges
 
 
 class AnalyzerInheritanceTests(SimpleTestCase):
@@ -32,3 +32,23 @@ class AnalyzerInheritanceTests(SimpleTestCase):
         edges = inherited_nsm_link_edges(MagicMock())
 
         self.assertEqual(edges, [])
+
+    @patch("netbox_nsm.analyzer.registry.node_from_object")
+    @patch("netbox_nsm.security.panel.scan_cot_security_references")
+    def test_rule_edges_use_rule_instance_not_panel_wrapper(
+        self,
+        scan_fn,
+        node_from_object_fn,
+    ):
+        rule_instance = MagicMock(pk=7)
+        panel_rule = MagicMock(_instance=rule_instance)
+        scan_fn.return_value = [
+            {"rule": panel_rule, "field_name": "source"},
+        ]
+        node_from_object_fn.return_value = MagicMock()
+
+        edges = rule_object_item_edges(MagicMock(pk=1), MagicMock())
+
+        self.assertEqual(len(edges), 1)
+        self.assertEqual(edges[0].edge_label, "Regel (source)")
+        node_from_object_fn.assert_called_once_with(rule_instance)

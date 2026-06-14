@@ -2,8 +2,8 @@
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.rulebooks.grid_payload import build_rulebook_rules_grid_column_defs
-from netbox_nsm.rulebooks.rules_tab_base import (
+from netbox_nsm.rulebooks.grid import build_rulebook_rules_grid_column_defs
+from netbox_nsm.rulebooks.rules_tab import (
     COLUMN_MODE_EXPANDED,
     _annotate_rules_columns,
     attach_rules_column_defs_meta,

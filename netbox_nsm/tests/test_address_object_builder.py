@@ -20,6 +20,7 @@ from netbox_nsm.objects.address_object_builder import (
     scan_sync_state,
 )
 from netbox_nsm.objects.object_builder_config import BUILDER_IGNORE_STATUS
+from netbox_nsm.objects.address_literal import format_network_nsm_config_comments
 from netbox_nsm.objects.nsm_config import (
     format_nsm_config_comment_yaml,
     parse_nsm_config_from_comments,
@@ -140,6 +141,21 @@ class IpamKeyIndexTests(SimpleTestCase):
             prefix=SimpleNamespace(pk=1),
         )
         self.assertEqual(ipam_key_for_address(addr), (3, 9))
+
+    def test_index_skips_literal_addresses(self):
+        literal = SimpleNamespace(
+            name="ANY",
+            comments=format_network_nsm_config_comments("0.0.0.0/0").rstrip(),
+        )
+        linked = SimpleNamespace(
+            name="server-net",
+            address_content_type_id=10,
+            address_object_id=5,
+        )
+        index = index_addresses_by_ipam_key([literal, linked])
+        self.assertEqual(len(index), 1)
+        self.assertEqual(len(index[(10, 5)]), 1)
+        self.assertEqual(index[(10, 5)][0].name, "server-net")
 
 
 class IgnoredStatusBuildTests(SimpleTestCase):

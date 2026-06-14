@@ -2,7 +2,7 @@
 
 from types import SimpleNamespace
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.core.exceptions import ValidationError
 from django.test import SimpleTestCase
@@ -17,12 +17,16 @@ from netbox_nsm.rulebooks.virtual_cot import VirtualCotRulebook
 
 
 def _virtual_row(slug: str, name: str, *, parent_slug: str = "") -> VirtualCotRulebook:
+    fields = MagicMock()
+    fields.values_list.return_value = []
+    fields.order_by.return_value = []
     cot = SimpleNamespace(
         pk=1,
         slug=slug,
         verbose_name=name,
         name=name,
         description="",
+        fields=fields,
     )
     row = VirtualCotRulebook(cot, rule_count=0)
     row.parent_slug = parent_slug

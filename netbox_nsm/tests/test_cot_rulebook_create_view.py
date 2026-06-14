@@ -13,7 +13,6 @@ class CotRulebookCreateViewTests(TestCase):
         self.assertEqual(response.status_code, 302)
 
     def test_get_forbidden_without_add_permission(self):
-        self.add_permissions("netbox_nsm.view_rulebook")
         response = self.client.get(reverse("plugins:netbox_nsm:cot_rulebook_add"))
         self.assertEqual(response.status_code, 403)
 
@@ -88,7 +87,10 @@ class CotRulebookCreateViewTests(TestCase):
         self.assertFalse(payload["valid"])
         self.assertIn("error", payload)
 
-    def test_legacy_add_rulebook_still_grants_create_access(self):
-        self.add_permissions("netbox_nsm.add_rulebook")
-        response = self.client.get(reverse("plugins:netbox_nsm:cot_rulebook_add"))
-        self.assertEqual(response.status_code, 200)
+    def test_create_access_requires_add_customobjecttype(self):
+        from netbox_nsm.rulebooks.permissions import can_create_rulebook
+
+        self.assertFalse(can_create_rulebook(self.user))
+        self.add_permissions("netbox_custom_objects.add_customobjecttype")
+        self.user = self.user.__class__.objects.get(pk=self.user.pk)
+        self.assertTrue(can_create_rulebook(self.user))

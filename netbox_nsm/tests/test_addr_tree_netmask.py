@@ -7,7 +7,6 @@ from django.test import SimpleTestCase
 
 from netbox_nsm.analysis.addr_analysis_utils import (
     _attach_addr_node_prefix_display,
-    _build_addr_tree_node,
 )
 
 _PLUGIN_ROOT = Path(__file__).resolve().parents[1]
@@ -29,7 +28,13 @@ class AddrTreePrefixDisplayTests(SimpleTestCase):
         prefix.__str__ = lambda self: "172.16.0.0/12"
         prefix.get_absolute_url.return_value = "/ipam/prefixes/2/"
 
-        node = _build_addr_tree_node(prefix)
+        node = {"name": "172.16.0.0/12", "kind": "leaf", "children": []}
+        ip_ref = {
+            "str": "172.16.0.0/12",
+            "url": "/ipam/prefixes/2/",
+            "type": "Prefix",
+        }
+        _attach_addr_node_prefix_display(node, ip_ref=ip_ref)
         self.assertEqual(node["prefix_display_cidr"], "172.16.0.0/12")
         self.assertEqual(node["prefix_display_netmask"], "172.16.0.0/255.240.0.0")
 
@@ -55,17 +60,13 @@ class AddrTreePrefixDisplayTests(SimpleTestCase):
         self.assertEqual(node["prefix_display_netmask"], "10.246.2.1/255.255.255.255")
 
     def test_display_labels_for_ipam_ipaddress_object(self):
-        ip = MagicMock()
-        ip._meta.app_label = "ipam"
-        ip._meta.model_name = "ipaddress"
-        ip.address = "10.246.2.1/32"
-        ip.prefix = None
-        ip.ip_address = None
-        ip.range = None
-        ip.__str__ = lambda self: "10.246.2.1/32"
-        ip.get_absolute_url.return_value = "/ipam/ip-addresses/2/"
-
-        node = _build_addr_tree_node(ip)
+        node = {"name": "10.246.2.1/32", "kind": "leaf", "children": []}
+        ip_ref = {
+            "str": "10.246.2.1/32",
+            "url": "/ipam/ip-addresses/2/",
+            "type": "IP Address",
+        }
+        _attach_addr_node_prefix_display(node, ip_ref=ip_ref)
         self.assertEqual(node["prefix_display_cidr"], "10.246.2.1/32")
         self.assertEqual(node["prefix_display_netmask"], "10.246.2.1/255.255.255.255")
 

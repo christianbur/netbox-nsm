@@ -66,12 +66,13 @@ class RulebookTemplateDiscoveryTests(TestCase):
 
     def test_setup_groups_include_custom_template_when_present(self):
         groups = custom_objects.get_cot_setup_groups()
-        rulebook_group = next(
-            group for group in groups if group["id"] == "rulebook_templates"
-        )
+        group_ids = {group["id"] for group in groups}
+        self.assertIn("objects", group_ids)
+        self.assertIn("nsm_panel", group_ids)
+        entries = custom_objects.get_rulebook_template_entries()
         self.assertIn(
             self.custom_slug,
-            [entry["slug"] for entry in rulebook_group["entries"]],
+            [entry["slug"] for entry in entries],
         )
 
     def test_setup_entries_include_custom_template(self):

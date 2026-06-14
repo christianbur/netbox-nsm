@@ -130,6 +130,7 @@ class TypeConfigAllExportTests(TestCase):
                     display_template=spec["display_template"],
                 )
             )
+        cls.configs.sort(key=lambda cfg: (cfg.sort_order, cfg.name))
 
     def _patch_configs(self):
         return patch(

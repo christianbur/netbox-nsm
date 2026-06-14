@@ -269,15 +269,15 @@
     <div class="alert alert-warning py-2 px-3 m-3 mb-0 small" role="status">
       {% if matrix_axis_limit.src_truncated and matrix_axis_limit.dst_truncated %}
         {% blocktrans with limit=matrix_axis_limit.limit src_total=matrix_axis_limit.src_total dst_total=matrix_axis_limit.dst_total %}
-        Die Matrix zeigt höchstens {{ limit }} Einträge pro Achse. In den Regeln sind {{ src_total }} Quellen und {{ dst_total }} Ziele vorhanden; es werden jeweils die ersten {{ limit }} angezeigt.
+        The matrix shows at most {{ limit }} entries per axis. The rules contain {{ src_total }} sources and {{ dst_total }} destinations; only the first {{ limit }} of each are shown.
         {% endblocktrans %}
       {% elif matrix_axis_limit.src_truncated %}
         {% blocktrans with limit=matrix_axis_limit.limit src_total=matrix_axis_limit.src_total %}
-        Die Matrix zeigt höchstens {{ limit }} Quellen. In den Regeln sind {{ src_total }} Quellen vorhanden; es werden die ersten {{ limit }} angezeigt.
+        The matrix shows at most {{ limit }} sources. The rules contain {{ src_total }} sources; only the first {{ limit }} are shown.
         {% endblocktrans %}
       {% else %}
         {% blocktrans with limit=matrix_axis_limit.limit dst_total=matrix_axis_limit.dst_total %}
-        Die Matrix zeigt höchstens {{ limit }} Ziele. In den Regeln sind {{ dst_total }} Ziele vorhanden; es werden die ersten {{ limit }} angezeigt.
+        The matrix shows at most {{ limit }} destinations. The rules contain {{ dst_total }} destinations; only the first {{ limit }} are shown.
         {% endblocktrans %}
       {% endif %}
     </div>

@@ -1,24 +1,24 @@
-# netbox-nsm — Architektur
+# netbox-nsm — Architecture
 
-Für Entwickler. Bedienung: [docs/using_netbox_nsm.md](docs/using_netbox_nsm.md)
+For developers. Operations: [docs/using_netbox_nsm.md](docs/using_netbox_nsm.md)
 
-## Abhängigkeit
+## Dependency
 
-Policy-Daten (Zonen, Regeln, Links) liegen als **Custom Object Types** in [netbox-custom-objects](https://github.com/netboxlabs/netbox-custom-objects).
+Policy data (zones, rules, links) is stored as **Custom Object Types** via [netbox-custom-objects](https://github.com/netboxlabs/netbox-custom-objects).
 
-- Typ-Verhalten: YAML `nsm_config` in `CustomObjectType.comments` (`objects/nsm_config.py`)
-- Instanzen: COT-Zeilen (`nsm_zone`, `nsm_rb_*`, `nsm_object_link`, …)
-- Built-in Schemas: `objects/builtin_types.py`, Sync via Setup oder Schema-API
+- Type behaviour: YAML `nsm_config` in `CustomObjectType.comments` (`objects/nsm_config.py`)
+- Instances: COT rows (`nsm_zone`, `nsm_rb_*`, `nsm_object_link`, …)
+- Built-in schemas: `objects/builtin_types.py`; sync via Setup or schema API
 
-## Datenmodell (0.4.x)
+## Data model (0.4.x)
 
-| Schicht | Wo | Beispiele |
-|---------|-----|-----------|
-| UI-Labels | `PLUGINS_CONFIG` | `menu_label`, `panel_label` |
-| Typ-Metadaten | COT `comments` → `nsm_config` | `panel`, `rule_view`, `rulebook` |
-| Instanzen | COT-Zeilen | Zonen, Regeln, Links |
+| Layer | Where | Examples |
+|-------|-------|----------|
+| UI labels | `PLUGINS_CONFIG` | `menu_label`, `panel_label` |
+| Type metadata | COT `comments` → `nsm_config` | `panel`, `rule_view`, `rulebook` |
+| Instances | COT rows | zones, rules, links |
 
-`nsm_object_link`: Panel-Links (`link_type=policy`) und Rulebook-Zuweisungen (`link_type=rulebook`).
+`nsm_object_link`: panel links (`link_type=policy`) and rulebook assignments (`link_type=rulebook`).
 
 Details: [docs/DATABASE.md](docs/DATABASE.md), [docs/RULE_DATA_STORAGE.md](docs/RULE_DATA_STORAGE.md)
 
@@ -26,41 +26,41 @@ Details: [docs/DATABASE.md](docs/DATABASE.md), [docs/RULE_DATA_STORAGE.md](docs/
 
 ```
 netbox_nsm/
-├── analysis/          IP/Adress-Analyse
-├── analyzer/          Object-Analyzer-Graph
+├── analysis/          IP / address analysis
+├── analyzer/          Object Analyzer graph
 ├── api/               object-links, nsm-configs, ip-analysis
-├── objects/           builtin_types, nsm_config, IPAM-Vererbung
-├── rulebooks/         Grid, Rules-Tab, Matrix, Views
-├── security/          Security Panel, object-rules API
-├── demos/             Starter, enterprise_dc, addresses_million_scale
+├── objects/           builtin_types, nsm_config, IPAM inheritance
+├── rulebooks/         grid, Rules tab, matrix, views
+├── security/          Security panel, object-rules API
+├── demos/             starter, enterprise_dc, addresses_million_scale
 ├── views/             Setup, IP Analysis, Object Analyzer
 └── tests/
 ```
 
-Portable Schema: `nsm-schema.json` → `POST /api/plugins/custom-objects/schema/apply/`
+Portable schema: `nsm-schema.json` → `POST /api/plugins/custom-objects/schema/apply/`
 
-## Wichtige URLs
+## Key URLs
 
-| View | Pfad |
+| View | Path |
 |------|------|
 | Setup | `setup/` |
-| Object Config | `type-config/` |
-| Rulebooks / COT Rules | `rulebooks/`, `rulebooks/cot/<slug>/rules/` |
-| All Rules | `rulebooks/0/rules/` |
-| Object / Rulebook Link | `object-link/`, `rulebook-link/` |
+| Object config | `type-config/` |
+| Rulebooks / COT rules | `rulebooks/`, `rulebooks/cot/<slug>/rules/` |
+| All rules | `rulebooks/0/rules/` |
+| Object / rulebook link | `object-link/`, `rulebook-link/` |
 | IP Analysis | `ip-analysis/` |
 | Object Analyzer | `object-analyzer/` |
 
-Security Panel: `template_content.py` → `NsmSecurityLinksExtension`
+Security panel: `template_content.py` → `NsmSecurityLinksExtension`
 
 ## Front-end
 
-Rules/Matrix: Django-Templates + Plugin-JS. Object Analyzer: **@xyflow/react** (Import-Map in Template).
+Rules / matrix: Django templates + plugin JS. Object Analyzer: **@xyflow/react** (import map in template).
 
 Assets: `plugin_assets/` → `/plugins/netbox-nsm/assets/…`
 
 ## Tests
 
-`netbox_nsm/tests/` — Django-Testrunner (nicht pytest). Siehe [docs/TESTING.md](docs/TESTING.md).
+`netbox_nsm/tests/` — Django test runner (not pytest). See [docs/TESTING.md](docs/TESTING.md).
 
-CLI: `manage.py nsm_analyze_address_sync` — IPAM ↔ `nsm_address` Report.
+CLI: `manage.py nsm_analyze_address_sync` — IPAM ↔ `nsm_address` report.

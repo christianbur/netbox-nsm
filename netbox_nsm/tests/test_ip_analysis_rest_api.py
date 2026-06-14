@@ -138,7 +138,7 @@ class IpAnalysisRestApiTests(SimpleTestCase):
             "objects": [],
             "unsupported": [],
             "addr_analysis": [],
-            "message": "Keine gültigen Objekte für den Diff ausgewählt.",
+            "message": "No valid objects selected for diff.",
         }
 
         response = self._post(

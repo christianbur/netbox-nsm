@@ -5,6 +5,7 @@ from unittest.mock import patch
 from django.test import override_settings
 from django.urls import reverse
 
+from netbox_nsm.tests.rulebook_permission_helpers import grant_nsm_config_perms
 from utilities.testing import TestCase
 
 _SETUP_PLUGINS_CONFIG = {
@@ -34,7 +35,7 @@ class SetupIntegrationTests(TestCase):
         },
     )
     def test_setup_page_renders(self, _build_context):
-        self.add_permissions("netbox_nsm.view_typeconfig")
+        grant_nsm_config_perms(self, view=True)
         url = reverse("plugins:netbox_nsm:setup")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200, response.content)

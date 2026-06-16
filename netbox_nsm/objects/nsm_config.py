@@ -15,7 +15,6 @@ __all__ = (
     "build_nsm_config_lookup",
     "build_nsm_config_preview_rows",
     "config_dict_from_spec",
-    "config_dict_from_typeconfig",
     "cot_slug_for_content_type",
     "extract_nsm_config_from_type_comments",
     "filter_assignable_configs",
@@ -104,25 +103,6 @@ def config_dict_from_spec(spec: dict) -> dict[str, Any]:
     if object_builder is not None:
         result["object_builder"] = object_builder
     return result
-
-
-def config_dict_from_typeconfig(type_config) -> dict[str, Any]:
-    """Build a normalized config dict from a legacy ``TypeConfig`` row."""
-    panel_linkable_types = type_config.panel_linkable_types or []
-    panel_linkable = panel_linkable_types != [0]
-    return {
-        "sort_order": type_config.sort_order,
-        "display_template": type_config.display_template or "{name}",
-        "panel": {
-            "panel_linkable": panel_linkable,
-            "inherit_links": bool(type_config.inherit_links),
-            "inherit_stop_on_own": bool(type_config.inherit_stop_on_own),
-            "allow_virtual_groups": bool(type_config.allow_virtual_groups),
-            "panel_linkable_types": [
-                str(pk) for pk in panel_linkable_types if int(pk) != 0
-            ],
-        },
-    }
 
 
 def normalize_nsm_config_list(raw_list: list | None) -> dict[str, Any] | None:
@@ -626,7 +606,7 @@ def build_nsm_config_preview_rows(config: NsmTypeConfig) -> list[dict]:
 
 
 def sync_cot_nsm_config_comments(cot, *, spec: dict | None = None) -> bool:
-    """Set ``CustomObjectType.comments`` from bundled ``nsm_config`` YAML."""
+    """Set ``CustomObjectType.comments`` from bundled ``nsm_config`` YAML (merge-aware)."""
     from netbox_nsm.objects.type_config_specs import (
         TYPECONFIG_LIST_EXCLUDED_SLUGS,
         TYPECONFIG_SPEC_BY_SLUG,
@@ -638,7 +618,23 @@ def sync_cot_nsm_config_comments(cot, *, spec: dict | None = None) -> bool:
         spec = TYPECONFIG_SPEC_BY_SLUG.get(cot.slug)
     if not spec:
         return False
-    new_comments = format_nsm_config_comment_yaml(config_dict_from_spec(spec)).rstrip()
+    config = config_dict_from_spec(spec)
+    updates: dict[str, Any] = {
+        "rule_view": {
+            "sort_order": config.get("sort_order", 0),
+            "display_template": config.get("display_template") or "{name}",
+        },
+    }
+    if config.get("areas"):
+        updates["rule_view"]["areas"] = list(config["areas"])
+    if "panel" in config:
+        updates["panel"] = config["panel"]
+    if "object_builder" in config:
+        updates["object_builder"] = config["object_builder"]
+    new_comments = merge_nsm_config_document_into_comments(
+        cot.comments or "",
+        updates,
+    ).rstrip()
     if cot.comments == new_comments:
         return False
     cot.comments = new_comments
@@ -665,19 +661,14 @@ def sync_cot_nsm_config_comments_for_slugs(slugs) -> int:
 
 def resolve_object_builder_config_for_cot(cot) -> dict[str, Any] | None:
     """Return normalized ``object_builder`` config for *cot*, or ``None``."""
-    from netbox_nsm.objects.object_builder_config import (
-        normalize_object_builder_config,
-        object_builder_config_from_spec,
-    )
-    from netbox_nsm.objects.type_config_specs import TYPECONFIG_SPEC_BY_SLUG
+    from netbox_nsm.objects.object_builder_config import normalize_object_builder_config
 
     if cot.slug != "nsm_address":
         return None
     parsed = parse_nsm_config_from_comments(cot.comments or "")
     if parsed and "object_builder" in parsed:
         return normalize_object_builder_config(parsed["object_builder"])
-    spec = TYPECONFIG_SPEC_BY_SLUG.get(cot.slug)
-    return object_builder_config_from_spec(spec)
+    return None
 
 
 def backfill_cot_nsm_config_comments() -> int:

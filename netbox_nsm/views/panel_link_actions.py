@@ -15,6 +15,10 @@ from netbox_nsm.objects.address_ipam_fk import (
     get_nsm_address_model,
     panel_link_type_for_address_ipam_fk,
 )
+from netbox_nsm.objects.nsm_config_permissions import (
+    can_change_cot_instance,
+    can_delete_cot_instance,
+)
 
 __all__ = (
     "AddressIpamFkClearView",
@@ -72,6 +76,11 @@ def _load_content_object(ct_id: int, obj_id: int):
     return ct, get_object_or_404(model, pk=obj_id)
 
 
+def _deny_panel_action(request, return_url: str):
+    messages.error(request, _("Permission denied."))
+    return HttpResponseRedirect(return_url or "/")
+
+
 class AddressIpamFkClearView(LoginRequiredMixin, View):
     """
     Clear an IPAM FK field on ``nsm_addresses`` (remove panel assignment).
@@ -119,6 +128,9 @@ class AddressIpamFkClearView(LoginRequiredMixin, View):
             return HttpResponseBadRequest("Invalid address object")
 
         return_url = request.GET.get("return_url", "/")
+        if not can_delete_cot_instance(request.user, addr_obj):
+            return _deny_panel_action(request, return_url)
+
         return render(
             request,
             self.template_name,
@@ -143,6 +155,10 @@ class AddressIpamFkClearView(LoginRequiredMixin, View):
         addr_model = get_nsm_address_model()
         if addr_model is None or not isinstance(addr_obj, addr_model):
             return HttpResponseBadRequest("Invalid address object")
+
+        return_url = request.POST.get("return_url", "/")
+        if not can_delete_cot_instance(request.user, addr_obj):
+            return _deny_panel_action(request, return_url)
 
         fk_attr = f"{field_name}_id"
         setattr(addr_obj, field_name, None)
@@ -206,6 +222,8 @@ class AddressIpamFkEditView(LoginRequiredMixin, View):
             return HttpResponseBadRequest("Invalid address object")
 
         return_url = request.GET.get("return_url", "/")
+        if not can_change_cot_instance(request.user, addr_obj):
+            return _deny_panel_action(request, return_url)
         ipam_obj = getattr(addr_obj, field_name, None)
         form = _make_address_ipam_fk_edit_form(field_name, ipam_obj)
         return render(
@@ -233,6 +251,8 @@ class AddressIpamFkEditView(LoginRequiredMixin, View):
             return HttpResponseBadRequest("Invalid address object")
 
         return_url = request.POST.get("return_url", "/")
+        if not can_change_cot_instance(request.user, addr_obj):
+            return _deny_panel_action(request, return_url)
         ipam_obj = getattr(addr_obj, field_name, None)
         form = _make_address_ipam_fk_edit_form(field_name, ipam_obj)
         form = type(form)(request.POST)
@@ -297,6 +317,8 @@ class GroupM2mRemoveView(LoginRequiredMixin, View):
             return HttpResponseBadRequest("Object has no group field")
 
         return_url = request.GET.get("return_url", "/")
+        if not can_delete_cot_instance(request.user, group_obj):
+            return _deny_panel_action(request, return_url)
         return render(
             request,
             self.template_name,
@@ -323,9 +345,12 @@ class GroupM2mRemoveView(LoginRequiredMixin, View):
         if group_rel is None or not hasattr(group_rel, "remove"):
             return HttpResponseBadRequest("Object has no group field")
 
+        return_url = request.POST.get("return_url", "/")
+        if not can_delete_cot_instance(request.user, group_obj):
+            return _deny_panel_action(request, return_url)
+
         group_rel.remove(member_obj)
 
-        return_url = request.POST.get("return_url", "/")
         messages.success(request, _("Assignment removed."))
         return HttpResponseRedirect(return_url)
 
@@ -378,6 +403,8 @@ class GroupM2mEditView(LoginRequiredMixin, View):
             return HttpResponseBadRequest("Invalid group or member")
 
         return_url = request.GET.get("return_url", "/")
+        if not can_change_cot_instance(request.user, group_obj):
+            return _deny_panel_action(request, return_url)
         form = _make_group_m2m_edit_form(group_obj, group_obj)
         return render(
             request,
@@ -403,6 +430,8 @@ class GroupM2mEditView(LoginRequiredMixin, View):
             return HttpResponseBadRequest("Invalid group or member")
 
         return_url = request.POST.get("return_url", "/")
+        if not can_change_cot_instance(request.user, group_obj):
+            return _deny_panel_action(request, return_url)
         form = _make_group_m2m_edit_form(group_obj, group_obj)
         form = type(form)(request.POST)
         if not form.is_valid():

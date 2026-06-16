@@ -17,7 +17,7 @@ from netbox_nsm.objects.custom_objects_schema import (
     prepare_document_for_apply,
     validate_custom_objects_schema_yaml,
 )
-from netbox_nsm.objects.nsm_config import format_nsm_config_comment_yaml
+from netbox_nsm.objects.nsm_config import save_nsm_config_document_for_cot
 from netbox_nsm.objects.type_config_specs import REQUIRED_COT_SLUGS
 from netbox_nsm.rulebooks.templates import (
     BUNDLED_RULEBOOK_TEMPLATE_SLUGS,
@@ -280,8 +280,19 @@ def _apply_nsm_configs_by_slug(configs_by_slug: dict[str, dict]) -> None:
         cot = CustomObjectType.objects.filter(slug=slug).first()
         if not cot:
             continue
-        cot.comments = format_nsm_config_comment_yaml(config).rstrip()
-        cot.save(update_fields=["comments"])
+        updates: dict[str, Any] = {
+            "rule_view": {
+                "sort_order": config.get("sort_order", 0),
+                "display_template": config.get("display_template") or "{name}",
+            },
+        }
+        if config.get("areas"):
+            updates["rule_view"]["areas"] = list(config["areas"])
+        if "panel" in config:
+            updates["panel"] = config["panel"]
+        if "object_builder" in config:
+            updates["object_builder"] = config["object_builder"]
+        save_nsm_config_document_for_cot(cot, updates)
 
 
 def import_all_types(*, schema_yaml: str | None = None) -> None:

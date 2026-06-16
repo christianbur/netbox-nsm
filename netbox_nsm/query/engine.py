@@ -838,9 +838,3 @@ def build_query_help_sections(rulebook) -> List[Dict]:
                 }
             )
     return sections
-
-
-def global_search(rules_qs, query: Query) -> Dict:
-    """Legacy native global search — returns empty after ORM removal."""
-    _ = (rules_qs, query)
-    return {"rulebook_groups": [], "total_count": 0}

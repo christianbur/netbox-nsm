@@ -2,8 +2,13 @@
 """
 Integration-Tests für das netbox-nsm Plugin.
 
-Testet alle REST-API-Endpoints sowie die Inherited-Links-API und das Security
-Panel über echte HTTP-Requests gegen die laufende NetBox-Dev-Instanz.
+**Deprecated (0.4.x):** Dieses Skript testet eine externe NetBox-Dev-Instanz mit
+hardcodierten PKs. Seit 0.4.2 sind `/type-configs/` und `/rulebook-assignments/`
+entfernt; stattdessen `/nsm-configs/<slug>/` und `object-links` mit
+`link_type=rulebook`. Für CI und Releases: `manage.py test netbox_nsm.tests`.
+
+Testet REST-API-Endpoints sowie Inherited-Links-API und Security Panel über echte
+HTTP-Requests gegen die laufende NetBox-Dev-Instanz.
 
 Usage:
     python3 tests/integration_test.py
@@ -41,7 +46,7 @@ KNOWN = {
     "prefix_parent": 1,                 # 10.0.0.0/8   (hat direkte NSM-Links)
     "ip_with_inherited_links": 501,     # 10.0.0.10/24 (liegt in /24 und /8)
     "object_link_pk": 1,
-    "type_config_pk": 1,
+    "nsm_config_slug": "nsm_zone",
 }
 
 # ─── Hilfsfunktionen ──────────────────────────────────────────────────────────
@@ -205,11 +210,9 @@ def login() -> bool:
 
 
 def test_api_list_endpoints():
-    """Alle LIST-Endpoints geben HTTP 200 mit count-Feld zurück."""
+    """LIST-Endpoints geben HTTP 200 zurück."""
     endpoints = [
-        ("rulebook-assignments", "/api/plugins/netbox-nsm/rulebook-assignments/"),
         ("object-links", "/api/plugins/netbox-nsm/object-links/"),
-        ("type-configs", "/api/plugins/netbox-nsm/type-configs/"),
     ]
     for name, path in endpoints:
         status, body = _get(path)
@@ -222,7 +225,10 @@ def test_api_detail_endpoints():
     """Detail-Endpoints für bekannte Objekte geben HTTP 200 zurück."""
     detail_tests = [
         ("object-link detail", f"/api/plugins/netbox-nsm/object-links/{KNOWN['object_link_pk']}/"),
-        ("type-config detail", f"/api/plugins/netbox-nsm/type-configs/{KNOWN['type_config_pk']}/"),
+        (
+            "nsm-config detail",
+            f"/api/plugins/netbox-nsm/nsm-configs/{KNOWN['nsm_config_slug']}/",
+        ),
     ]
     for name, path in detail_tests:
         status, body = _get(path)
@@ -236,9 +242,6 @@ def test_api_filters():
         # (Testname, Pfad, erwartet_count_gte, erwartet_feld)
         ("object-links filter by object_a_id",
          f"/api/plugins/netbox-nsm/object-links/?object_a_id={KNOWN['prefix_with_direct_links']}",
-         1, None),
-        ("type-configs limit=2",
-         "/api/plugins/netbox-nsm/type-configs/?limit=2",
          1, None),
     ]
     for name, path, min_count, _ in filter_tests:
@@ -331,17 +334,23 @@ def test_api_display_field():
     """Das display-Feld ist in allen Endpunkten vorhanden."""
     endpoints_with_pk = [
         ("object-links display", f"/api/plugins/netbox-nsm/object-links/{KNOWN['object_link_pk']}/"),
-        ("type-configs display", f"/api/plugins/netbox-nsm/type-configs/{KNOWN['type_config_pk']}/"),
+        (
+            "nsm-config slug",
+            f"/api/plugins/netbox-nsm/nsm-configs/{KNOWN['nsm_config_slug']}/",
+        ),
     ]
     for name, path in endpoints_with_pk:
         status, body = _get(path)
-        has_display = isinstance(body, dict) and "display" in body
-        _record(f"display field: {name}", has_display, f"HTTP {status}")
+        if "nsm-config" in name:
+            has_field = isinstance(body, dict) and "nsm_config" in body
+        else:
+            has_field = isinstance(body, dict) and "display" in body
+        _record(f"display field: {name}", has_field, f"HTTP {status}")
 
 
 def test_custom_objects_crud():
-    """Custom-Object-Typen (nsm_action, nsm_addresses, nsm_labels, nsm_services,
-    nsm_zones) mit Anlegen, Ändern und Löschen testen."""
+    """Custom-Object-Typen (nsm_action, nsm_address, nsm_label, nsm_service,
+    nsm_zone) mit Anlegen, Ändern und Löschen testen."""
 
     # ── custom-object-types LIST ──────────────────────────────────────────────
     status, body = _get("/api/plugins/custom-objects/custom-object-types/")
@@ -352,7 +361,7 @@ def test_custom_objects_crud():
     # Alle 5 erwarteten Typen vorhanden?
     if isinstance(body, dict):
         slugs = {r["slug"] for r in body.get("results", [])}
-        for slug in ("nsm_action", "nsm_addresses", "nsm_labels", "nsm_services", "nsm_zones"):
+        for slug in ("nsm_action", "nsm_address", "nsm_label", "nsm_service", "nsm_zone"):
             _record(f"custom-object-type vorhanden: {slug}", slug in slugs,
                     f"gefunden: {slug in slugs}")
 
@@ -367,29 +376,29 @@ def test_custom_objects_crud():
             "name",
         ),
         (
-            "nsm_addresses",
-            "/api/plugins/custom-objects/nsm_addresses/",
+            "nsm_address",
+            "/api/plugins/custom-objects/nsm_address/",
             {"name": "__test_address"},
             {"name": "__test_address_upd"},
             "name",
         ),
         (
-            "nsm_labels",
-            "/api/plugins/custom-objects/nsm_labels/",
+            "nsm_label",
+            "/api/plugins/custom-objects/nsm_label/",
             {"name": "__test_label"},
             {"name": "__test_label_upd"},
             "name",
         ),
         (
-            "nsm_services",
-            "/api/plugins/custom-objects/nsm_services/",
+            "nsm_service",
+            "/api/plugins/custom-objects/nsm_service/",
             {"name": "__test_service"},
             {"name": "__test_service_upd"},
             "name",
         ),
         (
-            "nsm_zones",
-            "/api/plugins/custom-objects/nsm_zones/",
+            "nsm_zone",
+            "/api/plugins/custom-objects/nsm_zone/",
             {"name": "__test_zone"},
             {"name": "__test_zone_upd"},
             "name",
@@ -566,7 +575,7 @@ def main():
     print("\n[7] Security Panel (HTML)")
     test_security_panel()
 
-    print("\n[8] Custom Objects CRUD (nsm_action / nsm_addresses / nsm_labels / nsm_services / nsm_zones)")
+    print("\n[8] Custom Objects CRUD (nsm_action / nsm_address / nsm_label / nsm_service / nsm_zone)")
     test_custom_objects_crud()
 
     print("\n[9] ObjectLink CRUD")

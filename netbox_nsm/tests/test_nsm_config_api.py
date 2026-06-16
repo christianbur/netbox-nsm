@@ -5,7 +5,7 @@ from django.urls import reverse
 
 from netbox_nsm.rulebooks.templates import RULEBOOK_GROUP
 from utilities.testing import APITestCase
-from netbox_nsm.tests.rulebook_permission_helpers import grant_rulebook_cot_perms
+from netbox_nsm.tests.rulebook_permission_helpers import grant_nsm_config_perms, grant_rulebook_cot_perms
 
 
 class NsmConfigApiTests(APITestCase):
@@ -44,7 +44,7 @@ class NsmConfigApiTests(APITestCase):
     def test_get_returns_nsm_config(self):
         self.zone_cot.comments = "nsm_config:\n  - rule_view:\n      sort_order: 7\n"
         self.zone_cot.save(update_fields=["comments"])
-        self.add_permissions("netbox_nsm.view_typeconfig")
+        grant_nsm_config_perms(self, view=True)
         self.client.force_authenticate(self.user)
 
         response = self.client.get(self._url(self.zone_cot.slug))
@@ -54,7 +54,7 @@ class NsmConfigApiTests(APITestCase):
         self.assertIn("nsm_config:", response.data["comments"])
 
     def test_patch_updates_rule_view(self):
-        self.add_permissions("netbox_nsm.change_typeconfig")
+        grant_nsm_config_perms(self, change=True)
         self.client.force_authenticate(self.user)
 
         response = self.client.patch(
@@ -91,7 +91,7 @@ class NsmConfigApiTests(APITestCase):
     def test_delete_clears_nsm_config(self):
         self.zone_cot.comments = "nsm_config:\n  - rule_view:\n      sort_order: 1\n"
         self.zone_cot.save(update_fields=["comments"])
-        self.add_permissions("netbox_nsm.change_typeconfig")
+        grant_nsm_config_perms(self, change=True)
         self.client.force_authenticate(self.user)
 
         response = self.client.delete(self._url(self.zone_cot.slug))
@@ -100,7 +100,7 @@ class NsmConfigApiTests(APITestCase):
         self.assertEqual(self.zone_cot.comments, "")
 
     def test_unknown_slug_returns_404(self):
-        self.add_permissions("netbox_nsm.view_typeconfig")
+        grant_nsm_config_perms(self, view=True)
         self.client.force_authenticate(self.user)
         response = self.client.get(self._url("does-not-exist"))
         self.assertEqual(response.status_code, 404)

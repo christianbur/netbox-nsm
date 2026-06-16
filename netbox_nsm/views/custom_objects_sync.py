@@ -20,6 +20,10 @@ from netbox_nsm.objects.builtin_types import BUILTIN_CUSTOM_TYPES
 from django.http import Http404
 
 from netbox_nsm.core.setup_flags import setup_allow_destructive_actions, setup_menu_enabled
+from netbox_nsm.objects.nsm_config_permissions import (
+    ADD_CUSTOM_OBJECT_TYPE,
+    CHANGE_CUSTOM_OBJECT_TYPE,
+)
 from netbox_nsm.objects.custom_objects_schema import (
     build_choice_set_specs,
     build_schema_document,
@@ -180,6 +184,13 @@ class SyncBuiltinToCustomObjectsView(LoginRequiredMixin, View):
             raise Http404
         redirect_url = reverse("plugins:netbox_nsm:setup")
 
+        if not request.user.has_perm(ADD_CUSTOM_OBJECT_TYPE):
+            messages.error(
+                request,
+                _("Permission denied: %(perm)s") % {"perm": ADD_CUSTOM_OBJECT_TYPE},
+            )
+            return redirect(redirect_url)
+
         if not setup_allow_destructive_actions():
             messages.error(
                 request,
@@ -252,6 +263,13 @@ class SyncTypeConfigsView(LoginRequiredMixin, View):
         if not setup_menu_enabled():
             raise Http404
         redirect_url = reverse("plugins:netbox_nsm:setup")
+
+        if not request.user.has_perm(CHANGE_CUSTOM_OBJECT_TYPE):
+            messages.error(
+                request,
+                _("Permission denied: %(perm)s") % {"perm": CHANGE_CUSTOM_OBJECT_TYPE},
+            )
+            return redirect(redirect_url)
 
         if not setup_allow_destructive_actions():
             messages.error(

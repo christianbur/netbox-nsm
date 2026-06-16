@@ -1,10 +1,22 @@
 """Test helpers for per-COT rulebook and object-link permissions."""
 
 __all__ = (
+    "grant_nsm_config_perms",
     "grant_object_link_perms",
     "grant_rulebook_cot_perms",
     "grant_rulebook_list_access",
 )
+
+
+def grant_nsm_config_perms(testcase, *, view=False, change=False):
+    """Grant netbox-custom-objects permissions for Object Config / nsm_config."""
+    perms = []
+    if view:
+        perms.append("netbox_custom_objects.view_customobjecttype")
+    if change:
+        perms.append("netbox_custom_objects.change_customobjecttype")
+    if perms:
+        testcase.add_permissions(*perms)
 
 
 def grant_rulebook_cot_perms(testcase, cot, *, view=True, change=False, add=False, delete=False):

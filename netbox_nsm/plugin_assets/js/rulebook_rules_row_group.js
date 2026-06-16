@@ -2,9 +2,11 @@
   "use strict";
 
   var TAB_WIDTH_STORAGE_PREFIX = "nsm-rules-tab-sidebar-width:";
+  var TAB_COLLAPSED_STORAGE_PREFIX = "nsm-rules-tab-sidebar-collapsed:";
   var TAB_SIDEBAR_DEFAULT_WIDTH = 184;
   var TAB_SIDEBAR_MIN_WIDTH = 120;
   var TAB_SIDEBAR_MAX_WIDTH = 480;
+  var TAB_SIDEBAR_COLLAPSED_WIDTH = 32;
 
   function readConfig() {
     var el = document.getElementById("rules-chrome-config");
@@ -167,8 +169,13 @@
     }
     nav.dataset.nsmTabSidebarResizeBound = "1";
 
-    var saved = loadTabSidebarWidth(config && config.rulebookId);
-    applyTabSidebarWidth(nav, saved != null ? saved : TAB_SIDEBAR_DEFAULT_WIDTH);
+    if (
+      !nav.classList.contains("nsm-rules-row-group-tabs--collapsed") &&
+      !loadTabSidebarCollapsed(config && config.rulebookId)
+    ) {
+      var saved = loadTabSidebarWidth(config && config.rulebookId);
+      applyTabSidebarWidth(nav, saved != null ? saved : TAB_SIDEBAR_DEFAULT_WIDTH);
+    }
 
     var resizeState = null;
 
@@ -196,7 +203,7 @@
     }
 
     handle.addEventListener("mousedown", function (event) {
-      if (event.button !== 0) {
+      if (event.button !== 0 || nav.classList.contains("nsm-rules-row-group-tabs--collapsed")) {
         return;
       }
       event.preventDefault();
@@ -218,6 +225,138 @@
       .querySelectorAll("#rules .nsm-rules-row-group-tabs--vertical")
       .forEach(function (nav) {
         bindTabSidebarResize(nav, config);
+      });
+  }
+
+  function tabSidebarCollapsedStorageKey(rulebookId) {
+    return TAB_COLLAPSED_STORAGE_PREFIX + String(rulebookId == null ? "0" : rulebookId);
+  }
+
+  function loadTabSidebarCollapsed(rulebookId) {
+    try {
+      return localStorage.getItem(tabSidebarCollapsedStorageKey(rulebookId)) === "1";
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function saveTabSidebarCollapsed(rulebookId, collapsed) {
+    try {
+      localStorage.setItem(
+        tabSidebarCollapsedStorageKey(rulebookId),
+        collapsed ? "1" : "0"
+      );
+    } catch (e) {
+      /* ignore quota errors */
+    }
+  }
+
+  function splitTabLabelsForCollapsed(nav) {
+    nav.querySelectorAll(".nsm-rules-row-group-tab-label").forEach(function (labelEl) {
+      if (labelEl.dataset.nsmOriginalLabel != null) {
+        return;
+      }
+      var text = labelEl.textContent.trim();
+      labelEl.dataset.nsmOriginalLabel = text;
+      labelEl.textContent = "";
+      labelEl.classList.add("nsm-rules-row-group-tab-label--vertical-chars");
+      for (var i = 0; i < text.length; i += 1) {
+        var charSpan = document.createElement("span");
+        charSpan.className = "nsm-rules-row-group-tab-label-char";
+        charSpan.textContent = text.charAt(i);
+        charSpan.setAttribute("aria-hidden", "true");
+        labelEl.appendChild(charSpan);
+      }
+    });
+  }
+
+  function restoreTabLabels(nav) {
+    nav.querySelectorAll(".nsm-rules-row-group-tab-label").forEach(function (labelEl) {
+      var original = labelEl.dataset.nsmOriginalLabel;
+      if (original == null) {
+        return;
+      }
+      labelEl.textContent = original;
+      delete labelEl.dataset.nsmOriginalLabel;
+      labelEl.classList.remove("nsm-rules-row-group-tab-label--vertical-chars");
+    });
+  }
+
+  function applyTabSidebarCollapsedWidth(nav) {
+    nav.style.setProperty("--nsm-rules-tab-sidebar-width", TAB_SIDEBAR_COLLAPSED_WIDTH + "px");
+    nav.style.width = TAB_SIDEBAR_COLLAPSED_WIDTH + "px";
+  }
+
+  function updateCollapseToggleUi(nav, collapsed) {
+    var toggle = nav.querySelector(".nsm-rules-row-group-tabs-collapse");
+    if (!toggle) {
+      return;
+    }
+    toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    var label = collapsed
+      ? toggle.dataset.labelExpand || "Expand rule groups sidebar"
+      : toggle.dataset.labelCollapse || "Collapse rule groups sidebar";
+    toggle.setAttribute("aria-label", label);
+    toggle.setAttribute("title", label);
+  }
+
+  function setTabSidebarCollapsed(nav, config, collapsed, options) {
+    var opts = options || {};
+    if (collapsed) {
+      if (!nav.classList.contains("nsm-rules-row-group-tabs--collapsed")) {
+        saveTabSidebarWidth(
+          config && config.rulebookId,
+          readTabSidebarWidth(nav)
+        );
+      }
+      nav.classList.add("nsm-rules-row-group-tabs--collapsed");
+      splitTabLabelsForCollapsed(nav);
+      applyTabSidebarCollapsedWidth(nav);
+    } else {
+      nav.classList.remove("nsm-rules-row-group-tabs--collapsed");
+      restoreTabLabels(nav);
+      var saved = loadTabSidebarWidth(config && config.rulebookId);
+      applyTabSidebarWidth(nav, saved != null ? saved : TAB_SIDEBAR_DEFAULT_WIDTH);
+    }
+    updateCollapseToggleUi(nav, collapsed);
+    saveTabSidebarCollapsed(config && config.rulebookId, collapsed);
+    var viewport = nav.querySelector(".nsm-rules-row-group-tabs-viewport");
+    var prevBtn = nav.querySelector(".nsm-rules-row-group-tabs-scroll--prev");
+    var nextBtn = nav.querySelector(".nsm-rules-row-group-tabs-scroll--next");
+    if (viewport && prevBtn && nextBtn) {
+      scrollActiveTabIntoView(viewport, true);
+      updateTabScrollButtons(viewport, prevBtn, nextBtn, true);
+    }
+    if (opts.syncHeight !== false) {
+      syncSidebarToTableHeight();
+    }
+  }
+
+  function bindTabSidebarCollapse(nav, config) {
+    var toggle = nav.querySelector(".nsm-rules-row-group-tabs-collapse");
+    if (!toggle || nav.dataset.nsmTabSidebarCollapseBound === "1") {
+      return;
+    }
+    nav.dataset.nsmTabSidebarCollapseBound = "1";
+
+    var collapsed = loadTabSidebarCollapsed(config && config.rulebookId);
+    if (collapsed) {
+      setTabSidebarCollapsed(nav, config, true, { syncHeight: false });
+    } else {
+      updateCollapseToggleUi(nav, false);
+    }
+
+    toggle.addEventListener("click", function () {
+      var nextCollapsed = !nav.classList.contains("nsm-rules-row-group-tabs--collapsed");
+      setTabSidebarCollapsed(nav, config, nextCollapsed);
+    });
+  }
+
+  function bindTabSidebarCollapseAll(config) {
+    document
+      .querySelectorAll("#rules .nsm-rules-row-group-tabs--vertical")
+      .forEach(function (nav) {
+        bindTabSidebarCollapse(nav, config);
       });
   }
 
@@ -270,6 +409,7 @@
   function init() {
     var config = readConfig() || {};
     bindRowGroupTabScroll();
+    bindTabSidebarCollapseAll(config);
     bindTabSidebarResizeAll(config);
     bindSidebarHeightSync();
   }

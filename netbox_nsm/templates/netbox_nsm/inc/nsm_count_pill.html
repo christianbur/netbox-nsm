@@ -1,9 +1,0 @@
-{% load i18n %}
-{# Counter as nsm-rule-pill. Optional href for linked counts. #}
-{% if href %}
-<a href="{{ href }}" class="nsm-rule-pill nsm-rule-pill--counter text-decoration-none{% if extra_class %} {{ extra_class }}{% endif %}"
-   {% if title %}title="{{ title }}"{% endif %}>{{ value }}</a>
-{% else %}
-<span class="nsm-rule-pill nsm-rule-pill--counter{% if extra_class %} {{ extra_class }}{% endif %}"
-      {% if title %}title="{{ title }}"{% endif %}>{{ value }}</span>
-{% endif %}

@@ -12,17 +12,21 @@ from netbox.navigation.menu import MenuGroup
 from netbox_nsm.core.plugin_labels import get_nsm_menu_label
 from netbox_nsm.core.setup_flags import setup_menu_enabled
 from netbox_nsm.navigation_objects import build_nsm_objects_menu_group
+from netbox_nsm.objects.nsm_config_permissions import (
+    CHANGE_CUSTOM_OBJECT_TYPE,
+    VIEW_CUSTOM_OBJECT_TYPE,
+)
 
 _TYPE_CONFIG_MENU_ITEM = PluginMenuItem(
     link="plugins:netbox_nsm:objectconfig_list",
     link_text=_("Object Config"),
-    permissions=["netbox_nsm.view_typeconfig"],
+    permissions=[VIEW_CUSTOM_OBJECT_TYPE],
 )
 
 _SETUP_MENU_ITEM = PluginMenuItem(
     link="plugins:netbox_nsm:setup",
     link_text=_("Setup"),
-    permissions=["netbox_nsm.view_typeconfig"],
+    permissions=[VIEW_CUSTOM_OBJECT_TYPE],
 )
 
 

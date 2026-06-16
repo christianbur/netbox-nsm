@@ -36,7 +36,7 @@ class NonSortablePolymorphicFieldTests(SimpleTestCase):
 
 
 class NsmAddressListSortTests(SimpleTestCase):
-    @patch("netbox_nsm.views.nsm_objects.CustomObjectListView.get_table")
+    @patch("netbox_custom_objects.views.CustomObjectListView.get_table")
     def test_prepares_request_before_super_get_table(self, super_get_table):
         from netbox_nsm.views.nsm_objects import NsmCustomObjectListView
 
@@ -55,7 +55,7 @@ class NsmAddressListSortTests(SimpleTestCase):
             side_effect=lambda request: request,
         ) as prepare_fn:
             with patch(
-                "netbox_nsm.views.nsm_objects._non_sortable_polymorphic_object_fields",
+                "netbox_nsm.views.cot_list_table._non_sortable_polymorphic_object_fields",
                 return_value=frozenset({"address"}),
             ):
                 view.get_table(MagicMock(), MagicMock())
@@ -63,3 +63,34 @@ class NsmAddressListSortTests(SimpleTestCase):
         prepare_fn.assert_called_once()
         self.assertFalse(table.base_columns["address"].orderable)
         self.assertEqual(table.order_by, ("name",))
+
+
+class CustomObjectListPolymorphicSortPatchTests(SimpleTestCase):
+    @patch("netbox_custom_objects.views.CustomObjectListView.get_table")
+    def test_patch_strips_polymorphic_ordering(self, original_get_table):
+        from netbox_custom_objects.views import CustomObjectListView
+
+        from netbox_nsm.views.cot_list_table import apply_cot_polymorphic_list_table_patch
+
+        CustomObjectListView.get_table = original_get_table
+        if hasattr(CustomObjectListView.get_table, "_nsm_polymorphic_sort_patch"):
+            delattr(CustomObjectListView.get_table, "_nsm_polymorphic_sort_patch")
+
+        cot = MagicMock()
+        table = MagicMock()
+        table.base_columns = {"address": MagicMock(orderable=True)}
+        table.order_by = ("address",)
+        original_get_table.return_value = table
+
+        view = CustomObjectListView()
+        view.custom_object_type = cot
+
+        with patch(
+            "netbox_nsm.views.cot_list_table._non_sortable_polymorphic_object_fields",
+            return_value=frozenset({"address"}),
+        ):
+            apply_cot_polymorphic_list_table_patch()
+            view.get_table(MagicMock(), MagicMock())
+
+        self.assertFalse(table.base_columns["address"].orderable)
+        self.assertEqual(table.order_by, ())

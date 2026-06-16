@@ -38,6 +38,13 @@ class SecurityConfig(PluginConfig):
         self._patch_poly_subfield_labels()
         self._patch_cot_rule_add_index()
         self._patch_nsm_object_urls()
+        self._patch_custom_object_list_polymorphic_sort()
+
+    @staticmethod
+    def _patch_custom_object_list_polymorphic_sort():
+        from netbox_nsm.views.cot_list_table import apply_cot_polymorphic_list_table_patch
+
+        apply_cot_polymorphic_list_table_patch()
 
     @staticmethod
     def _patch_color_field_widget():

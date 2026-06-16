@@ -3,6 +3,18 @@
 <nav class="nsm-rules-row-group-tabs nsm-rules-row-group-tabs--vertical"
      aria-label="{% trans 'Rule groups' %}">
   <button type="button"
+          class="btn btn-sm btn-link nsm-rules-row-group-tabs-collapse"
+          aria-label="{% trans 'Collapse rule groups sidebar' %}"
+          title="{% trans 'Collapse rule groups sidebar' %}"
+          aria-expanded="true"
+          data-label-collapse="{% trans 'Collapse rule groups sidebar' %}"
+          data-label-expand="{% trans 'Expand rule groups sidebar' %}">
+    <i class="mdi mdi-chevron-left nsm-rules-row-group-tabs-collapse-icon--expanded"
+       aria-hidden="true"></i>
+    <i class="mdi mdi-chevron-right nsm-rules-row-group-tabs-collapse-icon--collapsed"
+       aria-hidden="true"></i>
+  </button>
+  <button type="button"
           class="btn btn-sm btn-link nsm-rules-row-group-tabs-scroll nsm-rules-row-group-tabs-scroll--prev"
           aria-label="{% trans 'Previous rule groups' %}"
           title="{% trans 'Previous rule groups' %}"

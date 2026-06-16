@@ -3,11 +3,14 @@
 import yaml
 
 from netbox_nsm.objects.nsm_config import (
+    config_dict_from_spec,
     extract_nsm_config_from_type_comments,
     format_nsm_config_comment_yaml,
     normalize_nsm_config_list,
     parse_nsm_config_from_comments,
+    resolve_object_builder_config_for_cot,
 )
+from netbox_nsm.objects.type_config_specs import TYPECONFIG_SPEC_BY_SLUG
 from utilities.testing import TestCase
 
 
@@ -58,3 +61,16 @@ class NsmConfigFormatTests(TestCase):
         config = normalize_nsm_config_list(legacy)
         self.assertEqual(config["sort_order"], 10)
         self.assertEqual(config["panel"]["inherit_links"], True)
+
+    def test_nsm_address_spec_has_no_object_builder_default(self):
+        spec = TYPECONFIG_SPEC_BY_SLUG["nsm_address"]
+        config = config_dict_from_spec(spec)
+        self.assertNotIn("object_builder", config)
+        yaml_text = format_nsm_config_comment_yaml(config)
+        self.assertNotIn("object_builder:", yaml_text)
+
+    def test_resolve_object_builder_config_without_comments(self):
+        from types import SimpleNamespace
+
+        cot = SimpleNamespace(slug="nsm_address", comments="")
+        self.assertIsNone(resolve_object_builder_config_for_cot(cot))

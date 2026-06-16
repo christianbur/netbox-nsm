@@ -62,7 +62,6 @@ REQUIRED_COT_SLUGS = [
     "nsm_object_link",
 ]
 
-from netbox_nsm.objects.object_builder_config import DEFAULT_OBJECT_BUILDER_CONFIG
 from netbox_nsm.rulebooks.templates import RULEBOOK_TEMPLATE_SLUGS  # noqa: E402
 
 def _typeconfig_spec(
@@ -81,10 +80,7 @@ def _typeconfig_spec(
 
 TYPECONFIG_SPECS = [
     _typeconfig_spec("nsm_zone", "Zones", display_template="{name}"),
-    {
-        **_typeconfig_spec("nsm_address", "Addresses", display_template="{name}"),
-        "object_builder": DEFAULT_OBJECT_BUILDER_CONFIG,
-    },
+    _typeconfig_spec("nsm_address", "Addresses", display_template="{name}"),
     _typeconfig_spec("nsm_address_group", "Address Groups", display_template="{name}"),
     _typeconfig_spec(
         "nsm_label",

@@ -156,6 +156,7 @@ def save_rulebook_config_for_cot(cot, config: dict) -> None:
     """Persist ``rulebook`` settings on *cot* ``comments``."""
     from django.core.exceptions import ValidationError
 
+    from netbox_nsm.objects.nsm_config import save_nsm_config_document_for_cot
     from netbox_nsm.rulebooks.cot_hierarchy import validate_cot_parent_slug
 
     existing = resolve_rulebook_config_for_cot(cot)
@@ -171,11 +172,7 @@ def save_rulebook_config_for_cot(cot, config: dict) -> None:
         if error:
             raise ValidationError(error)
 
-    new_comments = merge_rulebook_config_into_comments(cot.comments or "", merged)
-    if cot.comments == new_comments:
-        return
-    cot.comments = new_comments
-    cot.save(update_fields=["comments"])
+    save_nsm_config_document_for_cot(cot, {"rulebook": merged})
 
 
 def load_rulebook_parent_map() -> dict[str, str]:

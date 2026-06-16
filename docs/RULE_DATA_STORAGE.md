@@ -4,7 +4,8 @@
 
 NSM does **not** persist policy as wide `netbox_nsm_rule` rows with dynamic SQL columns.
 Since the COT migration, **rulebooks and rules are Custom Object Types** managed by
-`netbox-custom-objects`. NSM native tables hold only configuration and assignment metadata.
+`netbox-custom-objects`. Configuration lives in COT `comments` (`nsm_config`); links and
+assignments use the `nsm_object_link` COT.
 
 Data is split into four layers:
 
@@ -29,7 +30,7 @@ flowchart TB
     subgraph Schema["Layer 1: column schema (per rulebook COT)"]
         COT["COT nsm_rb_*<br/>field: source, destination, service, …"]
         FLD["Field metadata<br/>type=multiobject, related_object_types, group_name"]
-        TC["TypeConfig<br/>matching class, display template, panel flags"]
+        TC["Object Config (nsm_config)<br/>sort order, display template, panel flags"]
     end
 
     subgraph Rules["Layer 2: rule rows"]
@@ -66,7 +67,8 @@ flowchart TB
 erDiagram
     "COT nsm_rb_*" ||--o{ "COT rule row" : "contains"
     "COT nsm_rb_*" ||--|{ "COT field def" : "defines columns"
-    TypeConfig }o--|| ContentType : "behaviour for referenced types"
+    "nsm_object_link" }o--|| "NetBox host" : "netbox_object"
+    "nsm_object_link" }o--o| "Policy object" : "policy_object (optional)"
 
     "COT rule row" {
         int index PK
@@ -81,11 +83,10 @@ erDiagram
         text comments_nsm_config_rulebook
     }
 
-    CotRulebookAssignment {
-        int id PK
-        int assigned_object_type_id FK
-        bigint assigned_object_id
-        string cot_slug
+    "nsm_object_link" {
+        string link_type
+        string rulebook_slug
+        int netbox_object_id
     }
 ```
 
@@ -134,12 +135,12 @@ flowchart LR
 |------------|----------------|----------------|
 | Rulebook (deployed) | COT `nsm_rb_<name>` + `comments.nsm_config.rulebook` | COT schema + hierarchy/matrix flags in comments |
 | Column “Source” | COT field `source` (or `source_zones`, …) | `multiobject` definition, `group_name`, `related_object_types` |
-| Sub-type “Zones” under Source | Polymorphic `related_object_types` + `TypeConfig` | UI splits one field by content type |
+| Sub-type “Zones” under Source | Polymorphic `related_object_types` + `nsm_config` | UI splits one field by content type |
 | Rule row | COT table for `nsm_rb_*` | `index`, `status`, `name`, system + policy fields |
 | Object pill in a cell | `multiobject` value on rule row | Reference to zone / address / … instance |
 | Group pill | `multiobject` or nested `group` M2M | Address group COT or member references |
 | Zone / Address instance | `netbox-custom-objects` | **Not** duplicated in NSM native tables |
-| Rulebook on device | `netbox_nsm_cotrulebookassignment` | `cot_slug` + generic FK to Device/VM/VDC |
+| Rulebook on device | COT `nsm_object_link` (`link_type=rulebook`) | `rulebook_slug` + generic FK to Device/VM/VDC |
 
 System columns (Index, Status, Name, Description) are ordinary COT fields on the rulebook type
 (see `_FIELD_CATALOG` in `rulebooks/templates.py`).
@@ -212,14 +213,14 @@ sequenceDiagram
 
 ## Virtual AND/OR groups in cells
 
-The rule editor can group pills into virtual AND/OR bubbles (`allow_virtual_groups` on
-`TypeConfig`). Structure is stored in editor metadata on the rule row (JSON where the COT
+The rule editor can group pills into virtual AND/OR bubbles (`allow_virtual_groups` in
+`nsm_config`). Structure is stored in editor metadata on the rule row (JSON where the COT
 schema provides it); object references remain in the underlying `multiobject` field values.
 
 ---
 
 ## Related documentation
 
-- [DATABASE.md](DATABASE.md) — native NSM tables, removed legacy tables, migrations
+- [DATABASE.md](DATABASE.md) — permission anchors, removed legacy tables, migrations
 - [ARCHITECTURE.md](../ARCHITECTURE.md) — developer model reference
 - [Using netbox-nsm](using_netbox_nsm.md) — operator guide (rulebooks, panel)

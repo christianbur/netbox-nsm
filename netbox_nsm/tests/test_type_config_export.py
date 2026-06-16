@@ -11,6 +11,8 @@ from ipam.models import IPAddress, Prefix, VLAN, VRF
 from virtualization.models import VirtualMachine
 
 from netbox_nsm.objects.nsm_config import NsmTypeConfig
+from netbox_nsm.tests.rulebook_permission_helpers import grant_nsm_config_perms
+from utilities.testing import TestCase
 from netbox_nsm.objects.type_config_export import (
     backfill_cot_nsm_config_comments,
     build_all_type_configs_preview_rows,
@@ -27,7 +29,7 @@ from netbox_nsm.objects.type_config_export import (
     sync_cot_nsm_config_comments,
 )
 from netbox_nsm.objects.type_config_specs import TYPECONFIG_UI_SPECS
-from utilities.testing import TestCase
+from netbox_nsm.tests.rulebook_permission_helpers import grant_nsm_config_perms
 
 
 def _parse_export_sections(yaml_text: str) -> list[dict]:
@@ -170,7 +172,7 @@ class TypeConfigAllExportTests(TestCase):
             self.assertEqual(set(entry.keys()), {"sort_order", "display_template"})
 
     def test_list_view_excludes_export_panel(self):
-        self.add_permissions("netbox_nsm.view_typeconfig")
+        grant_nsm_config_perms(self, view=True)
         with patch(
             "netbox_nsm.views.type_config._resolved_configs",
             return_value=self.configs,

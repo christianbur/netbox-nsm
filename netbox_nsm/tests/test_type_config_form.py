@@ -72,3 +72,15 @@ class NsmConfigFormTests(TestCase):
             config["object_builder"]["sources"]["ipam.ipaddress"]["build_template"],
             "H-{host}",
         )
+
+    def test_nsm_address_form_omits_object_builder_when_disabled(self):
+        form = NsmAddressConfigForm(
+            data={
+                "sort_order": 12,
+                "display_template": "{name}",
+                "object_builder_enabled": False,
+            }
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        config = form.to_config_dict()
+        self.assertNotIn("object_builder", config)

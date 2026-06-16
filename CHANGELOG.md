@@ -6,6 +6,30 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.4.5] - 2026-06-16
+
+### Changed
+
+- **Object Config permissions** — view/add/change/delete use `netbox_custom_objects.view_customobjecttype` and `netbox_custom_objects.change_customobjecttype` (no more `netbox_nsm.*_typeconfig`)
+- **Object Config writes** — UI edit/add/delete merge into COT `comments` via `save_nsm_config_document_for_cot` / `clear_nsm_config_from_cot_comments` (preserves non-`nsm_config` YAML)
+- **Setup** — gated on `view_customobjecttype`; COT import on `add_customobjecttype`; Object Config sync on `change_customobjecttype`
+- **Rulebook permissions** — removed legacy `view_rulebook` / `add_rulebook` fallbacks; access requires per-COT `netbox_custom_objects` permissions
+- **`save_rulebook_config_for_cot`** — thin wrapper around unified `save_nsm_config_document_for_cot`
+- **Security Panel** — object-link and panel-link views enforce COT / `nsm_object_link` permissions in `dispatch`
+- **`VirtualAllRulesRulebook`** — `_meta` shim uses `RulebookListProxy` instead of removed `TypeConfig`
+
+### Removed
+
+- **`TypeConfig` permission anchor** — migration `0003` maps legacy typeconfig group permissions to COT permissions and deletes the model
+
+### Migration guide (operators)
+
+1. Upgrade plugin to **0.4.5** and run `python manage.py migrate netbox_nsm`.
+2. Migration `0003` copies groups that had `view_typeconfig` / `add_typeconfig` / `change_typeconfig` / `delete_typeconfig` to the matching `netbox_custom_objects` CustomObjectType permissions.
+3. Grant **Object Config** access via **Admin → Permissions → Custom Object Types** (`view` for read, `change` for edit/add/delete config).
+4. Rulebook UI still uses per-rulebook COT model permissions (`view` / `change` / `add` / `delete` on each rule model).
+5. Remove any custom permission assignments referencing `netbox_nsm.view_typeconfig` (etc.) — they are no longer defined.
+
 ## [0.4.4] - 2026-06-14
 
 ### Added

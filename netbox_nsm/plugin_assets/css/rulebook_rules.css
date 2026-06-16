@@ -963,6 +963,99 @@ body.nsm-rules-tab-sidebar-resizing {
   text-overflow: ellipsis;
 }
 
+#rules .nsm-rules-row-group-tabs--vertical .nsm-rules-row-group-tabs-collapse {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 1.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--bs-border-color) 70%, transparent);
+  color: var(--bs-secondary-color);
+  background-color: color-mix(in srgb, var(--bs-table-bg) 92%, var(--bs-body-color) 8%);
+}
+
+#rules .nsm-rules-row-group-tabs-collapse:hover {
+  color: var(--bs-body-color);
+  background-color: color-mix(in srgb, var(--bs-table-bg) 85%, var(--bs-primary) 15%);
+}
+
+#rules .nsm-rules-row-group-tabs-collapse .mdi {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+#rules .nsm-rules-row-group-tabs-collapse .nsm-rules-row-group-tabs-collapse-icon--collapsed {
+  display: none;
+}
+
+#rules
+  .nsm-rules-row-group-tabs--vertical.nsm-rules-row-group-tabs--collapsed
+  .nsm-rules-row-group-tabs-collapse
+  .nsm-rules-row-group-tabs-collapse-icon--expanded {
+  display: none;
+}
+
+#rules
+  .nsm-rules-row-group-tabs--vertical.nsm-rules-row-group-tabs--collapsed
+  .nsm-rules-row-group-tabs-collapse
+  .nsm-rules-row-group-tabs-collapse-icon--collapsed {
+  display: inline;
+}
+
+#rules .nsm-rules-row-group-tabs--vertical.nsm-rules-row-group-tabs--collapsed {
+  width: 2.25rem;
+  min-width: 2.25rem;
+  max-width: 2.25rem;
+}
+
+#rules .nsm-rules-row-group-tabs--vertical.nsm-rules-row-group-tabs--collapsed
+  .nsm-rules-row-group-tabs-resize-handle {
+  display: none;
+}
+
+#rules
+  .nsm-rules-row-group-tabs--vertical.nsm-rules-row-group-tabs--collapsed
+  .nav-item:not(:has(.nav-link.active)) {
+  display: none;
+}
+
+#rules .nsm-rules-row-group-tabs--vertical.nsm-rules-row-group-tabs--collapsed .badge {
+  display: none;
+}
+
+#rules .nsm-rules-row-group-tabs--vertical.nsm-rules-row-group-tabs--collapsed .nav-link {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 0.28rem 0.06rem;
+  text-align: center;
+}
+
+#rules
+  .nsm-rules-row-group-tabs--vertical.nsm-rules-row-group-tabs--collapsed
+  .nsm-rules-row-group-tab-label--vertical-chars {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  overflow: visible;
+  text-overflow: unset;
+}
+
+#rules
+  .nsm-rules-row-group-tabs--vertical.nsm-rules-row-group-tabs--collapsed
+  .nsm-rules-row-group-tab-label-char {
+  display: block;
+  font-size: 0.88rem;
+  line-height: 0.92;
+  letter-spacing: -0.025em;
+}
+
 /* Full-height rules viewer — fill viewport down to footer */
 .page-wrapper:has(#rules) {
   display: flex;

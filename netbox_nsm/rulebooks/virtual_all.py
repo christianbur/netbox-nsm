@@ -52,9 +52,9 @@ class _VirtualRulebookMeta:
     """Shim for plugin template panels (ContentType via ``_meta.model``)."""
 
     def __init__(self):
-        from netbox_nsm.models import TypeConfig
+        from netbox_nsm.rulebooks.permissions import RulebookListProxy
 
-        self._delegate = TypeConfig._meta
+        self._delegate = RulebookListProxy._meta
 
     @property
     def model(self):

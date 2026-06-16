@@ -19,13 +19,13 @@ __all__ = (
     "user_can_access_rulebooks",
 )
 
-_LEGACY_VIEW = "netbox_nsm.view_rulebook"
-_LEGACY_ADD = "netbox_nsm.add_rulebook"
 _CREATE_COT = "netbox_custom_objects.add_customobjecttype"
 
 
 class RulebookListProxy(models.Model):
     """Unmanaged shim for rulebook list NetBoxTable / object_list templates."""
+
+    _netbox_private = True
 
     class Meta:
         managed = False
@@ -47,9 +47,7 @@ def rulebook_permission(cot, action: str) -> str | None:
 
 def can_view_rulebook(user, cot) -> bool:
     perm = rulebook_permission(cot, "view")
-    if perm and user.has_perm(perm):
-        return True
-    return user.has_perm(_LEGACY_VIEW)
+    return bool(perm and user.has_perm(perm))
 
 
 def can_change_rulebook(user, cot) -> bool:
@@ -57,32 +55,24 @@ def can_change_rulebook(user, cot) -> bool:
         perm = rulebook_permission(cot, action)
         if perm and user.has_perm(perm):
             return True
-    return user.has_perm(_LEGACY_ADD)
+    return False
 
 
 def can_add_rulebook_rules(user, cot) -> bool:
     perm = rulebook_permission(cot, "add")
-    if perm and user.has_perm(perm):
-        return True
-    return user.has_perm(_LEGACY_ADD)
+    return bool(perm and user.has_perm(perm))
 
 
 def can_delete_rulebook_rules(user, cot) -> bool:
     perm = rulebook_permission(cot, "delete")
-    if perm and user.has_perm(perm):
-        return True
-    return user.has_perm(_LEGACY_ADD)
+    return bool(perm and user.has_perm(perm))
 
 
 def can_create_rulebook(user) -> bool:
-    if user.has_perm(_CREATE_COT):
-        return True
-    return user.has_perm(_LEGACY_ADD)
+    return user.has_perm(_CREATE_COT)
 
 
 def user_can_access_rulebooks(user) -> bool:
-    if user.has_perm(_LEGACY_VIEW):
-        return True
     for cot in iter_deployed_cot_rulebooks():
         if can_view_rulebook(user, cot):
             return True

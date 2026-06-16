@@ -15,6 +15,11 @@ from netbox_nsm.demos.addresses_million_scale import (
     SCALE_DEMO_50K_LEAF_COUNT,
     SCALE_DEMO_50K_RULE_COUNT,
 )
+from netbox_nsm.objects.nsm_config_permissions import (
+    ADD_CUSTOM_OBJECT_TYPE,
+    CHANGE_CUSTOM_OBJECT_TYPE,
+    VIEW_CUSTOM_OBJECT_TYPE,
+)
 
 from . import custom_objects, demo, typeconfig
 
@@ -27,6 +32,10 @@ class SetupView(LoginRequiredMixin, View):
     def dispatch(self, request, *args, **kwargs):
         if not setup_menu_enabled():
             raise Http404
+        if not request.user.has_perm(VIEW_CUSTOM_OBJECT_TYPE):
+            from django.core.exceptions import PermissionDenied
+
+            raise PermissionDenied()
         return super().dispatch(request, *args, **kwargs)
 
     def _build_context(self):
@@ -95,6 +104,24 @@ class SetupView(LoginRequiredMixin, View):
 
     def post(self, request):
         action = request.POST.get("action", "")
+
+        if custom_objects.handles_action(action) and not request.user.has_perm(
+            ADD_CUSTOM_OBJECT_TYPE
+        ):
+            messages.error(
+                request,
+                _("Permission denied: %(perm)s") % {"perm": ADD_CUSTOM_OBJECT_TYPE},
+            )
+            return redirect(reverse("plugins:netbox_nsm:setup"))
+
+        if typeconfig.handles_action(action) and not request.user.has_perm(
+            CHANGE_CUSTOM_OBJECT_TYPE
+        ):
+            messages.error(
+                request,
+                _("Permission denied: %(perm)s") % {"perm": CHANGE_CUSTOM_OBJECT_TYPE},
+            )
+            return redirect(reverse("plugins:netbox_nsm:setup"))
 
         if action and not custom_objects.custom_objects_db_ready():
             messages.error(

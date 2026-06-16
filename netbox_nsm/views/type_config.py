@@ -8,12 +8,19 @@ from django.views import View
 
 from netbox_nsm.forms.type_config import NsmConfigForm, config_form_class_for_slug
 from netbox_nsm.objects.nsm_config import (
+    clear_nsm_config_from_cot_comments,
     config_dict_from_spec,
-    format_nsm_config_comment_yaml,
     has_nsm_config_in_comments,
     parse_nsm_config_from_comments,
     resolve_nsm_config_for_cot,
     resolve_object_builder_config_for_cot,
+    save_nsm_config_document_for_cot,
+)
+from netbox_nsm.objects.nsm_config_permissions import (
+    nsm_config_add_permission,
+    nsm_config_change_permission,
+    nsm_config_delete_permission,
+    nsm_config_view_permission,
 )
 from netbox_nsm.objects.type_config_specs import (
     TYPECONFIG_LIST_EXCLUDED_SLUGS,
@@ -72,8 +79,24 @@ def _resolved_configs():
     return sorted(configs, key=lambda c: (c.sort_order, c.name))
 
 
+def _document_updates_from_config_dict(config: dict) -> dict:
+    updates = {
+        "rule_view": {
+            "sort_order": config.get("sort_order", 0),
+            "display_template": config.get("display_template") or "{name}",
+        },
+    }
+    if config.get("areas"):
+        updates["rule_view"]["areas"] = list(config["areas"])
+    if "panel" in config:
+        updates["panel"] = config["panel"]
+    if "object_builder" in config:
+        updates["object_builder"] = config["object_builder"]
+    return updates
+
+
 class ObjectConfigListView(PermissionRequiredMixin, View):
-    permission_required = "netbox_nsm.view_typeconfig"
+    permission_required = nsm_config_view_permission()
     template_name = "netbox_nsm/typeconfig_list.html"
 
     def get(self, request):
@@ -86,7 +109,7 @@ class ObjectConfigListView(PermissionRequiredMixin, View):
 
 
 class ObjectConfigView(PermissionRequiredMixin, View):
-    permission_required = "netbox_nsm.view_typeconfig"
+    permission_required = nsm_config_view_permission()
     template_name = "netbox_nsm/typeconfig.html"
 
     def get(self, request, slug):
@@ -109,7 +132,7 @@ class ObjectConfigView(PermissionRequiredMixin, View):
 
 
 class ObjectConfigEditView(PermissionRequiredMixin, View):
-    permission_required = "netbox_nsm.change_typeconfig"
+    permission_required = nsm_config_change_permission()
     template_name = "generic/object_edit.html"
 
     def get(self, request, slug):
@@ -145,17 +168,17 @@ class ObjectConfigEditView(PermissionRequiredMixin, View):
                     "return_url": reverse("plugins:netbox_nsm:objectconfig", args=[slug]),
                 },
             )
-        cot.comments = format_nsm_config_comment_yaml(form.to_config_dict()).rstrip()
-        cot.save(update_fields=["comments"])
-        from netbox_nsm.core.display_utils import get_display_template_map
-
-        get_display_template_map.cache_clear()
+        config_dict = form.to_config_dict()
+        updates = _document_updates_from_config_dict(config_dict)
+        if cot.slug == "nsm_address" and "object_builder" not in config_dict:
+            updates["object_builder"] = None
+        save_nsm_config_document_for_cot(cot, updates)
         messages.success(request, _("Object Config updated."))
         return redirect(reverse("plugins:netbox_nsm:objectconfig", args=[slug]))
 
 
 class ObjectConfigDeleteView(PermissionRequiredMixin, View):
-    permission_required = "netbox_nsm.delete_typeconfig"
+    permission_required = nsm_config_delete_permission()
     template_name = "generic/object_delete.html"
 
     def get(self, request, slug):
@@ -171,14 +194,13 @@ class ObjectConfigDeleteView(PermissionRequiredMixin, View):
 
     def post(self, request, slug):
         cot = _get_ui_cot(slug)
-        cot.comments = ""
-        cot.save(update_fields=["comments"])
+        clear_nsm_config_from_cot_comments(cot)
         messages.success(request, _("Object Config removed from comments."))
         return redirect(reverse("plugins:netbox_nsm:objectconfig_list"))
 
 
 class ObjectConfigAddView(PermissionRequiredMixin, View):
-    permission_required = "netbox_nsm.add_typeconfig"
+    permission_required = nsm_config_add_permission()
     template_name = "netbox_nsm/objectconfig_add.html"
 
     def get(self, request):
@@ -200,7 +222,9 @@ class ObjectConfigAddView(PermissionRequiredMixin, View):
             return redirect(reverse("plugins:netbox_nsm:objectconfig_add"))
         cot = _get_ui_cot(slug)
         spec = TYPECONFIG_SPEC_BY_SLUG[slug]
-        cot.comments = format_nsm_config_comment_yaml(config_dict_from_spec(spec)).rstrip()
-        cot.save(update_fields=["comments"])
+        save_nsm_config_document_for_cot(
+            cot,
+            _document_updates_from_config_dict(config_dict_from_spec(spec)),
+        )
         messages.success(request, _("Object Config created."))
         return redirect(reverse("plugins:netbox_nsm:objectconfig", args=[slug]))

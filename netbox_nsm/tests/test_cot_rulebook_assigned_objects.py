@@ -9,6 +9,7 @@ from django.urls import reverse
 from ipam.models import Prefix
 
 from dcim.models import Device, DeviceRole, DeviceType, Interface, Manufacturer, Site
+from netbox_nsm.demos.cot_demo_common import ensure_nsm_prerequisites
 from netbox_nsm.forms import EnforcementPointInterfaceAssignForm
 from netbox_nsm.objects.object_link_service import (
     LINK_TYPE_ENFORCEMENT_POINT,
@@ -83,6 +84,7 @@ class CotRulebookAssignedObjectsPanelTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
+        ensure_nsm_prerequisites()
         cls.device = _device("cot-assigned-fw-01")
         cls.iface = Interface.objects.create(
             device=cls.device, name="eth0", type="1000base-t"
@@ -149,10 +151,11 @@ class CotRulebookAssignedObjectsPanelTests(TestCase):
         self.assertEqual(host["linked_interface_count"], 0)
         self.assertFalse(host["interfaces"][0]["has_links"])
 
+    @patch("netbox_nsm.rulebooks.views.cot.can_view_rulebook", return_value=True)
     @patch("netbox_nsm.rulebooks.views.cot.build_virtual_cot_rulebook_with_hierarchy")
     @patch("netbox_nsm.rulebooks.views.cot.get_deployed_cot_rulebook")
     def test_cot_rulebook_bulk_assign_post_creates_assignment(
-        self, mock_get_cot, mock_build
+        self, mock_get_cot, mock_build, _mock_can_view
     ):
         if get_object_link_model() is None:
             self.skipTest("nsm_object_link COT is not deployed")
@@ -163,8 +166,7 @@ class CotRulebookAssignedObjectsPanelTests(TestCase):
         mock_build.return_value = VirtualCotRulebook(cot, rule_count=0)
 
         extra_device = _device("cot-assigned-fw-02")
-        self.user.is_superuser = True
-        self.user.save()
+        grant_object_link_perms(self)
         self.client.force_login(self.user)
         url = reverse(
             "plugins:netbox_nsm:cot_rulebook_bulk_assign",
@@ -180,6 +182,7 @@ class CotRulebookAssignedObjectsPanelTests(TestCase):
                 LINK_TYPE_ENFORCEMENT_POINT,
             )
 
+    @patch("netbox_nsm.rulebooks.views.cot.can_view_rulebook", return_value=True)
     @patch("netbox_nsm.rulebooks.views.cot.build_cot_rulebook_assigned_objects_panel")
     @patch(
         "netbox_custom_objects.schema.exporter.export_cot",
@@ -188,7 +191,7 @@ class CotRulebookAssignedObjectsPanelTests(TestCase):
     @patch("netbox_nsm.rulebooks.views.cot.build_virtual_cot_rulebook_with_hierarchy")
     @patch("netbox_nsm.rulebooks.views.cot.get_deployed_cot_rulebook")
     def test_cot_rulebook_detail_renders_assigned_objects_panel(
-        self, mock_get_cot, mock_build, _mock_export_cot, mock_panel
+        self, mock_get_cot, mock_build, _mock_export_cot, mock_panel, _mock_can_view
     ):
         from netbox_nsm.rulebooks.views.cot import CotRulebookView
         from netbox_nsm.rulebooks.virtual_cot import VirtualCotRulebook
@@ -229,7 +232,7 @@ class CotRulebookAssignedObjectsPanelTests(TestCase):
         url = reverse("plugins:netbox_nsm:cot_rulebook", kwargs={"slug": COT_SLUG})
         request = RequestFactory().get(url)
         request.user = self.user
-        request.user.is_superuser = True
+        grant_object_link_perms(self)
         response = CotRulebookView.as_view()(request, slug=COT_SLUG)
         content = response.content.decode()
         self.assertEqual(response.status_code, 200)
@@ -304,31 +307,36 @@ class CotRulebookAssignedObjectsPanelTests(TestCase):
     def test_enforcement_point_interface_assign_post_creates_link(self):
         if get_object_link_model() is None:
             self.skipTest("nsm_object_link COT is not deployed")
+        from netbox_custom_objects.models import CustomObjectType
+
         grant_object_link_perms(self)
+        zone_cot = CustomObjectType.objects.filter(slug="nsm_zone").first()
+        if zone_cot is None:
+            self.skipTest("nsm_zone COT is not deployed")
         device = _device("cot-assign-post-fw")
         iface = Interface.objects.create(
             device=device, name="eth0", type="1000base-t"
         )
-        prefix = Prefix.objects.create(prefix="10.54.0.0/24", status="active")
         create_or_update_enforcement_point_link(device, COT_SLUG)
+        zone_ct = ContentType.objects.get_for_model(zone_cot.get_model())
+        zone = zone_cot.get_model().objects.create(name="ep-post-zone")
         url = reverse(
             "plugins:netbox_nsm:enforcement_point_link_assign",
             kwargs={"slug": COT_SLUG},
         )
         iface_ct = ContentType.objects.get_for_model(iface)
-        prefix_ct = ContentType.objects.get_for_model(prefix)
         response = self.client.post(
             url,
             {
                 "object_a_type_id": iface_ct.pk,
                 "object_a_id": iface.pk,
-                "object_b_type": prefix_ct.pk,
-                "object_b_id": prefix.pk,
+                "object_b_type": zone_ct.pk,
+                "object_b_id": zone.pk,
                 "return_url": "/",
                 "comment": "via assign view",
             },
         )
         self.assertEqual(response.status_code, 302, response.content)
-        link = find_enforcement_point_iface_link(iface, prefix, COT_SLUG)
+        link = find_enforcement_point_iface_link(iface, zone, COT_SLUG)
         self.assertIsNotNone(link)
         self.assertEqual(link.comment, "via assign view")

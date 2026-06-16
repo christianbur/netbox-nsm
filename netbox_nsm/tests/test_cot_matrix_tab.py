@@ -172,10 +172,11 @@ class CotVirtualRulebookTabsTests(TestCase):
 
 
 class CotRulebookMatrixViewTests(SimpleTestCase):
+    @patch("netbox_nsm.rulebooks.views.cot.can_view_rulebook", return_value=True)
     @patch("netbox_nsm.rulebooks.views.cot.get_deployed_cot_rulebook")
     @patch("netbox_nsm.rulebooks.views.cot.build_virtual_cot_rulebook_with_hierarchy")
     def test_matrix_view_returns_404_without_zone_fields(
-        self, mock_build, mock_get_cot
+        self, mock_build, mock_get_cot, _mock_can_view
     ):
         from django.http import Http404
 
@@ -194,11 +195,12 @@ class CotRulebookMatrixViewTests(SimpleTestCase):
         with self.assertRaises(Http404):
             CotRulebookMatrixView.as_view()(request, slug="nsm_rb_addr")
 
+    @patch("netbox_nsm.rulebooks.views.cot.can_view_rulebook", return_value=True)
     @patch("netbox_nsm.rulebooks.views.cot.get_deployed_cot_rulebook")
     @patch("netbox_nsm.rulebooks.views.cot.build_virtual_cot_rulebook_with_hierarchy")
     @patch("netbox_nsm.rulebooks.views.cot.cot_rulebook_matrix_enabled", return_value=False)
     def test_matrix_view_returns_404_when_tab_disabled(
-        self, _mock_enabled, mock_build, mock_get_cot
+        self, _mock_enabled, mock_build, mock_get_cot, _mock_can_view
     ):
         from django.http import Http404
 

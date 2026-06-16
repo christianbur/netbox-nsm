@@ -26,7 +26,7 @@
               <input type="hidden" name="action" value="create_demo_starter">
               <button type="submit" class="btn btn-outline-primary btn-sm"
                       {% if not can_run_demo %}disabled{% endif %}
-                      title="{% if not all_tcs_ok %}{% trans 'Complete section 3 first' %}{% endif %}">
+                      title="{% if not all_tcs_ok %}{% trans 'Complete section 2 first' %}{% endif %}">
                 <i class="mdi mdi-plus me-1"></i>{% trans "Create" %}
               </button>
             </form>
@@ -55,7 +55,7 @@
               </div>
               <button type="submit" class="btn btn-outline-warning btn-sm" id="nsm-scale-50k-submit"
                       disabled
-                      title="{% if not all_tcs_ok %}{% trans 'Complete section 3 first' %}{% else %}{% trans 'Confirmation required' %}{% endif %}">
+                      title="{% if not all_tcs_ok %}{% trans 'Complete section 2 first' %}{% else %}{% trans 'Confirmation required' %}{% endif %}">
                 <i class="mdi mdi-database-plus me-1"></i>{% trans "Create" %}
               </button>
             </form>

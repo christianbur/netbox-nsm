@@ -3,7 +3,9 @@
 NetBox plugin for **security policy documentation** (zones, rulebooks, object links).  
 No firewall push — inventory and policy only.
 
-**Status:** WIP · **NetBox:** 4.5–4.6 · **Plugin:** 0.4.3 · **Requires:** [netbox-custom-objects](https://github.com/netboxlabs/netbox-custom-objects)
+> **⚠️ Work in progress** — Not recommended for production use yet. Breaking changes possible (e.g. 0.4.5 permission migration).
+
+**Status:** **NetBox:** 4.5–4.6 · **Plugin:** 0.4.5 · **Requires:** [netbox-custom-objects](https://github.com/netboxlabs/netbox-custom-objects)
 
 ## Features
 
@@ -69,7 +71,7 @@ PLUGINS_CONFIG = {
 
 ## First run
 
-**Security → Configuration → Setup** — sections **1 → 2 → 3** (labels, COTs, type configs), then optional **4 Starter demo**.
+**Security → Configuration → Setup** — sections **1 → 2 → 3** (labels, COTs, object configs), then optional **4 Starter demo**.
 
 Then: open a prefix → Security Panel → `+ Assign` → zone. Rulebooks under **Security → Rulebooks**.
 

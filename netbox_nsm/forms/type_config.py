@@ -59,7 +59,7 @@ class NsmConfigForm(forms.Form):
 class NsmAddressConfigForm(NsmConfigForm):
     object_builder_enabled = forms.BooleanField(
         required=False,
-        initial=True,
+        initial=False,
         label=_("Object Sync enabled"),
     )
     template_ipaddress = forms.CharField(
@@ -104,6 +104,17 @@ class NsmAddressConfigForm(NsmConfigForm):
     @classmethod
     def initial_from_config_dict(cls, config: dict) -> dict:
         initial = super().initial_from_config_dict(config)
+        if "object_builder" not in config:
+            initial.update(
+                {
+                    "object_builder_enabled": False,
+                    "template_ipaddress": "",
+                    "template_prefix": "",
+                    "template_iprange": "",
+                    "copy_description_ipaddress": False,
+                }
+            )
+            return initial
         builder = normalize_object_builder_config(config.get("object_builder"))
         sources = builder.get("sources") or {}
         initial.update(
@@ -127,8 +138,10 @@ class NsmAddressConfigForm(NsmConfigForm):
 
     def to_config_dict(self) -> dict:
         result = super().to_config_dict()
+        if not self.cleaned_data.get("object_builder_enabled"):
+            return result
         builder = normalize_object_builder_config(DEFAULT_OBJECT_BUILDER_CONFIG)
-        builder["enabled"] = bool(self.cleaned_data.get("object_builder_enabled"))
+        builder["enabled"] = True
         builder["sources"]["ipam.ipaddress"]["build_template"] = (
             self.cleaned_data.get("template_ipaddress") or ""
         )

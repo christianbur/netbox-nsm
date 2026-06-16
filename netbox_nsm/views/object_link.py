@@ -39,6 +39,15 @@ class ObjectLinkAssignView(LoginRequiredMixin, View):
 
     template_name = "netbox_nsm/object_link_assign.html"
 
+    def dispatch(self, request, *args, **kwargs):
+        from netbox_nsm.objects.object_link_service import object_link_permission
+
+        perm = object_link_permission("add")
+        if perm and not request.user.has_perm(perm):
+            messages.error(request, _("Permission denied."))
+            return HttpResponseRedirect(request.GET.get("return_url", "/"))
+        return super().dispatch(request, *args, **kwargs)
+
     def _resolve_object(self, ct_id, obj_id):
         try:
             ct = ContentType.objects.get(pk=int(ct_id))
@@ -216,6 +225,15 @@ class ObjectLinkEditView(LoginRequiredMixin, View):
 
     template_name = "netbox_nsm/object_link_edit.html"
 
+    def dispatch(self, request, *args, **kwargs):
+        from netbox_nsm.objects.object_link_service import object_link_permission
+
+        perm = object_link_permission("change")
+        if perm and not request.user.has_perm(perm):
+            messages.error(request, _("Permission denied."))
+            return HttpResponseRedirect(request.GET.get("return_url", "/"))
+        return super().dispatch(request, *args, **kwargs)
+
     def _form_initial(self, link):
         return {
             "comment": link.comment or "",
@@ -277,6 +295,15 @@ class ObjectLinkDeleteView(LoginRequiredMixin, View):
     GET  /plugins/netbox-nsm/object-link/<int:pk>/delete/?return_url=...  → confirmation page
     POST /plugins/netbox-nsm/object-link/<int:pk>/delete/                 → delete and redirect
     """
+
+    def dispatch(self, request, *args, **kwargs):
+        from netbox_nsm.objects.object_link_service import object_link_permission
+
+        perm = object_link_permission("delete")
+        if perm and not request.user.has_perm(perm):
+            messages.error(request, _("Permission denied."))
+            return HttpResponseRedirect(request.GET.get("return_url", "/"))
+        return super().dispatch(request, *args, **kwargs)
 
     def get(self, request, pk):
         link = get_link_by_pk(pk)

@@ -3,16 +3,15 @@
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
-#, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: PACKAGE VERSION\n"
+"Project-Id-Version: netbox-nsm 0.4.5\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-14 22:20+0200\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
-"Language: \n"
+"POT-Creation-Date: 2026-06-16 12:00+0200\n"
+"PO-Revision-Date: 2026-06-16 12:00+0200\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: en\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -104,7 +103,6 @@ msgid "IP Range"
 msgstr ""
 
 #: analysis/ipa_add_object_types.py:19 objects/address_ipam_fk.py:244
-#: templates/netbox_nsm/inc/ipa_cell_object_type_label.html:8
 #, fuzzy
 #| msgid "IP Address"
 msgid "Address"
@@ -314,7 +312,6 @@ msgid "Inherit to group members"
 msgstr "Inherit to group members"
 
 #: models/permission_anchors.py:21 navigation.py:18
-#: templates/netbox_nsm/inc/setup_typeconfig.html:6
 #: templates/netbox_nsm/typeconfig.html:5
 #: templates/netbox_nsm/typeconfig.html:12
 #: templates/netbox_nsm/typeconfig_list.html:4
@@ -437,8 +434,6 @@ msgstr ""
 #: rulebooks/tables/rulebook.py:121 tables/type_config.py:20
 #: templates/netbox_nsm/inc/rulebook_detail_content.html:10
 #: templates/netbox_nsm/inc/rulebook_fields_table.html:14
-#: templates/netbox_nsm/inc/rulebook_fields_table_rules.html:14
-#: templates/netbox_nsm/property.html:11
 #: templates/netbox_nsm/propertytype.html:11
 #: templates/netbox_nsm/rulebook_cot_detail.html:101
 msgid "Name"
@@ -447,7 +442,6 @@ msgstr ""
 #: objects/nsm_config.py:614
 #: templates/netbox_nsm/inc/cot_rulebook_create_fields.html:123
 #: templates/netbox_nsm/inc/setup_custom_object_schema.html:204
-#: templates/netbox_nsm/inc/setup_custom_objects.html:188
 #: templates/netbox_nsm/propertytype.html:13
 #: templates/netbox_nsm/rulebook_cot_detail.html:38
 #: templates/netbox_nsm/rulebook_cot_detail.html:105
@@ -455,7 +449,6 @@ msgid "Slug"
 msgstr ""
 
 #: objects/type_config_export.py:144 tables/type_config.py:25
-#: templates/netbox_nsm/property.html:12
 #: templates/netbox_nsm/typeconfig.html:35
 #: templates/netbox_nsm/typeconfig_list.html:24
 msgid "Object Type"
@@ -553,8 +546,6 @@ msgstr ""
 #: rulebooks/forms/cot.py:208 rulebooks/tables/rulebook.py:153
 #: templates/netbox_nsm/inc/rulebook_detail_content.html:50
 #: templates/netbox_nsm/inc/setup_custom_object_schema.html:206
-#: templates/netbox_nsm/inc/setup_custom_objects.html:190
-#: templates/netbox_nsm/property.html:28
 #: templates/netbox_nsm/propertytype.html:15
 #: templates/netbox_nsm/rulebook_cot_detail.html:153
 msgid "Description"
@@ -642,7 +633,6 @@ msgid "Off"
 msgstr ""
 
 #: rulebooks/grid/column_defs.py:27
-#: templates/netbox_nsm/inc/ipa_cell_object_type_label.html:6
 #: templates/netbox_nsm/propertytype.html:14 views/panel_link_actions.py:61
 msgid "Group"
 msgstr ""
@@ -711,8 +701,6 @@ msgstr ""
 #: rulebooks/tables/rulebook.py:126
 #: templates/netbox_nsm/inc/rulebook_detail_content.html:18
 #: templates/netbox_nsm/inc/setup_custom_object_schema.html:207
-#: templates/netbox_nsm/inc/setup_custom_objects.html:191
-#: templates/netbox_nsm/inc/setup_typeconfig.html:34
 msgid "Status"
 msgstr ""
 
@@ -888,7 +876,6 @@ msgstr ""
 
 #: templates/netbox_custom_objects/customobject_edit.html:44
 #: templates/netbox_nsm/inc/rulebook_fields_table.html:17
-#: templates/netbox_nsm/inc/rulebook_fields_table_rules.html:17
 #: templates/netbox_nsm/inc/rulebook_rules_table_thead.html:41
 msgid "Actions"
 msgstr ""
@@ -1049,9 +1036,6 @@ msgstr ""
 msgid "Analyze IP object"
 msgstr ""
 
-#: templates/netbox_nsm/inc/addr_ipam_info_leaves.html:8
-msgid "tree preview"
-msgstr ""
 
 #: templates/netbox_nsm/inc/addr_tree_node.html:19
 #: templates/netbox_nsm/inc/addr_tree_node.html:47
@@ -1143,14 +1127,11 @@ msgid "Same IPAM key with different object names on diff sides"
 msgstr ""
 
 #: templates/netbox_nsm/inc/cot_fields_readonly_table.html:6
-#: templates/netbox_nsm/property.html:46
 msgid "Field"
 msgstr ""
 
 #: templates/netbox_nsm/inc/cot_fields_readonly_table.html:7
 #: templates/netbox_nsm/inc/setup_custom_object_schema.html:205
-#: templates/netbox_nsm/inc/setup_custom_objects.html:189
-#: templates/netbox_nsm/inc/setup_typeconfig.html:33
 #: templates/netbox_nsm/object_analyzer.html:182
 msgid "Label"
 msgstr ""
@@ -1158,9 +1139,6 @@ msgstr ""
 #: templates/netbox_nsm/inc/cot_fields_readonly_table.html:8
 #: templates/netbox_nsm/inc/rulebook_detail_content.html:14
 #: templates/netbox_nsm/inc/setup_custom_object_schema.html:156
-#: templates/netbox_nsm/inc/setup_custom_objects.html:153
-#: templates/netbox_nsm/inc/setup_typeconfig.html:32
-#: templates/netbox_nsm/property.html:47
 #: templates/netbox_nsm/rulebook_cot_detail.html:42
 #: templates/netbox_nsm/rulebook_cot_detail.html:109
 msgid "Type"
@@ -1174,7 +1152,6 @@ msgstr ""
 #: templates/netbox_nsm/inc/cot_fields_readonly_table.html:43
 #: templates/netbox_nsm/inc/cot_rulebook_create_fields.html:80
 #: templates/netbox_nsm/inc/setup_custom_object_schema.html:157
-#: templates/netbox_nsm/inc/setup_custom_objects.html:154
 msgid "Required"
 msgstr ""
 
@@ -1212,19 +1189,16 @@ msgstr ""
 
 #: templates/netbox_nsm/inc/cot_rulebook_create_fields.html:44
 #: templates/netbox_nsm/inc/setup_custom_object_schema.html:92
-#: templates/netbox_nsm/inc/setup_custom_objects.html:105
 msgid "YAML"
 msgstr ""
 
 #: templates/netbox_nsm/inc/cot_rulebook_create_fields.html:56
 #: templates/netbox_nsm/inc/setup_custom_object_schema.html:107
-#: templates/netbox_nsm/inc/setup_custom_objects.html:117
 msgid "Preview"
 msgstr ""
 
 #: templates/netbox_nsm/inc/cot_rulebook_create_fields.html:78
 #: templates/netbox_nsm/inc/setup_custom_object_schema.html:155
-#: templates/netbox_nsm/inc/setup_custom_objects.html:152
 msgid "Column"
 msgstr ""
 
@@ -1234,21 +1208,18 @@ msgstr ""
 
 #: templates/netbox_nsm/inc/cot_rulebook_create_fields.html:95
 #: templates/netbox_nsm/inc/setup_custom_object_schema.html:166
-#: templates/netbox_nsm/inc/setup_custom_objects.html:163
 #: templates/netbox_nsm/typeconfig.html:45
 msgid "Yes"
 msgstr ""
 
 #: templates/netbox_nsm/inc/cot_rulebook_create_fields.html:95
 #: templates/netbox_nsm/inc/setup_custom_object_schema.html:166
-#: templates/netbox_nsm/inc/setup_custom_objects.html:163
 #: templates/netbox_nsm/typeconfig.html:45
 msgid "No"
 msgstr ""
 
 #: templates/netbox_nsm/inc/cot_rulebook_create_fields.html:100
 #: templates/netbox_nsm/inc/setup_custom_object_schema.html:171
-#: templates/netbox_nsm/inc/setup_custom_objects.html:168
 msgid "No columns defined."
 msgstr ""
 
@@ -1725,12 +1696,10 @@ msgid "Sort order: %(field_order)s|%(type_order)s"
 msgstr ""
 
 #: templates/netbox_nsm/inc/rulebook_fields_table.html:15
-#: templates/netbox_nsm/inc/rulebook_fields_table_rules.html:15
 msgid "Kind"
 msgstr ""
 
 #: templates/netbox_nsm/inc/rulebook_fields_table.html:16
-#: templates/netbox_nsm/inc/rulebook_fields_table_rules.html:16
 msgid "Options"
 msgstr ""
 
@@ -2018,17 +1987,14 @@ msgid "Custom Object Schema"
 msgstr ""
 
 #: templates/netbox_nsm/inc/setup_custom_object_schema.html:58
-#: templates/netbox_nsm/inc/setup_custom_objects.html:56
 msgid "Plugin ready"
 msgstr ""
 
 #: templates/netbox_nsm/inc/setup_custom_object_schema.html:62
-#: templates/netbox_nsm/inc/setup_custom_objects.html:60
 msgid "Migrations pending"
 msgstr ""
 
 #: templates/netbox_nsm/inc/setup_custom_object_schema.html:66
-#: templates/netbox_nsm/inc/setup_custom_objects.html:64
 msgid "Plugin not installed"
 msgstr ""
 
@@ -2039,7 +2005,6 @@ msgid ""
 msgstr ""
 
 #: templates/netbox_nsm/inc/setup_custom_object_schema.html:76
-#: templates/netbox_nsm/inc/setup_custom_objects.html:74
 msgid "Run migrations before importing types:"
 msgstr ""
 
@@ -2048,22 +2013,18 @@ msgid "Custom Object Schema YAML"
 msgstr ""
 
 #: templates/netbox_nsm/inc/setup_custom_object_schema.html:179
-#: templates/netbox_nsm/inc/setup_custom_objects.html:176
 msgid "No types defined."
 msgstr ""
 
 #: templates/netbox_nsm/inc/setup_custom_object_schema.html:189
-#: templates/netbox_nsm/inc/setup_custom_objects.html:85
 msgid "Install netbox-custom-objects first"
 msgstr ""
 
 #: templates/netbox_nsm/inc/setup_custom_object_schema.html:189
-#: templates/netbox_nsm/inc/setup_custom_objects.html:85
 msgid "Run migrations first"
 msgstr ""
 
 #: templates/netbox_nsm/inc/setup_custom_object_schema.html:189
-#: templates/netbox_nsm/inc/setup_custom_objects.html:85
 msgid "All types already present"
 msgstr ""
 
@@ -2078,50 +2039,19 @@ msgid ""
 msgstr ""
 
 #: templates/netbox_nsm/inc/setup_custom_object_schema.html:197
-#: templates/netbox_nsm/inc/setup_custom_objects.html:181
 msgid "Custom Object Groups"
 msgstr ""
 
 #: templates/netbox_nsm/inc/setup_custom_object_schema.html:219
-#: templates/netbox_nsm/inc/setup_custom_objects.html:203
 msgid "present"
 msgstr ""
 
 #: templates/netbox_nsm/inc/setup_custom_object_schema.html:223
-#: templates/netbox_nsm/inc/setup_custom_objects.html:207
-#: templates/netbox_nsm/inc/setup_typeconfig.html:55
 msgid "missing"
 msgstr ""
 
 #: templates/netbox_nsm/inc/setup_custom_object_schema.html:235
-#: templates/netbox_nsm/inc/setup_custom_objects.html:219
 msgid "Section 2 complete."
-msgstr ""
-
-#: templates/netbox_nsm/inc/setup_custom_objects.html:49
-msgid "Custom Objects"
-msgstr ""
-
-#: templates/netbox_nsm/inc/setup_custom_objects.html:68
-msgid ""
-"<strong>netbox-custom-objects</strong> — applies bundled portable schema "
-"(<code>schema/nsm_portable_schema.json</code>)."
-msgstr ""
-
-#: templates/netbox_nsm/inc/setup_custom_objects.html:86
-msgid "Add all Custom Object Types"
-msgstr ""
-
-#: templates/netbox_nsm/inc/setup_custom_objects.html:90
-msgid "Includes built-in NSM types and NSM Panel links."
-msgstr ""
-
-#: templates/netbox_nsm/inc/setup_custom_objects.html:94
-msgid "Portable schema"
-msgstr ""
-
-#: templates/netbox_nsm/inc/setup_custom_objects.html:129
-msgid "Portable schema YAML"
 msgstr ""
 
 #: templates/netbox_nsm/inc/setup_demo.html:6
@@ -2129,7 +2059,6 @@ msgid "Demo"
 msgstr ""
 
 #: templates/netbox_nsm/inc/setup_demo.html:12
-#: templates/netbox_nsm/inc/setup_typeconfig.html:25
 msgid "Available after section 2 is complete."
 msgstr ""
 
@@ -2147,10 +2076,6 @@ msgid ""
 "              "
 msgstr ""
 
-#: templates/netbox_nsm/inc/setup_demo.html:29
-#: templates/netbox_nsm/inc/setup_demo.html:58
-msgid "Complete section 3 first"
-msgstr ""
 
 #: templates/netbox_nsm/inc/setup_demo.html:39
 msgid "Address bench (50,000 addresses)"
@@ -2172,6 +2097,11 @@ msgstr ""
 msgid "I confirm that IP addresses may be created in IPAM."
 msgstr ""
 
+#: templates/netbox_nsm/inc/setup_demo.html:29
+#: templates/netbox_nsm/inc/setup_demo.html:58
+msgid "Complete section 2 first"
+msgstr ""
+
 #: templates/netbox_nsm/inc/setup_demo.html:58
 msgid "Confirmation required"
 msgstr ""
@@ -2180,45 +2110,14 @@ msgstr ""
 msgid "Demo actions are disabled (setup_allow_destructive_actions)."
 msgstr ""
 
-#: templates/netbox_nsm/inc/setup_typeconfig.html:11
-msgid ""
-"Links each Custom Object Type to NSM behaviour (display template, sort "
-"order). Inheritance is configured per link under Assign, not here."
-msgstr ""
 
-#: templates/netbox_nsm/inc/setup_typeconfig.html:20
-msgid "Complete section 2 first"
-msgstr ""
 
-#: templates/netbox_nsm/inc/setup_typeconfig.html:20
-msgid "All Object Configs already configured"
-msgstr ""
 
-#: templates/netbox_nsm/inc/setup_typeconfig.html:21
-msgid "Add all Object Configs"
-msgstr ""
 
-#: templates/netbox_nsm/inc/setup_typeconfig.html:51
-msgid "waiting"
-msgstr ""
 
-#: templates/netbox_nsm/inc/setup_typeconfig.html:66
-msgid "Section 3 complete."
-msgstr ""
 
-#: templates/netbox_nsm/inc/setup_typeconfig.html:71
-msgid "Object Config definitions"
-msgstr ""
 
-#: templates/netbox_nsm/inc/setup_typeconfig.html:73
-msgid ""
-"Reference YAML for all nine Object Config types (sort order and display "
-"template)."
-msgstr ""
 
-#: templates/netbox_nsm/inc/setup_typeconfig.html:78
-msgid "Object Config definitions YAML"
-msgstr ""
 
 #: templates/netbox_nsm/ip_analysis.html:138
 msgid "Add one or more objects per column to compare IP resolution"
@@ -2488,33 +2387,12 @@ msgstr ""
 msgid "All UI object types already have nsm_config in comments."
 msgstr ""
 
-#: templates/netbox_nsm/property.html:9
-msgid "NSM Object"
-msgstr ""
 
-#: templates/netbox_nsm/property.html:14
-msgid "Color"
-msgstr ""
 
-#: templates/netbox_nsm/property.html:26
-msgid "Source Model"
-msgstr ""
 
-#: templates/netbox_nsm/property.html:27
-msgid "Source PK"
-msgstr ""
 
-#: templates/netbox_nsm/property.html:41
-msgid "Object Data"
-msgstr ""
 
-#: templates/netbox_nsm/property.html:48
-msgid "Value"
-msgstr ""
 
-#: templates/netbox_nsm/property.html:66
-msgid "No fields defined for this object type."
-msgstr ""
 
 #: templates/netbox_nsm/propertytype.html:9
 msgid "NSM Object Type"
@@ -2948,7 +2826,3 @@ msgstr ""
 msgid "Object Config created."
 msgstr ""
 
-#, fuzzy
-#~| msgid "Device"
-#~ msgid "Service"
-#~ msgstr "Device"

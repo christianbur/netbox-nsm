@@ -18,6 +18,10 @@ from netbox_nsm.objects.nsm_config import (
     parse_nsm_config_document_from_comments,
     save_nsm_config_document_for_cot,
 )
+from netbox_nsm.objects.nsm_config_permissions import (
+    nsm_config_change_permission,
+    nsm_config_view_permission,
+)
 from netbox_nsm.rulebooks.permissions import can_change_rulebook, can_view_rulebook
 
 __all__ = ("NsmConfigApiView",)
@@ -44,7 +48,7 @@ def _check_permission(user, cot, slug: str, *, write: bool = False) -> None:
         if not allowed:
             raise PermissionDenied("Missing rulebook permission for this COT.")
         return
-    perm = "netbox_nsm.change_typeconfig" if write else "netbox_nsm.view_typeconfig"
+    perm = nsm_config_change_permission() if write else nsm_config_view_permission()
     if not user.has_perm(perm):
         raise PermissionDenied(f"Missing permission: {perm}")
 

@@ -8,8 +8,9 @@ NSM persists its own data in the **NetBox PostgreSQL database**. Django uses the
 Security **object instances** (zones, addresses, labels, services, actions, rulebook rules,
 policy links, rulebook host assignments) are **not** stored in native NSM tables. They live in
 `netbox-custom-objects` COT rows (`nsm_object_link` for panel links and rulebook assignments).
-Type metadata (`sort_order`, `display_template`, `areas`, `panel`, `object_builder`, `rulebook`)
-lives in each COT type's **`comments`** field (`nsm_config` YAML). Plugin-wide UI labels use
+Type metadata (`sort_order`, `display_template`, `areas`, `panel`, `rulebook`; optional
+`object_builder` on `nsm_address` only) lives in each COT type's **`comments`** field
+(`nsm_config` YAML). Plugin-wide UI labels use
 **`PLUGINS_CONFIG`** only (`menu_label`, `panel_label`, `setup_menu`).
 
 ---
@@ -32,10 +33,11 @@ python manage.py dbshell -c "\dt netbox_nsm_*"
 
 | Model | Purpose |
 |-------|---------|
-| `TypeConfig` | **Unmanaged** permission anchor for Object Config / `nsm_config` API (`view_typeconfig`, …) |
-| `Rulebook` | **Unmanaged** permission anchor for COT rulebooks (`view_rulebook`, `add_rulebook`) |
+| `RulebookListProxy` | **Unmanaged** NetBoxTable / object-list shim for the rulebook list UI only. Marked `_netbox_private` — **no physical table**, **not** a permission source. Rulebook access is enforced per deployed COT via `netbox_custom_objects` permissions on each rulebook's rule model (see `rulebooks/permissions.py`). |
 
-No other `netbox_nsm_*` data tables exist in 0.4.2.
+Object Config / `nsm_config` permissions (0.4.5+) use `netbox_custom_objects.view_customobjecttype` and `netbox_custom_objects.change_customobjecttype` — there is no `TypeConfig` anchor model.
+
+No `netbox_nsm_*` data tables exist in current NSM. Configuration lives in COT `comments`; rulebook instances live in `netbox-custom-objects`.
 
 ---
 
@@ -77,8 +79,9 @@ See migrations `0004_delete_objectlink` and `0005_remove_legacy_object_and_prope
 | IP prefixes, IP addresses, devices, VMs | NetBox core (`ipam_*`, `dcim_*`, `virtualization_*`, …) |
 | Tags, custom fields, changelog | NetBox `extras_*` |
 
-`TypeConfig` is an unmanaged permission anchor only; configuration is edited via Object Config
-UI or `/api/plugins/netbox-nsm/nsm-configs/<slug>/` (updates COT `comments`).
+`TypeConfig` was removed in 0.4.5. Configuration is edited via Object Config UI or
+`/api/plugins/netbox-nsm/nsm-configs/<slug>/` (updates COT `comments`). Requires
+`netbox_custom_objects.view_customobjecttype` (read) or `change_customobjecttype` (write).
 
 ---
 
@@ -105,6 +108,8 @@ python manage.py migrate netbox_nsm
 | Migration | Purpose |
 |-----------|---------|
 | `0001_initial` | **Squashed** baseline (unmanaged `TypeConfig` + `RulebookListProxy` permission shims only). Replaces migrations `0001`–`0007` from 0.4.1/0.4.2; existing DBs that already applied those migrations are marked applied without re-running data steps. |
+| `0002_private_permission_anchors` | Mark permission anchors `_netbox_private` (excluded from `/core/system/` object counts) and drop legacy empty stub tables if present. |
+| `0003_remove_typeconfig_permissions` | Map legacy `*_typeconfig` group permissions to `netbox_custom_objects` COT permissions; delete `TypeConfig` model. |
 
 **Squashing:** `0001_initial` is regenerated for new installs via
 `docker/netbox_dev/scripts/generate_nsm_0001.sh` (removes numbered migrations in the dev

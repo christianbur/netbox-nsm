@@ -6,6 +6,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.4.6] - 2026-06-17
+
+### Added
+
+- **Custom Objects related tab** — NSM object detail template (`customobject.html`) loads `custom_object_tab_tags` and renders `{% custom_objects_tab_link object %}` so the related-objects tab from **netbox-custom-objects** (PR 482) appears alongside Journal/Changelog when NSM overrides the tabs block
+
 ## [0.4.5] - 2026-06-16
 
 ### Changed

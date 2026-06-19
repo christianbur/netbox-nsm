@@ -7,13 +7,38 @@ from datetime import datetime, timezone
 from typing import Any
 
 __all__ = (
+    "build_ipa_export_child_objects",
     "build_ipa_export_document",
     "ipa_export_filename",
     "parse_export_context_from_request",
     "serialize_ipa_export_yaml",
 )
 
-_IPA_EXPORT_VERSION = "1"
+# v2 splits the document into a primary ``displayed`` block (what the applet
+# currently shows for the active tab) and an additional ``ipam_children`` block
+# (the full address / IPAM child-object expansion behind lazy tree nodes).
+_IPA_EXPORT_VERSION = "2"
+
+# Per-object cap for the additional full-expansion section. Each object drilldown
+# is itself bounded (``_IPAM_PREFIX_CHILDREN_MAX`` with lazy placeholders beyond),
+# so this only guards against pathological selections with very many objects.
+_IPA_EXPORT_MAX_EXPANDED_OBJECTS = 200
+
+# Keys kept on nodes in the additional ``ipam_children`` expansion. Smaller than
+# ``_NODE_KEEP_KEYS`` because the expansion only needs identity + structure.
+_EXPANSION_KEEP_KEYS = frozenset(
+    {
+        "name",
+        "kind",
+        "ip",
+        "prefix_display_cidr",
+        "prefix_netmask",
+        "count",
+        "leaf_count",
+        "copy_lines",
+        "children",
+    }
+)
 
 _NODE_KEEP_KEYS = frozenset(
     {
@@ -164,6 +189,117 @@ def _collect_copy_lines(payload: dict[str, Any]) -> list[str]:
     return lines
 
 
+def _sanitize_expansion_node(node: Any) -> dict[str, Any] | None:
+    """Trim a resolved drilldown node to portable identity + structure keys."""
+    if not isinstance(node, dict):
+        return None
+    clean: dict[str, Any] = {}
+    for key, value in node.items():
+        if key == "children":
+            children = _sanitize_expansion_nodes(value)
+            if children:
+                clean["children"] = children
+            continue
+        if key == "ip_ref":
+            ip_text = _simplify_ip_ref(value)
+            if ip_text:
+                clean["ip"] = ip_text
+            continue
+        if key == "copy_lines" and isinstance(value, list):
+            lines = [str(line) for line in value if str(line).strip()]
+            if lines:
+                clean["copy_lines"] = lines
+            continue
+        if key in _EXPANSION_KEEP_KEYS:
+            clean[key] = value
+    if node.get("lazy_load"):
+        # Mirror the applet: the slice beyond the page cap stays collapsed.
+        clean["truncated"] = True
+    return clean or None
+
+
+def _sanitize_expansion_nodes(nodes: Any) -> list[dict[str, Any]]:
+    if not isinstance(nodes, list):
+        return []
+    return [
+        item for item in (_sanitize_expansion_node(node) for node in nodes) if item
+    ]
+
+
+def _collect_object_tree_refs(
+    nodes: Any, refs: list[dict[str, Any]], seen: set[tuple[int, int]]
+) -> None:
+    """Collect ``(ct, pk)`` object references from the visible cell object tree."""
+    if not isinstance(nodes, list):
+        return
+    for node in nodes:
+        if not isinstance(node, dict):
+            continue
+        ct_raw = node.get("ct")
+        pk_raw = node.get("pk")
+        if str(ct_raw or "").isdigit() and str(pk_raw or "").isdigit():
+            key = (int(ct_raw), int(pk_raw))
+            if key not in seen:
+                seen.add(key)
+                refs.append(
+                    {"ct": key[0], "pk": key[1], "name": node.get("name")}
+                )
+        _collect_object_tree_refs(node.get("children"), refs, seen)
+
+
+def build_ipa_export_child_objects(
+    payload: dict[str, Any],
+    *,
+    max_objects: int = _IPA_EXPORT_MAX_EXPANDED_OBJECTS,
+) -> list[dict[str, Any]]:
+    """Resolve the full address / IPAM child expansion for the visible objects.
+
+    Walks the visible ``object_tree`` and, for every referenced object, reuses
+    the same lazy drilldown the applet performs on expand
+    (``_build_ipa_object_drilldown_nodes``). Requires ORM access, so it is kept
+    separate from the pure :func:`build_ipa_export_document`.
+    """
+    object_tree = payload.get("object_tree") or []
+    if not object_tree:
+        return []
+
+    refs: list[dict[str, Any]] = []
+    seen: set[tuple[int, int]] = set()
+    _collect_object_tree_refs(object_tree, refs, seen)
+    if not refs:
+        return []
+
+    from django.contrib.contenttypes.models import ContentType
+
+    from netbox_nsm.analysis.ipa_ipam_tree import _build_ipa_object_drilldown_nodes
+
+    entries: list[dict[str, Any]] = []
+    for ref in refs[: max(int(max_objects), 0)]:
+        try:
+            ct = ContentType.objects.get(pk=ref["ct"])
+            model_cls = ct.model_class()
+            if model_cls is None:
+                continue
+            obj = model_cls.objects.filter(pk=ref["pk"]).first()
+            if obj is None:
+                continue
+            nodes, copy_lines = _build_ipa_object_drilldown_nodes(obj)
+        except Exception:
+            continue
+        if not nodes:
+            continue
+        entries.append(
+            {
+                "content_type": ref["ct"],
+                "id": ref["pk"],
+                "name": ref.get("name") or str(getattr(obj, "name", "") or obj),
+                "children": nodes,
+                "copy_lines": copy_lines,
+            }
+        )
+    return entries
+
+
 def parse_export_context_from_request(request) -> dict[str, str]:
     """Optional rulebook/rule context passed from the applet toolbar."""
     context: dict[str, str] = {}
@@ -177,12 +313,60 @@ def parse_export_context_from_request(request) -> dict[str, str]:
     return context
 
 
+def _build_ipam_children_section(
+    child_objects: list[dict[str, Any]] | None,
+) -> dict[str, Any] | None:
+    """Sanitize the resolved child expansion into the additional document block."""
+    if not child_objects:
+        return None
+    objects: list[dict[str, Any]] = []
+    for entry in child_objects:
+        if not isinstance(entry, dict):
+            continue
+        children = _sanitize_expansion_nodes(entry.get("children"))
+        if not children:
+            continue
+        item: dict[str, Any] = {}
+        for key in ("content_type", "id", "name"):
+            value = entry.get(key)
+            if value:
+                item[key] = value
+        item["children"] = children
+        copy_lines = [
+            str(line)
+            for line in entry.get("copy_lines") or []
+            if str(line).strip()
+        ]
+        if copy_lines:
+            item["copy_lines"] = copy_lines
+        objects.append(item)
+    if not objects:
+        return None
+    return {
+        "description": (
+            "Full address / IPAM child-object expansion behind the displayed "
+            "objects (child prefixes, IP addresses, ranges, and group members). "
+            "Large branches are bounded; truncated nodes are flagged."
+        ),
+        "objects": objects,
+    }
+
+
 def build_ipa_export_document(
     payload: dict[str, Any],
     *,
     export_context: dict[str, str] | None = None,
+    child_objects: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    """Build a YAML-friendly document from an IP analysis payload."""
+    """Build a YAML-friendly document from an IP analysis payload.
+
+    The document has two clearly separated parts:
+
+    * ``displayed`` — the primary section, mirroring exactly what the applet
+      shows for the active tab (visible tree rows + summary counts).
+    * ``ipam_children`` — the additional/optional section with the full child
+      expansion (only present when ``child_objects`` resolves any children).
+    """
     export_context = dict(export_context or {})
     title = (export_context.pop("title", None) or "").strip()
 
@@ -196,13 +380,15 @@ def build_ipa_export_document(
     if export_context:
         document["context"] = export_context
 
-    document["counts"] = {
-        "leaf_count": payload.get("leaf_count") or 0,
-        "subnets": payload.get("count_subnets") or 0,
-        "ranges": payload.get("count_ranges") or 0,
-        "ips": payload.get("count_ips") or 0,
-        "duplicates": payload.get("count_duplicates") or 0,
-        "group_duplicates": payload.get("count_group_duplicates") or 0,
+    displayed: dict[str, Any] = {
+        "counts": {
+            "leaf_count": payload.get("leaf_count") or 0,
+            "subnets": payload.get("count_subnets") or 0,
+            "ranges": payload.get("count_ranges") or 0,
+            "ips": payload.get("count_ips") or 0,
+            "duplicates": payload.get("count_duplicates") or 0,
+            "group_duplicates": payload.get("count_group_duplicates") or 0,
+        }
     }
 
     objects = []
@@ -216,30 +402,36 @@ def build_ipa_export_document(
         }
         objects.append({key: value for key, value in entry.items() if value})
     if objects:
-        document["objects"] = objects
+        displayed["objects"] = objects
 
     unsupported = payload.get("unsupported") or []
     if unsupported:
-        document["unsupported"] = unsupported
+        displayed["unsupported"] = unsupported
 
     copy_lines = _collect_copy_lines(payload)
     if copy_lines:
-        document["copy_lines"] = copy_lines
+        displayed["copy_lines"] = copy_lines
 
     addr_analysis = _sanitize_tree(payload.get("addr_analysis") or [])
     if addr_analysis:
-        document["addr_analysis"] = addr_analysis
+        displayed["addr_analysis"] = addr_analysis
 
     object_tree = _sanitize_tree(payload.get("object_tree") or [])
     if object_tree:
-        document["object_tree"] = object_tree
+        displayed["object_tree"] = object_tree
 
     if payload.get("diff_summary") is not None:
-        document["diff_summary"] = payload.get("diff_summary")
+        displayed["diff_summary"] = payload.get("diff_summary")
 
     message = (payload.get("message") or "").strip()
     if message:
-        document["message"] = message
+        displayed["message"] = message
+
+    document["displayed"] = displayed
+
+    ipam_children = _build_ipam_children_section(child_objects)
+    if ipam_children:
+        document["ipam_children"] = ipam_children
 
     return document
 

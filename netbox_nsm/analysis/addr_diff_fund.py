@@ -246,6 +246,7 @@ def _shallow_addr_leaf_for_diff(
     fund_detail=None,
     other_entry=None,
     diff_present_labels=None,
+    diff_label=None,
 ):
     """Return a display leaf with diff_status for grouped diff output."""
     leaf = {
@@ -259,6 +260,8 @@ def _shallow_addr_leaf_for_diff(
         "diff_status": diff_status,
         "children": [],
     }
+    if diff_label:
+        leaf["diff_label"] = str(diff_label)
     if diff_present_labels:
         leaf["diff_present_labels"] = list(diff_present_labels)
     _enrich_diff_name_pill_fields(

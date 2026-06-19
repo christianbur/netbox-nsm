@@ -8,7 +8,7 @@ class SecurityConfig(PluginConfig):
     verbose_name = _("NetBox NSM - Network Security Management")
     description = _(
         "Document network security policy in NetBox: rulebooks, zones, NSM links, "
-        "and the Security Panel (requires netbox-custom-objects)."
+        "and the Security tab (requires netbox-custom-objects)."
     )
     version = __version__
     author = "Christian Burmeister"
@@ -24,21 +24,39 @@ class SecurityConfig(PluginConfig):
         "setup_menu": True,
         # Setup: full sync, demo custom types, demo rulebooks (default: on)
         "setup_allow_destructive_actions": True,
-        # Top-level menu and object-detail panel title (default: "Security")
+        # Top-level menu and Security tab title (default: "Security")
         "menu_label": "",
         "panel_label": "",
+        # Jinja2 naming templates for nsm_address / nsm_address_group (see docs/address_name_templates.md)
+        "address_name_templates": [],
+        "address_group_name_templates": [],
     }
 
     def ready(self):
         super().ready()
         from netbox_nsm.core.branching_support import register_branching_models
+        from netbox_nsm.security.tab import register_security_tabs
 
         register_branching_models()
+        register_security_tabs()
+        self._register_system_jobs()
         self._patch_color_field_widget()
         self._patch_poly_subfield_labels()
         self._patch_cot_rule_add_index()
         self._patch_nsm_object_urls()
         self._patch_custom_object_list_polymorphic_sort()
+
+    @staticmethod
+    def _register_system_jobs():
+        """Import the object report job module so ``@system_job`` registers the runner.
+
+        NetBox's ``rqworker`` schedules everything in ``registry['system_jobs']``
+        at startup; importing the module here ensures the decorator has run.
+        """
+        try:
+            import netbox_nsm.object_report.jobs  # noqa: F401
+        except Exception:
+            pass
 
     @staticmethod
     def _patch_custom_object_list_polymorphic_sort():

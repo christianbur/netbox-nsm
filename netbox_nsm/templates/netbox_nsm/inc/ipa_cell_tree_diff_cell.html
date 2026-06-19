@@ -1,0 +1,33 @@
+{% load i18n %}
+{% if node.diff_fund or node.diff_group or node.diff_status and not node.diff_suppress_status or node.diff_present_labels %}
+<span class="nsm-ipa-cell-tree-diff-cell-inner">
+{% if node.diff_fund %}
+<span class="badge bg-info-subtle text-info nsm-ipa-cell-diff nsm-ipa-cell-diff--fund" title="{{ node.fund_tooltip|default:'Same IP address/range/prefix, but different object names' }}">{% trans "Conflict" %}</span>
+{% elif node.diff_group == "only-a" or node.diff_status == "only_a" %}
+<span class="badge nsm-addr-diff nsm-addr-diff--only_a nsm-ipa-cell-diff" title="{% trans 'Only on this diff tab' %}">{{ node.diff_label|default:"a" }}</span>
+{% elif node.diff_group == "only-b" or node.diff_status == "only_b" %}
+<span class="badge nsm-addr-diff nsm-addr-diff--only_b nsm-ipa-cell-diff" title="{% trans 'Only on this diff tab' %}">{{ node.diff_label|default:"b" }}</span>
+{% elif node.diff_group == "both" or node.diff_status == "both" %}
+<span class="badge nsm-addr-diff nsm-addr-diff--both nsm-ipa-cell-diff" title="{% trans 'Present on both diff sides' %}">{% trans "both" %}</span>
+{% elif node.diff_group == "in-all" %}
+<span class="badge nsm-addr-diff nsm-addr-diff--both nsm-ipa-cell-diff" title="{% trans 'IPAM keys present in all diff tabs' %}">{% trans "all" %}</span>
+{% elif node.diff_group == "in-some" or node.diff_status == "in_some" %}
+<span class="badge bg-warning-subtle text-warning nsm-ipa-cell-diff nsm-ipa-cell-diff--in-some" title="{% trans 'IPAM keys present in some but not all diff tabs' %}">{% trans "some" %}</span>
+{% elif node.diff_group and node.diff_group|slice:":10" == "only-side-" %}
+<span class="badge bg-info-subtle text-info nsm-ipa-cell-diff nsm-ipa-cell-diff--side" title="{% trans 'Only on this diff tab' %}">{% if node.diff_label %}{{ node.diff_label }}{% else %}{{ node.diff_group|slice:"10:" }}{% endif %}</span>
+{% elif node.diff_status and node.diff_status|slice:":10" == "only_side_" and not node.diff_suppress_status %}
+<span class="badge bg-info-subtle text-info nsm-ipa-cell-diff nsm-ipa-cell-diff--side" title="{% trans 'Only on this diff tab' %}">{% if node.diff_label %}{{ node.diff_label }}{% else %}{{ node.diff_status|slice:"10:" }}{% endif %}</span>
+{% elif node.diff_status and not node.diff_suppress_status %}
+<span class="badge nsm-addr-diff nsm-addr-diff--{{ node.diff_status }} nsm-ipa-cell-diff{% if node.diff_side %} nsm-addr-diff--side-{{ node.diff_side }}{% endif %}">{{ node.diff_status }}</span>
+{% endif %}
+{% if node.diff_present_labels %}
+<span class="nsm-addr-diff-present-labels">
+  {% for label in node.diff_present_labels %}
+  <span class="nsm-addr-diff-present-label">− {{ label }}</span>
+  {% endfor %}
+</span>
+{% endif %}
+</span>
+{% else %}
+<span class="text-muted">—</span>
+{% endif %}

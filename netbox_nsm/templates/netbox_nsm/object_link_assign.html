@@ -28,7 +28,7 @@
       <div class="card-body">
 
         <div class="mb-3">
-          <label class="form-label fw-semibold">{% trans "Objekt A (dieses Objekt)" %}</label>
+          <label class="form-label fw-semibold">{% trans "Object A (this object)" %}</label>
           <div class="form-control-plaintext">
             {% if object_a.get_absolute_url %}
               <a href="{{ object_a.get_absolute_url }}">{{ object_a }}</a>
@@ -85,7 +85,7 @@
             {# Element picker — styled like form-select #}
             <div class="mb-0 nsm-element-picker-wrap hidden" id="element-picker-wrap">
               <label class="form-label fw-semibold">
-                {% trans "Element (Objekt B)" %} <span class="text-danger">*</span>
+                {% trans "Element (Object B)" %} <span class="text-danger">*</span>
               </label>
 
               <div class="ts-wrapper form-select single" id="element-ts-wrap">
@@ -144,7 +144,7 @@
         <table class="table table-hover table-sm mb-0">
           <thead>
             <tr>
-              <th class="ps-3">{% trans "Typ" %}</th>
+              <th class="ps-3">{% trans "Type" %}</th>
               <th>{% trans "Element" %}</th>
               {% if not hide_propagation %}<th>{% trans "Link type" %}</th>{% endif %}
               <th>{% trans "Comment" %}</th>

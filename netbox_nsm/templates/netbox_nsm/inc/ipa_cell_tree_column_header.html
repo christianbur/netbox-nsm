@@ -1,0 +1,28 @@
+{% load i18n %}
+<colgroup>
+  <col class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--network">
+  <col class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--ipam">
+  <col class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--duplicate">
+  <col class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--address">
+  <col class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--address-group">
+  <col class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--merge">
+  <col class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--diff">
+  <col class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--us">
+</colgroup>
+<thead class="nsm-ipa-cell-tree-header">
+  <tr>
+    <th scope="col" class="nsm-ipa-cell-tree-header-col nsm-ipa-cell-tree-header-col--network">{% trans "Network" %}</th>
+    <th scope="col" class="nsm-ipa-cell-tree-header-col nsm-ipa-cell-tree-header-col--ipam">{% trans "IP/Range/Prefix" %}</th>
+    <th scope="col" class="nsm-ipa-cell-tree-header-col nsm-ipa-cell-tree-header-col--duplicate">{% trans "Dup" %}</th>
+    <th scope="col" class="nsm-ipa-cell-tree-header-col nsm-ipa-cell-tree-header-col--address">{% trans "Address" %}</th>
+    <th scope="col" class="nsm-ipa-cell-tree-header-col nsm-ipa-cell-tree-header-col--address-group">{% trans "Address group" %}</th>
+    <th scope="col" class="nsm-ipa-cell-tree-header-col nsm-ipa-cell-tree-header-col--merge">{% trans "Merge" %}</th>
+    <th scope="col" class="nsm-ipa-cell-tree-header-col nsm-ipa-cell-tree-header-col--diff">{% trans "Diff" %}</th>
+    <th scope="col" class="nsm-ipa-cell-tree-header-col nsm-ipa-cell-tree-header-col--us">{% trans "Used by" %}</th>
+  </tr>
+  <tr class="nsm-ipa-cell-tree-depth-toggle-row">
+    <th colspan="8" class="text-end py-0">
+      <button type="button" class="btn btn-sm btn-ghost-secondary toggle-depth py-0 px-1">{% trans "Hide Depth Indicators" %}</button>
+    </th>
+  </tr>
+</thead>

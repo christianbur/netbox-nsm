@@ -816,17 +816,19 @@ body.nsm-rules-column-resizing {
   width: 100%;
 }
 
-#rules .nsm-rules-body--with-side-tabs {
-  display: flex;
+#rules .nsm-rules-body.nsm-rules-body--with-side-tabs {
+  flex: 1 1 auto;
+  flex-direction: row;
   align-items: stretch;
   gap: 0;
   min-height: 0;
   overflow: hidden;
 }
 
-#rules .nsm-rules-body--with-side-tabs .nsm-rules-table-scroll {
+#rules .nsm-rules-body.nsm-rules-body--with-side-tabs .nsm-rules-table-scroll {
   flex: 1 1 auto;
   min-width: 0;
+  min-height: 0;
 }
 
 #rules .nsm-rules-row-group-tabs {
@@ -1043,8 +1045,19 @@ body.nsm-rules-tab-sidebar-resizing {
   flex: 0 0 auto;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
   overflow: visible;
   text-overflow: unset;
+}
+
+#rules
+  .nsm-rules-row-group-tabs--vertical.nsm-rules-row-group-tabs--collapsed
+  .nsm-rules-row-group-tab-label-word {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
 }
 
 #rules
@@ -1114,6 +1127,7 @@ body.nsm-rules-tab-sidebar-resizing {
   min-height: 0;
   height: var(--nsm-rules-card-height, auto);
   max-height: var(--nsm-rules-card-height, none);
+  overflow: hidden;
 }
 
 #rules .nsm-ag-chrome-bar {
@@ -1121,6 +1135,9 @@ body.nsm-rules-tab-sidebar-resizing {
 }
 
 #rules .nsm-rules-body {
+  display: flex;
   flex: 1 1 auto;
+  flex-direction: column;
   min-height: 0;
+  overflow: hidden;
 }

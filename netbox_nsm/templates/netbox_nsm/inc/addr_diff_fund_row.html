@@ -5,7 +5,7 @@ Expects node.diff_name_a/b, diff_url_a/b, diff_fund, ip_ref, prefix_display_cidr
 {% endcomment %}
 <span class="nsm-addr-diff-fund-row">
   <span class="badge bg-info-subtle text-info nsm-addr-fund" title="{{ node.fund_tooltip|default:'Same IP address/range/prefix, but different object names' }}">
-    {% trans "Fund" %}
+    {% trans "Name conflict" %}
   </span>
   {% if node.prefix_display_cidr %}
   <span class="nsm-addr-diff-fund-network">

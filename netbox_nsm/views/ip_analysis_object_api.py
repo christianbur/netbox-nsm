@@ -52,12 +52,10 @@ class IpAnalysisObjectDrilldownApiView(LoginRequiredMixin, View):
 
         nodes, copy_lines = _build_object_drilldown_nodes(obj)
         html = render_to_string(
-            "netbox_nsm/inc/addr_tree_nodes_fragment.html",
+            "netbox_nsm/inc/ipa_cell_tree_drilldown_fragment.html",
             {
                 "nodes": nodes,
                 "depth": depth + 1,
-                "prefix": "ipa",
-                "show_copy": False,
                 "ipa_cell_pill": False,
             },
             request=request,

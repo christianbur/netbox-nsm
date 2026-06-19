@@ -168,38 +168,9 @@
     return currentFormat === 'netmask' ? 'netmask' : 'cidr';
   }
 
-  function netmaskLabelForCidr(cidr) {
-    if (!cidr || cidr.indexOf('/') === -1) {
-      return '';
-    }
-    var parts = cidr.split('/');
-    if (parts.length !== 2) {
-      return '';
-    }
-    var host = parts[0];
-    var plen = parseInt(parts[1], 10);
-    if (isNaN(plen) || plen < 0 || plen > 32) {
-      return '';
-    }
-    var mask = plen === 0 ? 0 : ((0xffffffff << (32 - plen)) >>> 0);
-    return host + '/' + [
-      (mask >>> 24) & 255,
-      (mask >>> 16) & 255,
-      (mask >>> 8) & 255,
-      mask & 255,
-    ].join('.');
-  }
-
+  /** Netmask labels come from Python (``addr_netmask``); JS only toggles display. */
   function prefixNetmaskLabel(el) {
-    var cidr = el.getAttribute('data-cidr') || '';
-    var netmask = el.getAttribute('data-netmask') || '';
-    if (!netmask && cidr) {
-      netmask = netmaskLabelForCidr(cidr);
-      if (netmask) {
-        el.setAttribute('data-netmask', netmask);
-      }
-    }
-    return netmask;
+    return el.getAttribute('data-netmask') || '';
   }
 
   function toggleScopeFromGroup(group) {
@@ -212,18 +183,6 @@
       group.closest('.nsm-ipa-applet') ||
       document
     );
-  }
-
-  function buildPrefixFormatMap(root) {
-    var map = {};
-    (root || document).querySelectorAll('.nsm-addr-prefix-text').forEach(function (el) {
-      var cidr = el.getAttribute('data-cidr') || '';
-      var netmask = prefixNetmaskLabel(el);
-      if (cidr && netmask) {
-        map[cidr] = netmask;
-      }
-    });
-    return map;
   }
 
   function applyFormat(root, format) {

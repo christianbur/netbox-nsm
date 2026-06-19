@@ -117,7 +117,6 @@ class CotRulesRowGroupPageTests(SimpleTestCase):
 
         base_qs = MagicMock()
         filtered_qs = MagicMock()
-        tab_qs = MagicMock()
         mock_qs_fn.return_value = base_qs
         mock_apply_filters.return_value = filtered_qs
         filtered_qs.count.return_value = 62000
@@ -130,9 +129,8 @@ class CotRulesRowGroupPageTests(SimpleTestCase):
                 "rule_count": 62000,
             }
         ]
-        mock_filter_group.return_value = tab_qs
-        ordered_tab_qs = MagicMock()
-        tab_qs.order_by.return_value = ordered_tab_qs
+        ordered_all_qs = MagicMock()
+        filtered_qs.order_by.return_value = ordered_all_qs
 
         page_instance = SimpleNamespace(pk=42)
         paginator = MagicMock()
@@ -171,13 +169,16 @@ class CotRulesRowGroupPageTests(SimpleTestCase):
             sort_field="index",
             sort_order="asc",
         )
-        mock_paginator_cls.assert_called_once_with(ordered_tab_qs, 50)
+        mock_filter_group.assert_not_called()
+        mock_paginator_cls.assert_called_once_with(ordered_all_qs, 50)
         mock_load_display.assert_called_once_with(
             [page_instance], virtual_rb, layout=layout, m2m_prefetch=["source_zones"]
         )
         self.assertEqual(total, 62000)
-        self.assertEqual(len(tabs), 1)
-        self.assertEqual(tab_active, "rule-a")
+        self.assertEqual(len(tabs), 2)
+        self.assertEqual(tabs[0]["group_id"], "all")
+        self.assertEqual(tabs[0]["rule_count"], 62000)
+        self.assertEqual(tab_active, "all")
         self.assertEqual(rows, mock_load_display.return_value)
         self.assertIs(paginator_out, paginator)
         self.assertIs(page_out, page_obj)

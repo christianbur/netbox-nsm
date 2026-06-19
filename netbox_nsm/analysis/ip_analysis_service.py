@@ -1,4 +1,27 @@
-"""Shared IP Analysis payload building for UI and REST APIs."""
+"""Shared IP Analysis payload building for UI and REST APIs.
+
+Architecture (SSOT in Python)
+-----------------------------
+All address analysis — merge, diff, tree building, dedupe, counts, warnings,
+YAML export — lives under ``netbox_nsm.analysis`` (see ``addr_merge``,
+``addr_diff*``, ``addr_tree``, ``ipa_object_tree``, ``ipa_yaml_export``).
+
+JavaScript (``plugin_assets/js/nsm_ipa_*.js`` and ``addr_analysis_assets.html``)
+is display-only: fetch pre-rendered HTML or structured JSON from the plugin APIs,
+inject into the floating applet, and handle UI events (tabs, drag/resize,
+expand/collapse, lazy-load pagination, CIDR/netmask toggle).
+
+Endpoints
+---------
+UI (session auth, HTML + JSON):
+  ``GET /plugins/netbox-nsm/api/ip-analysis/`` — merge, diff, YAML export
+  ``GET /plugins/netbox-nsm/api/ip-analysis/category/`` — lazy prefix/range pages
+  ``GET /plugins/netbox-nsm/api/ip-analysis/object/`` — lazy object drilldown
+  ``GET /plugins/netbox-nsm/api/ip-analysis/add-object-types/`` — add-object menu
+
+REST (token auth, JSON only):
+  ``GET|POST /api/plugins/netbox-nsm/ip-analysis/``
+"""
 
 from __future__ import annotations
 
@@ -11,9 +34,12 @@ from netbox_nsm.analysis.addr_analysis_utils import (
     _apply_object_tree_copy_lines,
     _apply_summary_type_counts_to_addr_analysis,
     _build_addr_diff_analysis_from_sides,
+    _build_ipa_group_coverage,
     _build_ipa_cell_object_tree,
+    _build_ipa_cell_object_tree_from_diff,
     _build_multi_object_addr_analysis,
     _ipa_cell_object_tree_visible,
+    _ipa_cell_tree_extended_summary_counts,
     _leaf_count_for_addr_analysis,
     _object_is_addr_analyzable,
     _resolve_summary_type_counts,
@@ -40,17 +66,45 @@ def _object_ref_key(ref: dict) -> tuple[int, int] | None:
     return int(ct_raw), int(pk_raw)
 
 
-def parse_object_refs(refs):
+def _user_can_view_object(user, model_cls, pk) -> bool:
+    """Return whether *user* may view the *model_cls* instance with *pk*.
+
+    Honors NetBox object-level permissions via ``RestrictedQuerySet.restrict``
+    when available, otherwise falls back to the Django model ``view`` permission.
+    When *user* is ``None`` (session-auth UI callers that already gate access via
+    ``LoginRequiredMixin``) no per-object filtering is applied.
+    """
+    if user is None:
+        return True
+    restrict = getattr(model_cls.objects, "restrict", None)
+    if callable(restrict):
+        try:
+            return restrict(user, "view").filter(pk=pk).exists()
+        except Exception:
+            pass
+    meta = model_cls._meta
+    perm = f"{meta.app_label}.view_{meta.model_name}"
+    try:
+        return bool(user.has_perm(perm))
+    except Exception:
+        return False
+
+
+def parse_object_refs(refs, *, user=None):
     """
     Resolve a list of object references into selections and ORM objects.
 
-    Each ref accepts ``content_type``/``ct`` and ``id``/``pk`` keys.
+    Each ref accepts ``content_type``/``ct`` and ``id``/``pk`` keys. When *user*
+    is provided, every resolved object is checked against the user's NetBox/Django
+    view permission; objects the user may not see are skipped and reported in the
+    returned ``unauthorized`` list instead of being analyzed.
     """
     selections = []
     raw_selections = []
     objs = []
     obj_by_key: dict[tuple[int, int], object] = {}
     unsupported = []
+    unauthorized = []
     seen: set[tuple[int, int]] = set()
 
     for ref in refs or []:
@@ -66,6 +120,10 @@ def parse_object_refs(refs):
                 continue
             obj = mc.objects.filter(pk=key[1]).first()
             if not obj:
+                continue
+            if not _user_can_view_object(user, mc, key[1]):
+                if key not in seen:
+                    unauthorized.append({"ct": str(key[0]), "pk": str(key[1])})
                 continue
             name = getattr(obj, "name", None) or str(obj)
             raw_selections.append(
@@ -87,24 +145,24 @@ def parse_object_refs(refs):
         except Exception:
             continue
 
-    return selections, objs, unsupported, raw_selections, obj_by_key
+    return selections, objs, unsupported, raw_selections, obj_by_key, unauthorized
 
 
-def _parse_object_lists(ct_list, pk_list):
+def _parse_object_lists(ct_list, pk_list, *, user=None):
     refs = []
     for i, ct_str in enumerate(ct_list or []):
         pk_str = pk_list[i] if i < len(pk_list) else ""
         refs.append({"ct": ct_str, "pk": pk_str})
-    return parse_object_refs(refs)
+    return parse_object_refs(refs, user=user)
 
 
-def parse_selections_from_request(request, *, prefix=""):
+def parse_selections_from_request(request, *, prefix="", user=None):
     ct_list = request.GET.getlist(f"{prefix}ct")
     pk_list = request.GET.getlist(f"{prefix}pk")
-    return _parse_object_lists(ct_list, pk_list)
+    return _parse_object_lists(ct_list, pk_list, user=user)
 
 
-def parse_diff_sides_from_request(request):
+def parse_diff_sides_from_request(request, *, user=None):
     sides = []
     index = 0
     while True:
@@ -114,13 +172,16 @@ def parse_diff_sides_from_request(request):
             break
         pk_list = request.GET.getlist(f"{prefix}pk")
         label = (request.GET.get(f"{prefix}name") or "").strip() or chr(65 + index)
-        selections, objs, unsupported, _, _ = _parse_object_lists(ct_list, pk_list)
+        selections, objs, unsupported, _, _, unauthorized = _parse_object_lists(
+            ct_list, pk_list, user=user
+        )
         sides.append(
             {
                 "label": label,
                 "selections": selections,
                 "objs": objs,
                 "unsupported": unsupported,
+                "unauthorized": unauthorized,
             }
         )
         index += 1
@@ -128,11 +189,11 @@ def parse_diff_sides_from_request(request):
     if len(sides) >= 2:
         return sides
 
-    selections_a, objs_a, unsupported_a, _, _ = parse_selections_from_request(
-        request, prefix="a_"
+    selections_a, objs_a, unsupported_a, _, _, unauthorized_a = (
+        parse_selections_from_request(request, prefix="a_", user=user)
     )
-    selections_b, objs_b, unsupported_b, _, _ = parse_selections_from_request(
-        request, prefix="b_"
+    selections_b, objs_b, unsupported_b, _, _, unauthorized_b = (
+        parse_selections_from_request(request, prefix="b_", user=user)
     )
     if selections_a or selections_b or objs_a or objs_b:
         return [
@@ -141,23 +202,25 @@ def parse_diff_sides_from_request(request):
                 "selections": selections_a,
                 "objs": objs_a,
                 "unsupported": unsupported_a,
+                "unauthorized": unauthorized_a,
             },
             {
                 "label": (request.GET.get("b_name") or "").strip() or "B",
                 "selections": selections_b,
                 "objs": objs_b,
                 "unsupported": unsupported_b,
+                "unauthorized": unauthorized_b,
             },
         ]
     return sides
 
 
-def _objects_from_side_spec(side_spec):
+def _objects_from_side_spec(side_spec, *, user=None):
     refs = side_spec.get("objects") or side_spec.get("object_refs") or []
-    return parse_object_refs(refs)
+    return parse_object_refs(refs, user=user)
 
 
-def parse_diff_sides_from_body(body):
+def parse_diff_sides_from_body(body, *, user=None):
     """Parse diff sides from a JSON request body."""
     if not isinstance(body, dict):
         return []
@@ -169,13 +232,16 @@ def parse_diff_sides_from_body(body):
             if not isinstance(side_spec, dict):
                 continue
             label = (side_spec.get("label") or "").strip() or chr(65 + index)
-            selections, objs, unsupported, _, _ = _objects_from_side_spec(side_spec)
+            selections, objs, unsupported, _, _, unauthorized = (
+                _objects_from_side_spec(side_spec, user=user)
+            )
             sides.append(
                 {
                     "label": label,
                     "selections": selections,
                     "objs": objs,
                     "unsupported": unsupported,
+                    "unauthorized": unauthorized,
                 }
             )
         return sides
@@ -186,13 +252,16 @@ def parse_diff_sides_from_body(body):
         sides = []
         for index, side_spec in enumerate((side_a, side_b)):
             label = (side_spec.get("label") or "").strip() or ("A" if index == 0 else "B")
-            selections, objs, unsupported, _, _ = _objects_from_side_spec(side_spec)
+            selections, objs, unsupported, _, _, unauthorized = (
+                _objects_from_side_spec(side_spec, user=user)
+            )
             sides.append(
                 {
                     "label": label,
                     "selections": selections,
                     "objs": objs,
                     "unsupported": unsupported,
+                    "unauthorized": unauthorized,
                 }
             )
         return sides
@@ -212,13 +281,18 @@ def build_ip_analysis_payload(
     request=None,
     include_html=False,
     include_structured_data=True,
+    unauthorized=None,
 ):
     """Build a JSON-serializable analysis payload; optionally include rendered HTML."""
     leaf_count = _leaf_count_for_addr_analysis(addr_analysis)
 
     object_tree = []
     object_tree_metadata = []
-    if mode != "diff" and raw_selections and obj_by_key:
+    if mode == "diff" and addr_analysis:
+        object_tree_metadata = _build_ipa_cell_object_tree_from_diff(addr_analysis)
+        if _ipa_cell_object_tree_visible(object_tree_metadata, 0):
+            object_tree = object_tree_metadata
+    elif raw_selections and obj_by_key:
         object_tree_metadata = _build_ipa_cell_object_tree(raw_selections, obj_by_key)
         prefer_logical_merge = bool(
             addr_analysis and _leaf_count_for_addr_analysis(addr_analysis) > 0
@@ -236,6 +310,15 @@ def build_ip_analysis_payload(
     type_counts = _resolve_summary_type_counts(
         addr_analysis, object_tree or object_tree_metadata or None
     )
+    group_coverage = None
+    if mode != "diff" and raw_selections and obj_by_key and object_tree:
+        group_coverage = _build_ipa_group_coverage(
+            raw_selections, obj_by_key, object_tree
+        )
+    if object_tree:
+        type_counts.update(
+            _ipa_cell_tree_extended_summary_counts(object_tree, group_coverage)
+        )
     if addr_analysis:
         _apply_summary_type_counts_to_addr_analysis(addr_analysis, type_counts)
 
@@ -247,12 +330,21 @@ def build_ip_analysis_payload(
         "count_ips": type_counts.get("count_ips") or 0,
         "count_duplicates": type_counts.get("count_duplicates") or 0,
         "count_group_duplicates": type_counts.get("count_group_duplicates") or 0,
+        "count_groups": type_counts.get("count_groups") or 0,
+        "count_addresses": type_counts.get("count_addresses") or 0,
+        "count_hidden_merged": type_counts.get("count_hidden_merged") or 0,
+        "count_non_active": type_counts.get("count_non_active") or 0,
+        "count_direct": type_counts.get("count_direct") or 0,
+        "count_indirect": type_counts.get("count_indirect") or 0,
         "objects": selections,
         "unsupported": unsupported,
     }
+    if unauthorized:
+        payload["unauthorized"] = unauthorized
     if include_structured_data:
         payload["addr_analysis"] = addr_analysis or []
         payload["object_tree"] = object_tree or None
+        payload["group_coverage"] = group_coverage
     if diff_summary is not None:
         payload["diff_summary"] = diff_summary
 
@@ -269,6 +361,7 @@ def build_ip_analysis_payload(
                 "addr_analysis": addr_analysis,
                 "object_tree": object_tree or None,
                 "summary_type_counts": type_counts,
+                "group_coverage": group_coverage,
             },
             request=request,
         )
@@ -285,6 +378,7 @@ def execute_ip_analysis_merge(
     request=None,
     include_html=False,
     include_structured_data=True,
+    unauthorized=None,
 ):
     if not objs and not raw_selections:
         payload = {
@@ -304,6 +398,8 @@ def execute_ip_analysis_merge(
                 else _("No valid objects selected.")
             ),
         }
+        if unauthorized:
+            payload["unauthorized"] = unauthorized
         if include_structured_data:
             payload["addr_analysis"] = []
             payload["object_tree"] = None
@@ -329,6 +425,8 @@ def execute_ip_analysis_merge(
                 else _("No IP addresses resolved.")
             ),
         }
+        if unauthorized:
+            payload["unauthorized"] = unauthorized
         if include_structured_data:
             payload["addr_analysis"] = []
             payload["object_tree"] = None
@@ -347,6 +445,7 @@ def execute_ip_analysis_merge(
         request=request,
         include_html=include_html,
         include_structured_data=include_structured_data,
+        unauthorized=unauthorized,
     )
     if include_html and "html" not in payload:
         payload["html"] = ""
@@ -360,9 +459,11 @@ def execute_ip_analysis_diff(
 ):
     unsupported = []
     selections = []
+    unauthorized = []
     for side in sides:
         unsupported.extend(side.get("unsupported") or [])
         selections.extend(side.get("selections") or [])
+        unauthorized.extend(side.get("unauthorized") or [])
 
     has_objs = any(side.get("objs") for side in sides)
     if not has_objs:
@@ -383,6 +484,8 @@ def execute_ip_analysis_diff(
                 else _("No valid objects selected for diff.")
             ),
         }
+        if unauthorized:
+            payload["unauthorized"] = unauthorized
         if include_structured_data:
             payload["addr_analysis"] = []
             payload["object_tree"] = None
@@ -407,6 +510,7 @@ def execute_ip_analysis_diff(
         request=request,
         include_html=include_html,
         include_structured_data=include_structured_data,
+        unauthorized=unauthorized,
     )
     if include_html and "html" not in payload:
         payload["html"] = ""

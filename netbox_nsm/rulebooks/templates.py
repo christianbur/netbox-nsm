@@ -34,7 +34,9 @@ __all__ = (
     "RULEBOOK_TEMPLATE_BY_SLUG",
     "build_rulebook_document",
     "build_rulebook_document_from_schema",
+    "BENCH_RULEBOOK_FIELD_NAMES",
     "build_rulebook_template_type_defs",
+    "bench_rulebook_schema_yaml",
     "default_rulebook_schema_yaml",
     "demo_rulebook_schema_yaml",
     "export_rulebook_schema_yaml_for_copy",
@@ -573,6 +575,55 @@ def demo_rulebook_schema_yaml() -> str:
         DEMO_RULEBOOK_SCHEMA_YAML,
         display_name=format_rulebook_display_name("Demo"),
         name="demo",
+        description="",
+    )
+
+
+BENCH_RULEBOOK_FIELD_NAMES = (
+    "index",
+    "status",
+    "name",
+    "source_zones",
+    "destination_zones",
+    "source_addresses",
+    "destination_addresses",
+    "services_applications",
+    "actions",
+)
+
+
+def _bench_rulebook_schema_document() -> dict:
+    return {
+        "schema_version": "1",
+        "types": [
+            {
+                "name": "nsm_rb_{{name}}",
+                "slug": "nsm_rb_{{name}}",
+                "verbose_name": "{{display_name}}",
+                "verbose_name_plural": "{{display_name}}",
+                "description": "{{description}}",
+                "group_name": RULEBOOK_GROUP,
+                "fields": _fields_for_names(BENCH_RULEBOOK_FIELD_NAMES),
+                "removed_fields": [],
+            }
+        ],
+    }
+
+
+def bench_rulebook_schema_yaml() -> str:
+    """Resolved portable-schema YAML for ``nsm_rb_bench_addresses`` (zones + addresses)."""
+    import yaml
+
+    raw = yaml.dump(
+        _bench_rulebook_schema_document(),
+        default_flow_style=False,
+        allow_unicode=True,
+        sort_keys=False,
+    ).strip() + "\n"
+    return substitute_rulebook_schema_placeholders(
+        raw,
+        display_name=format_rulebook_display_name("Bench Addresses"),
+        name="bench_addresses",
         description="",
     )
 

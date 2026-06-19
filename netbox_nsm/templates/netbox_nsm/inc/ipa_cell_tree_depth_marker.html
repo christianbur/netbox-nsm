@@ -1,0 +1,6 @@
+{% load helpers %}
+{% if depth %}
+<div class="record-depth" aria-hidden="true">
+  {% for i in depth|as_range %}<span>•</span>{% endfor %}
+</div>
+{% endif %}

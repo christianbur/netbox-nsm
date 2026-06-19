@@ -2,7 +2,7 @@
 
 import json
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.test import RequestFactory, SimpleTestCase
 
@@ -13,6 +13,11 @@ class ObjectRulesFieldApiTests(SimpleTestCase):
     def setUp(self):
         self.factory = RequestFactory()
         self.view = ObjectRulesApiView.as_view()
+
+    def _auth_request(self, path, params=None):
+        request = self.factory.get(path, params or {})
+        request.user = MagicMock(is_authenticated=True)
+        return request
 
     @patch("netbox_nsm.security.views.object_rules_api.ContentType.objects.get")
     @patch("netbox_nsm.security.views.object_rules_api.fetch_cot_security_field_rules")
@@ -38,7 +43,7 @@ class ObjectRulesFieldApiTests(SimpleTestCase):
             3250,
         )
 
-        request = self.factory.get(
+        request = self._auth_request(
             "/plugins/netbox-nsm/api/object-rules/",
             {
                 "ct_id": "12",
@@ -68,7 +73,7 @@ class ObjectRulesFieldApiTests(SimpleTestCase):
     @patch("netbox_nsm.security.views.object_rules_api.ContentType.objects.get")
     def test_invalid_field_params_return_400(self, mock_ct_get):
         mock_ct_get.return_value = SimpleNamespace(pk=12)
-        request = self.factory.get(
+        request = self._auth_request(
             "/plugins/netbox-nsm/api/object-rules/",
             {
                 "ct_id": "12",

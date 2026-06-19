@@ -52,6 +52,20 @@ def _object_builder_template_rows(builder_config: dict | None) -> list[dict]:
     return rows
 
 
+def _plugin_name_template_rows() -> list[dict]:
+    from netbox_nsm.objects.address_name_templates import (
+        ADDRESS_MATCH_ALIASES,
+        get_address_name_templates,
+        normalize_match_value,
+    )
+
+    rows = []
+    for entry in get_address_name_templates():
+        match = normalize_match_value(entry.get("match"), aliases=ADDRESS_MATCH_ALIASES)
+        rows.append({"match": match, "template": entry.get("template") or ""})
+    return rows
+
+
 def _get_ui_cot(slug: str):
     try:
         from netbox_custom_objects.models import CustomObjectType
@@ -127,6 +141,7 @@ class ObjectConfigView(PermissionRequiredMixin, View):
                 "object_builder_templates": _object_builder_template_rows(
                     resolve_object_builder_config_for_cot(cot)
                 ),
+                "plugin_name_templates": _plugin_name_template_rows(),
             },
         )
 

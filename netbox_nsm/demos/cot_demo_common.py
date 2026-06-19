@@ -35,7 +35,10 @@ from netbox_nsm.rulebooks.templates import (
 __all__ = (
     "ensure_nsm_prerequisites",
     "ensure_rulebook_cot",
+    "get_cot_field_through_model",
     "get_cot_model",
+    "resolve_rulebook_address_field_names",
+    "resolve_rulebook_zone_field_names",
 )
 
 
@@ -196,6 +199,32 @@ def get_cot_model(*slugs: str):
         f"Missing Custom Object Type (tried: {', '.join(slugs)}). "
         "Run Setup → Import all types first."
     )
+
+
+def get_cot_field_through_model(cot, field_name: str):
+    """Return the dynamic M2M through model for a COT multiobject field."""
+    from django.apps import apps
+
+    from netbox_custom_objects import constants
+
+    field = cot.fields.get(name=field_name)
+    return apps.get_model(constants.APP_LABEL, field.through_model_name)
+
+
+def resolve_rulebook_address_field_names(cot) -> tuple[str, str]:
+    """Return source/destination field names for address + address-group refs."""
+    field_names = set(cot.fields.values_list("name", flat=True))
+    if "source_addresses" in field_names:
+        return "source_addresses", "destination_addresses"
+    return "source", "destination"
+
+
+def resolve_rulebook_zone_field_names(cot) -> tuple[str, str]:
+    """Return source/destination field names for zone refs."""
+    field_names = set(cot.fields.values_list("name", flat=True))
+    if "source_zones" in field_names:
+        return "source_zones", "destination_zones"
+    return "source", "destination"
 
 
 def ensure_rulebook_cot(

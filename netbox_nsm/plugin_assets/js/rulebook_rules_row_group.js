@@ -251,6 +251,27 @@
     }
   }
 
+  function splitTabLabelWords(text) {
+    var words = text.split(/\s+/).filter(function (word) {
+      return word.length > 0;
+    });
+    return words.length > 0 ? words : [text];
+  }
+
+  function appendVerticalWordChars(parentEl, word) {
+    var wordSpan = document.createElement("span");
+    wordSpan.className = "nsm-rules-row-group-tab-label-word";
+    wordSpan.setAttribute("aria-hidden", "true");
+    for (var i = 0; i < word.length; i += 1) {
+      var charSpan = document.createElement("span");
+      charSpan.className = "nsm-rules-row-group-tab-label-char";
+      charSpan.textContent = word.charAt(i);
+      charSpan.setAttribute("aria-hidden", "true");
+      wordSpan.appendChild(charSpan);
+    }
+    parentEl.appendChild(wordSpan);
+  }
+
   function splitTabLabelsForCollapsed(nav) {
     nav.querySelectorAll(".nsm-rules-row-group-tab-label").forEach(function (labelEl) {
       if (labelEl.dataset.nsmOriginalLabel != null) {
@@ -260,13 +281,9 @@
       labelEl.dataset.nsmOriginalLabel = text;
       labelEl.textContent = "";
       labelEl.classList.add("nsm-rules-row-group-tab-label--vertical-chars");
-      for (var i = 0; i < text.length; i += 1) {
-        var charSpan = document.createElement("span");
-        charSpan.className = "nsm-rules-row-group-tab-label-char";
-        charSpan.textContent = text.charAt(i);
-        charSpan.setAttribute("aria-hidden", "true");
-        labelEl.appendChild(charSpan);
-      }
+      splitTabLabelWords(text).forEach(function (word) {
+        appendVerticalWordChars(labelEl, word);
+      });
     });
   }
 
@@ -365,15 +382,19 @@
     if (!body) {
       return;
     }
-    var tableScroll = body.querySelector(".nsm-rules-table-scroll");
     var nav = body.querySelector(".nsm-rules-row-group-tabs--vertical");
-    if (!tableScroll || !nav) {
+    if (!nav) {
       return;
     }
-    var height = tableScroll.offsetHeight;
+    // Match sidebar to the viewport-sized rules body, not the table content height.
+    // Using the scroll container's content height grows the flex row and disables scroll.
+    var height = body.clientHeight;
     if (height > 0) {
       nav.style.height = height + "px";
       nav.style.maxHeight = height + "px";
+    } else {
+      nav.style.removeProperty("height");
+      nav.style.removeProperty("max-height");
     }
     var viewport = nav.querySelector(".nsm-rules-row-group-tabs-viewport");
     var prevBtn = nav.querySelector(".nsm-rules-row-group-tabs-scroll--prev");
@@ -398,11 +419,8 @@
     window.addEventListener("resize", refresh);
     window.addEventListener("nsm:rules-panel-height", refresh);
     if (typeof ResizeObserver !== "undefined") {
-      var tableScroll = body.querySelector(".nsm-rules-table-scroll");
-      if (tableScroll) {
-        var observer = new ResizeObserver(refresh);
-        observer.observe(tableScroll);
-      }
+      var observer = new ResizeObserver(refresh);
+      observer.observe(body);
     }
   }
 

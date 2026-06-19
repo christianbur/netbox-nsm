@@ -1,0 +1,42 @@
+{% load i18n %}
+{% if node.layer == "ipam_prefix" %}
+<span class="nsm-addr-link fw-semibold">{{ node.name }}</span>
+{% elif node.is_ipam_filler or node.ipam_synthetic %}
+<span class="nsm-ipa-cell-cidr"><span class="nsm-addr-prefix-text" data-cidr="{{ node.prefix_display_cidr }}">{{ node.prefix_display_cidr }}</span></span>
+{% elif node.prefix_display_cidr %}
+<span class="nsm-ipa-cell-cidr">
+  {% if node.ip_ref and node.ip_ref.url %}
+  <a href="{{ node.ip_ref.url }}" class="nsm-ipa-cell-cidr-link">
+    <span class="nsm-addr-prefix-text" data-cidr="{{ node.prefix_display_cidr }}"{% if node.prefix_display_netmask %} data-netmask="{{ node.prefix_display_netmask }}"{% endif %}>{{ node.prefix_display_cidr }}</span>
+  </a>
+  {% elif node.url %}
+  <a href="{{ node.url }}" class="nsm-ipa-cell-cidr-link">
+    <span class="nsm-addr-prefix-text" data-cidr="{{ node.prefix_display_cidr }}"{% if node.prefix_display_netmask %} data-netmask="{{ node.prefix_display_netmask }}"{% endif %}>{{ node.prefix_display_cidr }}</span>
+  </a>
+  {% else %}
+  <span class="nsm-addr-prefix-text" data-cidr="{{ node.prefix_display_cidr }}"{% if node.prefix_display_netmask %} data-netmask="{{ node.prefix_display_netmask }}"{% endif %}>{{ node.prefix_display_cidr }}</span>
+  {% endif %}
+</span>
+{% elif node.ip_ref and node.ip_ref.str %}
+<span class="nsm-ipa-cell-cidr">
+  {% if node.ip_ref.url %}
+  <a href="{{ node.ip_ref.url }}" class="nsm-ipa-cell-cidr-link">
+    <span class="nsm-addr-prefix-text" data-cidr="{{ node.ip_ref.str }}">{{ node.ip_ref.str }}</span>
+  </a>
+  {% elif node.url %}
+  <a href="{{ node.url }}" class="nsm-ipa-cell-cidr-link">
+    <span class="nsm-addr-prefix-text" data-cidr="{{ node.ip_ref.str }}">{{ node.ip_ref.str }}</span>
+  </a>
+  {% else %}
+  <span class="nsm-addr-prefix-text" data-cidr="{{ node.ip_ref.str }}">{{ node.ip_ref.str }}</span>
+  {% endif %}
+</span>
+{% elif node.diff_group %}
+{% if node.diff_present_labels %}
+<span class="nsm-addr-diff-in-some-head">
+  <span class="nsm-addr-link fw-semibold">{{ node.name }}</span>
+</span>
+{% else %}
+<span class="nsm-addr-link fw-semibold">{{ node.name }}</span>
+{% endif %}
+{% endif %}

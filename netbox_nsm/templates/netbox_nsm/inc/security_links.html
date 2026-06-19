@@ -165,8 +165,58 @@
   .nsm-analysis-rulebooks {
     margin-top: 0.25rem;
   }
+  /* Linked objects: object-type tabs + value sub-filter + NetBox-style table */
+  .nsm-link-objects .nsm-link-tabs {
+    border-bottom: 1px solid var(--bs-border-color);
+    flex-wrap: wrap;
+    gap: 0;
+  }
+  .nsm-link-objects .nsm-link-tabs .nav-link {
+    font-size: 13px;
+    padding: 0.35rem 0.75rem;
+  }
+  .nsm-link-objects .nsm-link-value-filter {
+    border-bottom: 1px dashed var(--bs-border-color);
+    padding-bottom: 0.5rem !important;
+  }
+  .nsm-link-objects .nsm-link-value-filter .btn {
+    font-size: 12px;
+    padding: 0.1rem 0.5rem;
+  }
+  .nsm-link-objects table.nsm-link-table {
+    margin-bottom: 0;
+    table-layout: auto;
+  }
+  .nsm-link-objects table.nsm-link-table thead th {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--bs-secondary-color);
+    white-space: nowrap;
+  }
+  .nsm-link-objects table.nsm-link-table .col-object {
+    padding-left: 0.75rem;
+  }
+  .nsm-link-objects table.nsm-link-table thead th.col-object {
+    padding-left: 0.75rem;
+  }
+  .nsm-link-objects .col-value {
+    width: 9rem;
+    font-size: 12px;
+    vertical-align: middle;
+  }
+  .nsm-link-value-badge {
+    font-weight: 500;
+  }
+  .nsm-link-paginator .pagination {
+    flex-wrap: wrap;
+  }
 </style>
 
+{% if nsm_security_tab_mode %}
+<div class="card">
+  <div class="card-body p-0">
+{% else %}
 <div class="card">
   <h5 class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <span class="text-nowrap">{{ nsm_panel_label }}{% if nsm_security_badge %} <span class="badge text-bg-secondary ms-1">{{ nsm_security_badge }}</span>{% endif %}</span>
@@ -182,8 +232,8 @@
                 data-ct="{{ nsm_page_object_ct }}"
                 data-pk="{{ nsm_page_object_pk }}"
                 data-name="{{ nsm_page_object_name|escape }}"
-                title="{% trans 'Objekt analysieren' %}"
-                aria-label="{% trans 'Objekt analysieren' %}">
+                title="{% trans 'Analyze object' %}"
+                aria-label="{% trans 'Analyze object' %}">
           <i class="mdi mdi-magnify" aria-hidden="true"></i>
         </button>
         {% endif %}
@@ -194,6 +244,7 @@
     </span>
   </h5>
   <div class="card-body p-0">
+{% endif %}
 
     {% if not nsm_rulebook_groups and not nsm_link_type_groups and not nsm_enforcement_point and not nsm_interface_analysis %}
     <div class="ps-3 py-2 text-muted">{% trans "None" %}</div>
@@ -284,68 +335,8 @@
     <hr class="nsm-link-section-separator">
     {% endif %}
 
-    {# ── ObjectLink type groups (manual assignments) ─────────────────── #}
-    {% for group in nsm_link_type_groups %}
-    <div class="border-bottom">
-      <button class="nsm-tree-hdr"
-              data-bs-toggle="collapse"
-              data-bs-target="#nsm-cat-{{ group.type_key }}"
-              aria-expanded="true">
-        <i class="mdi mdi-chevron-right nsm-chev"></i>
-        <span>{{ group.type_label }}</span>
-        <span class="badge text-bg-secondary ms-1">{{ group.count }}</span>
-      </button>
-      <div id="nsm-cat-{{ group.type_key }}" class="collapse show">
-        <div {% if group.count > 15 %}style="max-height:420px;overflow-y:auto;"{% endif %}>
-        <table class="table table-hover table-sm mb-0 nsm-link-table">
-          <tbody>
-            {% for linked in group.objects %}
-            <tr class="nsm-link-row">
-              <td class="col-object">
-                {% if linked.parent_url %}<a href="{{ linked.parent_url }}" class="nsm-link-parent-host text-decoration-none">{{ linked.parent_name }}</a><span class="text-muted" aria-hidden="true"> / </span>{% endif %}<a href="{{ linked.url }}"{% if linked.inherited_from_name %} class="text-muted fst-italic"{% endif %}>{{ linked.name }}</a>{% if linked.status_icon_html %}{{ linked.status_icon_html|safe }}{% endif %}
-                {% if linked.inherited_from_name %}
-                <span class="text-muted" style="font-size:11px;">
-                  ({% trans "from" %} <a href="{{ linked.inherited_from_url }}" class="text-muted">{{ linked.inherited_from_name }}</a>)
-                </span>
-                {% endif %}
-              </td>
-              {% if group.show_comment %}<td class="col-comment">{{ linked.comment|default:"" }}</td>{% endif %}
-              {% if group.show_actions %}<td class="col-actions pe-2 text-end" style="white-space:nowrap;">
-                {% if linked.supports_addr_analysis or linked.edit_url or linked.delete_url %}
-                <span class="btn-group btn-group-sm nsm-link-actions" role="group">
-                  {% if linked.supports_addr_analysis %}
-                  <button type="button" class="btn btn-light btn-sm nsm-ipa-loupe"
-                          data-ct="{{ linked.ct_id }}"
-                          data-pk="{{ linked.obj_id }}"
-                          data-name="{{ linked.name|escape }}"
-                          title="{% trans 'Objekt analysieren' %}"
-                          aria-label="{% trans 'Objekt analysieren' %}">
-                    <i class="mdi mdi-magnify text-dark" aria-hidden="true"></i>
-                  </button>
-                  {% endif %}
-                  {% if linked.edit_url %}
-                  <a href="{{ linked.edit_url }}" class="btn btn-warning btn-sm"
-                     title="{% trans 'Edit assignment' %}" aria-label="{% trans 'Edit assignment' %}">
-                    <i class="mdi mdi-pencil" aria-hidden="true"></i>
-                  </a>
-                  {% endif %}
-                  {% if linked.delete_url %}
-                  <a href="{{ linked.delete_url }}" class="btn btn-danger btn-sm"
-                     title="{% trans 'Remove assignment' %}" aria-label="{% trans 'Remove assignment' %}">
-                    <i class="mdi mdi-trash-can-outline" aria-hidden="true"></i>
-                  </a>
-                  {% endif %}
-                </span>
-                {% endif %}
-              </td>{% endif %}
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        </div>
-      </div>
-    </div>
-    {% endfor %}
+    {# ── Linked objects (object-type tabs + value sub-grouping + pagination) ─ #}
+    {% include "netbox_nsm/inc/security_link_objects.html" %}
 
     {# ── Enforcement point: host / interface rulebook context ───────────── #}
     {% if nsm_enforcement_point %}
@@ -537,6 +528,7 @@
 <script>
 (function () {
   var fieldObservers = new WeakMap();
+  var FILTER_RULE_TITLE = "{% trans 'Filter rules by name (Ctrl+click: open rule detail)'|escapejs %}";
 
   function mergeHeaders() {
     return (window.NSM_BRANCH_API && NSM_BRANCH_API.mergeBranchHeaders({'X-Requested-With': 'XMLHttpRequest'}))
@@ -567,7 +559,7 @@
       li.innerHTML =
         '<a href="' + escHtml(item.rule_url) + '" class="nsm-security-rule-link" ' +
         'data-detail-url="' + escHtml(item.rule_detail_url || '') + '" ' +
-        'title="Filter rules by name (Ctrl+click: open rule detail)">' +
+        'title="' + escHtml(FILTER_RULE_TITLE) + '">' +
         escHtml(item.rule_name) + '</a>';
       ruleList.appendChild(li);
     });

@@ -15,7 +15,9 @@ from netbox_nsm.rulebooks.grid import enabled_status_labels
 
 __all__ = (
     "RULES_ROW_GROUP_TAB_QUERY_PARAM",
+    "ROW_GROUP_TAB_ALL_ID",
     "ROW_GROUP_TAB_SUMMARIES_CACHE_TIMEOUT",
+    "build_all_rules_tab_summary",
     "build_cot_row_group_column_choices",
     "build_group_key",
     "build_row_group_column_choices",
@@ -26,6 +28,7 @@ __all__ = (
     "filter_rows_by_group_key",
     "find_row_group_column",
     "is_row_groupable_column",
+    "prepend_all_rules_tab",
     "prepare_row_grouping_tab_columns",
     "resolve_row_group_tab",
     "resolve_stored_row_group_column_id",
@@ -40,6 +43,7 @@ __all__ = (
 ROW_GROUP_TAB_SUMMARIES_CACHE_TIMEOUT = 300
 
 RULES_ROW_GROUP_TAB_QUERY_PARAM = "row_group_tab"
+ROW_GROUP_TAB_ALL_ID = "all"
 
 
 def _empty_group_label() -> str:
@@ -372,20 +376,37 @@ def build_row_group_tab_summaries(
     )
 
 
+def build_all_rules_tab_summary(rule_count: int) -> dict:
+    """Synthetic first sidebar tab listing every rule (not one group)."""
+    return {
+        "group_key": None,
+        "group_label": str(_("All Rules")),
+        "group_id": ROW_GROUP_TAB_ALL_ID,
+        "rule_count": rule_count,
+        "is_all_rules": True,
+    }
+
+
+def prepend_all_rules_tab(
+    group_tab_summaries: list[dict],
+    total_rule_count: int,
+) -> list[dict]:
+    """Prepend the All Rules tab before individual group tabs."""
+    return [build_all_rules_tab_summary(total_rule_count), *group_tab_summaries]
+
+
 def resolve_row_group_tab(
     request,
     tab_summaries: list[dict],
 ) -> tuple[str | None, str]:
-    """Return ``(group_key, group_id)`` for the active tab (defaults to first)."""
+    """Return ``(group_key, group_id)`` for the active tab (defaults to All Rules)."""
     raw = (request.GET.get(RULES_ROW_GROUP_TAB_QUERY_PARAM) or "").strip()
-    if raw:
-        for tab in tab_summaries:
-            if tab["group_id"] == raw:
-                return tab["group_key"], tab["group_id"]
-    if tab_summaries:
-        first = tab_summaries[0]
-        return first["group_key"], first["group_id"]
-    return None, ""
+    if not raw or raw == ROW_GROUP_TAB_ALL_ID:
+        return None, ROW_GROUP_TAB_ALL_ID
+    for tab in tab_summaries:
+        if tab["group_id"] == raw:
+            return tab["group_key"], tab["group_id"]
+    return None, ROW_GROUP_TAB_ALL_ID
 
 
 def filter_rows_by_group_key(

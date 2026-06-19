@@ -5,6 +5,8 @@ from django.test import RequestFactory, SimpleTestCase
 from netbox_nsm.rulebooks.rules_tab.badge import format_rules_tab_badge
 from netbox_nsm.rulebooks.rules_row_grouping import (
     RULES_ROW_GROUP_TAB_QUERY_PARAM,
+    ROW_GROUP_TAB_ALL_ID,
+    build_all_rules_tab_summary,
     build_group_key,
     build_row_group_column_choices,
     build_row_group_tab_summaries,
@@ -12,6 +14,7 @@ from netbox_nsm.rulebooks.rules_row_grouping import (
     filter_queryset_by_system_group_key,
     filter_rows_by_group_key,
     is_row_groupable_column,
+    prepend_all_rules_tab,
     prepare_row_grouping_tab_columns,
     resolve_row_group_tab,
     resolve_stored_row_group_column_id,
@@ -163,15 +166,45 @@ class RulesRowGroupingTests(SimpleTestCase):
         self.assertEqual(summaries[1]["group_label"], "zone_b")
         self.assertEqual(summaries[1]["rule_count"], 1)
 
-    def test_resolve_row_group_tab_defaults_to_first(self):
+    def test_resolve_row_group_tab_defaults_to_all_rules(self):
         summaries = [
             {"group_key": "a", "group_id": "a", "group_label": "A", "rule_count": 1},
             {"group_key": "b", "group_id": "b", "group_label": "B", "rule_count": 2},
         ]
         request = RequestFactory().get("/rules/")
         key, group_id = resolve_row_group_tab(request, summaries)
-        self.assertEqual(key, "a")
-        self.assertEqual(group_id, "a")
+        self.assertIsNone(key)
+        self.assertEqual(group_id, ROW_GROUP_TAB_ALL_ID)
+
+    def test_resolve_row_group_tab_explicit_all_param(self):
+        summaries = [
+            {"group_key": "a", "group_id": "a", "group_label": "A", "rule_count": 1},
+        ]
+        request = RequestFactory().get(
+            "/rules/",
+            {RULES_ROW_GROUP_TAB_QUERY_PARAM: ROW_GROUP_TAB_ALL_ID},
+        )
+        key, group_id = resolve_row_group_tab(request, summaries)
+        self.assertIsNone(key)
+        self.assertEqual(group_id, ROW_GROUP_TAB_ALL_ID)
+
+    def test_prepend_all_rules_tab_adds_first_entry_with_total(self):
+        summaries = [
+            {"group_key": "zone_a", "group_id": "zone-a", "group_label": "zone_a", "rule_count": 2},
+        ]
+        tabs = prepend_all_rules_tab(summaries, 62500)
+        self.assertEqual(len(tabs), 2)
+        self.assertTrue(tabs[0]["is_all_rules"])
+        self.assertEqual(tabs[0]["group_id"], ROW_GROUP_TAB_ALL_ID)
+        self.assertEqual(tabs[0]["rule_count"], 62500)
+        self.assertEqual(tabs[1]["group_id"], "zone-a")
+
+    def test_build_all_rules_tab_summary(self):
+        tab = build_all_rules_tab_summary(100)
+        self.assertEqual(tab["group_id"], ROW_GROUP_TAB_ALL_ID)
+        self.assertIsNone(tab["group_key"])
+        self.assertEqual(tab["rule_count"], 100)
+        self.assertTrue(tab["is_all_rules"])
 
     def test_resolve_row_group_tab_by_query_param(self):
         summaries = [

@@ -1,0 +1,49 @@
+{% load django_tables2 %}
+{% load i18n %}
+<table{% if table.attrs %} {{ table.attrs.as_html }}{% endif %}>
+  {% if table.show_header %}
+    <thead>
+      <tr>
+        {% for column in table.columns %}
+          {% if column.orderable %}
+            <th {{ column.attrs.th.as_html }}>
+              <a href="{% querystring table.prefixed_order_by_field=column.order_by_alias.next %}" class="text-reset text-decoration-none">
+                {{ column.header }}
+              </a>
+            </th>
+          {% else %}
+            <th {{ column.attrs.th.as_html }}>{{ column.header }}</th>
+          {% endif %}
+        {% endfor %}
+      </tr>
+    </thead>
+  {% endif %}
+  <tbody>
+    {% for row in table.page.object_list|default:table.rows %}
+      <tr {{ row.attrs.as_html }}>
+        {% for column, cell in row.items %}
+          <td {{ column.attrs.td.as_html }}>{{ cell }}</td>
+        {% endfor %}
+      </tr>
+      {% if row.record.has_samples %}
+      <tr>
+        <td colspan="{{ table.columns|length }}" class="p-0 border-0">
+          <div class="collapse" id="object-report-samples-{{ row.record.key }}">
+            <div class="card border-0 rounded-0 bg-body-tertiary">
+              <div class="card-body py-2">
+                {% include "netbox_nsm/inc/object_report_samples.html" with samples=row.record.samples count=row.record.count limit=row.record.sample_limit page_size=row.record.sample_page_size show_heading=True %}
+              </div>
+            </div>
+          </div>
+        </td>
+      </tr>
+      {% endif %}
+    {% empty %}
+      {% if table.empty_text %}
+        <tr>
+          <td colspan="{{ table.columns|length }}" class="text-center text-muted">&mdash; {{ table.empty_text }} &mdash;</td>
+        </tr>
+      {% endif %}
+    {% endfor %}
+  </tbody>
+</table>

@@ -5,6 +5,7 @@ from __future__ import annotations
 from urllib.parse import quote
 
 from django.urls import reverse
+from django.utils.translation import gettext as _
 
 from netbox_nsm.core.branch_urls import with_branch_query
 from netbox_nsm.rulebooks.cot_hierarchy import get_cot_row_group_by_col_id
@@ -32,6 +33,7 @@ from netbox_nsm.rulebooks.rules_row_grouping import (
     filter_queryset_by_system_group_key,
     filter_rows_by_group_key,
     find_row_group_column,
+    prepend_all_rules_tab,
     prepare_row_grouping_tab_columns,
     resolve_row_group_tab,
     resolve_stored_row_group_column_id,
@@ -274,14 +276,45 @@ def _cot_rules_row_group_page(
     active_group_key, row_group_tab_active = resolve_row_group_tab(
         request, tab_summaries
     )
-    for tab in tab_summaries:
+    row_group_tabs = prepend_all_rules_tab(tab_summaries, total_rule_count)
+    for tab in row_group_tabs:
         tab["is_active"] = tab["group_id"] == row_group_tab_active
 
     tab_source_qs = qs
     if filtered_pks is not None:
         tab_source_qs = qs.filter(pk__in=filtered_pks)
 
-    if db_group_field:
+    if active_group_key is None:
+        if db_group_field:
+            tab_qs = tab_source_qs
+            if sort_field in RULES_SYSTEM_FIELDS or sort_field == "enabled":
+                tab_qs = tab_qs.order_by(*cot_db_order_fields(sort_field, sort_order))
+            paginator = EnhancedPaginator(tab_qs, per_page)
+            page_num = _rules_clamp_page(page_num, paginator)
+            page_obj = paginator.get_page(page_num)
+            rows = _cot_load_display_rows(
+                list(page_obj.object_list), virtual_rb, layout=layout, m2m_prefetch=m2m_prefetch
+            )
+        else:
+            tab_rows = all_rows
+            if sort_field in RULES_SYSTEM_FIELDS or sort_field == "enabled":
+                tab_rows = _sort_rules_records(tab_rows, sort_field, sort_order)
+            elif not row_group_sort_applies_to_groups(sort_field, row_group_column):
+                tab_rows = _sort_rules_records(tab_rows, sort_field, sort_order)
+
+            paginator = EnhancedPaginator(tab_rows, per_page)
+            page_num = _rules_clamp_page(page_num, paginator)
+            page_obj = paginator.get_page(page_num)
+            page_pks = [row["pk"] for row in page_obj.object_list]
+            page_instances = list(tab_source_qs.filter(pk__in=page_pks))
+            rows_by_pk = {
+                row["pk"]: row
+                for row in _cot_load_display_rows(
+                    page_instances, virtual_rb, layout=layout, m2m_prefetch=m2m_prefetch
+                )
+            }
+            rows = [rows_by_pk[pk] for pk in page_pks if pk in rows_by_pk]
+    elif db_group_field:
         tab_qs = filter_queryset_by_system_group_key(
             tab_source_qs, row_group_column, active_group_key
         )
@@ -316,7 +349,7 @@ def _cot_rules_row_group_page(
         rows = [rows_by_pk[pk] for pk in page_pks if pk in rows_by_pk]
 
     return (
-        tab_summaries,
+        row_group_tabs,
         row_group_tab_active,
         total_rule_count,
         rows,
@@ -562,5 +595,9 @@ def build_cot_rulebook_rules_tab_context(request, virtual_rb, *, readonly=False)
             "columnMode": column_mode,
             "rowLimit": RULES_HTML_ROW_LIMIT,
             "readonly": readonly,
+            "i18n": {
+                "invalidQuery": _("Invalid query"),
+                "validationFailed": _("Validation failed"),
+            },
         },
     }

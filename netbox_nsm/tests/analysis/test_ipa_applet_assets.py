@@ -21,11 +21,20 @@ class IpAnalyzerMergeAssetsTests(SimpleTestCase):
         self.assertIn("collectRawObjects", js)
         self.assertIn("rawObjects", js)
         self.assertIn("Merged (", js)
+        # Merge appends a new tab and keeps existing tabs (diff-style dedup).
+        self.assertIn("this.tabs.push(mergedTab)", js)
+        self.assertNotIn("this.tabs = [mergedTab]", js)
+        self.assertIn('mode: "merge"', js)
+        self.assertIn('this.tabs[i].mode === "merge"', js)
         self.assertIn("scheduleBodyScale", js)
         self.assertIn("_observeBodyScaleInner", js)
         self.assertIn("host.style.width", js)
         self.assertIn("overflowX", js)
         self.assertIn("nsm-ipa-applet-body-scale", js)
+        self.assertIn("hasCellTreeTable", js)
+        self.assertIn('inner.style.width = "100%"', js)
+        self.assertIn('host.style.maxWidth = "100%"', js)
+        self.assertIn('inner.querySelector(".nsm-ipa-cell-tree-table")', js)
         self.assertIn("loupeCellContainer", js)
         self.assertIn("collectRulesCellContext", js)
         self.assertIn("rulesCellTabTitle", js)
@@ -89,7 +98,7 @@ class IpAnalyzerMergeAssetsTests(SimpleTestCase):
         self.assertNotIn("this.tabs = [diffTab]", js)
         self.assertIn('ipaT("Diff (at least 2 tabs required)")', js)
         self.assertNotIn("var canDiff = this.tabs.length === 2", js)
-        self.assertIn("Fund:", js)
+        self.assertIn("Name conflict:", js)
         self.assertIn("nsm-ipa-applet-toolbar", js)
         self.assertIn("nsm-ipa-applet-toolbar-actions", js)
         self.assertIn("nsm-ipa-applet-add-object", js)
@@ -102,6 +111,32 @@ class IpAnalyzerMergeAssetsTests(SimpleTestCase):
         self.assertNotIn("nsm-ipa-applet-add-load-all", js)
         self.assertNotIn('ipaTf("Load all %(type)s"', js)
 
+    def test_applet_js_exposes_diff_overview_filters(self):
+        js = ipa_js_bundle()
+        css = (_PLUGIN_ROOT / "plugin_assets/css/nsm_ip_analyzer_applet.css").read_text(
+            encoding="utf-8"
+        )
+        assets = (
+            _PLUGIN_ROOT / "templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html"
+        ).read_text(encoding="utf-8")
+
+        for marker in (
+            "_initDiffOverviewControls",
+            "_prepareDiffOverviewRows",
+            "nsm-ipa-diff-overview",
+            "nsm-ipa-diff-filtered-row",
+            'data-nsm-ipa-diff-filter="focus"',
+            'stats.shared >= 20',
+            'group === "both" || group === "in-all"',
+        ):
+            self.assertIn(marker, js)
+
+        self.assertIn(".nsm-ipa-applet .nsm-ipa-diff-overview", css)
+        self.assertIn(".nsm-ipa-applet .nsm-ipa-diff-filtered-row", css)
+        self.assertIn("Diff overview filters", assets)
+        self.assertIn("Changes (%(count)s)", assets)
+        self.assertIn("Shared (%(count)s)", assets)
+
     def test_applet_js_exposes_yaml_export_ui(self):
         js = ipa_js_bundle()
         self.assertIn("nsm-ipa-applet-export", js)
@@ -109,15 +144,53 @@ class IpAnalyzerMergeAssetsTests(SimpleTestCase):
         self.assertIn("buildExportQuery", js)
         self.assertIn("triggerBlobDownload", js)
         self.assertIn('ipaT("Export YAML")', js)
+        self.assertIn(
+            'ipaT("Export displayed data and IPAM children (YAML)")', js
+        )
         self.assertIn('ipaT("YAML export failed.")', js)
         self.assertIn("_exporting", js)
         self.assertIn("nsm-ipa-applet-add-modal", js)
+
+    def test_applet_assets_expose_export_tooltip_i18n(self):
+        assets = (
+            _PLUGIN_ROOT / "templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html"
+        ).read_text(encoding="utf-8")
+        self.assertIn("Export YAML", assets)
+        self.assertIn("Export displayed data and IPAM children (YAML)", assets)
 
     def test_applet_css_integrates_object_tree_in_addr_children(self):
         css = (_PLUGIN_ROOT / "plugin_assets/css/nsm_ip_analyzer_applet.css").read_text(
             encoding="utf-8"
         )
         self.assertIn(".nsm-ipa-applet .nsm-addr-children .nsm-ipa-object-tree-rows", css)
+        self.assertIn(".nsm-ipa-applet .nsm-ipa-cell-tree-table", css)
+        self.assertIn("table-layout: fixed", css)
+        self.assertIn("display: table-row-group", css)
+        self.assertIn(
+            ".nsm-ipa-applet .nsm-addr-children:has(> .nsm-ipa-cell-tree-table)",
+            css,
+        )
+        self.assertIn("display: block", css)
+        self.assertRegex(
+            css,
+            r"\.nsm-ipa-applet \.nsm-ipa-cell-tree-table\s*\{[^}]*width:\s*var\(--nsm-ipa-cell-tree-min-width\)",
+        )
+        self.assertRegex(
+            css,
+            r"\.nsm-ipa-applet-body-scale-host:has\(\.nsm-ipa-cell-tree-table\)\s*\{[^}]*width:\s*100%",
+        )
+        self.assertIn(".nsm-ipa-applet .nsm-ipa-cell-tree-col--network .record-depth", css)
+        self.assertIn(".nsm-ipa-applet .nsm-ipa-cell-tree-col--ipam", css)
+        self.assertIn("--nsm-ipa-cell-tree-ipam-width", css)
+        self.assertIn("--nsm-ipa-cell-tree-duplicate-width", css)
+        self.assertIn("--nsm-ipa-cell-tree-merge-width", css)
+        self.assertIn("--nsm-ipa-cell-tree-diff-width", css)
+        self.assertIn(".nsm-ipa-applet .nsm-ipa-cell-tree-col--duplicate", css)
+        self.assertIn(".nsm-ipa-applet .nsm-ipa-cell-dup-stack", css)
+        self.assertIn(".nsm-ipa-applet .nsm-ipa-cell-status--deprecated", css)
+        self.assertIn(".nsm-ipa-applet .nsm-ipa-cell-status--reserved", css)
+        self.assertIn(".nsm-ipa-applet .nsm-ipa-cell-tree-col--merge", css)
+        self.assertIn(".nsm-ipa-applet .nsm-ipa-cell-tree-col--diff", css)
         self.assertIn(".nsm-ipa-applet .nsm-ipa-subnet-contained", css)
         self.assertRegex(
             css,
@@ -136,14 +209,13 @@ class IpAnalyzerMergeAssetsTests(SimpleTestCase):
         self.assertIn("display: none !important", css)
         self.assertIn('content: "▶"', css)
         self.assertIn("details[open] > .nsm-addr-summary::before", css)
-        self.assertRegex(
-            css,
-            r"\.nsm-ipa-applet \.nsm-ipa-cell-children\s*\{[^}]*border-left:",
-        )
         self.assertNotIn(".nsm-ipa-applet .nsm-ipa-tree-dots", css)
+        self.assertNotIn("border-left: 2px dashed", css)
         self.assertNotIn(".nsm-ipa-object-tree-title", css)
         self.assertNotIn(".nsm-ipa-object-tree {", css)
         self.assertNotIn(".nsm-ipa-object-tree-dots", css)
+        self.assertIn(".nsm-ipa-applet .nsm-ipa-cell-tree-object", css)
+        self.assertIn(".nsm-ipa-applet .nsm-ipa-cell-tree-groups", css)
         self.assertIn(".nsm-ipa-applet .nsm-ipa-cell-pill", css)
         self.assertIn("--nsm-ipa-cell-pill-bg", css)
         self.assertIn("--nsm-ipa-cell-pill-text", css)
@@ -161,14 +233,14 @@ class IpAnalyzerMergeAssetsTests(SimpleTestCase):
         self.assertNotIn("border-left: 3px solid var(--nsm-ipa-accent)", css)
         self.assertIn(".nsm-ipa-applet .nsm-ipa-addr-drilldown .nsm-addr-summary", css)
         self.assertIn(".nsm-ipa-applet .nsm-ipa-cell-object-row", css)
-        self.assertIn(".nsm-ipa-applet .nsm-ipa-drilldown-meta--info", css)
+        self.assertNotIn(".nsm-ipa-applet .nsm-ipa-drilldown-meta--info", css)
         self.assertIn(".nsm-ipa-applet .nsm-ipa-cell-pill--parent", css)
         self.assertRegex(
             css,
             r"\.nsm-ipa-applet \.nsm-ipa-cell-pill--parent \.nsm-ipa-cell-pill-link,\s*"
             r"[^}]*color:\s*var\(--bs-warning",
         )
-        self.assertIn(".nsm-ipa-applet .nsm-ipa-drilldown-meta-info-stat", css)
+        self.assertNotIn(".nsm-ipa-applet .nsm-ipa-drilldown-meta-info-stat", css)
         self.assertRegex(
             css,
             r"\.nsm-ipa-applet summary\.nsm-ipa-drilldown-source-summary\s*\{[^}]*align-items:\s*flex-start",
@@ -177,7 +249,7 @@ class IpAnalyzerMergeAssetsTests(SimpleTestCase):
             css,
             r"\.nsm-ipa-applet \.nsm-addr-summary,\s*"
             r"\.nsm-ipa-applet \.nsm-addr-leaf-summary,\s*"
-            r"\.nsm-ipa-applet \.nsm-ipa-object-node > \.nsm-addr-summary\s*\{[^}]*padding:\s*1px 0",
+            r"\.nsm-ipa-applet \.nsm-ipa-object-node > \.nsm-addr-summary\s*\{[^}]*padding:\s*2px 0",
         )
         self.assertIn(".nsm-ipa-applet .nsm-ipa-object-node", css)
         self.assertIn("gap: 0", css)
@@ -185,11 +257,45 @@ class IpAnalyzerMergeAssetsTests(SimpleTestCase):
             css,
             r"\.nsm-ipa-applet \.nsm-addr-summary,\s*"
             r"\.nsm-ipa-applet \.nsm-addr-leaf-summary,\s*"
-            r"\.nsm-ipa-applet \.nsm-ipa-object-node > \.nsm-addr-summary\s*\{[^}]*line-height:\s*1\.2;",
+            r"\.nsm-ipa-applet \.nsm-ipa-object-node > \.nsm-addr-summary\s*\{[^}]*line-height:\s*1\.25;",
         )
         self.assertIn(
-            ".nsm-ipa-applet .nsm-addr-children .nsm-ipa-object-tree-rows > details.nsm-ipa-object-node + details.nsm-ipa-object-node",
+            ".nsm-ipa-applet .nsm-ipa-cell-tree-table > tbody > tr + tr > td",
             css,
+        )
+        self.assertRegex(
+            css,
+            r"\.nsm-ipa-applet \.nsm-ipa-cell-tree-col--address,\s*"
+            r"\.nsm-ipa-applet \.nsm-ipa-cell-tree-col--address-group\s*\{[^}]*white-space:\s*normal",
+        )
+        self.assertRegex(
+            css,
+            r"\.nsm-ipa-applet \.nsm-ipa-cell-tree-col--address,\s*"
+            r"\.nsm-ipa-applet \.nsm-ipa-cell-tree-col--address-group\s*\{[^}]*word-break:\s*break-word",
+        )
+        self.assertRegex(
+            css,
+            r"\.nsm-ipa-applet \.nsm-ipa-cell-tree-col--us\s*\{[^}]*white-space:\s*normal",
+        )
+        self.assertRegex(
+            css,
+            r"\.nsm-ipa-applet \.nsm-ipa-cell-tree-col--us\s*\{[^}]*word-break:\s*normal",
+        )
+        self.assertRegex(
+            css,
+            r"\.nsm-ipa-applet \.nsm-ipa-cell-tree-col--us\s*\{[^}]*overflow-wrap:\s*break-word",
+        )
+        self.assertRegex(
+            css,
+            r"--nsm-ipa-cell-tree-us-width:\s*18rem",
+        )
+        self.assertRegex(
+            css,
+            r"--nsm-ipa-cell-tree-address-group-width:\s*12\.5rem",
+        )
+        self.assertRegex(
+            css,
+            r"\.nsm-ipa-applet \.nsm-ipa-cell-tree-col--network\s*\{[^}]*white-space:\s*nowrap",
         )
         self.assertIn("margin-top: 2px", css)
         self.assertRegex(
@@ -198,7 +304,7 @@ class IpAnalyzerMergeAssetsTests(SimpleTestCase):
         )
         self.assertRegex(
             css,
-            r"\.nsm-ipa-applet \.nsm-ipa-cell-pill\s*\{[^}]*padding:\s*0\.12rem 0\.38rem 0\.14rem",
+            r"\.nsm-ipa-applet \.nsm-ipa-cell-pill\s*\{[^}]*padding:\s*0\.08rem 0\.32rem 0\.1rem",
         )
         self.assertRegex(
             css,
@@ -279,11 +385,15 @@ class IpAnalyzerMergeAssetsTests(SimpleTestCase):
         )
         self.assertRegex(
             css,
-            r"\.nsm-ipa-applet \.nsm-ipa-object-node--subnet-warning \.nsm-addr-ip",
+            r"\.nsm-ipa-applet \.nsm-ipa-object-node--subnet-warning:not\(\.nsm-ipa-cell-tree-row\) \.nsm-addr-ip",
         )
         self.assertRegex(
             css,
-            r"\.nsm-ipa-applet \.nsm-ipa-object-node--subnet-warning \.nsm-addr-prefix-text",
+            r"\.nsm-ipa-applet \.nsm-ipa-cell-tree-row\.nsm-ipa-object-node--cell-direct \.nsm-ipa-cell-tree-col--network \.nsm-addr-prefix-text",
+        )
+        self.assertNotRegex(
+            css,
+            r"\.nsm-ipa-applet \.nsm-ipa-cell-tree-row\.nsm-ipa-object-node--subnet-warning \.nsm-ipa-cell-tree-col--network \.nsm-addr-prefix-text[^}]*warning",
         )
 
     def test_diff_status_badges_use_solid_contrast(self):
@@ -316,6 +426,18 @@ class IpAnalyzerMergeAssetsTests(SimpleTestCase):
         self.assertNotIn(".nsm-ipa-applet-add-type-actions", css)
         self.assertNotIn(".nsm-ipa-applet-add-load-all", css)
         self.assertIn(".nsm-ipa-applet--has-toolbar", css)
+        self.assertRegex(
+            css,
+            r"\.nsm-ipa-applet-toolbar\s*\{[^}]*flex-shrink:\s*0",
+        )
+        self.assertRegex(
+            css,
+            r"\.nsm-ipa-applet-toolbar\s*\{[^}]*min-height:\s*2\.25rem",
+        )
+        self.assertNotRegex(
+            css,
+            r"\.nsm-ipa-applet-toolbar\s*\{[^}]*min-height:\s*0",
+        )
 
     @patch("netbox_nsm.analysis.ipa_add_object_types.get_api_url_for_content_type")
     @patch("netbox_nsm.analysis.ipa_add_object_types.ContentType")
@@ -390,8 +512,20 @@ class IpAnalyzerMergeAssetsTests(SimpleTestCase):
         self.assertIn("nsm_ip_analyzer_applet.js", assets)
         self.assertIn("nsm_ipa_util.js", assets)
         self.assertIn("nsm_ipa_cell.js", assets)
-        self.assertIn("?v=202606200", assets)
+        self.assertIn("?v=202606256", assets)
+        self.assertIn("?v=202606258", assets)
         self.assertIn("NSM_IP_ANALYSIS_ADD_OBJECT_TYPES_API", assets)
+
+    def test_ipam_parent_prefix_css(self):
+        css = (_PLUGIN_ROOT / "plugin_assets/css/nsm_ip_analyzer_applet.css").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(".nsm-ipa-object-node--ipam-parent-prefix", css)
+        self.assertIn(".nsm-ipa-tree-node--ipam-filler", css)
+        self.assertIn(".nsm-ipa-object-node--ipam-synthetic", css)
+        self.assertIn(".nsm-ipa-object-node--cell-indirect", css)
+        self.assertIn(".nsm-ipa-cell-parent-hint", css)
+        self.assertIn(".nsm-ipa-info-summary-row", css)
 
     def test_merged_cell_loupe_corner_hover_css(self):
         css = (_PLUGIN_ROOT / "plugin_assets/css/rulebook_rules.css").read_text(
@@ -480,4 +614,47 @@ class IpAnalyzerMergeAssetsTests(SimpleTestCase):
         for source in (css, assets):
             self.assertIn(".nsm-addr-diff-fund-row", source)
             self.assertIn(".nsm-addr-diff-fund-network", source)
+
+    def test_ipa_js_has_no_address_analysis_business_logic(self):
+        """Merge/diff/tree/netmask must stay in Python; JS only fetches and displays."""
+        js = ipa_js_bundle()
+        assets = (
+            _PLUGIN_ROOT / "templates/netbox_nsm/inc/addr_analysis_assets.html"
+        ).read_text(encoding="utf-8")
+        forbidden = (
+            "netmaskLabelForCidr",
+            "0xffffffff",
+            "_build_multi_object_addr_analysis",
+            "_build_addr_diff",
+            "buildAddrTree",
+        )
+        for pattern in forbidden:
+            self.assertNotIn(pattern, js, msg=f"IPA JS must not contain {pattern!r}")
+            self.assertNotIn(pattern, assets, msg=f"IPA assets must not contain {pattern!r}")
+        self.assertIn("apiUrl()", js)
+        self.assertIn("buildDiffQuery", js)
+        self.assertIn("buildExportQuery", js)
+        self.assertIn("fetchLazyCategoryBatch", assets)
+        self.assertIn("fetchObjectDrilldown", assets)
+
+    def test_applet_js_handles_analysis_fetch_errors(self):
+        js = ipa_js_bundle()
+        util = (_PLUGIN_ROOT / "plugin_assets/js/nsm_ipa_util.js").read_text(
+            encoding="utf-8"
+        )
+        for source in (js, util):
+            self.assertIn("readIpaApiJson", source)
+            self.assertIn("fetchIpaAnalysis", source)
+            self.assertIn("ipaFetchAbortMessage", source)
+        self.assertIn("_failTabLoad", js)
+        self.assertIn("_resumeStaleTabLoad", js)
+        self.assertIn("_completeTabLoad", js)
+        self.assertIn("tab.status = \"error\"", js)
+
+    def test_applet_assets_expose_analysis_error_i18n(self):
+        assets = (
+            _PLUGIN_ROOT / "templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html"
+        ).read_text(encoding="utf-8")
+        self.assertIn("Analysis timed out.", assets)
+        self.assertIn("Analysis failed (HTTP %(status)s).", assets)
 

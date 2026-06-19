@@ -1,0 +1,48 @@
+{% load i18n ipa_cell_tree_tags %}
+{% comment %}Address column: NSM address name/link only (no type labels).{% endcomment %}
+<span class="nsm-ipa-cell-tree-address{% if node.cell_addresses_multi %} nsm-ipa-cell-tree-address--multi{% endif %}"{% if node.cell_addresses_multi %} title="{% trans 'Multiple address names share this network in the rule cell' %}"{% elif node.is_doppelt %} title="{% trans 'Duplicate cell entry — the same object is listed more than once in the rule cell' %}"{% endif %}>
+{% if node.cell_addresses_multi and node.cell_addresses %}
+{% for addr in node.cell_addresses %}
+<span class="nsm-ipa-cell-tree-address-entry{% if addr.status %} nsm-ipa-cell-tree-address-entry--inactive{% endif %}">
+{% if link_mode == "span" %}
+<span class="nsm-addr-obj-link fw-semibold{% if addr.status %} text-muted fst-italic{% endif %}" title="{% ipa_cell_tree_address_link_title addr.name node=node address_status=addr.status address_cidr=addr.prefix_display_cidr %}">{{ addr.name }}</span>
+{% elif link_mode == "anchor_stop" %}
+<a href="{{ addr.url }}" class="nsm-addr-obj-link{% if addr.status %} text-muted fst-italic{% endif %}" title="{% ipa_cell_tree_address_link_title addr.name node=node address_status=addr.status address_cidr=addr.prefix_display_cidr %}" onclick="event.stopPropagation();">{{ addr.name }}</a>
+{% else %}
+<a href="{{ addr.url }}" class="nsm-addr-obj-link{% if addr.status %} text-muted fst-italic{% endif %}" title="{% ipa_cell_tree_address_link_title addr.name node=node address_status=addr.status address_cidr=addr.prefix_display_cidr %}">{{ addr.name }}</a>
+{% endif %}
+{% if addr.status %}{% include "netbox_nsm/inc/ipa_nsm_object_status_icon.html" with status=addr.status %}{% endif %}
+</span>
+{% endfor %}
+{% elif address_ref %}
+<span class="nsm-ipa-cell-tree-address-entry{% if address_ref.status %} nsm-ipa-cell-tree-address-entry--inactive{% endif %}">
+{% if link_mode == "span" %}
+<span class="nsm-addr-obj-link fw-semibold{% if address_ref.status %} text-muted fst-italic{% endif %}" title="{% ipa_cell_tree_address_link_title address_ref.name node=node address_status=address_ref.status address_cidr=address_ref.prefix_display_cidr group_anchor=group_anchor %}">{{ address_ref.name }}</span>
+{% elif link_mode == "anchor_stop" %}
+<a href="{{ address_ref.url }}" class="nsm-addr-obj-link{% if address_ref.status %} text-muted fst-italic{% endif %}" title="{% ipa_cell_tree_address_link_title address_ref.name node=node address_status=address_ref.status address_cidr=address_ref.prefix_display_cidr group_anchor=group_anchor %}" onclick="event.stopPropagation();">{{ address_ref.name }}</a>
+{% else %}
+<a href="{{ address_ref.url }}" class="nsm-addr-obj-link{% if address_ref.status %} text-muted fst-italic{% endif %}" title="{% ipa_cell_tree_address_link_title address_ref.name node=node address_status=address_ref.status address_cidr=address_ref.prefix_display_cidr group_anchor=group_anchor %}">{{ address_ref.name }}</a>
+{% endif %}
+{% if address_ref.status %}{% include "netbox_nsm/inc/ipa_nsm_object_status_icon.html" with status=address_ref.status %}{% endif %}
+</span>
+{% elif node.cell_addresses_compact and node.cell_address_primary %}
+<span class="nsm-ipa-cell-tree-address-entry{% if node.cell_address_primary.status %} nsm-ipa-cell-tree-address-entry--inactive{% endif %}">
+{% if link_mode == "span" %}
+<span class="nsm-addr-obj-link fw-semibold{% if node.cell_address_primary.status %} text-muted fst-italic{% endif %}" title="{% ipa_cell_tree_address_link_title node.cell_address_primary.name node=node address_status=node.cell_address_primary.status address_cidr=node.cell_address_primary.prefix_display_cidr %}">{{ node.cell_address_primary.name }}</span>
+{% elif link_mode == "anchor_stop" %}
+<a href="{{ node.cell_address_primary.url }}" class="nsm-addr-obj-link{% if node.cell_address_primary.status %} text-muted fst-italic{% endif %}" title="{% ipa_cell_tree_address_link_title node.cell_address_primary.name node=node address_status=node.cell_address_primary.status address_cidr=node.cell_address_primary.prefix_display_cidr %}" onclick="event.stopPropagation();">{{ node.cell_address_primary.name }}</a>
+{% else %}
+<a href="{{ node.cell_address_primary.url }}" class="nsm-addr-obj-link{% if node.cell_address_primary.status %} text-muted fst-italic{% endif %}" title="{% ipa_cell_tree_address_link_title node.cell_address_primary.name node=node address_status=node.cell_address_primary.status address_cidr=node.cell_address_primary.prefix_display_cidr %}">{{ node.cell_address_primary.name }}</a>
+{% endif %}
+{% if node.cell_address_primary.status %}{% include "netbox_nsm/inc/ipa_nsm_object_status_icon.html" with status=node.cell_address_primary.status %}{% endif %}
+</span>
+{% elif node.name and node.url %}
+{% if link_mode == "span" %}
+<span class="nsm-addr-obj-link fw-semibold{% if node.status %} text-muted fst-italic{% endif %}" title="{% ipa_cell_tree_address_link_title node.name node=node address_status=node.status %}">{{ node.name }}</span>{% if node.status %}{% include "netbox_nsm/inc/ipa_nsm_object_status_icon.html" with status=node.status %}{% endif %}
+{% elif link_mode == "anchor_stop" %}
+<span class="nsm-ipa-cell-tree-address-entry{% if node.status %} nsm-ipa-cell-tree-address-entry--inactive{% endif %}"><a href="{{ node.url }}" class="nsm-addr-obj-link{% if node.status %} text-muted fst-italic{% endif %}" title="{% ipa_cell_tree_address_link_title node.name node=node address_status=node.status %}" onclick="event.stopPropagation();">{{ node.name }}</a>{% if node.status %}{% include "netbox_nsm/inc/ipa_nsm_object_status_icon.html" with status=node.status %}{% endif %}</span>
+{% else %}
+<span class="nsm-ipa-cell-tree-address-entry{% if node.status %} nsm-ipa-cell-tree-address-entry--inactive{% endif %}"><a href="{{ node.url }}" class="nsm-addr-obj-link{% if node.status %} text-muted fst-italic{% endif %}" title="{% ipa_cell_tree_address_link_title node.name node=node address_status=node.status %}">{{ node.name }}</a>{% if node.status %}{% include "netbox_nsm/inc/ipa_nsm_object_status_icon.html" with status=node.status %}{% endif %}</span>
+{% endif %}
+{% endif %}
+</span>

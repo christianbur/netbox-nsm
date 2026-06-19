@@ -1,9 +1,35 @@
 {% load i18n %}
 {% comment %}
-Address-group memberships as one [ADDRESS_GROUP] pill with stacked names (orange when duplicate).
-Ungrouped-only cell selections omit ADDRESS_GROUP pills; cell-direct + groups append ``none``.
+Address-group memberships: collapsed summary when many groups; stacked pills otherwise.
 {% endcomment %}
 {% if node.cell_groups %}
+{% if node.cell_groups_collapsed %}
+<details class="nsm-ipa-cell-groups-collapsed" onclick="event.stopPropagation();">
+  <summary class="nsm-ipa-cell-groups-collapsed-summary">
+    <span class="nsm-ipa-cell-pill nsm-ipa-cell-pill--group nsm-ipa-cell-pill--group-summary{% if node.cell_groups_multi %} nsm-ipa-cell-pill--multi{% endif %}">
+      <span class="nsm-ipa-cell-type">ADDRESS_GROUP</span>
+      <span class="nsm-ipa-cell-pill-body">
+        <span class="nsm-ipa-cell-groups-collapsed-label">{% blocktrans count counter=node.collapsed_group_count %}{{ counter }} group{% plural %}{{ counter }} groups{% endblocktrans %}</span>
+      </span>
+    </span>
+  </summary>
+  <span class="nsm-ipa-cell-groups-collapsed-body">
+    <span class="nsm-ipa-cell-pill nsm-ipa-cell-pill--group{% if node.cell_groups_multi %} nsm-ipa-cell-pill--multi{% endif %}"{% if node.cell_groups_multi %} title="{% trans 'Address belongs to more than one address group in this cell' %}"{% endif %}>
+      <span class="nsm-ipa-cell-type">ADDRESS_GROUP</span>
+      <span class="nsm-ipa-cell-pill-body nsm-ipa-cell-pill-body--stack">
+      {% for grp in node.cell_groups %}
+      {% if not grp.is_none %}
+      <span class="nsm-ipa-cell-pill-entry{% if grp.status %} nsm-ipa-cell-pill-entry--inactive{% endif %}">
+      <a href="{{ grp.url }}" class="nsm-ipa-cell-pill-link{% if grp.status %} nsm-ipa-cell-pill-link--inactive{% endif %}" title="{{ grp.name }}" onclick="event.stopPropagation();">{{ grp.name }}</a>
+      {% if grp.status %}{% include "netbox_nsm/inc/ipa_nsm_object_status_icon.html" with status=grp.status %}{% endif %}
+      </span>
+      {% endif %}
+      {% endfor %}
+      </span>
+    </span>
+  </span>
+</details>
+{% else %}
 <span class="nsm-ipa-cell-pill nsm-ipa-cell-pill--group{% if node.cell_groups_multi %} nsm-ipa-cell-pill--multi{% endif %}"{% if node.cell_groups_multi %} title="{% trans 'Address belongs to more than one address group in this cell' %}"{% endif %}>
   <span class="nsm-ipa-cell-type">ADDRESS_GROUP</span>
   <span class="nsm-ipa-cell-pill-body{% if node.cell_groups_multi %} nsm-ipa-cell-pill-body--stack{% endif %}">
@@ -19,4 +45,5 @@ Ungrouped-only cell selections omit ADDRESS_GROUP pills; cell-direct + groups ap
   {% endfor %}
   </span>
 </span>
+{% endif %}
 {% endif %}

@@ -86,11 +86,11 @@ def _lookup_ipam_prefix_for_cidr(cidr):
     if not cidr:
         return None
     try:
-        import ipaddress
+        from netaddr import IPNetwork
 
         from ipam.models import Prefix
 
-        net = ipaddress.ip_network(str(cidr).strip(), strict=False)
+        net = IPNetwork(str(cidr).strip())
         return Prefix.objects.filter(prefix=net).order_by("pk").first()
     except Exception:
         return None

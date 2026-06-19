@@ -1,0 +1,10 @@
+{% load i18n %}
+{% if node.diff_fund %}
+{% include "netbox_nsm/inc/addr_diff_fund_row.html" %}
+{% elif node.in_cell or node.is_cell_direct or node.cell_addresses_multi or node.cell_addresses_compact or node.cell_pill_group %}
+{% include "netbox_nsm/inc/ipa_cell_tree_object_link.html" with link_mode=link_mode|default:"anchor_stop" %}
+{% elif node.diff_status %}
+{% include "netbox_nsm/inc/addr_diff_name_pill.html" %}
+{% elif node.name and node.url %}
+<a href="{{ node.url }}" class="nsm-addr-obj-link{% if node.status %} text-muted fst-italic{% endif %}">{{ node.name }}</a>{% if node.status %}{% include "netbox_nsm/inc/ipa_nsm_object_status_icon.html" with status=node.status %}{% endif %}
+{% endif %}

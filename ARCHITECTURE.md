@@ -33,7 +33,7 @@ netbox_nsm/
 ├── rulebooks/         grid, Rules tab, matrix, views
 ├── security/          Security panel, object-rules API
 ├── demos/             starter, enterprise_dc, addresses_million_scale
-├── views/             Setup, IP Analysis, Object Analyzer
+├── views/             Setup, Object Analyzer, Object Report (IP analysis is applet + API only)
 └── tests/
 ```
 
@@ -48,8 +48,9 @@ Portable schema: `nsm-schema.json` → `POST /api/plugins/custom-objects/schema/
 | Rulebooks / COT rules | `rulebooks/`, `rulebooks/cot/<slug>/rules/` |
 | All rules | `rulebooks/0/rules/` |
 | Object / rulebook link | `object-link/`, `rulebook-link/` |
-| IP Analysis | `ip-analysis/` |
+| IP analysis (legacy redirect) | `ip-analysis/` → Object Analyzer (standalone page removed; applet + APIs only) |
 | Object Analyzer | `object-analyzer/` |
+| Object Report | `object-report/` |
 
 Security panel: `template_content.py` → `NsmSecurityLinksExtension`
 

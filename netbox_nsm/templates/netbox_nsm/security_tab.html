@@ -1,0 +1,31 @@
+{% extends base_template %}
+{% load i18n %}
+
+{% block content %}
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h2 class="h4 mb-0">{{ nsm_panel_label }}</h2>
+    <span class="d-flex gap-1 align-items-center nsm-security-header-actions">
+      <span class="d-inline-flex align-items-center gap-1">
+        <a href="{{ nsm_analyzer_url }}" class="btn btn-ghost-primary btn-sm"
+           title="{% trans 'Object Analyzer' %}"
+           aria-label="{% trans 'Object Analyzer' %}">
+          <i class="mdi mdi-graph-outline" aria-hidden="true"></i>
+        </a>
+        {% if nsm_page_addr_analyzable %}
+        <button type="button" class="btn btn-ghost-primary btn-sm nsm-ipa-loupe"
+                data-ct="{{ nsm_page_object_ct }}"
+                data-pk="{{ nsm_page_object_pk }}"
+                data-name="{{ nsm_page_object_name|escape }}"
+                title="{% trans 'Objekt analysieren' %}"
+                aria-label="{% trans 'Objekt analysieren' %}">
+          <i class="mdi mdi-magnify" aria-hidden="true"></i>
+        </button>
+        {% endif %}
+      </span>
+      <a href="{{ nsm_assign_url }}" class="btn btn-ghost-primary btn-sm">
+        <i class="mdi mdi-plus-thick"></i> {% trans "Assign" %}
+      </a>
+    </span>
+  </div>
+  {% include "netbox_nsm/inc/security_links.html" with nsm_security_tab_mode=True %}
+{% endblock content %}

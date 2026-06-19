@@ -1,0 +1,8 @@
+{% load i18n %}
+{% if node.cell_addresses_multi and node.cell_addresses|length > 1 %}
+<span class="badge bg-secondary-subtle text-secondary nsm-ipa-cell-merge" title="{% blocktrans with count=node.cell_addresses|length %}Merged {{ count }} address names on this network{% endblocktrans %}{% for addr in node.cell_addresses %}{% if forloop.first %}: {% endif %}{{ addr.name }}{% if not forloop.last %} · {% endif %}{% endfor %}">{% trans "merge" %}</span>
+{% elif node.cell_address_alternates %}
+<span class="badge bg-secondary-subtle text-secondary nsm-ipa-cell-merge" title="{% for alt in node.cell_address_alternates %}{{ alt.name }}{% if not forloop.last %} · {% endif %}{% endfor %}">+{{ node.cell_address_alternates|length }}</span>
+{% else %}
+<span class="text-muted">—</span>
+{% endif %}

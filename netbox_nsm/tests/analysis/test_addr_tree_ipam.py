@@ -594,9 +594,9 @@ class IpamPrefixTreeTests(SimpleTestCase):
             },
         ]
         counts = _resolve_summary_type_counts([], object_tree)
-        self.assertEqual(counts["count_subnets"], 1)
+        self.assertEqual(counts["count_subnets"], 2)
         self.assertEqual(counts["count_ranges"], 0)
-        self.assertEqual(counts["count_ips"], 0)
+        self.assertEqual(counts["count_ips"], 1)
 
     def test_ipa_object_tree_type_counts(self):
         object_tree = [
@@ -625,8 +625,52 @@ class IpamPrefixTreeTests(SimpleTestCase):
         ]
         counts = _ipa_object_tree_type_counts(object_tree)
         self.assertEqual(counts["count_subnets"], 1)
-        self.assertEqual(counts["count_ranges"], 1)
-        self.assertEqual(counts["count_ips"], 15)
+        self.assertEqual(counts["count_ranges"], 0)
+        self.assertEqual(counts["count_ips"], 0)
+
+    @patch("netbox_nsm.analysis.addr_analysis_utils._ipam_obj_from_ip_ref")
+    def test_ipa_object_tree_type_counts_uses_unique_ipam_ips(self, ipam_obj_fn):
+        def fake_ipam_obj(model_name, pk):
+            obj = MagicMock()
+            obj.pk = pk
+            obj._meta.app_label = "ipam"
+            obj._meta.model_name = model_name
+            return obj
+
+        ip_a = fake_ipam_obj("ipaddress", 101)
+        ip_b = fake_ipam_obj("ipaddress", 102)
+        ip_c = fake_ipam_obj("ipaddress", 103)
+        prefix_a = fake_ipam_obj("prefix", 1)
+        prefix_b = fake_ipam_obj("prefix", 2)
+        prefix_a.get_child_ips.return_value = [ip_a, ip_b]
+        prefix_b.get_child_ips.return_value = [ip_b, ip_c]
+        ipam_obj_fn.side_effect = lambda ref: {
+            1: prefix_a,
+            2: prefix_b,
+        }.get(int(ref.get("pk") or 0))
+
+        object_tree = [
+            {
+                "name": "prefix-a",
+                "kind": "leaf",
+                "children": [],
+                "prefix_display_cidr": "10.0.0.0/24",
+                "ip_ref": {"str": "10.0.0.0/24", "type": "Prefix", "ct": 99, "pk": 1},
+            },
+            {
+                "name": "prefix-b",
+                "kind": "leaf",
+                "children": [],
+                "prefix_display_cidr": "10.0.1.0/24",
+                "ip_ref": {"str": "10.0.1.0/24", "type": "Prefix", "ct": 99, "pk": 2},
+            },
+        ]
+
+        counts = _ipa_object_tree_type_counts(object_tree)
+
+        self.assertEqual(counts["count_subnets"], 2)
+        self.assertEqual(counts["count_ranges"], 0)
+        self.assertEqual(counts["count_ips"], 3)
 
     def test_ipa_object_tree_type_counts_cell_prefix_with_zero_child_stats(self):
         object_tree = [
@@ -766,7 +810,7 @@ class IpamPrefixTreeTests(SimpleTestCase):
             }
         ]
         counts = _resolve_summary_type_counts(addr_analysis, object_tree)
-        self.assertEqual(counts["count_ips"], 100)
+        self.assertEqual(counts["count_ips"], 0)
         self.assertEqual(counts["count_duplicates"], 1)
 
     @patch("netbox_nsm.objects.address_ipam_fk.get_nsm_address_model", return_value=None)
@@ -1255,4 +1299,38 @@ def _hub_import_ip_count(node):
     from netbox_nsm.analysis.addr_analysis_utils import _ipam_stats_ip_count
 
     return _ipam_stats_ip_count(node.get("ipam_stats") or [])
+
+
+class LookupIpamPrefixForCidrTests(SimpleTestCase):
+    @patch("ipam.models.Prefix.objects")
+    def test_lookup_uses_netaddr_ipnetwork(self, prefix_mgr):
+        from netaddr import IPNetwork
+
+        from netbox_nsm.analysis.addr_diff_collect import _lookup_ipam_prefix_for_cidr
+
+        prefix_mgr.filter.return_value.order_by.return_value.first.return_value = (
+            MagicMock()
+        )
+        _lookup_ipam_prefix_for_cidr("10.128.228.0/24")
+        prefix_mgr.filter.assert_called_once_with(prefix=IPNetwork("10.128.228.0/24"))
+
+
+from utilities.testing import TestCase
+
+
+class LookupIpamPrefixForCidrIntegrationTests(TestCase):
+    def test_lookup_resolves_existing_prefix(self):
+        from ipam.models import Prefix
+
+        from netbox_nsm.analysis.addr_diff_collect import _lookup_ipam_prefix_for_cidr
+        from netbox_nsm.analysis.ipam_drilldown import _resolve_ipam_stats_from_ip_ref
+
+        prefix = Prefix.objects.create(prefix="10.128.228.0/24", status="active")
+        found = _lookup_ipam_prefix_for_cidr("10.128.228.0/24")
+        self.assertIsNotNone(found)
+        self.assertEqual(found.pk, prefix.pk)
+
+        stats = _resolve_ipam_stats_from_ip_ref({"str": "10.128.228.0/24"})
+        self.assertIsNotNone(stats)
+        self.assertIn("ip_addresses", stats)
 

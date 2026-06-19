@@ -94,6 +94,82 @@
     return fetch(url, options);
   }
 
+  var IPA_ANALYSIS_TIMEOUT_MS = 120000;
+
+  function parseIpaApiErrorBody(body, status) {
+    if (body && typeof body === "object") {
+      if (body.error != null && body.error !== "") {
+        return String(body.error);
+      }
+      if (body.detail != null && body.detail !== "") {
+        return String(body.detail);
+      }
+      if (body.message != null && body.message !== "") {
+        return String(body.message);
+      }
+    }
+    if (status) {
+      return ipaTf("Analysis failed (HTTP %(status)s).", { status: status });
+    }
+    return ipaT("Analysis could not be loaded.");
+  }
+
+  function readIpaApiJson(resp) {
+    return resp.text().then(function (text) {
+      var body = null;
+      if (text) {
+        try {
+          body = JSON.parse(text);
+        } catch (_) {
+          body = null;
+        }
+      }
+      if (!resp.ok) {
+        throw new Error(parseIpaApiErrorBody(body, resp.status));
+      }
+      if (body == null) {
+        throw new Error(ipaT("Analysis could not be loaded."));
+      }
+      return body;
+    });
+  }
+
+  function fetchIpaAnalysis(url, options, timeoutMs) {
+    options = options || {};
+    var ms = timeoutMs == null ? IPA_ANALYSIS_TIMEOUT_MS : timeoutMs;
+    if (ms > 0 && typeof AbortController !== "undefined") {
+      var timeoutCtrl = new AbortController();
+      var timer = setTimeout(function () {
+        timeoutCtrl.abort();
+      }, ms);
+      var userSignal = options.signal;
+      if (userSignal) {
+        if (userSignal.aborted) {
+          timeoutCtrl.abort();
+        } else {
+          userSignal.addEventListener("abort", function () {
+            timeoutCtrl.abort();
+          });
+        }
+      }
+      options = Object.assign({}, options, { signal: timeoutCtrl.signal });
+      return nsmFetch(url, options).finally(function () {
+        clearTimeout(timer);
+      });
+    }
+    return nsmFetch(url, options);
+  }
+
+  function ipaFetchAbortMessage(err) {
+    if (err && err.name === "AbortError") {
+      return ipaT("Analysis timed out.");
+    }
+    if (err && err.message) {
+      return String(err.message);
+    }
+    return ipaT("Analysis could not be loaded.");
+  }
+
   function mergeBranchHeaders(headers) {
     if (window.NSM_BRANCH_API && window.NSM_BRANCH_API.mergeBranchHeaders) {
       return window.NSM_BRANCH_API.mergeBranchHeaders(headers || {});
@@ -277,6 +353,7 @@
       return "";
     }
     return (
+      rulesCellTabTitle(tab.context) ||
       rulesCellDiffSideLabel(tab.context) ||
       tab.contextLabel ||
       tab.title ||
@@ -387,7 +464,7 @@
     }
     var fundPart =
       summary.fund > 0
-        ? ipaTf(" | Fund: %(count)s", { count: summary.fund })
+        ? ipaTf(" | Name conflict: %(count)s", { count: summary.fund })
         : "";
     if (summary.side_count && summary.side_count > 2) {
       var parts = [];
@@ -606,6 +683,11 @@
     debounce: debounce,
     getCsrfToken: getCsrfToken,
     nsmFetch: nsmFetch,
+    IPA_ANALYSIS_TIMEOUT_MS: IPA_ANALYSIS_TIMEOUT_MS,
+    parseIpaApiErrorBody: parseIpaApiErrorBody,
+    readIpaApiJson: readIpaApiJson,
+    fetchIpaAnalysis: fetchIpaAnalysis,
+    ipaFetchAbortMessage: ipaFetchAbortMessage,
     mergeBranchHeaders: mergeBranchHeaders,
     normalizeObjects: normalizeObjects,
     collectRawObjects: collectRawObjects,

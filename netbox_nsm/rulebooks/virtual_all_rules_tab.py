@@ -19,6 +19,7 @@ from netbox_nsm.rulebooks.grid import (
 from netbox_nsm.rulebooks.rules_row_grouping import (
     build_row_group_tab_summaries,
     filter_rows_by_group_key,
+    prepend_all_rules_tab,
     prepare_row_grouping_tab_columns,
     resolve_row_group_tab,
     row_group_sort_applies_to_groups,
@@ -161,13 +162,16 @@ def build_virtual_all_rules_rules_tab_context(request, virtual_all_rules) -> dic
         active_group_key, row_group_tab_active = resolve_row_group_tab(
             request, tab_summaries
         )
-        for tab in tab_summaries:
+        row_group_tabs = prepend_all_rules_tab(tab_summaries, filtered_count)
+        for tab in row_group_tabs:
             tab["is_active"] = tab["group_id"] == row_group_tab_active
-        row_group_tabs = tab_summaries
 
-        tab_rows = filter_rows_by_group_key(
-            rows, row_group_column, active_group_key
-        )
+        if active_group_key is None:
+            tab_rows = rows
+        else:
+            tab_rows = filter_rows_by_group_key(
+                rows, row_group_column, active_group_key
+            )
         if sort_field in RULES_SYSTEM_FIELDS or sort_field == "enabled":
             tab_rows = _sort_rules_records(tab_rows, sort_field, sort_order)
         elif sort_field == "rulebook":

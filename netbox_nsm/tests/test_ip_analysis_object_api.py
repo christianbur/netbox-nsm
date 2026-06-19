@@ -82,6 +82,8 @@ class IpAnalysisObjectDrilldownApiTests(SimpleTestCase):
         self.assertEqual(data["copy_lines"], ["bench-ip,10.0.0.1/32"])
         render_ctx = render_fn.call_args[0][1]
         self.assertEqual(render_ctx["depth"], 2)
-        self.assertEqual(render_ctx["prefix"], "ipa")
         self.assertIs(render_ctx["ipa_cell_pill"], False)
-        self.assertIs(render_ctx["show_copy"], False)
+        self.assertEqual(
+            render_fn.call_args[0][0],
+            "netbox_nsm/inc/ipa_cell_tree_drilldown_fragment.html",
+        )

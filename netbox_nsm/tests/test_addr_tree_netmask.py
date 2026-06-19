@@ -94,9 +94,9 @@ class AddrPrefixFormatTests(SimpleTestCase):
         tree = (
             _PLUGIN_ROOT / "templates/netbox_nsm/inc/addr_tree_node.html"
         ).read_text(encoding="utf-8")
-        self.assertIn("netmaskLabelForCidr", assets)
-        self.assertIn("toggleScopeFromGroup", assets)
+        self.assertNotIn("netmaskLabelForCidr", assets)
         self.assertIn("prefixNetmaskLabel", assets)
+        self.assertIn("data-netmask", assets)
         self.assertIn("runLazyCategoryLoad", assets)
         self.assertIn("nsm-addr-lazy-progress", assets)
         self.assertIn("var currentFormat = 'cidr'", assets)

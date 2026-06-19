@@ -9,6 +9,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
 
 from netbox_nsm.objects.address_literal import is_literal_address
+from netbox_nsm.objects.address_name_templates import render_ipam_object_name
 from netbox_nsm.objects.object_builder_config import (
     BUILDABLE_IPAM_STATUSES,
     BUILDER_IGNORE_STATUS,
@@ -391,8 +392,9 @@ def scan_sync_state(
         ipam_key = ipam_key_for_ipam_obj(ipam_obj)
         linked = addr_index.get(ipam_key, [])
         source_def = sources.get(source_key) or {}
-        template = source_def.get("build_template") or ""
-        expected_name = build_name(ipam_obj, source_key, template)
+        expected_name = render_ipam_object_name(
+            ipam_obj, source_key, builder_config=builder_config
+        )
         if not linked:
             issues.append(
                 SyncIssue(
@@ -627,9 +629,9 @@ def expand_bulk_fix_tokens(selection_ids: Iterable[str], bulk_action: str) -> li
 
 
 def _expected_name_for_linked_ipam(ipam_obj, source_key: str, builder_config: dict) -> str:
-    sources = builder_config.get("sources") or {}
-    template = (sources.get(source_key) or {}).get("build_template") or ""
-    return build_name(ipam_obj, source_key, template)
+    return render_ipam_object_name(
+        ipam_obj, source_key, builder_config=builder_config
+    )
 
 
 def _load_linked_address_context(
@@ -869,8 +871,9 @@ def build_preview_rows(
 
         ipam_key = ipam_key_for_ipam_obj(ipam_obj)
         source_def = sources.get(source_key) or {}
-        template = source_def.get("build_template") or ""
-        generated_name = build_name(ipam_obj, source_key, template)
+        generated_name = render_ipam_object_name(
+            ipam_obj, source_key, builder_config=builder_config
+        )
         target_status = map_status(ipam_status, status_map)
         description = ""
         if source_def.get("copy_description"):
@@ -935,8 +938,9 @@ def create_addresses(
             continue
 
         source_def = sources.get(source_key) or {}
-        template = source_def.get("build_template") or ""
-        name = build_name(ipam_obj, source_key, template)
+        name = render_ipam_object_name(
+            ipam_obj, source_key, builder_config=builder_config
+        )
         if not name:
             result.errors.append(f"Empty name for {source_key}:{ipam_pk}")
             result.skipped += 1

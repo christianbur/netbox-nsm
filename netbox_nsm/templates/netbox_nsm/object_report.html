@@ -1,0 +1,124 @@
+{% extends 'generic/_base.html' %}
+{% load i18n %}
+{% load render_table from django_tables2 %}
+
+{% block title %}{% trans "Object Report" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+
+  {# ── Header: last run + manual run ─────────────────────────────── #}
+  <div class="card mb-3">
+    <div class="card-body d-flex flex-wrap align-items-center justify-content-between gap-3">
+      <div class="d-flex align-items-center gap-3">
+        <i class="mdi mdi-clipboard-check-outline text-muted" style="font-size:2rem;"></i>
+        <div>
+          <div class="h3 mb-0">{% trans "NSM Object Report" %}</div>
+          {% if generated_at %}
+            <div class="fs-4 fw-bold text-body">
+              <i class="mdi mdi-calendar-clock text-muted"></i>
+              {% trans "Last run" %}:
+              <span title="{{ generated_at|date:'c' }}">{{ generated_at }}</span>
+            </div>
+            <div class="text-muted small">
+              {% blocktrans with d=generated_at|timesince %}{{ d }} ago{% endblocktrans %}
+              {% if run_by %} · {% trans "by" %} {{ run_by }}{% endif %}
+              {% if report.duration_s %} · {{ report.duration_s }}s{% endif %}
+            </div>
+          {% else %}
+            <div class="fs-4 fw-bold text-warning">
+              <i class="mdi mdi-calendar-remove"></i> {% trans "Never run yet" %}
+            </div>
+            <div class="text-muted small">
+              {% trans "The report runs automatically once per day, or start it manually." %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <form method="post" class="d-flex align-items-center gap-2">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="run">
+        {% if pending_job %}
+          <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+            <i class="mdi mdi-progress-clock"></i>
+            {% trans "Run in progress" %} (#{{ pending_job.pk }})
+          </span>
+        {% endif %}
+        <button type="submit" class="btn btn-primary" {% if pending_job %}disabled{% endif %}>
+          <i class="mdi mdi-play"></i> {% trans "Run now" %}
+        </button>
+      </form>
+    </div>
+  </div>
+
+  {% if not report %}
+    <div class="alert alert-info">
+      <i class="mdi mdi-information-outline"></i>
+      {% trans "No object report available yet. Start a run to generate one." %}
+    </div>
+  {% else %}
+
+    {% if not report.available %}
+      <div class="alert alert-warning">
+        <i class="mdi mdi-alert-outline"></i> {{ report.message }}
+      </div>
+    {% else %}
+
+      {# ── Summary counters ───────────────────────────────────────── #}
+      <div class="card mb-3">
+        <div class="card-header">{% trans "Summary" %}</div>
+        <div class="card-body">
+          <div class="d-flex flex-wrap align-items-stretch gap-3">
+            <div class="flex-fill rounded px-4 py-3 text-center bg-body-secondary border" style="min-width:10rem;">
+              <div class="display-6 fw-bold mb-0 lh-1">{{ report.totals.addresses }}</div>
+              <div class="small text-muted mt-1">{% trans "Address objects" %}</div>
+            </div>
+            <div class="flex-fill rounded px-4 py-3 text-center bg-body-secondary border" style="min-width:10rem;">
+              <div class="display-6 fw-bold mb-0 lh-1">{{ report.totals.ipam_linked }}</div>
+              <div class="small text-muted mt-1">{% trans "IPAM-linked" %}</div>
+            </div>
+            <div class="flex-fill rounded px-4 py-3 text-center bg-body-secondary border" style="min-width:10rem;">
+              <div class="display-6 fw-bold mb-0 lh-1">{{ report.totals.groups }}</div>
+              <div class="small text-muted mt-1">{% trans "Address groups" %}</div>
+            </div>
+            <div class="flex-fill rounded px-4 py-3 text-center border {% if report.findings_total %}bg-warning-subtle text-warning border-warning-subtle{% else %}bg-body-secondary{% endif %}" style="min-width:10rem;">
+              <div class="display-6 fw-bold mb-0 lh-1">{{ report.findings_total }}</div>
+              <div class="small {% if report.findings_total %}text-warning-emphasis{% else %}text-muted{% endif %} mt-1">{% trans "Total findings" %}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# ── Checks table (NetBox object-list via django-tables2) ───── #}
+      {% if table %}
+      <div class="card">
+        <div class="card-header d-flex align-items-center justify-content-between gap-2">
+          <span>{% trans "Checks" %}</span>
+          <a href="?export=toml"
+             id="object-report-toml-export"
+             class="btn btn-sm btn-outline-secondary text-nowrap"
+             title="{% trans 'Export the full report (checks, breakdowns, samples) as TOML' %}"
+             download>
+            <span class="mdi mdi-download" aria-hidden="true"></span>
+            {% trans "Export TOML" %}
+          </a>
+        </div>
+        <div class="htmx-container table-responsive">
+          {% render_table table 'netbox_nsm/inc/object_report_check_table.html' %}
+        </div>
+      </div>
+      {% endif %}
+
+    {% endif %}
+  {% endif %}
+
+</div>
+<script>
+  window.NSM_OR_I18N = window.NSM_OR_I18N || {
+    "%(start)s\u2013%(end)s of %(stored)s": "{% trans '%(start)s–%(end)s of %(stored)s'|escapejs %}",
+    "%(start)s\u2013%(end)s of %(stored)s (of %(total)s total)": "{% trans '%(start)s–%(end)s of %(stored)s (of %(total)s total)'|escapejs %}"
+  };
+</script>
+<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/object_report_samples.js' %}?v=20260619b"></script>
+{% endblock %}

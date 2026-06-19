@@ -36,7 +36,8 @@
         <tr><th scope="row">{% trans "Display Template" %}</th><td><code>{{ config.display_template|placeholder }}</code></td></tr>
       </table>
     </div>
-    {% if config.slug == "nsm_address" and object_builder %}
+    {% if config.slug == "nsm_address" %}
+    {% if object_builder %}
     <div class="card mt-3">
       <h5 class="card-header">{% trans "Object Sync" %}</h5>
       <table class="table table-hover attr-table mb-0">
@@ -52,6 +53,23 @@
         {% endfor %}
       </table>
     </div>
+    {% endif %}
+    {% if plugin_name_templates %}
+    <div class="card mt-3">
+      <h5 class="card-header">{% trans "Plugin name templates" %}</h5>
+      <p class="card-body text-muted mb-0 pb-2">
+        {% trans "From PLUGINS_CONFIG (override Object Sync templates when match fits)." %}
+      </p>
+      <table class="table table-hover attr-table mb-0">
+        {% for row in plugin_name_templates %}
+        <tr>
+          <th scope="row"><code>{{ row.match }}</code></th>
+          <td><code>{{ row.template|default:"—" }}</code></td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+    {% endif %}
     {% endif %}
   </div>
   <div class="col-md-6">

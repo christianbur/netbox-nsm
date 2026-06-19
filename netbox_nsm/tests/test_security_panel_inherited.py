@@ -2,12 +2,12 @@
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.template_content import _finalize_link_type_groups
+from netbox_nsm.security.tab_context import finalize_link_type_groups
 
 
 class SecurityPanelInheritedPayloadTests(SimpleTestCase):
     def test_finalize_marks_inherited_rows_without_actions(self):
-        groups = _finalize_link_type_groups(
+        groups = finalize_link_type_groups(
             [
                 {
                     "type_key": "netbox_custom_objects__nsmzone",
@@ -27,7 +27,7 @@ class SecurityPanelInheritedPayloadTests(SimpleTestCase):
         self.assertFalse(groups[0]["show_actions"])
 
     def test_finalize_shows_actions_for_inherited_analyzable_rows(self):
-        groups = _finalize_link_type_groups(
+        groups = finalize_link_type_groups(
             [
                 {
                     "type_key": "netbox_custom_objects__nsm_addresses",

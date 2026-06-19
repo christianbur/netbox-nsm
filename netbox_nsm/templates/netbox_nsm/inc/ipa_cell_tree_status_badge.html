@@ -1,0 +1,6 @@
+{% load i18n %}
+{% if status == "deprecated" %}
+<span class="badge bg-danger-subtle text-danger nsm-ipa-cell-status nsm-ipa-cell-status--deprecated" title="{% trans 'This object is deprecated.' %}">{% trans "deprecated" %}</span>
+{% elif status == "reserved" %}
+<span class="badge nsm-ipa-cell-status nsm-ipa-cell-status--reserved" title="{% trans 'This object is reserved.' %}">{% trans "reserved" %}</span>
+{% endif %}

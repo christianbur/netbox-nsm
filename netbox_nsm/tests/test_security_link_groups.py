@@ -5,35 +5,35 @@ from types import SimpleNamespace
 from django.template.loader import render_to_string
 from django.test import SimpleTestCase
 
-from netbox_nsm.template_content import (
-    _finalize_link_type_group,
-    _finalize_link_type_groups,
-    _row_has_link_actions,
+from netbox_nsm.security.tab_context import (
+    finalize_link_type_group,
+    finalize_link_type_groups,
+    row_has_link_actions,
 )
 
 class RowHasLinkActionsTests(SimpleTestCase):
     def test_addr_analyzable_only(self):
-        self.assertTrue(_row_has_link_actions({"addr_analyzable": True}))
+        self.assertTrue(row_has_link_actions({"addr_analyzable": True}))
 
     def test_supports_addr_analysis_only(self):
         self.assertTrue(
-            _row_has_link_actions(
+            row_has_link_actions(
                 {"supports_addr_analysis": True, "addr_analyzable": False}
             )
         )
 
     def test_edit_or_delete_only(self):
-        self.assertTrue(_row_has_link_actions({"edit_url": "/edit/"}))
-        self.assertTrue(_row_has_link_actions({"delete_url": "/delete/"}))
+        self.assertTrue(row_has_link_actions({"edit_url": "/edit/"}))
+        self.assertTrue(row_has_link_actions({"delete_url": "/delete/"}))
 
     def test_no_actions(self):
-        self.assertFalse(_row_has_link_actions({}))
-        self.assertFalse(_row_has_link_actions({"name": "prod"}))
+        self.assertFalse(row_has_link_actions({}))
+        self.assertFalse(row_has_link_actions({"name": "prod"}))
 
 
 class FinalizeLinkTypeGroupTests(SimpleTestCase):
     def test_show_actions_when_addr_analyzable_only(self):
-        group = _finalize_link_type_group(
+        group = finalize_link_type_group(
             {
                 "objects": [
                     {
@@ -49,7 +49,7 @@ class FinalizeLinkTypeGroupTests(SimpleTestCase):
         self.assertFalse(group["show_comment"])
 
     def test_show_actions_for_inherited_analyzable_without_delete(self):
-        group = _finalize_link_type_group(
+        group = finalize_link_type_group(
             {
                 "objects": [
                     {
@@ -63,7 +63,7 @@ class FinalizeLinkTypeGroupTests(SimpleTestCase):
         self.assertTrue(group["show_actions"])
 
     def test_hide_actions_for_inherited_non_analyzable_without_delete(self):
-        group = _finalize_link_type_group(
+        group = finalize_link_type_group(
             {
                 "objects": [
                     {
@@ -76,7 +76,7 @@ class FinalizeLinkTypeGroupTests(SimpleTestCase):
         self.assertFalse(group["show_actions"])
 
     def test_show_actions_when_edit_or_delete_present(self):
-        group = _finalize_link_type_group(
+        group = finalize_link_type_group(
             {
                 "objects": [
                     {
@@ -90,7 +90,7 @@ class FinalizeLinkTypeGroupTests(SimpleTestCase):
         self.assertTrue(group["show_actions"])
 
     def test_show_actions_with_edit_only(self):
-        group = _finalize_link_type_group(
+        group = finalize_link_type_group(
             {
                 "objects": [
                     {
@@ -103,7 +103,7 @@ class FinalizeLinkTypeGroupTests(SimpleTestCase):
         self.assertTrue(group["show_actions"])
 
     def test_show_comment_column(self):
-        group = _finalize_link_type_group(
+        group = finalize_link_type_group(
             {
                 "objects": [
                     {
@@ -117,7 +117,7 @@ class FinalizeLinkTypeGroupTests(SimpleTestCase):
         self.assertTrue(group["show_comment"])
 
     def test_finalize_link_type_groups_preserves_order(self):
-        groups = _finalize_link_type_groups(
+        groups = finalize_link_type_groups(
             [
                 {"type_key": "a", "objects": [{"addr_analyzable": True}]},
                 {"type_key": "b", "objects": []},
@@ -240,10 +240,10 @@ class SecurityRulebookTreeTemplateTests(SimpleTestCase):
         )
         self.assertIn('<hr class="nsm-link-section-separator">', html)
         self.assertIn('id="nsm-cat-rulebook"', html)
-        self.assertIn('id="nsm-cat-zone"', html)
+        self.assertIn('id="nsm-ltab-zone"', html)
         rulebook_pos = html.index('id="nsm-cat-rulebook"')
         separator_pos = html.index('<hr class="nsm-link-section-separator">')
-        manual_pos = html.index('id="nsm-cat-zone"')
+        manual_pos = html.index('id="nsm-ltab-zone"')
         self.assertLess(rulebook_pos, separator_pos)
         self.assertLess(separator_pos, manual_pos)
 
@@ -614,7 +614,7 @@ class SecurityLinkTableHeaderTests(SimpleTestCase):
             },
         )
 
-    def test_typical_group_renders_no_thead(self):
+    def test_group_renders_netbox_style_table_with_name_header(self):
         html = self._render_link_groups(
             [
                 {
@@ -636,15 +636,17 @@ class SecurityLinkTableHeaderTests(SimpleTestCase):
                 }
             ]
         )
+        # New design: object-type tab + NetBox-style child-object table.
+        self.assertIn("nsm-link-tabs", html)
+        self.assertIn("object-list", html)
         table_html = html.split(
-            'class="table table-hover table-sm mb-0 nsm-link-table"', 1
+            'class="table table-hover object-list nsm-link-table"', 1
         )[1]
-        self.assertNotIn("<thead", table_html)
-        self.assertNotIn("col-object", table_html.split("<tbody", 1)[0])
-        self.assertNotIn("LINK TYPE", html)
+        self.assertIn("<thead", table_html)
+        self.assertIn("Name", table_html.split("<tbody", 1)[0])
         self.assertNotIn("Link type", html)
 
-    def test_comment_renders_inline_without_header(self):
+    def test_comment_renders_with_header_and_inline_cell(self):
         html = self._render_link_groups(
             [
                 {
@@ -666,10 +668,10 @@ class SecurityLinkTableHeaderTests(SimpleTestCase):
             ]
         )
         table_html = html.split(
-            'class="table table-hover table-sm mb-0 nsm-link-table"', 1
+            'class="table table-hover object-list nsm-link-table"', 1
         )[1]
-        self.assertNotIn("<thead", table_html)
-        self.assertNotIn(">Comment<", table_html)
+        thead_html = table_html.split("<tbody", 1)[0]
+        self.assertIn("Comment", thead_html)
         row_html = html.split('class="nsm-link-row"', 1)[1].split("</tr>", 1)[0]
         self.assertIn('class="col-comment"', row_html)
         self.assertIn("edge firewall", row_html)

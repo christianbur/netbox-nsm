@@ -68,8 +68,10 @@ def _type_counts_for_addr_analysis(sections) -> dict:
 
 
 def _ipa_object_tree_type_counts(nodes):
-    """Summary counts from IPAM prefix/range stats (never direct host-IP leaves)."""
-    return _hub._type_counts_for_addr_nodes(nodes)
+    """Summary counts for the IPA cell object tree (visible rows, not IPAM inventory)."""
+    from netbox_nsm.analysis.ipa_object_tree import _ipa_cell_object_tree_type_counts
+
+    return _ipa_cell_object_tree_type_counts(nodes)
 
 
 def _count_addr_tree_duplicates(nodes):
@@ -93,8 +95,10 @@ def _count_ipa_object_tree_duplicates(nodes):
 
     Each flagged node counts once:
     - ``subnet_contained_in``: cell object already covered by a parent prefix/group
+    - ``cell_addresses_multi``: several NSM address names share the same network
     - ``is_doppelt``: same object listed twice in the rule cell
     - ``object_duplicate``: same object identity appears again elsewhere in the tree
+    - ``count_duplicate``: excluded from addr-tree IP totals (legacy addr tree)
     """
     count = 0
 
@@ -102,8 +106,10 @@ def _count_ipa_object_tree_duplicates(nodes):
         nonlocal count
         if (
             node.get("subnet_contained_in")
+            or node.get("cell_addresses_multi")
             or node.get("is_doppelt")
             or node.get("object_duplicate")
+            or node.get("count_duplicate")
         ):
             count += 1
         for child in node.get("children") or []:

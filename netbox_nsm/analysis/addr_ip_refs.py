@@ -202,11 +202,23 @@ def _addr_node_prefix_cidr(*, obj=None, ip_ref=None):
         cidr = ip_ref.get("str")
         if ip_ref_type == _FIELD_TYPE_LABELS["prefix"]:
             return cidr
-        if ip_ref_type == _FIELD_TYPE_LABELS["ip_address"]:
+        if ip_ref_type in (
+            _FIELD_TYPE_LABELS["ip_address"],
+            _FIELD_TYPE_LABELS["address"],
+        ):
             if cidr and "/" in cidr:
                 return cidr
         if not ip_ref_type and cidr and "/" in cidr:
             return cidr
+        if cidr and "/" in cidr:
+            try:
+                import ipaddress
+
+                net = ipaddress.ip_network(str(cidr).strip(), strict=False)
+                if net.prefixlen < net.max_prefixlen:
+                    return cidr
+            except ValueError:
+                pass
     if obj is not None:
         try:
             if obj._meta.app_label == "ipam":

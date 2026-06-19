@@ -99,6 +99,19 @@ class NsmConfigApiTests(APITestCase):
         self.zone_cot.refresh_from_db()
         self.assertEqual(self.zone_cot.comments, "")
 
+    def test_patch_invalid_parent_slug_returns_400(self):
+        # Model-level ValidationError (invalid rulebook parent) must surface as
+        # HTTP 400, not a 500 server error.
+        grant_rulebook_cot_perms(self, self.rulebook_cot, change=True)
+        self.client.force_authenticate(self.user)
+
+        response = self.client.patch(
+            self._url(self.rulebook_cot.slug),
+            {"rulebook": {"parent_slug": "nsm_rb_does_not_exist"}},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+
     def test_unknown_slug_returns_404(self):
         grant_nsm_config_perms(self, view=True)
         self.client.force_authenticate(self.user)

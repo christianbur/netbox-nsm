@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from django.core.exceptions import ValidationError as DjangoValidationError
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -53,6 +55,23 @@ def _check_permission(user, cot, slug: str, *, write: bool = False) -> None:
         raise PermissionDenied(f"Missing permission: {perm}")
 
 
+def _save_nsm_config(cot, document: dict) -> None:
+    """Persist *document* and surface model-level validation as HTTP 400."""
+    try:
+        save_nsm_config_document_for_cot(cot, document)
+    except DjangoValidationError as exc:
+        raise DRFValidationError(_validation_error_detail(exc)) from exc
+
+
+def _validation_error_detail(exc: DjangoValidationError):
+    if hasattr(exc, "message_dict"):
+        return exc.message_dict
+    messages = getattr(exc, "messages", None)
+    if messages:
+        return messages if len(messages) > 1 else messages[0]
+    return str(exc)
+
+
 def _serialize_cot(cot) -> dict:
     return {
         "slug": cot.slug,
@@ -86,7 +105,7 @@ class NsmConfigApiView(APIView):
         _check_permission(request.user, cot, slug, write=True)
         serializer = NsmConfigDocumentSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        save_nsm_config_document_for_cot(cot, serializer.validated_data)
+        _save_nsm_config(cot, serializer.validated_data)
         cot.refresh_from_db()
         return Response(_serialize_cot(cot))
 
@@ -100,7 +119,7 @@ class NsmConfigApiView(APIView):
         _check_permission(request.user, cot, slug, write=True)
         serializer = NsmConfigDocumentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        save_nsm_config_document_for_cot(
+        _save_nsm_config(
             cot,
             {
                 "rule_view": None,

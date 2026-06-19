@@ -15,6 +15,11 @@ class InheritedLinksApiTests(SimpleTestCase):
         self.factory = RequestFactory()
         self.view = InheritedLinksApiView.as_view()
 
+    def _auth_request(self, path):
+        request = self.factory.get(path)
+        request.user = MagicMock(is_authenticated=True)
+        return request
+
     @patch("netbox_nsm.core.display_utils.get_display_template_map", return_value={})
     @patch("netbox_nsm.views.inherited_links_api.iter_inherited_group_nsm_links")
     @patch("netbox_nsm.views.inherited_links_api.ContentType")
@@ -35,7 +40,7 @@ class InheritedLinksApiTests(SimpleTestCase):
         group_iter_fn.return_value = iter([])
         iter_links_fn.return_value = iter([])
 
-        request = self.factory.get(
+        request = self._auth_request(
             "/plugins/netbox-nsm/api/inherited-links/?ct_id=5&obj_id=501"
         )
         response = self.view(request)
@@ -91,7 +96,7 @@ class InheritedLinksApiTests(SimpleTestCase):
         panel_label_fn.return_value = "Zones"
         render_fn.return_value = "DMZ"
 
-        request = self.factory.get(
+        request = self._auth_request(
             "/plugins/netbox-nsm/api/inherited-links/?ct_id=5&obj_id=501"
         )
         response = self.view(request)

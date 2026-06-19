@@ -1,0 +1,11 @@
+{% load i18n %}
+{% comment %}IP/Range/Prefix column: NetBox child counters (prefixes / ranges / IPs).{% endcomment %}
+{% if node.ipa_drilldown_meta %}
+{% with meta=node.ipa_drilldown_meta %}
+<span class="badge bg-secondary-subtle text-secondary nsm-addr-ipam-short font-monospace" title="{% trans 'Prefixes' %}: {{ meta.count_subnets }} · {% trans 'IP Ranges' %}: {{ meta.count_ranges }} · {% trans 'IP Addresses' %}: {{ meta.count_ips }}">{{ meta.count_subnets }}/{{ meta.count_ranges }}/{{ meta.count_ips }}</span>
+{% endwith %}
+{% elif node.ipam_stats_short %}
+{% include "netbox_nsm/inc/addr_ipam_stats.html" %}
+{% else %}
+<span class="text-muted">—</span>
+{% endif %}

@@ -5,15 +5,16 @@ No firewall push — inventory and policy only.
 
 > **⚠️ Work in progress** — Not recommended for production use yet. Breaking changes possible (e.g. 0.4.5 permission migration).
 
-**Status:** **NetBox:** 4.5–4.6 · **Plugin:** 0.4.5 · **Requires:** [netbox-custom-objects](https://github.com/netboxlabs/netbox-custom-objects)
+**Status:** **NetBox:** 4.5–4.6 · **Plugin:** 0.4.7 · **Requires:** [netbox-custom-objects](https://github.com/netboxlabs/netbox-custom-objects)
 
 ## Features
 
 - **Security Panel** on prefix, IP, device, VM, custom objects — `+ Assign` for zones, addresses, …
 - **Rulebooks** with flexible columns (zones, addresses, labels, …)
 - **Rules** — table, grouping, zone matrix
-- **IP Analysis** — address resolution (panel loupe or `/plugins/netbox-nsm/ip-analysis/`)
+- **IP Analysis** — address resolution via the IP Analyzer applet on rule pages (loupe icon)
 - **Object Analyzer** — graph from any NetBox object
+- **Object Report** — daily background audit of NSM addresses/groups (status, duplicates, orphans, groups), TOML export
 
 ## Screenshots
 
@@ -60,6 +61,11 @@ PLUGINS_CONFIG = {
         "panel_label": "Security",
         "setup_menu": True,
         "setup_allow_destructive_actions": True,  # demos only; disable in prod
+        # Optional: Jinja2 address naming — see docs/address_name_templates.md
+        # "address_name_templates": [
+        #     {"template": "h-{ipam>ip}", "match": "host"},
+        #     {"template": "n-{ipam>prefix>network}-{ipam>prefix>cidr}", "match": "prefix"},
+        # ],
     },
 }
 ```
@@ -71,7 +77,7 @@ PLUGINS_CONFIG = {
 
 ## First run
 
-**Security → Configuration → Setup** — sections **1 → 2 → 3** (labels, COTs, object configs), then optional **4 Starter demo**.
+**Security → Configuration → Setup** — **§2 Custom Object Schema** (import the built-in `nsm_*` COT types; `nsm_config` is written into each type's `comments`), then optional **§3 Demo** (Starter demo).
 
 Then: open a prefix → Security Panel → `+ Assign` → zone. Rulebooks under **Security → Rulebooks**.
 
@@ -97,6 +103,7 @@ Rules and policy objects: **netbox-custom-objects** API.
 | [docs/using_netbox_nsm.md](docs/using_netbox_nsm.md) | Operations |
 | [docs/DATABASE.md](docs/DATABASE.md) | PostgreSQL tables |
 | [docs/RULE_DATA_STORAGE.md](docs/RULE_DATA_STORAGE.md) | UI vs DB data model |
+| [docs/object_report.md](docs/object_report.md) | Daily object report: job, checks, scaling |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Code (developers) |
 | [CHANGELOG.md](CHANGELOG.md) | Versions |
 

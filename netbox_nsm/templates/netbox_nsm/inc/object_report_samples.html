@@ -1,0 +1,83 @@
+{% load i18n %}
+<div class="nsm-or-samples"
+     data-page-size="{{ page_size|default:50 }}"
+     data-total-count="{{ count }}"
+     data-stored="{{ samples|length }}">
+  {% if show_heading|default:False %}
+  <div class="text-muted text-uppercase small mb-2">
+    {% trans "Sample" %}
+    <span class="text-muted text-lowercase nsm-or-samples-range">
+      {% if count > samples|length %}({{ samples|length }} {% trans "of" %} {{ count }}){% endif %}
+    </span>
+  </div>
+  {% endif %}
+  {% if samples %}
+    <div class="table-responsive" style="max-height:18rem;overflow-y:auto;">
+      <table class="table table-sm table-hover object-list mb-0">
+        <thead>
+          <tr>
+            <th scope="col">{% trans "Name" %}</th>
+            <th scope="col" class="text-end">{% trans "Details" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in samples %}
+            <tr class="nsm-or-sample-row" data-sample-index="{{ forloop.counter0 }}">
+              <td>
+                {% if s.url %}
+                  <a href="{{ s.url }}">{{ s.name }}</a>
+                {% else %}
+                  {{ s.name }}
+                {% endif %}
+              </td>
+              <td class="text-end">
+                {% if s.expected %}
+                  <span class="badge bg-secondary-subtle text-secondary">{{ s.actual|default:"∅" }}</span>
+                  <span class="text-muted mx-1" aria-hidden="true">→</span>
+                  <span class="badge bg-warning-subtle text-warning">{{ s.expected }}</span>
+                {% endif %}
+                {% if s.ipam_type or s.address_count %}
+                  <span class="badge bg-secondary-subtle text-secondary{% if s.expected %} ms-1{% endif %}">{% if s.ipam_type %}{{ s.ipam_type }}{% endif %}{% if s.address_count %}{% if s.ipam_type %} · {% endif %}{{ s.address_count }}×{% endif %}</span>
+                {% endif %}
+                {% if s.group_count %}
+                  <span class="badge bg-secondary-subtle text-secondary{% if s.expected or s.ipam_type or s.address_count %} ms-1{% endif %}">{% blocktrans with n=s.group_count %}{{ n }} groups{% endblocktrans %}</span>
+                {% endif %}
+                {% if s.group_a and s.group_b %}
+                  <span class="badge bg-secondary-subtle text-secondary{% if s.expected or s.ipam_type or s.address_count or s.group_count %} ms-1{% endif %}">
+                    {% if s.group_a_url %}<a href="{{ s.group_a_url }}" class="text-reset">{{ s.group_a }}</a>{% else %}{{ s.group_a }}{% endif %}
+                    <span class="text-muted mx-1" aria-hidden="true">↔</span>
+                    {% if s.group_b_url %}<a href="{{ s.group_b_url }}" class="text-reset">{{ s.group_b }}</a>{% else %}{{ s.group_b }}{% endif %}
+                  </span>
+                  {% if s.overlap %}
+                    <span class="badge bg-warning-subtle text-warning ms-1">{% blocktrans with o=s.overlap %}{{ o }} shared{% endblocktrans %}</span>
+                  {% endif %}
+                  {% if s.overlap_pct %}
+                    <span class="badge bg-secondary-subtle text-secondary ms-1">{{ s.overlap_pct }}%</span>
+                  {% endif %}
+                  {% if s.score %}
+                    <span class="badge bg-secondary-subtle text-secondary ms-1">J {{ s.score|floatformat:2 }}</span>
+                  {% endif %}
+                {% endif %}
+                {% if s.kind %}
+                  <span class="badge bg-secondary-subtle text-secondary{% if s.expected or s.ipam_type or s.address_count or s.group_count %} ms-1{% endif %}">{{ s.kind }}</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <nav class="nsm-or-pager d-none align-items-center justify-content-between gap-2 mt-2"
+         aria-label="{% trans 'Sample pages' %}">
+      <button type="button" class="btn btn-sm btn-outline-secondary nsm-or-pager-prev" disabled>
+        <i class="mdi mdi-chevron-left" aria-hidden="true"></i> {% trans "Previous" %}
+      </button>
+      <span class="small text-muted nsm-or-pager-status" aria-live="polite"></span>
+      <button type="button" class="btn btn-sm btn-outline-secondary nsm-or-pager-next">
+        {% trans "Next" %} <i class="mdi mdi-chevron-right" aria-hidden="true"></i>
+      </button>
+    </nav>
+  {% else %}
+    <p class="text-muted small mb-0">{% trans "No samples." %}</p>
+  {% endif %}
+</div>

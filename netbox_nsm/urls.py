@@ -3,7 +3,7 @@ from django.views.generic import RedirectView
 
 from utilities.urls import get_model_urls
 
-from netbox_nsm.analyzer.api_view import AnalyzerAPIView
+from netbox_nsm.analyzer.api_view import AnalyzerAPIView, AnalyzerPickerAPIView
 
 from .views import *  # noqa: F401
 from .views.nsm_objects import (
@@ -230,7 +230,11 @@ urlpatterns = [
         ),
         name="global_rules_search",
     ),
-    path("ip-analysis/", IPAnalysisView.as_view(), name="ip_analysis"),
+    path(
+        "ip-analysis/",
+        IpAnalysisLegacyRedirectView.as_view(),
+        name="ip_analysis",
+    ),
     path("api/ip-analysis/", IpAnalysisApiView.as_view(), name="ip_analysis_api"),
     path(
         "api/ip-analysis/category/",
@@ -248,7 +252,21 @@ urlpatterns = [
         name="ip_analysis_add_object_types_api",
     ),
     path("object-analyzer/", ObjectAnalyzerView.as_view(), name="object_analyzer"),
+    path(
+        "audit-report/",
+        RedirectView.as_view(
+            pattern_name="plugins:netbox_nsm:object_report",
+            permanent=True,
+        ),
+        name="audit_report_legacy_redirect",
+    ),
+    path("object-report/", ObjectReportView.as_view(), name="object_report"),
     path("api/analyzer/", AnalyzerAPIView.as_view(), name="analyzer_api"),
+    path(
+        "api/analyzer/picker/",
+        AnalyzerPickerAPIView.as_view(),
+        name="analyzer_picker_api",
+    ),
     path("api/object-rules/", ObjectRulesApiView.as_view(), name="object_rules_api"),
     path(
         "api/inherited-links/",

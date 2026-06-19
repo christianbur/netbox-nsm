@@ -75,7 +75,9 @@ class IpAnalysisRestApiView(APIView):
     def get(self, request):
         mode = (request.query_params.get("mode") or "merge").strip().lower()
         if mode == "diff":
-            return self._respond_diff(parse_diff_sides_from_request(request))
+            return self._respond_diff(
+                parse_diff_sides_from_request(request, user=request.user)
+            )
 
         ct_list = request.query_params.getlist("ct")
         pk_list = request.query_params.getlist("pk")
@@ -85,8 +87,8 @@ class IpAnalysisRestApiView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        selections, objs, unsupported, raw_selections, obj_by_key = (
-            parse_selections_from_request(request)
+        selections, objs, unsupported, raw_selections, obj_by_key, unauthorized = (
+            parse_selections_from_request(request, user=request.user)
         )
         return self._respond_merge(
             selections=selections,
@@ -94,6 +96,7 @@ class IpAnalysisRestApiView(APIView):
             unsupported=unsupported,
             raw_selections=raw_selections,
             obj_by_key=obj_by_key,
+            unauthorized=unauthorized,
         )
 
     @extend_schema(
@@ -167,7 +170,7 @@ class IpAnalysisRestApiView(APIView):
         mode = (body.get("mode") or "merge").strip().lower()
 
         if mode == "diff":
-            sides = parse_diff_sides_from_body(body)
+            sides = parse_diff_sides_from_body(body, user=request.user)
             if len(sides) < 2:
                 return Response(
                     {"detail": "At least two diff sides are required."},
@@ -182,8 +185,8 @@ class IpAnalysisRestApiView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        selections, objs, unsupported, raw_selections, obj_by_key = parse_object_refs(
-            refs
+        selections, objs, unsupported, raw_selections, obj_by_key, unauthorized = (
+            parse_object_refs(refs, user=request.user)
         )
         return self._respond_merge(
             selections=selections,
@@ -191,6 +194,7 @@ class IpAnalysisRestApiView(APIView):
             unsupported=unsupported,
             raw_selections=raw_selections,
             obj_by_key=obj_by_key,
+            unauthorized=unauthorized,
         )
 
     def _respond_merge(self, **kwargs):

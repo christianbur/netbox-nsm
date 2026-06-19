@@ -15,6 +15,9 @@
   var debounce = U.debounce;
   var getCsrfToken = U.getCsrfToken;
   var nsmFetch = U.nsmFetch;
+  var readIpaApiJson = U.readIpaApiJson;
+  var fetchIpaAnalysis = U.fetchIpaAnalysis;
+  var ipaFetchAbortMessage = U.ipaFetchAbortMessage;
   var mergeBranchHeaders = U.mergeBranchHeaders;
   var normalizeObjects = U.normalizeObjects;
   var collectRawObjects = U.collectRawObjects;
@@ -153,9 +156,9 @@
           escHtml(ipaT("Diff")) +
           '</span></button>' +
           '<button type="button" class="btn btn-sm btn-outline-secondary nsm-ipa-applet-export" title="' +
-          escHtml(ipaT("Export YAML")) +
+          escHtml(ipaT("Export displayed data and IPAM children (YAML)")) +
           '" aria-label="' +
-          escHtml(ipaT("Export YAML")) +
+          escHtml(ipaT("Export displayed data and IPAM children (YAML)")) +
           '"><i class="mdi mdi-download" aria-hidden="true"></i><span>' +
           escHtml(ipaT("Export YAML")) +
           '</span></button>' +
@@ -263,15 +266,25 @@
     var available = this.bodyEl.clientWidth;
     var contentW = inner.scrollWidth;
     var contentH = inner.scrollHeight;
+    var hasCellTreeTable = !!inner.querySelector(".nsm-ipa-cell-tree-table");
     var scale = 1;
-    if (contentW > available && available > 0) {
+    if (!hasCellTreeTable && contentW > available && available > 0) {
       scale = Math.max(MIN_BODY_SCALE, available / contentW);
     }
 
     var scaledW = Math.ceil(contentW * scale);
     var scaledH = Math.ceil(contentH * scale);
 
-    if (scale < 0.999) {
+    if (hasCellTreeTable) {
+      inner.style.transform = "";
+      inner.style.width = "100%";
+      inner.style.minWidth = "0";
+      inner.style.maxWidth = "100%";
+      host.style.width = "100%";
+      host.style.maxWidth = "100%";
+      host.style.height = "auto";
+      this.bodyEl.style.overflowX = "hidden";
+    } else if (scale < 0.999) {
       inner.style.width = contentW + "px";
       inner.style.transform = "scale(" + scale + ")";
       host.style.width = scaledW + "px";
@@ -280,7 +293,10 @@
     } else {
       inner.style.transform = "";
       inner.style.width = "";
+      inner.style.minWidth = "";
+      inner.style.maxWidth = "";
       host.style.width = "";
+      host.style.maxWidth = "";
       host.style.height = "";
       this.bodyEl.style.overflowX = "hidden";
     }
@@ -347,6 +363,197 @@
       childList: true,
       subtree: true,
     });
+  };
+
+  Applet.prototype._cellTreeRowDepth = function (row) {
+    var match = String(row.className || "").match(/\bnsm-ipa-depth-(\d+)\b/);
+    return match ? Number(match[1]) : 0;
+  };
+
+  Applet.prototype._diffGroupFromRow = function (row) {
+    var className = String(row.className || "");
+    var match = className.match(/\bnsm-addr-diff-group--([^\s]+)/);
+    return match ? match[1] : "";
+  };
+
+  Applet.prototype._isWarningDiffRow = function (row) {
+    return (
+      row.classList.contains("nsm-ipa-object-node--subnet-warning") ||
+      row.classList.contains("nsm-ipa-object-node--doppelt-warning") ||
+      !!row.querySelector(
+        ".nsm-ipa-cell-duplicate, .nsm-ipa-cell-status--deprecated, .nsm-ipa-cell-status--reserved"
+      )
+    );
+  };
+
+  Applet.prototype._prepareDiffOverviewRows = function (table) {
+    var tbody = table && table.tBodies && table.tBodies[0];
+    if (!tbody) {
+      return null;
+    }
+    var rows = Array.prototype.slice.call(tbody.rows || []);
+    var groupByDepth = [];
+    var stats = {
+      total: 0,
+      shared: 0,
+      changes: 0,
+      warnings: 0,
+      fund: 0,
+      hasDiff: false,
+    };
+
+    rows.forEach(
+      function (row) {
+        if (!row.classList.contains("nsm-ipa-cell-tree-row")) {
+          return;
+        }
+        var depth = this._cellTreeRowDepth(row);
+        groupByDepth = groupByDepth.slice(0, depth);
+        var ownGroup = this._diffGroupFromRow(row);
+        if (ownGroup) {
+          groupByDepth[depth] = ownGroup;
+          stats.hasDiff = true;
+        }
+        var group = ownGroup || "";
+        for (var i = depth; !group && i >= 0; i--) {
+          group = groupByDepth[i] || "";
+        }
+        var isShared = group === "both" || group === "in-all";
+        var isFund = row.classList.contains("nsm-addr-diff-leaf--fund");
+        var isWarning = this._isWarningDiffRow(row);
+        var isChange = !!group && !isShared;
+
+        if (row.classList.contains("nsm-addr-diff-leaf")) {
+          stats.hasDiff = true;
+        }
+        row.dataset.nsmIpaDiffShared = isShared ? "1" : "";
+        row.dataset.nsmIpaDiffChange = isChange || isFund ? "1" : "";
+        row.dataset.nsmIpaDiffWarning = isWarning ? "1" : "";
+        row.dataset.nsmIpaDiffFund = isFund ? "1" : "";
+        stats.total += 1;
+        stats.shared += isShared ? 1 : 0;
+        stats.changes += isChange || isFund ? 1 : 0;
+        stats.warnings += isWarning ? 1 : 0;
+        stats.fund += isFund ? 1 : 0;
+      }.bind(this)
+    );
+    return stats.hasDiff ? { rows: rows, stats: stats } : null;
+  };
+
+  Applet.prototype._applyDiffOverviewFilter = function (panel, table, rows, filter) {
+    var hidden = 0;
+    var visible = 0;
+    rows.forEach(function (row) {
+      var shared = row.dataset.nsmIpaDiffShared === "1";
+      var change = row.dataset.nsmIpaDiffChange === "1";
+      var warning = row.dataset.nsmIpaDiffWarning === "1";
+      var fund = row.dataset.nsmIpaDiffFund === "1";
+      var show = true;
+      if (filter === "focus") {
+        show = !shared || warning || fund;
+      } else if (filter === "changes") {
+        show = change || warning || fund;
+      } else if (filter === "shared") {
+        show = shared;
+      } else if (filter === "warnings") {
+        show = warning || fund;
+      }
+      row.classList.toggle("nsm-ipa-diff-filtered-row", !show);
+      hidden += show ? 0 : 1;
+      visible += show ? 1 : 0;
+    });
+    table.dataset.nsmIpaDiffFilter = filter;
+    panel.querySelectorAll("[data-nsm-ipa-diff-filter]").forEach(function (btn) {
+      var active = btn.getAttribute("data-nsm-ipa-diff-filter") === filter;
+      btn.classList.toggle("active", active);
+      btn.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+    var status = panel.querySelector(".nsm-ipa-diff-overview-status");
+    if (status) {
+      status.textContent = hidden
+        ? ipaTf("%(hidden)s hidden, %(visible)s visible", {
+            hidden: hidden,
+            visible: visible,
+          })
+        : ipaT("All diff rows visible");
+    }
+  };
+
+  Applet.prototype._initDiffOverviewForTable = function (table) {
+    if (!table || table.parentElement.closest(".nsm-ipa-cell-tree-table")) {
+      return;
+    }
+    var prepared = this._prepareDiffOverviewRows(table);
+    if (!prepared) {
+      return;
+    }
+    var stats = prepared.stats;
+    var rows = prepared.rows;
+    var defaultFilter =
+      stats.shared >= 20 && (stats.changes > 0 || stats.warnings > 0 || stats.fund > 0)
+        ? "focus"
+        : "all";
+    var panel = document.createElement("div");
+    panel.className = "nsm-ipa-diff-overview";
+    panel.setAttribute("role", "group");
+    panel.setAttribute("aria-label", ipaT("Diff overview filters"));
+    panel.innerHTML =
+      '<div class="nsm-ipa-diff-overview-head">' +
+        '<span class="nsm-ipa-diff-overview-title">' +
+        escHtml(ipaT("Diff overview")) +
+        "</span>" +
+        '<span class="nsm-ipa-diff-overview-status"></span>' +
+      "</div>" +
+      '<div class="btn-group btn-group-sm nsm-ipa-diff-overview-actions" role="group">' +
+        '<button type="button" class="btn btn-outline-secondary" data-nsm-ipa-diff-filter="focus">' +
+        escHtml(ipaT("Focus")) +
+        "</button>" +
+        '<button type="button" class="btn btn-outline-secondary" data-nsm-ipa-diff-filter="changes">' +
+        escHtml(ipaTf("Changes (%(count)s)", { count: stats.changes })) +
+        "</button>" +
+        '<button type="button" class="btn btn-outline-secondary" data-nsm-ipa-diff-filter="warnings">' +
+        escHtml(ipaTf("Warnings (%(count)s)", { count: stats.warnings + stats.fund })) +
+        "</button>" +
+        '<button type="button" class="btn btn-outline-secondary" data-nsm-ipa-diff-filter="shared">' +
+        escHtml(ipaTf("Shared (%(count)s)", { count: stats.shared })) +
+        "</button>" +
+        '<button type="button" class="btn btn-outline-secondary" data-nsm-ipa-diff-filter="all">' +
+        escHtml(ipaT("All")) +
+        "</button>" +
+      "</div>";
+    panel.addEventListener(
+      "click",
+      function (e) {
+        var btn = e.target.closest("[data-nsm-ipa-diff-filter]");
+        if (!btn) {
+          return;
+        }
+        e.preventDefault();
+        this._applyDiffOverviewFilter(
+          panel,
+          table,
+          rows,
+          btn.getAttribute("data-nsm-ipa-diff-filter") || "all"
+        );
+        this._scheduleBodyScale();
+      }.bind(this)
+    );
+    table.parentNode.insertBefore(panel, table);
+    this._applyDiffOverviewFilter(panel, table, rows, defaultFilter);
+  };
+
+  Applet.prototype._initDiffOverviewControls = function (root) {
+    if (!root) {
+      return;
+    }
+    root.querySelectorAll(".nsm-ipa-diff-overview").forEach(function (panel) {
+      panel.remove();
+    });
+    root.querySelectorAll(".nsm-ipa-cell-tree-table").forEach(
+      function (table) {
+        this._initDiffOverviewForTable(table);
+      }.bind(this)
+    );
   };
 
   Applet.prototype._unobserveBodyContent = function () {
@@ -631,7 +838,7 @@
 
     if (this.mergeBtnEl) {
       var mergeSourceCount = this.tabs.filter(function (tab) {
-        return tab.mode !== "diff";
+        return tab.mode !== "diff" && tab.mode !== "merge";
       }).length;
       var canMerge = mergeSourceCount > 1;
       this.mergeBtnEl.disabled = !canMerge || this._merging || this._diffing || this._exporting;
@@ -661,7 +868,7 @@
       this.exportBtnEl.classList.toggle("disabled", !canExport);
       var exportLabel = this._exporting
         ? ipaT("Exporting…")
-        : ipaT("Export YAML");
+        : ipaT("Export displayed data and IPAM children (YAML)");
       this.exportBtnEl.title = exportLabel;
       this.exportBtnEl.setAttribute("aria-label", exportLabel);
     }
@@ -1093,8 +1300,11 @@
   };
 
   Applet.prototype.mergeTabs = function () {
+    // Source tabs are the original cell/rule tabs only; previously created
+    // merge or diff result tabs are excluded so merge always operates on the
+    // leaf selections (mirrors the diff source filter).
     var mergeSourceTabs = this.tabs.filter(function (tab) {
-      return tab.mode !== "diff";
+      return tab.mode !== "diff" && tab.mode !== "merge";
     });
     if (mergeSourceTabs.length < 2 || this._merging) {
       return;
@@ -1105,19 +1315,27 @@
       return;
     }
 
+    // Reuse an existing merge tab for the same object set instead of stacking
+    // duplicates (same dedup contract as diffTabs).
+    var mergeKey = objectsKey(mergedObjects);
+    for (var i = 0; i < this.tabs.length; i++) {
+      if (this.tabs[i].mode === "merge" && this.tabs[i].objectsKey === mergeKey) {
+        this.showWindow();
+        this.activateTab(this.tabs[i].id);
+        return;
+      }
+    }
+
     this._merging = true;
     this.renderTabs();
-
-    this.tabs.forEach(function (tab) {
-      tab.loadToken = (tab.loadToken || 0) + 1;
-    });
 
     var mergedTab = {
       id: this.nextTabId++,
       title: mergedTabTitle(mergedObjects.length),
+      mode: "merge",
       objects: mergedObjects,
       rawObjects: mergedObjects,
-      objectsKey: objectsKey(mergedObjects),
+      objectsKey: mergeKey,
       status: "loading",
       html: "",
       message: "",
@@ -1128,10 +1346,12 @@
       _loading: false,
     };
 
-    this.tabs = [mergedTab];
+    // Append as a new tab; existing tabs are preserved.
+    this.tabs.push(mergedTab);
     this.activeTabId = mergedTab.id;
     this._merging = false;
 
+    this.showWindow();
     this.renderTabs();
     this.setWindowTitle();
     this.renderActiveContent();
@@ -1181,6 +1401,7 @@
       if (window.nsmInitAddrPrefixToggle) {
         window.nsmInitAddrPrefixToggle(this.bodyEl);
       }
+      this._initDiffOverviewControls(this.bodyEl);
       this._observeBodyContent();
       this._scheduleBodyScale();
     } else {
@@ -1200,6 +1421,61 @@
       : "";
   };
 
+  Applet.prototype._resumeStaleTabLoad = function (tab) {
+    if (tab && tab.status === "loading" && !tab._loading) {
+      this.loadTab(tab);
+    }
+  };
+
+  Applet.prototype._applyTabAnalysisPayload = function (tab, data) {
+    tab.status = "ready";
+    tab.error = "";
+    tab.html = data.html || "";
+    tab.message = data.message || "";
+    tab.leafCount = data.leaf_count || 0;
+    tab.countSubnets = data.count_subnets != null ? data.count_subnets : null;
+    tab.countRanges = data.count_ranges != null ? data.count_ranges : null;
+    tab.countIps = data.count_ips != null ? data.count_ips : null;
+    tab.countDuplicates =
+      data.count_duplicates != null ? data.count_duplicates : null;
+    tab.countGroupDuplicates =
+      data.count_group_duplicates != null ? data.count_group_duplicates : null;
+    tab.diffSummary = data.diff_summary || null;
+    tab.unsupportedCount =
+      data.unsupported && data.unsupported.length ? data.unsupported.length : 0;
+  };
+
+  Applet.prototype._failTabLoad = function (tab, token, message) {
+    tab._loading = false;
+    if (token !== tab.loadToken) {
+      return;
+    }
+    if (!this.tabs.some(function (t) { return t.id === tab.id; })) {
+      return;
+    }
+    tab.status = "error";
+    tab.error = message || ipaT("Analysis could not be loaded.");
+    if (tab.id === this.activeTabId) {
+      this.renderActiveContent();
+      this.renderToolbar();
+    }
+  };
+
+  Applet.prototype._completeTabLoad = function (tab, token, data) {
+    tab._loading = false;
+    if (token !== tab.loadToken) {
+      return;
+    }
+    if (!this.tabs.some(function (t) { return t.id === tab.id; })) {
+      return;
+    }
+    this._applyTabAnalysisPayload(tab, data);
+    if (tab.id === this.activeTabId) {
+      this.renderActiveContent();
+      this.renderToolbar();
+    }
+  };
+
   Applet.prototype.loadTab = function (tab) {
     if (!tab) {
       return;
@@ -1211,9 +1487,11 @@
       return;
     }
     tab.status = "loading";
+    tab.error = "";
     tab._loading = true;
     tab.loadToken = (tab.loadToken || 0) + 1;
     var token = tab.loadToken;
+    var self = this;
 
     if (tab.id === this.activeTabId) {
       this.renderActiveContent();
@@ -1223,63 +1501,18 @@
       tab.mode === "diff"
         ? apiUrl() + "?" + buildDiffQuery(tab.sides || [])
         : apiUrl() + "?" + buildQuery(tab.objects, tab.rawObjects);
-    nsmFetch(url, {
+    fetchIpaAnalysis(url, {
       headers: mergeBranchHeaders({ "X-Requested-With": "XMLHttpRequest" }),
     })
       .then(function (resp) {
-        if (!resp.ok) {
-          throw new Error("HTTP " + resp.status);
-        }
-        return resp.json();
+        return readIpaApiJson(resp);
       })
-      .then(
-        function (data) {
-          tab._loading = false;
-          if (token !== tab.loadToken) {
-            return;
-          }
-          if (!this.tabs.some(function (t) { return t.id === tab.id; })) {
-            return;
-          }
-          tab.status = "ready";
-          tab.html = data.html || "";
-          tab.message = data.message || "";
-          tab.leafCount = data.leaf_count || 0;
-          tab.countSubnets = data.count_subnets != null ? data.count_subnets : null;
-          tab.countRanges = data.count_ranges != null ? data.count_ranges : null;
-          tab.countIps = data.count_ips != null ? data.count_ips : null;
-          tab.countDuplicates =
-            data.count_duplicates != null ? data.count_duplicates : null;
-          tab.countGroupDuplicates =
-            data.count_group_duplicates != null ? data.count_group_duplicates : null;
-          tab.diffSummary = data.diff_summary || null;
-          tab.unsupportedCount =
-            data.unsupported && data.unsupported.length
-              ? data.unsupported.length
-              : 0;
-          if (tab.id === this.activeTabId) {
-            this.renderActiveContent();
-            this.renderToolbar();
-          }
-        }.bind(this)
-      )
-      .catch(
-        function () {
-          tab._loading = false;
-          if (token !== tab.loadToken) {
-            return;
-          }
-          if (!this.tabs.some(function (t) { return t.id === tab.id; })) {
-            return;
-          }
-          tab.status = "error";
-          tab.error = ipaT("Analysis could not be loaded.");
-          if (tab.id === this.activeTabId) {
-            this.renderActiveContent();
-            this.renderToolbar();
-          }
-        }.bind(this)
-      );
+      .then(function (data) {
+        self._completeTabLoad(tab, token, data);
+      })
+      .catch(function (err) {
+        self._failTabLoad(tab, token, ipaFetchAbortMessage(err));
+      });
   };
 
   Applet.prototype.activateTab = function (tabId) {
@@ -1346,6 +1579,7 @@
       this.el.style.maxHeight = "";
     }
     this.el.style.visibility = "";
+    this._resumeStaleTabLoad(this.getActiveTab());
   };
 
   Applet.prototype.open = function (opts) {

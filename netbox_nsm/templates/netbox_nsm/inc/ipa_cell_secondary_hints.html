@@ -1,0 +1,14 @@
+{% load i18n %}
+{% if node.cell_addresses_compact and node.cell_address_alternates %}
+<span class="nsm-ipa-cell-secondary-hint nsm-ipa-cell-secondary-hint--aliases" title="{% for alt in node.cell_address_alternates %}{{ alt.name }}{% if not forloop.last %} · {% endif %}{% endfor %}">
+  <details class="nsm-ipa-cell-secondary-expand">
+    <summary class="nsm-ipa-cell-secondary-expand-summary">{% blocktrans count counter=node.collapsed_address_alt_count %}+{{ counter }} alias{% plural %}+{{ counter }} aliases{% endblocktrans %}</summary>
+    <span class="nsm-ipa-cell-secondary-expand-body">
+    {% for alt in node.cell_address_alternates %}
+      {% if not forloop.first %}<br>{% endif %}
+      <a href="{{ alt.url }}" class="nsm-ipa-cell-secondary-link" onclick="event.stopPropagation();" title="{{ alt.name }}">{{ alt.name }}</a>
+    {% endfor %}
+    </span>
+  </details>
+</span>
+{% endif %}

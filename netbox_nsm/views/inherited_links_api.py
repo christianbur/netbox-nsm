@@ -1,3 +1,4 @@
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.contenttypes.models import ContentType
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.views import View
@@ -8,7 +9,7 @@ from netbox_nsm.objects.ipam_inheritance import iter_inherited_nsm_links
 __all__ = ("InheritedLinksApiView",)
 
 
-class InheritedLinksApiView(View):
+class InheritedLinksApiView(LoginRequiredMixin, View):
     """
     JSON endpoint for inherited NSM links (group member-of + IPAM prefix).
 

@@ -1,0 +1,45 @@
+{% load i18n %}
+{% comment %}Address group column: row object (when group) + comma-separated membership links (no pills).{% endcomment %}
+{% if node.cell_pill_group and node.name and node.url %}
+<span class="nsm-ipa-cell-tree-group-entry{% if node.status %} nsm-ipa-cell-tree-group-entry--inactive{% endif %}">
+<a href="{{ node.url }}" class="nsm-addr-obj-link{% if node.status %} text-muted fst-italic{% endif %}" title="{{ node.name }}" onclick="event.stopPropagation();">{{ node.name }}</a>
+{% if node.status %}{% include "netbox_nsm/inc/ipa_nsm_object_status_icon.html" with status=node.status %}{% endif %}
+</span>
+{% if node.cell_groups %}<span class="text-muted">, </span>{% endif %}
+{% elif not node.cell_groups %}
+<span class="text-muted">—</span>
+{% endif %}
+{% if node.cell_groups %}
+{% if node.cell_groups_collapsed %}
+<details class="nsm-ipa-cell-groups-collapsed" onclick="event.stopPropagation();">
+  <summary class="nsm-ipa-cell-groups-collapsed-summary">
+    <span class="nsm-ipa-cell-groups-collapsed-label text-muted">{% blocktrans count counter=node.collapsed_group_count %}{{ counter }} group{% plural %}{{ counter }} groups{% endblocktrans %}</span>
+  </summary>
+  <span class="nsm-ipa-cell-groups-collapsed-body nsm-ipa-cell-tree-groups">
+  {% for grp in node.cell_groups %}
+  {% if not grp.is_none %}
+  {% if not forloop.first %}<span class="text-muted">, </span>{% endif %}
+  <span class="nsm-ipa-cell-tree-group-entry{% if grp.status %} nsm-ipa-cell-tree-group-entry--inactive{% endif %}">
+  <a href="{{ grp.url }}" class="nsm-addr-obj-link{% if grp.status %} text-muted fst-italic{% endif %}" title="{{ grp.name }}" onclick="event.stopPropagation();">{{ grp.name }}</a>
+  {% if grp.status %}{% include "netbox_nsm/inc/ipa_nsm_object_status_icon.html" with status=grp.status %}{% endif %}
+  </span>
+  {% endif %}
+  {% endfor %}
+  </span>
+</details>
+{% else %}
+<span class="nsm-ipa-cell-tree-groups{% if node.cell_groups_multi %} nsm-ipa-cell-tree-groups--multi{% endif %}"{% if node.cell_groups_multi %} title="{% trans 'Address belongs to more than one address group in this cell' %}"{% endif %}>
+{% for grp in node.cell_groups %}
+{% if not forloop.first %}<span class="text-muted">, </span>{% endif %}
+<span class="nsm-ipa-cell-tree-group-entry{% if grp.status %} nsm-ipa-cell-tree-group-entry--inactive{% endif %}">
+{% if grp.is_none %}
+<span class="text-muted">{{ grp.name }}</span>
+{% else %}
+<a href="{{ grp.url }}" class="nsm-addr-obj-link{% if grp.status %} text-muted fst-italic{% endif %}" title="{{ grp.name }}" onclick="event.stopPropagation();">{{ grp.name }}</a>
+{% if grp.status %}{% include "netbox_nsm/inc/ipa_nsm_object_status_icon.html" with status=grp.status %}{% endif %}
+{% endif %}
+</span>
+{% endfor %}
+</span>
+{% endif %}
+{% endif %}

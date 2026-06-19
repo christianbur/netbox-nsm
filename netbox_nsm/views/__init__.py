@@ -16,12 +16,13 @@ from netbox_nsm.rulebooks.views.virtual_all import (
     AllRulesRulebookView,
 )
 from netbox_nsm.security.views import ObjectRulesApiView
-from .ip_analysis import IPAnalysisView
+from .ip_analysis import IpAnalysisLegacyRedirectView
 from .ip_analysis_api import IpAnalysisApiView
 from .ip_analysis_category_api import IpAnalysisCategoryApiView
 from .ip_analysis_object_api import IpAnalysisObjectDrilldownApiView
 from .ip_analysis_add_object_api import IpAnalysisAddObjectTypesApiView
 from .object_analyzer import ObjectAnalyzerView
+from .object_report import ObjectReportView
 from .custom_objects_sync import SyncBuiltinToCustomObjectsView, SyncTypeConfigsView
 from .type_config import (
     ObjectConfigAddView,

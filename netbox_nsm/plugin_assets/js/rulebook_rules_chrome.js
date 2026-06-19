@@ -48,6 +48,14 @@
     }
   }
 
+  function chromeT(config, key, fallback) {
+    var i18n = (config && config.i18n) || {};
+    if (i18n[key] != null && i18n[key] !== "") {
+      return i18n[key];
+    }
+    return fallback;
+  }
+
   function buildValidateUrl(config, text) {
     var params = new URLSearchParams();
     params.set("q", text || "");
@@ -86,12 +94,38 @@
     return (tmp.textContent || tmp.innerText || "").trim();
   }
 
-  function csvEscape(value) {
+  function tomlString(value) {
     var text = value == null ? "" : String(value);
-    if (/[",\n\r]/.test(text)) {
-      return '"' + text.replace(/"/g, '""') + '"';
+    return (
+      '"' +
+      text
+        .replace(/\\/g, "\\\\")
+        .replace(/"/g, '\\"')
+        .replace(/\r/g, "\\r")
+        .replace(/\n/g, "\\n")
+        .replace(/\t/g, "\\t") +
+      '"'
+    );
+  }
+
+  function tomlKey(value) {
+    return tomlString(value);
+  }
+
+  function tomlArray(values) {
+    return "[" + values.map(tomlString).join(", ") + "]";
+  }
+
+  function uniqueTomlKey(label, seen) {
+    var base = String(label == null ? "" : label).trim() || "column";
+    var key = base;
+    var index = 2;
+    while (Object.prototype.hasOwnProperty.call(seen, key)) {
+      key = base + " " + index;
+      index += 1;
     }
-    return text;
+    seen[key] = true;
+    return key;
   }
 
   function quoteNsmQueryValue(value) {
@@ -285,17 +319,18 @@
     document.addEventListener("click", handleRulesFilterLoupeClick, true);
   }
 
-  function exportRulesCsv(config) {
+  function exportRulesToml(config) {
     var table = document.querySelector("#rules .nsm-rules-table");
     if (!table) {
       return;
     }
     var headerCells = table.querySelectorAll("thead .nsm-rules-head-row--primary th");
     var headers = [];
+    var seenHeaders = {};
     headerCells.forEach(function (cell) {
       var text = (cell.textContent || "").trim();
       if (text) {
-        headers.push(text);
+        headers.push(uniqueTomlKey(text, seenHeaders));
       }
     });
     if (!headers.length) {
@@ -314,11 +349,22 @@
         rows.push(values);
       }
     });
-    var lines = [headers.map(csvEscape).join(",")];
-    rows.forEach(function (row) {
-      lines.push(row.map(csvEscape).join(","));
+    var lines = [
+      'format = "netbox-nsm-rules-visible-v1"',
+      "rulebook = " + tomlString((config && config.rulebookName) || "rules"),
+      "exported_at = " + tomlString(new Date().toISOString()),
+      "visible_columns = " + tomlArray(headers),
+      "",
+    ];
+    rows.forEach(function (row, rowIndex) {
+      lines.push("[[rows]]");
+      lines.push("index = " + String(rowIndex + 1));
+      headers.forEach(function (header, colIndex) {
+        lines.push(tomlKey(header) + " = " + tomlString(row[colIndex] || ""));
+      });
+      lines.push("");
     });
-    var blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+    var blob = new Blob([lines.join("\n")], { type: "application/toml;charset=utf-8" });
     var name = (config && config.rulebookName) || "rules";
     name = String(name)
       .trim()
@@ -326,7 +372,7 @@
       .replace(/_+/g, "_")
       .replace(/^_|_$/g, "");
     var stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-    var filename = (name || "rules") + "_rules_" + stamp + ".csv";
+    var filename = (name || "rules") + "_rules_" + stamp + ".toml";
     var link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
     link.download = filename;
@@ -515,7 +561,7 @@
     var applyBtn = document.getElementById("nsm-ag-filter-query-apply");
     var copyBtn = document.getElementById("nsm-ag-filter-query-copy");
     var clearBtn = document.getElementById("nsm-ag-clear-filters");
-    var exportBtn = document.getElementById("nsm-ag-csv-export");
+    var exportBtn = document.getElementById("nsm-ag-toml-export");
     var validateTimer = null;
 
     if (input && config.filterQuery) {
@@ -547,11 +593,18 @@
                 input.value = data.normalized;
               }
             } else {
-              setValidationState("invalid", (data && data.error) || "Invalid query");
+              setValidationState(
+                "invalid",
+                (data && data.error) ||
+                  chromeT(config, "invalidQuery", "Invalid query")
+              );
             }
           })
           .catch(function () {
-            setValidationState("invalid", "Validation failed");
+            setValidationState(
+              "invalid",
+              chromeT(config, "validationFailed", "Validation failed")
+            );
           });
       }, 300);
     }
@@ -568,14 +621,21 @@
       fetchJson(buildValidateUrl(config, text))
         .then(function (data) {
           if (!data || !data.valid) {
-            setValidationState("invalid", (data && data.error) || "Invalid query");
+            setValidationState(
+              "invalid",
+              (data && data.error) ||
+                chromeT(config, "invalidQuery", "Invalid query")
+            );
             return;
           }
           var queryText = (data.normalized || text).trim();
           navigateWithFilterQuery(queryText);
         })
         .catch(function () {
-          setValidationState("invalid", "Validation failed");
+          setValidationState(
+            "invalid",
+            chromeT(config, "validationFailed", "Validation failed")
+          );
         });
     }
 
@@ -607,7 +667,7 @@
     }
     if (exportBtn) {
       exportBtn.addEventListener("click", function () {
-        exportRulesCsv(config);
+        exportRulesToml(config);
       });
     }
 

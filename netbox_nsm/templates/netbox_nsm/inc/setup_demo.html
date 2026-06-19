@@ -39,7 +39,7 @@
             <h6 class="card-title fw-semibold">{% trans "Address bench (50,000 addresses)" %}</h6>
             <p class="card-text text-muted small mb-3">
               {% blocktrans with leaves=scale_demo_50k_leaf_count rules=scale_demo_50k_rule_count %}
-              Bench scaling test: {{ leaves }} nested nsm_address hosts, {{ rules }} COT rules on «Bench Addresses» (nsm_rb_bench_addresses). Uses dedicated bench-* objects in 10.128.0.0/9 — can run in parallel with the community demo. Runs in the background via the RQ worker. Full run (200,000 addresses) only via CLI: scripts/create_addresses_million_scale.py
+              Bench scaling test: {{ leaves }} nested nsm_address hosts (hosts /32, subnets /24, overlap-bucket parents /20+/16), {{ rules }} COT rules on «Bench Addresses» (nsm_rb_bench_addresses). Includes alias and dup-name peers sharing IPAM objects, overlap groups with shared members, VirtualMachine + VMInterface rows (bench-host-* / bench-iface-*) for overlap showcase rules 1–20, and showcase rules with 1–10 addresses plus 1–10 groups on both source and destination. Uses dedicated bench-* objects in 10.128.0.0/9 — can run in parallel with the community demo. Runs in the background via the RQ worker. Full run (200,000 addresses) only via CLI: scripts/create_addresses_million_scale.py
               {% endblocktrans %}
             </p>
             <form method="post" class="m-0" id="nsm-scale-50k-form">

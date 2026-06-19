@@ -6,8 +6,10 @@ from unittest.mock import MagicMock
 from django.test import SimpleTestCase
 
 from netbox_nsm.analysis.ipa_object_tree import (
+    _attach_ipa_dup_cell_statuses,
     _attach_ipa_object_tree_status,
     _build_ipa_cell_flat_address_node,
+    _collect_ipa_dup_cell_statuses,
 )
 
 
@@ -50,3 +52,32 @@ class IpaObjectTreeStatusTests(SimpleTestCase):
         ]
         _attach_ipa_object_tree_status(nodes, obj_by_key)
         self.assertEqual(nodes[0]["cell_groups"][0]["status"], "reserved")
+
+    def test_collect_dup_cell_statuses_from_row_and_refs(self):
+        node = {
+            "status": "deprecated",
+            "cell_address_primary": {"status": "deprecated"},
+            "cell_addresses": [{"status": "reserved"}],
+            "cell_groups": [
+                {"name": "g1", "status": "reserved"},
+                {"name": "none", "is_none": True, "status": "deprecated"},
+            ],
+        }
+        self.assertEqual(
+            _collect_ipa_dup_cell_statuses(node),
+            ["deprecated", "reserved"],
+        )
+
+    def test_attach_dup_cell_statuses_sets_node_field(self):
+        nodes = [
+            {
+                "name": "old-addr",
+                "status": "deprecated",
+                "children": [
+                    {"name": "active-addr", "children": []},
+                ],
+            }
+        ]
+        _attach_ipa_dup_cell_statuses(nodes)
+        self.assertEqual(nodes[0]["dup_cell_statuses"], ["deprecated"])
+        self.assertNotIn("dup_cell_statuses", nodes[0]["children"][0])

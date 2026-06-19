@@ -1,3 +1,4 @@
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.contenttypes.models import ContentType
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.views import View
@@ -49,7 +50,7 @@ def _serialize_rule_rows(rows, request):
     return results
 
 
-class ObjectRulesApiView(View):
+class ObjectRulesApiView(LoginRequiredMixin, View):
     """
     Lightweight JSON endpoint for lazy-loading security rule references
     for a given object (identified by content-type PK + object PK).

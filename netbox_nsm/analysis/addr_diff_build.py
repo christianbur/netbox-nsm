@@ -18,6 +18,7 @@ from netbox_nsm.analysis.addr_diff_fund import (
 from netbox_nsm.analysis.addr_diff_hierarchy import (
     _build_addr_diff_group,
     _build_diff_ipam_intersection_tree_multi,
+    _reorganize_diff_leaves_under_prefix_hierarchy,
     _reorganize_diff_both_group_leaves,
     _type_counts_for_multi_diff,
 )
@@ -27,6 +28,15 @@ def _diff_status_for_exclusive_side(side_index, side_count):
     if side_count == 2:
         return ("only_a", "only-a") if side_index == 0 else ("only_b", "only-b")
     return (f"only_side_{side_index}", f"only-side-{side_index}")
+
+
+def _rollup_diff_leaves_by_ipam_prefix(leaves, prefix_hierarchy=None):
+    """Nest diff rows under IPAM prefixes while preserving individual IP rows."""
+    return _reorganize_diff_leaves_under_prefix_hierarchy(
+        leaves,
+        prefix_hierarchy=prefix_hierarchy,
+        assignable_child=lambda child: bool(child.get("diff_status")),
+    )
 
 
 def _build_addr_diff_analysis_from_sides(side_specs):
@@ -110,9 +120,18 @@ def _build_addr_diff_analysis_from_sides(side_specs):
                     diff_fund=is_fund,
                     fund_detail=fund_detail,
                     other_entry=None,
+                    diff_label=label,
                 )
             )
-        group = _build_addr_diff_group(f"Only in {label}", leaves, diff_group=slug)
+        side_prefix_hierarchy = _compute_diff_prefix_hierarchy_multi(
+            [prefix_groups_list[side_index]], keys
+        )
+        leaves = _rollup_diff_leaves_by_ipam_prefix(
+            leaves, prefix_hierarchy=side_prefix_hierarchy
+        )
+        group = _build_addr_diff_group(
+            f"Only in {label}", leaves, diff_group=slug, diff_label=label
+        )
         if group:
             groups.append(group)
 
@@ -139,13 +158,22 @@ def _build_addr_diff_analysis_from_sides(side_specs):
                         fund_detail=fund_detail,
                         other_entry=other_entry,
                         diff_present_labels=present_labels,
+                        diff_label=", ".join(present_labels),
                     )
                 )
+            present_prefix_hierarchy = _compute_diff_prefix_hierarchy_multi(
+                [prefix_groups_list[index] for index in present_indices],
+                in_some_by_presence[present_indices],
+            )
+            leaves = _rollup_diff_leaves_by_ipam_prefix(
+                leaves, prefix_hierarchy=present_prefix_hierarchy
+            )
             group = _build_addr_diff_group(
                 "In some",
                 leaves,
                 diff_group="in-some",
                 diff_present_labels=present_labels,
+                diff_label=", ".join(present_labels),
             )
             if group:
                 groups.append(group)

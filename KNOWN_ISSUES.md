@@ -1,6 +1,6 @@
 # Known Issues
 
-> Status as of 2026-06 (v0.4.5)
+> Status as of 2026-06 (v0.4.7)
 
 There are **no known critical issues** in the current release.
 

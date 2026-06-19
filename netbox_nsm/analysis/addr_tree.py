@@ -213,15 +213,19 @@ def _addr_tree_node_network(node):
 
     if not node:
         return None
-    cidr = _hub._addr_node_prefix_cidr(ip_ref=node.get("ip_ref"))
-    if not cidr:
-        cidr = node.get("prefix_display_cidr")
-    if not cidr:
-        return None
-    try:
-        return ipaddress.ip_network(str(cidr).strip(), strict=False)
-    except ValueError:
-        return None
+    candidates = []
+    ip_ref_cidr = _hub._addr_node_prefix_cidr(ip_ref=node.get("ip_ref"))
+    if ip_ref_cidr:
+        candidates.append(ip_ref_cidr)
+    display_cidr = node.get("prefix_display_cidr")
+    if display_cidr and display_cidr not in candidates:
+        candidates.append(display_cidr)
+    for cidr in candidates:
+        try:
+            return ipaddress.ip_network(str(cidr).strip(), strict=False)
+        except ValueError:
+            continue
+    return None
 
 
 def _addr_node_containment_map(nodes):

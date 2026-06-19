@@ -69,6 +69,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-shrink: 0;
   padding: 0.45rem 0.65rem;
   border-bottom: 1px solid var(--nsm-ag-border, var(--nsm-ipa-border));
   background: var(--nsm-ag-bg-subtle, var(--nsm-ipa-bg-subtle));
@@ -114,20 +115,33 @@
 .nsm-ipa-applet-toolbar {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  row-gap: 0.25rem;
   gap: 0.35rem;
   width: 100%;
-  min-height: 0;
+  flex-shrink: 0;
+  min-height: 2.25rem;
   padding: 0.28rem 0.4rem;
   border-bottom: 1px solid var(--nsm-ag-border, var(--nsm-ipa-border));
   background: var(--nsm-ag-bg-subtle, var(--nsm-ipa-bg-subtle));
+  position: sticky;
+  top: 0;
+  z-index: 4;
 }
 
 .nsm-ipa-applet-toolbar-actions {
   display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
+  row-gap: 0.25rem;
   gap: 0.28rem;
   flex: 0 0 auto;
+  flex-shrink: 0;
   margin-left: auto;
+}
+
+.nsm-ipa-applet-toolbar .btn {
+  white-space: nowrap;
 }
 
 .nsm-ipa-applet-add-object .dropdown-toggle::after {
@@ -226,11 +240,19 @@
 .nsm-ipa-applet-tabs {
   display: flex;
   align-items: flex-end;
-  min-height: 0;
+  flex-shrink: 0;
+  min-height: 2rem;
   padding: 0.2rem 0.4rem 0;
   border-bottom: 1px solid var(--nsm-ag-border, var(--nsm-ipa-border));
   background: var(--nsm-ag-bg-subtle, var(--nsm-ipa-bg-subtle));
   overflow: hidden;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+.nsm-ipa-applet--has-toolbar .nsm-ipa-applet-tabs {
+  top: 2.25rem;
 }
 
 .nsm-ipa-applet-tab-list {
@@ -600,10 +622,21 @@
   max-width: none;
 }
 
+.nsm-ipa-applet-body-scale-host:has(.nsm-ipa-cell-tree-table) {
+  width: 100%;
+  max-width: 100%;
+}
+
 .nsm-ipa-applet-body-scale {
   transform-origin: top left;
   width: max-content;
   min-width: 100%;
+}
+
+.nsm-ipa-applet-body-scale:has(.nsm-ipa-cell-tree-table) {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .nsm-ipa-applet-resize-handle {
@@ -680,6 +713,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+  flex-shrink: 0;
   padding: 0.35rem 0.65rem;
   border-top: 1px solid var(--nsm-ag-border, var(--nsm-ipa-border));
   font-size: 0.75rem;
@@ -848,13 +882,13 @@
 .nsm-ipa-applet .nsm-ipa-object-node > .nsm-addr-summary {
   display: flex;
   align-items: center;
-  font-size: 0.78rem;
-  line-height: 1.2;
+  font-size: 0.76rem;
+  line-height: 1.25;
   flex-wrap: nowrap;
   white-space: nowrap;
   min-width: 0;
-  gap: 4px;
-  padding: 1px 0;
+  gap: 3px;
+  padding: 2px 0;
   min-height: 0;
   cursor: pointer;
   user-select: none;
@@ -1061,6 +1095,54 @@
   white-space: normal;
 }
 
+.nsm-ipa-applet .nsm-ipa-diff-overview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  margin: 0 0 0.35rem;
+  padding: 0.28rem 0.4rem;
+  border: 1px solid color-mix(in srgb, var(--nsm-ag-border, var(--nsm-ipa-border)) 72%, transparent);
+  border-radius: 0.35rem;
+  background: color-mix(in srgb, var(--nsm-ag-bg-subtle, var(--nsm-ipa-bg-subtle)) 82%, transparent);
+  font-size: 0.72rem;
+}
+
+.nsm-ipa-applet .nsm-ipa-diff-overview-head {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.nsm-ipa-applet .nsm-ipa-diff-overview-title {
+  font-weight: 700;
+  color: var(--nsm-ag-text, var(--nsm-ipa-text));
+  white-space: nowrap;
+}
+
+.nsm-ipa-applet .nsm-ipa-diff-overview-status {
+  color: var(--nsm-ag-text-muted, var(--nsm-ipa-text-muted));
+  white-space: nowrap;
+}
+
+.nsm-ipa-applet .nsm-ipa-diff-overview-actions {
+  flex-wrap: wrap;
+  gap: 0.15rem;
+}
+
+.nsm-ipa-applet .nsm-ipa-diff-overview-actions .btn {
+  border-radius: 999px !important;
+  padding: 0.08rem 0.38rem;
+  font-size: 0.68rem;
+  line-height: 1.2;
+}
+
+.nsm-ipa-applet .nsm-ipa-diff-filtered-row {
+  display: none !important;
+}
+
 .nsm-ipa-applet .nsm-addr-diff-group--in-some > .nsm-addr-summary .nsm-addr-count,
 .nsm-ipa-applet .nsm-addr-diff-group--in-some > .nsm-addr-summary .nsm-addr-ipam-short {
   background-color: var(--bs-warning-bg-subtle) !important;
@@ -1125,13 +1207,616 @@
 
 .nsm-ipa-applet .nsm-ipa-cell-object-row-main {
   display: grid;
-  grid-template-columns: 12.5rem minmax(0, max-content) minmax(0, max-content) minmax(0, max-content);
+  grid-template-columns: 12.5rem minmax(0, max-content) minmax(0, max-content) minmax(0, 1fr);
   grid-template-rows: minmax(0, auto);
   grid-auto-flow: column;
   align-items: stretch;
-  gap: 0.32rem;
+  gap: 0.28rem;
   min-width: 0;
   width: 100%;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--nsm-ag-bg, var(--nsm-ipa-bg));
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-header th {
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--nsm-ag-text-muted, var(--nsm-ipa-text-muted));
+  line-height: 1.1;
+  white-space: nowrap;
+  border-bottom-width: 1px;
+  vertical-align: bottom;
+  padding-bottom: 0.28rem;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-depth-toggle-row th {
+  font-size: 0.68rem;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+  border-bottom: 1px solid var(--nsm-ag-border, var(--nsm-ipa-border));
+  padding-top: 0;
+}
+
+.nsm-ipa-applet details.nsm-addr-top:has(> .nsm-addr-children > .nsm-ipa-cell-tree-table) {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.nsm-ipa-applet .nsm-addr-children:has(> .nsm-ipa-cell-tree-table) {
+  display: block;
+  overflow-x: auto;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+}
+
+.nsm-ipa-applet .nsm-ipa-group-coverage {
+  border: 1px solid color-mix(in srgb, var(--nsm-ag-border, var(--nsm-ipa-border)) 70%, transparent);
+  border-radius: 0.35rem;
+  background: color-mix(in srgb, var(--nsm-ipa-panel-bg, var(--bs-body-bg)) 84%, transparent);
+  padding: 0.25rem 0.4rem;
+}
+
+.nsm-ipa-applet .nsm-ipa-group-coverage-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  font-size: 0.72rem;
+}
+
+.nsm-ipa-applet .nsm-ipa-group-coverage-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.18rem 0.55rem;
+  padding-top: 0.3rem;
+  font-size: 0.72rem;
+}
+
+.nsm-ipa-applet .nsm-ipa-group-coverage-item {
+  white-space: nowrap;
+}
+
+.nsm-ipa-applet .nsm-ipa-group-coverage-item--missing {
+  color: var(--bs-warning, #f0ad4e);
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-table {
+  --nsm-ipa-cell-tree-network-width: 12.5rem;
+  --nsm-ipa-cell-tree-ipam-width: 5.5rem;
+  --nsm-ipa-cell-tree-duplicate-width: 3rem;
+  --nsm-ipa-cell-tree-address-width: 9rem;
+  --nsm-ipa-cell-tree-address-group-width: 12.5rem;
+  --nsm-ipa-cell-tree-merge-width: 3.25rem;
+  --nsm-ipa-cell-tree-diff-width: 6.5rem;
+  --nsm-ipa-cell-tree-us-width: 18rem;
+  --nsm-ipa-cell-tree-min-width: calc(
+    var(--nsm-ipa-cell-tree-network-width) + var(--nsm-ipa-cell-tree-ipam-width) +
+      var(--nsm-ipa-cell-tree-duplicate-width) + var(--nsm-ipa-cell-tree-address-width) +
+      var(--nsm-ipa-cell-tree-address-group-width) +
+      var(--nsm-ipa-cell-tree-merge-width) + var(--nsm-ipa-cell-tree-diff-width) +
+      var(--nsm-ipa-cell-tree-us-width)
+  );
+  table-layout: fixed;
+  width: var(--nsm-ipa-cell-tree-min-width);
+  max-width: none;
+  font-size: 0.76rem;
+  line-height: 1.25;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-table > tbody.nsm-ipa-object-tree-rows {
+  display: table-row-group;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-table > tbody > tr > td {
+  vertical-align: middle;
+  padding-top: 0.18rem;
+  padding-bottom: 0.18rem;
+  border-top: none;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-table > tbody > tr + tr > td {
+  border-top: 1px solid color-mix(in srgb, var(--nsm-ag-border, var(--nsm-ipa-border)) 42%, transparent);
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-col--network,
+.nsm-ipa-applet .nsm-ipa-cell-tree-header-col--network {
+  width: var(--nsm-ipa-cell-tree-network-width);
+  min-width: var(--nsm-ipa-cell-tree-network-width);
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-col--network {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  cursor: help;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-col--ipam,
+.nsm-ipa-applet .nsm-ipa-cell-tree-header-col--ipam {
+  width: var(--nsm-ipa-cell-tree-ipam-width);
+  min-width: var(--nsm-ipa-cell-tree-ipam-width);
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-col--ipam {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-col--address,
+.nsm-ipa-applet .nsm-ipa-cell-tree-header-col--address {
+  width: var(--nsm-ipa-cell-tree-address-width);
+  min-width: var(--nsm-ipa-cell-tree-address-width);
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-col--address-group,
+.nsm-ipa-applet .nsm-ipa-cell-tree-header-col--address-group {
+  width: var(--nsm-ipa-cell-tree-address-group-width);
+  min-width: var(--nsm-ipa-cell-tree-address-group-width);
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-col--merge,
+.nsm-ipa-applet .nsm-ipa-cell-tree-header-col--merge {
+  width: var(--nsm-ipa-cell-tree-merge-width);
+  min-width: var(--nsm-ipa-cell-tree-merge-width);
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-col--diff,
+.nsm-ipa-applet .nsm-ipa-cell-tree-header-col--diff {
+  width: var(--nsm-ipa-cell-tree-diff-width);
+  min-width: var(--nsm-ipa-cell-tree-diff-width);
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-col--duplicate,
+.nsm-ipa-applet .nsm-ipa-cell-tree-header-col--duplicate {
+  width: var(--nsm-ipa-cell-tree-duplicate-width);
+  min-width: var(--nsm-ipa-cell-tree-duplicate-width);
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-col--us,
+.nsm-ipa-applet .nsm-ipa-cell-tree-header-col--us {
+  width: var(--nsm-ipa-cell-tree-us-width);
+  min-width: var(--nsm-ipa-cell-tree-us-width);
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-col--network {
+  overflow: hidden;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-col--network .record-depth {
+  display: inline;
+  user-select: none;
+  opacity: 0.33;
+  color: var(--tblr-primary, var(--nsm-ipa-accent));
+  overflow: hidden;
+  max-width: 100%;
+  vertical-align: baseline;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-col--network .record-depth span:only-of-type,
+.nsm-ipa-applet .nsm-ipa-cell-tree-col--network .record-depth span:last-of-type {
+  margin-right: 0.25rem;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-col--merge {
+  white-space: nowrap;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-merge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 0.12rem 0.35rem;
+  text-transform: lowercase;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-col--diff {
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+  vertical-align: top;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-diff-cell-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-diff {
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 0.12rem 0.35rem;
+  text-transform: lowercase;
+  align-self: flex-start;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-col--diff .nsm-addr-diff-present-labels {
+  padding-left: 0;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-col--duplicate {
+  white-space: nowrap;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-dup-stack {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-duplicate,
+.nsm-ipa-applet .nsm-ipa-cell-status {
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 0.12rem 0.35rem;
+  text-transform: lowercase;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-status--deprecated {
+  color: var(--bs-danger-text-emphasis, var(--bs-danger)) !important;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-status--reserved {
+  color: #b45309 !important;
+  background-color: rgba(253, 126, 20, 0.15) !important;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-col--address,
+.nsm-ipa-applet .nsm-ipa-cell-tree-col--address-group {
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+  vertical-align: top;
+}
+
+/* Us / object column: keep interface & host names on their own line, only
+   break at word boundaries (no ugly character-by-character wrapping). */
+.nsm-ipa-applet .nsm-ipa-cell-tree-col--us {
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: break-word;
+  line-height: 1.35;
+  vertical-align: top;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-col--us .nsm-addr-related {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-address-break {
+  display: block;
+  content: "";
+  margin: 0;
+  line-height: 0.35rem;
+}
+
+/* Cell tree columns — plain NetBox object-list links (no pills) */
+.nsm-ipa-applet .nsm-ipa-cell-tree-address,
+.nsm-ipa-applet .nsm-ipa-cell-tree-object,
+.nsm-ipa-applet .nsm-ipa-cell-tree-groups {
+  display: inline;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-address--multi {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.08rem;
+  max-width: 100%;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-address-entry,
+.nsm-ipa-applet .nsm-ipa-cell-tree-object-entry,
+.nsm-ipa-applet .nsm-ipa-cell-tree-group-entry {
+  display: inline;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-address--multi .nsm-ipa-cell-tree-address-entry {
+  display: block;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-address--multi .nsm-addr-obj-link,
+.nsm-ipa-applet .nsm-ipa-cell-tree-object--multi .nsm-addr-obj-link,
+.nsm-ipa-applet .nsm-ipa-cell-tree-groups--multi .nsm-addr-obj-link {
+  color: var(--bs-warning, var(--tblr-warning, #f59f0a));
+}
+
+/* Flat cell tree — direct (rule cell) vs indirect (IPAM/drilldown/expanded members) */
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--cell-direct .nsm-addr-obj-link:not(.text-muted),
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--cell-direct .nsm-addr-link,
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--cell-direct .nsm-ipa-cell-cidr-link {
+  color: var(--tblr-primary, var(--nsm-ipa-accent));
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--cell-direct .nsm-ipa-cell-cidr {
+  color: var(--nsm-ipa-text, inherit);
+}
+
+/* Flat cell tree — cell-direct network stays teal; containment warns in Dup column only */
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--cell-direct .nsm-ipa-cell-tree-col--network .nsm-ipa-cell-cidr,
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--cell-direct .nsm-ipa-cell-tree-col--network .nsm-ipa-cell-cidr-link,
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--cell-direct .nsm-ipa-cell-tree-col--network .nsm-addr-prefix-text,
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--cell-direct .nsm-ipa-cell-parent-hint a,
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--cell-direct .nsm-ipa-cell-parent-hint .nsm-addr-prefix-text {
+  color: var(--tblr-primary, var(--nsm-ipa-accent));
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--cell-indirect > td {
+  color: var(--bs-secondary-color);
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--cell-indirect .nsm-addr-link,
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--cell-indirect .nsm-addr-obj-link:not(.text-muted),
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--cell-indirect .nsm-ipa-cell-cidr,
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--cell-indirect .nsm-ipa-cell-cidr-link,
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--cell-indirect .nsm-addr-prefix-text,
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--cell-indirect .nsm-ipa-cell-parent-hint,
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--cell-indirect .nsm-ipa-cell-parent-hint a,
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--cell-indirect .nsm-addr-ipam-short {
+  color: var(--bs-secondary-color);
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--cell-indirect .record-depth {
+  opacity: 0.42;
+  color: var(--bs-secondary-color);
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--cell-indirect.nsm-ipa-object-node--ipam-parent-prefix .nsm-ipa-cell-cidr,
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--cell-indirect.nsm-ipa-object-node--ipam-parent-prefix .nsm-ipa-cell-cidr-link,
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--cell-indirect.nsm-ipa-object-node--ipam-parent-prefix .nsm-addr-prefix-text,
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--cell-indirect.nsm-ipa-object-node--ipam-parent-prefix .nsm-addr-link {
+  color: var(--bs-secondary-color);
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--cell-indirect.nsm-ipa-object-node--subnet-warning .nsm-ipa-cell-tree-col--network .nsm-addr-ip,
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--cell-indirect.nsm-ipa-object-node--subnet-warning .nsm-ipa-cell-tree-col--network .nsm-addr-ip a,
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--cell-indirect.nsm-ipa-object-node--subnet-warning .nsm-ipa-cell-tree-col--network .nsm-addr-prefix-text,
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--cell-indirect.nsm-ipa-object-node--subnet-warning .nsm-ipa-cell-tree-col--network .nsm-ipa-cell-cidr,
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--cell-indirect.nsm-ipa-object-node--subnet-warning .nsm-ipa-cell-tree-col--network .nsm-ipa-cell-cidr-link {
+  color: var(--bs-secondary-color);
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--cell-indirect.nsm-ipa-object-node--doppelt-warning .nsm-addr-obj-link:not(.text-muted),
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--cell-indirect.nsm-ipa-object-node--doppelt-warning .nsm-addr-link {
+  color: var(--bs-danger-text-emphasis, var(--bs-danger));
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--cell-indirect .nsm-ipa-cell-tree-address--multi .nsm-addr-obj-link,
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--cell-indirect .nsm-ipa-cell-tree-groups--multi .nsm-addr-obj-link {
+  color: color-mix(in srgb, var(--bs-warning, #f59f0a) 72%, var(--bs-secondary-color));
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-groups-collapsed-summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-groups-collapsed-summary::-webkit-details-marker {
+  display: none;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-groups-collapsed-body {
+  display: inline;
+  margin-left: 0.25rem;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-table--nested {
+  margin-top: 0.12rem;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-table--nested > tbody > tr > td {
+  padding-top: 0.12rem;
+  padding-bottom: 0.12rem;
+}
+
+.nsm-ipa-applet .nsm-ipa-drilldown-cell,
+.nsm-ipa-applet .nsm-ipa-root-groups-collapsed-cell,
+.nsm-ipa-applet .nsm-ipa-lazy-batch-cell {
+  padding-top: 0;
+  padding-bottom: 0.22rem;
+}
+
+.nsm-ipa-applet .nsm-ipa-drilldown-details > summary.nsm-ipa-drilldown-summary {
+  display: none;
+}
+
+.nsm-ipa-applet .nsm-ipa-root-groups-collapsed {
+  margin: 0;
+}
+
+.nsm-ipa-applet .nsm-ipa-root-groups-collapsed-summary {
+  display: inline;
+  list-style: none;
+  cursor: pointer;
+  color: var(--nsm-ag-text-muted, var(--nsm-ipa-text-muted));
+  font-weight: 600;
+  font-size: 0.76rem;
+  letter-spacing: 0.02em;
+}
+
+.nsm-ipa-applet .nsm-ipa-root-groups-collapsed-summary::-webkit-details-marker {
+  display: none;
+}
+
+.nsm-ipa-applet .nsm-ipa-root-groups-collapsed-header td {
+  border-top: 1px dashed var(--nsm-ag-border, var(--nsm-ipa-border));
+  border-bottom: 1px dashed var(--nsm-ag-border, var(--nsm-ipa-border));
+  background: color-mix(in srgb, var(--nsm-ag-bg-subtle, var(--nsm-ipa-bg-subtle)) 65%, transparent);
+}
+
+.nsm-ipa-applet .nsm-ipa-object-tree-rows:has(.nsm-ipa-root-groups-collapsed:not([open])) .nsm-ipa-root-groups-collapsed-member {
+  display: none;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-tree-node--info-gap td {
+  color: var(--bs-secondary-color);
+  font-size: 0.82em;
+  font-style: italic;
+  opacity: 0.85;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-header-col {
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--nsm-ag-text-muted, var(--nsm-ipa-text-muted));
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+
+.nsm-ipa-applet .nsm-ipa-cell-secondary-hint {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0;
+  margin-top: 0.08rem;
+  font-size: 0.68rem;
+  line-height: 1.15;
+  color: var(--bs-secondary-color);
+  vertical-align: middle;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-secondary-hint--doppelt {
+  padding: 0.02rem 0.28rem;
+  border-radius: 0.2rem;
+  border: 1px solid color-mix(in srgb, var(--bs-danger) 35%, var(--nsm-ipa-border));
+  background: color-mix(in srgb, var(--bs-danger) 10%, transparent);
+  color: var(--bs-danger-text-emphasis, var(--bs-danger));
+  font-weight: 600;
+  text-transform: lowercase;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-secondary-expand {
+  display: inline;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-secondary-expand-summary {
+  display: inline;
+  cursor: pointer;
+  list-style: none;
+  color: var(--bs-warning-text-emphasis, var(--bs-warning));
+  font-weight: 600;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-secondary-expand-summary::-webkit-details-marker {
+  display: none;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-secondary-expand[open] .nsm-ipa-cell-secondary-expand-summary {
+  margin-right: 0.15rem;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-secondary-expand-body {
+  display: block;
+  margin-top: 0.12rem;
+  font-weight: 500;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-secondary-link {
+  color: var(--bs-secondary-color);
+  text-decoration: none;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-secondary-link:hover {
+  text-decoration: underline;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-secondary-sep {
+  color: var(--bs-secondary-color);
+  opacity: 0.65;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-groups-collapsed {
+  display: inline-block;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-groups-collapsed-summary {
+  display: inline;
+  list-style: none;
+  cursor: pointer;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-groups-collapsed-summary::-webkit-details-marker {
+  display: none;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-pill--group-summary {
+  border-style: dashed;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-groups-collapsed-label {
+  font-weight: 600;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-groups-collapsed-body {
+  display: block;
+  margin-top: 0.18rem;
+}
+
+.nsm-ipa-applet .nsm-ipa-root-groups-collapsed > .nsm-addr-summary {
+  color: var(--nsm-ag-text-muted, var(--nsm-ipa-text-muted));
+  font-weight: 600;
+  padding: 0.18rem 0;
+  border-top: 1px dashed var(--nsm-ag-border, var(--nsm-ipa-border));
+  border-bottom: 1px dashed var(--nsm-ag-border, var(--nsm-ipa-border));
+  background: color-mix(in srgb, var(--nsm-ag-bg-subtle, var(--nsm-ipa-bg-subtle)) 65%, transparent);
+}
+
+.nsm-ipa-applet .nsm-ipa-root-groups-collapsed-title {
+  font-size: 0.76rem;
+  letter-spacing: 0.02em;
+}
+
+.nsm-ipa-applet .nsm-ipa-root-groups-collapsed-children {
+  margin-top: 0.12rem;
+  padding-left: 0.55rem;
+  border-left: none;
+}
+
+.nsm-ipa-applet .nsm-ipa-depth-0 > .nsm-addr-summary,
+.nsm-ipa-applet .nsm-ipa-depth-0.nsm-addr-leaf {
+  border-bottom: 1px solid color-mix(in srgb, var(--nsm-ag-border, var(--nsm-ipa-border)) 55%, transparent);
+}
+
+.nsm-ipa-applet .nsm-ipa-depth-1 .nsm-ipa-cell-children {
+  border-left-color: color-mix(in srgb, var(--nsm-ipa-accent) 28%, var(--nsm-ag-border, var(--nsm-ipa-border)));
+}
+
+.nsm-ipa-applet .nsm-ipa-depth-2 .nsm-ipa-cell-children,
+.nsm-ipa-applet .nsm-ipa-depth-3 .nsm-ipa-cell-children {
+  border-left-color: color-mix(in srgb, var(--nsm-ag-border, var(--nsm-ipa-border)) 88%, transparent);
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-children > .nsm-addr-details + .nsm-addr-details,
+.nsm-ipa-applet .nsm-ipa-cell-children > .nsm-addr-leaf + .nsm-addr-leaf,
+.nsm-ipa-applet .nsm-ipa-cell-children > .nsm-addr-details + .nsm-addr-leaf,
+.nsm-ipa-applet .nsm-ipa-cell-children > .nsm-addr-leaf + .nsm-addr-details {
+  border-top: 1px solid color-mix(in srgb, var(--nsm-ag-border, var(--nsm-ipa-border)) 42%, transparent);
 }
 
 .nsm-ipa-applet .nsm-addr-summary > .nsm-ipa-cell-object-row-main,
@@ -1165,6 +1850,13 @@
   margin-left: 0;
 }
 
+/* A node that *is* an NSM address group renders its own ADDRESS_GROUP pill in the
+   primary (address) column; membership group pills stay in column 3. */
+.nsm-ipa-applet .nsm-ipa-cell-object-row-main > .nsm-ipa-cell-pill--group.nsm-ipa-cell-pill--self-group {
+  grid-column: 2;
+  margin-left: 0;
+}
+
 .nsm-ipa-applet .nsm-ipa-cell-object-row-main > .nsm-ipa-cell-pill--parent {
   grid-column: 4;
   margin-left: 0;
@@ -1175,88 +1867,6 @@
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
-}
-
-.nsm-ipa-applet summary.nsm-ipa-object-node--cell-direct.nsm-ipa-cell-object-summary--has-info {
-  align-items: flex-start;
-  flex-wrap: wrap;
-  padding-top: 0.28rem;
-  padding-bottom: 0.3rem;
-}
-
-.nsm-ipa-applet .nsm-addr-leaf.nsm-ipa-object-node--cell-direct.nsm-ipa-cell-object-leaf--has-info {
-  align-items: flex-start;
-  flex-wrap: wrap;
-  padding-top: 0.28rem;
-  padding-bottom: 0.3rem;
-}
-
-.nsm-ipa-applet .nsm-ipa-drilldown-meta--info {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.08rem;
-  padding: 0.1rem 0;
-  max-width: 100%;
-}
-
-.nsm-ipa-applet .nsm-ipa-drilldown-meta-info-type {
-  display: block;
-  line-height: 1;
-  white-space: nowrap;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  font-size: 0.48rem;
-  font-weight: 500;
-  opacity: 0.82;
-  color: color-mix(in srgb, var(--bs-info) 55%, var(--bs-secondary-color));
-}
-
-.nsm-ipa-applet .nsm-ipa-drilldown-meta-info-stats {
-  display: inline-flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.28rem;
-  margin-left: 0.15rem;
-}
-
-.nsm-ipa-applet .nsm-ipa-drilldown-meta-info-stat {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.18rem;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.nsm-ipa-applet .nsm-ipa-drilldown-meta-info-stat-label {
-  font-size: 0.62rem;
-  font-weight: 500;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: var(--bs-secondary-color);
-}
-
-.nsm-ipa-applet .nsm-ipa-drilldown-meta-info-stat-val {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--bs-body-color, inherit);
-}
-
-.nsm-ipa-applet .nsm-ipa-drilldown-meta-info-body {
-  display: inline;
-  line-height: 1.25;
-  font-size: 0.8125rem;
-  color: var(--bs-secondary-color);
-  max-width: 100%;
-}
-
-.nsm-ipa-applet .nsm-ipa-drilldown-meta-info-link {
-  color: var(--bs-info-text-emphasis, var(--bs-info));
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.nsm-ipa-applet .nsm-ipa-drilldown-meta-info-link:hover {
-  text-decoration: underline;
 }
 
 .nsm-ipa-applet .nsm-ipa-drilldown-meta--warning {
@@ -1305,26 +1915,6 @@
 .nsm-ipa-applet .nsm-ipa-drilldown-meta-warning-sep {
   color: var(--bs-secondary-color);
   user-select: none;
-}
-
-.nsm-ipa-applet .nsm-ipa-drilldown-meta-info-link--tenant {
-  font-weight: 500;
-}
-
-.nsm-ipa-applet .nsm-ipa-drilldown-meta-info-tenant {
-  color: var(--bs-secondary-color);
-  font-weight: 500;
-}
-
-.nsm-ipa-applet .nsm-ipa-drilldown-meta-info-sep {
-  color: var(--bs-secondary-color);
-  user-select: none;
-}
-
-.nsm-ipa-applet .nsm-ipa-drilldown-meta-info-stats {
-  color: var(--bs-secondary-color);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
 }
 
 .nsm-ipa-applet .nsm-ipa-drilldown-meta-pill {
@@ -1436,7 +2026,8 @@
   padding-bottom: 2px;
 }
 
-.nsm-ipa-applet .nsm-addr-children .nsm-ipa-object-tree-rows {
+/* Legacy addr-tree rows (details/leaves) only — not cell-tree <tbody>. */
+.nsm-ipa-applet .nsm-addr-children > .nsm-ipa-object-tree-rows:not(tbody) {
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -1484,13 +2075,114 @@
   cursor: help;
 }
 
-/* Warning rows — CIDR/prefix text matches icon; pills orange only via --multi (address/group duplicate) */
-.nsm-ipa-applet .nsm-ipa-object-node--subnet-warning .nsm-addr-ip,
-.nsm-ipa-applet .nsm-ipa-object-node--subnet-warning .nsm-addr-ip a,
-.nsm-ipa-applet .nsm-ipa-object-node--subnet-warning .nsm-addr-prefix-text,
-.nsm-ipa-applet .nsm-ipa-object-node--subnet-warning .nsm-ipa-cell-cidr,
-.nsm-ipa-applet .nsm-ipa-object-node--subnet-warning .nsm-ipa-cell-cidr-link {
+/* Warning rows — legacy drilldown only; flat cell-tree Network/Dup use column-specific rules */
+.nsm-ipa-applet .nsm-ipa-object-node--subnet-warning:not(.nsm-ipa-cell-tree-row) .nsm-addr-ip,
+.nsm-ipa-applet .nsm-ipa-object-node--subnet-warning:not(.nsm-ipa-cell-tree-row) .nsm-addr-ip a,
+.nsm-ipa-applet .nsm-ipa-object-node--subnet-warning:not(.nsm-ipa-cell-tree-row) .nsm-addr-prefix-text,
+.nsm-ipa-applet .nsm-ipa-object-node--subnet-warning:not(.nsm-ipa-cell-tree-row) .nsm-ipa-cell-cidr,
+.nsm-ipa-applet .nsm-ipa-object-node--subnet-warning:not(.nsm-ipa-cell-tree-row) .nsm-ipa-cell-cidr-link {
   color: var(--bs-warning-text-emphasis, var(--bs-warning));
+}
+
+/* Nested cell-tree children — muted/grey contained rows under a selected prefix */
+.nsm-ipa-applet .nsm-ipa-cell-children > .nsm-addr-leaf.nsm-ipa-object-node--subnet-warning,
+.nsm-ipa-applet .nsm-ipa-cell-children > details.nsm-ipa-object-node--subnet-warning > .nsm-addr-summary,
+.nsm-ipa-applet .nsm-ipa-cell-children > .nsm-addr-details.nsm-ipa-object-node--subnet-warning > .nsm-addr-summary {
+  color: var(--bs-secondary-color);
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-children > .nsm-addr-leaf.nsm-ipa-object-node--subnet-warning .nsm-ipa-cell-pill,
+.nsm-ipa-applet .nsm-ipa-cell-children > details.nsm-ipa-object-node--subnet-warning .nsm-ipa-cell-pill,
+.nsm-ipa-applet .nsm-ipa-cell-children > .nsm-addr-details.nsm-ipa-object-node--subnet-warning .nsm-ipa-cell-pill {
+  background: color-mix(in srgb, var(--bs-secondary-color) 10%, var(--nsm-ipa-cell-pill-bg));
+  border-color: color-mix(in srgb, var(--bs-secondary-color) 28%, var(--nsm-ipa-cell-pill-border));
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-children > .nsm-addr-leaf.nsm-ipa-object-node--subnet-warning .nsm-ipa-cell-pill-link,
+.nsm-ipa-applet .nsm-ipa-cell-children > details.nsm-ipa-object-node--subnet-warning .nsm-ipa-cell-pill-link,
+.nsm-ipa-applet .nsm-ipa-cell-children > .nsm-addr-details.nsm-ipa-object-node--subnet-warning .nsm-ipa-cell-pill-link,
+.nsm-ipa-applet .nsm-ipa-cell-children > .nsm-addr-leaf.nsm-ipa-object-node--subnet-warning .nsm-ipa-cell-cidr,
+.nsm-ipa-applet .nsm-ipa-cell-children > details.nsm-ipa-object-node--subnet-warning .nsm-ipa-cell-cidr,
+.nsm-ipa-applet .nsm-ipa-cell-children > .nsm-addr-details.nsm-ipa-object-node--subnet-warning .nsm-ipa-cell-cidr {
+  color: var(--bs-secondary-color);
+}
+
+/* IPAM hierarchy parent prefix rows (synthesized or cell prefix with children) */
+.nsm-ipa-applet .nsm-ipa-object-node--ipam-parent-prefix > .nsm-addr-summary,
+.nsm-ipa-applet .nsm-ipa-object-node--ipam-parent-prefix.nsm-addr-leaf,
+.nsm-ipa-applet .nsm-ipa-object-node--ipam-parent-prefix > .nsm-addr-leaf-summary {
+  color: var(--bs-warning-text-emphasis, var(--bs-warning, #f59f0a));
+}
+
+.nsm-ipa-applet .nsm-ipa-object-node--ipam-parent-prefix .nsm-ipa-cell-cidr,
+.nsm-ipa-applet .nsm-ipa-object-node--ipam-parent-prefix .nsm-ipa-cell-cidr-link,
+.nsm-ipa-applet .nsm-ipa-object-node--ipam-parent-prefix .nsm-addr-prefix-text,
+.nsm-ipa-applet .nsm-ipa-object-node--ipam-parent-prefix .nsm-addr-link {
+  color: var(--bs-warning-text-emphasis, var(--bs-warning, #f59f0a));
+}
+
+.nsm-ipa-applet .nsm-ipa-object-node--ipam-parent-prefix .nsm-ipa-cell-pill {
+  border: 1px solid var(--bs-warning, var(--tblr-warning, #f59f0a)) !important;
+  background: color-mix(in srgb, var(--bs-warning, #f59f0a) 18%, var(--nsm-ipa-accent-subtle)) !important;
+}
+
+.nsm-ipa-applet .nsm-ipa-object-node--ipam-parent-prefix .nsm-ipa-cell-pill .nsm-ipa-cell-type,
+.nsm-ipa-applet .nsm-ipa-object-node--ipam-parent-prefix .nsm-ipa-cell-pill .nsm-ipa-cell-pill-link {
+  color: var(--bs-warning, var(--tblr-warning, #f59f0a));
+}
+
+/* IPAM filler / synthetic prefix — completes hierarchy, not in rule cell (grey) */
+.nsm-ipa-applet .nsm-ipa-tree-node--ipam-filler > .nsm-addr-summary,
+.nsm-ipa-applet .nsm-ipa-object-node--ipam-synthetic > .nsm-addr-summary,
+.nsm-ipa-applet .nsm-ipa-tree-node--ipam-filler.nsm-addr-leaf,
+.nsm-ipa-applet .nsm-ipa-object-node--ipam-synthetic.nsm-addr-leaf,
+.nsm-ipa-applet .nsm-ipa-tree-node--ipam-filler > .nsm-addr-leaf-summary,
+.nsm-ipa-applet .nsm-ipa-object-node--ipam-synthetic > .nsm-addr-leaf-summary {
+  color: var(--bs-secondary-color);
+}
+
+.nsm-ipa-applet .nsm-ipa-tree-node--ipam-filler .nsm-ipa-cell-cidr,
+.nsm-ipa-applet .nsm-ipa-object-node--ipam-synthetic .nsm-ipa-cell-cidr,
+.nsm-ipa-applet .nsm-ipa-tree-node--ipam-filler .nsm-addr-prefix-text,
+.nsm-ipa-applet .nsm-ipa-object-node--ipam-synthetic .nsm-addr-prefix-text,
+.nsm-ipa-applet .nsm-ipa-tree-node--ipam-filler .nsm-addr-link,
+.nsm-ipa-applet .nsm-ipa-object-node--ipam-synthetic .nsm-addr-link {
+  color: var(--bs-secondary-color);
+  font-weight: 500;
+}
+
+/* In-cell rows — bright/white foreground on pills and CIDR */
+.nsm-ipa-applet .nsm-ipa-object-node--cell-direct > .nsm-addr-summary,
+.nsm-ipa-applet .nsm-ipa-object-node--cell-direct.nsm-addr-leaf,
+.nsm-ipa-applet .nsm-ipa-object-node--cell-direct > .nsm-addr-leaf-summary {
+  color: var(--nsm-ipa-cell-pill-text, var(--nsm-ipa-text));
+  flex-wrap: wrap;
+  align-items: flex-start;
+  row-gap: 2px;
+}
+
+.nsm-ipa-applet .nsm-ipa-object-node--cell-direct > .nsm-addr-summary > .nsm-ipa-cell-object-row,
+.nsm-ipa-applet .nsm-ipa-object-node--cell-direct > .nsm-addr-leaf-summary > .nsm-ipa-cell-object-row {
+  flex: 1 1 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.nsm-ipa-applet .nsm-ipa-tree-info-gap--network {
+  display: inline;
+  margin-left: 0.1rem;
+  white-space: nowrap;
+}
+
+/* Muted gap / info_summary between shown host siblings */
+.nsm-ipa-applet .nsm-ipa-tree-node--info-gap,
+.nsm-ipa-applet .nsm-ipa-info-summary-row,
+.nsm-ipa-applet .nsm-ipa-tree-info-gap {
+  color: var(--bs-secondary-color);
+  font-size: 0.82em;
+  font-style: italic;
+  opacity: 0.85;
+  padding-left: 0.15rem;
 }
 
 .nsm-ipa-applet .nsm-ipa-object-node--doppelt-warning .nsm-addr-link,
@@ -1545,13 +2237,13 @@
   align-self: stretch;
   background: var(--nsm-ipa-cell-pill-bg);
   border: 1px solid var(--nsm-ipa-cell-pill-border);
-  border-radius: 0.45rem;
-  padding: 0.12rem 0.38rem 0.14rem;
-  line-height: 1.15;
+  border-radius: 0.38rem;
+  padding: 0.08rem 0.32rem 0.1rem;
+  line-height: 1.12;
   font-size: inherit;
   vertical-align: middle;
-  margin-left: 0.15rem;
-  gap: 0.08rem;
+  margin-left: 0.12rem;
+  gap: 0.06rem;
 }
 
 .nsm-ipa-applet .nsm-ipa-cell-pill-body {
@@ -1769,7 +2461,8 @@
 
 .nsm-ipa-applet .nsm-ipa-cell-pill--multi[title],
 .nsm-ipa-applet .nsm-ipa-cell-pill--address[title]:not(.nsm-ipa-cell-pill--multi),
-.nsm-ipa-applet .nsm-ipa-cell-cidr[title] {
+.nsm-ipa-applet .nsm-ipa-cell-cidr[title],
+.nsm-ipa-applet .nsm-ipa-cell-tree-address .nsm-addr-obj-link[title] {
   cursor: help;
 }
 
@@ -1788,6 +2481,7 @@
   user-select: none;
 }
 
+.nsm-ipa-applet .nsm-ipa-addr-drilldown .nsm-ipa-cell-tree-table .nsm-ipa-cell-tree-row > td,
 .nsm-ipa-applet .nsm-ipa-addr-drilldown .nsm-addr-summary,
 .nsm-ipa-applet .nsm-ipa-addr-drilldown .nsm-addr-leaf {
   border-left: none;

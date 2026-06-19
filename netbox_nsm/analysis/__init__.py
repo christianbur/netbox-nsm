@@ -8,6 +8,8 @@ Submodules by concern:
   - ``_lazy_api`` — breaks circular imports between implementation modules
 
 For the Object Analyzer graph see ``netbox_nsm.analyzer`` (not this package).
+
+IP Analyzer architecture: ``docs/ip_analyzer_architecture.md``.
 """
 
 from __future__ import annotations

@@ -43,7 +43,7 @@ class IpAnalysisRestApiTests(SimpleTestCase):
     @patch("netbox_nsm.api.ip_analysis.execute_ip_analysis_merge")
     @patch("netbox_nsm.api.ip_analysis.parse_selections_from_request")
     def test_get_merge_returns_json_without_html(self, parse_fn, execute_fn):
-        parse_fn.return_value = ([{"ct": "10", "pk": "42", "name": "demo"}], [MagicMock()], [], [{"ct": "10", "pk": "42", "name": "demo"}], {(10, 42): MagicMock()})
+        parse_fn.return_value = ([{"ct": "10", "pk": "42", "name": "demo"}], [MagicMock()], [], [{"ct": "10", "pk": "42", "name": "demo"}], {(10, 42): MagicMock()}, [])
         execute_fn.return_value = {
             "mode": "merge",
             "leaf_count": 2,
@@ -94,6 +94,20 @@ class IpAnalysisRestApiTests(SimpleTestCase):
         self.assertEqual(response.data["mode"], "diff")
         self.assertEqual(response.data["diff_summary"]["both"], 1)
 
+    @patch("netbox_nsm.api.ip_analysis.parse_selections_from_request")
+    def test_get_merge_reports_unauthorized_objects(self, parse_fn):
+        # User cannot view the object -> excluded from analysis, surfaced separately.
+        parse_fn.return_value = ([], [], [], [], {}, [{"ct": "10", "pk": "42"}])
+
+        response = self._get("/api/plugins/netbox-nsm/ip-analysis/?ct=10&pk=42")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["objects"], [])
+        self.assertEqual(response.data["unauthorized"], [{"ct": "10", "pk": "42"}])
+        self.assertNotIn("html", response.data)
+        # The request user is threaded into resolution for permission checks.
+        self.assertIs(parse_fn.call_args.kwargs["user"], self.user)
+
     def test_post_merge_requires_objects(self):
         response = self._post("/api/plugins/netbox-nsm/ip-analysis/", {"mode": "merge"})
         self.assertEqual(response.status_code, 400)
@@ -101,7 +115,7 @@ class IpAnalysisRestApiTests(SimpleTestCase):
     @patch("netbox_nsm.api.ip_analysis.execute_ip_analysis_merge")
     @patch("netbox_nsm.api.ip_analysis.parse_object_refs")
     def test_post_merge_accepts_object_list(self, parse_refs_fn, execute_fn):
-        parse_refs_fn.return_value = ([{"ct": "10", "pk": "5", "name": "bench-ip"}], [MagicMock()], [], [{"ct": "10", "pk": "5", "name": "bench-ip"}], {(10, 5): MagicMock()})
+        parse_refs_fn.return_value = ([{"ct": "10", "pk": "5", "name": "bench-ip"}], [MagicMock()], [], [{"ct": "10", "pk": "5", "name": "bench-ip"}], {(10, 5): MagicMock()}, [])
         execute_fn.return_value = {
             "mode": "merge",
             "leaf_count": 1,
@@ -171,8 +185,8 @@ class ParseObjectRefsTests(SimpleTestCase):
         ct.model_class.return_value = model_cls
         content_type_cls.objects.get.return_value = ct
 
-        selections, objs, unsupported, raw_selections, obj_by_key = parse_object_refs(
-            [{"content_type": 10, "id": 9}]
+        selections, objs, unsupported, raw_selections, obj_by_key, unauthorized = (
+            parse_object_refs([{"content_type": 10, "id": 9}])
         )
 
         self.assertEqual(len(selections), 1)
@@ -181,3 +195,65 @@ class ParseObjectRefsTests(SimpleTestCase):
         self.assertEqual(unsupported, [])
         self.assertEqual(len(raw_selections), 1)
         self.assertIn((10, 9), obj_by_key)
+        self.assertEqual(unauthorized, [])
+
+    @patch("netbox_nsm.analysis.ip_analysis_service._object_is_addr_analyzable", return_value=True)
+    @patch("netbox_nsm.analysis.ip_analysis_service.ContentType")
+    def test_parse_object_refs_skips_object_without_view_permission(
+        self, content_type_cls, analyzable_fn
+    ):
+        obj = MagicMock()
+        obj.pk = 9
+        obj.name = "secret-ip"
+
+        model_cls = MagicMock()
+        model_cls.objects.filter.return_value.first.return_value = obj
+        # No object-level restrict() -> falls back to Django model permission.
+        del model_cls.objects.restrict
+        model_cls._meta.app_label = "ipam"
+        model_cls._meta.model_name = "ipaddress"
+
+        ct = MagicMock()
+        ct.model_class.return_value = model_cls
+        content_type_cls.objects.get.return_value = ct
+
+        user = MagicMock()
+        user.has_perm.return_value = False
+
+        selections, objs, unsupported, raw_selections, obj_by_key, unauthorized = (
+            parse_object_refs([{"content_type": 10, "id": 9}], user=user)
+        )
+
+        self.assertEqual(selections, [])
+        self.assertEqual(objs, [])
+        self.assertEqual(raw_selections, [])
+        self.assertEqual(obj_by_key, {})
+        self.assertEqual(unauthorized, [{"ct": "10", "pk": "9"}])
+        user.has_perm.assert_called_once_with("ipam.view_ipaddress")
+
+    @patch("netbox_nsm.analysis.ip_analysis_service._object_is_addr_analyzable", return_value=True)
+    @patch("netbox_nsm.analysis.ip_analysis_service.ContentType")
+    def test_parse_object_refs_uses_object_level_restrict(
+        self, content_type_cls, analyzable_fn
+    ):
+        obj = MagicMock()
+        obj.pk = 9
+        obj.name = "visible-ip"
+
+        model_cls = MagicMock()
+        model_cls.objects.filter.return_value.first.return_value = obj
+        model_cls.objects.restrict.return_value.filter.return_value.exists.return_value = True
+
+        ct = MagicMock()
+        ct.model_class.return_value = model_cls
+        content_type_cls.objects.get.return_value = ct
+
+        user = MagicMock()
+
+        selections, objs, unsupported, raw_selections, obj_by_key, unauthorized = (
+            parse_object_refs([{"content_type": 10, "id": 9}], user=user)
+        )
+
+        self.assertEqual(len(selections), 1)
+        self.assertEqual(unauthorized, [])
+        model_cls.objects.restrict.assert_called_once_with(user, "view")

@@ -16,7 +16,9 @@ from netbox_nsm.analysis.addr_diff_fund import (
 )
 from netbox_nsm.analysis.addr_ip_refs import _FIELD_TYPE_LABELS
 
-def _build_addr_diff_group(name, leaves, *, diff_group, diff_present_labels=None):
+def _build_addr_diff_group(
+    name, leaves, *, diff_group, diff_present_labels=None, diff_label=None
+):
     """One diff section (only A / only B / both) as an address-tree group node."""
     if not leaves:
         return None
@@ -28,6 +30,8 @@ def _build_addr_diff_group(name, leaves, *, diff_group, diff_present_labels=None
         "ip_ref": None,
         "children": leaves,
     }
+    if diff_label:
+        group["diff_label"] = str(diff_label)
     if diff_present_labels:
         group["diff_present_labels"] = list(diff_present_labels)
     _hub._enrich_addr_tree_leaf_counts(group)

@@ -1,0 +1,15 @@
+{% load i18n %}
+{% if node.subnet_contained_in or node.is_doppelt or node.count_duplicate or node.object_duplicate or node.cell_addresses_multi or node.dup_cell_statuses %}
+<span class="nsm-ipa-cell-dup-stack">
+{% if node.subnet_contained_in or node.is_doppelt or node.count_duplicate or node.object_duplicate or node.cell_addresses_multi %}
+<span class="badge bg-warning-subtle text-warning nsm-ipa-cell-duplicate"{% if node.subnet_contained_in %} title="{% blocktrans with cidr=node.subnet_contained_in %}Redundant — contained in parent prefix {{ cidr }}{% endblocktrans %}{% if node.subnet_contained_in_name %} ({{ node.subnet_contained_in_name }}){% endif %}"{% elif node.is_doppelt %} title="{% trans 'Duplicate cell entry — the same object is listed more than once in the rule cell' %}"{% elif node.object_duplicate %} title="{% trans 'Same object already shown elsewhere in this tree' %}"{% elif node.count_duplicate %} title="{% trans 'Excluded from total IP count' %}"{% elif node.cell_addresses_multi %} title="{% trans 'Multiple address names share this network in the rule cell' %}"{% endif %}>{% trans "dup" %}</span>
+{% endif %}
+{% if node.dup_cell_statuses %}
+{% for status in node.dup_cell_statuses %}
+{% include "netbox_nsm/inc/ipa_cell_tree_status_badge.html" with status=status %}
+{% endfor %}
+{% endif %}
+</span>
+{% else %}
+<span class="text-muted">—</span>
+{% endif %}

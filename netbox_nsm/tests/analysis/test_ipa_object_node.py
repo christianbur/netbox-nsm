@@ -13,6 +13,7 @@ from netbox_nsm.analysis.ipa_object_node import (
     IPA_NODE_ROLE_RANGE,
     _ipa_object_node_apply_presentation,
     _ipa_object_node_presentation,
+    _ipa_object_node_role_from_cidr_hint,
     _ipa_object_node_role_from_ip_ref,
     _ipa_object_node_role_from_obj,
     _ipa_object_node_should_drilldown,
@@ -41,6 +42,47 @@ class IpaObjectNodeRoleTests(SimpleTestCase):
             _ipa_object_node_role_from_ip_ref({"str": "10.0.0.0/8"}),
             IPA_NODE_ROLE_PREFIX,
         )
+
+    def test_role_from_cidr_hint_classifies_ipv6(self):
+        self.assertEqual(
+            _ipa_object_node_role_from_cidr_hint("2001:db8::/48"),
+            IPA_NODE_ROLE_PREFIX,
+        )
+        self.assertEqual(
+            _ipa_object_node_role_from_cidr_hint("2001:db8::1/128"),
+            IPA_NODE_ROLE_HOST,
+        )
+
+    def test_role_from_cidr_hint_classifies_ipv4(self):
+        self.assertEqual(
+            _ipa_object_node_role_from_cidr_hint("10.0.0.0/24"),
+            IPA_NODE_ROLE_PREFIX,
+        )
+        self.assertEqual(
+            _ipa_object_node_role_from_cidr_hint("10.0.0.1/32"),
+            IPA_NODE_ROLE_HOST,
+        )
+
+    @patch("netbox_nsm.analysis.ipa_object_node._hub._ipam_obj_from_ip_ref")
+    def test_role_from_polymorphic_address_ref_resolves_prefix(self, ipam_fn):
+        prefix = MagicMock()
+        prefix._meta = MagicMock(app_label="ipam", model_name="prefix")
+        ipam_fn.return_value = prefix
+        with patch(
+            "netbox_nsm.analysis.ipa_object_node._ipa_object_node_role_from_ipam_obj",
+            return_value=IPA_NODE_ROLE_PREFIX,
+        ):
+            self.assertEqual(
+                _ipa_object_node_role_from_ip_ref(
+                    {
+                        "str": "10.128.0.0/24",
+                        "type": "Address",
+                        "ct": 70,
+                        "pk": 96,
+                    }
+                ),
+                IPA_NODE_ROLE_PREFIX,
+            )
 
     @patch("netbox_nsm.analysis.ipa_object_node._hub._addr_ip_ref", return_value=None)
     def test_role_from_literal_any_network(self, _ip_ref):

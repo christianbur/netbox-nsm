@@ -296,6 +296,7 @@ def _enrich_ipa_drilldown_nodes(nodes, *, parent_network=None):
             filter_parent_network=True,
         )
     nodes = _collapse_duplicate_network_drilldown_siblings(nodes)
+    nodes = _hub._sort_ipa_object_tree_siblings(nodes)
     return nodes
 
 

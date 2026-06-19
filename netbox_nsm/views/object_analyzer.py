@@ -10,6 +10,12 @@ from django.shortcuts import render
 from django.utils.translation import gettext_lazy as _
 from django.views import View
 
+from netbox_nsm.analyzer.modes import (
+    AnalyzerMode,
+    SECURITY_NSM_COT_SLUGS,
+    get_security_allowed_ct_ids,
+    parse_analyzer_mode,
+)
 from netbox_nsm.objects.nsm_config import build_nsm_config_lookup
 from netbox_nsm.rulebooks.permissions import user_can_access_rulebooks
 
@@ -29,6 +35,16 @@ def _extra_analyzer_types():
             "label": _("Virtual Machine"),
         },
         {
+            "ct_key": ("dcim", "interface"),
+            "api_url": "/api/dcim/interfaces/",
+            "label": _("Interface"),
+        },
+        {
+            "ct_key": ("virtualization", "vminterface"),
+            "api_url": "/api/virtualization/interfaces/",
+            "label": _("VM Interface"),
+        },
+        {
             "ct_key": ("ipam", "ipaddress"),
             "api_url": "/api/ipam/ip-addresses/",
             "label": _("IP Address"),
@@ -39,11 +55,85 @@ def _extra_analyzer_types():
             "label": _("Prefix"),
         },
         {
+            "ct_key": ("ipam", "iprange"),
+            "api_url": "/api/ipam/ip-ranges/",
+            "label": _("IP Range"),
+        },
+        {
             "ct_key": ("netbox_nsm", "rule"),
             "api_url": None,
             "label": _("Firewall Rule"),
+            "security": False,
         },
     ]
+
+
+def _nsm_config_slug(config) -> str | None:
+    slug = getattr(config, "slug", None)
+    if slug:
+        return slug
+    name = (getattr(config, "name", None) or "").strip().lower().replace(" ", "_")
+    return name or None
+
+
+def _mode_ui_context(mode: AnalyzerMode) -> dict[str, str | None]:
+    if mode is AnalyzerMode.SECURITY:
+        return {
+            "search_placeholder": _(
+                "Search: Device, VM, Interface, IP, Prefix, NSM Address …"
+            ),
+            "empty_title": _("Select a security-related object"),
+            "empty_subtitle": _(
+                "Search for hosts, interfaces, IPAM objects, or NSM addresses "
+                "and groups — then click Analyze."
+            ),
+            "mode_hint": _(
+                "Security view shows hosts, interfaces, IPAM, and NSM objects "
+                "only. Labels, zones, rules, cables, and other infrastructure "
+                "links are hidden."
+            ),
+        }
+    return {
+        "search_placeholder": _(
+            "Search: Device, VM, IP, Prefix, Label, Zone, Rule …"
+        ),
+        "empty_title": _("Select an object to analyze"),
+        "empty_subtitle": _(
+            "Search above and click Analyze — the graph starts with the "
+            "selected object. Use + on nodes to explore links; edge ▾ collapses "
+            "a branch."
+        ),
+        "mode_hint": None,
+    }
+
+
+def _build_analyzer_legend(mode: AnalyzerMode) -> list[dict[str, str]]:
+    items = [
+        {"label": str(_("Device")), "color": "#0d6efd"},
+        {"label": str(_("VM")), "color": "#0891b2"},
+        {"label": str(_("Interface")), "color": "#6c757d"},
+        {"label": str(_("IP")), "color": "#16a34a"},
+        {"label": str(_("Prefix")), "color": "#0d9488"},
+    ]
+    if mode is AnalyzerMode.ALL:
+        items.extend(
+            [
+                {"label": str(_("IP Range")), "color": "#d97706"},
+                {"label": str(_("Label")), "color": "#c026d3"},
+                {"label": str(_("Zone / Rule")), "color": "#dc3545"},
+            ]
+        )
+        return items
+
+    items.extend(
+        [
+            {"label": str(_("IP Range")), "color": "#d97706"},
+            {"label": str(_("NSM Address")), "color": "#64748b"},
+            {"label": str(_("NSM Address Group")), "color": "#78716c"},
+            {"label": str(_("NSM Object Link")), "color": "#475569"},
+        ]
+    )
+    return items
 
 
 class ObjectAnalyzerView(LoginRequiredMixin, View):
@@ -66,6 +156,10 @@ class ObjectAnalyzerView(LoginRequiredMixin, View):
         sel_ct = request.GET.get("ct", "")
         sel_pk = request.GET.get("pk", "")
         sel_name = request.GET.get("name", "")
+        mode = parse_analyzer_mode(request.GET.get("mode", "all"))
+        security_allowed_ct_ids = (
+            get_security_allowed_ct_ids() if mode is AnalyzerMode.SECURITY else None
+        )
 
         # Build search types: NSM configs + extras
         seen_ct_ids: set[int] = set()
@@ -81,6 +175,15 @@ class ObjectAnalyzerView(LoginRequiredMixin, View):
         for config in configs:
             if config.content_type_id in seen_ct_ids:
                 continue
+            if mode is AnalyzerMode.SECURITY:
+                slug = _nsm_config_slug(config)
+                if slug not in SECURITY_NSM_COT_SLUGS:
+                    continue
+                if (
+                    security_allowed_ct_ids is not None
+                    and config.content_type_id not in security_allowed_ct_ids
+                ):
+                    continue
             try:
                 ct = ContentType.objects.get(pk=config.content_type_id)
             except ContentType.DoesNotExist:
@@ -102,10 +205,18 @@ class ObjectAnalyzerView(LoginRequiredMixin, View):
 
         # Extra types (Device, VM, IP, Prefix, Rule, Rulebook)
         for t in _extra_analyzer_types():
+            if mode is AnalyzerMode.SECURITY and t.get("security") is False:
+                continue
             try:
                 app, model = t["ct_key"]
                 ct = ContentType.objects.get(app_label=app, model=model)
                 if ct.pk in seen_ct_ids:
+                    continue
+                if (
+                    mode is AnalyzerMode.SECURITY
+                    and security_allowed_ct_ids is not None
+                    and ct.pk not in security_allowed_ct_ids
+                ):
                     continue
                 # Resolve API URL
                 api_url = t["api_url"]
@@ -120,6 +231,7 @@ class ObjectAnalyzerView(LoginRequiredMixin, View):
             except ContentType.DoesNotExist:
                 pass
 
+        mode_ui = _mode_ui_context(mode)
         return render(
             request,
             self.template_name,
@@ -128,5 +240,8 @@ class ObjectAnalyzerView(LoginRequiredMixin, View):
                 "sel_ct": sel_ct,
                 "sel_pk": sel_pk,
                 "sel_name": sel_name,
+                "sel_mode": mode.value,
+                "legend": _build_analyzer_legend(mode),
+                **mode_ui,
             },
         )

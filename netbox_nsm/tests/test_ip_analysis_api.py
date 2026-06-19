@@ -602,6 +602,25 @@ class IpAnalysisApiTests(SimpleTestCase):
         self.assertEqual(response["Content-Type"], "text/yaml; charset=utf-8")
         self.assertIn('filename="demo-addr-merge.yaml"', response["Content-Disposition"])
         self.assertIn(b"ipa_export_version:", response.content)
+        self.assertIn(b"displayed:", response.content)
         self.assertIn(b"copy_lines:", response.content)
         self.assertIn(b"addr_analysis:", response.content)
         self.assertNotIn(b'"html"', response.content)
+
+    @patch("netbox_nsm.views.ip_analysis_api.execute_ip_analysis_merge")
+    @patch("netbox_nsm.views.ip_analysis_api.parse_selections_from_request")
+    def test_returns_json_error_on_unhandled_exception(
+        self, parse_fn, merge_fn
+    ):
+        parse_fn.return_value = ([], [], [], [], {}, [])
+        merge_fn.side_effect = RuntimeError("boom")
+
+        response = self.view(
+            self._auth_request("/plugins/netbox-nsm/api/ip-analysis/?ct=10&pk=42")
+        )
+
+        self.assertEqual(response.status_code, 500)
+        data = json.loads(response.content)
+        self.assertIn("error", data)
+        self.assertIn("boom", data["error"])
+        self.assertEqual(data.get("detail"), "boom")

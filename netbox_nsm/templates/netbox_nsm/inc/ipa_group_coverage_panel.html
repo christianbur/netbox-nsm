@@ -1,0 +1,22 @@
+{% load i18n %}
+{% if group_coverage.groups %}
+<details class="nsm-ipa-group-coverage mt-1 mb-2">
+  <summary class="nsm-ipa-group-coverage-summary">
+    <span class="fw-semibold">{% trans "Group coverage" %}</span>
+    <span class="badge bg-secondary-subtle text-secondary">Total: {{ group_coverage.summary.total|default:0 }}</span>
+    <span class="badge bg-secondary-subtle text-secondary">Rows: {{ group_coverage.summary.visible|default:0 }}</span>
+    <span class="badge bg-secondary-subtle text-secondary">Merged: {{ group_coverage.summary.membership|default:0 }}</span>
+    {% if group_coverage.summary.missing %}
+    <span class="badge bg-warning-subtle text-warning">Missing: {{ group_coverage.summary.missing }}</span>
+    {% endif %}
+  </summary>
+  <div class="nsm-ipa-group-coverage-list">
+    {% for group in group_coverage.groups %}
+    <span class="nsm-ipa-group-coverage-item nsm-ipa-group-coverage-item--{{ group.state }}" title="{{ group.state_label }}{% if group.anchor_cidr %} · {{ group.anchor_cidr }}{% endif %}{% if group.member_count is not None %} · {{ group.member_count }} members{% endif %}">
+      {% if group.url %}<a href="{{ group.url }}" class="nsm-addr-obj-link" onclick="event.stopPropagation();">{{ group.name }}</a>{% else %}<span>{{ group.name }}</span>{% endif %}
+      <span class="text-muted">({{ group.state_label }}{% if group.anchor_cidr %}, {{ group.anchor_cidr }}{% endif %})</span>
+    </span>
+    {% endfor %}
+  </div>
+</details>
+{% endif %}

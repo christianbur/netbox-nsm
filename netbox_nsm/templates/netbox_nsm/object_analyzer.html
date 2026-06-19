@@ -43,24 +43,94 @@
 .nsm-oa-sel-clear { cursor: pointer; opacity: .6; font-size: .9rem; line-height: 1; }
 .nsm-oa-sel-clear:hover { opacity: 1; }
 
-/* ── Graph Canvas ────────────────────────────────────── */
+/* ── Graph Canvas — full viewport height ─────────────── */
+.page-wrapper:has(#nsm-oa-graph) {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  height: 100dvh;
+  max-height: 100dvh;
+}
+.page-wrapper:has(#nsm-oa-graph) #page-content {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+.page-wrapper:has(#nsm-oa-graph) .page-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  min-height: 0;
+  overflow: hidden;
+}
+.page-wrapper:has(#nsm-oa-graph) .page-body > .container-fluid.tab-content {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  padding-bottom: 0 !important;
+  min-height: 0;
+  overflow: hidden;
+}
+.nsm-oa-layout {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+.nsm-oa-layout > .card,
+.nsm-oa-layout > .nsm-oa-legend {
+  flex-shrink: 0;
+}
 #nsm-oa-graph {
-  height: 700px;
+  flex: 1 1 auto;
+  min-height: 12rem;
+  position: relative;
   border: 1px solid var(--bs-border-color);
   border-radius: .5rem;
   overflow: hidden;
   background: var(--bs-body-bg);
 }
 /* React Flow overrides for dark/light mode */
-.react-flow__background { opacity: 1; }
-.react-flow__controls-button { background: var(--bs-body-bg); border-color: var(--bs-border-color); color: var(--bs-body-color); }
-.react-flow__minimap { border: 1px solid var(--bs-border-color); border-radius: .35rem; overflow: hidden; }
+.nsm-oa-graph-wrap .react-flow { isolation: isolate; }
+.react-flow__background {
+  opacity: 1;
+  z-index: 0;
+}
+.react-flow__controls-button {
+  background: var(--bs-body-bg);
+  border-color: var(--bs-border-color);
+  color: var(--bs-body-color);
+  fill: var(--bs-body-color);
+}
+.react-flow__controls-button:hover {
+  background: var(--tblr-bg-surface-secondary, var(--bs-tertiary-bg, #f1f5f9));
+}
+[data-bs-theme="dark"] .react-flow__controls-button:hover {
+  background: var(--tblr-bg-surface-secondary, #1e2736);
+}
+.react-flow__minimap {
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: .35rem;
+  overflow: hidden;
+}
 .react-flow__node.nsm-oa-node { overflow: visible; }
 .react-flow__edges { z-index: 1; }
 .react-flow__edge-path { stroke-width: 2; }
 .nsm-oa-toggle { touch-action: manipulation; }
 .nsm-oa-toggle-row { display: flex; gap: 4px; align-items: center; justify-content: center; }
-.nsm-oa-graph-wrap { position: relative; width: 100%; height: 100%; }
+.nsm-oa-graph-wrap {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  overflow: hidden;
+}
+.nsm-oa-graph-wrap .react-flow { width: 100%; height: 100%; }
 .nsm-oa-link-picker-backdrop {
   position: absolute; inset: 0; z-index: 30;
   background: rgba(15, 23, 42, .45);
@@ -93,6 +163,54 @@
 }
 .nsm-oa-link-picker-row:hover { background: var(--tblr-bg-surface-secondary, var(--bs-tertiary-bg, #f1f5f9)); }
 .nsm-oa-link-picker-row.depth-1 { padding-left: 1.35rem; }
+.nsm-oa-link-picker-row.depth-2 { padding-left: 2.1rem; }
+.nsm-oa-link-picker-group-head {
+  display: flex; align-items: center; gap: .4rem;
+  width: 100%;
+  padding: .32rem .75rem;
+  font-size: .72rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .03em;
+  color: var(--tblr-secondary-color, var(--bs-secondary-color));
+  user-select: none; text-align: left;
+}
+.nsm-oa-link-picker-group-head:hover {
+  background: var(--tblr-bg-surface-secondary, var(--bs-tertiary-bg, #f1f5f9));
+}
+[data-bs-theme="dark"] .nsm-oa-link-picker-group-head:hover {
+  background: var(--tblr-bg-surface-secondary, #1e2736);
+}
+.nsm-oa-link-picker-group-checkbox {
+  flex-shrink: 0;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--bs-primary);
+}
+.nsm-oa-link-picker-group-toggle {
+  display: flex; align-items: center; gap: .4rem;
+  flex: 1; min-width: 0;
+  padding: 0; border: none; background: transparent;
+  font: inherit;
+  color: inherit;
+  text-transform: inherit; letter-spacing: inherit;
+  cursor: pointer; user-select: none; text-align: left;
+}
+.nsm-oa-link-picker-group-chevron {
+  flex-shrink: 0;
+  font-size: .65rem;
+  width: .85rem;
+  opacity: .75;
+}
+.nsm-oa-link-picker-group-count {
+  flex-shrink: 0;
+  margin-left: auto;
+  font-size: .68rem;
+  font-weight: 600;
+  color: var(--tblr-secondary-color, var(--bs-secondary-color));
+  background: var(--tblr-bg-surface-secondary, var(--bs-tertiary-bg, #f1f5f9));
+  border-radius: 999px;
+  padding: .05rem .45rem;
+  line-height: 1.35;
+}
 .nsm-oa-link-picker-row-label {
   flex: 1;
   min-width: 0;
@@ -118,48 +236,127 @@
 
 .nsm-oa-legend { font-size: .75rem; }
 .nsm-oa-legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; }
+
+/* ── Toolbar / mode selector ─────────────────────────── */
+.nsm-oa-toolbar .form-label {
+  font-size: .72rem;
+  font-weight: 600;
+  letter-spacing: .02em;
+  margin-bottom: .25rem;
+  color: var(--tblr-secondary-color, var(--bs-secondary-color));
+  text-transform: uppercase;
+}
+.nsm-oa-mode-selector.btn-group { flex-wrap: nowrap; }
+.nsm-oa-mode-selector .btn {
+  min-width: 4.75rem;
+  font-size: .78rem;
+  font-weight: 600;
+  padding-inline: .65rem;
+}
+.nsm-oa-mode-selector .btn-check:checked + .btn {
+  z-index: 1;
+}
+.nsm-oa-mode-hint {
+  border-left: 3px solid var(--bs-primary-border-subtle, #cfe2ff);
+  padding-left: .65rem;
+  line-height: 1.45;
+}
+[data-bs-theme="dark"] .nsm-oa-mode-hint {
+  border-left-color: rgba(var(--bs-primary-rgb, 13, 110, 253), .45);
+}
+.nsm-oa-legend-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .35rem 1rem;
+}
+.nsm-oa-legend-item {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  color: var(--tblr-secondary-color, var(--bs-secondary-color));
+}
+.nsm-oa-empty-icon { font-size: 3rem; opacity: .55; }
+.nsm-oa-empty-title { font-size: 1.05rem; font-weight: 600; }
 </style>
 
 {{ api_types|json_script:"nsm-oa-api-types" }}
 
-<div class="container-fluid">
+<div class="container-fluid nsm-oa-layout">
 
   {# ── Search card ─────────────────────────────────────────────── #}
   <div class="card mb-3">
-    <div class="card-header d-flex align-items-center gap-2">
-      <i class="mdi mdi-graph text-primary"></i>
+    <div class="card-header d-flex align-items-center gap-2 py-2">
+      <i class="mdi mdi-graph text-primary" aria-hidden="true"></i>
       <strong>{% trans "Object Analyzer" %}</strong>
-      <span class="text-muted small ms-1">
-        {% trans "Select object · + opens link tree · View shows selection · edge ▾ hides" %}
-      </span>
-
     </div>
     <div class="card-body p-3">
       <form method="get" id="nsm-oa-form">
         <input type="hidden" name="ct" id="nsm-oa-ct" value="{{ sel_ct }}">
         <input type="hidden" name="pk" id="nsm-oa-pk" value="{{ sel_pk }}">
         <input type="hidden" name="name" id="nsm-oa-name" value="{{ sel_name }}">
-        <div class="d-flex gap-2 align-items-start" style="max-width:44rem;">
-          <div class="nsm-oa-wrap flex-grow-1">
-            <input type="text" class="nsm-oa-input" id="nsm-oa-search"
-                   placeholder="{% trans 'Search: Device, VM, IP, Prefix, Label, Zone, Rule …' %}"
-                   autocomplete="off"
-                   value="{% if sel_pk %}{{ sel_name }}{% endif %}">
-            <div class="nsm-oa-drop" id="nsm-oa-drop" hidden></div>
+
+        <div class="row g-2 align-items-end nsm-oa-toolbar">
+          <div class="col-md col-lg">
+            <label for="nsm-oa-search" class="form-label">{% trans "Object" %}</label>
+            <div class="nsm-oa-wrap">
+              <input type="text" class="form-control form-control-sm" id="nsm-oa-search"
+                     placeholder="{{ search_placeholder }}"
+                     autocomplete="off"
+                     value="{% if sel_pk %}{{ sel_name }}{% endif %}">
+              <div class="nsm-oa-drop" id="nsm-oa-drop" hidden></div>
+            </div>
           </div>
-          <button type="submit" class="btn btn-sm btn-primary flex-shrink-0">
-            <i class="mdi mdi-graph-outline"></i> {% trans "Analyze" %}
-          </button>
-          {% if sel_pk %}
-            <button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0" id="nsm-oa-clear">
-              <i class="mdi mdi-close"></i>
-            </button>
-          {% endif %}
+
+          <div class="col-auto">
+            <span class="form-label d-block">{% trans "View" %}</span>
+            <div id="nsm-oa-mode-group"
+                 class="btn-group btn-group-sm nsm-oa-mode-selector flex-shrink-0"
+                 role="group"
+                 aria-label="{% trans 'Analyzer view' %}">
+              <input type="radio" class="btn-check" name="mode" id="nsm-oa-mode-all" value="all"
+                     autocomplete="off"{% if sel_mode != 'security' %} checked{% endif %}>
+              <label class="btn btn-outline-secondary" for="nsm-oa-mode-all">{% trans "All" %}</label>
+              <input type="radio" class="btn-check" name="mode" id="nsm-oa-mode-security" value="security"
+                     autocomplete="off"{% if sel_mode == 'security' %} checked{% endif %}>
+              <label class="btn btn-outline-secondary" for="nsm-oa-mode-security">{% trans "Security" %}</label>
+            </div>
+          </div>
+
+          <div class="col-auto">
+            <span class="form-label d-block" aria-hidden="true">&nbsp;</span>
+            <div class="d-flex gap-2 flex-nowrap">
+              <button type="submit" class="btn btn-sm btn-primary flex-shrink-0">
+                <i class="mdi mdi-graph-outline" aria-hidden="true"></i> {% trans "Analyze" %}
+              </button>
+              {% if sel_pk %}
+                <button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0" id="nsm-oa-clear"
+                        title="{% trans 'Clear selection' %}" aria-label="{% trans 'Clear selection' %}">
+                  <i class="mdi mdi-close" aria-hidden="true"></i>
+                </button>
+              {% endif %}
+            </div>
+          </div>
         </div>
+
+        {% if mode_hint %}
+          <p class="nsm-oa-mode-hint text-muted small mb-0 mt-2">{{ mode_hint }}</p>
+        {% endif %}
+
+        <div class="nsm-oa-legend mt-2 pt-2 border-top" id="nsm-oa-legend">
+          <div class="nsm-oa-legend-row">
+            {% for item in legend %}
+              <span class="nsm-oa-legend-item">
+                <span class="nsm-oa-legend-dot" style="background:{{ item.color }};"></span>{{ item.label }}
+              </span>
+            {% endfor %}
+          </div>
+        </div>
+
         {% if sel_pk %}
-          <div class="mt-2 d-flex align-items-center gap-2">
+          <div class="mt-2 d-flex align-items-center gap-2 flex-wrap">
             <span class="nsm-oa-sel">
-              <i class="mdi mdi-check-circle text-primary"></i>
+              <i class="mdi mdi-check-circle text-primary" aria-hidden="true"></i>
               {{ sel_name }}
             </span>
             <span class="text-muted small">— {% trans "Click a node in the graph to load its connections." %}</span>
@@ -169,29 +366,16 @@
     </div>
   </div>
 
-  {# ── Legend ──────────────────────────────────────────────────── #}
-  <div class="d-flex flex-wrap gap-3 mb-2 nsm-oa-legend">
-    {% for item in legend %}
-      <span><span class="nsm-oa-legend-dot" style="background:{{ item.color }};"></span>{{ item.label }}</span>
-    {% endfor %}
-    <span><span class="nsm-oa-legend-dot" style="background:#0d6efd;"></span>{% trans "Device" %}</span>
-    <span><span class="nsm-oa-legend-dot" style="background:#0891b2;"></span>{% trans "VM" %}</span>
-    <span><span class="nsm-oa-legend-dot" style="background:#6c757d;"></span>{% trans "Interface" %}</span>
-    <span><span class="nsm-oa-legend-dot" style="background:#16a34a;"></span>{% trans "IP" %}</span>
-    <span><span class="nsm-oa-legend-dot" style="background:#0d9488;"></span>{% trans "Prefix" %}</span>
-    <span><span class="nsm-oa-legend-dot" style="background:#c026d3;"></span>{% trans "Label" %}</span>
-    <span><span class="nsm-oa-legend-dot" style="background:#dc3545;"></span>{% trans "Zone / Rule" %}</span>
-  </div>
-
   {# ── Graph ────────────────────────────────────────────────────── #}
   <div id="nsm-oa-graph"
        data-ct="{{ sel_ct }}"
-       data-pk="{{ sel_pk }}">
+       data-pk="{{ sel_pk }}"
+       data-mode="{{ sel_mode }}">
     {% if not sel_pk %}
-      <div class="h-100 d-flex flex-column align-items-center justify-content-center text-muted">
-        <i class="mdi mdi-graph-outline" style="font-size:3rem;"></i>
-        <p class="lead mt-3 mb-1">{% trans "Select object" %}</p>
-        <p class="small">{% trans "Select an object above – the graph starts with this node." %}</p>
+      <div class="h-100 d-flex flex-column align-items-center justify-content-center text-muted px-3 text-center">
+        <i class="mdi mdi-graph-outline nsm-oa-empty-icon" aria-hidden="true"></i>
+        <p class="nsm-oa-empty-title mt-3 mb-1">{{ empty_title }}</p>
+        <p class="small mb-0" style="max-width: 32rem;">{{ empty_subtitle }}</p>
       </div>
     {% endif %}
   </div>
@@ -256,7 +440,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   ReactFlow, ReactFlowProvider, useNodesState, useEdgesState,
-  Background, Controls, MiniMap, MarkerType, Panel,
+  Background, BackgroundVariant, Controls, MiniMap, MarkerType, Panel,
   Handle, Position,
   BaseEdge, EdgeLabelRenderer, getBezierPath,
 } from '@xyflow/react';
@@ -268,6 +452,27 @@ function oaT(key, fallback) {
 function oaTypePlural(nodeType, fallback) {
   const bag = (window.NSM_OA_I18N || {}).typePlural || {};
   return bag[nodeType] != null ? bag[nodeType] : (fallback || nodeType);
+}
+function oaColorMode() {
+  return document.documentElement.getAttribute('data-bs-theme') === 'dark' ? 'dark' : 'light';
+}
+function oaCanvasColors(mode) {
+  const dark = (mode || oaColorMode()) === 'dark';
+  return dark
+    ? { bg: '#0f172a', grid: '#475569' }
+    : { bg: '#f8fafc', grid: '#cbd5e1' };
+}
+function useOaTheme() {
+  const [mode, setMode] = useState(oaColorMode);
+  useEffect(() => {
+    const root = document.documentElement;
+    const sync = () => setMode(oaColorMode());
+    sync();
+    const obs = new MutationObserver(sync);
+    obs.observe(root, { attributes: true, attributeFilter: ['data-bs-theme'] });
+    return () => obs.disconnect();
+  }, []);
+  return { mode, colors: oaCanvasColors(mode) };
 }
 
 /* ─────────── Node styles ─────────────────────────────────────── */
@@ -308,6 +513,15 @@ const _graphCb = {};
 function branchTargetId(parentId, label, count) {
   const slug = label.replace(/[^a-zA-Z0-9_-]/g, '_');
   return count === 1 ? null : `grp:${parentId}:${slug}`;
+}
+
+function rebuildCloudData(cloudId, apiChildrenCache) {
+  if (!cloudId.startsWith('cloud:')) return null;
+  const l1Id = cloudId.slice(6);
+  if (!l1Id) return null;
+  const cached = apiChildrenCache[l1Id];
+  if (!cached || !cached.length) return null;
+  return { children: cached };
 }
 
 function rebuildGroupData(grpId, apiChildrenCache) {
@@ -421,14 +635,19 @@ function treeLayout(allNodes, allEdges, childrenOrderMap) {
   if (!roots.length) roots = [allNodes[0]];
 
   const hCache = {};
-  function subtreeH(id) {
+  function subtreeH(id, visiting) {
+    visiting = visiting || new Set();
     if (hCache[id] !== undefined) return hCache[id];
+    if (visiting.has(id)) return NODE_H;
+    visiting.add(id);
     const kids = (childMap[id] || []).filter(k => nodeIds.has(k));
     if (!kids.length) {
       hCache[id] = NODE_H;
+      visiting.delete(id);
       return hCache[id];
     }
-    hCache[id] = kids.reduce((sum, k, i) => sum + subtreeH(k) + (i ? BRANCH_PAD : 0), 0);
+    hCache[id] = kids.reduce((sum, k, i) => sum + subtreeH(k, visiting) + (i ? BRANCH_PAD : 0), 0);
+    visiting.delete(id);
     return hCache[id];
   }
 
@@ -534,10 +753,76 @@ function assignRootSourceHandles(nodes, edges) {
 }
 
 /* ─────────── Link picker modal ──────────────────────────────── */
-function LinkPickerModal({ picker, onToggle, onToggleAll, onClose, onView }) {
+function LinkPickerModal({ picker, onToggle, onToggleAll, onToggleGroup, onClose, onView }) {
+  const [collapsedGroups, setCollapsedGroups] = React.useState(new Set());
+  React.useEffect(() => { setCollapsedGroups(new Set()); }, [picker?.nodeId]);
+
   if (!picker) return null;
-  const selectable = picker.rows.filter(r => r.kind !== 'all');
+  const selectable = picker.rows.filter(r => r.kind === 'l1');
   const allChecked = selectable.length > 0 && selectable.every(r => picker.checked.has(r.key));
+
+  function toggleGroup(groupKey) {
+    setCollapsedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(groupKey)) next.delete(groupKey);
+      else next.add(groupKey);
+      return next;
+    });
+  }
+
+  function renderRow(row) {
+    if (row.kind === 'group') {
+      const l1Keys = pickerGroupL1Keys(picker.rows, row.groupKey);
+      const checkState = pickerGroupCheckState(picker.checked, l1Keys);
+      const isCollapsed = collapsedGroups.has(row.groupKey);
+      return React.createElement('div', {
+        key: row.key,
+        className: 'nsm-oa-link-picker-group-head nodrag nopan',
+      },
+        React.createElement('input', {
+          type: 'checkbox',
+          className: 'nsm-oa-link-picker-group-checkbox nodrag nopan',
+          checked: checkState === 'all',
+          ref: el => { if (el) el.indeterminate = checkState === 'partial'; },
+          onClick: e => e.stopPropagation(),
+          onChange: e => {
+            e.stopPropagation();
+            onToggleGroup(row.groupKey, e.target.checked);
+          },
+          'aria-label': row.label,
+        }),
+        React.createElement('button', {
+          type: 'button',
+          className: 'nsm-oa-link-picker-group-toggle nodrag nopan',
+          onClick: () => toggleGroup(row.groupKey),
+          'aria-expanded': !isCollapsed,
+        },
+          React.createElement('span', { className: 'nsm-oa-link-picker-group-chevron' }, isCollapsed ? '▸' : '▾'),
+          React.createElement('span', null, row.label),
+          React.createElement('span', { className: 'nsm-oa-link-picker-group-count' }, row.count),
+        ),
+      );
+    }
+    if (row.groupKey && collapsedGroups.has(row.groupKey)) return null;
+    return React.createElement('label', {
+      key: row.key,
+      className: `nsm-oa-link-picker-row depth-${row.depth}`,
+    },
+      React.createElement('input', {
+        type: 'checkbox',
+        checked: row.kind === 'all' ? allChecked : picker.checked.has(row.key),
+        onChange: e => row.kind === 'all' ? onToggleAll(e.target.checked) : onToggle(row.key, e.target.checked),
+      }),
+      React.createElement('span', { className: 'nsm-oa-link-picker-row-label' }, row.label),
+      row.l2Count > 0
+        ? React.createElement('span', {
+            className: 'nsm-oa-link-picker-l2-count',
+            title: oaT('secondaryLinks', 'Secondary links'),
+          }, row.l2Count)
+        : null,
+    );
+  }
+
   return React.createElement('div', {
     className: 'nsm-oa-link-picker-backdrop nodrag nopan',
     onClick: e => { if (e.target === e.currentTarget) onClose(); },
@@ -555,23 +840,12 @@ function LinkPickerModal({ picker, onToggle, onToggleAll, onClose, onView }) {
           ? React.createElement('div', { style: { padding: '1rem .75rem', color: '#64748b' } }, oaT('loadingLinks', 'Loading links…'))
           : picker.error
             ? React.createElement('div', { style: { padding: '1rem .75rem', color: '#dc3545' } }, picker.error)
-            : picker.rows.map(row => React.createElement('label', {
-                key: row.key,
-                className: `nsm-oa-link-picker-row depth-${row.depth}`,
-              },
-              React.createElement('input', {
-                type: 'checkbox',
-                checked: row.kind === 'all' ? allChecked : picker.checked.has(row.key),
-                onChange: e => row.kind === 'all' ? onToggleAll(e.target.checked) : onToggle(row.key, e.target.checked),
-              }),
-              React.createElement('span', { className: 'nsm-oa-link-picker-row-label' }, row.label),
-              row.l2Count > 0
-                ? React.createElement('span', {
-                    className: 'nsm-oa-link-picker-l2-count',
-                    title: oaT('secondaryLinks', 'Secondary links'),
-                  }, row.l2Count)
-                : null,
-            )),
+            : picker.rows.map(renderRow).filter(Boolean),
+        (!picker.loading && !picker.error && picker.l2Loading)
+          ? React.createElement('div', {
+              style: { padding: '.4rem .75rem', color: '#64748b', fontSize: '.72rem' },
+            }, oaT('loadingLinks', 'Loading links…'))
+          : null,
       ),
       React.createElement('div', { className: 'nsm-oa-link-picker-foot' },
         React.createElement('button', { type: 'button', className: 'btn btn-sm btn-outline-secondary', onClick: onClose },
@@ -851,8 +1125,8 @@ function getCsrf() {
 function apiHeaders(extra) {
   return (window.NSM_BRANCH_API && window.NSM_BRANCH_API.mergeBranchHeaders(extra)) || extra;
 }
-async function fetchNodeData(ctId, pk) {
-  const url = `/plugins/netbox-nsm/api/analyzer/?ct=${ctId}&pk=${pk}`;
+async function fetchNodeData(ctId, pk, mode) {
+  const url = `/plugins/netbox-nsm/api/analyzer/?ct=${ctId}&pk=${pk}&mode=${encodeURIComponent(mode || 'all')}`;
   const opts = {
     headers: apiHeaders({ Accept: 'application/json', 'X-CSRFToken': getCsrf() }),
     credentials: 'same-origin',
@@ -864,12 +1138,145 @@ async function fetchNodeData(ctId, pk) {
   return r.json();
 }
 
+/* Batched link-picker tree: one request for L1 (depth=1) or L1+L2 (depth=2),
+   replacing the old 1+N per-child fetch storm. */
+async function fetchPickerTree(ctId, pk, depth, mode) {
+  const url = `/plugins/netbox-nsm/api/analyzer/picker/?ct=${ctId}&pk=${pk}&depth=${depth || 2}&mode=${encodeURIComponent(mode || 'all')}`;
+  const opts = {
+    headers: apiHeaders({ Accept: 'application/json', 'X-CSRFToken': getCsrf() }),
+    credentials: 'same-origin',
+  };
+  const r = (window.NSM_BRANCH_API && window.NSM_BRANCH_API.fetch)
+    ? await window.NSM_BRANCH_API.fetch(url, opts)
+    : await fetch(url, opts);
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+/* normalize a server child payload to the {edge_label,edge_type,node} cache shape */
+function pickerChildCacheShape(list) {
+  return (list || []).map(c => ({ edge_label: c.edge_label, edge_type: c.edge_type, node: c.node }));
+}
+
+function dedupeSortLinks(list) {
+  const seen = new Set();
+  return (list || [])
+    .filter(c => seen.has(c.node.id) ? false : (seen.add(c.node.id), true))
+    .sort((a, b) => `${a.edge_label} ${a.node.label}`.localeCompare(`${b.edge_label} ${b.node.label}`));
+}
+
+/* Canvas edge filter for link picker (mirrors analyzer/picker.py for unit tests). */
+function pickerEdgeKey(source, target) {
+  return `${source}|${target}`;
+}
+function canvasEdgeKeysFromEdges(edges) {
+  return new Set((edges || []).map(e => pickerEdgeKey(e.source, e.target)));
+}
+function pickerEdgeExists(parentId, targetId, edgeKeys) {
+  return edgeKeys.has(pickerEdgeKey(parentId, targetId))
+    || edgeKeys.has(pickerEdgeKey(targetId, parentId));
+}
+function filterPickerChildrenForCanvas(children, parentId, edgeKeys, linkedNeighborIds) {
+  const linked = linkedNeighborIds ? new Set(linkedNeighborIds) : null;
+  return (children || []).filter(c => !pickerEdgeExists(parentId, c.node.id, edgeKeys)).map(c => {
+    if (!Array.isArray(c.l2)) return c;
+    const l1Id = c.node.id;
+    const l2 = c.l2.filter(l2c => {
+      if (pickerEdgeExists(l1Id, l2c.node.id, edgeKeys)) return false;
+      if (linked && linked.has(l2c.node.id)) return false;
+      return true;
+    });
+    return { ...c, l2, l2_count: l2.length };
+  });
+}
+function filterPickerTreeForCanvas(tree, parentId, edgeKeys, linkedNeighborIds) {
+  const neighbors = linkedNeighborIds || tree.linked_neighbor_ids;
+  const children = filterPickerChildrenForCanvas(tree.children || tree, parentId, edgeKeys, neighbors);
+  return { ...tree, children, groups: groupPickerChildrenFromItems(children) };
+}
+function groupPickerChildrenFromItems(children) {
+  const buckets = {};
+  (children || []).forEach(c => {
+    const label = c.edge_label || 'Other';
+    const key = label.toLowerCase().replace(/-/g, '_').replace(/ /g, '_');
+    if (!buckets[key]) buckets[key] = { key, label, items: [] };
+    buckets[key].items.push(c);
+  });
+  const groups = Object.values(buckets);
+  groups.forEach(g => {
+    g.items.sort((a, b) => String(a.node?.label || '').localeCompare(String(b.node?.label || ''), undefined, { sensitivity: 'base' }));
+  });
+  groups.sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+  return groups;
+}
+
+function pickerL1Row(c, groupKey, grouped) {
+  const hasL2 = Array.isArray(c.l2);
+  const l2 = hasL2 ? dedupeSortLinks(c.l2) : null;
+  return {
+    key: `l1:${c.node.id}`,
+    depth: grouped ? 2 : 1,
+    kind: 'l1',
+    groupKey: groupKey || null,
+    label: grouped ? c.node.label : `${c.edge_label} · ${c.node.label}`,
+    item: c,
+    l1Item: c,
+    l2Count: l2 ? l2.length : null,
+    l2Items: l2,
+    l2Pending: !hasL2,
+    useCloud: l2 ? l2.length > L2_CLOUD_THRESHOLD : false,
+  };
+}
+
+/* Build picker rows from server groups (preferred) or flat children array. When
+   children carry `l2` (depth=2) the rows get secondary-link counts + items;
+   otherwise the rows are rendered immediately with L2 marked pending. */
+function buildPickerRows(children, groups) {
+  const rows = [{ key: '__all__', depth: 0, kind: 'all', label: oaT('allOption', '-- all --') }];
+  if (groups && groups.length) {
+    groups.forEach(g => {
+      const items = dedupeSortLinks(g.items);
+      rows.push({
+        key: `grp:${g.key}`,
+        depth: 0,
+        kind: 'group',
+        groupKey: g.key,
+        label: g.label,
+        count: items.length,
+      });
+      items.forEach(c => rows.push(pickerL1Row(c, g.key, true)));
+    });
+    return rows;
+  }
+  dedupeSortLinks(children).forEach(c => rows.push(pickerL1Row(c, null, false)));
+  return rows;
+}
+
+/* Group / all-row selection helpers (mirrors analyzer/picker.py for unit tests). */
+function pickerGroupL1Keys(rows, groupKey) {
+  return rows.filter(r => r.kind === 'l1' && r.groupKey === groupKey).map(r => r.key);
+}
+function pickerGroupCheckState(checked, l1Keys) {
+  if (!l1Keys.length) return 'none';
+  const n = l1Keys.filter(k => checked.has(k)).length;
+  if (n === 0) return 'none';
+  if (n === l1Keys.length) return 'all';
+  return 'partial';
+}
+function pickerSyncAllCheckbox(checked, rows) {
+  const selectable = rows.filter(r => r.kind === 'l1');
+  if (selectable.length && selectable.every(r => checked.has(r.key))) checked.add('__all__');
+  else checked.delete('__all__');
+  return checked;
+}
+
 /* ─────────── Main App ────────────────────────────────────────── */
-function App({ initialCt, initialPk }) {
+function App({ initialCt, initialPk, analyzerMode }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [status, setStatus] = useState('');
   const [linkPicker, setLinkPicker] = useState(null);
+  const { mode: oaThemeMode, colors: oaCanvas } = useOaTheme();
 
   /* stable refs */
   const rfInstanceRef  = useRef(null);
@@ -886,6 +1293,8 @@ function App({ initialCt, initialPk }) {
   const applyChildrenRef = useRef(null);
   const openLinkPickerRef = useRef(null);
   const applyLinkPickerRef = useRef(null);
+  const pickerL2PromiseRef = useRef(null);  /* in-flight depth=2 fetch for open picker */
+  const pickerRowsRef      = useRef(null);  /* latest rows for the open picker */
 
   /* stable callbacks passed into node data */
   const stableExpand   = useCallback((id) => expandFnRef.current?.(id),  []);
@@ -901,9 +1310,12 @@ function App({ initialCt, initialPk }) {
 
   /* ── Collapse edge (per-connection) ──────────────────────── */
   const collapseEdge = useCallback((sourceId, targetId) => {
-    function getAllDescendants(id) {
+    function getAllDescendants(id, visited) {
+      visited = visited || new Set();
+      if (visited.has(id)) return [];
+      visited.add(id);
       const kids = childrenMapRef.current[id] || [];
-      return kids.flatMap(k => [k, ...getAllDescendants(k)]);
+      return kids.flatMap(k => [k, ...getAllDescendants(k, visited)]);
     }
     /* gone = target + all its descendants */
     const gone = new Set([targetId, ...getAllDescendants(targetId)]);
@@ -1060,8 +1472,10 @@ function App({ initialCt, initialPk }) {
     const newEdges = [];
     const directKids = [...(childrenMapRef.current[nodeId] || [])];
 
+    const canvasIds = new Set(existingIds);
     items.forEach(c => {
       const cid = c.node.id;
+      if (canvasIds.has(cid)) return;
       if (!existingIds.has(cid)) {
         newNodes.push(mkNodeFromApiChild(c));
         existingIds.add(cid);
@@ -1079,67 +1493,14 @@ function App({ initialCt, initialPk }) {
     syncParentExpanded(nodeId);
   }
 
-  async function buildLinkPickerTree(nodeId, ctId, objectId) {
-    let children = apiChildrenCacheRef.current[nodeId];
-    if (!children && ctId && objectId) {
-      const data = await fetchNodeData(ctId, objectId);
-      children = data.children || [];
-      apiChildrenCacheRef.current[nodeId] = children;
-    }
-    children = children || [];
-    const seen = new Set();
-    const l1Items = children.filter(c => seen.has(c.node.id) ? false : (seen.add(c.node.id), true));
-    l1Items.sort((a, b) => {
-      const la = `${a.edge_label} ${a.node.label}`;
-      const lb = `${b.edge_label} ${b.node.label}`;
-      return la.localeCompare(lb);
-    });
-
-    const l2ByL1 = await Promise.all(l1Items.map(async (c) => {
-      if (!c.node.ct_id || !c.node.object_id) return { l1: c, l2: [] };
-      let l2Children = apiChildrenCacheRef.current[c.node.id];
-      if (!l2Children) {
-        try {
-          const d = await fetchNodeData(c.node.ct_id, c.node.object_id);
-          l2Children = d.children || [];
-          apiChildrenCacheRef.current[c.node.id] = l2Children;
-        } catch (_) {
-          l2Children = [];
-        }
-      }
-      const seen2 = new Set();
-      const l2 = l2Children
-        .filter(c2 => seen2.has(c2.node.id) ? false : (seen2.add(c2.node.id), true))
-        .sort((a, b) => `${a.edge_label} ${a.node.label}`.localeCompare(`${b.edge_label} ${b.node.label}`));
-      return { l1: c, l2 };
-    }));
-
-    const rows = [{
-      key: '__all__',
-      depth: 0,
-      kind: 'all',
-      label: oaT('allOption', '-- all --'),
-    }];
-
-    l2ByL1.forEach(({ l1: c, l2 }) => {
-      rows.push({
-        key: `l1:${c.node.id}`,
-        depth: 1,
-        kind: 'l1',
-        label: `${c.edge_label} · ${c.node.label}`,
-        item: c,
-        l1Item: c,
-        l2Count: l2.length,
-        l2Items: l2,
-        useCloud: l2.length > L2_CLOUD_THRESHOLD,
-      });
-    });
-    return rows;
-  }
-
   const openLinkPicker = useCallback(async (nodeId) => {
     const rfNode = rfInstanceRef.current?.getNode(nodeId);
     if (!rfNode || rfNode.data.loading) return;
+    const ctId = rfNode.data.ctId;
+    const objectId = rfNode.data.objectId;
+
+    pickerL2PromiseRef.current = null;
+    pickerRowsRef.current = null;
 
     setLinkPicker({
       nodeId,
@@ -1150,32 +1511,76 @@ function App({ initialCt, initialPk }) {
       error: null,
     });
 
+    const edgeKeys = canvasEdgeKeysFromEdges(rfInstanceRef.current?.getEdges());
+
+    /* group/cloud nodes have no backing object → use cached children only */
+    if (!ctId || !objectId) {
+      const cached = filterPickerChildrenForCanvas(
+        apiChildrenCacheRef.current[nodeId] || [], nodeId, edgeKeys, null,
+      );
+      const rows = buildPickerRows(cached);
+      pickerRowsRef.current = rows;
+      setLinkPicker({
+        nodeId, nodeLabel: rfNode.data.label, rows,
+        checked: new Set(), loading: false,
+        error: rows.length <= 1 ? oaT('noResults', 'No results') : null,
+      });
+      return;
+    }
+
     try {
-      if (!apiChildrenCacheRef.current[nodeId] && rfNode.data.ctId && rfNode.data.objectId) {
-        setNodes(ns => ns.map(n => n.id === nodeId
-          ? { ...n, data: { ...n.data, loading: true } }
-          : n));
-      }
-      const rows = await buildLinkPickerTree(nodeId, rfNode.data.ctId, rfNode.data.objectId);
-      const childCount = (apiChildrenCacheRef.current[nodeId] || []).length;
+      /* ── Phase 1: direct links only (depth=1) → fast first paint ── */
+      const d1raw = await fetchPickerTree(ctId, objectId, 1, analyzerMode);
+      const d1 = filterPickerTreeForCanvas(d1raw, nodeId, edgeKeys);
+      const l1children = pickerChildCacheShape(d1.children);
+      apiChildrenCacheRef.current[nodeId] = l1children;
+      const rows1 = buildPickerRows(d1.children || [], d1.groups);
+      pickerRowsRef.current = rows1;
+
       setNodes(ns => ns.map(n => n.id === nodeId
         ? {
             ...n,
             data: {
               ...n.data,
               loading: false,
-              childCount,
+              childCount: l1children.length,
               hasHiddenBranches: buildBranchCatalog(nodeId).some(b => !b.visible),
             },
           }
         : n));
+
+      const hasL1 = rows1.length > 1;
       setLinkPicker({
         nodeId,
         nodeLabel: rfNode.data.label,
-        rows,
+        rows: rows1,
         checked: new Set(),
         loading: false,
-        error: rows.length <= 1 ? oaT('noResults', 'No results') : null,
+        l2Loading: hasL1,
+        error: hasL1 ? null : oaT('noResults', 'No results'),
+      });
+      if (!hasL1) { pickerL2PromiseRef.current = null; return; }
+
+      /* ── Phase 2: secondary links (depth=2) → fill badges + expansion ── */
+      const p = (async () => {
+        const d2raw = await fetchPickerTree(ctId, objectId, 2, analyzerMode);
+        const d2 = filterPickerTreeForCanvas(d2raw, nodeId, edgeKeys);
+        (d2.children || []).forEach(c => {
+          apiChildrenCacheRef.current[c.node.id] = pickerChildCacheShape(c.l2);
+        });
+        const rows2 = buildPickerRows(d2.children || [], d2.groups);
+        pickerRowsRef.current = rows2;
+        setLinkPicker(prev => (prev && prev.nodeId === nodeId)
+          ? { ...prev, rows: rows2, l2Loading: false }
+          : prev);
+        return rows2;
+      })();
+      pickerL2PromiseRef.current = p;
+      p.catch(() => {
+        /* L2 failed: keep L1 usable, just clear the loading flag */
+        setLinkPicker(prev => (prev && prev.nodeId === nodeId)
+          ? { ...prev, l2Loading: false }
+          : prev);
       });
     } catch (e) {
       setStatus(oaT('errorPrefix', 'Error:') + ' ' + e.message);
@@ -1196,6 +1601,7 @@ function App({ initialCt, initialPk }) {
     const l1Needed = rows.filter(r => r.kind === 'l1' && keys.has(r.key));
 
     const existingIds = new Set((rfInstanceRef.current?.getNodes() || []).map(n => n.id));
+    const canvasIds = new Set(existingIds);
     const existingEdges = new Set((rfInstanceRef.current?.getEdges() || []).map(e => `${e.source}|${e.target}`));
     const newNodes = [];
     const newEdges = [];
@@ -1210,10 +1616,10 @@ function App({ initialCt, initialPk }) {
     }
     function ensureEdge(src, tgt, label) {
       const ek = `${src}|${tgt}`;
-      if (!existingEdges.has(ek)) {
-        newEdges.push(mkEdge(`e-${src}-${tgt}`, src, tgt, label));
-        existingEdges.add(ek);
-      }
+      if (existingEdges.has(ek)) return;
+      if (canvasIds.has(tgt)) return;
+      newEdges.push(mkEdge(`e-${src}-${tgt}`, src, tgt, label));
+      existingEdges.add(ek);
     }
 
     l1Needed.forEach(r => {
@@ -1259,9 +1665,12 @@ function App({ initialCt, initialPk }) {
       return;
     }
     /* Phase 1: collect all descendants WITHOUT touching refs yet */
-    function getAllDescendants(id) {
+    function getAllDescendants(id, visited) {
+      visited = visited || new Set();
+      if (visited.has(id)) return [];
+      visited.add(id);
       const kids = childrenMapRef.current[id] || [];
-      return kids.flatMap(k => [k, ...getAllDescendants(k)]);
+      return kids.flatMap(k => [k, ...getAllDescendants(k, visited)]);
     }
     const gone = new Set(getAllDescendants(nodeId));
 
@@ -1409,9 +1818,13 @@ function App({ initialCt, initialPk }) {
     if (expandedRef.current.has(nodeId)) expandedRef.current.delete(nodeId);
     expandedRef.current.add(nodeId);
 
-    /* group node → place all children directly (no re-grouping) */
+    /* group/cloud node → place all children directly (no re-grouping) */
     if (!groupDataRef.current[nodeId] && nodeId.startsWith('grp:')) {
       const rebuilt = rebuildGroupData(nodeId, apiChildrenCacheRef.current);
+      if (rebuilt) groupDataRef.current[nodeId] = rebuilt;
+    }
+    if (!groupDataRef.current[nodeId] && nodeId.startsWith('cloud:')) {
+      const rebuilt = rebuildCloudData(nodeId, apiChildrenCacheRef.current);
       if (rebuilt) groupDataRef.current[nodeId] = rebuilt;
     }
     if (groupDataRef.current[nodeId]) {
@@ -1419,12 +1832,14 @@ function App({ initialCt, initialPk }) {
       const seenIds = new Set();
       const unique = gd.children.filter(c => seenIds.has(c.node.id) ? false : (seenIds.add(c.node.id), true));
       const existingIds = new Set((rfInstanceRef.current?.getNodes() || []).map(n => n.id));
+      const canvasIds = new Set(existingIds);
       const existingEdges = new Set((rfInstanceRef.current?.getEdges() || []).map(e => `${e.source}|${e.target}`));
       const newNodes = [];
       const newEdges = [];
       const directKids = [];
       unique.forEach(c => {
         const cid = c.node.id;
+        if (canvasIds.has(cid)) return;
         if (!existingIds.has(cid)) {
           newNodes.push(mkNodeFromApiChild(c));
           existingIds.add(cid);
@@ -1439,7 +1854,7 @@ function App({ initialCt, initialPk }) {
       childrenMapRef.current[nodeId] = directKids;
       runTreeLayoutPatch(nodeId, newNodes, newEdges);
       setNodes(ns => ns.map(n => n.id === nodeId
-        ? { ...n, data: { ...n.data, expanded: true } }
+        ? { ...n, data: { ...n.data, expanded: true, childCount: directKids.length || gd.children.length } }
         : n));
       return;
     }
@@ -1482,7 +1897,7 @@ function App({ initialCt, initialPk }) {
       label: '…', nodeType: 'object', ctId: initialCt, objectId: initialPk,
       url: '#', loading: true, expanded: false,
     })]);
-    fetchNodeData(initialCt, initialPk)
+    fetchNodeData(initialCt, initialPk, analyzerMode)
       .then(d => {
         const children = d.children || [];
         apiChildrenCacheRef.current[rootId] = children;
@@ -1496,7 +1911,7 @@ function App({ initialCt, initialPk }) {
         setTimeout(() => rfInstanceRef.current?.fitView({ duration: 300, padding: 0.25 }), 80);
       })
       .catch(e => setStatus('Fehler: ' + e.message));
-  }, [initialCt, initialPk]);
+  }, [initialCt, initialPk, analyzerMode]);
 
   /* auto-initialize when component mounts */
   useEffect(() => { const t = setTimeout(() => resetGraph(), 50); return () => clearTimeout(t); }, [resetGraph]);
@@ -1532,9 +1947,7 @@ function App({ initialCt, initialPk }) {
       if (!prev) return prev;
       const next = new Set(prev.checked);
       if (on) next.add(key); else next.delete(key);
-      const selectable = prev.rows.filter(r => r.kind !== 'all');
-      if (selectable.length && selectable.every(r => next.has(r.key))) next.add('__all__');
-      else next.delete('__all__');
+      pickerSyncAllCheckbox(next, prev.rows);
       return { ...prev, checked: next };
     });
   }, []);
@@ -1544,9 +1957,20 @@ function App({ initialCt, initialPk }) {
       if (!prev) return prev;
       const next = new Set();
       if (on) {
-        prev.rows.forEach(r => { if (r.kind !== 'all') next.add(r.key); });
+        prev.rows.forEach(r => { if (r.kind === 'l1') next.add(r.key); });
         next.add('__all__');
       }
+      return { ...prev, checked: next };
+    });
+  }, []);
+
+  const togglePickerGroup = useCallback((groupKey, on) => {
+    setLinkPicker(prev => {
+      if (!prev) return prev;
+      const l1Keys = pickerGroupL1Keys(prev.rows, groupKey);
+      const next = new Set(prev.checked);
+      l1Keys.forEach(key => { if (on) next.add(key); else next.delete(key); });
+      pickerSyncAllCheckbox(next, prev.rows);
       return { ...prev, checked: next };
     });
   }, []);
@@ -1557,6 +1981,7 @@ function App({ initialCt, initialPk }) {
       nodeTypes, edgeTypes,
       onInit: (rfi) => { rfInstanceRef.current = rfi; },
       onNodeClick,
+      colorMode: oaThemeMode,
       fitView: true, minZoom: 0.1, maxZoom: 3,
       nodesDraggable: true, nodesConnectable: false,
       noDragClassName: 'nodrag',
@@ -1564,7 +1989,14 @@ function App({ initialCt, initialPk }) {
       nodeClickDistance: 8,
       style: { width: '100%', height: '100%' },
     },
-      React.createElement(Background, { gap: 18, size: 1, color: '#cbd5e1' }),
+      React.createElement(Background, {
+        id: 'nsm-oa-grid',
+        variant: BackgroundVariant.Dots,
+        gap: 18,
+        size: 2,
+        color: oaCanvas.grid,
+        bgColor: oaCanvas.bg,
+      }),
       React.createElement(Controls),
       React.createElement(MiniMap, {
         nodeColor: n => (NS[n.data?.nodeType] || NS.object).color,
@@ -1580,10 +2012,22 @@ function App({ initialCt, initialPk }) {
       picker: linkPicker,
       onToggle: togglePickerRow,
       onToggleAll: togglePickerAll,
+      onToggleGroup: togglePickerGroup,
       onClose: () => setLinkPicker(null),
       onView: () => {
         if (!linkPicker) return;
-        applyLinkPickerRef.current?.(linkPicker.nodeId, linkPicker.rows, linkPicker.checked);
+        const nodeId = linkPicker.nodeId;
+        const checked = linkPicker.checked;
+        const apply = (rows) => applyLinkPickerRef.current?.(
+          nodeId, rows || pickerRowsRef.current || linkPicker.rows, checked);
+        const pending = pickerL2PromiseRef.current;
+        if (pending) {
+          /* secondary links still loading → wait so selected L1 get their L2 */
+          setLinkPicker(prev => prev ? { ...prev, l2Loading: true } : prev);
+          pending.then(apply).catch(() => apply(null));
+        } else {
+          apply(null);
+        }
       },
     }),
   );
@@ -1600,7 +2044,8 @@ const graphEl = document.getElementById('nsm-oa-graph');
 if (graphEl && graphEl.dataset.pk) {
   const ct = parseInt(graphEl.dataset.ct);
   const pk = parseInt(graphEl.dataset.pk);
-  createRoot(graphEl).render(React.createElement(ObjectAnalyzerRoot, { initialCt: ct, initialPk: pk }));
+  const analyzerMode = graphEl.dataset.mode === 'security' ? 'security' : 'all';
+  createRoot(graphEl).render(React.createElement(ObjectAnalyzerRoot, { initialCt: ct, initialPk: pk, analyzerMode }));
 }
 </script>
 
@@ -1678,6 +2123,40 @@ if (graphEl && graphEl.dataset.pk) {
     if(e.key==='Enter'){e.preventDefault();var f=dropEl.querySelector('.nsm-oa-drop-item');if(f)f.click();}
   });
   if (clearEl) clearEl.addEventListener('click', function(){ctEl.value='';pkEl.value='';nameEl.value='';formEl.submit();});
+
+  /* Mode persistence: URL wins; otherwise restore from localStorage */
+  var modeGroup = document.getElementById('nsm-oa-mode-group');
+  var modeRadios = modeGroup ? modeGroup.querySelectorAll('input[name="mode"]') : [];
+  if (modeRadios.length) {
+    var params = new URLSearchParams(window.location.search);
+    var storageKey = 'nsm_oa_mode';
+    var activeMode = 'all';
+
+    if (params.has('mode')) {
+      activeMode = params.get('mode') === 'security' ? 'security' : 'all';
+      try { localStorage.setItem(storageKey, activeMode); } catch (_) {}
+    } else {
+      try {
+        var stored = localStorage.getItem(storageKey);
+        if (stored === 'security' || stored === 'all') {
+          activeMode = stored;
+        }
+      } catch (_) {}
+    }
+
+    modeRadios.forEach(function(radio) {
+      radio.checked = radio.value === activeMode;
+      radio.addEventListener('change', function() {
+        if (!radio.checked) return;
+        try { localStorage.setItem(storageKey, radio.value); } catch (_) {}
+        formEl.submit();
+      });
+    });
+
+    if (!params.has('mode') && activeMode === 'security') {
+      formEl.submit();
+    }
+  }
 })();
 
 </script>

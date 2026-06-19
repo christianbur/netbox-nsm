@@ -10,6 +10,7 @@ Starter-Demo (250×250 Zonen-Matrix, portable-schema YAML — nur Zonen, zufäll
 Address Bench (50.000 Adressen, Setup mit Bestätigung im UI)::
 
     # Setup → „Address Bench (50.000 Adressen)“
+    # Enthält Overlap-Bucket (~7,5 %): Aliase, dup-name-Peers, /20+/16-Parents, bench-grp-ovlp-*.
     # RQ-Worker muss laufen (netbox-dev-worker). Volllauf 200k nur per CLI:
     # scripts/create_addresses_million_scale.py
 

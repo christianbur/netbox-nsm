@@ -58,15 +58,17 @@ Legacy `netbox_nsm.*_typeconfig` and `view_rulebook` / `add_rulebook` permission
 
 Per-type behaviour: `nsm_config` in COT `comments` or **Security → Object Config**.
 
-## Security panel & links
+## Security tab & links
 
-On supported NetBox objects (prefix, IP, device, VM, interface, …):
+On supported NetBox objects (prefix, IP, device, VM, interface, …), the **Security** tab lists linked objects:
 
 1. **+ Assign** — link an NSM object (zone, service, …)
 2. **Link type:** direct, inherit to IPAM children, inherit to group members
 3. **Reverse view** — from an NSM object, all linked hosts and rulebook references
 
-Rule columns and the panel share the same **object config** entries — no separate zone model per product.
+Linked objects render in a NetBox-style `object-list` table (sortable **Name**, paginator). They are grouped into **object-type tabs** (e.g. *COT Aktion*, *Prefix*) with count badges; within a tab, **value pills** (e.g. *Permit* / *Deny*) sub-filter by the object's value. Pagination is server-side, so tabs with 50k+ links load one page at a time. Tab, value, sort, and page selections are kept in the URL (`nsm_lt`, `nsm_lv`, `nsm_lo`, `nsm_lp`, `nsm_pp`).
+
+Rule columns and the tab share the same **object config** entries — no separate zone model per product.
 
 ### Custom object types
 
@@ -87,13 +89,23 @@ Deployed COT rulebooks: `/plugins/netbox-nsm/rulebooks/cot/<slug>/rules/`
 
 ## IP Analysis
 
-- **Panel:** loupe on analyzable objects
-- **URL:** `/plugins/netbox-nsm/ip-analysis/`
-- **API:** `GET/POST /api/plugins/netbox-nsm/ip-analysis/`
+- **Applet:** loupe on analyzable objects in rule detail views (merge/diff address trees)
+- **Legacy URL:** `/plugins/netbox-nsm/ip-analysis/` redirects to Object Analyzer
+- **UI API:** `GET /plugins/netbox-nsm/api/ip-analysis/` (HTML fragments for the applet)
+- **REST API:** `GET/POST /api/plugins/netbox-nsm/ip-analysis/` (JSON)
 
 ## Object Analyzer
 
 **Security → Analysis → Object Analyzer** — xyflow graph from object to links and rulebooks.
+
+## Object Report
+
+**Security → Configuration → Object Report** — a daily background job audits the NSM
+address layer (`nsm_address` / `nsm_address_group`): status vs. linked IPAM status, IPAM
+duplicates, orphans, multi-group / empty / single-member / similar groups, deprecated
+objects. The latest run is viewable; **Run now** enqueues a fresh run (requires an RQ
+worker). Findings export as TOML (`?export=toml`). Sample lists are paginated client-side
+(50 per page). Details: [object_report.md](object_report.md).
 
 ## REST API
 
@@ -126,6 +138,11 @@ PLUGINS_CONFIG = {
         "assignments_menu": False,
         "menu_label": "Security",
         "panel_label": "Security",
+        # Optional Jinja2 naming (see docs/address_name_templates.md)
+        "address_name_templates": [
+            {"template": "h-{ipam>ip}", "match": "host"},
+            {"template": "n-{ipam>prefix>network}-{ipam>prefix>cidr}", "match": "prefix"},
+        ],
     },
 }
 ```
@@ -136,7 +153,7 @@ Restart NetBox after changes.
 
 ```
 Security
-├── Configuration → Setup, Object Config
+├── Configuration → Setup, Object Config, Object Report
 ├── Rulebooks
 └── Analysis → Object Analyzer
 
@@ -147,4 +164,5 @@ Custom Objects → NSM (Zones, Addresses, …)
 
 - [DATABASE.md](DATABASE.md) — tables
 - [RULE_DATA_STORAGE.md](RULE_DATA_STORAGE.md) — storage layers
+- [object_report.md](object_report.md) — daily object report
 - [ARCHITECTURE.md](../ARCHITECTURE.md) — code

@@ -147,6 +147,69 @@ class AddrDiffAnalysisTests(SimpleTestCase):
         "netbox_nsm.analysis.addr_analysis_utils._object_supports_addr_analysis",
         return_value=True,
     )
+    def test_build_addr_diff_analysis_rolls_up_only_side_prefix(
+        self, _supports, build_nodes_fn
+    ):
+        host_leaves = [
+            {
+                "kind": "leaf",
+                "name": f"host-{i}",
+                "url": f"#ip{i}",
+                "ip_ref": {"str": f"10.129.170.{i}/32", "url": f"#ip{i}"},
+                "children": [],
+            }
+            for i in (1, 2, 3)
+        ]
+        prefix = {
+            "kind": "group",
+            "name": "net-left",
+            "url": "#prefix-a",
+            "ip_ref": {
+                "str": "10.129.170.0/24",
+                "url": "#prefix-a",
+                "type": "Prefix",
+                "ct": 11,
+                "pk": 170,
+            },
+            "prefix_display_cidr": "10.129.170.0/24",
+            "children": [
+                {
+                    "kind": "category",
+                    "name": "IP Addresses",
+                    "count": 3,
+                    "children": host_leaves,
+                }
+            ],
+        }
+        build_nodes_fn.side_effect = [([prefix], []), ([], [])]
+
+        result = _build_addr_diff_analysis(
+            [MagicMock()],
+            [MagicMock()],
+            label_a="Rule 1/5",
+            label_b="Rule 3/7",
+        )
+
+        only_group = next(
+            g for g in result[0]["types"][0]["nodes"] if g["diff_group"] == "only-a"
+        )
+        self.assertEqual(only_group["diff_label"], "Rule 1/5")
+        self.assertEqual(len(only_group["children"]), 1)
+        prefix_node = only_group["children"][0]
+        self.assertTrue(prefix_node.get("diff_ipam_hierarchy_prefix"))
+        self.assertEqual(
+            (prefix_node.get("ip_ref") or {}).get("str"), "10.129.170.0/24"
+        )
+        self.assertEqual(len(prefix_node.get("children") or []), 3)
+        for child in prefix_node["children"]:
+            self.assertEqual(child.get("diff_status"), "only_a")
+            self.assertEqual(child.get("diff_label"), "Rule 1/5")
+
+    @patch("netbox_nsm.analysis.addr_analysis_utils._build_addr_tree_nodes")
+    @patch(
+        "netbox_nsm.analysis.addr_analysis_utils._object_supports_addr_analysis",
+        return_value=True,
+    )
     def test_build_addr_diff_analysis_three_tabs_partitions_leaves(
         self, _supports, build_nodes_fn
     ):
@@ -396,7 +459,7 @@ class AddrDiffAnalysisTests(SimpleTestCase):
         self.assertIn("Subnets: 1", all_block)
         self.assertIn("IPs: 200", all_block)
         self.assertIn("In both: 200", all_block)
-        self.assertIn("Fund: 3", all_block)
+        self.assertIn("Name conflict: 3", all_block)
         self.assertIn("nsm-addr-diff-in-both", all_block)
         self.assertIn("bg-warning-subtle text-warning", all_block)
 
@@ -1196,7 +1259,7 @@ class AddrDiffAnalysisTests(SimpleTestCase):
         )
         self.assertIn("nsm-addr-diff-fund-row", html)
         self.assertIn("nsm-addr-fund", html)
-        self.assertIn("Fund", html)
+        self.assertIn("Name conflict", html)
         self.assertIn("nsm-addr-diff-leaf--fund", html)
         self.assertIn("nsm-addr-diff-fund-network", html)
         self.assertIn("10.1.1.1/32", html)
@@ -1236,7 +1299,49 @@ class AddrDiffAnalysisTests(SimpleTestCase):
         self.assertNotIn("nsm-addr-ip", html)
         self.assertNotIn("→", html)
 
-    def test_addr_intersection_flat_node_renders_diff_fund_row(self):
+    def test_diff_mode_build_ip_analysis_payload_includes_object_tree(self):
+        from netbox_nsm.analysis.ip_analysis_service import build_ip_analysis_payload
+
+        addr_analysis = [
+            {
+                "field_slug": "diff",
+                "types": [
+                    {
+                        "nodes": [
+                            {
+                                "kind": "group",
+                                "name": "Only in A",
+                                "url": "#",
+                                "diff_group": "only-a",
+                                "children": [
+                                    {
+                                        "kind": "leaf",
+                                        "name": "host-a",
+                                        "url": "#",
+                                        "ip_ref": {"str": "10.0.0.1/32", "url": "#"},
+                                        "prefix_display_cidr": "10.0.0.1/32",
+                                        "diff_status": "only_a",
+                                        "children": [],
+                                    }
+                                ],
+                            }
+                        ],
+                        "leaf_count": 1,
+                    }
+                ],
+            }
+        ]
+        payload = build_ip_analysis_payload(
+            addr_analysis=addr_analysis,
+            selections=[],
+            unsupported=[],
+            mode="diff",
+            include_structured_data=True,
+        )
+        self.assertTrue(payload.get("object_tree"))
+        self.assertEqual(len(payload["object_tree"]), 1)
+        self.assertEqual(payload["object_tree"][0]["diff_group"], "only-a")
+
         from django.template.loader import render_to_string
 
         html = render_to_string(

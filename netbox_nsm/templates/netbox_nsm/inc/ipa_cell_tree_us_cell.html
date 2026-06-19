@@ -1,0 +1,8 @@
+{% load i18n %}
+{% if node.leaf_count and not node.ipam_stats and not node.ipa_drilldown_meta %}<span class="badge bg-secondary-subtle text-secondary nsm-addr-count" title="{% trans 'Resolved paths in tree preview' %}">{{ node.leaf_count }}</span>{% endif %}
+{% for ref in node.related_refs %}
+<span class="nsm-addr-related">
+  <span class="text-muted">{{ ref.label }}:</span>
+  <a href="{{ ref.url }}">{{ ref.name }}</a>
+</span>
+{% endfor %}

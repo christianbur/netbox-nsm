@@ -66,9 +66,28 @@ def _ipa_object_node_role_from_cidr_hint(cidr) -> str | None:
         net = ipaddress.ip_network(text, strict=False)
     except ValueError:
         return None
-    if net.version != 4:
+    return (
+        IPA_NODE_ROLE_HOST
+        if net.prefixlen == net.max_prefixlen
+        else IPA_NODE_ROLE_PREFIX
+    )
+
+
+def _ipa_object_node_role_from_ipam_obj(ipam_obj) -> str | None:
+    """Map a resolved NetBox IPAM ORM object to an inventory role."""
+    if ipam_obj is None:
         return None
-    return IPA_NODE_ROLE_HOST if net.prefixlen == 32 else IPA_NODE_ROLE_PREFIX
+    try:
+        from ipam.models import IPAddress, IPRange, Prefix
+    except ImportError:
+        return None
+    if isinstance(ipam_obj, Prefix):
+        return IPA_NODE_ROLE_PREFIX
+    if isinstance(ipam_obj, IPRange):
+        return IPA_NODE_ROLE_RANGE
+    if isinstance(ipam_obj, IPAddress):
+        return IPA_NODE_ROLE_HOST
+    return None
 
 
 def _ipa_object_node_role_from_ip_ref(ip_ref) -> str | None:
@@ -82,8 +101,12 @@ def _ipa_object_node_role_from_ip_ref(ip_ref) -> str | None:
         return IPA_NODE_ROLE_RANGE
     if ref_type == FIELD_TYPE_LABELS["ip_address"]:
         return IPA_NODE_ROLE_HOST
-    if ref_type:
-        return None
+
+    ipam_obj = _hub._ipam_obj_from_ip_ref(ip_ref)
+    role = _ipa_object_node_role_from_ipam_obj(ipam_obj)
+    if role is not None:
+        return role
+
     return _ipa_object_node_role_from_cidr_hint(ip_ref.get("str"))
 
 
@@ -273,6 +296,7 @@ __all__ = (
     "_ipa_object_has_addr_drilldown",
     "_ipa_object_node_apply_presentation",
     "_ipa_object_node_presentation",
+    "_ipa_object_node_role_from_ipam_obj",
     "_ipa_object_node_role_from_ip_ref",
     "_ipa_object_node_role_from_obj",
     "_ipa_object_node_role_from_tree_node",

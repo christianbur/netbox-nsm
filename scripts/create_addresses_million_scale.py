@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Bench scale data — NOT registered in Setup wizard.
 
-Creates nested ``nsm_address`` hosts (200k by default) and COT policy rules on
-``nsm_rb_bench_addresses`` (template 0002 — addresses only).
+Creates nested ``nsm_address`` hosts (200k by default), ``nsm_address_group`` rows,
+and COT policy rules on ``nsm_rb_bench_addresses``.
 
 Ausführung (im Verzeichnis ``docker/netbox_dev``)::
 
@@ -16,8 +16,11 @@ Ausführung (im Verzeichnis ``docker/netbox_dev``)::
     docker compose exec netbox python3 /opt/netbox-nsm/scripts/create_addresses_million_scale.py \\
         --leaf-count 1000 --rule-count 100
 
-    # Bench-Daten entfernen
+    # Bench-Daten entfernen (nach Änderungen an der Regel-Generierung erforderlich)
     docker compose exec netbox python3 /opt/netbox-nsm/scripts/create_addresses_million_scale.py --purge
+
+    # Neu erzeugen — Regeln 1–20 sind Overlap-Demos (IPA auf Regel 1 source/dest öffnen)
+    docker compose exec netbox python3 /opt/netbox-nsm/scripts/create_addresses_million_scale.py
 
 Voraussetzungen: NetBox + netbox-custom-objects + netbox-nsm; Setup → Import all types
 und Create all TypeConfigs (oder Starter-Demo). Container ``netbox`` muss laufen;
@@ -99,6 +102,8 @@ def main(argv: list[str] | None = None) -> int:
         print(
             "Purged bench data: "
             f"{summary['rules_deleted']} rules, "
+            f"{summary['groups_deleted']} address groups, "
+            f"{summary['zones_deleted']} bench zones, "
             f"{summary['addresses_deleted']} address rows, "
             f"{summary['prefixes_deleted']} prefixes, "
             f"{summary['ip_addresses_deleted']} IP addresses "
@@ -118,10 +123,21 @@ def main(argv: list[str] | None = None) -> int:
     print(
         f"{summary['rulebook']} ({summary['rulebook_slug']}, pk={summary['rulebook_id']}): "
         f"{summary['leaves']:,} leaves, "
+        f"{summary['aliases']:,} alias addresses, "
+        f"{summary['dup_names']:,} dup-name addresses, "
+        f"{summary['wider_prefixes']:,} /20 + {summary['super_prefixes']:,} /16 prefixes, "
+        f"{summary['overlap_leaves']:,} overlap leaves ({summary['overlap_subnets']} subnets), "
+        f"{summary['groups']:,} address groups + {summary['overlap_groups']:,} overlap groups, "
+        f"{summary['zones']:,} zones, "
         f"{summary['rules']:,} new rules, "
         f"{summary['object_items']:,} multiobject assignments, "
         f"{summary['elapsed_s']}s"
     )
+    if summary.get("overlap_demo_rules"):
+        print(
+            f"Overlap demos: rules 1–20 — open IPA on "
+            f"{summary['overlap_demo_rules'][0]['name']} source/destination"
+        )
     return 0
 
 

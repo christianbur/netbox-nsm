@@ -1,67 +1,41 @@
 """
-IP Analysis page view.
+Legacy redirect for the removed standalone IP Analysis page.
+
+Bookmarks and old links under ``/plugins/netbox-nsm/ip-analysis/`` are sent to
+Object Analyzer. When the old column-A query params are present, the first
+object is pre-selected.
 """
 
 from __future__ import annotations
 
+from urllib.parse import urlencode
+
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.contenttypes.models import ContentType
-from django.shortcuts import render
+from django.shortcuts import redirect
+from django.urls import reverse
 from django.views import View
 
-from netbox_nsm.analysis.addr_analysis_utils import parse_ipa_column_selections
-from netbox_nsm.core.api_urls import get_api_url_for_content_type as _get_api_url_for_content_type
-from netbox_nsm.objects.nsm_config import build_nsm_config_lookup
-
-__all__ = ("IPAnalysisView",)
+__all__ = ("IpAnalysisLegacyRedirectView",)
 
 
-class IPAnalysisView(LoginRequiredMixin, View):
-    template_name = "netbox_nsm/ip_analysis.html"
+def _first_legacy_object_params(request) -> dict[str, str] | None:
+    for prefix in ("ip", "ip2"):
+        ct_vals = request.GET.getlist(f"{prefix}_ct")
+        pk_vals = request.GET.getlist(f"{prefix}_pk")
+        if not ct_vals or not pk_vals:
+            continue
+        name_vals = request.GET.getlist(f"{prefix}_name")
+        params = {"ct": ct_vals[0], "pk": pk_vals[0]}
+        if name_vals and name_vals[0]:
+            params["name"] = name_vals[0]
+        return params
+    return None
 
+
+class IpAnalysisLegacyRedirectView(LoginRequiredMixin, View):
     def get(self, request):
-        seen_ct_ids = set()
-        ip_api_types = []
-        configs = sorted(
-            build_nsm_config_lookup().values(),
-            key=lambda c: (
-                (c.name or "").lower(),
-                c.content_type_id,
-            ),
-        )
-        for config in configs:
-            if config.content_type_id in seen_ct_ids:
-                continue
-            try:
-                ct = ContentType.objects.get(pk=config.content_type_id)
-            except ContentType.DoesNotExist:
-                continue
-            mc = ct.model_class()
-            if not mc:
-                continue
-            api_url = _get_api_url_for_content_type(ct)
-            if not api_url:
-                continue
-            seen_ct_ids.add(config.content_type_id)
-            ip_api_types.append(
-                {
-                    "ct_id": ct.pk,
-                    "api_url": api_url,
-                    "name": str(mc._meta.verbose_name_plural).title(),
-                }
-            )
-
-        ip_selections, ip_addr_columns = parse_ipa_column_selections(request, "")
-        ip2_selections, ip2_addr_columns = parse_ipa_column_selections(request, "2")
-
-        return render(
-            request,
-            self.template_name,
-            {
-                "ip_api_types": ip_api_types,
-                "ip_selections": ip_selections,
-                "ip_addr_columns": ip_addr_columns,
-                "ip2_selections": ip2_selections,
-                "ip2_addr_columns": ip2_addr_columns,
-            },
-        )
+        target = reverse("plugins:netbox_nsm:object_analyzer")
+        legacy = _first_legacy_object_params(request)
+        if legacy:
+            target = f"{target}?{urlencode(legacy)}"
+        return redirect(target, permanent=True)

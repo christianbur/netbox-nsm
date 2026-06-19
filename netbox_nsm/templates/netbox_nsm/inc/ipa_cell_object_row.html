@@ -1,11 +1,8 @@
 {% comment %}
-IPA cell-direct row: CIDR + ADDRESS/GROUP pills, optional INFO line for prefix/range.
+IPA cell-direct row: CIDR + ADDRESS/GROUP pills.
 {% endcomment %}
 <span class="nsm-ipa-cell-object-row">
   <div class="nsm-ipa-cell-object-row-main">
     {% include "netbox_nsm/inc/ipa_cell_object_row_labels.html" with link_mode=link_mode|default:"anchor_stop" %}
   </div>
-  {% if node.ipa_drilldown_meta %}
-  {% include "netbox_nsm/inc/ipa_drilldown_source_meta.html" with meta=node.ipa_drilldown_meta %}
-  {% endif %}
 </span>

@@ -723,7 +723,7 @@ def build_panel_link_groups(
     from netbox_nsm.core.display_utils import get_display_template_map
     from netbox_nsm.core.interface_parent import prefetch_interface_parents
     from netbox_nsm.objects.link_propagation import object_link_panel_user_comment
-    from netbox_nsm.template_content import _finalize_link_type_groups
+    from netbox_nsm.security.tab_context import finalize_link_type_groups
 
     if obj is None or not getattr(obj, "pk", None):
         return [], 0
@@ -765,7 +765,7 @@ def build_panel_link_groups(
             )
         )
 
-    link_type_groups = _finalize_link_type_groups(
+    link_type_groups = finalize_link_type_groups(
         [
             {
                 "type_key": k,

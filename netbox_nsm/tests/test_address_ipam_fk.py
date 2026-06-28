@@ -83,7 +83,7 @@ class AddressIpamFkRefTests(SimpleTestCase):
         )
         self.assertEqual(list(iter_address_ipam_fk_refs(addr)), [])
 
-    @patch("netbox_nsm.objects.address_ipam_fk.get_nsm_address_model")
+    @patch("netbox_nsm.addresses.address_ipam_fk.get_nsm_address_model")
     @patch("django.contrib.contenttypes.models.ContentType.objects.get_for_model")
     def test_iter_addresses_for_ipam_object_polymorphic(
         self, get_for_model, get_addr_model
@@ -108,7 +108,7 @@ class AddressIpamFkRefTests(SimpleTestCase):
             address_object_id=10,
         )
 
-    @patch("netbox_nsm.objects.address_ipam_fk.get_nsm_address_model")
+    @patch("netbox_nsm.addresses.address_ipam_fk.get_nsm_address_model")
     @patch("django.contrib.contenttypes.models.ContentType.objects.get_for_model")
     def test_addresses_for_ipam_object_queryset_polymorphic(
         self, get_for_model, get_addr_model
@@ -152,7 +152,7 @@ class AddressIpamFkRefTests(SimpleTestCase):
         self.assertIn("Prefix", label)
         self.assertIn("IPAM", label)
 
-    @patch("netbox_nsm.objects.address_ipam_fk.get_nsm_address_model")
+    @patch("netbox_nsm.addresses.address_ipam_fk.get_nsm_address_model")
     def test_is_nsm_address_object_uses_custom_object_type_slug(self, get_model):
         stale_model = type("StaleTable3Model", (), {})
         fresh_model = type("FreshTable3Model", (), {})

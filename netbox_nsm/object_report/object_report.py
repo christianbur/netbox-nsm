@@ -14,7 +14,7 @@ Design goals
 Checks implemented
 ------------------
 a. ``status_mismatch`` — NSM address ``status`` differs from the status mapped
-   from its linked IPAM object (via the Object Builder ``status_map``).
+   from its linked IPAM object (via the default IPAM status map).
 b. ``ipam_duplicates`` — more than one NSM address object points at the same
    IPAM resource (same ``address_content_type`` + ``address_object_id``).
 c. ``ipam_orphans`` — NSM address objects with no IPAM reference at all
@@ -26,8 +26,8 @@ g. ``similar_groups`` — address groups with overlapping membership (duplicate 
    redundancy detection between ``nsm_address_group`` objects).
 h. ``deprecated`` — listing/counts of deprecated NSM objects.
 
-This module only *reads* existing helpers (``address_object_builder``,
-``object_builder_config``) and never mutates policy data.
+This module only *reads* existing helpers (``ipam_status``,
+``ipam_status``) and never mutates policy data.
 """
 
 from __future__ import annotations
@@ -41,13 +41,11 @@ from django.db.models import Count
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
-from netbox_nsm.objects.address_object_builder import (
-    DEPRECATED_OBJECT_STATUS,
-    map_status,
-)
-from netbox_nsm.objects.object_builder_config import (
+from netbox_nsm.addresses.ipam_status import (
     BUILDER_IGNORE_STATUS,
-    DEFAULT_OBJECT_BUILDER_STATUS_MAP,
+    DEFAULT_IPAM_STATUS_MAP,
+    DEPRECATED_OBJECT_STATUS,
+    map_ipam_status,
 )
 
 __all__ = (
@@ -153,23 +151,8 @@ def _group_membership_through(group_cot):
 
 
 def _builder_status_map():
-    """Resolve the IPAM→NSM status map from ``nsm_address`` config (with default)."""
-    cot = _address_cot()
-    explicit = False
-    status_map = dict(DEFAULT_OBJECT_BUILDER_STATUS_MAP)
-    if cot is not None:
-        try:
-            from netbox_nsm.objects.nsm_config import (
-                resolve_object_builder_config_for_cot,
-            )
-
-            config = resolve_object_builder_config_for_cot(cot)
-        except Exception:
-            config = None
-        if config and config.get("status_map"):
-            status_map = dict(config["status_map"])
-            explicit = True
-    return status_map, explicit
+    """Return the hardcoded IPAM→NSM status map for report checks."""
+    return dict(DEFAULT_IPAM_STATUS_MAP), False
 
 
 def _ipam_ct_ids():
@@ -236,7 +219,7 @@ def _check_status_mismatch(addr_model, *, status_map, explicit, sample_limit, ch
                 if ipam_pk not in ipam_status:
                     orphan_count += 1
                     continue
-                expected = map_status(ipam_status[ipam_pk], status_map)
+                expected = map_ipam_status(ipam_status[ipam_pk], status_map)
                 if expected == BUILDER_IGNORE_STATUS:
                     ignored_count += 1
                     continue
@@ -685,7 +668,7 @@ def _check_ipam_orphans(addr_model, *, sample_limit, chunk_size):
     """
     from types import SimpleNamespace
 
-    from netbox_nsm.objects.address_literal import get_network_literal
+    from netbox_nsm.addresses.address_literal import get_network_literal
 
     candidates = (
         addr_model.objects.filter(address_object_id__isnull=True)

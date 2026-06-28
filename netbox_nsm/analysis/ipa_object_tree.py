@@ -349,7 +349,7 @@ def _attach_ipa_object_tree_ip_meta(node, obj):
         return node
     ip_ref = _hub._addr_ip_ref(obj)
     if not ip_ref:
-        from netbox_nsm.objects.address_literal import attach_literal_prefix_display
+        from netbox_nsm.addresses.address_literal import attach_literal_prefix_display
 
         return attach_literal_prefix_display(node, obj)
     node["ip_ref"] = _hub._addr_ip_ref_node_dict(ip_ref)

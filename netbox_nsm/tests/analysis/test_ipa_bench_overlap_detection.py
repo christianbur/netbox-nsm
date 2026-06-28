@@ -17,7 +17,7 @@ from netbox_nsm.analysis.addr_analysis_utils import (
     _mark_contained_addr_duplicate_flags,
 )
 from netbox_nsm.analysis.ipa_object_tree import IPA_TREE_NODE_INFO_GAP
-from netbox_nsm.demos.addresses_million_scale import (
+from netbox_nsm.import_.demo_scale import (
     BENCH_OVERLAP_SHOWCASE_RULE_COUNT,
     HOSTS_PER_SUBNET,
     OVERLAP_ALIAS_STRIDE,
@@ -547,7 +547,7 @@ class BenchRule00001CellTreeIntegrationTests(TestCase):
                 execute_ip_analysis_merge,
                 parse_object_refs,
             )
-            from netbox_nsm.demos.cot_demo_common import (
+            from netbox_nsm.import_.demo_common import (
                 get_cot_field_through_model,
                 get_cot_model,
                 resolve_rulebook_address_field_names,

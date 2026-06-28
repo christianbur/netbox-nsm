@@ -2,6 +2,7 @@ from netbox_nsm.rulebooks.views.cot import (
     CotRulebookBulkAssignView,
     CotRulebookChangelogView,
     CotRulebookCreateView,
+    CotRulebookDeleteView,
     CotRulebookSchemaValidateView,
     CotRulebookMatrixView,
     CotRulebookRulesView,
@@ -16,23 +17,25 @@ from netbox_nsm.rulebooks.views.virtual_all import (
     AllRulesRulebookView,
 )
 from netbox_nsm.security.views import ObjectRulesApiView
-from .ip_analysis import IpAnalysisLegacyRedirectView
-from .ip_analysis_api import IpAnalysisApiView
-from .ip_analysis_category_api import IpAnalysisCategoryApiView
-from .ip_analysis_object_api import IpAnalysisObjectDrilldownApiView
-from .ip_analysis_add_object_api import IpAnalysisAddObjectTypesApiView
-from .object_analyzer import ObjectAnalyzerView
-from .object_report import ObjectReportView
-from .custom_objects_sync import SyncBuiltinToCustomObjectsView, SyncTypeConfigsView
-from .type_config import (
-    ObjectConfigAddView,
-    ObjectConfigDeleteView,
-    ObjectConfigEditView,
-    ObjectConfigListView,
-    ObjectConfigView,
+from netbox_nsm.analysis.ip import (
+    IpAnalysisAddObjectTypesApiView,
+    IpAnalysisApiView,
+    IpAnalysisCategoryApiView,
+    IpAnalysisLegacyRedirectView,
+    IpAnalysisObjectDrilldownApiView,
 )
-from .inherited_links_api import InheritedLinksApiView
-from .object_link import (
+from netbox_nsm.analysis.analyzer.page_view import ObjectAnalyzerView
+from netbox_nsm.object_report.views import ObjectReportView
+from .custom_objects_sync import SyncBuiltinToCustomObjectsView, SyncTypeConfigsView
+from .type_metadata import (
+    TypeMetadataAddView,
+    TypeMetadataDeleteView,
+    TypeMetadataEditView,
+    TypeMetadataListView,
+    TypeMetadataView,
+)
+from netbox_nsm.security.views.inherited_links_api import InheritedLinksApiView
+from netbox_nsm.security.views.object_link import (
     ObjectLinkAssignView,
     ObjectLinkEditView,
     ObjectLinkDeleteView,
@@ -43,10 +46,15 @@ from .enforcement_point_link import (
     EnforcementPointInterfaceAssignView,
     EnforcementPointLinkDeleteView,
 )
-from .panel_link_actions import (
+from netbox_nsm.security.actions.confirm_views import (
     AddressIpamFkClearView,
     AddressIpamFkEditView,
     GroupM2mEditView,
     GroupM2mRemoveView,
 )
-from .setup import SetupSchemaValidateView, SetupView
+from netbox_nsm.import_ import (
+    SetupSchemaApplyView,
+    SetupSchemaDetailView,
+    SetupSchemaPreviewView,
+    SetupView,
+)

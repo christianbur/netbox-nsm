@@ -15,6 +15,7 @@ from netbox_nsm.rulebooks.templates import (
     build_rulebook_template_type_defs,
     default_rulebook_schema_yaml,
     demo_rulebook_schema_yaml,
+    bench_rulebook_schema_yaml,
     export_rulebook_schema_yaml_for_copy,
     extract_rulebook_wizard_metadata_from_schema_yaml,
     resolve_rulebook_schema_yaml_for_validation,
@@ -183,7 +184,8 @@ class RulebookTemplateTests(TestCase):
         type_def = parse_rulebook_schema_yaml(demo_rulebook_schema_yaml())
         self.assertEqual(type_def["slug"], "nsm_rb_demo")
         self.assertEqual(type_def["group_name"], "NSM Rulebooks")
-        self.assertEqual(type_def["verbose_name"], "Rulebook Demo")
+        self.assertEqual(type_def["verbose_name"], "Rulebook NSM Demo Zone Matrix")
+        self.assertIn("NSM Demo Zone Matrix setup job", type_def["description"])
         field_names = [field["name"] for field in type_def["fields"]]
         self.assertEqual(
             field_names,
@@ -211,18 +213,27 @@ class RulebookTemplateTests(TestCase):
         self.assertEqual(type_def["description"], "Custom schema")
         self.assertEqual(type_def["fields"][3]["name"], "source")
 
+    def test_bench_schema_yaml_resolves_display_name_and_description(self):
+        type_def = parse_rulebook_schema_yaml(bench_rulebook_schema_yaml())
+        self.assertEqual(type_def["slug"], "nsm_rb_bench_addresses")
+        self.assertEqual(type_def["verbose_name"], "Rulebook NSM Demo Zone/Address/AdressGroup")
+        self.assertIn(
+            "NSM Demo Zone/Address/AdressGroup setup job",
+            type_def["description"],
+        )
+
     def test_build_rulebook_document_from_schema_resolves_default_description(self):
         schema_type_def = parse_rulebook_schema_yaml(default_rulebook_schema_yaml())
         document = build_rulebook_document_from_schema(
             schema_type_def=schema_type_def,
-            rulebook_slug="nsm_rb_bench_addresses",
-            verbose_name="Rulebook Bench Addresses",
+            rulebook_slug="nsm_rb_custom",
+            verbose_name="Rulebook Custom",
             description="",
-            name="bench_addresses",
+            name="custom",
         )
         self.assertEqual(
             document["types"][0]["description"],
-            "NSM rulebook created from template nsm_rb_bench_addresses.",
+            "NSM rulebook created from template nsm_rb_custom.",
         )
 
     def test_deployed_rulebook_slug_detection(self):

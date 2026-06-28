@@ -9,7 +9,7 @@ __all__ = (
 
 
 def setup_menu_enabled() -> bool:
-    """When True, show Setup in the menu and allow /setup/ URLs."""
+    """When True, show Bundles in the menu and allow /bundles/ URLs."""
     return bool(
         get_plugin_config(
             "netbox_nsm",

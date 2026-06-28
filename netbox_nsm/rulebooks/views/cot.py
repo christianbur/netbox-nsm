@@ -16,7 +16,6 @@ from django.views import View
 
 from core.models import ObjectChange
 from core.tables import ObjectChangeTable
-from utilities.querydict import normalize_querydict
 
 from netbox_nsm.rulebooks.assigned_objects import build_cot_rulebook_assigned_objects_panel
 from netbox_nsm.rulebooks.cot_hierarchy import (
@@ -25,7 +24,9 @@ from netbox_nsm.rulebooks.cot_hierarchy import (
 )
 from netbox_nsm.rulebooks.rules_row_grouping import row_group_column_label_for_cot
 from netbox_nsm.rulebooks.create import (
+    build_rulebook_clone_form_initial,
     create_cot_rulebook_from_schema_yaml,
+    iter_deployed_rulebook_clone_choices,
     update_cot_rulebook_metadata,
 )
 from netbox_nsm.rulebooks.forms.bulk_assign import CotRulebookBulkAssignForm
@@ -33,7 +34,6 @@ from netbox_nsm.rulebooks.registry import get_deployed_cot_rulebook
 from netbox_nsm.rulebooks.rules_tab import build_cot_rulebook_rules_tab_context
 from netbox_nsm.rulebooks.forms.cot import CotRulebookCreateForm, CotRulebookDetailForm
 from netbox_nsm.rulebooks.templates import (
-    export_rulebook_schema_yaml_for_copy,
     validate_substituted_rulebook_schema_yaml,
     wizard_columns_from_schema_yaml,
 )
@@ -41,9 +41,11 @@ from netbox_nsm.matrix.cot_matrix_tab_context import (
     build_cot_matrix_tab_context,
     cot_rulebook_matrix_enabled,
 )
+from netbox_nsm.rulebooks.delete_blockers import deployed_rulebook_delete_blockers
 from netbox_nsm.rulebooks.permissions import (
     can_change_rulebook,
     can_create_rulebook,
+    can_show_rulebook_delete,
     can_view_rulebook,
 )
 from netbox_nsm.rulebooks.virtual_cot_tabs import build_virtual_cot_rulebook_tabs
@@ -53,6 +55,7 @@ __all__ = (
     "CotRulebookChangelogView",
     "CotRulebookCreateView",
     "CotRulebookSchemaValidateView",
+    "CotRulebookDeleteView",
     "CotRulebookMatrixView",
     "CotRulebookRulesView",
     "CotRulebookView",
@@ -103,17 +106,6 @@ class CotRulebookView(_CotRulebookMixin, View):
     template_name = "netbox_nsm/rulebook_cot_detail.html"
     tab_key = "detail"
 
-    def _cot_field_groups(self, cot):
-        """Group COT fields for the readonly Fields card (custom-objects detail style)."""
-        field_groups = {}
-        for field in cot.fields.prefetch_related(
-            "related_object_type",
-            "related_object_types",
-        ).order_by("group_name", "weight", "name"):
-            group_name = field.group_name or None
-            field_groups.setdefault(group_name, []).append(field)
-        return field_groups
-
     def _detail_context(
         self,
         request,
@@ -132,23 +124,38 @@ class CotRulebookView(_CotRulebookMixin, View):
         from netbox_nsm.rulebooks.rules_row_grouping import row_group_column_label_for_cot
 
         row_group_col_id = get_cot_row_group_by_col_id(slug)
+        rule_count = instance.rule_count
+        can_show_delete = can_show_rulebook_delete(request.user)
+        rulebook_edit_url = reverse(
+            "plugins:netbox_nsm:cot_rulebook",
+            kwargs={"slug": slug},
+        )
+        if can_edit:
+            rulebook_edit_url = f"{rulebook_edit_url}?edit=1"
+        rulebook_delete_url = ""
+        if can_show_delete:
+            rulebook_delete_url = reverse(
+                "plugins:netbox_nsm:cot_rulebook_delete",
+                kwargs={"slug": slug},
+            )
         ctx = self.build_base_context(request, slug, tab_key=self.tab_key)
         ctx.update(
             {
                 "cot_slug": cot.slug,
-                "cot_field_groups": self._cot_field_groups(cot),
                 "rules_row_group_column_label": row_group_column_label_for_cot(
                     cot, row_group_col_id
                 ),
-                "rule_count": instance.rule_count,
+                "rule_count": rule_count,
                 "can_edit": can_edit,
+                "can_show_delete": can_show_delete,
                 "edit_mode": bool(edit_mode and can_edit),
                 "edit_form": edit_form if can_edit else None,
+                "rulebook_edit_url": rulebook_edit_url,
+                "rulebook_delete_url": rulebook_delete_url,
                 "matrix_tab_capable": instance.matrix_tab_capable,
                 "assigned_objects_panel": build_cot_rulebook_assigned_objects_panel(
                     cot.slug, request
                 ),
-                "fields_schema_yaml": export_rulebook_schema_yaml_for_copy(cot),
             }
         )
         return ctx
@@ -194,6 +201,49 @@ class CotRulebookView(_CotRulebookMixin, View):
             self.template_name,
             self._detail_context(request, slug, edit_form=form, edit_mode=True),
         )
+
+
+class CotRulebookDeleteView(_CotRulebookMixin, View):
+    template_name = "netbox_nsm/rulebook_cot_delete.html"
+
+    def _context(self, request, slug: str):
+        instance = self.get_virtual_object(slug)
+        cot = instance.cot
+        if not can_show_rulebook_delete(request.user):
+            raise PermissionDenied()
+        return_url = reverse(
+            "plugins:netbox_nsm:cot_rulebook",
+            kwargs={"slug": slug},
+        )
+        blockers = deployed_rulebook_delete_blockers(
+            cot,
+            rule_count=instance.rule_count,
+        )
+        return {
+            "object": instance,
+            "cot": cot,
+            "blockers": blockers,
+            "return_url": return_url,
+            "can_delete": not blockers,
+        }
+
+    def get(self, request, slug: str):
+        return render(request, self.template_name, self._context(request, slug))
+
+    def post(self, request, slug: str):
+        ctx = self._context(request, slug)
+        if not ctx["can_delete"]:
+            messages.error(
+                request,
+                _("This rulebook cannot be deleted yet."),
+            )
+            return render(request, self.template_name, ctx)
+        ctx["cot"].delete()
+        messages.success(
+            request,
+            _("Rulebook %(name)s deleted.") % {"name": ctx["object"].name},
+        )
+        return redirect(reverse("plugins:netbox_nsm:rulebook_list"))
 
 
 class CotRulebookBulkAssignView(_CotRulebookMixin, View):
@@ -367,12 +417,17 @@ class CotRulebookCreateView(LoginRequiredMixin, View):
         return super().dispatch(request, *args, **kwargs)
 
     def get(self, request):
-        initial_data = normalize_querydict(request.GET)
-        form = CotRulebookCreateForm(initial=initial_data)
+        clone_from = (request.GET.get("clone_from") or "").strip()
+        initial: dict = {}
+        if clone_from:
+            cot = get_deployed_cot_rulebook(clone_from)
+            if cot is not None and can_view_rulebook(request.user, cot):
+                initial = build_rulebook_clone_form_initial(cot)
+        form = CotRulebookCreateForm(initial=initial)
         return render(
             request,
             self.template_name,
-            self._context(request, form),
+            self._context(request, form, clone_from=clone_from),
         )
 
     def post(self, request):
@@ -405,7 +460,7 @@ class CotRulebookCreateView(LoginRequiredMixin, View):
             self._context(request, form),
         )
 
-    def _context(self, request, form) -> dict:
+    def _context(self, request, form, *, clone_from: str = "") -> dict:
         from netbox_nsm.rulebooks.create import resolve_rulebook_slug
         from netbox_nsm.rulebooks.templates import (
             default_rulebook_schema_yaml,
@@ -456,4 +511,6 @@ class CotRulebookCreateView(LoginRequiredMixin, View):
             "template_columns": columns,
             "schema_error": schema_error,
             "preview_slug": preview_slug,
+            "clone_from": clone_from,
+            "clone_choices": iter_deployed_rulebook_clone_choices(request.user),
         }

@@ -1,6 +1,6 @@
 # Bench: 200k addresses + 13k rules (COT rulebooks)
 
-Standalone load generator for performance and UI testing. **Not** part of the Setup wizard (except the optional 50k subset via Setup → Address bench).
+Standalone load generator for performance and UI testing. **Not** part of the Setup wizard (except the optional 50k subset via Setup → NSM Demo Zone/Address/AdressGroup).
 
 Policy rules are stored as **Custom Object rows** on a deployed COT rulebook (`nsm_rb_bench_addresses`) with polymorphic `source` / `destination` multiobject fields (addresses **and** address groups) — **not** native `Rulebook` / `Rule` / `RuleObjectItem`.
 
@@ -39,7 +39,7 @@ All bench objects use the `bench-` prefix (separate from setup demos `demo-*`).
   └─ overlap groups        bench-grp-ovlp-* …       (adjacent overlap subnets; shared members)
 ```
 
-IP space: consecutive `/24` blocks in **10.128.0.0/9** (2,000 subnets × 100 hosts).
+IP space: consecutive `/24` blocks in **198.18.0.0/13** (2,000 subnets × 100 hosts).
 
 ### Subnet mix (visible in IPA applet and rules)
 
@@ -135,7 +135,7 @@ print(create_addresses_million_scale(leaf_count=1000, rule_count=100))
 
 ### Setup wizard (50k subset)
 
-Setup → **Address bench (50,000 addresses)** queues `create_addresses_scale_demo_50k` on the RQ worker (same logic, proportional rule count). Requires a running worker container.
+Setup → **NSM Demo Zone/Address/AdressGroup** queues `create_addresses_scale_demo_50k` on the RQ worker (same logic, proportional rule count). Requires a running worker container.
 
 ### CLI options
 
@@ -170,6 +170,6 @@ Rulebook in UI: **Security → Rulebooks → Bench Addresses**.
 
 | Demo | Rulebook | Script |
 |------|----------|--------|
-| Starter | `nsm_rb_demo` | Setup → Starter demo |
-| Address bench 50k | `nsm_rb_bench_addresses` | Setup → Address bench (RQ) |
+| NSM Demo Zone Matrix | `nsm_rb_demo` | Setup → NSM Demo Zone Matrix |
+| NSM Demo Zone/Address/AdressGroup | `nsm_rb_bench_addresses` | Setup → NSM Demo Zone/Address/AdressGroup (RQ) |
 | Enterprise DC | (manual COT) | `netbox_nsm/demos/enterprise_dc/import.py` — rulebooks skipped |

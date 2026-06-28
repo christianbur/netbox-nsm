@@ -6,11 +6,11 @@ from urllib.parse import parse_qs, urlparse
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.security.panel import (
+from netbox_nsm.security.references.cot_rule_references import (
     _field_allows_content_type,
     _panel_rulebook,
     _scan_field_instances,
-    build_cot_security_panel_groups,
+    build_cot_security_rulebook_groups,
 )
 from netbox_nsm.security.object_rules import (
     build_cot_rule_name_column_filter_url,
@@ -36,11 +36,11 @@ class CotSecurityPanelUrlTests(SimpleTestCase):
 
 
 class CotSecurityPanelGroupTests(SimpleTestCase):
-    @patch("netbox_nsm.security.panel._field_allows_content_type", return_value=True)
-    @patch("netbox_nsm.security.panel._count_field_references", return_value=1)
-    @patch("netbox_nsm.security.panel._iter_matching_security_fields")
-    @patch("netbox_nsm.security.panel._panel_field")
-    @patch("netbox_nsm.security.panel._panel_rulebook")
+    @patch("netbox_nsm.security.references.cot_rule_references._field_allows_content_type", return_value=True)
+    @patch("netbox_nsm.security.references.cot_rule_references._count_field_references", return_value=1)
+    @patch("netbox_nsm.security.references.cot_rule_references._iter_matching_security_fields")
+    @patch("netbox_nsm.security.references.cot_rule_references._panel_field")
+    @patch("netbox_nsm.security.references.cot_rule_references._panel_rulebook")
     def test_build_groups_without_rule_links(
         self,
         mock_panel_rulebook,
@@ -65,7 +65,7 @@ class CotSecurityPanelGroupTests(SimpleTestCase):
         mock_panel_rulebook.return_value = rulebook
         mock_panel_field.return_value = field
 
-        data = build_cot_security_panel_groups(
+        data = build_cot_security_rulebook_groups(
             SimpleNamespace(pk=1),
             42,
             panel_url=lambda url: url,
@@ -82,12 +82,12 @@ class CotSecurityPanelGroupTests(SimpleTestCase):
         self.assertIn("nsm_rb_demo", group["rules_tab_url"])
         mock_count.assert_called_once()
 
-    @patch("netbox_nsm.security.panel._scan_field_instances")
-    @patch("netbox_nsm.security.panel._instances_for_field")
-    @patch("netbox_nsm.security.panel._count_field_references", return_value=2)
-    @patch("netbox_nsm.security.panel._iter_matching_security_fields")
-    @patch("netbox_nsm.security.panel._panel_field")
-    @patch("netbox_nsm.security.panel._panel_rulebook")
+    @patch("netbox_nsm.security.references.cot_rule_references._scan_field_instances")
+    @patch("netbox_nsm.security.references.cot_rule_references._instances_for_field")
+    @patch("netbox_nsm.security.references.cot_rule_references._count_field_references", return_value=2)
+    @patch("netbox_nsm.security.references.cot_rule_references._iter_matching_security_fields")
+    @patch("netbox_nsm.security.references.cot_rule_references._panel_field")
+    @patch("netbox_nsm.security.references.cot_rule_references._panel_rulebook")
     def test_initial_render_skips_full_rule_scan(
         self,
         mock_panel_rulebook,
@@ -112,7 +112,7 @@ class CotSecurityPanelGroupTests(SimpleTestCase):
             pk=4, name="Addresses", slug="addresses"
         )
 
-        build_cot_security_panel_groups(
+        build_cot_security_rulebook_groups(
             SimpleNamespace(pk=1),
             1739,
             panel_url=lambda url: url,
@@ -125,10 +125,10 @@ class CotSecurityPanelGroupTests(SimpleTestCase):
 
 class ScanFieldInstancesTests(SimpleTestCase):
     @patch(
-        "netbox_nsm.security.panel._instances_via_through_table",
+        "netbox_nsm.security.references.cot_rule_references._instances_via_through_table",
         side_effect=RuntimeError("through unavailable"),
     )
-    @patch("netbox_nsm.security.panel.ContentType")
+    @patch("netbox_nsm.security.references.cot_rule_references.ContentType")
     def test_returns_queryset_not_list(self, mock_content_type, _mock_through):
         mock_content_type.objects.get_for_model.return_value = SimpleNamespace(pk=10)
 
@@ -154,7 +154,7 @@ class ScanFieldInstancesTests(SimpleTestCase):
         model.objects.filter.assert_called_once_with(pk__in=[99])
         self.assertEqual(result.count(), 1)
 
-    @patch("netbox_nsm.security.panel._through_table_source_ids")
+    @patch("netbox_nsm.security.references.cot_rule_references._through_table_source_ids")
     def test_prefers_through_table_lookup(self, mock_source_ids):
         source_ids = [99, 100]
         mock_source_ids.return_value = source_ids

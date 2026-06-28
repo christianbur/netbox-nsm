@@ -165,7 +165,7 @@ class AddrNavigationRefTests(TestCase):
         self.assertEqual(len(refs), 1)
         self.assertEqual(refs[0]["url"], "/dcim/devices/1/")
 
-    @patch("netbox_nsm.objects.address_ipam_fk.is_nsm_address_object", return_value=True)
+    @patch("netbox_nsm.addresses.address_ipam_fk.is_nsm_address_object", return_value=True)
     @patch("netbox_nsm.analysis.addr_navigation._addr_navigation_refs")
     def test_attach_merges_nsm_address_and_ipam_fk_refs(
         self, nav_refs_fn, _is_addr
@@ -191,7 +191,7 @@ class AddrNavigationRefTests(TestCase):
         )
         self.assertEqual(nav_refs_fn.call_count, 2)
 
-    @patch("netbox_nsm.objects.address_ipam_fk.is_nsm_address_object", return_value=True)
+    @patch("netbox_nsm.addresses.address_ipam_fk.is_nsm_address_object", return_value=True)
     @patch("netbox_nsm.analysis.addr_navigation._addr_navigation_refs")
     def test_attach_dedupes_merged_refs_by_url(self, nav_refs_fn, _is_addr):
         dup = {"label": "Device", "name": "fw-01", "url": "/dcim/devices/1/"}

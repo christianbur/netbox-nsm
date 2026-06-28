@@ -4,6 +4,8 @@ from django import forms
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
+__all__ = ("BtnCheckMultipleWidget", "ColorSelectTextWidget")
+
 
 class ColorSelectTextWidget(forms.TextInput):
     """Render a color picker alongside a plain HTML color code input."""
@@ -53,3 +55,16 @@ class ColorSelectTextWidget(forms.TextInput):
             picker_html,
             mark_safe(text_html),
         )
+
+
+class BtnCheckMultipleWidget(forms.CheckboxSelectMultiple):
+    """Horizontal Bootstrap toggle group for multi-select choices."""
+
+    template_name = "netbox_nsm/widgets/btn_check_multiple.html"
+    option_template_name = "netbox_nsm/widgets/btn_check_option.html"
+
+    def __init__(self, attrs=None):
+        merged = {"class": "btn-check"}
+        if attrs:
+            merged.update(attrs)
+        super().__init__(attrs=merged)

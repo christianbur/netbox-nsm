@@ -6,7 +6,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
 
 from netbox_nsm.core.interface_parent import get_interface_parent_host
-from netbox_nsm.objects.object_link_service import (
+from netbox_nsm.security.links.object_link_service import (
     iter_enforcement_point_links_for_object,
     iter_enforcement_point_links_stored_on_object,
     iter_rulebook_links_for_object,

@@ -2,7 +2,7 @@
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.security.tab_context import finalize_link_type_groups
+from netbox_nsm.security.tab.context import finalize_link_type_groups
 
 
 class SecurityPanelInheritedPayloadTests(SimpleTestCase):

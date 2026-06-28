@@ -22,6 +22,23 @@
 
 <div class="field-group mb-4">
   <div class="row">
+    <h2 class="col-9 offset-3">{% trans "Clone from" %}</h2>
+  </div>
+  <div class="row mb-3">
+    <label class="col-form-label col-md-3 text-lg-end" for="nsm-clone-from">{% trans "Existing rulebook" %}</label>
+    <div class="col-md-9">
+      <select id="nsm-clone-from" class="form-select no-ts">
+        {% for value, label in clone_choices %}
+        <option value="{{ value }}"{% if value == clone_from %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <div class="form-text">{% trans "Optional: copy schema YAML from a deployed rulebook (name and slug get a copy_ prefix). Leave empty to start from the default YAML or paste your own." %}</div>
+    </div>
+  </div>
+</div>
+
+<div class="field-group mb-4">
+  <div class="row">
     <h2 class="col-9 offset-3">
       {% trans "Schema" %}
       <span id="nsm-schema-yaml-validity"
@@ -130,6 +147,19 @@
 
 <script>
 (function () {
+  const cloneSelect = document.getElementById("nsm-clone-from");
+  if (cloneSelect) {
+    cloneSelect.addEventListener("change", function () {
+      const url = new URL(window.location.href);
+      if (this.value) {
+        url.searchParams.set("clone_from", this.value);
+      } else {
+        url.searchParams.delete("clone_from");
+      }
+      window.location = url.toString();
+    });
+  }
+
   const schemaInput = document.getElementById("id_schema_yaml");
   const displayInput = document.getElementById("id_verbose_name");
   const nameInput = document.getElementById("id_name");

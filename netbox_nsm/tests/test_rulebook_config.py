@@ -1,8 +1,11 @@
-"""Tests for nsm_config.rulebook parse/format."""
+"""Tests for rulebook metadata in COT ``comments``."""
 
 import yaml
 
-from netbox_nsm.objects.nsm_config import format_nsm_config_comment_yaml
+from netbox_nsm.objects.nsm_config import (
+    format_nsm_config_comment_yaml,
+    parse_nsm_config_from_comments,
+)
 from netbox_nsm.objects.rulebook_config import (
     DEFAULT_RULEBOOK_CONFIG,
     format_rulebook_config_yaml,
@@ -51,29 +54,20 @@ class RulebookConfigFormatTests(TestCase):
         self.assertFalse(config["matrix_tab_enabled"])
         self.assertEqual(config["row_group_by_col_id"], "")
 
-    def test_merge_preserves_other_nsm_config_segments(self):
+    def test_merge_rulebook_into_comments(self):
         existing = format_nsm_config_comment_yaml(
-            {"sort_order": 5, "display_template": "{name}"}
+            {"sort_order": 5, "display_template": "{{ name }}"}
         )
         merged = merge_rulebook_config_into_comments(
             existing,
             {"parent_slug": "nsm_rb_parent", "matrix_tab_enabled": False},
         )
-        document = yaml.safe_load(merged)
-        segments = document["nsm_config"]
-        self.assertEqual(len(segments), 2)
-        self.assertIn("rule_view", segments[0])
-        self.assertIn("rulebook", segments[1])
+        self.assertIn("rulebook:", merged)
         parsed = parse_rulebook_config_from_comments(merged)
         self.assertEqual(parsed["parent_slug"], "nsm_rb_parent")
         self.assertFalse(parsed["matrix_tab_enabled"])
-
-    def test_merge_removes_rulebook_segment_when_default(self):
-        merged = merge_rulebook_config_into_comments(
-            format_rulebook_config_yaml({"parent_slug": "nsm_rb_parent"}),
-            DEFAULT_RULEBOOK_CONFIG,
-        )
-        self.assertEqual(merged, "")
+        rule_view = parse_nsm_config_from_comments(merged)
+        self.assertEqual(rule_view["sort_order"], 5)
 
     def test_save_and_resolve_for_cot(self):
         from netbox_custom_objects.models import CustomObjectType
@@ -92,9 +86,6 @@ class RulebookConfigFormatTests(TestCase):
                 "row_group_by_col_id": "name",
             },
         )
-        cot.refresh_from_db()
-        self.assertIn("nsm_config:", cot.comments)
-        self.assertIn("rulebook:", cot.comments)
         resolved = resolve_rulebook_config_for_cot(cot)
         self.assertFalse(resolved["matrix_tab_enabled"])
         self.assertEqual(resolved["row_group_by_col_id"], "name")

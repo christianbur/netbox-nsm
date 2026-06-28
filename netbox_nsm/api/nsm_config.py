@@ -123,7 +123,6 @@ class NsmConfigApiView(APIView):
             cot,
             {
                 "rule_view": None,
-                "object_builder": None,
                 "rulebook": None,
                 **serializer.validated_data,
             },

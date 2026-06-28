@@ -1,29 +1,70 @@
 from django.urls import include, path
-from django.views.generic import RedirectView
 
 from utilities.urls import get_model_urls
 
-from netbox_nsm.analyzer.api_view import AnalyzerAPIView, AnalyzerPickerAPIView
-
-from .views import *  # noqa: F401
-from .views.nsm_objects import (
-    NsmCustomObjectBulkDeleteView,
-    NsmCustomObjectBulkEditView,
-    NsmCustomObjectBulkImportView,
-    NsmCustomObjectChangeLogView,
-    NsmCustomObjectDeleteView,
-    NsmCustomObjectEditView,
-    NsmCustomObjectJournalView,
-    NsmCustomObjectListView,
-    NsmCustomObjectView,
+from netbox_nsm.analysis.analyzer.api_view import AnalyzerAPIView, AnalyzerPickerAPIView
+from netbox_nsm.analysis.analyzer.page_view import ObjectAnalyzerView
+from netbox_nsm.analysis.ip import (
+    IpAnalysisAddObjectTypesApiView,
+    IpAnalysisApiView,
+    IpAnalysisCategoryApiView,
+    IpAnalysisObjectDrilldownApiView,
+)
+from netbox_nsm.object_report.views import ObjectReportView
+from netbox_nsm.type_metadata.views import (
+    TypeMetadataAddView,
+    TypeMetadataDeleteView,
+    TypeMetadataEditView,
+    TypeMetadataListView,
+    TypeMetadataView,
+)
+from netbox_nsm.bundles.views import (
+    SetupSchemaApplyView,
+    SetupSchemaDetailView,
+    SetupSchemaPreviewView,
+    SetupView,
 )
 from .views.plugin_static import PluginAssetView
-from .views.rulebook_link import RulebookLinkAssignView, RulebookLinkDeleteView
-from .views.enforcement_point_link import (
+from netbox_nsm.security.views.rulebook_link import (
+    RulebookLinkAssignView,
+    RulebookLinkDeleteView,
+)
+from netbox_nsm.security.views.enforcement_point_link import (
     EnforcementPointInterfaceAssignView,
     EnforcementPointLinkDeleteView,
 )
 from netbox_nsm.rulebooks.views.list import RulebookListView
+from netbox_nsm.rulebooks.views.cot import (
+    CotRulebookBulkAssignView,
+    CotRulebookChangelogView,
+    CotRulebookCreateView,
+    CotRulebookDeleteView,
+    CotRulebookMatrixView,
+    CotRulebookRulesView,
+    CotRulebookSchemaValidateView,
+    CotRulebookView,
+)
+from netbox_nsm.rulebooks.views.virtual_all import (
+    AllRulesRulebookChangelogView,
+    AllRulesRulebookContactsView,
+    AllRulesRulebookJournalView,
+    AllRulesRulebookRulesView,
+    AllRulesRulebookView,
+)
+from netbox_nsm.security.views import ObjectRulesApiView
+from netbox_nsm.security.views.inherited_links_api import InheritedLinksApiView
+from netbox_nsm.security.views.object_link import (
+    ObjectLinkAssignView,
+    ObjectLinkDeleteView,
+    ObjectLinkEditView,
+    ObjectTypeElementsApiView,
+)
+from netbox_nsm.security.actions.confirm_views import (
+    AddressIpamFkClearView,
+    AddressIpamFkEditView,
+    GroupM2mEditView,
+    GroupM2mRemoveView,
+)
 
 app_name = "netbox_nsm"
 
@@ -33,122 +74,40 @@ urlpatterns = [
         PluginAssetView.as_view(),
         name="plugin_asset",
     ),
-    path("setup/", SetupView.as_view(), name="setup"),
+    path("bundles/", SetupView.as_view(), name="bundles"),
     path(
-        "setup/validate-schema/",
-        SetupSchemaValidateView.as_view(),
-        name="setup_schema_validate",
+        "bundles/<slug:slug>/",
+        SetupSchemaDetailView.as_view(),
+        name="bundle_detail",
     ),
     path(
-        "setup/sync/custom-objects/",
-        SyncBuiltinToCustomObjectsView.as_view(),
-        name="custom_objects_sync",
+        "bundles/<slug:slug>/preview/",
+        SetupSchemaPreviewView.as_view(),
+        name="bundle_preview",
     ),
     path(
-        "setup/sync/typeconfigs/",
-        SyncTypeConfigsView.as_view(),
-        name="typeconfigs_sync",
+        "bundles/<slug:slug>/apply/",
+        SetupSchemaApplyView.as_view(),
+        name="bundle_apply",
+    ),
+    path("type-metadata/", TypeMetadataListView.as_view(), name="typemetadata_list"),
+    path("type-metadata/add/", TypeMetadataAddView.as_view(), name="typemetadata_add"),
+    path(
+        "type-metadata/<slug:slug>/",
+        TypeMetadataView.as_view(),
+        name="typemetadata",
     ),
     path(
-        "object-builder/",
-        RedirectView.as_view(
-            pattern_name="plugins:netbox_nsm:objectconfig_list",
-            permanent=True,
-        ),
-        name="object_builder",
+        "type-metadata/<slug:slug>/edit/",
+        TypeMetadataEditView.as_view(),
+        name="typemetadata_edit",
     ),
     path(
-        "objects/<str:custom_object_type>/",
-        NsmCustomObjectListView.as_view(),
-        name="nsm_object_list",
-    ),
-    path(
-        "objects/<str:custom_object_type>/add/",
-        NsmCustomObjectEditView.as_view(),
-        name="nsm_object_add",
-    ),
-    path(
-        "objects/<str:custom_object_type>/bulk-edit/",
-        NsmCustomObjectBulkEditView.as_view(),
-        name="nsm_object_bulk_edit",
-    ),
-    path(
-        "objects/<str:custom_object_type>/bulk-delete/",
-        NsmCustomObjectBulkDeleteView.as_view(),
-        name="nsm_object_bulk_delete",
-    ),
-    path(
-        "objects/<str:custom_object_type>/bulk-import/",
-        NsmCustomObjectBulkImportView.as_view(),
-        name="nsm_object_bulk_import",
-    ),
-    path(
-        "objects/<str:custom_object_type>/<int:pk>/",
-        NsmCustomObjectView.as_view(),
-        name="nsm_object",
-    ),
-    path(
-        "objects/<str:custom_object_type>/<int:pk>/edit/",
-        NsmCustomObjectEditView.as_view(),
-        name="nsm_object_edit",
-    ),
-    path(
-        "objects/<str:custom_object_type>/<int:pk>/delete/",
-        NsmCustomObjectDeleteView.as_view(),
-        name="nsm_object_delete",
-    ),
-    path(
-        "objects/<str:custom_object_type>/<int:pk>/journal/",
-        NsmCustomObjectJournalView.as_view(),
-        name="nsm_object_journal",
-    ),
-    path(
-        "objects/<str:custom_object_type>/<int:pk>/changelog/",
-        NsmCustomObjectChangeLogView.as_view(),
-        name="nsm_object_changelog",
-    ),
-    path("type-config/", ObjectConfigListView.as_view(), name="objectconfig_list"),
-    path("type-config/add/", ObjectConfigAddView.as_view(), name="objectconfig_add"),
-    path(
-        "type-config/<slug:slug>/",
-        ObjectConfigView.as_view(),
-        name="objectconfig",
-    ),
-    path(
-        "type-config/<slug:slug>/edit/",
-        ObjectConfigEditView.as_view(),
-        name="objectconfig_edit",
-    ),
-    path(
-        "type-config/<slug:slug>/delete/",
-        ObjectConfigDeleteView.as_view(),
-        name="objectconfig_delete",
+        "type-metadata/<slug:slug>/delete/",
+        TypeMetadataDeleteView.as_view(),
+        name="typemetadata_delete",
     ),
     path("rulebooks/", RulebookListView.as_view(), name="rulebook_list"),
-    path(
-        "rulebooks/all-rules/",
-        RedirectView.as_view(
-            pattern_name="plugins:netbox_nsm:all_rules_rulebook",
-            permanent=True,
-        ),
-        name="all_rules_legacy_overview_redirect",
-    ),
-    path(
-        "rulebooks/all-rules/rules/",
-        RedirectView.as_view(
-            pattern_name="plugins:netbox_nsm:all_rules_rules",
-            permanent=True,
-        ),
-        name="all_rules_legacy_rules_redirect",
-    ),
-    path(
-        "rulebooks/all-rules/matrix/",
-        RedirectView.as_view(
-            pattern_name="plugins:netbox_nsm:all_rules_rulebook",
-            permanent=True,
-        ),
-        name="all_rules_legacy_matrix_redirect",
-    ),
     path(
         "rulebooks/0/",
         AllRulesRulebookView.as_view(),
@@ -175,14 +134,6 @@ urlpatterns = [
         name="all_rules_changelog",
     ),
     path(
-        "rulebooks/0/matrix/",
-        RedirectView.as_view(
-            pattern_name="plugins:netbox_nsm:all_rules_rulebook",
-            permanent=True,
-        ),
-        name="all_rules_matrix_redirect",
-    ),
-    path(
         "rulebooks/cot/add/",
         CotRulebookCreateView.as_view(),
         name="cot_rulebook_add",
@@ -196,6 +147,11 @@ urlpatterns = [
         "rulebooks/cot/<slug:slug>/",
         CotRulebookView.as_view(),
         name="cot_rulebook",
+    ),
+    path(
+        "rulebooks/cot/<slug:slug>/delete/",
+        CotRulebookDeleteView.as_view(),
+        name="cot_rulebook_delete",
     ),
     path(
         "rulebooks/cot/<slug:slug>/assign/",
@@ -222,19 +178,6 @@ urlpatterns = [
         CotRulebookChangelogView.as_view(),
         name="cot_rulebook_changelog",
     ),
-    path(
-        "rules/search/",
-        RedirectView.as_view(
-            pattern_name="plugins:netbox_nsm:all_rules_rules",
-            permanent=False,
-        ),
-        name="global_rules_search",
-    ),
-    path(
-        "ip-analysis/",
-        IpAnalysisLegacyRedirectView.as_view(),
-        name="ip_analysis",
-    ),
     path("api/ip-analysis/", IpAnalysisApiView.as_view(), name="ip_analysis_api"),
     path(
         "api/ip-analysis/category/",
@@ -252,14 +195,6 @@ urlpatterns = [
         name="ip_analysis_add_object_types_api",
     ),
     path("object-analyzer/", ObjectAnalyzerView.as_view(), name="object_analyzer"),
-    path(
-        "audit-report/",
-        RedirectView.as_view(
-            pattern_name="plugins:netbox_nsm:object_report",
-            permanent=True,
-        ),
-        name="audit_report_legacy_redirect",
-    ),
     path("object-report/", ObjectReportView.as_view(), name="object_report"),
     path("api/analyzer/", AnalyzerAPIView.as_view(), name="analyzer_api"),
     path(

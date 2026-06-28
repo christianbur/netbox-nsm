@@ -71,7 +71,7 @@ def _addr_ip_ref_from_fields(obj, field_names):
 def _addr_ip_ref_from_polymorphic_fk(obj):
     """Resolve IPAM ref via polymorphic ``address`` GFK when legacy FKs are empty."""
     try:
-        from netbox_nsm.objects.address_ipam_fk import iter_address_ipam_fk_refs
+        from netbox_nsm.addresses.address_ipam_fk import iter_address_ipam_fk_refs
 
         for fk_ref in iter_address_ipam_fk_refs(obj):
             return _ip_ref_dict(
@@ -276,7 +276,7 @@ def _ipam_fk_object_for_addr_node(obj):
         except Exception:
             pass
     try:
-        from netbox_nsm.objects.address_ipam_fk import iter_address_ipam_fk_refs
+        from netbox_nsm.addresses.address_ipam_fk import iter_address_ipam_fk_refs
 
         for fk_ref in iter_address_ipam_fk_refs(obj):
             return fk_ref.ipam_obj

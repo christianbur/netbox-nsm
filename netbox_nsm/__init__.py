@@ -30,6 +30,10 @@ class SecurityConfig(PluginConfig):
         # Jinja2 naming templates for nsm_address / nsm_address_group (see docs/address_name_templates.md)
         "address_name_templates": [],
         "address_group_name_templates": [],
+        # Bundle discovery: list of additional directories to scan for bundles (higher priority than builtin)
+        "bundle_paths": [],
+        # Whether to include the built-in bundles shipped with the plugin (default: True)
+        "builtin_bundles": True,
     }
 
     def ready(self):
@@ -43,7 +47,6 @@ class SecurityConfig(PluginConfig):
         self._patch_color_field_widget()
         self._patch_poly_subfield_labels()
         self._patch_cot_rule_add_index()
-        self._patch_nsm_object_urls()
         self._patch_custom_object_list_polymorphic_sort()
 
     @staticmethod
@@ -100,11 +103,5 @@ class SecurityConfig(PluginConfig):
         from netbox_nsm.rulebooks.views.cot_rule import patch_cot_rule_add_form
 
         patch_cot_rule_add_form()
-
-    @staticmethod
-    def _patch_nsm_object_urls():
-        from netbox_nsm.objects.cot_routes import apply_nsm_object_url_patches
-
-        apply_nsm_object_url_patches()
 
 config = SecurityConfig  # noqa

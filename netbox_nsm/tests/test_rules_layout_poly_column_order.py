@@ -63,8 +63,8 @@ class RulesLayoutPolyColumnOrderTests(TestCase):
             cot.comments = format_nsm_config_comment_yaml(
                 {
                     "sort_order": sort_order,
-                    "display_template": "{name}",
-                    "panel": {"panel_linkable": True},
+                    "display_template": "{{ name }}",
+                    "links": {"linkable": True},
                 }
             ).rstrip()
             cot.save(update_fields=["comments"])

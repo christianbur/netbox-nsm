@@ -220,3 +220,25 @@ class CotRulebookMatrixViewTests(SimpleTestCase):
         )
         with self.assertRaises(Http404):
             CotRulebookMatrixView.as_view()(request, slug="nsm_rb_test01")
+
+
+class MatrixObjectTypeSelectionTests(SimpleTestCase):
+    def test_defaults_to_zone_when_present(self):
+        from netbox_nsm.matrix.matrix_utils import resolve_matrix_object_type_selection
+
+        raw_types = [
+            {"ct_id": 256, "label": "Address"},
+            {"ct_id": 259, "label": "Zone"},
+        ]
+        available_types = [
+            {"ct_id": 256, "label": "Address"},
+            {"ct_id": 259, "label": "Zone"},
+        ]
+        self.assertEqual(
+            resolve_matrix_object_type_selection(
+                None,
+                raw_types=raw_types,
+                available_types=available_types,
+            ),
+            259,
+        )

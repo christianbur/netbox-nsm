@@ -17,7 +17,6 @@ from netbox_nsm.objects.address_name_templates import (
     resolve_ipam_name_template,
     template_uses_jinja,
 )
-from netbox_nsm.objects.address_object_builder import build_name
 
 
 PLUGIN_TEMPLATES = {
@@ -95,45 +94,7 @@ class AddressNameTemplateTests(SimpleTestCase):
         self.assertEqual(rendered, "H-10.0.0.1")
 
     @patch("netbox.plugins.get_plugin_config", side_effect=_plugin_config)
-    def test_object_builder_fallback_when_no_plugin_match(self, _mock):
-        prefix = SimpleNamespace(prefix="10.1.0.0/24")
-        builder_config = {
-            "sources": {
-                "ipam.prefix": {"build_template": "N-{network}-{prefix_length}"},
-            }
-        }
-        with patch(
-            "netbox.plugins.get_plugin_config",
-            side_effect=lambda plugin, key, default=None: [],
-        ):
-            clear_name_template_caches()
-            self.assertEqual(
-                render_ipam_object_name(
-                    prefix,
-                    "ipam.prefix",
-                    builder_config=builder_config,
-                ),
-                "N-10.1.0.0-24",
-            )
-
-    @patch("netbox.plugins.get_plugin_config", side_effect=_plugin_config)
-    def test_plugin_template_overrides_object_builder(self, _mock):
-        ip = SimpleNamespace(address="172.16.0.1/24")
-        builder_config = {
-            "sources": {
-                "ipam.ipaddress": {"build_template": "legacy-{host}"},
-            }
-        }
-        self.assertEqual(
-            render_ipam_object_name(
-                ip,
-                "ipam.ipaddress",
-                builder_config=builder_config,
-            ),
-            "h-172.16.0.1",
-        )
-
-    def test_convert_short_syntax(self):
+    def test_convert_short_syntax(self, _mock):
         self.assertEqual(
             convert_short_syntax_to_jinja("h-{ipam>ip}"),
             "h-{{ ipam.ip }}",
@@ -145,11 +106,11 @@ class AddressNameTemplateTests(SimpleTestCase):
             "n-{{ ipam.prefix.network }}-{{ ipam.prefix.cidr }}",
         )
 
-    def test_legacy_template_still_uses_build_name(self):
+    def test_legacy_template_still_uses_legacy_format(self):
         ip = SimpleNamespace(address="10.0.0.1/32")
         self.assertEqual(
             render_template_string("H-{host}", ip, "ipam.ipaddress"),
-            build_name(ip, "ipam.ipaddress", "H-{host}"),
+            "H-10.0.0.1",
         )
 
     def test_template_uses_jinja_detection(self):
@@ -195,13 +156,13 @@ class AddressGroupNameTemplateTests(SimpleTestCase):
             SimpleNamespace(name="h2"),
         ]
         with patch(
-            "netbox_nsm.objects.address_object_builder.ipam_key_for_address",
+            "netbox_nsm.addresses.ipam_keys.ipam_key_for_address",
             return_value=(1, 1),
         ), patch(
-            "netbox_nsm.objects.address_object_builder._ipam_obj_for_key",
+            "netbox_nsm.addresses.ipam_keys.ipam_obj_for_key",
             return_value=SimpleNamespace(address="10.0.0.1/32"),
         ), patch(
-            "netbox_nsm.objects.address_object_builder.source_key_for_ipam_obj",
+            "netbox_nsm.addresses.ipam_keys.source_key_for_ipam_obj",
             return_value="ipam.ipaddress",
         ):
             self.assertEqual(infer_group_match_kind(members), "host_members")

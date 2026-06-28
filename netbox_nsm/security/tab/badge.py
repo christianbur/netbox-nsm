@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from django.contrib.contenttypes.models import ContentType
 
-from netbox_nsm.objects.object_link_service import iter_links_for_object
-from netbox_nsm.security.panel import build_cot_security_panel_groups
+from netbox_nsm.security.links.object_link_service import iter_links_for_object
+from netbox_nsm.security.tab.security_rows import count_cot_reference_links
+from netbox_nsm.security.references.cot_rule_references import build_cot_security_rulebook_groups
 
 __all__ = ("count_security_tab_badge",)
 
@@ -32,7 +33,7 @@ def _count_extra_link_refs(obj) -> int:
     try:
         from ipam.models import IPAddress, IPRange, Prefix
 
-        from netbox_nsm.objects.address_ipam_fk import (
+        from netbox_nsm.addresses.address_ipam_fk import (
             get_nsm_address_model,
             is_nsm_address_object,
             iter_address_ipam_fk_refs,
@@ -111,7 +112,7 @@ def count_security_tab_badge(obj) -> int:
         return 0
 
     ct = ContentType.objects.get_for_model(obj)
-    panel_data = build_cot_security_panel_groups(
+    panel_data = build_cot_security_rulebook_groups(
         ct,
         obj.pk,
         panel_url=lambda url: url,
@@ -123,4 +124,8 @@ def count_security_tab_badge(obj) -> int:
         + _count_enforcement_entries(obj)
         + _count_interface_analysis_entries(obj)
     )
+    try:
+        total += count_cot_reference_links(obj)
+    except Exception:
+        pass
     return total

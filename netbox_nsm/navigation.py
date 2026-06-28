@@ -11,21 +11,20 @@ from netbox.navigation.menu import MenuGroup
 
 from netbox_nsm.core.plugin_labels import get_nsm_menu_label
 from netbox_nsm.core.setup_flags import setup_menu_enabled
-from netbox_nsm.navigation_objects import build_nsm_objects_menu_group
 from netbox_nsm.objects.nsm_config_permissions import (
     CHANGE_CUSTOM_OBJECT_TYPE,
     VIEW_CUSTOM_OBJECT_TYPE,
 )
 
-_TYPE_CONFIG_MENU_ITEM = PluginMenuItem(
-    link="plugins:netbox_nsm:objectconfig_list",
-    link_text=_("Object Config"),
+_TYPE_METADATA_MENU_ITEM = PluginMenuItem(
+    link="plugins:netbox_nsm:typemetadata_list",
+    link_text=_("Type Metadata"),
     permissions=[VIEW_CUSTOM_OBJECT_TYPE],
 )
 
 _SETUP_MENU_ITEM = PluginMenuItem(
-    link="plugins:netbox_nsm:setup",
-    link_text=_("Setup"),
+    link="plugins:netbox_nsm:bundles",
+    link_text=_("Bundles"),
     permissions=[VIEW_CUSTOM_OBJECT_TYPE],
 )
 
@@ -43,7 +42,7 @@ def _build_configuration_menu():
             config_items.append(_SETUP_MENU_ITEM)
     except Exception:
         pass
-    config_items.append(_TYPE_CONFIG_MENU_ITEM)
+    config_items.append(_TYPE_METADATA_MENU_ITEM)
     config_items.append(_OBJECT_REPORT_MENU_ITEM)
     return ((_("Configuration"), tuple(config_items)),)
 
@@ -102,9 +101,6 @@ def _analysis_menu_items():
 def build_menu_groups():
     """Build sidebar groups for the top-level NSM menu."""
     groups = list(_build_configuration_menu())
-    objects_group = build_nsm_objects_menu_group()
-    if objects_group is not None:
-        groups.append(objects_group)
     groups.extend(
         (
             ((_("Rulebooks"), nsm_rulebook_menu_items),)

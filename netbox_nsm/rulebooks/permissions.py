@@ -12,7 +12,9 @@ __all__ = (
     "can_add_rulebook_rules",
     "can_change_rulebook",
     "can_create_rulebook",
+    "can_delete_deployed_rulebook",
     "can_delete_rulebook_rules",
+    "can_show_rulebook_delete",
     "can_view_rulebook",
     "filter_viewable_rulebook_rows",
     "rulebook_permission",
@@ -20,6 +22,7 @@ __all__ = (
 )
 
 _CREATE_COT = "netbox_custom_objects.add_customobjecttype"
+_DELETE_COT = "netbox_custom_objects.delete_customobjecttype"
 
 
 class RulebookListProxy(models.Model):
@@ -68,11 +71,28 @@ def can_delete_rulebook_rules(user, cot) -> bool:
     return bool(perm and user.has_perm(perm))
 
 
+def can_delete_deployed_rulebook(user, cot, *, rule_count: int) -> bool:
+    """May delete the deployed rulebook COT (no blockers, permission granted)."""
+    if not user.has_perm(_DELETE_COT):
+        return False
+    from netbox_nsm.rulebooks.delete_blockers import deployed_rulebook_delete_blockers
+
+    return not deployed_rulebook_delete_blockers(cot, rule_count=rule_count)
+
+
+def can_show_rulebook_delete(user) -> bool:
+    """May open the rulebook delete flow (dropdown entry)."""
+    return user.has_perm(_DELETE_COT)
+
+
 def can_create_rulebook(user) -> bool:
     return user.has_perm(_CREATE_COT)
 
 
 def user_can_access_rulebooks(user) -> bool:
+    """May open the rulebook list (rows are filtered separately)."""
+    if can_create_rulebook(user):
+        return True
     for cot in iter_deployed_cot_rulebooks():
         if can_view_rulebook(user, cot):
             return True

@@ -158,7 +158,98 @@ class CotRulebookMetadataViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Original description")
         self.assertContains(response, "?edit=1")
+        self.assertContains(response, "btn-warning")
         self.assertNotContains(response, 'name="verbose_name"')
+
+    def test_detail_shows_delete_in_edit_dropdown_when_empty(self):
+        grant_rulebook_cot_perms(self, self.cot, view=True, change=True)
+        self.add_permissions("netbox_custom_objects.delete_customobjecttype")
+        url = reverse(
+            "plugins:netbox_nsm:cot_rulebook",
+            kwargs={"slug": self.cot.slug},
+        )
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "dropdown-toggle")
+        self.assertContains(
+            response,
+            reverse(
+                "plugins:netbox_nsm:cot_rulebook_delete",
+                kwargs={"slug": self.cot.slug},
+            ),
+        )
+
+    @patch("netbox_nsm.rulebooks.views.cot.build_virtual_cot_rulebook_with_hierarchy")
+    def test_detail_shows_delete_even_when_rulebook_has_rules(self, mock_build):
+        from netbox_nsm.rulebooks.virtual_cot import VirtualCotRulebook
+
+        grant_rulebook_cot_perms(self, self.cot, view=True, change=True)
+        self.add_permissions("netbox_custom_objects.delete_customobjecttype")
+        mock_build.return_value = VirtualCotRulebook(self.cot, rule_count=3)
+        url = reverse(
+            "plugins:netbox_nsm:cot_rulebook",
+            kwargs={"slug": self.cot.slug},
+        )
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            reverse(
+                "plugins:netbox_nsm:cot_rulebook_delete",
+                kwargs={"slug": self.cot.slug},
+            ),
+        )
+
+    @patch("netbox_nsm.rulebooks.views.cot.build_virtual_cot_rulebook_with_hierarchy")
+    def test_delete_page_explains_blocker_when_rulebook_has_rules(self, mock_build):
+        from netbox_nsm.rulebooks.virtual_cot import VirtualCotRulebook
+
+        grant_rulebook_cot_perms(self, self.cot, view=True, change=True)
+        self.add_permissions("netbox_custom_objects.delete_customobjecttype")
+        mock_build.return_value = VirtualCotRulebook(self.cot, rule_count=3)
+        url = reverse(
+            "plugins:netbox_nsm:cot_rulebook_delete",
+            kwargs={"slug": self.cot.slug},
+        )
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "cannot be deleted")
+        self.assertContains(response, "3 rules")
+        self.assertNotContains(response, 'class="btn btn-danger"')
+
+    @patch("netbox_nsm.rulebooks.views.cot.build_virtual_cot_rulebook_with_hierarchy")
+    def test_delete_post_blocked_when_rulebook_has_rules(self, mock_build):
+        from netbox_custom_objects.models import CustomObjectType
+        from netbox_nsm.rulebooks.virtual_cot import VirtualCotRulebook
+
+        grant_rulebook_cot_perms(self, self.cot, view=True, change=True)
+        self.add_permissions("netbox_custom_objects.delete_customobjecttype")
+        mock_build.return_value = VirtualCotRulebook(self.cot, rule_count=2)
+        url = reverse(
+            "plugins:netbox_nsm:cot_rulebook_delete",
+            kwargs={"slug": self.cot.slug},
+        )
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "2 rules")
+        self.assertTrue(
+            CustomObjectType.objects.filter(pk=self.cot.pk).exists()
+        )
+
+    def test_delete_post_removes_empty_rulebook(self):
+        from netbox_custom_objects.models import CustomObjectType
+
+        grant_rulebook_cot_perms(self, self.cot, view=True, change=True)
+        self.add_permissions("netbox_custom_objects.delete_customobjecttype")
+        url = reverse(
+            "plugins:netbox_nsm:cot_rulebook_delete",
+            kwargs={"slug": self.cot.slug},
+        )
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(
+            CustomObjectType.objects.filter(pk=self.cot.pk).exists()
+        )
 
     def test_detail_edit_mode_shows_inline_form(self):
         grant_rulebook_cot_perms(self, self.cot, view=True, change=True)

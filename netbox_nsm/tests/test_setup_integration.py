@@ -20,7 +20,7 @@ _SETUP_PLUGINS_CONFIG = {
 @override_settings(PLUGINS_CONFIG=_SETUP_PLUGINS_CONFIG)
 class SetupIntegrationTests(TestCase):
     @patch(
-        "netbox_nsm.views.setup.view.SetupView._build_context",
+        "netbox_nsm.bundles.views.SetupView._build_context",
         return_value={
             "custom_objects_plugin_loaded": True,
             "custom_objects_db_ready": True,
@@ -36,15 +36,15 @@ class SetupIntegrationTests(TestCase):
     )
     def test_setup_page_renders(self, _build_context):
         grant_nsm_config_perms(self, view=True)
-        url = reverse("plugins:netbox_nsm:setup")
+        url = reverse("plugins:netbox_nsm:bundles")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200, response.content)
-        self.assertContains(response, "setup")
+        self.assertContains(response, "Bundles")
 
 
 class SetupHiddenTests(TestCase):
-    @patch("netbox_nsm.views.setup.view.setup_menu_enabled", return_value=False)
+    @patch("netbox_nsm.bundles.views.setup_menu_enabled", return_value=False)
     def test_setup_hidden_when_disabled(self, _menu_enabled):
-        url = reverse("plugins:netbox_nsm:setup")
+        url = reverse("plugins:netbox_nsm:bundles")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 404)

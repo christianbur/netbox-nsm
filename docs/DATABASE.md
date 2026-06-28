@@ -8,8 +8,7 @@ NSM persists its own data in the **NetBox PostgreSQL database**. Django uses the
 Security **object instances** (zones, addresses, labels, services, actions, rulebook rules,
 policy links, rulebook host assignments) are **not** stored in native NSM tables. They live in
 `netbox-custom-objects` COT rows (`nsm_object_link` for panel links and rulebook assignments).
-Type metadata (`sort_order`, `display_template`, `areas`, `panel`, `rulebook`; optional
-`object_builder` on `nsm_address` only) lives in each COT type's **`comments`** field
+Type metadata (`sort_order`, `display_template`, `areas`, `links`, `rulebook`) lives in each COT type's **`comments`** field
 (`nsm_config` YAML). Plugin-wide UI labels use
 **`PLUGINS_CONFIG`** only (`menu_label`, `panel_label`, `setup_menu`).
 
@@ -35,7 +34,9 @@ python manage.py dbshell -c "\dt netbox_nsm_*"
 |-------|---------|
 | `RulebookListProxy` | **Unmanaged** NetBoxTable / object-list shim for the rulebook list UI only. Marked `_netbox_private` — **no physical table**, **not** a permission source. Rulebook access is enforced per deployed COT via `netbox_custom_objects` permissions on each rulebook's rule model (see `rulebooks/permissions.py`). |
 
-Object Config / `nsm_config` permissions (0.4.5+) use `netbox_custom_objects.view_customobjecttype` and `netbox_custom_objects.change_customobjecttype` — there is no `TypeConfig` anchor model.
+Type Metadata / `nsm_config` permissions (0.4.5+) use `netbox_custom_objects.view_customobjecttype` and `netbox_custom_objects.change_customobjecttype` — there is no `TypeConfig` anchor model.
+
+Setup bundles write **`metadata`** (JSON) → COT **`comments`** via `schema/dispatch.sync_metadata`.
 
 No `netbox_nsm_*` data tables exist in current NSM. Configuration lives in COT `comments`; rulebook instances live in `netbox-custom-objects`.
 

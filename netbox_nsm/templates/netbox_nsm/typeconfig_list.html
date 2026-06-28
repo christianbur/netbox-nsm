@@ -1,16 +1,16 @@
 {% extends 'base/layout.html' %}
 {% load i18n %}
 
-{% block title %}{% trans "Object Config" %}{% endblock %}
+{% block title %}{% trans "Type Metadata" %}{% endblock %}
 
 {% block content %}
 <div class="row mb-3">
   <div class="col">
-    <h1 class="h2">{% trans "Object Config" %}</h1>
+    <h1 class="h2">{% trans "Type Metadata" %}</h1>
     <p class="text-muted mb-0">{% trans "NSM settings stored in Custom Object Type comments (nsm_config)." %}</p>
   </div>
   <div class="col-auto d-print-none">
-    <a href="{% url 'plugins:netbox_nsm:objectconfig_add' %}" class="btn btn-primary">
+    <a href="{% url 'plugins:netbox_nsm:typemetadata_add' %}" class="btn btn-primary">
       <i class="mdi mdi-plus-thick"></i> {% trans "Add" %}
     </a>
   </div>
@@ -22,29 +22,46 @@
       <thead>
         <tr>
           <th>{% trans "Object Type" %}</th>
+          <th>{% trans "Role" %}</th>
+          <th>{% trans "Status" %}</th>
           <th>{% trans "Sort order" %}</th>
           <th>{% trans "Display Template" %}</th>
           <th></th>
         </tr>
       </thead>
       <tbody>
-        {% for cfg in configs %}
+        {% for entry in configs %}
         <tr>
-          <td><a href="{% url 'plugins:netbox_nsm:objectconfig' cfg.slug %}">{{ cfg.content_type_label }}</a></td>
-          <td>{{ cfg.sort_order }}</td>
-          <td><code>{{ cfg.display_template }}</code></td>
+          <td><a href="{% url 'plugins:netbox_nsm:typemetadata' entry.config.slug %}">{{ entry.config.content_type_label }}</a></td>
+          <td>
+            {% if entry.config.role %}
+            <span class="badge text-bg-info">{{ entry.config.role_label }}</span>
+            {% else %}
+            <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if entry.has_stored_metadata %}
+            <span class="badge text-bg-primary">{% trans "Stored" %}</span>
+            {% else %}
+            <span class="badge text-bg-secondary">{% trans "Defaults" %}</span>
+            {% endif %}
+          </td>
+          <td>{{ entry.config.sort_order }}</td>
+          <td><code>{{ entry.config.display_template }}</code></td>
           <td class="text-end text-nowrap">
-            <a href="{% url 'plugins:netbox_nsm:objectconfig_edit' cfg.slug %}" class="btn btn-sm btn-warning" title="{% trans 'Edit' %}">
-              <i class="mdi mdi-pencil"></i>
-            </a>
-            <a href="{% url 'plugins:netbox_nsm:objectconfig_delete' cfg.slug %}" class="btn btn-sm btn-danger" title="{% trans 'Delete' %}">
-              <i class="mdi mdi-trash-can-outline"></i>
-            </a>
+            {% url 'plugins:netbox_nsm:typemetadata_edit' entry.config.slug as edit_url %}
+            {% if entry.has_stored_metadata %}
+            {% url 'plugins:netbox_nsm:typemetadata_delete' entry.config.slug as delete_url %}
+            {% include "netbox_nsm/inc/nsm_edit_delete_split_button.html" with edit_url=edit_url delete_url=delete_url %}
+            {% else %}
+            {% include "netbox_nsm/inc/nsm_edit_delete_split_button.html" with edit_url=edit_url %}
+            {% endif %}
           </td>
         </tr>
         {% empty %}
         <tr>
-          <td colspan="4" class="text-muted">{% trans "No Object Configs found. Add one or complete Setup section 2." %}</td>
+          <td colspan="6" class="text-muted">{% trans "No type metadata found. Add one or apply the NSM Schema bundle." %}</td>
         </tr>
         {% endfor %}
       </tbody>

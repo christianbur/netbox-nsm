@@ -155,7 +155,7 @@ class AddrDiffAnalysisTests(SimpleTestCase):
                 "kind": "leaf",
                 "name": f"host-{i}",
                 "url": f"#ip{i}",
-                "ip_ref": {"str": f"10.129.170.{i}/32", "url": f"#ip{i}"},
+                "ip_ref": {"str": f"198.19.170.{i}/32", "url": f"#ip{i}"},
                 "children": [],
             }
             for i in (1, 2, 3)
@@ -165,13 +165,13 @@ class AddrDiffAnalysisTests(SimpleTestCase):
             "name": "net-left",
             "url": "#prefix-a",
             "ip_ref": {
-                "str": "10.129.170.0/24",
+                "str": "198.19.170.0/24",
                 "url": "#prefix-a",
                 "type": "Prefix",
                 "ct": 11,
                 "pk": 170,
             },
-            "prefix_display_cidr": "10.129.170.0/24",
+            "prefix_display_cidr": "198.19.170.0/24",
             "children": [
                 {
                     "kind": "category",
@@ -198,7 +198,7 @@ class AddrDiffAnalysisTests(SimpleTestCase):
         prefix_node = only_group["children"][0]
         self.assertTrue(prefix_node.get("diff_ipam_hierarchy_prefix"))
         self.assertEqual(
-            (prefix_node.get("ip_ref") or {}).get("str"), "10.129.170.0/24"
+            (prefix_node.get("ip_ref") or {}).get("str"), "198.19.170.0/24"
         )
         self.assertEqual(len(prefix_node.get("children") or []), 3)
         for child in prefix_node["children"]:
@@ -495,7 +495,7 @@ class AddrDiffAnalysisTests(SimpleTestCase):
                                 "intersection_tree": [
                                     {
                                         "kind": "group",
-                                        "name": "10.128.182.0/24",
+                                        "name": "198.18.182.0/24",
                                         "url": "#",
                                         "children": [],
                                     }
@@ -708,14 +708,14 @@ class AddrDiffAnalysisTests(SimpleTestCase):
             "kind": "leaf",
             "name": "bench-ip-0018231",
             "url": "#a",
-            "ip_ref": {"str": "10.128.182.32/32", "url": "#"},
+            "ip_ref": {"str": "198.18.182.32/32", "url": "#"},
             "children": [],
         }
         leaf_18210 = {
             "kind": "leaf",
             "name": "bench-ip-0018210",
             "url": "#b",
-            "ip_ref": {"str": "10.128.182.11/32", "url": "#"},
+            "ip_ref": {"str": "198.18.182.11/32", "url": "#"},
             "children": [],
         }
         build_nodes_fn.side_effect = [
@@ -937,7 +937,7 @@ class AddrDiffAnalysisTests(SimpleTestCase):
                 "kind": "leaf",
                 "name": f"host-{i}",
                 "url": f"#ip{i}",
-                "ip_ref": {"str": f"10.129.169.{i}/32", "url": f"#ip{i}"},
+                "ip_ref": {"str": f"198.19.169.{i}/32", "url": f"#ip{i}"},
                 "children": [],
             }
             for i in (1, 2, 3)
@@ -947,13 +947,13 @@ class AddrDiffAnalysisTests(SimpleTestCase):
             "name": "net-left",
             "url": "#prefix-a",
             "ip_ref": {
-                "str": "10.129.169.0/24",
+                "str": "198.19.169.0/24",
                 "url": "#prefix-a",
                 "type": "Prefix",
                 "ct": 11,
                 "pk": 24,
             },
-            "prefix_display_cidr": "10.129.169.0/24",
+            "prefix_display_cidr": "198.19.169.0/24",
             "children": [
                 {
                     "kind": "category",
@@ -982,7 +982,7 @@ class AddrDiffAnalysisTests(SimpleTestCase):
         node = intersection[0]
         self.assertTrue(node.get("diff_ipam_hierarchy_prefix"))
         self.assertFalse(node.get("diff_intersection_pair"))
-        self.assertEqual((node.get("ip_ref") or {}).get("str"), "10.129.169.0/24")
+        self.assertEqual((node.get("ip_ref") or {}).get("str"), "198.19.169.0/24")
         self.assertEqual(node.get("kind"), "group")
         self.assertEqual(len(node.get("children") or []), 3)
         for child in node["children"]:
@@ -995,7 +995,7 @@ class AddrDiffAnalysisTests(SimpleTestCase):
         prefix_node = both_group["children"][0]
         self.assertTrue(prefix_node.get("diff_ipam_hierarchy_prefix"))
         self.assertEqual(
-            (prefix_node.get("ip_ref") or {}).get("str"), "10.129.169.0/24"
+            (prefix_node.get("ip_ref") or {}).get("str"), "198.19.169.0/24"
         )
         self.assertEqual(len(prefix_node.get("children") or []), 3)
         for child in prefix_node["children"]:
@@ -1016,7 +1016,7 @@ class AddrDiffAnalysisTests(SimpleTestCase):
                 "kind": "leaf",
                 "name": f"host-{i}",
                 "url": f"#ip{i}",
-                "ip_ref": {"str": f"10.128.182.{i}/32", "url": f"#ip{i}"},
+                "ip_ref": {"str": f"198.18.182.{i}/32", "url": f"#ip{i}"},
                 "children": [],
             }
             for i in range(1, host_count + 1)
@@ -1026,13 +1026,13 @@ class AddrDiffAnalysisTests(SimpleTestCase):
             "name": "shared-net",
             "url": "#prefix",
             "ip_ref": {
-                "str": "10.128.182.0/24",
+                "str": "198.18.182.0/24",
                 "url": "#prefix",
                 "type": "Prefix",
                 "ct": 11,
                 "pk": 182,
             },
-            "prefix_display_cidr": "10.128.182.0/24",
+            "prefix_display_cidr": "198.18.182.0/24",
             "children": [
                 {
                     "kind": "category",
@@ -1052,7 +1052,7 @@ class AddrDiffAnalysisTests(SimpleTestCase):
         prefix_node = both_group["children"][0]
         self.assertTrue(prefix_node.get("diff_ipam_hierarchy_prefix"))
         self.assertEqual(
-            (prefix_node.get("ip_ref") or {}).get("str"), "10.128.182.0/24"
+            (prefix_node.get("ip_ref") or {}).get("str"), "198.18.182.0/24"
         )
         self.assertEqual(len(prefix_node.get("children") or []), host_count)
         self.assertEqual(result[0]["types"][0]["diff_summary"]["both"], host_count)
@@ -1069,14 +1069,14 @@ class AddrDiffAnalysisTests(SimpleTestCase):
             "kind": "leaf",
             "name": "host-1",
             "url": "#ip1",
-            "ip_ref": {"str": "10.129.169.1/32", "url": "#ip1"},
+            "ip_ref": {"str": "198.19.169.1/32", "url": "#ip1"},
             "children": [],
         }
         only_b_leaf = {
             "kind": "leaf",
             "name": "host-2",
             "url": "#ip2",
-            "ip_ref": {"str": "10.129.169.2/32", "url": "#ip2"},
+            "ip_ref": {"str": "198.19.169.2/32", "url": "#ip2"},
             "children": [],
         }
         prefix_group = {
@@ -1084,13 +1084,13 @@ class AddrDiffAnalysisTests(SimpleTestCase):
             "name": "net",
             "url": "#prefix",
             "ip_ref": {
-                "str": "10.129.169.0/24",
+                "str": "198.19.169.0/24",
                 "url": "#prefix",
                 "type": "Prefix",
                 "ct": 11,
                 "pk": 24,
             },
-            "prefix_display_cidr": "10.129.169.0/24",
+            "prefix_display_cidr": "198.19.169.0/24",
             "children": [
                 {
                     "kind": "category",
@@ -1126,13 +1126,13 @@ class AddrDiffAnalysisTests(SimpleTestCase):
         prefix_node = intersection[0]
         self.assertTrue(prefix_node.get("diff_ipam_hierarchy_prefix"))
         self.assertEqual(
-            (prefix_node.get("ip_ref") or {}).get("str"), "10.129.169.0/24"
+            (prefix_node.get("ip_ref") or {}).get("str"), "198.19.169.0/24"
         )
         self.assertEqual(prefix_node.get("kind"), "group")
         self.assertEqual(len(prefix_node.get("children") or []), 1)
         host = prefix_node["children"][0]
         self.assertTrue(host.get("diff_intersection_pair"))
-        self.assertEqual((host.get("ip_ref") or {}).get("str"), "10.129.169.1/32")
+        self.assertEqual((host.get("ip_ref") or {}).get("str"), "198.19.169.1/32")
         self.assertEqual(host.get("kind"), "leaf")
 
     @patch("django.contrib.contenttypes.models.ContentType")
@@ -1155,8 +1155,8 @@ class AddrDiffAnalysisTests(SimpleTestCase):
 
         p24 = MagicMock(spec=Prefix)
         p24.pk = 182
-        p24.prefix = ipaddress.ip_network("10.128.182.0/24")
-        p24.__str__ = MagicMock(return_value="10.128.182.0/24")
+        p24.prefix = ipaddress.ip_network("198.18.182.0/24")
+        p24.__str__ = MagicMock(return_value="198.18.182.0/24")
         p24.get_absolute_url.return_value = "/ipam/prefixes/182/"
         lookup_prefix_fn.return_value = p24
 
@@ -1165,7 +1165,7 @@ class AddrDiffAnalysisTests(SimpleTestCase):
                 "kind": "leaf",
                 "name": f"host-{i}",
                 "url": f"#ip{i}",
-                "ip_ref": {"str": f"10.128.182.{i}/32", "url": f"#ip{i}"},
+                "ip_ref": {"str": f"198.18.182.{i}/32", "url": f"#ip{i}"},
                 "children": [],
             }
             for i in (1, 10)
@@ -1178,7 +1178,7 @@ class AddrDiffAnalysisTests(SimpleTestCase):
         prefix_node = intersection[0]
         self.assertTrue(prefix_node.get("diff_ipam_hierarchy_prefix"))
         self.assertEqual(
-            (prefix_node.get("ip_ref") or {}).get("str"), "10.128.182.0/24"
+            (prefix_node.get("ip_ref") or {}).get("str"), "198.18.182.0/24"
         )
         self.assertEqual(len(prefix_node.get("children") or []), 2)
         child_keys = {
@@ -1186,7 +1186,7 @@ class AddrDiffAnalysisTests(SimpleTestCase):
             for child in prefix_node["children"]
         }
         self.assertEqual(
-            child_keys, {"10.128.182.1/32", "10.128.182.10/32"}
+            child_keys, {"198.18.182.1/32", "198.18.182.10/32"}
         )
         for child in prefix_node["children"]:
             self.assertTrue(child.get("diff_intersection_pair"))

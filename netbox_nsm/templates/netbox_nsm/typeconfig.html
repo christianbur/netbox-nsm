@@ -2,63 +2,101 @@
 {% load i18n %}
 {% load helpers %}
 
-{% block title %}{{ config.name }} — {% trans "Object Config" %}{% endblock %}
+{% block title %}{{ config.name }} — {% trans "Type Metadata" %}{% endblock %}
 
 {% block content %}
 <div class="row mb-3">
   <div class="col">
     <nav aria-label="breadcrumb">
       <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{% url 'plugins:netbox_nsm:objectconfig_list' %}">{% trans "Object Config" %}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'plugins:netbox_nsm:typemetadata_list' %}">{% trans "Type Metadata" %}</a></li>
         <li class="breadcrumb-item active">{{ config.name }}</li>
       </ol>
     </nav>
     <h1 class="h2">{{ config.name }}</h1>
-    <p class="text-muted"><code>{{ config.slug }}</code></p>
+    <p class="text-muted">
+      <code>{{ config.slug }}</code>
+      {% if has_stored_metadata %}
+      <span class="badge text-bg-primary ms-2">{% trans "Stored" %}</span>
+      {% else %}
+      <span class="badge text-bg-secondary ms-2">{% trans "Defaults" %}</span>
+      {% endif %}
+    </p>
   </div>
   <div class="col-auto d-print-none">
-    <a href="{% url 'plugins:netbox_nsm:objectconfig_edit' config.slug %}" class="btn btn-warning">
-      <i class="mdi mdi-pencil"></i> {% trans "Edit" %}
-    </a>
-    <a href="{% url 'plugins:netbox_nsm:objectconfig_delete' config.slug %}" class="btn btn-danger">
-      <i class="mdi mdi-trash-can-outline"></i> {% trans "Delete" %}
-    </a>
+    {% url 'plugins:netbox_nsm:typemetadata_edit' config.slug as edit_url %}
+    {% if has_stored_metadata %}
+    {% url 'plugins:netbox_nsm:typemetadata_delete' config.slug as delete_url %}
+    {% include "netbox_nsm/inc/nsm_edit_delete_split_button.html" with edit_url=edit_url delete_url=delete_url show_edit_text=True large=True %}
+    {% else %}
+    {% include "netbox_nsm/inc/nsm_edit_delete_split_button.html" with edit_url=edit_url show_edit_text=True size="" %}
+    {% endif %}
   </div>
 </div>
 
 <div class="row">
   <div class="col col-md-6">
     <div class="card">
+      <h5 class="card-header">{% trans "Metadata" %}</h5>
+      <table class="table table-hover attr-table mb-0">
+        <tr>
+          <th scope="row">{% trans "Role" %}</th>
+          <td>
+            {% if role_label %}
+            <span class="badge text-bg-info">{{ role_label }}</span>
+            {% else %}
+            <span class="text-muted">{% trans "None" %}</span>
+            {% endif %}
+          </td>
+        </tr>
+      </table>
+    </div>
+    <div class="card mt-3">
       <h5 class="card-header">{% trans "Rule View" %}</h5>
       <table class="table table-hover attr-table mb-0">
         <tr><th scope="row">{% trans "Sort order" %}</th><td>{{ config.sort_order }}</td></tr>
         <tr><th scope="row">{% trans "Object Type" %}</th><td>{{ config.content_type_label|placeholder }}</td></tr>
         <tr><th scope="row">{% trans "Display Template" %}</th><td><code>{{ config.display_template|placeholder }}</code></td></tr>
+        <tr>
+          <th scope="row">{% trans "Rule areas" %}</th>
+          <td>
+            {% if area_labels %}
+            {% for label in area_labels %}<span class="badge text-bg-secondary me-1">{{ label }}</span>{% endfor %}
+            {% else %}
+            <span class="text-muted">{% trans "None" %}</span>
+            {% endif %}
+          </td>
+        </tr>
       </table>
     </div>
-    {% if config.slug == "nsm_address" %}
-    {% if object_builder %}
+    {% if links %}
     <div class="card mt-3">
-      <h5 class="card-header">{% trans "Object Sync" %}</h5>
+      <h5 class="card-header">{% trans "Security Links" %}</h5>
       <table class="table table-hover attr-table mb-0">
         <tr>
-          <th scope="row">{% trans "Enabled" %}</th>
-          <td>{% if object_builder.enabled %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %}</td>
+          <th scope="row">{% trans "Linkable" %}</th>
+          <td>{% if links.linkable %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %}</td>
         </tr>
-        {% for row in object_builder_templates %}
         <tr>
-          <th scope="row">{{ row.label }}</th>
-          <td><code>{{ row.template|default:"—" }}</code></td>
+          <th scope="row">{% trans "Inherit links" %}</th>
+          <td>{% if links.inherit_links %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %}</td>
         </tr>
-        {% endfor %}
+        <tr>
+          <th scope="row">{% trans "Inherit stop on own" %}</th>
+          <td>{% if links.inherit_stop_on_own %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %}</td>
+        </tr>
+        <tr>
+          <th scope="row">{% trans "Allow virtual groups" %}</th>
+          <td>{% if links.allow_virtual_groups %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %}</td>
+        </tr>
       </table>
     </div>
     {% endif %}
-    {% if plugin_name_templates %}
+    {% if config.slug == "nsm_address" and plugin_name_templates %}
     <div class="card mt-3">
       <h5 class="card-header">{% trans "Plugin name templates" %}</h5>
       <p class="card-body text-muted mb-0 pb-2">
-        {% trans "From PLUGINS_CONFIG (override Object Sync templates when match fits)." %}
+        {% trans "From PLUGINS_CONFIG address_name_templates." %}
       </p>
       <table class="table table-hover attr-table mb-0">
         {% for row in plugin_name_templates %}
@@ -69,7 +107,6 @@
         {% endfor %}
       </table>
     </div>
-    {% endif %}
     {% endif %}
   </div>
   <div class="col-md-6">

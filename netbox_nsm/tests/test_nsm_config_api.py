@@ -59,7 +59,7 @@ class NsmConfigApiTests(APITestCase):
 
         response = self.client.patch(
             self._url(self.zone_cot.slug),
-            {"rule_view": {"sort_order": 15, "display_template": "{name}"}},
+            {"rule_view": {"sort_order": 15, "display_template": "{{ name }}"}},
             format="json",
         )
         self.assertEqual(response.status_code, 200)
@@ -69,7 +69,7 @@ class NsmConfigApiTests(APITestCase):
 
     def test_patch_rulebook_preserves_rule_view(self):
         self.zone_cot.comments = (
-            "nsm_config:\n  - rule_view:\n      sort_order: 3\n      display_template: '{name}'\n"
+            "nsm_config:\n  - rule_view:\n      sort_order: 3\n      display_template: '{{ name }}'\n"
         )
         self.zone_cot.save(update_fields=["comments"])
         self.rulebook_cot.comments = self.zone_cot.comments

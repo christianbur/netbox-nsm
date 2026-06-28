@@ -573,9 +573,12 @@ def demo_rulebook_schema_yaml() -> str:
     """Return resolved portable-schema YAML for the starter demo rulebook."""
     return substitute_rulebook_schema_placeholders(
         DEMO_RULEBOOK_SCHEMA_YAML,
-        display_name=format_rulebook_display_name("Demo"),
+        display_name="NSM Demo Zone Matrix",
         name="demo",
-        description="",
+        description=(
+            "Zone matrix rulebook (250×250 zones). "
+            "Fill with the NSM Demo Zone Matrix setup job."
+        ),
     )
 
 
@@ -622,9 +625,12 @@ def bench_rulebook_schema_yaml() -> str:
     ).strip() + "\n"
     return substitute_rulebook_schema_placeholders(
         raw,
-        display_name=format_rulebook_display_name("Bench Addresses"),
+        display_name="NSM Demo Zone/Address/AdressGroup",
         name="bench_addresses",
-        description="",
+        description=(
+            "Zone, address, and address-group bench (50k scale). "
+            "Fill with the NSM Demo Zone/Address/AdressGroup setup job."
+        ),
     )
 
 
@@ -821,7 +827,13 @@ def get_template(slug: str) -> dict:
 
 
 def is_deployed_rulebook_slug(slug: str) -> bool:
-    """Return True for concrete rulebooks (``nsm_rb_<name>``), not templates."""
+    """Return True when *slug* belongs to a concrete rulebook COT (``role: rulebook``)."""
+    from netbox_custom_objects.models import CustomObjectType
+    from netbox_nsm.rulebooks.registry import is_deployed_rulebook_cot
+
+    cot = CustomObjectType.objects.filter(slug=slug).first()
+    if cot is not None:
+        return is_deployed_rulebook_cot(cot)
     return slug.startswith("nsm_rb_") and not is_rulebook_template_slug(slug)
 
 

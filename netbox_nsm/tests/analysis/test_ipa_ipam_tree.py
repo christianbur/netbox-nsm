@@ -107,7 +107,7 @@ class IpaIpamTreePresentationTests(SimpleTestCase):
                 {
                     "kind": "group",
                     "ip_ref": {
-                        "str": "10.128.130.0/24",
+                        "str": "198.18.130.0/24",
                         "type": FIELD_TYPE_LABELS["prefix"],
                     },
                     "children": [],

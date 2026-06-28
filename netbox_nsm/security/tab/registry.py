@@ -6,13 +6,13 @@ import logging
 
 from django.urls import clear_url_caches, path as url_path
 
-from netbox_nsm.security.tab.views import (
+from netbox_nsm.security.tab.security_views import (
     SECURITY_TAB_PATH,
     make_co_security_view,
     register_security_tab_on_model,
 )
 
-logger = logging.getLogger("netbox_nsm.security.tab")
+logger = logging.getLogger("netbox_nsm.tabs")
 
 # URL name for custom-object host pages (``CustomObject._get_viewname('security')``).
 CO_SECURITY_URL_NAME = f"customobject_{SECURITY_TAB_PATH}"

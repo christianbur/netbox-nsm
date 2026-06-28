@@ -19,10 +19,10 @@ PLUGINS = ["netbox_custom_objects", "netbox_nsm"]
 
 | § | Content | Action |
 |---|---------|--------|
-| 2 | Custom Object Schema | **Add all Custom Objects** — imports 10 built-in `nsm_*` COTs and writes `nsm_config` into each type's `comments` |
-| 3 | Demo | Optional **Starter demo** (recommended) |
+| 2 | Schema bundles | **Apply** `nsm_schema` (required) — imports built-in `nsm_*` COTs and syncs bundle `metadata.types` / `metadata.rulebooks` into each type's `comments` (`nsm_config` YAML) |
+| 3 | Demo | Optional **NSM Demo Zone Matrix** (Python job `nsm_demo_zone_matrix`; `nsm_rb_demo` is included in NSM Schema) |
 
-There is no separate Object Config step in Setup: `nsm_config` is applied during schema import. Adjust per-type settings later via **Security → Object Config** or the REST API.
+There is no separate Object Config step in Setup: `nsm_config` is written during bundle apply (`sync_metadata()`). Adjust per-type settings later via **Security → Object Config** or the REST API.
 
 Set `setup_allow_destructive_actions: True` in `PLUGINS_CONFIG` for demos.
 

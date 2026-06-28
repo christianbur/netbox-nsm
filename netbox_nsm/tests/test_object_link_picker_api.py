@@ -31,8 +31,8 @@ class ObjectTypeElementsApiViewTests(TestCase):
         query = "&".join(f"{k}={v}" for k, v in params.items())
         return f"{base}?{query}" if query else base
 
-    @patch("netbox_nsm.views.object_link.is_panel_linkable_content_type", return_value=True)
-    def test_empty_query_returns_first_page(self, _panel_linkable):
+    @patch("netbox_nsm.security.views.object_link.is_linkable_content_type", return_value=True)
+    def test_empty_query_returns_first_page(self, _linkable):
         url = self._api_url(ct_id=self.prefix_ct.pk, q="")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200, response.content)
@@ -44,8 +44,8 @@ class ObjectTypeElementsApiViewTests(TestCase):
         self.assertIn(self.prefix_a.pk, ids)
         self.assertIn(self.prefix_b.pk, ids)
 
-    @patch("netbox_nsm.views.object_link.is_panel_linkable_content_type", return_value=True)
-    def test_single_char_query_not_rejected(self, _panel_linkable):
+    @patch("netbox_nsm.security.views.object_link.is_linkable_content_type", return_value=True)
+    def test_single_char_query_not_rejected(self, _linkable):
         url = self._api_url(ct_id=self.prefix_ct.pk, q="1")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200, response.content)

@@ -7,7 +7,7 @@ Submodules by concern:
   - ``addr_analysis_utils`` — stable re-export / unittest patch surface
   - ``_lazy_api`` — breaks circular imports between implementation modules
 
-For the Object Analyzer graph see ``netbox_nsm.analyzer`` (not this package).
+For the Object Analyzer graph see ``analysis.analyzer`` (not the ``addr_*`` modules here).
 
 IP Analyzer architecture: ``docs/ip_analyzer_architecture.md``.
 """

@@ -119,7 +119,7 @@ def _ipa_object_node_role_from_obj(obj, *, expands_members: bool | None = None) 
     ip_ref = _hub._addr_ip_ref(obj)
     if ip_ref:
         return _ipa_object_node_role_from_ip_ref(ip_ref) or IPA_NODE_ROLE_EMPTY
-    from netbox_nsm.objects.address_literal import get_network_literal
+    from netbox_nsm.addresses.address_literal import get_network_literal
 
     literal = get_network_literal(obj)
     if literal:
@@ -264,7 +264,7 @@ def _ipa_object_node_apply_presentation(
             node["ip_ref"] = _hub._addr_ip_ref_node_dict(ip_ref)
             _hub._attach_addr_node_prefix_display(node, obj=obj, ip_ref=ip_ref)
         else:
-            from netbox_nsm.objects.address_literal import attach_literal_prefix_display
+            from netbox_nsm.addresses.address_literal import attach_literal_prefix_display
 
             attach_literal_prefix_display(node, obj)
     return node

@@ -7,6 +7,15 @@ from netbox_nsm.tests.rulebook_permission_helpers import grant_nsm_config_perms
 from utilities.testing import TestCase
 
 
+def _edit_post_data(**overrides):
+    data = {
+        "sort_order": 9,
+        "display_template": "{{ name }}",
+    }
+    data.update(overrides)
+    return data
+
+
 class ObjectConfigViewMergeTests(TestCase):
     def setUp(self):
         super().setUp()
@@ -27,13 +36,13 @@ class ObjectConfigViewMergeTests(TestCase):
             "nsm_config:\n"
             "  - rule_view:\n"
             "      sort_order: 5\n"
-            "      display_template: '{name}'\n"
+            "      display_template: '{{ name }}'\n"
         )
         self.cot.save(update_fields=["comments"])
 
         response = self.client.post(
-            reverse("plugins:netbox_nsm:objectconfig_edit", args=["nsm_zone"]),
-            {"sort_order": 9, "display_template": "{name}"},
+            reverse("plugins:netbox_nsm:typemetadata_edit", args=["nsm_zone"]),
+            _edit_post_data(),
         )
         self.assertEqual(response.status_code, 302)
         self.cot.refresh_from_db()
@@ -43,6 +52,25 @@ class ObjectConfigViewMergeTests(TestCase):
             document["nsm_config"][0]["rule_view"]["sort_order"],
             9,
         )
+
+    def test_edit_persists_panel_and_areas(self):
+        response = self.client.post(
+            reverse("plugins:netbox_nsm:typemetadata_edit", args=["nsm_zone"]),
+            _edit_post_data(
+                areas=["srcdst"],
+                linkable="on",
+                inherit_links="on",
+            ),
+        )
+        self.assertEqual(response.status_code, 302)
+        self.cot.refresh_from_db()
+        document = yaml.safe_load(self.cot.comments)
+        rule_view = document["nsm_config"][0]["rule_view"]
+        panel = document["nsm_config"][1]["links"]
+        self.assertEqual(rule_view["areas"], ["srcdst"])
+        self.assertTrue(panel["linkable"])
+        self.assertTrue(panel["inherit_links"])
+        self.assertNotIn("linkable_types", panel)
 
     def test_delete_only_clears_nsm_config_block(self):
         self.cot.comments = (
@@ -54,7 +82,7 @@ class ObjectConfigViewMergeTests(TestCase):
         self.cot.save(update_fields=["comments"])
 
         response = self.client.post(
-            reverse("plugins:netbox_nsm:objectconfig_delete", args=["nsm_zone"]),
+            reverse("plugins:netbox_nsm:typemetadata_delete", args=["nsm_zone"]),
         )
         self.assertEqual(response.status_code, 302)
         self.cot.refresh_from_db()

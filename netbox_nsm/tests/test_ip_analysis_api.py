@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 from django.test import RequestFactory, SimpleTestCase
 from django.urls import reverse
 
-from netbox_nsm.views.ip_analysis_api import IpAnalysisApiView
+from netbox_nsm.analysis.ip.api import IpAnalysisApiView
 
 
 class IpAnalysisApiUrlTests(SimpleTestCase):
@@ -607,8 +607,8 @@ class IpAnalysisApiTests(SimpleTestCase):
         self.assertIn(b"addr_analysis:", response.content)
         self.assertNotIn(b'"html"', response.content)
 
-    @patch("netbox_nsm.views.ip_analysis_api.execute_ip_analysis_merge")
-    @patch("netbox_nsm.views.ip_analysis_api.parse_selections_from_request")
+    @patch("netbox_nsm.analysis.ip.api.execute_ip_analysis_merge")
+    @patch("netbox_nsm.analysis.ip.api.parse_selections_from_request")
     def test_returns_json_error_on_unhandled_exception(
         self, parse_fn, merge_fn
     ):

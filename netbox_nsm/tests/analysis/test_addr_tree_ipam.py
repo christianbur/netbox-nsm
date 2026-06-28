@@ -53,19 +53,19 @@ class IpamPrefixTreeTests(SimpleTestCase):
 
         prefix = MagicMock(spec=Prefix)
         prefix.pk = 5
-        prefix.__str__ = lambda self: "10.128.93.0/24"
+        prefix.__str__ = lambda self: "198.18.93.0/24"
         prefix.get_absolute_url.return_value = "/ipam/prefixes/5/"
 
         ip = MagicMock()
         ip.pk = 7
-        ip.__str__ = lambda self: "10.128.93.1/32"
+        ip.__str__ = lambda self: "198.18.93.1/32"
         ip._meta.app_label = "ipam"
         ip._meta.model_name = "ipaddress"
         ip.get_absolute_url.return_value = "/ipam/ip-addresses/7/"
 
         ip_ref_fn.side_effect = lambda obj: (
             {
-                "str": "10.128.93.0/24",
+                "str": "198.18.93.0/24",
                 "url": "/ipam/prefixes/5/",
                 "type": "Prefix",
                 "ct": 14,
@@ -92,12 +92,12 @@ class IpamPrefixTreeTests(SimpleTestCase):
             {},
         )
         layer_node_fn.return_value = {
-            "name": "10.128.93.0/24",
+            "name": "198.18.93.0/24",
             "kind": "group",
             "layer": "ipam_prefix",
             "children": [
                 {
-                    "name": "10.128.93.1/32",
+                    "name": "198.18.93.1/32",
                     "kind": "leaf",
                     "children": [],
                 }
@@ -143,12 +143,12 @@ class IpamPrefixTreeTests(SimpleTestCase):
 
         prefix = MagicMock()
         prefix.pk = 5
-        prefix.__str__ = lambda self: "10.128.182.0/24"
+        prefix.__str__ = lambda self: "198.18.182.0/24"
         prefix.get_absolute_url.return_value = "/ipam/prefixes/5/"
 
         ip = MagicMock()
         ip.pk = 7
-        ip.__str__ = lambda self: "10.128.182.32/32"
+        ip.__str__ = lambda self: "198.18.182.32/32"
         ip.get_absolute_url.return_value = "/ipam/ip-addresses/7/"
 
         addr.prefix = prefix
@@ -174,7 +174,7 @@ class IpamPrefixTreeTests(SimpleTestCase):
 
         self.assertEqual(node["kind"], "leaf")
         self.assertEqual(node["name"], "bench-ip-0018231")
-        self.assertEqual(node["ip_ref"]["str"], "10.128.182.32/32")
+        self.assertEqual(node["ip_ref"]["str"], "198.18.182.32/32")
         self.assertEqual(node["children"], [])
 
     @patch("django.contrib.contenttypes.models.ContentType")
@@ -192,12 +192,12 @@ class IpamPrefixTreeTests(SimpleTestCase):
 
         addr = MagicMock()
         addr.prefix = MagicMock()
-        addr.prefix.__str__ = lambda self: "10.128.182.0/24"
+        addr.prefix.__str__ = lambda self: "198.18.182.0/24"
         addr.prefix.get_absolute_url.return_value = "/ipam/prefixes/5/"
         addr.prefix.pk = 5
 
         addr.ip_address = MagicMock()
-        addr.ip_address.__str__ = lambda self: "10.128.182.32/32"
+        addr.ip_address.__str__ = lambda self: "198.18.182.32/32"
         addr.ip_address.get_absolute_url.return_value = "/ipam/ip-addresses/7/"
         addr.ip_address.pk = 7
         addr.range = None
@@ -207,7 +207,7 @@ class IpamPrefixTreeTests(SimpleTestCase):
         self.assertIs(_ipam_fk_object_for_addr_node(addr), addr.ip_address)
 
         ip_ref = _addr_ip_ref(addr)
-        self.assertEqual(ip_ref["str"], "10.128.182.32/32")
+        self.assertEqual(ip_ref["str"], "198.18.182.32/32")
         self.assertEqual(ip_ref["type"], "IP Address")
         self.assertEqual(ip_ref["pk"], 7)
 
@@ -510,7 +510,7 @@ class IpamPrefixTreeTests(SimpleTestCase):
         bench = {
             "kind": "group",
             "name": "bench-ip-0009313",
-            "ip_ref": {"str": "10.128.93.0/24", "url": "/ipam/prefixes/1/", "type": "Prefix"},
+            "ip_ref": {"str": "198.18.93.0/24", "url": "/ipam/prefixes/1/", "type": "Prefix"},
             "ipam_stats": _ordered_ipam_stats({"ip_addresses": {"count": 100}}),
             "children": [],
         }
@@ -721,7 +721,7 @@ class IpamPrefixTreeTests(SimpleTestCase):
         bench = {
             "kind": "group",
             "name": "bench-ip-0009313",
-            "ip_ref": {"str": "10.128.93.0/24", "url": "/ipam/prefixes/1/", "type": "Prefix"},
+            "ip_ref": {"str": "198.18.93.0/24", "url": "/ipam/prefixes/1/", "type": "Prefix"},
             "children": [],
         }
         slash8 = {
@@ -908,7 +908,7 @@ class IpamPrefixTreeTests(SimpleTestCase):
         bench = {
             "kind": "group",
             "name": "bench-ip-0009313",
-            "ip_ref": {"str": "10.128.93.0/24", "url": "/ipam/prefixes/1/", "type": "Prefix"},
+            "ip_ref": {"str": "198.18.93.0/24", "url": "/ipam/prefixes/1/", "type": "Prefix"},
             "ipam_stats": _ordered_ipam_stats({"ip_addresses": {"count": 100}}),
             "children": [],
         }
@@ -950,7 +950,7 @@ class IpamPrefixTreeTests(SimpleTestCase):
         bench = {
             "kind": "group",
             "name": "bench-ip-0009313",
-            "ip_ref": {"str": "10.128.93.0/24", "url": "/ipam/prefixes/1/", "type": "Prefix"},
+            "ip_ref": {"str": "198.18.93.0/24", "url": "/ipam/prefixes/1/", "type": "Prefix"},
             "ipam_stats": bench_stats,
             "children": [],
         }
@@ -969,14 +969,14 @@ class IpamPrefixTreeTests(SimpleTestCase):
         a = {
             "kind": "group",
             "name": "bench-a",
-            "ip_ref": {"str": "10.128.93.0/24", "url": "/p/1/", "type": "Prefix"},
+            "ip_ref": {"str": "198.18.93.0/24", "url": "/p/1/", "type": "Prefix"},
             "ipam_stats": _ordered_ipam_stats({"ip_addresses": {"count": 100}}),
             "children": [],
         }
         b = {
             "kind": "group",
             "name": "bench-b",
-            "ip_ref": {"str": "10.129.34.0/24", "url": "/p/2/", "type": "Prefix"},
+            "ip_ref": {"str": "198.19.34.0/24", "url": "/p/2/", "type": "Prefix"},
             "ipam_stats": _ordered_ipam_stats({"ip_addresses": {"count": 100}}),
             "children": [],
         }
@@ -1311,8 +1311,8 @@ class LookupIpamPrefixForCidrTests(SimpleTestCase):
         prefix_mgr.filter.return_value.order_by.return_value.first.return_value = (
             MagicMock()
         )
-        _lookup_ipam_prefix_for_cidr("10.128.228.0/24")
-        prefix_mgr.filter.assert_called_once_with(prefix=IPNetwork("10.128.228.0/24"))
+        _lookup_ipam_prefix_for_cidr("198.18.228.0/24")
+        prefix_mgr.filter.assert_called_once_with(prefix=IPNetwork("198.18.228.0/24"))
 
 
 from utilities.testing import TestCase
@@ -1325,12 +1325,12 @@ class LookupIpamPrefixForCidrIntegrationTests(TestCase):
         from netbox_nsm.analysis.addr_diff_collect import _lookup_ipam_prefix_for_cidr
         from netbox_nsm.analysis.ipam_drilldown import _resolve_ipam_stats_from_ip_ref
 
-        prefix = Prefix.objects.create(prefix="10.128.228.0/24", status="active")
-        found = _lookup_ipam_prefix_for_cidr("10.128.228.0/24")
+        prefix = Prefix.objects.create(prefix="198.18.228.0/24", status="active")
+        found = _lookup_ipam_prefix_for_cidr("198.18.228.0/24")
         self.assertIsNotNone(found)
         self.assertEqual(found.pk, prefix.pk)
 
-        stats = _resolve_ipam_stats_from_ip_ref({"str": "10.128.228.0/24"})
+        stats = _resolve_ipam_stats_from_ip_ref({"str": "198.18.228.0/24"})
         self.assertIsNotNone(stats)
         self.assertIn("ip_addresses", stats)
 

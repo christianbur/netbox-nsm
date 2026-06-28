@@ -29,6 +29,16 @@ def dedupe_matrix_object_types(entries: list[dict]) -> list[dict]:
     return deduped
 
 
+def _default_matrix_object_type_id(available_types: list[dict]) -> int | None:
+    """Pick a sensible default object type for the zone matrix tab."""
+    if not available_types:
+        return None
+    for entry in available_types:
+        if str(entry.get("label") or "").strip().casefold() == "zone":
+            return entry["ct_id"]
+    return available_types[0]["ct_id"]
+
+
 def resolve_matrix_object_type_selection(
     selected_ct_id: int | None,
     *,
@@ -42,7 +52,7 @@ def resolve_matrix_object_type_selection(
     if selected_ct_id in valid_deduped:
         return selected_ct_id
     if selected_ct_id is None:
-        return available_types[0]["ct_id"]
+        return _default_matrix_object_type_id(available_types)
     selected_label = None
     for entry in raw_types:
         if entry["ct_id"] == selected_ct_id:
@@ -52,7 +62,7 @@ def resolve_matrix_object_type_selection(
         for entry in available_types:
             if str(entry.get("label") or "").casefold() == selected_label:
                 return entry["ct_id"]
-    return available_types[0]["ct_id"]
+    return _default_matrix_object_type_id(available_types)
 
 
 def matrix_axis_display_label(

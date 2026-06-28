@@ -75,7 +75,7 @@ class IpaObjectNodeRoleTests(SimpleTestCase):
             self.assertEqual(
                 _ipa_object_node_role_from_ip_ref(
                     {
-                        "str": "10.128.0.0/24",
+                        "str": "198.18.0.0/24",
                         "type": "Address",
                         "ct": 70,
                         "pk": 96,

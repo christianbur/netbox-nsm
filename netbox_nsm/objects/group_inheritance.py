@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections import deque
 from typing import Iterator
 
-from netbox_nsm.objects.ipam_inheritance import (
+from netbox_nsm.addresses.ipam_inheritance import (
     InheritedNsmLink,
     _linked_dedupe_key,
     _type_config_map,

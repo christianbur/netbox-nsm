@@ -76,7 +76,7 @@ def nsm_security_tab_link(context, instance):
     legacy right-hand Security panel on every object page).
     """
     from netbox_nsm.core.plugin_labels import get_nsm_panel_label
-    from netbox_nsm.security.tab.badge import count_security_tab_badge
+    from netbox_nsm.tabs.badge import count_security_tab_badge
 
     try:
         url = get_action_url(

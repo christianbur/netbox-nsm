@@ -11,8 +11,8 @@ from netbox_nsm.core.interface_parent import (
     prefetch_interface_parents,
 )
 from netbox_nsm.rulebooks.assigned_objects import _interfaces_for_host
-from netbox_nsm.security.panel import build_cot_security_panel_groups
-from netbox_nsm.security.panel_links import build_object_link_rows
+from netbox_nsm.security.references.cot_rule_references import build_cot_security_rulebook_groups
+from netbox_nsm.security.links.link_rows import build_object_link_rows
 
 __all__ = ("build_host_interface_analysis",)
 
@@ -39,7 +39,7 @@ def build_host_interface_analysis(host, *, request, panel_url) -> list[dict]:
     for iface in interfaces:
         ct = ContentType.objects.get_for_model(iface)
         link_rows = build_object_link_rows(iface, return_url)
-        panel_data = build_cot_security_panel_groups(
+        panel_data = build_cot_security_rulebook_groups(
             ct,
             iface.pk,
             panel_url=panel_url,

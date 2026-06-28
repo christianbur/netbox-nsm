@@ -4,14 +4,14 @@ from unittest import mock
 
 from django.test import RequestFactory, SimpleTestCase
 
-from netbox_nsm.views.setup import demo
+from netbox_nsm.import_ import demo
 
 DEMO_IMPORT = "netbox_nsm.demos.addresses_million_scale.create_addresses_million_scale"
 
 
 class DemoQueueTests(SimpleTestCase):
     def setUp(self):
-        self.request = RequestFactory().post("/plugins/netbox-nsm/setup/")
+        self.request = RequestFactory().post("/plugins/netbox-nsm/bundles/")
 
     @mock.patch.object(demo, "messages")
     @mock.patch.object(demo, "_count_active_rq_workers", return_value=0)

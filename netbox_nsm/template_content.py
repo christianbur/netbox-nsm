@@ -14,18 +14,4 @@ class NsmStylesExtension(PluginTemplateExtension):
         )
 
 
-class NsmSecurityLinksExtension(PluginTemplateExtension):
-    """
-    Legacy Security panel hook — disabled; content moved to the Security tab.
-
-    Registered so existing plugin template extension lists stay stable; the right
-    panel is intentionally empty.
-    """
-
-    models = None
-
-    def right_page(self):
-        return ""
-
-
-template_extensions = [NsmStylesExtension, NsmSecurityLinksExtension]
+template_extensions = [NsmStylesExtension]

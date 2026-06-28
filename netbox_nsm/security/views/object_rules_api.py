@@ -5,10 +5,10 @@ from django.views import View
 
 from netbox_nsm.core.branch_urls import with_branch_query
 from netbox_nsm.security.object_rules import build_cot_rule_name_column_filter_url
-from netbox_nsm.security.panel import (
+from netbox_nsm.security.references.cot_rule_references import (
     API_BATCH_DEFAULT,
     fetch_cot_security_field_rules,
-    iter_cot_security_panel_matches,
+    iter_cot_security_rulebook_matches,
 )
 
 __all__ = ("ObjectRulesApiView",)
@@ -116,7 +116,7 @@ class ObjectRulesApiView(LoginRequiredMixin, View):
                 }
             )
 
-        from netbox_nsm.security.panel import scan_cot_security_references
+        from netbox_nsm.security.references.cot_rule_references import scan_cot_security_references
 
         all_matches = scan_cot_security_references(ct, obj_id)
         seen = set()
@@ -130,7 +130,7 @@ class ObjectRulesApiView(LoginRequiredMixin, View):
 
         total = len(deduped)
         batch = list(
-            iter_cot_security_panel_matches(
+            iter_cot_security_rulebook_matches(
                 ct,
                 obj_id,
                 offset=offset,

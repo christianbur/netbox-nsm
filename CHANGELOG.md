@@ -406,7 +406,7 @@ bundled AG Grid views. Documentation realigned to the **Starter demo** (Demo - Z
 ### Migration
 
 - **Squashed** migrations `0002`–`0005` into a single `0001_initial` (current schema only —
-  no legacy `panel_linkable` or incremental data migrations).
+  no legacy `linkable` or incremental data migrations).
 - Existing dev/test databases that already applied old migrations:  
   `python manage.py migrate netbox_nsm zero` then `migrate netbox_nsm`  
   (**drops all NSM plugin tables**; re-run Setup wizard / Starter demo).

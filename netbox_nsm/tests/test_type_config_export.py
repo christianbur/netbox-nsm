@@ -6,13 +6,11 @@ from unittest.mock import patch
 from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
 
-from dcim.models import Device, Rack, Region, Site
+from dcim.models import Device, Interface, Rack, Region, Site
 from ipam.models import IPAddress, Prefix, VLAN, VRF
 from virtualization.models import VirtualMachine
 
 from netbox_nsm.objects.nsm_config import NsmTypeConfig
-from netbox_nsm.tests.rulebook_permission_helpers import grant_nsm_config_perms
-from utilities.testing import TestCase
 from netbox_nsm.objects.type_config_export import (
     backfill_cot_nsm_config_comments,
     build_all_type_configs_preview_rows,
@@ -30,6 +28,8 @@ from netbox_nsm.objects.type_config_export import (
 )
 from netbox_nsm.objects.type_config_specs import TYPECONFIG_UI_SPECS
 from netbox_nsm.tests.rulebook_permission_helpers import grant_nsm_config_perms
+from netbox_nsm.views.type_metadata import TypeMetadataListEntry
+from utilities.testing import TestCase
 
 
 def _parse_export_sections(yaml_text: str) -> list[dict]:
@@ -52,13 +52,13 @@ class TypeConfigExportTests(TestCase):
             content_type_id=cls.prefix_ct.pk,
             name="Test Zones",
             sort_order=10,
-            display_template="{name}",
+            display_template="{{ name }}",
         )
 
     def test_content_type_export_ref_uses_app_label_model(self):
         self.assertEqual(content_type_export_ref(self.prefix_ct), "ipam.prefix")
 
-    @patch("netbox_nsm.objects.type_config_export.cot_slug_for_content_type")
+    @patch("netbox_nsm.type_metadata.export.cot_slug_for_content_type")
     def test_content_type_export_ref_prefers_slug(self, mock_slug):
         mock_slug.return_value = "nsm_zone"
         self.assertEqual(content_type_export_ref(self.prefix_ct), "nsm_zone")
@@ -69,7 +69,7 @@ class TypeConfigExportTests(TestCase):
             data,
             {
                 "sort_order": 10,
-                "display_template": "{name}",
+                "display_template": "{{ name }}",
             },
         )
 
@@ -78,7 +78,7 @@ class TypeConfigExportTests(TestCase):
         self.assertIn("nsm_config:\n", yaml_text)
         self.assertIn("sort_order: 10\n", yaml_text)
         self.assertIn("display_template:", yaml_text)
-        self.assertIn("{name}", yaml_text)
+        self.assertIn("{{ name }}", yaml_text)
         self.assertNotIn("# Test Zones", yaml_text)
         self.assertNotIn("name: Test Zones", yaml_text)
         self.assertNotIn("slug:", yaml_text)
@@ -118,6 +118,7 @@ class TypeConfigAllExportTests(TestCase):
             Device,
             Rack,
             VirtualMachine,
+            Interface,
         ]
         cls.ui_specs = TYPECONFIG_UI_SPECS
         cls.configs: list[NsmTypeConfig] = []
@@ -136,14 +137,14 @@ class TypeConfigAllExportTests(TestCase):
 
     def _patch_configs(self):
         return patch(
-            "netbox_nsm.objects.type_config_export._resolved_ui_configs",
+            "netbox_nsm.type_metadata.export._resolved_ui_configs",
             return_value=self.configs,
         )
 
-    def test_export_all_yaml_has_nine_configs(self):
+    def test_export_all_yaml_has_ten_configs(self):
         with self._patch_configs():
             sections = _parse_export_sections(export_all_type_configs_yaml())
-        self.assertEqual(len(sections), 9)
+        self.assertEqual(len(sections), 10)
 
     def test_export_all_yaml_sorted_by_sort_order(self):
         with self._patch_configs():
@@ -151,17 +152,19 @@ class TypeConfigAllExportTests(TestCase):
         sort_orders = [row["sort_order"] for row in sections]
         self.assertEqual(sort_orders, sorted(sort_orders))
         self.assertEqual(sections[0]["sort_order"], 10)
-        self.assertEqual(sections[-1]["sort_order"], 40)
+        self.assertEqual(sections[-1]["sort_order"], 50)
 
-    def test_export_all_yaml_excludes_object_link(self):
+    def test_export_all_yaml_includes_object_link(self):
         with self._patch_configs():
-            yaml_text = export_all_type_configs_yaml()
-        self.assertNotIn("nsm_object_link", yaml_text)
+            sections = _parse_export_sections(export_all_type_configs_yaml())
+        slugs = {cfg.slug for cfg in self.configs}
+        self.assertIn("nsm_object_link", slugs)
+        self.assertEqual(len(sections), 10)
 
     def test_preview_rows_match_export_count(self):
         with self._patch_configs():
             rows = build_all_type_configs_preview_rows()
-        self.assertEqual(len(rows), 9)
+        self.assertEqual(len(rows), 10)
         self.assertEqual(rows[0]["slug"], "nsm_zone")
         self.assertEqual(rows[0]["sort_order"], 10)
 
@@ -173,22 +176,27 @@ class TypeConfigAllExportTests(TestCase):
 
     def test_list_view_excludes_export_panel(self):
         grant_nsm_config_perms(self, view=True)
+        entries = [
+            TypeMetadataListEntry(config=cfg, has_stored_metadata=True)
+            for cfg in self.configs
+        ]
         with patch(
-            "netbox_nsm.views.type_config._resolved_configs",
-            return_value=self.configs,
+            "netbox_nsm.type_metadata.views._resolved_configs",
+            return_value=entries,
         ):
-            response = self.client.get(reverse("plugins:netbox_nsm:objectconfig_list"))
+            response = self.client.get(reverse("plugins:netbox_nsm:typemetadata_list"))
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, "Settings export")
 
 
 class TypeConfigCommentYamlTests(TestCase):
     def test_format_type_config_comment_yaml(self):
-        yaml_text = format_type_config_comment_yaml(10, "{name}")
+        yaml_text = format_type_config_comment_yaml(10, "{{ name }}")
         self.assertIn("nsm_config:", yaml_text)
         self.assertIn("rule_view:", yaml_text)
         self.assertIn("sort_order: 10", yaml_text)
         self.assertIn("display_template:", yaml_text)
+        self.assertIn("{{ name }}", yaml_text)
 
     def test_format_type_config_comment_yaml_for_spec(self):
         spec = TYPECONFIG_UI_SPECS[0]
@@ -197,11 +205,11 @@ class TypeConfigCommentYamlTests(TestCase):
         self.assertIn(f"sort_order: {spec['sort_order']}\n", yaml_text)
         self.assertIn("display_template:", yaml_text)
 
-    def test_format_all_type_configs_comment_yaml_has_nine_sections(self):
+    def test_format_all_type_configs_comment_yaml_has_ten_sections(self):
         sections = _parse_export_sections(format_all_type_configs_comment_yaml())
-        self.assertEqual(len(sections), 9)
+        self.assertEqual(len(sections), 10)
         self.assertEqual(sections[0]["sort_order"], 10)
-        self.assertEqual(sections[-1]["sort_order"], 40)
+        self.assertEqual(sections[-1]["sort_order"], 50)
 
     def test_comment_yaml_matches_export_format(self):
         type_config = NsmTypeConfig(
@@ -209,7 +217,7 @@ class TypeConfigCommentYamlTests(TestCase):
             content_type_id=ContentType.objects.get_for_model(Prefix).pk,
             name="Test Zones",
             sort_order=10,
-            display_template="{name}",
+            display_template="{{ name }}",
         )
         comment_yaml = format_type_config_comment_yaml_for_config(type_config)
         export_yaml = export_type_config_yaml(type_config)
@@ -245,6 +253,8 @@ class TypeConfigCommentYamlTests(TestCase):
             verbose_name="Object Links",
         )
         self.assertFalse(sync_cot_nsm_config_comments(cot))
+        cot.refresh_from_db()
+        self.assertNotIn("nsm_config:", cot.comments or "")
 
     def test_backfill_cot_nsm_config_comments(self):
         try:

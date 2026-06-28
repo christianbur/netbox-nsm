@@ -12,7 +12,7 @@ from netbox.registry import registry
 
 from netbox_nsm.security.tab.badge import count_security_tab_badge
 from netbox_nsm.security.tab.registry import register_security_tabs
-from netbox_nsm.security.tab.views import (
+from netbox_nsm.security.tab.security_views import (
     _CO_BASE_TEMPLATE,
     _NSM_CO_BASE_TEMPLATE,
     SECURITY_TAB_PATH,
@@ -20,7 +20,6 @@ from netbox_nsm.security.tab.views import (
     make_security_tab_view,
     register_security_tab_on_model,
 )
-from netbox_nsm.template_content import NsmSecurityLinksExtension
 from utilities.testing import TestCase
 
 User = get_user_model()
@@ -94,7 +93,7 @@ class SecurityTabBaseTemplateTests(SimpleTestCase):
         instance = MagicMock()
         instance._meta.app_label = "dcim"
         with patch(
-            "netbox_nsm.security.tab.views.get_default_template",
+            "netbox_nsm.security.tab.security_views.get_default_template",
             return_value="dcim/device.html",
         ) as mock_default:
             self.assertEqual(_get_base_template(instance), "dcim/device.html")
@@ -133,7 +132,8 @@ class SecurityTabRegistryTests(TestCase):
 
 
 class SecurityTabBadgeTests(TestCase):
-    @patch("netbox_nsm.security.tab.badge.build_cot_security_panel_groups")
+    @patch("netbox_nsm.security.tab.badge.count_cot_reference_links", return_value=0)
+    @patch("netbox_nsm.security.tab.badge.build_cot_security_rulebook_groups")
     @patch("netbox_nsm.security.tab.badge._count_object_links", return_value=0)
     @patch("netbox_nsm.security.tab.badge._count_extra_link_refs", return_value=0)
     @patch("netbox_nsm.security.tab.badge._count_enforcement_entries", return_value=0)
@@ -146,7 +146,7 @@ class SecurityTabBadgeTests(TestCase):
             return_value=MagicMock(pk=10),
         ):
             with patch(
-                "netbox_nsm.security.tab.badge.build_cot_security_panel_groups",
+                "netbox_nsm.security.tab.badge.build_cot_security_rulebook_groups",
                 return_value={"unique_rules_total": 3},
             ):
                 self.assertEqual(count_security_tab_badge(device), 3)
@@ -193,7 +193,7 @@ class SecurityTabViewTests(TestCase):
     def setUp(self):
         self.client = Client()
 
-    @patch("netbox_nsm.security.tab.views.build_security_tab_context")
+    @patch("netbox_nsm.security.tab.security_views.build_security_tab_context")
     def test_device_security_tab_renders(self, mock_context):
         mock_context.return_value = {
             "nsm_link_type_groups": [],
@@ -221,7 +221,9 @@ class SecurityTabViewTests(TestCase):
         self.assertEqual(response.status_code, 302)
 
 
-class SecurityPanelDisabledTests(TestCase):
-    def test_right_page_is_empty(self):
-        extension = NsmSecurityLinksExtension(None)
-        self.assertEqual(extension.right_page(), "")
+class SecurityTabExtensionTests(TestCase):
+    def test_legacy_security_panel_extension_removed(self):
+        from netbox_nsm import template_content
+
+        names = [ext.__name__ for ext in template_content.template_extensions]
+        self.assertNotIn("NsmSecurityLinksExtension", names)

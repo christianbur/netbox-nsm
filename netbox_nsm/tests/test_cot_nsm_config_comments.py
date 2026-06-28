@@ -23,14 +23,14 @@ class CotNsmConfigCommentsImportTests(TestCase):
         _mock_seed,
         mock_sync_comments,
     ):
-        from netbox_nsm.views.setup.custom_objects import import_single_type
+        from netbox_nsm.import_.custom_objects import import_single_type
 
         import_single_type("nsm_zone")
         mock_apply.assert_called_once()
         mock_sync_comments.assert_called_once_with(["nsm_zone"])
 
     @patch("netbox_nsm.objects.type_config_export.sync_cot_nsm_config_comments_for_slugs")
-    @patch("netbox_nsm.views.setup.custom_objects.import_rulebook_templates")
+    @patch("netbox_nsm.import_.custom_objects.import_rulebook_templates")
     @patch("netbox_nsm.views.custom_objects_sync._seed_default_objects")
     @patch("netbox_nsm.views.custom_objects_sync._prune_stale")
     @patch("netbox_nsm.views.custom_objects_sync._ensure_choice_sets")
@@ -44,7 +44,7 @@ class CotNsmConfigCommentsImportTests(TestCase):
         _mock_rulebook_templates,
         mock_sync_comments,
     ):
-        from netbox_nsm.views.setup.custom_objects import import_all_types
+        from netbox_nsm.import_.custom_objects import import_all_types
 
         import_all_types()
         mock_apply.assert_called_once()
@@ -56,7 +56,7 @@ class CotNsmConfigCommentsImportTests(TestCase):
 
 class CotNsmConfigCommentsApplyDocumentTests(TestCase):
     def test_portable_schema_excludes_comments_field(self):
-        from netbox_nsm.objects.custom_objects_schema import build_schema_document
+        from netbox_nsm.bundles.schema_builder import build_schema_document
 
         document = build_schema_document()
         for type_def in document["types"]:

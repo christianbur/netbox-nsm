@@ -39,7 +39,7 @@ def _prefix_ipam_stats(prefix):
     """NetBox-native prefix inventory counts (same sources as the prefix detail tabs)."""
     from django.urls import reverse
 
-    from netbox_nsm.objects.address_ipam_fk import (
+    from netbox_nsm.addresses.address_ipam_fk import (
         addresses_for_ipam_object_queryset,
         get_nsm_address_model,
     )
@@ -244,7 +244,7 @@ def _ip_count_from_ip_ref(ip_ref):
 
 def _collect_ipam_prefix_children_impl(prefix, *, include_nsm_addresses=True):
     """Load a bounded preview tree grouped by NetBox category."""
-    from netbox_nsm.objects.address_ipam_fk import (
+    from netbox_nsm.addresses.address_ipam_fk import (
         addresses_for_ipam_object_queryset,
         get_nsm_address_model,
     )
@@ -335,7 +335,7 @@ def _flatten_ipam_grouped(grouped):
 
 def _query_ipam_category_objects(prefix, category, *, offset=0, limit=None):
     """Fetch one page of objects for a prefix inventory category."""
-    from netbox_nsm.objects.address_ipam_fk import (
+    from netbox_nsm.addresses.address_ipam_fk import (
         addresses_for_ipam_object_queryset,
         get_nsm_address_model,
     )

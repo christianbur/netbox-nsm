@@ -42,8 +42,8 @@ class PolySubfieldLabelTests(TestCase):
         self.cot.comments = format_nsm_config_comment_yaml(
             {
                 "sort_order": 0,
-                "display_template": "{name}",
-                "panel": {"panel_linkable": True},
+                "display_template": "{{ name }}",
+                "links": {"linkable": True},
             }
         ).rstrip()
         self.cot.save(update_fields=["comments"])

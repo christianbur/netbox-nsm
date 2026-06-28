@@ -156,23 +156,10 @@
               <span>{{ link.name|safe }}</span>
               {% endif %}
               {% if link.edit_url or link.delete_url %}
-              <span class="btn-group btn-group-sm ms-1 nsm-rb-assigned-edit-only" role="group">
-                {% if link.edit_url %}
-                <a href="{{ link.edit_url }}"
-                   class="btn btn-warning btn-sm"
-                   title="{% trans 'Edit assignment' %}"
-                   aria-label="{% trans 'Edit assignment' %}">
-                  <i class="mdi mdi-pencil" aria-hidden="true"></i>
-                </a>
-                {% endif %}
-                {% if link.delete_url %}
-                <a href="{{ link.delete_url }}"
-                   class="btn btn-danger btn-sm"
-                   title="{% trans 'Remove assignment' %}"
-                   aria-label="{% trans 'Remove assignment' %}">
-                  <i class="mdi mdi-trash-can-outline" aria-hidden="true"></i>
-                </a>
-                {% endif %}
+              <span class="ms-1 nsm-rb-assigned-edit-only d-inline-flex">
+                {% trans "Edit assignment" as nsm_edit_assignment_label %}
+                {% trans "Remove assignment" as nsm_remove_assignment_label %}
+                {% include "netbox_nsm/inc/nsm_edit_delete_split_button.html" with edit_url=link.edit_url delete_url=link.delete_url edit_label=nsm_edit_assignment_label delete_label=nsm_remove_assignment_label %}
               </span>
               {% endif %}
             </span>

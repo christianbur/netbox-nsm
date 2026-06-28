@@ -5,7 +5,7 @@ from types import SimpleNamespace
 from django.template.loader import render_to_string
 from django.test import SimpleTestCase
 
-from netbox_nsm.security.tab_context import (
+from netbox_nsm.security.tab.context import (
     finalize_link_type_group,
     finalize_link_type_groups,
     row_has_link_actions,
@@ -362,7 +362,8 @@ class SecurityLinkRowActionsTemplateTests(SimpleTestCase):
         self.assertIn('class="col-actions', html)
         self.assertIn("btn-light", html)
         self.assertIn("btn-warning", html)
-        self.assertIn("btn-danger", html)
+        self.assertIn("dropdown-toggle", html)
+        self.assertIn("dropdown-item", html)
         self.assertIn("mdi-magnify text-dark", html)
         self.assertIn("mdi-pencil", html)
         self.assertIn("mdi-trash-can-outline", html)
@@ -374,11 +375,12 @@ class SecurityLinkRowActionsTemplateTests(SimpleTestCase):
         self.assertIn("mdi-magnify text-dark", actions_cell)
         self.assertIn("btn-warning", actions_cell)
         self.assertIn("mdi-pencil", actions_cell)
-        self.assertIn("btn-danger", actions_cell)
+        self.assertIn("dropdown-toggle", actions_cell)
+        self.assertIn("dropdown-item", actions_cell)
         self.assertIn("mdi-trash-can-outline", actions_cell)
         loupe_pos = actions_cell.index("nsm-ipa-loupe")
         edit_pos = actions_cell.index("btn-warning")
-        delete_pos = actions_cell.index("btn-danger")
+        delete_pos = actions_cell.index("dropdown-item")
         self.assertLess(loupe_pos, edit_pos)
         self.assertLess(edit_pos, delete_pos)
 
@@ -419,7 +421,7 @@ class SecurityLinkRowActionsTemplateTests(SimpleTestCase):
         self.assertIn("btn-light", row_html)
         self.assertIn("mdi-magnify text-dark", row_html)
         self.assertNotIn("btn-warning", row_html)
-        self.assertNotIn("btn-danger", row_html)
+        self.assertNotIn("dropdown-item", row_html)
 
     def test_edit_delete_without_loupe_for_non_analyzable(self):
         html = render_to_string(
@@ -460,7 +462,8 @@ class SecurityLinkRowActionsTemplateTests(SimpleTestCase):
         self.assertNotIn("mdi-magnify", row_html)
         self.assertIn("btn-warning", row_html)
         self.assertIn("mdi-pencil", row_html)
-        self.assertIn("btn-danger", row_html)
+        self.assertIn("dropdown-toggle", row_html)
+        self.assertIn("dropdown-item", row_html)
         self.assertIn("mdi-trash-can-outline", row_html)
 
     def test_ipam_prefix_row_shows_loupe_edit_and_delete_without_typeconfig(self):
@@ -506,11 +509,12 @@ class SecurityLinkRowActionsTemplateTests(SimpleTestCase):
         self.assertIn('data-pk="5"', row_html)
         self.assertIn("btn-warning", row_html)
         self.assertIn("mdi-pencil", row_html)
-        self.assertIn("btn-danger", row_html)
+        self.assertIn("dropdown-toggle", row_html)
+        self.assertIn("dropdown-item", row_html)
         self.assertIn("mdi-trash-can-outline", row_html)
         loupe_pos = row_html.index("nsm-ipa-loupe")
         edit_pos = row_html.index("btn-warning")
-        delete_pos = row_html.index("btn-danger")
+        delete_pos = row_html.index("dropdown-item")
         self.assertLess(loupe_pos, edit_pos)
         self.assertLess(edit_pos, delete_pos)
 
@@ -556,7 +560,8 @@ class SecurityLinkRowActionsTemplateTests(SimpleTestCase):
         self.assertIn("btn-warning", row_html)
         self.assertIn("mdi-pencil", row_html)
         self.assertIn('aria-label="Edit assignment"', row_html)
-        self.assertIn("btn-danger", row_html)
+        self.assertIn("dropdown-toggle", row_html)
+        self.assertIn("dropdown-item", row_html)
         self.assertIn("mdi-trash-can-outline", row_html)
 
     def test_object_link_row_uses_edit_assignment_label(self):

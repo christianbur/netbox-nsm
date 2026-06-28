@@ -4,15 +4,30 @@ Shared utility: apply TypeConfig.display_template to NetBox objects.
 Usage (one DB query per request):
     from netbox_nsm.core.display_utils import get_display_template_map, render_object_display
 
-    tmpl_map = get_display_template_map()           # {ct_id: "Addr:{name}", ...}
+    tmpl_map = get_display_template_map()           # {ct_id: "{{ name }}", ...}
     label = render_object_display(obj, ct_id, tmpl_map)
 """
 
 from __future__ import annotations
 
 import functools
-import re
 from typing import Any
+
+from netbox_nsm.core.display_template import (
+    DEFAULT_DISPLAY_TEMPLATE,
+    render_display_template,
+)
+
+__all__ = (
+    "apply_display_template",
+    "changelog_content_type_label",
+    "ct_display_label",
+    "get_display_template_map",
+    "render_object_display",
+    "tc_panel_label",
+    "type_config_display_name",
+    "type_config_display_name_for_ct_id",
+)
 
 
 @functools.lru_cache(maxsize=1)
@@ -31,51 +46,9 @@ def get_display_template_map() -> dict[int, str]:
     }
 
 
-_PLACEHOLDER = re.compile(r"\{(\w+)(?:\[([-]?\d+)\])?(?:!(u))?\}")
-
-# Attribute names tried in order when resolving ``{name}`` in a template.
-_NAME_FALLBACKS = ("name", "prefix", "address", "cidr", "slug")
-
-
-def _resolve_name(obj: Any) -> str:
-    for attr in _NAME_FALLBACKS:
-        val = getattr(obj, attr, None)
-        if val:
-            return str(val)
-    return str(obj)
-
-
 def apply_display_template(obj: Any, tmpl: str) -> str:
-    """Apply a template string like 'Addr:{name}' to *obj*.
-
-    ``{name}`` is special: it tries multiple common attribute names before
-    falling back to ``str(obj)`` so that objects without a literal ``name``
-    field (e.g. ``ipam.Prefix``) still render usefully.
-    All other placeholders ``{field}`` are replaced by
-    ``str(getattr(obj, field, ""))``.
-    Unknown fields are replaced with an empty string.
-    """
-
-    def _replace(m: re.Match) -> str:
-        field = m.group(1)
-        idx = m.group(2)  # e.g. '0' from {protocol[0]}, or None
-        upper = m.group(3)  # '!u' conversion for uppercase, or None
-        if field == "name" and idx is None:
-            raw = _resolve_name(obj)
-        else:
-            val = getattr(obj, field, "") or ""
-            if idx is not None:
-                try:
-                    raw = str(val)[int(idx)]
-                except (IndexError, ValueError, TypeError):
-                    raw = ""
-            else:
-                raw = str(val)
-        if upper:
-            raw = raw.upper()
-        return raw
-
-    return _PLACEHOLDER.sub(_replace, tmpl)
+    """Render a Jinja2 display template for *obj*."""
+    return render_display_template(obj, tmpl)
 
 
 def render_object_display(
@@ -84,10 +57,10 @@ def render_object_display(
     """Return the display label for *obj*, applying the TypeConfig template if available."""
     if tmpl_map is None:
         tmpl_map = get_display_template_map()
-    tmpl = tmpl_map.get(content_type_id, "") or "{name}"
+    tmpl = tmpl_map.get(content_type_id, "") or DEFAULT_DISPLAY_TEMPLATE
     if tmpl:
         return apply_display_template(obj, tmpl)
-    return _resolve_name(obj)
+    return render_display_template(obj, DEFAULT_DISPLAY_TEMPLATE)
 
 
 @functools.lru_cache(maxsize=256)

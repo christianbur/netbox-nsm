@@ -12,7 +12,7 @@ from netbox_nsm.objects.link_propagation import (
     cot_propagation_display,
     native_propagation_to_cot,
 )
-from netbox_nsm.objects.object_link_service import (
+from netbox_nsm.security.links.object_link_service import (
     ObjectLinkRecord,
     classify_link_endpoints,
     iter_links_for_object,
@@ -33,16 +33,16 @@ class CotPropagationFormChoicesTests(SimpleTestCase):
 
 
 class ClassifyLinkEndpointsTests(SimpleTestCase):
-    @patch("netbox_nsm.objects.object_link_service.is_panel_linkable_content_type")
-    @patch("netbox_nsm.objects.object_link_service.ContentType")
-    def test_netbox_host_and_policy_object_order(self, ct_cls, is_panel_linkable):
+    @patch("netbox_nsm.security.links.object_link_service.is_linkable_content_type")
+    @patch("netbox_nsm.security.links.object_link_service.ContentType")
+    def test_netbox_host_and_policy_object_order(self, is_linkable, ct_cls):
         prefix = SimpleNamespace(pk=1)
         zone = SimpleNamespace(pk=2)
 
-        def _panel_linkable(content_type_id):
+        def _linkable(content_type_id):
             return content_type_id == 20
 
-        is_panel_linkable.side_effect = _panel_linkable
+        is_linkable.side_effect = _linkable
 
         prefix_ct = SimpleNamespace(pk=10, model="prefix")
         zone_ct = SimpleNamespace(pk=20, model="nsmzone")
@@ -85,8 +85,8 @@ class ObjectLinkRecordTests(SimpleTestCase):
 
 
 class IterLinksForObjectTests(SimpleTestCase):
-    @patch("netbox_nsm.objects.object_link_service._filter_instances_by_object_ref")
-    @patch("netbox_nsm.objects.object_link_service.get_object_link_model")
+    @patch("netbox_nsm.security.links.object_link_service._filter_instances_by_object_ref")
+    @patch("netbox_nsm.security.links.object_link_service.get_object_link_model")
     def test_yields_fwd_and_rev(self, get_model, filter_fn):
         get_model.return_value = MagicMock()
         page = SimpleNamespace(pk=99)
@@ -96,6 +96,7 @@ class IterLinksForObjectTests(SimpleTestCase):
             comment="",
             netbox_object=page,
             policy_object=SimpleNamespace(pk=2),
+            link_type="policy",
         )
         rev_row = SimpleNamespace(
             pk=2,
@@ -103,6 +104,7 @@ class IterLinksForObjectTests(SimpleTestCase):
             comment="",
             netbox_object=SimpleNamespace(pk=3),
             policy_object=page,
+            link_type="policy",
         )
         filter_fn.side_effect = [[fwd_row], [rev_row]]
 

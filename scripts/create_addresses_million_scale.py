@@ -36,7 +36,7 @@ import django_bootstrap
 
 django_bootstrap.setup()
 
-from netbox_nsm.demos.addresses_million_scale import (  # noqa: E402
+from netbox_nsm.import_.demo_scale import (  # noqa: E402
     DEFAULT_LEAF_COUNT,
     DEFAULT_RULEBOOK_SLUG,
     DEFAULT_RULE_COUNT,

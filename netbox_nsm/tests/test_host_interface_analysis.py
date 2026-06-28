@@ -19,7 +19,7 @@ class HostInterfaceAnalysisTests(SimpleTestCase):
         )
         self.assertEqual(result, [])
 
-    @patch("netbox_nsm.security.host_interface_analysis.build_cot_security_panel_groups")
+    @patch("netbox_nsm.security.host_interface_analysis.build_cot_security_rulebook_groups")
     @patch("netbox_nsm.security.host_interface_analysis.build_object_link_rows")
     @patch("netbox_nsm.security.host_interface_analysis._interfaces_for_host")
     @patch("netbox_nsm.security.host_interface_analysis.ContentType")
@@ -54,7 +54,7 @@ class HostInterfaceAnalysisTests(SimpleTestCase):
         self.assertEqual(result[0]["entry_count"], 1)
 
     @patch("netbox_nsm.security.host_interface_analysis.reverse", return_value="/api/rules/")
-    @patch("netbox_nsm.security.host_interface_analysis.build_cot_security_panel_groups")
+    @patch("netbox_nsm.security.host_interface_analysis.build_cot_security_rulebook_groups")
     @patch("netbox_nsm.security.host_interface_analysis.build_object_link_rows")
     @patch("netbox_nsm.security.host_interface_analysis._interfaces_for_host")
     @patch("netbox_nsm.security.host_interface_analysis.ContentType")
@@ -114,7 +114,7 @@ class HostInterfaceAnalysisTests(SimpleTestCase):
             "x?branch=main",
         )
 
-    @patch("netbox_nsm.security.host_interface_analysis.build_cot_security_panel_groups")
+    @patch("netbox_nsm.security.host_interface_analysis.build_cot_security_rulebook_groups")
     @patch("netbox_nsm.security.host_interface_analysis.build_object_link_rows")
     @patch("netbox_nsm.security.host_interface_analysis._interfaces_for_host")
     @patch("netbox_nsm.security.host_interface_analysis.ContentType")
@@ -144,7 +144,7 @@ class HostInterfaceAnalysisTests(SimpleTestCase):
         self.assertEqual(result[0]["entry_count"], 1)
         self.assertEqual(result[0]["link_rows"], [])
 
-    @patch("netbox_nsm.security.host_interface_analysis.build_cot_security_panel_groups")
+    @patch("netbox_nsm.security.host_interface_analysis.build_cot_security_rulebook_groups")
     @patch("netbox_nsm.security.host_interface_analysis.build_object_link_rows")
     @patch("netbox_nsm.security.host_interface_analysis._interfaces_for_host")
     def test_no_interfaces_returns_empty(

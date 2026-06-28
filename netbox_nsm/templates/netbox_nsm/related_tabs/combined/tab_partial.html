@@ -1,0 +1,103 @@
+{% load i18n perms %}
+<div class="table-responsive">
+  <table class="table table-hover object-list">
+    <thead>
+      <tr>
+        {% if 'type' in selected_columns %}
+          <th>{% trans "Type" %}</th>
+        {% endif %}
+        {% if 'object' in selected_columns %}
+          <th>{% trans "Object" %}</th>
+        {% endif %}
+        {% if 'value' in selected_columns %}
+          <th>{% trans "Value" %}</th>
+        {% endif %}
+        {% if 'field' in selected_columns %}
+          <th>{% trans "Field" %}</th>
+        {% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for obj, field, value in page_rows %}
+        <tr>
+          {% if 'type' in selected_columns %}
+            <td>
+              {% if field.is_junction_row %}
+                {{ field.type_label }}
+              {% elif field.type_label %}
+                {{ field.type_label }}
+              {% elif request.user|can_view:field.custom_object_type %}
+                <a href="{{ field.custom_object_type.get_absolute_url }}">{{ field.custom_object_type }}</a>
+              {% else %}
+                {{ field.custom_object_type }}
+              {% endif %}
+            </td>
+          {% endif %}
+          {% if 'object' in selected_columns %}
+            <td><a href="{{ obj.get_absolute_url }}">{{ obj }}</a></td>
+          {% endif %}
+          {% if 'value' in selected_columns %}
+            <td>
+              {% if field.is_junction_row %}
+                {% if field.via_obj %}
+                  <span class="text-muted">{% trans "via" %}</span>
+                  <a href="{{ field.via_obj.get_absolute_url }}">{{ field.via_obj }}</a>
+                {% else %}
+                  &mdash;
+                {% endif %}
+              {% elif field.type == 'object' %}
+                {% if value %}
+                  <a href="{{ value.get_absolute_url }}">{{ value }}</a>
+                {% else %}
+                  &mdash;
+                {% endif %}
+              {% elif field.type == 'multiobject' %}
+                {% if value %}
+                  {% for related_obj in value|slice:":3" %}
+                    <a href="{{ related_obj.get_absolute_url }}">{{ related_obj }}</a>{% if not forloop.last %}, {% endif %}
+                  {% endfor %}
+                {% else %}
+                  &mdash;
+                {% endif %}
+              {% else %}
+                &mdash;
+              {% endif %}
+            </td>
+          {% endif %}
+          {% if 'field' in selected_columns %}
+            <td>{{ field }}</td>
+          {% endif %}
+          <td class="text-end text-nowrap noprint">
+            {% with action_obj=field.via_obj|default:obj %}
+              {% if action_obj.custom_object_type %}
+                <span class="btn-group dropdown">
+                  {% if request.user|can_change:action_obj %}
+                    <a class="btn btn-sm btn-warning"
+                       href="{% url 'plugins:netbox_custom_objects:customobject_edit' pk=action_obj.pk custom_object_type=action_obj.custom_object_type.slug %}?return_url={{ return_url|urlencode }}"
+                       type="button"
+                       aria-label="{% trans 'Edit' %}"><i class="mdi mdi-pencil"></i></a>
+                  {% endif %}
+                  <button type="button"
+                          class="btn btn-sm btn-warning dropdown-toggle"
+                          data-bs-toggle="dropdown"
+                          aria-expanded="false"
+                          style="padding-left: 2px">
+                    <span class="visually-hidden">{% trans 'Toggle Dropdown' %}</span>
+                  </button>
+                  <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{% url 'plugins:netbox_custom_objects:customobject_changelog' pk=action_obj.pk custom_object_type=action_obj.custom_object_type.slug %}"><i class="mdi mdi-history" aria-hidden="true"></i> {% trans "Changelog" %}</a></li>
+                    {% if request.user|can_delete:action_obj %}
+                      <li><a class="dropdown-item" href="{% url 'plugins:netbox_custom_objects:customobject_delete' pk=action_obj.pk custom_object_type=action_obj.custom_object_type.slug %}?return_url={{ return_url|urlencode }}"><i class="mdi mdi-trash-can-outline" aria-hidden="true"></i> {% trans "Delete" %}</a></li>
+                    {% endif %}
+                  </ul>
+                </span>
+              {% endif %}
+            {% endwith %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="text-muted">{% trans "No custom object references." %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

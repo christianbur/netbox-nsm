@@ -237,11 +237,11 @@ class IpaCellDrilldownMetaTests(SimpleTestCase):
         }
         nodes = [
             {
-                "name": "10.128.228.0/24",
-                "prefix_display_cidr": "10.128.228.0/24",
+                "name": "198.18.228.0/24",
+                "prefix_display_cidr": "198.18.228.0/24",
                 "node_role": IPA_NODE_ROLE_PREFIX,
                 "is_cell_direct": True,
-                "subnet_contained_in": "10.128.0.0/16",
+                "subnet_contained_in": "198.18.0.0/16",
                 "children": [],
             }
         ]
@@ -260,7 +260,7 @@ class IpaCellTreeNetworkLinkTests(SimpleTestCase):
                 "url": "/plugins/netbox-nsm/addresses/1/",
                 "ct": "10",
                 "pk": "1",
-                "prefix_display_cidr": "10.129.90.0/24",
+                "prefix_display_cidr": "198.19.90.0/24",
                 "children": [],
             }
         ]
@@ -269,12 +269,12 @@ class IpaCellTreeNetworkLinkTests(SimpleTestCase):
             nodes[0]["ip_ref"]["url"],
             "/plugins/netbox-nsm/addresses/1/",
         )
-        self.assertEqual(nodes[0]["ip_ref"]["str"], "10.129.90.0/24")
+        self.assertEqual(nodes[0]["ip_ref"]["str"], "198.19.90.0/24")
 
     @patch("netbox_nsm.analysis.ipa_object_tree._hub._addr_ip_ref")
     def test_ensure_network_links_prefers_ipam_ref_from_object(self, ip_ref_fn):
         ip_ref_fn.return_value = {
-            "str": "10.129.90.0/24",
+            "str": "198.19.90.0/24",
             "url": "/ipam/prefixes/90/",
             "type": "Prefix",
         }
@@ -287,7 +287,7 @@ class IpaCellTreeNetworkLinkTests(SimpleTestCase):
                 "url": "/plugins/netbox-nsm/addresses/1/",
                 "ct": "10",
                 "pk": "1",
-                "prefix_display_cidr": "10.129.90.0/24",
+                "prefix_display_cidr": "198.19.90.0/24",
                 "children": [],
             }
         ]
@@ -796,17 +796,17 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         )
 
     def test_ipa_object_tree_sort_key_orders_prefix_before_higher_hosts(self):
-        """10.128.0.0/24 must sort before 10.129.240.x/32 (bench overlap cells)."""
+        """198.18.0.0/24 must sort before 198.19.240.x/32 (bench overlap cells)."""
         nodes = [
             {
                 "name": "bench-ip-00049698",
                 "node_role": "nsm_host",
                 "ip_ref": {
-                    "str": "10.129.240.98/32",
+                    "str": "198.19.240.98/32",
                     "url": "#",
                     "type": "IP Address",
                 },
-                "prefix_display_cidr": "10.129.240.98/32",
+                "prefix_display_cidr": "198.19.240.98/32",
                 "kind": "leaf",
                 "children": [],
             },
@@ -814,18 +814,18 @@ class IpaCellObjectTreeTests(SimpleTestCase):
                 "name": "bench-ip-00049699",
                 "node_role": "nsm_host",
                 "ip_ref": {
-                    "str": "10.129.240.99/32",
+                    "str": "198.19.240.99/32",
                     "url": "#",
                     "type": "IP Address",
                 },
-                "prefix_display_cidr": "10.129.240.99/32",
+                "prefix_display_cidr": "198.19.240.99/32",
                 "kind": "leaf",
                 "children": [],
             },
             {
                 "name": "bench-net-00000",
                 "node_role": "nsm_prefix",
-                "ip_ref": {"str": "10.128.0.0/24", "url": "#", "type": "Prefix"},
+                "ip_ref": {"str": "198.18.0.0/24", "url": "#", "type": "Prefix"},
                 "kind": "leaf",
                 "children": [],
             },
@@ -840,14 +840,14 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         """Same-network merge must not drop the merged node's subtree."""
         nodes = [
             {
-                "name": "10.128.0.0/20",
-                "prefix_display_cidr": "10.128.0.0/20",
+                "name": "198.18.0.0/20",
+                "prefix_display_cidr": "198.18.0.0/20",
                 "node_role": IPA_NODE_ROLE_PREFIX,
                 "kind": "group",
                 "children": [
                     {
                         "name": "bench-grp-00000",
-                        "prefix_display_cidr": "10.128.0.0/24",
+                        "prefix_display_cidr": "198.18.0.0/24",
                         "node_role": IPA_NODE_ROLE_GROUP,
                         "kind": "group",
                         "children": [],
@@ -855,14 +855,14 @@ class IpaCellObjectTreeTests(SimpleTestCase):
                 ],
             },
             {
-                "name": "10.128.0.0/20",
-                "prefix_display_cidr": "10.128.0.0/20",
+                "name": "198.18.0.0/20",
+                "prefix_display_cidr": "198.18.0.0/20",
                 "node_role": IPA_NODE_ROLE_PREFIX,
                 "kind": "group",
                 "children": [
                     {
                         "name": "bench-grp-00001",
-                        "prefix_display_cidr": "10.128.1.0/24",
+                        "prefix_display_cidr": "198.18.1.0/24",
                         "node_role": IPA_NODE_ROLE_GROUP,
                         "kind": "group",
                         "children": [],
@@ -889,8 +889,8 @@ class IpaCellObjectTreeTests(SimpleTestCase):
 
         def _filler(child):
             return {
-                "name": "10.128.0.0/20",
-                "prefix_display_cidr": "10.128.0.0/20",
+                "name": "198.18.0.0/20",
+                "prefix_display_cidr": "198.18.0.0/20",
                 "node_role": IPA_NODE_ROLE_PREFIX,
                 "ipa_tree_node_type": IPA_TREE_NODE_IPAM_FILLER,
                 "is_ipam_filler": True,
@@ -900,13 +900,13 @@ class IpaCellObjectTreeTests(SimpleTestCase):
 
         super_node = {
             "name": "bench-net-super-00000",
-            "prefix_display_cidr": "10.128.0.0/16",
+            "prefix_display_cidr": "198.18.0.0/16",
             "node_role": IPA_NODE_ROLE_PREFIX,
             "kind": "group",
             "children": [
-                _filler(_grp("bench-grp-00001", "10.128.1.0/24")),
-                _filler(_grp("bench-grp-00002", "10.128.2.0/24")),
-                _filler(_grp("bench-grp-00003", "10.128.3.0/24")),
+                _filler(_grp("bench-grp-00001", "198.18.1.0/24")),
+                _filler(_grp("bench-grp-00002", "198.18.2.0/24")),
+                _filler(_grp("bench-grp-00003", "198.18.3.0/24")),
             ],
         }
         collapsed = _collapse_ipa_cell_siblings_by_network([super_node])
@@ -923,13 +923,13 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         nodes = [
             {
                 "name": "host",
-                "prefix_display_cidr": "10.129.240.98/32",
+                "prefix_display_cidr": "198.19.240.98/32",
                 "kind": "leaf",
                 "children": [],
             },
             {
                 "name": "subnet",
-                "prefix_display_cidr": "10.128.0.0/24",
+                "prefix_display_cidr": "198.18.0.0/24",
                 "kind": "leaf",
                 "children": [],
             },
@@ -971,10 +971,10 @@ class IpaCellObjectTreeTests(SimpleTestCase):
             }
             return obj
 
-        host98 = make_obj(98, "bench-ip-00049698", "10.129.240.98/32", "IP Address")
-        host99 = make_obj(99, "bench-ip-00049699", "10.129.240.99/32", "IP Address")
-        host100 = make_obj(100, "bench-ip-00049700", "10.129.240.100/32", "IP Address")
-        subnet = make_obj(1, "bench-net-00000", "10.128.0.0/24", "Prefix")
+        host98 = make_obj(98, "bench-ip-00049698", "198.19.240.98/32", "IP Address")
+        host99 = make_obj(99, "bench-ip-00049699", "198.19.240.99/32", "IP Address")
+        host100 = make_obj(100, "bench-ip-00049700", "198.19.240.100/32", "IP Address")
+        subnet = make_obj(1, "bench-net-00000", "198.18.0.0/24", "Prefix")
 
         ip_ref_fn.side_effect = lambda obj: obj._addr
 
@@ -1304,18 +1304,18 @@ class IpaCellObjectTreeTests(SimpleTestCase):
 
         p24a = MagicMock(spec=Prefix)
         p24a.pk = 1
-        p24a.prefix = ipaddress.ip_network("10.128.130.0/24")
+        p24a.prefix = ipaddress.ip_network("198.18.130.0/24")
         p24a.get_parents.return_value = [slash8]
 
         p24b = MagicMock(spec=Prefix)
         p24b.pk = 2
-        p24b.prefix = ipaddress.ip_network("10.128.143.0/24")
+        p24b.prefix = ipaddress.ip_network("198.18.143.0/24")
         p24b.get_parents.return_value = [slash8]
 
         def attach_meta(node, obj):
             refs = {
-                1: {"str": "10.128.130.0/24", "url": "/p/1/", "type": "Prefix"},
-                2: {"str": "10.128.143.0/24", "url": "/p/2/", "type": "Prefix"},
+                1: {"str": "198.18.130.0/24", "url": "/p/1/", "type": "Prefix"},
+                2: {"str": "198.18.143.0/24", "url": "/p/2/", "type": "Prefix"},
             }
             if obj.pk not in refs:
                 return node
@@ -1513,35 +1513,35 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         tree = [
             {
                 "name": "bench-net-super-00000",
-                "prefix_display_cidr": "10.128.0.0/16",
+                "prefix_display_cidr": "198.18.0.0/16",
                 "node_role": IPA_NODE_ROLE_PREFIX,
                 "children": [
                     {
                         "name": "bench-net-00000",
-                        "prefix_display_cidr": "10.128.0.0/24",
+                        "prefix_display_cidr": "198.18.0.0/24",
                         "node_role": IPA_NODE_ROLE_PREFIX,
-                        "subnet_contained_in": "10.128.0.0/16",
+                        "subnet_contained_in": "198.18.0.0/16",
                         "children": [
                             {
                                 "name": "bench-ip-0000000",
-                                "prefix_display_cidr": "10.128.0.1/32",
+                                "prefix_display_cidr": "198.18.0.1/32",
                                 "node_role": IPA_NODE_ROLE_HOST,
-                                "subnet_contained_in": "10.128.0.0/24",
+                                "subnet_contained_in": "198.18.0.0/24",
                                 "children": [],
                             }
                         ],
                     },
                     {
                         "name": "bench-grp-00001",
-                        "prefix_display_cidr": "10.128.1.0/24",
+                        "prefix_display_cidr": "198.18.1.0/24",
                         "kind": "group",
                         "node_role": IPA_NODE_ROLE_GROUP,
-                        "subnet_contained_in": "10.128.0.0/16",
+                        "subnet_contained_in": "198.18.0.0/16",
                         "children": [],
                     },
                     {
-                        "name": "10.128.2.0/24",
-                        "prefix_display_cidr": "10.128.2.0/24",
+                        "name": "198.18.2.0/24",
+                        "prefix_display_cidr": "198.18.2.0/24",
                         "ipa_tree_node_type": IPA_TREE_NODE_IPAM_FILLER,
                         "is_ipam_filler": True,
                         "ipam_synthetic": True,
@@ -1561,7 +1561,7 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         tree = [
             {
                 "name": "bench-net-super-00000",
-                "prefix_display_cidr": "10.128.0.0/16",
+                "prefix_display_cidr": "198.18.0.0/16",
                 "node_role": IPA_NODE_ROLE_PREFIX,
                 "children": [
                     {
@@ -1572,7 +1572,7 @@ class IpaCellObjectTreeTests(SimpleTestCase):
                         "kind": "group",
                         "node_role": IPA_NODE_ROLE_GROUP,
                         "is_cell_direct": True,
-                        "prefix_display_cidr": "10.128.1.0/24",
+                        "prefix_display_cidr": "198.18.1.0/24",
                         "children": [],
                     },
                     {
@@ -1583,7 +1583,7 @@ class IpaCellObjectTreeTests(SimpleTestCase):
                         "kind": "group",
                         "node_role": IPA_NODE_ROLE_GROUP,
                         "is_cell_direct": True,
-                        "prefix_display_cidr": "10.128.2.0/24",
+                        "prefix_display_cidr": "198.18.2.0/24",
                         "children": [],
                     },
                 ],
@@ -1622,7 +1622,7 @@ class IpaCellObjectTreeTests(SimpleTestCase):
                 "kind": "group",
                 "node_role": IPA_NODE_ROLE_GROUP,
                 "is_cell_direct": True,
-                "prefix_display_cidr": "10.128.1.0/24",
+                "prefix_display_cidr": "198.18.1.0/24",
                 "children": [],
             },
             {
@@ -1632,7 +1632,7 @@ class IpaCellObjectTreeTests(SimpleTestCase):
                 "pk": "201",
                 "kind": "leaf",
                 "node_role": IPA_NODE_ROLE_PREFIX,
-                "prefix_display_cidr": "10.128.2.0/24",
+                "prefix_display_cidr": "198.18.2.0/24",
                 "cell_groups": [{"name": "bench-grp-00002", "url": "/g/2/"}],
                 "children": [],
             },
@@ -1694,10 +1694,10 @@ class IpaCellObjectTreeTests(SimpleTestCase):
             {
                 "name": "bench-ip-0000000",
                 "is_cell_direct": True,
-                "prefix_display_cidr": "10.128.0.1/32",
+                "prefix_display_cidr": "198.18.0.1/32",
                 "cell_groups": [{"name": "bench-grp-00000", "url": "/g/1/"}],
                 "cell_addresses_multi": True,
-                "subnet_contained_in": "10.128.0.0/24",
+                "subnet_contained_in": "198.18.0.0/24",
                 "children": [],
             }
         ]
@@ -1708,7 +1708,7 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         self.assertIn("direct in rule cell", title)
         self.assertIn("group member: bench-grp-00000", title)
         self.assertIn("alias/duplicate address names", title)
-        self.assertIn("contained by 10.128.0.0/24", title)
+        self.assertIn("contained by 198.18.0.0/24", title)
 
     @patch("netbox_nsm.analysis.ipa_object_tree._ipa_object_drilldown_has_visible_content", return_value=False)
     @patch("netbox_nsm.analysis.ipa_object_tree._attach_ipa_object_tree_ipam_stats")
@@ -1727,8 +1727,8 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         ct.pk = 10
         content_type_cls.objects.get_for_model.return_value = ct
 
-        host_cidr = "10.128.0.10/32"
-        net24 = "10.128.0.0/24"
+        host_cidr = "198.18.0.10/32"
+        net24 = "198.18.0.0/24"
 
         def attach_meta(node, obj):
             ref = ip_ref_fn(obj)
@@ -1797,23 +1797,23 @@ class IpaCellObjectTreeTests(SimpleTestCase):
 
         nodes = [
             {
-                "name": "10.128.0.0/16",
+                "name": "198.18.0.0/16",
                 "url": "/ipam/prefixes/16/",
-                "prefix_display_cidr": "10.128.0.0/16",
+                "prefix_display_cidr": "198.18.0.0/16",
                 "is_ipam_filler": True,
                 "ipam_synthetic": True,
                 "children": [
                     {
-                        "name": "10.128.0.0/24",
+                        "name": "198.18.0.0/24",
                         "url": "/ipam/prefixes/24/",
-                        "prefix_display_cidr": "10.128.0.0/24",
+                        "prefix_display_cidr": "198.18.0.0/24",
                         "is_ipam_filler": True,
                         "ipam_synthetic": True,
                         "children": [
                             {
                                 "name": "bench-ip-00000010",
                                 "url": "/a/10/",
-                                "prefix_display_cidr": "10.128.0.10/32",
+                                "prefix_display_cidr": "198.18.0.10/32",
                                 "cell_groups_multi": True,
                                 "children": [],
                             }
@@ -1824,8 +1824,8 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         ]
         _mark_ipa_cell_tree_parent_hints(nodes)
         host = nodes[0]["children"][0]["children"][0]
-        self.assertEqual(host.get("ipa_tree_parent_cidr"), "10.128.0.0/24")
-        self.assertEqual(host.get("ipa_tree_parent_name"), "10.128.0.0/24")
+        self.assertEqual(host.get("ipa_tree_parent_cidr"), "198.18.0.0/24")
+        self.assertEqual(host.get("ipa_tree_parent_name"), "198.18.0.0/24")
         self.assertEqual(host.get("ipa_tree_parent_url"), "/ipam/prefixes/24/")
 
     def test_addr_node_prefix_cidr_accepts_nsm_address_host_ref(self):
@@ -1833,12 +1833,12 @@ class IpaCellObjectTreeTests(SimpleTestCase):
 
         cidr = _addr_node_prefix_cidr(
             ip_ref={
-                "str": "10.128.0.1/32",
+                "str": "198.18.0.1/32",
                 "url": "/ipam/ip-addresses/181/",
                 "type": "Address",
             }
         )
-        self.assertEqual(cidr, "10.128.0.1/32")
+        self.assertEqual(cidr, "198.18.0.1/32")
 
     def test_mark_ipa_subnet_containment_flags_group_with_same_cidr_as_parent_prefix(
         self,
@@ -1847,7 +1847,7 @@ class IpaCellObjectTreeTests(SimpleTestCase):
             _mark_ipa_subnet_containment_warnings,
         )
 
-        net24 = "10.128.3.0/24"
+        net24 = "198.18.3.0/24"
         nodes = [
             {
                 "name": "bench-net-00346",
@@ -1878,8 +1878,8 @@ class IpaCellObjectTreeTests(SimpleTestCase):
     ):
         from netbox_nsm.analysis.ipa_object_tree import _mark_ipa_subnet_containment_warnings
 
-        net24 = "10.128.0.0/24"
-        host_cidr = "10.128.0.1/32"
+        net24 = "198.18.0.0/24"
+        host_cidr = "198.18.0.1/32"
         nodes = [
             {
                 "name": "bench-net-00000",
@@ -1911,9 +1911,9 @@ class IpaCellObjectTreeTests(SimpleTestCase):
 
         node = {
             "ip_ref": {"str": "<broken>", "type": "Prefix"},
-            "prefix_display_cidr": "10.128.0.0/24",
+            "prefix_display_cidr": "198.18.0.0/24",
         }
-        self.assertEqual(str(_addr_tree_node_network(node)), "10.128.0.0/24")
+        self.assertEqual(str(_addr_tree_node_network(node)), "198.18.0.0/24")
 
     def test_synthesize_ipa_cell_ipam_parent_prefixes_unit(self):
         import ipaddress
@@ -1922,7 +1922,7 @@ class IpaCellObjectTreeTests(SimpleTestCase):
 
         prefix = MagicMock(spec=Prefix)
         prefix.pk = 2
-        prefix.prefix = ipaddress.ip_network("10.128.0.0/24")
+        prefix.prefix = ipaddress.ip_network("198.18.0.0/24")
         prefix.get_absolute_url.return_value = "/ipam/prefixes/2/"
         prefix.get_parents.return_value = []
 
@@ -1931,8 +1931,8 @@ class IpaCellObjectTreeTests(SimpleTestCase):
             "url": "/a/1/",
             "kind": "leaf",
             "node_role": "nsm_host",
-            "prefix_display_cidr": "10.128.0.10/32",
-            "ip_ref": {"str": "10.128.0.10/32", "url": "#", "type": "IP Address"},
+            "prefix_display_cidr": "198.18.0.10/32",
+            "ip_ref": {"str": "198.18.0.10/32", "url": "#", "type": "IP Address"},
             "children": [],
         }
 
@@ -1948,7 +1948,7 @@ class IpaCellObjectTreeTests(SimpleTestCase):
 
         self.assertEqual(len(result), 1)
         self.assertTrue(result[0].get("is_ipam_synthesized"))
-        self.assertEqual(result[0].get("prefix_display_cidr"), "10.128.0.0/24")
+        self.assertEqual(result[0].get("prefix_display_cidr"), "198.18.0.0/24")
         self.assertEqual(result[0]["children"][0]["name"], host["name"])
 
     def test_synthesize_ipa_cell_ipam_parent_prefixes_for_collapsed_group(self):
@@ -1958,7 +1958,7 @@ class IpaCellObjectTreeTests(SimpleTestCase):
 
         prefix = MagicMock(spec=Prefix)
         prefix.pk = 2
-        prefix.prefix = ipaddress.ip_network("10.128.3.0/24")
+        prefix.prefix = ipaddress.ip_network("198.18.3.0/24")
         prefix.get_absolute_url.return_value = "/ipam/prefixes/2/"
         prefix.get_parents.return_value = []
 
@@ -1968,7 +1968,7 @@ class IpaCellObjectTreeTests(SimpleTestCase):
             "kind": "group",
             "node_role": IPA_NODE_ROLE_GROUP,
             "is_cell_direct": True,
-            "prefix_display_cidr": "10.128.3.0/24",
+            "prefix_display_cidr": "198.18.3.0/24",
             "children": [],
         }
 
@@ -1984,7 +1984,7 @@ class IpaCellObjectTreeTests(SimpleTestCase):
 
         self.assertEqual(len(result), 1)
         self.assertTrue(result[0].get("is_ipam_synthesized"))
-        self.assertEqual(result[0].get("prefix_display_cidr"), "10.128.3.0/24")
+        self.assertEqual(result[0].get("prefix_display_cidr"), "198.18.3.0/24")
         self.assertEqual(result[0]["children"][0]["name"], group["name"])
         import ipaddress
 
@@ -1992,7 +1992,7 @@ class IpaCellObjectTreeTests(SimpleTestCase):
 
         prefix = MagicMock(spec=Prefix)
         prefix.pk = 2
-        prefix.prefix = ipaddress.ip_network("10.128.0.0/24")
+        prefix.prefix = ipaddress.ip_network("198.18.0.0/24")
         prefix.get_absolute_url.return_value = "/ipam/prefixes/2/"
 
         with patch(
@@ -2003,7 +2003,7 @@ class IpaCellObjectTreeTests(SimpleTestCase):
 
         self.assertTrue(node.get("ipam_synthetic"))
         self.assertTrue(node.get("is_ipam_synthesized"))
-        self.assertEqual(node.get("prefix_display_cidr"), "10.128.0.0/24")
+        self.assertEqual(node.get("prefix_display_cidr"), "198.18.0.0/24")
         self.assertEqual(node.get("kind"), "group")
 
 
@@ -2605,7 +2605,7 @@ class IpaCellTreeDisplayTests(SimpleTestCase):
             "pk": "1",
             "kind": "leaf",
             "node_role": "nsm_prefix",
-            "prefix_display_cidr": "10.128.3.0/24",
+            "prefix_display_cidr": "198.18.3.0/24",
             "children": [],
         }
         group_node = {
@@ -2624,14 +2624,14 @@ class IpaCellTreeDisplayTests(SimpleTestCase):
         with patch(
             "netbox_nsm.analysis.ipa_object_tree._ipa_member_containment_network",
             side_effect=lambda member: (
-                ipaddress.ip_network("10.128.3.0/24")
+                ipaddress.ip_network("198.18.3.0/24")
                 if member is subnet
-                else ipaddress.ip_network(f"10.128.3.{member.pk}/32")
+                else ipaddress.ip_network(f"198.18.3.{member.pk}/32")
             ),
         ):
             nodes = [prefix_node, group_node]
             _enrich_ipa_collapsed_group_networks_from_members(nodes, obj_by_key)
-            self.assertEqual(group_node.get("prefix_display_cidr"), "10.128.3.0/24")
+            self.assertEqual(group_node.get("prefix_display_cidr"), "198.18.3.0/24")
             forest = _reorganize_ipa_object_tree_by_ipam_prefix_hierarchy(
                 nodes, obj_by_key
             )
@@ -2647,7 +2647,7 @@ class IpaCellTreeDrilldownGuardTests(SimpleTestCase):
             "children": [
                 {
                     "name": "bench-ip-0000000",
-                    "prefix_display_cidr": "10.128.0.1/32",
+                    "prefix_display_cidr": "198.18.0.1/32",
                     "node_role": "nsm_host",
                 }
             ]
@@ -2673,11 +2673,11 @@ class IpaCellTreeDrilldownGuardTests(SimpleTestCase):
                 "ct": "10",
                 "pk": "1",
                 "node_role": IPA_NODE_ROLE_PREFIX,
-                "prefix_display_cidr": "10.128.0.0/24",
+                "prefix_display_cidr": "198.18.0.0/24",
                 "children": [
                     {
                         "name": "bench-ip-0000000",
-                        "prefix_display_cidr": "10.128.0.1/32",
+                        "prefix_display_cidr": "198.18.0.1/32",
                         "node_role": "nsm_host",
                         "children": [],
                     }
@@ -2698,7 +2698,7 @@ class IpaCellTreeDrilldownGuardTests(SimpleTestCase):
                     {
                         "name": "bench-ip-0000000",
                         "node_role": "nsm_host",
-                        "prefix_display_cidr": "10.128.0.1/32",
+                        "prefix_display_cidr": "198.18.0.1/32",
                         "children": [],
                     }
                 ],
@@ -2733,12 +2733,12 @@ class IpaCellTreeDrilldownGuardTests(SimpleTestCase):
                 "name": "bench-net-super-00000",
                 "ct": "10",
                 "pk": "599",
-                "prefix_display_cidr": "10.128.0.0/16",
+                "prefix_display_cidr": "198.18.0.0/16",
                 "node_role": IPA_NODE_ROLE_PREFIX,
                 "children": [
                     {
                         "name": "bench-ip-0000000",
-                        "prefix_display_cidr": "10.128.0.1/32",
+                        "prefix_display_cidr": "198.18.0.1/32",
                         "node_role": "nsm_host",
                         "children": [],
                     }
@@ -2776,12 +2776,12 @@ class IpaCellTreeDrilldownGuardTests(SimpleTestCase):
                 "ct": "10",
                 "pk": "599",
                 "is_cell_direct": True,
-                "prefix_display_cidr": "10.128.0.0/16",
+                "prefix_display_cidr": "198.18.0.0/16",
                 "node_role": IPA_NODE_ROLE_PREFIX,
                 "children": [
                     {
                         "name": "bench-ip-0000000",
-                        "prefix_display_cidr": "10.128.0.1/32",
+                        "prefix_display_cidr": "198.18.0.1/32",
                         "node_role": "nsm_host",
                         "children": [],
                     }
@@ -2806,7 +2806,7 @@ class IpaContainingPrefixCacheTests(SimpleTestCase):
 
         slash24 = MagicMock(spec=Prefix)
         slash24.pk = 24
-        slash24.prefix = ipaddress.ip_network("10.128.0.0/24")
+        slash24.prefix = ipaddress.ip_network("198.18.0.0/24")
 
         with patch(
             "netbox_nsm.analysis.ipa_object_tree._ipa_query_prefixes_containing_hosts",
@@ -2815,14 +2815,14 @@ class IpaContainingPrefixCacheTests(SimpleTestCase):
             cache = _IpaContainingPrefixCache()
             nodes = [
                 {
-                    "name": "h-10.128.0.1",
-                    "prefix_display_cidr": "10.128.0.1/32",
+                    "name": "h-198.18.0.1",
+                    "prefix_display_cidr": "198.18.0.1/32",
                     "node_role": "nsm_host",
                     "children": [],
                 },
                 {
-                    "name": "h-10.128.0.2",
-                    "prefix_display_cidr": "10.128.0.2/32",
+                    "name": "h-198.18.0.2",
+                    "prefix_display_cidr": "198.18.0.2/32",
                     "node_role": "nsm_host",
                     "children": [],
                 },
@@ -2834,7 +2834,7 @@ class IpaContainingPrefixCacheTests(SimpleTestCase):
 
         query_fn.assert_called_once()
         queried_hosts = query_fn.call_args[0][0]
-        self.assertEqual(queried_hosts, {"10.128.0.1", "10.128.0.2"})
+        self.assertEqual(queried_hosts, {"198.18.0.1", "198.18.0.2"})
         self.assertIs(p1, slash24)
         self.assertIs(p2, slash24)
 
@@ -2846,12 +2846,12 @@ class IpaContainingPrefixCacheTests(SimpleTestCase):
         from netbox_nsm.analysis.ipa_object_tree import _ipa_most_specific_prefix_for_host
 
         slash16 = MagicMock(spec=Prefix)
-        slash16.prefix = ipaddress.ip_network("10.128.0.0/16")
+        slash16.prefix = ipaddress.ip_network("198.18.0.0/16")
         slash24 = MagicMock(spec=Prefix)
-        slash24.prefix = ipaddress.ip_network("10.128.0.0/24")
+        slash24.prefix = ipaddress.ip_network("198.18.0.0/24")
 
         best = _ipa_most_specific_prefix_for_host(
-            "10.128.0.10", [slash16, slash24]
+            "198.18.0.10", [slash16, slash24]
         )
         self.assertIs(best, slash24)
 
@@ -2880,17 +2880,17 @@ class IpaContainingPrefixCacheTests(SimpleTestCase):
 
         slash24 = MagicMock(spec=Prefix)
         slash24.pk = 24
-        slash24.prefix = ipaddress.ip_network("10.128.0.0/24")
+        slash24.prefix = ipaddress.ip_network("198.18.0.0/24")
         slash24.get_absolute_url.return_value = "/ipam/prefixes/24/"
         slash24.get_parents.return_value = []
 
         def attach_meta(node, obj):
             node["ip_ref"] = {
-                "str": f"10.128.0.{obj.pk}/32",
+                "str": f"198.18.0.{obj.pk}/32",
                 "url": f"/ipam/ip-addresses/{obj.pk}/",
                 "type": "IP Address",
             }
-            node["prefix_display_cidr"] = f"10.128.0.{obj.pk}/32"
+            node["prefix_display_cidr"] = f"198.18.0.{obj.pk}/32"
             node["node_role"] = "nsm_host"
             node["kind"] = "leaf"
             return node
@@ -3150,12 +3150,12 @@ class IpaCellDisplayHintTests(SimpleTestCase):
                 "is_cell_direct": True,
                 "children": [
                     {
-                        "name": "10.128.0.0/20",
+                        "name": "198.18.0.0/20",
                         "is_ipam_filler": True,
                         "ipa_tree_node_type": "ipam_filler",
                         "children": [
                             {
-                                "name": "10.128.0.0/24",
+                                "name": "198.18.0.0/24",
                                 "is_cell_direct": True,
                                 "children": [],
                             }
@@ -3176,7 +3176,7 @@ class IpaCellDisplayHintTests(SimpleTestCase):
         self.assertFalse(
             _ipa_cell_tree_flat_row_is_visible(
                 {
-                    "name": "10.128.0.0/20",
+                    "name": "198.18.0.0/20",
                     "is_ipam_filler": True,
                     "ipa_tree_node_type": "ipam_filler",
                 }
@@ -3191,8 +3191,8 @@ class IpaCellDisplayHintTests(SimpleTestCase):
     def test_renest_contained_sibling_restores_depth_consistency(self):
         """A host stranded beside its containing prefix is re-homed under it.
 
-        Regression: ``10.128.1.1/32`` rendered ``••`` (depth 2) while its
-        siblings ``10.128.1.2/32`` … rendered ``•••`` (depth 3) because the
+        Regression: ``198.18.1.1/32`` rendered ``••`` (depth 2) while its
+        siblings ``198.18.1.2/32`` … rendered ``•••`` (depth 3) because the
         ``.1`` row lingered next to the ``/24`` instead of inside it. After
         re-nesting, every host shares one depth = prefix depth + 1.
         """
@@ -3212,28 +3212,28 @@ class IpaCellDisplayHintTests(SimpleTestCase):
             }
 
         prefix24 = {
-            "name": "10.128.1.0/24",
+            "name": "198.18.1.0/24",
             "node_role": "nsm_prefix",
             "kind": "group",
             "is_cell_direct": True,
-            "prefix_display_cidr": "10.128.1.0/24",
-            "children": [host("10.128.1.2/32"), host("10.128.1.3/32")],
+            "prefix_display_cidr": "198.18.1.0/24",
+            "children": [host("198.18.1.2/32"), host("198.18.1.3/32")],
         }
         # ``.1`` arrives stranded as a sibling of the /24 it belongs to.
-        nodes = [host("10.128.1.1/32"), prefix24]
+        nodes = [host("198.18.1.1/32"), prefix24]
 
         renested = _renest_ipa_contained_cell_siblings(nodes)
 
         # The /24 is the only root; every host now lives under it.
         self.assertEqual(len(renested), 1)
         net24 = renested[0]
-        self.assertEqual(net24["prefix_display_cidr"], "10.128.1.0/24")
+        self.assertEqual(net24["prefix_display_cidr"], "198.18.1.0/24")
         host_cidrs = sorted(
             child["prefix_display_cidr"] for child in net24["children"]
         )
         self.assertEqual(
             host_cidrs,
-            ["10.128.1.1/32", "10.128.1.2/32", "10.128.1.3/32"],
+            ["198.18.1.1/32", "198.18.1.2/32", "198.18.1.3/32"],
         )
 
         _annotate_ipa_cell_tree_depth(renested)
@@ -3250,16 +3250,16 @@ class IpaCellDisplayHintTests(SimpleTestCase):
 
         nodes = [
             {
-                "name": "10.128.1.0/24",
+                "name": "198.18.1.0/24",
                 "node_role": "nsm_prefix",
                 "kind": "group",
-                "prefix_display_cidr": "10.128.1.0/24",
+                "prefix_display_cidr": "198.18.1.0/24",
                 "children": [
                     {
-                        "name": "10.128.1.5/32",
+                        "name": "198.18.1.5/32",
                         "node_role": "nsm_host",
                         "kind": "leaf",
-                        "prefix_display_cidr": "10.128.1.5/32",
+                        "prefix_display_cidr": "198.18.1.5/32",
                         "children": [],
                     }
                 ],
@@ -3269,7 +3269,7 @@ class IpaCellDisplayHintTests(SimpleTestCase):
         self.assertEqual(len(result), 1)
         self.assertEqual(len(result[0]["children"]), 1)
         self.assertEqual(
-            result[0]["children"][0]["prefix_display_cidr"], "10.128.1.5/32"
+            result[0]["children"][0]["prefix_display_cidr"], "198.18.1.5/32"
         )
 
 
@@ -3296,9 +3296,9 @@ class IpaCellAddressFieldTests(SimpleTestCase):
         with patch(
             "netbox_nsm.analysis.ipa_object_tree._ipa_member_containment_network",
             side_effect=lambda member: (
-                ipaddress.ip_network("10.129.90.0/24")
+                ipaddress.ip_network("198.19.90.0/24")
                 if member is subnet
-                else ipaddress.ip_network("10.129.90.10/32")
+                else ipaddress.ip_network("198.19.90.10/32")
             ),
         ):
             anchor = _ipa_resolve_group_anchor_member(group)

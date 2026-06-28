@@ -136,7 +136,7 @@ def _addr_navigation_refs(obj) -> list[dict]:
     try:
         from dcim.models import Device, Interface
         from ipam.models import IPAddress, IPRange, Prefix
-        from netbox_nsm.objects.address_ipam_fk import is_nsm_address_object
+        from netbox_nsm.addresses.address_ipam_fk import is_nsm_address_object
         from virtualization.models import VirtualMachine, VMInterface
     except ImportError:
         return refs
@@ -188,7 +188,7 @@ def _attach_addr_navigation_refs(node, *, obj=None, ipam_obj=None):
 
     if obj is not None and not _hub._is_ipam_addr_object(obj):
         try:
-            from netbox_nsm.objects.address_ipam_fk import is_nsm_address_object
+            from netbox_nsm.addresses.address_ipam_fk import is_nsm_address_object
 
             if is_nsm_address_object(obj) and obj is not target:
                 _merge(obj)

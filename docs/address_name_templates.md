@@ -2,7 +2,7 @@
 
 Configure Jinja2-based naming for `nsm_address` and `nsm_address_group` objects in **`PLUGINS_CONFIG['netbox_nsm']`**. Templates apply plugin-wide (not per COT in `nsm_config` comments).
 
-Per-type **`object_builder.sources.*.build_template`** in COT `nsm_config` remains the fallback when no plugin template matches the IPAM type.
+When no plugin template matches the IPAM type, name rendering returns an empty string.
 
 ## Configuration
 
@@ -84,9 +84,9 @@ H-{{ ipam.ip | upper }}
 {% if ipam.dns_name %}{{ ipam.dns_name }}{% else %}h-{{ ipam.ip }}{% endif %}
 ```
 
-### Legacy Object Builder placeholders
+### Legacy placeholders
 
-Templates **without** Jinja2 markers (`{{`, `{%`, or `{ipam>…}`) keep the existing `{host}`, `{network}`, `{prefix_length}`, `{start_host}`, `{end_host}` behaviour from COT `object_builder` config.
+Templates **without** Jinja2 markers (`{{`, `{%`, or `{ipam>…}`) support flat placeholders `{host}`, `{network}`, `{prefix_length}`, `{start_host}`, `{end_host}` via the IPAM name context.
 
 ## Jinja2 context — addresses
 
@@ -120,14 +120,14 @@ Built by `build_ipam_name_context()` / used in `render_ipam_object_name()`:
 ## Python API
 
 ```python
-from netbox_nsm.objects.address_name_templates import (
+from netbox_nsm.addresses.address_name_templates import (
     render_address_name,
     render_address_group_name,
     render_ipam_object_name,
 )
 
-# IPAM object (Object Builder, imports, scripts)
-name = render_ipam_object_name(ip_address, "ipam.ipaddress", builder_config=cfg)
+# IPAM object (imports, scripts, object report)
+name = render_ipam_object_name(ip_address, "ipam.ipaddress")
 
 # Existing nsm_address row
 name = render_address_name(address_obj)
@@ -136,15 +136,15 @@ name = render_address_name(address_obj)
 name = render_address_group_name(group_obj)
 ```
 
-Object Builder sync (`scan_sync_state`, `create_addresses`, sync fixes) uses `render_ipam_object_name()` automatically.
+Object report and other diagnostics use `render_ipam_object_name()` / `render_address_name()` for expected-name checks.
 
 ## Relation to Object Config
 
 | Layer | Location | Scope |
 |-------|----------|-------|
 | Plugin templates | `PLUGINS_CONFIG` | Global, Jinja2 |
-| Object Builder | COT `comments` → `nsm_config.object_builder` | Per `nsm_address` type, legacy + Jinja2 |
+| Object Config | COT `comments` → `nsm_config` | Rule view + links settings per type |
 
-Plugin templates take precedence when their `match` fits the IPAM type.
+Plugin templates are the sole source for address naming; Object Config does not define build templates.
 
 [← Documentation index](README.md)

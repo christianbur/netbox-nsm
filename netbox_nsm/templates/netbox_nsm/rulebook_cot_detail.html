@@ -13,11 +13,6 @@
     <div class="card">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">{% trans "Rulebook" %}</h5>
-        {% if can_edit and not edit_mode %}
-        <a href="?edit=1" class="btn btn-sm btn-warning">
-          <i class="mdi mdi-pencil" aria-hidden="true"></i> {% trans "Edit" %}
-        </a>
-        {% endif %}
       </div>
       {% if edit_mode and edit_form %}
       <form method="post" class="mb-0">
@@ -157,70 +152,6 @@
       {% endif %}
     </div>
     {% include "netbox_nsm/inc/rulebook_assigned_objects_panel.html" %}
-    <div class="card">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h2 class="mb-0 h5">{% trans "Fields" %}</h2>
-        {% if fields_schema_yaml %}
-        <button type="button"
-                class="btn btn-sm btn-ghost-secondary nsm-copy-fields-schema-btn"
-                title="{% trans 'Copy field schema YAML for Add Rulebook' %}"
-                aria-label="{% trans 'Copy field schema YAML for Add Rulebook' %}">
-          <i class="mdi mdi-content-copy" aria-hidden="true"></i>
-          {% trans "Copy" %}
-        </button>
-        {{ fields_schema_yaml|json_script:"nsm-fields-schema-yaml-data" }}
-        {% endif %}
-      </div>
-      {% include "netbox_nsm/inc/cot_fields_readonly_table.html" %}
-    </div>
   </div>
 </div>
-<script>
-(function () {
-  var btn = document.querySelector(".nsm-copy-fields-schema-btn");
-  var dataEl = document.getElementById("nsm-fields-schema-yaml-data");
-  if (!btn || !dataEl) {
-    return;
-  }
-  var schemaYaml = "";
-  try {
-    schemaYaml = JSON.parse(dataEl.textContent || '""');
-  } catch (e) {
-    return;
-  }
-  if (!schemaYaml) {
-    return;
-  }
-  btn.addEventListener("click", function () {
-    function flashCopied() {
-      var icon = btn.querySelector(".mdi");
-      if (icon) {
-        icon.classList.remove("mdi-content-copy");
-        icon.classList.add("mdi-check");
-        window.setTimeout(function () {
-          icon.classList.add("mdi-content-copy");
-          icon.classList.remove("mdi-check");
-        }, 1200);
-      }
-    }
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(schemaYaml).then(flashCopied).catch(function () {});
-      return;
-    }
-    var area = document.createElement("textarea");
-    area.value = schemaYaml;
-    area.setAttribute("readonly", "");
-    area.style.position = "fixed";
-    area.style.left = "-9999px";
-    document.body.appendChild(area);
-    area.select();
-    try {
-      document.execCommand("copy");
-      flashCopied();
-    } finally {
-      document.body.removeChild(area);
-    }
-  });
-})();
-</script>
 {% endblock content %}

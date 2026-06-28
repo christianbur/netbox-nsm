@@ -303,13 +303,13 @@ def _cot_for_object_type(object_type):
     return CustomObjectType.objects.filter(pk=int(match.group(1))).first()
 
 
-def _build_type_config_sort_lookup() -> dict[int, tuple[int, str]]:
+def _build_type_config_sort_lookup(*, rulebook_cot=None) -> dict[int, tuple[int, str]]:
     """Map ``content_type_id`` → ``(sort_order, name)`` for layout column ordering."""
     from netbox_nsm.objects.nsm_config import build_nsm_config_lookup
 
     return {
         config.content_type_id: (config.sort_order, (config.name or "").strip())
-        for config in build_nsm_config_lookup().values()
+        for config in build_nsm_config_lookup(rulebook_cot=rulebook_cot).values()
     }
 
 
@@ -438,7 +438,7 @@ def build_cot_rules_layout(cot) -> dict:
     fields = list(
         cot.fields.exclude(ui_visible="hidden").order_by("weight", "name")
     )
-    tc_lookup = _build_type_config_sort_lookup()
+    tc_lookup = _build_type_config_sort_lookup(rulebook_cot=cot)
     rules_layout = []
     header_groups = []
     grouped_columns = []

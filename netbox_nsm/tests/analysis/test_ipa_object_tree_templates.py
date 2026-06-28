@@ -30,8 +30,8 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
             "pk": "5",
             "kind": "leaf",
             "is_cell_direct": True,
-            "ip_ref": {"str": "10.128.143.0/24", "url": "#"},
-            "prefix_display_cidr": "10.128.143.0/24",
+            "ip_ref": {"str": "198.18.143.0/24", "url": "#"},
+            "prefix_display_cidr": "198.18.143.0/24",
             "addr_drilldown_lazy": True,
             "children": [],
         },
@@ -71,7 +71,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
                         "kind": "leaf",
                         "diff_status": "both",
                         "diff_suppress_status": True,
-                        "prefix_display_cidr": "10.128.0.1/32",
+                        "prefix_display_cidr": "198.18.0.1/32",
                         "children": [],
                     }
                 ],
@@ -86,8 +86,8 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
                         "url": "/a/2/",
                         "kind": "leaf",
                         "diff_status": "only_a",
-                        "prefix_display_cidr": "10.128.0.2/32",
-                        "subnet_contained_in": "10.128.0.0/24",
+                        "prefix_display_cidr": "198.18.0.2/32",
+                        "subnet_contained_in": "198.18.0.0/24",
                         "children": [],
                     }
                 ],
@@ -116,7 +116,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
                     "pk": "1",
                     "kind": "leaf",
                     "is_cell_direct": True,
-                    "prefix_display_cidr": "10.128.0.1/32",
+                    "prefix_display_cidr": "198.18.0.1/32",
                     "ipa_explain_title": "Why: direct in rule cell | group member: bench-grp-00000",
                     "children": [],
                 },
@@ -146,7 +146,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
                             "state": "visible",
                             "state_label": "visible row",
                             "member_count": 101,
-                            "anchor_cidr": "10.128.1.0/24",
+                            "anchor_cidr": "198.18.1.0/24",
                         },
                         {
                             "name": "bench-grp-00002",
@@ -154,7 +154,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
                             "state": "membership",
                             "state_label": "merged into member row",
                             "member_count": 101,
-                            "anchor_cidr": "10.128.2.0/24",
+                            "anchor_cidr": "198.18.2.0/24",
                         },
                     ],
                 }
@@ -256,7 +256,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
                 "is_cell_direct": True,
                 "in_cell": True,
                 "cell_pill_group": True,
-                "prefix_display_cidr": "10.129.90.0/24",
+                "prefix_display_cidr": "198.19.90.0/24",
                 "cell_group_anchor_address": {
                     "name": "bench-net-00346",
                     "url": "/plugins/netbox-nsm/objects/nsm_address/347/",
@@ -289,7 +289,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
                     "pk": "99",
                     "kind": "leaf",
                     "node_role": "nsm_host",
-                    "prefix_display_cidr": "10.128.0.99/32",
+                    "prefix_display_cidr": "198.18.0.99/32",
                     "cell_groups": [
                         {
                             "name": "bench-grp-00098",
@@ -517,7 +517,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
                     {"name": "bench-dup-0000012", "url": "/a/13/"},
                     {"name": "bench-alias-0000012", "url": "/a/14/"},
                 ],
-                "prefix_display_cidr": "10.128.0.12/32",
+                "prefix_display_cidr": "198.18.0.12/32",
                 "children": [],
             }
         ]
@@ -570,7 +570,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
                         {"name": "bench-ip-0000012", "url": "/a/12/"},
                         {"name": "bench-dup-0000012", "url": "/a/13/"},
                     ],
-                    "prefix_display_cidr": "10.128.0.12/32",
+                    "prefix_display_cidr": "198.18.0.12/32",
                     "children": [],
                 },
                 "depth": 1,
@@ -729,8 +729,8 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
             "netbox_nsm/inc/ipa_cell_tree_row.html",
             {
                 "node": {
-                    "name": "10.128.0.0/20",
-                    "prefix_display_cidr": "10.128.0.0/20",
+                    "name": "198.18.0.0/20",
+                    "prefix_display_cidr": "198.18.0.0/20",
                     "node_role": "nsm_prefix",
                     "is_ipam_filler": True,
                     "ipam_synthetic": True,
@@ -742,7 +742,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
             },
         )
         self.assertEqual(html.strip(), "")
-        self.assertNotIn("10.128.0.0/20", html)
+        self.assertNotIn("198.18.0.0/20", html)
         self.assertNotIn("nsm-ipa-tree-node--ipam-filler", html)
 
     def test_info_gap_row_is_not_rendered_in_cell_tree(self):
@@ -839,7 +839,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
                     "name": "bench-net-super-00000",
                     "kind": "leaf",
                     "is_cell_direct": True,
-                    "prefix_display_cidr": "10.128.0.0/16",
+                    "prefix_display_cidr": "198.18.0.0/16",
                     "ipa_drilldown_meta": {
                         "name": "bench-net-super-00000",
                         "count_subnets": 259,
@@ -849,7 +849,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
                     "children": [
                         {
                             "name": "bench-ip-0000000",
-                            "prefix_display_cidr": "10.128.0.1/32",
+                            "prefix_display_cidr": "198.18.0.1/32",
                             "node_role": "nsm_host",
                             "children": [],
                         }
@@ -871,11 +871,11 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
             "netbox_nsm/inc/ipa_cell_tree_row.html",
             {
                 "node": {
-                    "name": "10.128.228.0/24",
+                    "name": "198.18.228.0/24",
                     "kind": "group",
                     "is_cell_direct": True,
-                    "prefix_display_cidr": "10.128.228.0/24",
-                    "subnet_contained_in": "10.128.0.0/16",
+                    "prefix_display_cidr": "198.18.228.0/24",
+                    "subnet_contained_in": "198.18.0.0/16",
                     "ipa_drilldown_meta": {
                         "count_subnets": 0,
                         "count_ranges": 0,
@@ -895,7 +895,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         dup_end = html.index("</td>", dup_start)
         dup_html = html[dup_start:dup_end]
         self.assertIn("nsm-ipa-cell-duplicate", dup_html)
-        self.assertIn("Redundant — contained in parent prefix 10.128.0.0/16", dup_html)
+        self.assertIn("Redundant — contained in parent prefix 198.18.0.0/16", dup_html)
         network_start = html.index("nsm-ipa-cell-tree-col--network")
         network_end = html.index("</td>", network_start)
         network_html = html[network_start:network_end]
@@ -916,9 +916,9 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
                     "pk": "1",
                     "kind": "group",
                     "is_cell_direct": True,
-                    "prefix_display_cidr": "10.128.0.0/24",
-                    "subnet_contained_in": "10.128.0.0/16",
-                    "subnet_contained_in_name": "10.128.0.0/16",
+                    "prefix_display_cidr": "198.18.0.0/24",
+                    "subnet_contained_in": "198.18.0.0/16",
+                    "subnet_contained_in_name": "198.18.0.0/16",
                     "children": [],
                 },
                 "depth": 1,
@@ -929,14 +929,14 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         network_start = html.index("nsm-ipa-cell-tree-col--network")
         network_end = html.index("</td>", network_start)
         network_html = html[network_start:network_end]
-        self.assertIn("10.128.0.0/24", network_html)
+        self.assertIn("198.18.0.0/24", network_html)
         self.assertNotIn("nsm-ipa-subnet-contained", network_html)
         self.assertNotIn("warn duplicate", network_html)
         dup_start = html.index("nsm-ipa-cell-tree-col--duplicate")
         dup_end = html.index("</td>", dup_start)
         dup_html = html[dup_start:dup_end]
         self.assertIn("nsm-ipa-cell-duplicate", dup_html)
-        self.assertIn("Redundant — contained in parent prefix 10.128.0.0/16", dup_html)
+        self.assertIn("Redundant — contained in parent prefix 198.18.0.0/16", dup_html)
 
     def test_empty_info_gap_row_is_not_rendered(self):
         from django.template.loader import render_to_string
@@ -1194,8 +1194,8 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
                 "pk": "5",
                 "kind": "leaf",
                 "is_cell_direct": True,
-                "ip_ref": {"str": "10.128.143.0/24", "url": "#"},
-                "prefix_display_cidr": "10.128.143.0/24",
+                "ip_ref": {"str": "198.18.143.0/24", "url": "#"},
+                "prefix_display_cidr": "198.18.143.0/24",
                 "addr_drilldown_lazy": True,
                 "children": [],
             }
@@ -1241,7 +1241,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         row_end = html.index("</tr>", row_start)
         row_html = html[row_start:row_end]
         self.assertIn("nsm-ipa-cell-cidr", row_html)
-        self.assertIn("10.128.143.0/24", row_html)
+        self.assertIn("198.18.143.0/24", row_html)
         self.assertIn("nsm-ipa-cell-tree-address", row_html)
         self.assertIn("bench-ip-0014328", row_html)
         network_pos = row_html.index("nsm-ipa-cell-tree-col--network")
@@ -1338,10 +1338,10 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
                     "pk": "10",
                     "kind": "leaf",
                     "is_cell_direct": True,
-                    "prefix_display_cidr": "10.128.0.10/32",
+                    "prefix_display_cidr": "198.18.0.10/32",
                     "cell_groups_multi": True,
-                    "ipa_tree_parent_cidr": "10.128.0.0/24",
-                    "ipa_tree_parent_name": "10.128.0.0/24",
+                    "ipa_tree_parent_cidr": "198.18.0.0/24",
+                    "ipa_tree_parent_name": "198.18.0.0/24",
                     "ipa_tree_parent_url": "/ipam/prefixes/24/",
                     "children": [],
                 },
@@ -1366,7 +1366,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
             "children": [],
             "node_role": "nsm_host",
             "ip_ref": {
-                "str": "10.128.0.1/32",
+                "str": "198.18.0.1/32",
                 "url": "/ipam/ip-addresses/181/",
                 "type": "Address",
                 "ct": 69,
@@ -1395,11 +1395,11 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
                     "url": "/plugins/netbox-nsm/objects/nsm_address_group/1/",
                 }
             ],
-            "ipa_tree_parent_cidr": "10.128.0.0/24",
+            "ipa_tree_parent_cidr": "198.18.0.0/24",
             "ipa_tree_parent_name": "bench-net-00000",
             "ipa_tree_parent_url": "/plugins/netbox-nsm/objects/nsm_address/1/",
             "ipa_depth": 3,
-            "prefix_display_cidr": "10.128.0.1/32",
+            "prefix_display_cidr": "198.18.0.1/32",
         }
         html = render_to_string(
             "netbox_nsm/inc/ipa_cell_tree_row.html",
@@ -1442,14 +1442,14 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
                         "node_role": "nsm_prefix",
                         "children": [
                             {
-                                "name": "10.128.0.0/24",
+                                "name": "198.18.0.0/24",
                                 "url": "/a/24/",
                                 "ct": "10",
                                 "pk": "24",
                                 "kind": "group",
                                 "in_cell": True,
                                 "is_cell_direct": True,
-                                "prefix_display_cidr": "10.128.0.0/24",
+                                "prefix_display_cidr": "198.18.0.0/24",
                                 "node_role": "nsm_prefix",
                                 "children": [],
                             }
@@ -1464,7 +1464,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         self.assertNotIn("10.0.0.0/16", html)
         self.assertNotIn("nsm-ipa-tree-node--ipam-filler", html)
         self.assertIn("nsm-ipa-object-node--cell-direct", html)
-        self.assertIn("10.128.0.0/24", html)
+        self.assertIn("198.18.0.0/24", html)
 
     def test_ipa_ipam_synthetic_prefix_renders_grey_row_class(self):
         from django.template.loader import render_to_string
@@ -1482,14 +1482,14 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
                     "node_role": "nsm_prefix",
                     "children": [
                         {
-                            "name": "10.128.0.0/24",
+                            "name": "198.18.0.0/24",
                             "url": "/a/24/",
                             "ct": "10",
                             "pk": "24",
                             "kind": "group",
                             "in_cell": True,
                             "is_cell_direct": True,
-                            "prefix_display_cidr": "10.128.0.0/24",
+                            "prefix_display_cidr": "198.18.0.0/24",
                             "node_role": "nsm_prefix",
                             "children": [],
                         }
@@ -1503,7 +1503,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         self.assertIn("nsm-ipa-tree-node--ipam-filler", html)
         self.assertIn("nsm-ipa-object-node--ipam-synthetic", html)
         self.assertIn("10.0.0.0/16", html)
-        self.assertNotIn("nsm-ipa-cell-tree-address", html.split("10.0.0.0/16")[1].split("10.128.0.0/24")[0])
+        self.assertNotIn("nsm-ipa-cell-tree-address", html.split("10.0.0.0/16")[1].split("198.18.0.0/24")[0])
 
     def test_cell_direct_row_has_cell_direct_class_not_indirect(self):
         from django.template.loader import render_to_string
@@ -1518,7 +1518,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
                     "pk": "5",
                     "kind": "leaf",
                     "is_cell_direct": True,
-                    "prefix_display_cidr": "10.128.143.0/24",
+                    "prefix_display_cidr": "198.18.143.0/24",
                     "children": [],
                 },
                 "depth": 0,
@@ -1537,7 +1537,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
                     "name": "bench-net-00001",
                     "url": "/plugins/netbox-nsm/addresses/1/",
                     "is_cell_direct": True,
-                    "prefix_display_cidr": "10.129.90.0/24",
+                    "prefix_display_cidr": "198.19.90.0/24",
                     "children": [],
                 },
                 "depth": 0,
@@ -1545,7 +1545,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         )
         self.assertIn('href="/plugins/netbox-nsm/addresses/1/"', html)
         self.assertIn("nsm-ipa-cell-cidr-link", html)
-        self.assertIn("10.129.90.0/24", html)
+        self.assertIn("198.19.90.0/24", html)
 
     def test_address_column_link_exposes_name_and_cidr_tooltip(self):
         from django.template.loader import render_to_string
@@ -1557,7 +1557,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
                     "name": "bench-net-00002",
                     "url": "/plugins/netbox-nsm/objects/nsm_address/2/",
                     "is_cell_direct": True,
-                    "prefix_display_cidr": "10.129.90.0/24",
+                    "prefix_display_cidr": "198.19.90.0/24",
                     "children": [],
                 },
                 "depth": 0,
@@ -1570,7 +1570,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         address_col_html = html[address_col_start:address_col_end]
         self.assertIn("bench-net-00002", address_col_html)
         self.assertIn(
-            'title="bench-net-00002 · 10.129.90.0/24"',
+            'title="bench-net-00002 · 198.19.90.0/24"',
             address_col_html,
         )
 
@@ -1586,7 +1586,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
                     "is_cell_direct": True,
                     "in_cell": True,
                     "cell_pill_group": True,
-                    "prefix_display_cidr": "10.129.90.0/24",
+                    "prefix_display_cidr": "198.19.90.0/24",
                     "cell_group_anchor_address": {
                         "name": "bench-net-00346",
                         "url": "/plugins/netbox-nsm/objects/nsm_address/347/",
@@ -1602,7 +1602,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         address_col_end = html.index("</td>", address_col_start)
         address_col_html = html[address_col_start:address_col_end]
         self.assertIn(
-            'title="Anchor address bench-net-00346 for group bench-grp-00346 · 10.129.90.0/24"',
+            'title="Anchor address bench-net-00346 for group bench-grp-00346 · 198.19.90.0/24"',
             address_col_html,
         )
 
@@ -1615,7 +1615,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
                 "node": {
                     "name": "bench-ip-0000099",
                     "url": "/a/99/",
-                    "prefix_display_cidr": "10.128.0.99/32",
+                    "prefix_display_cidr": "198.18.0.99/32",
                     "cell_groups": [{"name": "bench-grp-00098", "url": "/g/98/"}],
                     "children": [],
                 },
@@ -1628,7 +1628,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         address_col_end = html.index("</td>", address_col_start)
         address_col_html = html[address_col_start:address_col_end]
         self.assertIn(
-            'title="bench-ip-0000099 · 10.128.0.99/32 | Indirect (not directly in rule cell)"',
+            'title="bench-ip-0000099 · 198.18.0.99/32 | Indirect (not directly in rule cell)"',
             address_col_html,
         )
 
@@ -1669,7 +1669,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
                     "name": "bench-alias-00001",
                     "url": "/a/1/",
                     "is_cell_direct": True,
-                    "prefix_display_cidr": "10.128.0.0/24",
+                    "prefix_display_cidr": "198.18.0.0/24",
                     "cell_addresses_multi": True,
                     "cell_addresses": [
                         {"name": "bench-alias-00001", "url": "/a/1/"},
@@ -1690,8 +1690,8 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
             "netbox_nsm/inc/ipa_cell_tree_row.html",
             {
                 "node": {
-                    "name": "10.128.0.0/16",
-                    "prefix_display_cidr": "10.128.0.0/16",
+                    "name": "198.18.0.0/16",
+                    "prefix_display_cidr": "198.18.0.0/16",
                     "node_role": "nsm_prefix",
                     "ipa_drilldown_meta": {
                         "count_subnets": 259,
@@ -1716,12 +1716,12 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
             "netbox_nsm/inc/ipa_cell_tree_row.html",
             {
                 "node": {
-                    "name": "h-10.128.0.10",
+                    "name": "h-198.18.0.10",
                     "url": "/a/10/",
                     "ct": "10",
                     "pk": "10",
                     "kind": "leaf",
-                    "prefix_display_cidr": "10.128.0.10/32",
+                    "prefix_display_cidr": "198.18.0.10/32",
                     "children": [],
                 },
                 "depth": 2,
@@ -1785,8 +1785,8 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
                                         "kind": "leaf",
                                         "name": "bench-ip-0046354",
                                         "url": "/a/1/",
-                                        "ip_ref": {"str": "10.129.207.55/32", "url": "#"},
-                                        "prefix_display_cidr": "10.129.207.55/32",
+                                        "ip_ref": {"str": "198.19.207.55/32", "url": "#"},
+                                        "prefix_display_cidr": "198.19.207.55/32",
                                         "diff_status": "in_some",
                                         "children": [],
                                     }
@@ -1968,8 +1968,8 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
                 "ct": "10",
                 "pk": "5",
                 "kind": "leaf",
-                "ip_ref": {"str": "10.128.130.0/24", "url": "#"},
-                "prefix_display_cidr": "10.128.130.0/24",
+                "ip_ref": {"str": "198.18.130.0/24", "url": "#"},
+                "prefix_display_cidr": "198.18.130.0/24",
                 "addr_drilldown_lazy": True,
                 "children": [],
             }
@@ -2029,8 +2029,8 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
                 "ct": "10",
                 "pk": "5",
                 "kind": "leaf",
-                "ip_ref": {"str": "10.128.143.0/24", "url": "#"},
-                "prefix_display_cidr": "10.128.143.0/24",
+                "ip_ref": {"str": "198.18.143.0/24", "url": "#"},
+                "prefix_display_cidr": "198.18.143.0/24",
                 "subnet_contained_in": "10.0.0.0/8",
                 "subnet_contained_in_name": "g-10.0.0.0/8",
                 "addr_drilldown_lazy": True,
@@ -2121,8 +2121,8 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         nodes = [
             {
                 "name": "bench-ip",
-                "ip_ref": {"str": "10.128.130.0/24"},
-                "prefix_display_cidr": "10.128.130.0/24",
+                "ip_ref": {"str": "198.18.130.0/24"},
+                "prefix_display_cidr": "198.18.130.0/24",
                 "subnet_contained_in": "10.0.0.0/8",
                 "children": [],
             }
@@ -2130,7 +2130,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         lines = _flatten_ipa_object_tree_copy_lines(nodes)
         self.assertEqual(
             lines,
-            ["bench-ip,10.128.130.0/24,warn duplicate→10.0.0.0/8"],
+            ["bench-ip,198.18.130.0/24,warn duplicate→10.0.0.0/8"],
         )
 
     @patch(
@@ -2471,7 +2471,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
                 "cell_groups_multi": True,
                 "cell_groups_collapsed": True,
                 "collapsed_group_count": 5,
-                "prefix_display_cidr": "10.128.0.1/32",
+                "prefix_display_cidr": "198.18.0.1/32",
                 "children": [],
             }
         ]

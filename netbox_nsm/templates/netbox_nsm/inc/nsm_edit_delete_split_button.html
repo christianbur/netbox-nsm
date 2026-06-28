@@ -1,0 +1,63 @@
+{% load i18n %}
+{% if edit_url or delete_url or extra_dropdown_items or show_delete_when_blocked %}
+<span class="btn-group{% if not large %} btn-group-sm{% endif %}{% if delete_url or extra_dropdown_items or show_delete_when_blocked %} dropdown{% endif %}{% if wrapper_class %} {{ wrapper_class }}{% endif %}">
+  {% if edit_url or always_show_edit %}
+    {% if edit_url and can_edit != False %}
+    <a href="{{ edit_url }}"
+       class="btn{% if not large %} btn-sm{% endif %} btn-warning{% if edit_css_class %} {{ edit_css_class }}{% endif %}"
+       type="button"
+       title="{% if edit_label %}{{ edit_label }}{% else %}{% trans "Edit" %}{% endif %}"
+       aria-label="{% if edit_label %}{{ edit_label }}{% else %}{% trans "Edit" %}{% endif %}">
+      <i class="mdi mdi-pencil" aria-hidden="true"></i>{% if show_edit_text %} {% trans "Edit" %}{% endif %}
+    </a>
+    {% else %}
+    <button type="button"
+            class="btn{% if not large %} btn-sm{% endif %} btn-warning{% if edit_css_class %} {{ edit_css_class }}{% endif %}"
+            disabled aria-disabled="true"
+            title="{% if edit_label %}{{ edit_label }}{% else %}{% trans "Edit" %}{% endif %}"
+            aria-label="{% if edit_label %}{{ edit_label }}{% else %}{% trans "Edit" %}{% endif %}">
+      <i class="mdi mdi-pencil" aria-hidden="true"></i>{% if show_edit_text %} {% trans "Edit" %}{% endif %}
+    </button>
+    {% endif %}
+  {% endif %}
+  {% if delete_url or extra_dropdown_items or show_delete_when_blocked %}
+  <a class="btn{% if not large %} btn-sm{% endif %} btn-warning dropdown-toggle"
+     type="button"
+     data-bs-toggle="dropdown"
+     style="padding-left: 2px"
+     aria-expanded="false">
+    <span class="visually-hidden">{% trans "Toggle Dropdown" %}</span>
+  </a>
+  <ul class="dropdown-menu">
+    {% if delete_url or show_delete_when_blocked %}
+    <li>
+      {% if delete_url and can_delete != False and not delete_disabled %}
+      <a class="dropdown-item{% if delete_css_class %} {{ delete_css_class }}{% endif %}"
+         href="{{ delete_url }}"
+         title="{% if delete_label %}{{ delete_label }}{% else %}{% trans "Delete" %}{% endif %}"
+         aria-label="{% if delete_label %}{{ delete_label }}{% else %}{% trans "Delete" %}{% endif %}">
+        <i class="mdi mdi-trash-can-outline" aria-hidden="true"></i>
+        {% if delete_label %}{{ delete_label }}{% else %}{% trans "Delete" %}{% endif %}
+      </a>
+      {% else %}
+      <span class="dropdown-item disabled text-muted"
+            aria-disabled="true"
+            {% if delete_disabled_title %}title="{{ delete_disabled_title }}"{% endif %}>
+        <i class="mdi mdi-trash-can-outline" aria-hidden="true"></i>
+        {% if delete_label %}{{ delete_label }}{% else %}{% trans "Delete" %}{% endif %}
+      </span>
+      {% endif %}
+    </li>
+    {% endif %}
+    {% for item in extra_dropdown_items %}
+    <li>
+      <a class="dropdown-item{% if item.css_class %} {{ item.css_class }}{% endif %}"
+         href="{{ item.url }}">
+        <i class="mdi {{ item.icon|default:'mdi-trash-can-outline' }}" aria-hidden="true"></i> {{ item.label }}
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</span>
+{% endif %}

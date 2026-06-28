@@ -1,6 +1,6 @@
 """NSM Demo Zone Matrix python bundle entrypoint.
 
-Creates a 250\u00d7250 zone matrix in nsm_rb_demo1 (62,500 rules, random permit/deny).
+Creates a 250\u00d7250 zone matrix in nsm_rb_zone_matrix (62,500 rules, random permit/deny).
 NSM Schema must be applied first.
 """
 
@@ -29,6 +29,6 @@ def main(request=None) -> None:
             % {
                 "zone_count": DEMO_ZONE_COUNT,
                 "rule_count": DEMO_RULE_COUNT,
-                "rb_slug": cot.slug if cot is not None else "nsm_rb_demo1",
+                "rb_slug": cot.slug if cot is not None else "nsm_rb_zone_matrix",
             },
         )

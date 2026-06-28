@@ -24,8 +24,8 @@ class BuildMatrixCellAddHrefTests(SimpleTestCase):
     def test_includes_zone_pks_and_return_url(self):
         request = RequestFactory().get("/")
         href = build_matrix_cell_add_href(
-            "/plugins/custom-objects/nsm_rb_demo/add/",
-            "/rulebooks/cot/nsm_rb_demo/rules/",
+            "/plugins/custom-objects/nsm_rb_zone_matrix/add/",
+            "/rulebooks/cot/nsm_rb_zone_matrix/rules/",
             source_zone_pk=11,
             destination_zone_pk=22,
             request=request,
@@ -35,7 +35,7 @@ class BuildMatrixCellAddHrefTests(SimpleTestCase):
         self.assertEqual(query["destination_zone"], ["22"])
         self.assertEqual(
             query["return_url"],
-            ["/rulebooks/cot/nsm_rb_demo/rules/"],
+            ["/rulebooks/cot/nsm_rb_zone_matrix/rules/"],
         )
 
 

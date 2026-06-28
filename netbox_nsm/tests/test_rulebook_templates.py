@@ -182,10 +182,10 @@ class RulebookTemplateTests(TestCase):
 
     def test_demo_schema_yaml_resolves_for_starter(self):
         type_def = parse_rulebook_schema_yaml(demo_rulebook_schema_yaml())
-        self.assertEqual(type_def["slug"], "nsm_rb_demo")
+        self.assertEqual(type_def["slug"], "nsm_rb_zone_matrix")
         self.assertEqual(type_def["group_name"], "NSM Rulebooks")
-        self.assertEqual(type_def["verbose_name"], "Rulebook NSM Demo Zone Matrix")
-        self.assertIn("NSM Demo Zone Matrix setup job", type_def["description"])
+        self.assertEqual(type_def["verbose_name"], "Zone Matrix Demo")
+        self.assertIn("nsm_demo_zone_matrix", type_def["description"])
         field_names = [field["name"] for field in type_def["fields"]]
         self.assertEqual(
             field_names,
@@ -237,7 +237,7 @@ class RulebookTemplateTests(TestCase):
         )
 
     def test_deployed_rulebook_slug_detection(self):
-        self.assertTrue(is_deployed_rulebook_slug("nsm_rb_demo"))
+        self.assertTrue(is_deployed_rulebook_slug("nsm_rb_zone_matrix"))
         self.assertFalse(is_deployed_rulebook_slug("nsm_rb_custom_template"))
 
     def test_is_rulebook_template_slug_pattern(self):

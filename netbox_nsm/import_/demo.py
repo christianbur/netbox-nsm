@@ -83,7 +83,7 @@ def _ensure_demo_prerequisites():
 
 
 def create_demo_starter_data_only():
-    """Populate nsm_rb_demo with 250×250 zone matrix (schema must exist)."""
+    """Populate nsm_rb_zone_matrix with 250×250 zone matrix (schema must exist)."""
     from django.db import transaction
 
     from netbox_custom_objects.models import CustomObjectType
@@ -295,7 +295,7 @@ def _bulk_seed_demo_matrix_relations(
 
 
 def _create_rb_demo_starter_rules():
-    """Seed nsm_rb_demo with a 250×250 zone matrix (62.5k rules, random permit/deny)."""
+    """Seed nsm_rb_zone_matrix with a 250×250 zone matrix (62.5k rules, random permit/deny)."""
     from netbox_custom_objects.models import CustomObjectType
 
     cot = CustomObjectType.objects.get(slug=DEMO_RULEBOOK_SLUG)

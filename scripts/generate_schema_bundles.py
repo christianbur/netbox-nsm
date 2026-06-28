@@ -48,7 +48,7 @@ TYPECONFIG_SPECS = [
     ("security-app-network", "Network Apps", "{{ name }}"),
 ]
 
-DEMO_RULEBOOK_SLUG = "security-rb-demo1"
+DEMO_RULEBOOK_SLUG = "nsm_rb_zone_matrix"
 CORE_BUNDLE_EXTRA_TYPE_SLUGS = frozenset({DEMO_RULEBOOK_SLUG})
 RULEBOOK_TEMPLATE_GROUP = "NSM Rulebook Templates"
 RULEBOOK_GROUP = "NSM Rulebooks"
@@ -242,7 +242,7 @@ def build_nsm_schema_bundle(builtin_types) -> dict:
                     "rulebook": {
                         "parent_slug": "",
                         "matrix_tab_enabled": True,
-                        "row_group_by_col_id": "",
+                        "row_group_by_col_id": "source::nsm_zone",
                     },
                     "types": _build_rule_view_types(builtin_types),
                 }
@@ -255,9 +255,9 @@ def _demo_rulebook_type_def() -> dict:
     return {
         "name": DEMO_RULEBOOK_SLUG,
         "slug": DEMO_RULEBOOK_SLUG,
-        "verbose_name": "NSM Demo Zone Matrix",
-        "verbose_name_plural": "NSM Demo Zone Matrix",
-        "description": "Zone matrix rulebook (250×250 zones). Fill with the NSM Demo Zone Matrix setup job.",
+        "verbose_name": "Zone Matrix Demo",
+        "verbose_name_plural": "Zone Matrix Demos",
+        "description": "Demo rulebook for zone-matrix evaluation (250×250); populated by bundle nsm_demo_zone_matrix.",
         "group_name": RULEBOOK_GROUP,
         "fields": [
             {

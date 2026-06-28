@@ -20,7 +20,7 @@ class CotRoleMetadataTests(TestCase):
     def test_default_role_for_policy_slugs(self):
         self.assertEqual(default_role_for_slug("nsm_zone"), "zone")
         self.assertEqual(default_role_for_slug("nsm_address"), "address")
-        self.assertEqual(default_role_for_slug("nsm_rb_demo"), "rulebook")
+        self.assertEqual(default_role_for_slug("nsm_rb_zone_matrix"), "rulebook")
 
     def test_role_segment_round_trip(self):
         yaml_text = merge_nsm_config_document_into_comments(

@@ -5,7 +5,7 @@ from unittest import TestCase
 from netbox_nsm.bundles.schema_builder import build_schema_document
 from netbox_nsm.objects.type_config_specs import REQUIRED_COT_SLUGS
 
-CORE_BUNDLE_TYPE_SLUGS = set(REQUIRED_COT_SLUGS) | {"nsm_rb_demo"}
+CORE_BUNDLE_TYPE_SLUGS = set(REQUIRED_COT_SLUGS) | {"nsm_rb_zone_matrix"}
 from netbox_nsm.bundles.dispatch import load_bundle, normalize_bundle_metadata, to_portable_document
 from netbox_nsm.bundles.paths import BUILTIN_DIR, bundle_json_path
 
@@ -33,7 +33,7 @@ class PortableSchemaTests(TestCase):
         self.assertIn("types", metadata)
         self.assertTrue(metadata["types"])
         self.assertIn("rulebooks", metadata)
-        self.assertIn("nsm_rb_demo", metadata["rulebooks"])
+        self.assertIn("nsm_rb_zone_matrix", metadata["rulebooks"])
 
     def test_build_schema_document_matches_schema_policy_types(self):
         built = build_schema_document()

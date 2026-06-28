@@ -3,7 +3,7 @@
   "schema_version": "1",
   "bundle_kind": "python",
   "title": "NSM Demo Zone Matrix",
-  "description": "Zone matrix demo on nsm_rb_demo: 250\u00d7250 zones with 62,500 rules (random permit/deny). Apply NSM Schema first.",
+  "description": "Zone matrix demo on nsm_rb_zone_matrix: 250\u00d7250 zones with 62,500 rules (random permit/deny). Apply NSM Schema first.",
   "requires": ["nsm_schema"],
   "needs_confirm": false,
   "runner": {"script": "run.py", "entrypoint": "main"}

@@ -273,7 +273,7 @@ RULEBOOK_TEMPLATE_SLUGS = [spec["slug"] for spec in _RULEBOOK_TEMPLATES]
 BUNDLED_RULEBOOK_TEMPLATE_SLUGS = RULEBOOK_TEMPLATE_SLUGS
 RULEBOOK_TEMPLATE_BY_SLUG = {spec["slug"]: spec for spec in _RULEBOOK_TEMPLATES}
 
-DEMO_RULEBOOK_SLUG = "nsm_rb_demo"
+DEMO_RULEBOOK_SLUG = "nsm_rb_zone_matrix"
 
 DEFAULT_RULEBOOK_SCHEMA_YAML = """schema_version: "1"
 types:
@@ -573,11 +573,11 @@ def demo_rulebook_schema_yaml() -> str:
     """Return resolved portable-schema YAML for the starter demo rulebook."""
     return substitute_rulebook_schema_placeholders(
         DEMO_RULEBOOK_SCHEMA_YAML,
-        display_name="NSM Demo Zone Matrix",
-        name="demo",
+        display_name="Zone Matrix Demo",
+        name="zone_matrix",
         description=(
-            "Zone matrix rulebook (250×250 zones). "
-            "Fill with the NSM Demo Zone Matrix setup job."
+            "Demo rulebook for zone-matrix evaluation (250×250); "
+            "populated by bundle nsm_demo_zone_matrix."
         ),
     )
 

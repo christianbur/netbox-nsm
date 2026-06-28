@@ -3,7 +3,7 @@
   "schema_version": "1",
   "bundle_kind": "schema",
   "title": "NSM Security Objects Schema",
-  "description": "Required NSM base import: Security Object custom types, choice sets, default seed objects, and type metadata (links settings, rulebook views). Defines nsm_rb_demo and sample policy objects.",
+  "description": "Required NSM base import: Security Object custom types, choice sets, default seed objects, and type metadata (links settings, rulebook views). Defines nsm_rb_zone_matrix and sample policy objects.",
   "choice_sets": [
     {
       "name": "nsm_object_status",
@@ -73,7 +73,7 @@
       "verbose_name": "Action",
       "verbose_name_plural": "Actions",
       "description": "Policy action for matching traffic in a rule (e.g. permit, deny, drop, reject). Used in rulebook Action columns.",
-      "group_name": "Security Objects",
+      "group_name": "NSM Objects",
       "fields": [
         {
           "id": 1,
@@ -124,7 +124,7 @@
       "verbose_name": "Service",
       "verbose_name_plural": "Services",
       "description": "Represents one network service (protocol + port). Used in rulebook Service columns and Security Panel links.",
-      "group_name": "Security Objects",
+      "group_name": "NSM Objects",
       "fields": [
         {
           "id": 1,
@@ -194,7 +194,7 @@
       "verbose_name": "Service Group",
       "verbose_name_plural": "Service Groups",
       "description": "Named collection of services. Referenced in rulebook Service columns; members are nsm_service objects.",
-      "group_name": "Security Objects",
+      "group_name": "NSM Objects",
       "fields": [
         {
           "id": 1,
@@ -255,7 +255,7 @@
       "verbose_name": "Address",
       "verbose_name_plural": "Addresses",
       "description": "Named address object for policy rules (host, prefix, or range). Used in Source/Destination columns and Security Panel links.",
-      "group_name": "Security Objects",
+      "group_name": "NSM Objects",
       "fields": [
         {
           "id": 1,
@@ -347,7 +347,7 @@
       "verbose_name": "Address Group",
       "verbose_name_plural": "Address Groups",
       "description": "Named collection of address objects. Used in Source/Destination columns; members are nsm_address objects.",
-      "group_name": "Security Objects",
+      "group_name": "NSM Objects",
       "fields": [
         {
           "id": 1,
@@ -408,7 +408,7 @@
       "verbose_name": "Label",
       "verbose_name_plural": "Labels",
       "description": "Classification tag for inventory or rules (e.g. compliance, tier). Used in label columns and Security Panel links.",
-      "group_name": "Security Objects",
+      "group_name": "NSM Objects",
       "fields": [
         {
           "id": 1,
@@ -474,7 +474,7 @@
       "verbose_name": "Zone",
       "verbose_name_plural": "Zones",
       "description": "Logical security zone for segmentation. Linked to inventory via Security Panel; used in rulebook zone columns.",
-      "group_name": "Security Objects",
+      "group_name": "NSM Objects",
       "fields": [
         {
           "id": 1,
@@ -525,7 +525,7 @@
       "verbose_name": "Business App",
       "verbose_name_plural": "Business Apps",
       "description": "Business application metadata for rule Info columns (ownership, criticality).",
-      "group_name": "Security Objects",
+      "group_name": "NSM Objects",
       "fields": [
         {
           "id": 1,
@@ -600,7 +600,7 @@
       "verbose_name": "Network App",
       "verbose_name_plural": "Network Apps",
       "description": "Network application identifier, similar to Palo Alto App-ID (e.g. ssh, onedrive, ssl).",
-      "group_name": "Security Objects",
+      "group_name": "NSM Objects",
       "fields": [
         {
           "id": 1,
@@ -674,7 +674,7 @@
       "verbose_name": "Object Link",
       "verbose_name_plural": "Object Links",
       "description": "Links NetBox inventory to security policy objects or rulebooks (Security Panel source of truth).",
-      "group_name": "Security Links",
+      "group_name": "NSM Links",
       "fields": [
         {
           "id": 1,
@@ -799,12 +799,12 @@
       "removed_fields": []
     },
     {
-      "name": "nsm_rb_demo",
-      "slug": "nsm_rb_demo",
-      "verbose_name": "Rulebook Demo 1",
-      "verbose_name_plural": "Rulebook Demo 1",
-      "description": "Rulebook Demo 1",
-      "group_name": "Security Rulebooks",
+      "name": "nsm_rb_zone_matrix",
+      "slug": "nsm_rb_zone_matrix",
+      "verbose_name": "Zone Matrix Demo",
+      "verbose_name_plural": "Zone Matrix Demos",
+      "description": "Demo rulebook for zone-matrix evaluation (250×250); populated by bundle nsm_demo_zone_matrix.",
+      "group_name": "NSM Rulebooks",
       "fields": [
         {
           "id": 1,
@@ -995,7 +995,7 @@
       ]
     },
     {
-      "type": "nsm_rb_demo",
+      "type": "nsm_rb_zone_matrix",
       "records": [
         {
           "index": 1,
@@ -1161,11 +1161,11 @@
       }
     },
     "rulebooks": {
-      "nsm_rb_demo": {
+      "nsm_rb_zone_matrix": {
         "rulebook": {
           "parent_slug": "",
           "matrix_tab_enabled": true,
-          "row_group_by_col_id": ""
+          "row_group_by_col_id": "source::nsm_zone"
         },
         "types": {
           "nsm_zone": {

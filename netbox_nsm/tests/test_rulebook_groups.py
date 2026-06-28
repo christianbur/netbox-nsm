@@ -88,7 +88,7 @@ class ApplySchemaYamlFieldGroupsTests(TestCase):
             save=SimpleNamespace(),
         )
         field.save = lambda **kwargs: None
-        cot = SimpleNamespace(slug="nsm_rb_demo", fields=SimpleNamespace(all=lambda: [field]))
+        cot = SimpleNamespace(slug="nsm_rb_zone_matrix", fields=SimpleNamespace(all=lambda: [field]))
         with patch(
             "netbox_nsm.rulebooks.rulebook_groups._is_rulebook_cot_slug",
             return_value=True,
@@ -113,7 +113,7 @@ class ApplySchemaYamlFieldGroupsTests(TestCase):
             saved.update(kwargs)
 
         field.save = _save
-        cot = SimpleNamespace(slug="nsm_rb_demo", fields=SimpleNamespace(all=lambda: [field]))
+        cot = SimpleNamespace(slug="nsm_rb_zone_matrix", fields=SimpleNamespace(all=lambda: [field]))
         with patch(
             "netbox_nsm.rulebooks.rulebook_groups._is_rulebook_cot_slug",
             return_value=True,

@@ -381,6 +381,26 @@ def list_setup_bundles() -> list[dict]:
 # ---------------------------------------------------------------------------
 
 
+def _resolve_portable_row_group_col_id(raw: str, *, rulebook_slug: str) -> str:
+    """Map bundle portable IDs (``source::nsm_zone``) to runtime ``source::ct_{pk}``."""
+    value = (raw or "").strip()
+    if not value or "::" not in value:
+        return value
+    field_name, type_ref = value.split("::", 1)
+    type_ref = type_ref.strip()
+    if not type_ref or type_ref.startswith("ct_"):
+        return value
+    cot_slug = type_ref.removeprefix("custom-objects/")
+    if not cot_slug.startswith("nsm_"):
+        return value
+    from netbox_nsm.objects.type_config_specs import content_type_ids_for_cot_slugs
+
+    ct_ids = content_type_ids_for_cot_slugs([cot_slug])
+    if not ct_ids:
+        return value
+    return f"{field_name}::ct_{ct_ids[0]}"
+
+
 def sync_metadata(metadata: dict | None) -> dict[str, int]:
     """Write bundle ``metadata`` into COT ``comments`` (via ``nsm_config`` YAML)."""
     from netbox_nsm.objects.nsm_config import save_nsm_config_document_for_cot
@@ -423,7 +443,13 @@ def sync_metadata(metadata: dict | None) -> dict[str, int]:
             continue
         updates: dict[str, Any] = {}
         if "rulebook" in block:
-            updates["rulebook"] = block["rulebook"]
+            rulebook_cfg = dict(block["rulebook"])
+            if "row_group_by_col_id" in rulebook_cfg:
+                rulebook_cfg["row_group_by_col_id"] = _resolve_portable_row_group_col_id(
+                    str(rulebook_cfg.get("row_group_by_col_id") or ""),
+                    rulebook_slug=rb_slug,
+                )
+            updates["rulebook"] = rulebook_cfg
         if "types" in block:
             updates["types"] = block["types"]
         if "role" in block:

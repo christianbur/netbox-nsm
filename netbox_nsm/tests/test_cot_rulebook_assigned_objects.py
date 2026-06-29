@@ -11,7 +11,7 @@ from ipam.models import Prefix
 from dcim.models import Device, DeviceRole, DeviceType, Interface, Manufacturer, Site
 from netbox_nsm.bench.prerequisites import ensure_nsm_prerequisites
 from netbox_nsm.forms import EnforcementPointInterfaceAssignForm
-from netbox_nsm.objects.object_link_service import (
+from netbox_nsm.security.links.object_link_service import (
     LINK_TYPE_ENFORCEMENT_POINT,
     create_or_update_enforcement_point_link,
     create_or_update_links,

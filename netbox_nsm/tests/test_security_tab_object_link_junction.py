@@ -222,9 +222,7 @@ class InterfaceSecurityTableIntegrationTests(SimpleTestCase):
         "netbox_nsm.security.tab.context.build_cot_security_rulebook_groups",
         return_value={"rulebook_groups": [], "unique_rules_total": 0},
     )
-    @patch(
-        "netbox_nsm.security.links.object_link_service.build_panel_link_groups",
-    )
+    @patch("netbox_nsm.security.tab.context.count_security_tab_badge", return_value=1)
     @patch("netbox_nsm.security.tab.context.append_cot_reference_link_groups")
     @patch("netbox_nsm.security.tab.context.get_display_template_map", return_value={})
     @patch("netbox_nsm.security.tab.context.ContentType")
@@ -233,7 +231,7 @@ class InterfaceSecurityTableIntegrationTests(SimpleTestCase):
         mock_ct,
         _mock_tmpl,
         mock_append,
-        mock_panel,
+        _mock_badge,
         _mock_rulebooks,
     ):
         from netbox_nsm.security.tab.context import build_security_tab_context
@@ -266,7 +264,6 @@ class InterfaceSecurityTableIntegrationTests(SimpleTestCase):
             RequestFactory().get("/dcim/interfaces/1/security/"),
         )
 
-        mock_panel.assert_not_called()
         table = ctx["nsm_link_table"]
         self.assertIsNotNone(table)
         self.assertEqual(len(table["page"]), 1)
@@ -278,9 +275,7 @@ class InterfaceSecurityTableIntegrationTests(SimpleTestCase):
         "netbox_nsm.security.tab.context.build_cot_security_rulebook_groups",
         return_value={"rulebook_groups": [], "unique_rules_total": 0},
     )
-    @patch(
-        "netbox_nsm.security.links.object_link_service.build_panel_link_groups",
-    )
+    @patch("netbox_nsm.security.tab.context.count_security_tab_badge", return_value=1)
     @patch("netbox_nsm.security.tab.context.append_cot_reference_link_groups")
     @patch("netbox_nsm.security.tab.context.get_display_template_map", return_value={})
     @patch("netbox_nsm.security.tab.context.ContentType")
@@ -289,7 +284,7 @@ class InterfaceSecurityTableIntegrationTests(SimpleTestCase):
         mock_ct,
         _mock_tmpl,
         mock_append,
-        mock_panel,
+        _mock_badge,
         _mock_rulebooks,
     ):
         """Zone/address Security tab: one junction row per linked interface."""
@@ -323,7 +318,6 @@ class InterfaceSecurityTableIntegrationTests(SimpleTestCase):
             RequestFactory().get("/plugins/custom-objects/nsm_zone/5/security/"),
         )
 
-        mock_panel.assert_not_called()
         table = ctx["nsm_link_table"]
         self.assertIsNotNone(table)
         self.assertEqual(len(table["page"]), 1)

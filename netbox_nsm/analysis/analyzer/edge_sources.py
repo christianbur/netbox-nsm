@@ -13,7 +13,7 @@ _MAX = None  # no cap — object analyzer shows all links
 def nsm_link_edges(obj, ct) -> list:
     """Bidirectional AnalyzerEdge list from COT ``nsm_object_link`` rows."""
     from netbox_nsm.analysis.analyzer.registry import AnalyzerEdge, node_from_object
-    from netbox_nsm.objects.object_link_service import iter_links_for_object
+    from netbox_nsm.security.links.object_link_service import iter_links_for_object
 
     edges = []
     for link, direction in iter_links_for_object(obj):
@@ -30,7 +30,7 @@ def nsm_link_edges(obj, ct) -> list:
 def rule_object_item_edges(obj, ct) -> list:
     """AnalyzerEdge list from COT rulebook references."""
     from netbox_nsm.analysis.analyzer.registry import AnalyzerEdge, node_from_object
-    from netbox_nsm.security.cot_rule_references import scan_cot_security_references
+    from netbox_nsm.security.references.cot_rule_references import scan_cot_security_references
 
     edges = []
     for match in scan_cot_security_references(ct, obj.pk):

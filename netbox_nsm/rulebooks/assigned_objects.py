@@ -12,13 +12,13 @@ from netbox_nsm.core.display_utils import (
     render_object_display,
     type_config_display_name_for_ct_id,
 )
-from netbox_nsm.objects.object_link_service import (
+from netbox_nsm.security.links.object_link_service import (
     is_enforcement_point_host_link,
     is_enforcement_point_iface_nsm_link,
     iter_enforcement_point_links_for_slug,
     object_link_permission,
 )
-from netbox_nsm.security.panel_link_actions import append_return_url
+from netbox_nsm.security.actions.panel_link_actions import append_return_url
 
 __all__ = ("build_cot_rulebook_assigned_objects_panel",)
 

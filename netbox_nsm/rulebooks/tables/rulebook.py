@@ -6,7 +6,7 @@ from django.utils.translation import gettext_lazy as _
 from netbox.tables import NetBoxTable
 from netbox_nsm.rulebooks.list_row_actions import render_rulebook_list_row_actions_html
 from netbox_nsm.rulebooks.permissions import RulebookListProxy
-from netbox_nsm.objects.object_link_service import iter_enforcement_point_links_for_slug
+from netbox_nsm.security.links.object_link_service import iter_enforcement_point_links_for_slug
 from netbox_nsm.rulebooks.status import rulebook_status_badge_html
 from netbox_nsm.rulebooks.virtual_cot import is_virtual_cot_rulebook
 

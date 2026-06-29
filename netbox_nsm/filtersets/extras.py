@@ -3,7 +3,7 @@ import django_filters
 from django.db.models import Q
 from django_filters import FilterSet
 
-from netbox_nsm.objects.object_link_service import get_object_link_model
+from netbox_nsm.security.links.object_link_service import get_object_link_model
 
 __all__ = ("ObjectLinkFilterSet",)
 

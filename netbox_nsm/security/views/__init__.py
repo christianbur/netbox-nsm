@@ -9,7 +9,6 @@ from netbox_nsm.security.views.object_link import (
     ObjectLinkEditView,
     ObjectTypeElementsApiView,
 )
-from netbox_nsm.security.views.object_rules_api import ObjectRulesApiView
 from netbox_nsm.security.views.rulebook_link import (
     RulebookLinkAssignView,
     RulebookLinkDeleteView,
@@ -22,7 +21,6 @@ __all__ = (
     "ObjectLinkAssignView",
     "ObjectLinkDeleteView",
     "ObjectLinkEditView",
-    "ObjectRulesApiView",
     "ObjectTypeElementsApiView",
     "RulebookLinkAssignView",
     "RulebookLinkDeleteView",

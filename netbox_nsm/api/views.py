@@ -11,7 +11,7 @@ from .serializers import ObjectLinkSerializer
 
 from netbox_nsm.filtersets import ObjectLinkFilterSet
 
-from netbox_nsm.objects.object_link_service import (
+from netbox_nsm.security.links.object_link_service import (
     ObjectLinkRecord,
     delete_link,
     get_link_by_pk,

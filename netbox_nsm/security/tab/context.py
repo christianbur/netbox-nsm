@@ -23,6 +23,7 @@ from netbox_nsm.core.nsm_object_status import (
     nsm_object_status_icon_html,
 )
 from netbox_nsm.core.plugin_labels import get_nsm_panel_label
+from netbox_nsm.security.tab.badge import count_security_tab_badge
 from netbox_nsm.security.tab.security_rows import append_cot_reference_link_groups
 from netbox_nsm.security.references.cot_rule_references import build_cot_security_rulebook_groups
 from netbox_nsm.security.tab.links import prepare_link_tab_view
@@ -270,7 +271,6 @@ def build_security_tab_context(obj, request) -> dict:
             for k, v in sorted(links_by_type.items(), key=lambda x: x[1]["label"])
         ]
     )
-    total_links = sum(g["count"] for g in link_type_groups)
 
     nsm_inherited_api_url = None
     try:
@@ -305,12 +305,8 @@ def build_security_tab_context(obj, request) -> dict:
         reverse("plugins:netbox_nsm:object_link_assign")
         + f"?ct_id={ct.pk}&obj_id={obj.pk}&return_url={return_url}"
     )
-    api_url = (
-        reverse("plugins:netbox_nsm:object_rules_api")
-        + f"?ct_id={ct.pk}&obj_id={obj.pk}"
-    )
 
-    security_badge = unique_rules_total + total_links or None
+    security_badge = count_security_tab_badge(obj) or None
 
     nsm_enforcement_point = None
     try:
@@ -351,7 +347,6 @@ def build_security_tab_context(obj, request) -> dict:
         "nsm_rulebook_groups": rulebook_groups,
         "nsm_unique_rules_total": unique_rules_total,
         "nsm_security_badge": security_badge,
-        "nsm_api_url": api_url,
         "nsm_assign_url": assign_url,
         "nsm_analyzer_url": analyzer_url,
         "nsm_panel_label": get_nsm_panel_label(),

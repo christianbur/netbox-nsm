@@ -64,7 +64,7 @@ class AddressCotSchemaTests(SimpleTestCase):
     @patch("netbox_nsm.addresses.address_ipam_fk.cot_ipam_address_flag", return_value=True)
     @patch("netbox_nsm.addresses.address_ipam_fk.get_nsm_address_model")
     def test_is_nsm_address_object_uses_structural_cot_flag(self, get_model, _flag):
-        from netbox_nsm.objects.address_ipam_fk import is_nsm_address_object
+        from netbox_nsm.addresses.address_ipam_fk import is_nsm_address_object
 
         get_model.return_value = type("FreshTable3Model", (), {})
         ipam_cot = SimpleNamespace(pk=3, slug="corp_addresses")

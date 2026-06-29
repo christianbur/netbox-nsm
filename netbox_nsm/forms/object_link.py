@@ -7,7 +7,7 @@ from netbox_nsm.objects.nsm_config import (
     is_assignable_from_content_type,
     iter_linkable_configs,
 )
-from netbox_nsm.objects.link_propagation import (
+from netbox_nsm.security.links.link_propagation import (
     CotObjectLinkPropagationChoices,
     cot_propagation_choices_for_form,
 )

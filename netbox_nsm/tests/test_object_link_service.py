@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 from django.test import SimpleTestCase
 
 from netbox_nsm.models.object_link import LinkPropagationChoices
-from netbox_nsm.objects.link_propagation import (
+from netbox_nsm.security.links.link_propagation import (
     CotObjectLinkPropagationChoices,
     cot_propagation_choices_for_form,
     cot_propagation_display,

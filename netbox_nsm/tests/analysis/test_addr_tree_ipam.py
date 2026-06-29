@@ -211,7 +211,7 @@ class IpamPrefixTreeTests(SimpleTestCase):
         self.assertEqual(ip_ref["type"], "IP Address")
         self.assertEqual(ip_ref["pk"], 7)
 
-    @patch("netbox_nsm.objects.address_ipam_fk.iter_address_ipam_fk_refs")
+    @patch("netbox_nsm.addresses.address_ipam_fk.iter_address_ipam_fk_refs")
     def test_addr_ip_ref_falls_back_to_polymorphic_gfk(self, iter_refs_fn):
         from netbox_nsm.analysis.addr_analysis_utils import (
             _addr_ip_ref,
@@ -335,9 +335,9 @@ class IpamPrefixTreeTests(SimpleTestCase):
             self.assertEqual(analysis[0]["types"][0]["count_ips"], 1)
             self.assertEqual(analysis[0]["types"][0]["leaf_count"], 2)
 
-    @patch("netbox_nsm.objects.address_ipam_fk.addresses_for_ipam_object_queryset")
+    @patch("netbox_nsm.addresses.address_ipam_fk.addresses_for_ipam_object_queryset")
     @patch("netbox_nsm.analysis.addr_analysis_utils._prefix_ipam_stats")
-    @patch("netbox_nsm.objects.address_ipam_fk.get_nsm_address_model")
+    @patch("netbox_nsm.addresses.address_ipam_fk.get_nsm_address_model")
     def test_collect_ipam_prefix_children_queries_all_kinds(
         self, addr_model_fn, stats_fn, addr_qs_fn
     ):
@@ -813,7 +813,7 @@ class IpamPrefixTreeTests(SimpleTestCase):
         self.assertEqual(counts["count_ips"], 0)
         self.assertEqual(counts["count_duplicates"], 1)
 
-    @patch("netbox_nsm.objects.address_ipam_fk.get_nsm_address_model", return_value=None)
+    @patch("netbox_nsm.addresses.address_ipam_fk.get_nsm_address_model", return_value=None)
     @patch("django.urls.reverse", return_value="/ipam/")
     def test_prefix_ipam_stats_uses_get_child_ips_count(self, _reverse_fn, _addr_model_fn):
         prefix = MagicMock()

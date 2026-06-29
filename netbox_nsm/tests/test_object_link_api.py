@@ -15,7 +15,7 @@ from ipam.models import Prefix
 from utilities.testing import APITestCase
 
 from netbox_nsm.bench.prerequisites import ensure_nsm_prerequisites
-from netbox_nsm.objects.object_link_service import (
+from netbox_nsm.security.links.object_link_service import (
     create_or_update_links,
     get_object_link_model,
 )

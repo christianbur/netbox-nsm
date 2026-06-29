@@ -271,6 +271,37 @@ class SecurityTabBadgeTests(TestCase):
         device = Device(name="edge-1")
         self.assertEqual(count_security_tab_badge(device), 0)
 
+    @patch(
+        "netbox_nsm.security.tab.context.build_cot_security_rulebook_groups",
+        return_value={"rulebook_groups": [], "unique_rules_total": 5},
+    )
+    @patch("netbox_nsm.security.tab.context.append_cot_reference_link_groups")
+    @patch("netbox_nsm.security.tab.context.get_display_template_map", return_value={})
+    @patch("netbox_nsm.security.tab.context.ContentType")
+    @patch("netbox_nsm.security.tab.context.count_security_tab_badge", return_value=2)
+    def test_context_badge_uses_tab_badge_not_rulebook_total(
+        self,
+        mock_badge,
+        mock_ct,
+        _mock_tmpl,
+        mock_append,
+        _mock_rulebooks,
+    ):
+        from django.test import RequestFactory
+
+        from netbox_nsm.security.tab.context import build_security_tab_context
+
+        mock_append.return_value = None
+        mock_ct.objects.get_for_model.return_value = MagicMock(pk=1)
+        obj = MagicMock(pk=111)
+        ctx = build_security_tab_context(
+            obj,
+            RequestFactory().get("/ipam/prefixes/111/security/"),
+        )
+        mock_badge.assert_called_once_with(obj)
+        self.assertEqual(ctx["nsm_security_badge"], 2)
+        self.assertEqual(ctx["nsm_unique_rules_total"], 5)
+
 
 class SecurityTabBadgeLinkTableCountTests(SimpleTestCase):
     """Badge counter must match deduped Security link-table rows."""

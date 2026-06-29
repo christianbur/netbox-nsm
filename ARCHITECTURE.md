@@ -33,10 +33,11 @@ netbox_nsm/
 │   ├── dispatch.py
 │   └── schema_builder.py
 ├── bench/             # Standalone performance/bench generators (not Setup)
-├── tabs/                # Security tab registration, context, related-tab rows
-├── objects/             # nsm_config, link services, type specs
-├── rulebooks/           # Grid, Rules tab, matrix, COT views
-├── security/            # Rule references, panel-link actions, host analysis
+├── security/tab/      # Security tab context, badge, linked-object rows
+├── objects/           # nsm_config, type specs, group M2M
+├── addresses/         # Address COT schema, IPAM FK helpers
+├── rulebooks/         # Grid, Rules tab, matrix, COT views
+├── security/          # Rule references, panel-link actions, host analysis, object links
 ├── ui/                  # Shared split-action helpers
 ├── views/               # Type metadata, object analyzer/report, rulebook links
 ├── analysis/            # IP / address analysis
@@ -59,7 +60,7 @@ Portable schema: `netbox_nsm/bundles/builtin/*.json` → Setup Preview → Apply
 | Object Analyzer | `object-analyzer/` |
 | Object Report | `object-report/` |
 
-Security tab: `tabs/registry.py` registers on NetBox object detail pages.
+Security tab: `security/tab/security_views.py` registers on NetBox object detail pages; context in `security/tab/context.py`.
 
 ## Front-end
 

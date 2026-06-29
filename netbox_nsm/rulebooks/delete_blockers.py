@@ -6,7 +6,7 @@ from django.utils.translation import ngettext, gettext_lazy as _
 
 from netbox_nsm.rulebooks.cot_hierarchy import load_cot_parent_map
 from netbox_nsm.rulebooks.registry import cot_rulebook_instance_count, get_deployed_cot_rulebook
-from netbox_nsm.objects.object_link_service import iter_enforcement_point_links_for_slug
+from netbox_nsm.security.links.object_link_service import iter_enforcement_point_links_for_slug
 
 __all__ = ("deployed_rulebook_delete_blockers",)
 

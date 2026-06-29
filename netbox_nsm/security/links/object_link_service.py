@@ -27,7 +27,6 @@ __all__ = (
     "ObjectLinkRecord",
     "RulebookLinkRecord",
     "EnforcementPointLinkRecord",
-    "build_panel_link_groups",
     "classify_link_endpoints",
     "create_or_update_links",
     "create_or_update_rulebook_link",
@@ -765,75 +764,6 @@ def direct_nsm_type_keys_for_object(obj, _ipam_ct=None) -> set[str]:
         lct = ContentType.objects.get_for_model(linked)
         covered.add(f"{lct.app_label}__{lct.model}")
     return covered
-
-
-def build_panel_link_groups(
-    obj,
-    *,
-    return_url: str | None,
-    panel_link_payload,
-    object_link_action_urls,
-    type_label_fn,
-) -> tuple[list[dict], int]:
-    """Build link-type groups for the Security tab."""
-    from netbox_nsm.core.display_utils import get_display_template_map
-    from netbox_nsm.core.interface_parent import prefetch_interface_parents
-    from netbox_nsm.security.links.link_propagation import object_link_panel_user_comment
-    from netbox_nsm.security.tab.context import finalize_link_type_groups
-
-    if obj is None or not getattr(obj, "pk", None):
-        return [], 0
-
-    tmpl_map = get_display_template_map()
-    links_by_type: dict = {}
-    seen_keys: set[tuple] = set()
-
-    link_pairs = list(iter_links_for_object(obj))
-    linked_for_prefetch = []
-    for link, direction in link_pairs:
-        linked = link.policy_object if direction == "fwd" else link.netbox_object
-        if linked is not None:
-            linked_for_prefetch.append(linked)
-    prefetch_interface_parents(linked_for_prefetch)
-
-    for link, direction in link_pairs:
-        linked = link.policy_object if direction == "fwd" else link.netbox_object
-        if linked is None:
-            continue
-        lct = ContentType.objects.get_for_model(linked)
-        type_key = f"{lct.app_label}__{lct.model}"
-        dedupe = (type_key, linked.pk)
-        if dedupe in seen_keys:
-            continue
-        seen_keys.add(dedupe)
-        if type_key not in links_by_type:
-            links_by_type[type_key] = {
-                "label": type_label_fn(lct),
-                "objects": [],
-            }
-        links_by_type[type_key]["objects"].append(
-            panel_link_payload(
-                linked,
-                lct,
-                tmpl_map,
-                comment=object_link_panel_user_comment(link),
-                **object_link_action_urls(link, return_url),
-            )
-        )
-
-    link_type_groups = finalize_link_type_groups(
-        [
-            {
-                "type_key": k,
-                "type_label": v["label"],
-                "count": len(v["objects"]),
-                "objects": v["objects"],
-            }
-            for k, v in sorted(links_by_type.items(), key=lambda x: x[1]["label"])
-        ]
-    )
-    total_links = sum(g["count"] for g in link_type_groups)
-    return link_type_groups, total_links
 
 
 def create_or_update_links(

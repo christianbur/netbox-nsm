@@ -252,7 +252,7 @@ class CotRulebookBulkAssignView(_CotRulebookMixin, View):
     template_name = "netbox_nsm/cot_rulebook_bulk_assign.html"
 
     def get_permission_required(self):
-        from netbox_nsm.objects.object_link_service import object_link_permission
+        from netbox_nsm.security.links.object_link_service import object_link_permission
 
         return object_link_permission("add") or "netbox_custom_objects.add_customobject"
 
@@ -273,7 +273,7 @@ class CotRulebookBulkAssignView(_CotRulebookMixin, View):
         instance = self.get_virtual_object(slug)
         form = CotRulebookBulkAssignForm(request.POST)
         if form.is_valid():
-            from netbox_nsm.objects.object_link_service import create_or_update_enforcement_point_link
+            from netbox_nsm.security.links.object_link_service import create_or_update_enforcement_point_link
 
             created = 0
             skipped = 0

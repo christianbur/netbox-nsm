@@ -51,7 +51,6 @@ from netbox_nsm.rulebooks.views.virtual_all import (
     AllRulesRulebookRulesView,
     AllRulesRulebookView,
 )
-from netbox_nsm.security.views import ObjectRulesApiView
 from netbox_nsm.security.views.inherited_links_api import InheritedLinksApiView
 from netbox_nsm.security.views.object_link import (
     ObjectLinkAssignView,
@@ -214,7 +213,6 @@ urlpatterns = [
         AnalyzerPickerAPIView.as_view(),
         name="analyzer_picker_api",
     ),
-    path("api/object-rules/", ObjectRulesApiView.as_view(), name="object_rules_api"),
     path(
         "api/inherited-links/",
         InheritedLinksApiView.as_view(),

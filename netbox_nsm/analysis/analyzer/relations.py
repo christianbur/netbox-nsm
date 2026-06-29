@@ -95,7 +95,7 @@ def _prefix(pfx):
 
 def _generic_fallback(obj) -> list[AnalyzerEdge]:
     """Resolver for netbox_custom_objects Table*Models and any other unregistered type."""
-    from netbox_nsm.security.cot_rule_references import scan_cot_security_references
+    from netbox_nsm.security.references.cot_rule_references import scan_cot_security_references
 
     ct = ContentType.objects.get_for_model(obj)
     extras: list[AnalyzerEdge] = []

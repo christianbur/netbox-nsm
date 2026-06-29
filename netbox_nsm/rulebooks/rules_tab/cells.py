@@ -19,7 +19,7 @@ from netbox_nsm.rulebooks.grid.cells import (
     _description_line_count,
     enabled_status_labels,
 )
-from netbox_nsm.security.panel_link_actions import append_return_url
+from netbox_nsm.security.actions.panel_link_actions import append_return_url
 
 def _inject_rules_cell_context_attrs(
     html: str,

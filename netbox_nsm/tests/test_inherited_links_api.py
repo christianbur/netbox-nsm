@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 from django.contrib.contenttypes.models import ContentType
 from django.test import RequestFactory, SimpleTestCase
 
-from netbox_nsm.objects.ipam_inheritance import InheritedNsmLink
+from netbox_nsm.addresses.ipam_inheritance import InheritedNsmLink
 from netbox_nsm.views.inherited_links_api import InheritedLinksApiView
 
 

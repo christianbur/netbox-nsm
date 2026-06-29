@@ -37,11 +37,8 @@ logger = logging.getLogger("netbox_nsm.tabs")
 
 _CUSTOM_OBJECTS_APP = "netbox_custom_objects"
 
-# Sentinel menu filter for the combined tab (unused in Security tab today, kept for parity).
-COMBINED_MENU = object()
-
+# Sentinel menu filter removed — Security tab uses unfiltered linked-object rows.
 __all__ = (
-    "COMBINED_MENU",
     "_JunctionField",
     "_OutgoingFieldProxy",
     "_count_linked_custom_objects",
@@ -193,33 +190,6 @@ def _linked_fields(instance):
     return cache[key]
 
 
-def _cot_menu_name(cot):
-    if cot is None:
-        return ""
-    return (getattr(cot, "menu_name", "") or "").strip()
-
-
-def _field_menu_name(field):
-    return _cot_menu_name(getattr(field, "custom_object_type", None))
-
-
-def _row_matches_menu(field, menu_filter):
-    menu_name = _field_menu_name(field)
-    if menu_filter is COMBINED_MENU:
-        return not menu_name
-    return menu_name == menu_filter
-
-
-def _filter_rows_by_menu(rows, menu_filter):
-    try:
-        return [
-            (obj, field) for obj, field in rows if _row_matches_menu(field, menu_filter)
-        ]
-    except Exception:
-        logger.exception("menu-name row filter failed; returning unfiltered rows")
-        return rows
-
-
 def _object_fields_for_cot(cot):
     return object_fields_for_cot(cot)
 
@@ -343,7 +313,7 @@ def _outgoing_rows(instance):
     return rows
 
 
-def _get_linked_custom_objects(instance, user=None, menu_filter=COMBINED_MENU):
+def _get_linked_custom_objects(instance, user=None):
     from django.db.models import prefetch_related_objects
 
     results = []
@@ -358,13 +328,13 @@ def _get_linked_custom_objects(instance, user=None, menu_filter=COMBINED_MENU):
 
     results = _transform_junctions(results)
     results.extend(_outgoing_rows(instance))
-    return _filter_rows_by_menu(results, menu_filter)
+    return results
 
 
-def _count_linked_custom_objects(instance, menu_filter=COMBINED_MENU):
+def _count_linked_custom_objects(instance):
     request = current_request.get()
     user = getattr(request, "user", None) if request is not None else None
-    total = len(_get_linked_custom_objects(instance, user=user, menu_filter=menu_filter))
+    total = len(_get_linked_custom_objects(instance, user=user))
     return total if total > 0 else None
 
 

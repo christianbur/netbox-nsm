@@ -30,10 +30,6 @@ PARAM_PAGE = "nsm_lp"
 PARAM_PER_PAGE = "nsm_pp"
 PARAM_ORDER = "nsm_lo"
 
-# Legacy query params (object-type tabs / value pills) — ignored if present.
-PARAM_TYPE = "nsm_lt"
-PARAM_VALUE = "nsm_lv"
-
 DEFAULT_PER_PAGE = 50
 PER_PAGE_CHOICES = (25, 50, 100, 250)
 

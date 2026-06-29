@@ -7,8 +7,8 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from netbox_nsm.objects.link_propagation import native_propagation_to_cot
-from netbox_nsm.objects.object_link_service import (
+from netbox_nsm.security.links.link_propagation import native_propagation_to_cot
+from netbox_nsm.security.links.object_link_service import (
     NSM_OBJECT_LINK_SLUG,
     classify_link_endpoints,
     get_object_link_model,

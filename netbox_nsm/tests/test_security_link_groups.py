@@ -512,7 +512,6 @@ class EnforcementPointPanelTemplateTests(SimpleTestCase):
                         }
                     ],
                 },
-                "nsm_api_url": "",
             },
         )
         enforced_pos = html.index('id="nsm-cat-enforced"')
@@ -548,7 +547,6 @@ class EnforcementPointPanelTemplateTests(SimpleTestCase):
                     ],
                 },
                 "nsm_interface_analysis": [],
-                "nsm_api_url": "",
             },
         )
         self.assertIn(">Enforcement Point<", html)
@@ -566,7 +564,6 @@ class EnforcementPointPanelTemplateTests(SimpleTestCase):
                 "nsm_page_addr_analyzable": False,
                 "nsm_link_table": None,
                 "nsm_enforcement_point": None,
-                "nsm_api_url": "",
             },
         )
         self.assertNotIn('id="nsm-cat-enforced"', html)

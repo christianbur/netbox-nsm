@@ -138,7 +138,7 @@ class AddrNavigationRefTests(TestCase):
         self.assertEqual(len(refs), 2)
 
     @patch("netbox_nsm.analysis.addr_navigation._host_ref_chain")
-    @patch("netbox_nsm.objects.object_link_service.iter_links_for_object")
+    @patch("netbox_nsm.security.links.object_link_service.iter_links_for_object")
     @patch("django.contrib.contenttypes.models.ContentType.objects")
     def test_object_link_host_refs_from_both_directions(
         self, ct_objects, iter_links_fn, host_chain

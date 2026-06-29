@@ -83,7 +83,7 @@ def _addr_nav_object_link_hosts(obj, refs, seen_urls, *, limit=_ADDR_NAV_REF_LIM
     from django.contrib.contenttypes.models import ContentType
 
     from dcim.models import Device, Interface
-    from netbox_nsm.objects.object_link_service import iter_links_for_object
+    from netbox_nsm.security.links.object_link_service import iter_links_for_object
     from virtualization.models import VirtualMachine, VMInterface
 
     host_types = (Device, Interface, VirtualMachine, VMInterface)

@@ -38,7 +38,7 @@ def grant_rulebook_cot_perms(testcase, cot, *, view=True, change=False, add=Fals
 
 def grant_object_link_perms(testcase, *, view=False, add=True, change=False, delete=False):
     """Grant netbox-custom-objects permissions on the ``nsm_object_link`` COT model."""
-    from netbox_nsm.objects.object_link_service import object_link_permission
+    from netbox_nsm.security.links.object_link_service import object_link_permission
 
     perms = []
     for action, enabled in (

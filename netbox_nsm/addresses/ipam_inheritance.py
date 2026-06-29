@@ -80,7 +80,7 @@ def nsm_address_q_for_ancestor(addr_model, ancestor, _ipam_obj=None):
 
 def direct_nsm_type_keys_for_ipam(ipam_obj, ipam_ct) -> set[str]:
     """Type keys of NSM object types directly linked to *ipam_obj*."""
-    from netbox_nsm.objects.object_link_service import direct_nsm_type_keys_for_object
+    from netbox_nsm.security.links.object_link_service import direct_nsm_type_keys_for_object
 
     return direct_nsm_type_keys_for_object(ipam_obj, ipam_ct)
 
@@ -93,7 +93,7 @@ def should_include_inherited_type(
     expected_propagation: str,
 ) -> bool:
     """Apply link propagation / propagate_stop_on_own."""
-    from netbox_nsm.objects.link_propagation import should_propagate_inherited_link
+    from netbox_nsm.security.links.link_propagation import should_propagate_inherited_link
 
     return should_propagate_inherited_link(
         link,
@@ -130,7 +130,7 @@ def iter_inherited_nsm_links(ipam_obj) -> Iterator[InheritedNsmLink]:
     from django.db.models import prefetch_related_objects
 
     from netbox_nsm.models.object_link import LinkPropagationChoices
-    from netbox_nsm.objects.object_link_service import (
+    from netbox_nsm.security.links.object_link_service import (
         ObjectLinkRecord,
         iter_links_on_container,
     )

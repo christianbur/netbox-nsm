@@ -62,7 +62,7 @@ def _cot_action_urls(cot_obj, return_url: str) -> dict:
     try:
         from django.urls import reverse
 
-        from netbox_nsm.security.panel_link_actions import append_return_url
+        from netbox_nsm.security.actions.panel_link_actions import append_return_url
 
         edit = reverse(
             "plugins:netbox_custom_objects:customobject_edit",

@@ -809,27 +809,22 @@ msgstr ""
 msgid "Matrix"
 msgstr ""
 
-#: security/panel_sections.py:6
 #: templates/netbox_nsm/inc/rulebook_field_group_row_multiline.html:32
 #: templates/netbox_nsm/inc/rulebook_field_row.html:13
 msgid "Source"
 msgstr ""
 
-#: security/panel_sections.py:7
 #: templates/netbox_nsm/inc/rulebook_field_group_row_multiline.html:34
 #: templates/netbox_nsm/inc/rulebook_field_row.html:15
 msgid "Destination"
 msgstr ""
 
-#: security/panel_sections.py:8
 msgid "Services"
 msgstr "Dienste"
 
-#: security/panel_sections.py:9
 msgid "Action"
 msgstr ""
 
-#: security/panel_sections.py:10
 #: templates/netbox_nsm/inc/ipa_drilldown_source_meta.html:7
 msgid "Info"
 msgstr ""

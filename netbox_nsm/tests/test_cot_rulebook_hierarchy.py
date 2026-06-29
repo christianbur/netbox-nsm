@@ -45,10 +45,14 @@ class CotRulebookHierarchyUnitTests(SimpleTestCase):
         )
 
     @patch(
+        "netbox_nsm.rulebooks.cot_hierarchy.is_deployed_rulebook_slug",
+        return_value=True,
+    )
+    @patch(
         "netbox_nsm.rulebooks.cot_hierarchy.get_deployed_cot_rulebook",
         return_value=object(),
     )
-    def test_validate_parent_cycle(self, _mock):
+    def test_validate_parent_cycle(self, _mock_get, _mock_deployed):
         parent_map = {"nsm_rb_child": "nsm_rb_root"}
         self.assertIsNone(
             validate_cot_parent_slug(

@@ -220,7 +220,7 @@ def attach_literal_prefix_display(node, obj) -> dict:
     literal = get_policy_address_cidr(obj)
     if not literal:
         return node
-    from netbox_nsm.analysis.addr_netmask import sync_prefix_display_netmask
+    from netbox_nsm.analyzers.ip.addr_netmask import sync_prefix_display_netmask
 
     node["prefix_display_cidr"] = literal
     sync_prefix_display_netmask(node)

@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.analysis.ipa_object_tree import (
+from netbox_nsm.analyzers.ip.ipa_object_tree import (
     _attach_ipa_dup_cell_statuses,
     _attach_ipa_object_tree_status,
     _build_ipa_cell_flat_address_node,

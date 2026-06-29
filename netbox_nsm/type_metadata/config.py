@@ -825,10 +825,3 @@ def backfill_cot_nsm_config_comments() -> int:
     return sync_cot_nsm_config_comments_for_slugs(
         [spec["slug"] for spec in TYPECONFIG_UI_SPECS]
     )
-
-def backfill_cot_nsm_config_comments() -> int:
-    from netbox_nsm.type_metadata.specs import TYPECONFIG_UI_SPECS
-
-    return sync_cot_nsm_config_comments_for_slugs(
-        [spec["slug"] for spec in TYPECONFIG_UI_SPECS]
-    )

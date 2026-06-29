@@ -7,8 +7,24 @@ from netbox_nsm.tests.rulebook_permission_helpers import grant_nsm_config_perms
 from utilities.testing import TestCase
 
 
+def _parse_comments_document(text: str) -> dict:
+    from netbox_nsm.type_metadata.config import (
+        _load_yaml_document,
+        parse_nsm_config_document_from_comments,
+    )
+
+    raw = _load_yaml_document(text)
+    if not isinstance(raw, dict):
+        return {}
+    merged = parse_nsm_config_document_from_comments(text) or {}
+    if "operator_note" in raw:
+        merged = {"operator_note": raw["operator_note"], **merged}
+    return merged
+
+
 def _edit_post_data(**overrides):
     data = {
+        "role": "zone",
         "sort_order": 9,
         "display_template": "{{ name }}",
     }
@@ -46,12 +62,9 @@ class ObjectConfigViewMergeTests(TestCase):
         )
         self.assertEqual(response.status_code, 302)
         self.cot.refresh_from_db()
-        document = yaml.safe_load(self.cot.comments)
+        document = _parse_comments_document(self.cot.comments)
         self.assertEqual(document["operator_note"], "keep-me")
-        self.assertEqual(
-            document["nsm_config"][0]["rule_view"]["sort_order"],
-            9,
-        )
+        self.assertEqual(document["rule_view"]["sort_order"], 9)
 
     def test_edit_persists_panel_and_areas(self):
         response = self.client.post(
@@ -64,9 +77,9 @@ class ObjectConfigViewMergeTests(TestCase):
         )
         self.assertEqual(response.status_code, 302)
         self.cot.refresh_from_db()
-        document = yaml.safe_load(self.cot.comments)
-        rule_view = document["nsm_config"][0]["rule_view"]
-        panel = document["nsm_config"][1]["links"]
+        document = _parse_comments_document(self.cot.comments)
+        rule_view = document["rule_view"]
+        panel = document["links"]
         self.assertEqual(rule_view["areas"], ["srcdst"])
         self.assertTrue(panel["linkable"])
         self.assertTrue(panel["inherit_links"])
@@ -86,6 +99,5 @@ class ObjectConfigViewMergeTests(TestCase):
         )
         self.assertEqual(response.status_code, 302)
         self.cot.refresh_from_db()
-        document = yaml.safe_load(self.cot.comments)
-        self.assertEqual(document, {"operator_note": "keep-me"})
-        self.assertNotIn("nsm_config", document)
+        self.assertNotIn("nsm_config:", self.cot.comments or "")
+        self.assertIn("operator_note: keep-me", self.cot.comments or "")

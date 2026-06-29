@@ -41,7 +41,7 @@ class CotRulebookCreateViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Source")
         self.assertContains(response, "Destination")
-        self.assertContains(response, "Zone, Label, Address, Address Group")
+        self.assertContains(response, "Zone, Label, Address, Address Custom, Address Group")
 
     def test_get_prefills_default_schema_yaml(self):
         self.add_permissions("netbox_custom_objects.add_customobjecttype")

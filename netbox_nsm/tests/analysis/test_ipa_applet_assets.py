@@ -439,12 +439,12 @@ class IpAnalyzerMergeAssetsTests(SimpleTestCase):
             r"\.nsm-ipa-applet-toolbar\s*\{[^}]*min-height:\s*0",
         )
 
-    @patch("netbox_nsm.analysis.ipa_add_object_types.get_api_url_for_content_type")
-    @patch("netbox_nsm.analysis.ipa_add_object_types.ContentType")
+    @patch("netbox_nsm.analyzers.ip.ipa_add_object_types.get_api_url_for_content_type")
+    @patch("netbox_nsm.analyzers.ip.ipa_add_object_types.ContentType")
     def test_build_ipa_add_object_categories_includes_ipam_and_cot(
         self, content_type_cls, api_url_fn
     ):
-        from netbox_nsm.analysis.ipa_add_object_types import build_ipa_add_object_categories
+        from netbox_nsm.analyzers.ip.ipa_add_object_types import build_ipa_add_object_categories
 
         prefix_ct = MagicMock(pk=11)
         addr_ct = MagicMock(pk=22)
@@ -471,18 +471,18 @@ class IpAnalyzerMergeAssetsTests(SimpleTestCase):
         api_url_fn.side_effect = lambda ct: f"/api/example/{ct.pk}/"
 
         cot_address = MagicMock(pk=7, slug="nsm_address")
-        cot_group = MagicMock(pk=8, slug="nsm_address_group")
+        cot_custom = MagicMock(pk=8, slug="nsm_address_custom")
 
         with patch(
             "netbox_custom_objects.models.CustomObjectType.objects.filter"
         ) as cot_filter:
             cot_filter.return_value.only.return_value.first.side_effect = [
                 cot_address,
-                cot_group,
+                cot_custom,
             ]
             categories = build_ipa_add_object_categories()
 
-        self.assertEqual([cat["id"] for cat in categories], ["ipam", "nsm_address", "nsm_address_group"])
+        self.assertEqual([cat["id"] for cat in categories], ["ipam", "nsm_address", "nsm_address_custom"])
         self.assertEqual(len(categories[0]["types"]), 3)
         self.assertEqual(categories[1]["types"][0]["ct_id"], 22)
         self.assertEqual(categories[2]["types"][0]["ct_id"], 33)
@@ -512,7 +512,7 @@ class IpAnalyzerMergeAssetsTests(SimpleTestCase):
         self.assertIn("nsm_ip_analyzer_applet.js", assets)
         self.assertIn("nsm_ipa_util.js", assets)
         self.assertIn("nsm_ipa_cell.js", assets)
-        self.assertIn("?v=202606256", assets)
+        self.assertIn("?v=202606261", assets)
         self.assertIn("?v=202606258", assets)
         self.assertIn("NSM_IP_ANALYSIS_ADD_OBJECT_TYPES_API", assets)
 

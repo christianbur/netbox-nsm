@@ -1,3 +1,2 @@
-"""Legacy import path — use ``analysis.analyzer`` instead."""
-
-from netbox_nsm.analysis.analyzer import *  # noqa: F401, F403
+"""Legacy import path — use ``netbox_nsm.analyzers.object_analyzer`` instead."""
+from netbox_nsm.analyzers.object_analyzer import *  # noqa: F401, F403

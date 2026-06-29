@@ -8,7 +8,7 @@ from django.urls import reverse
 from rest_framework.test import APIRequestFactory, force_authenticate
 
 from netbox_nsm.api.ip_analysis import IpAnalysisRestApiView
-from netbox_nsm.analysis.ip_analysis_service import parse_object_refs
+from netbox_nsm.analyzers.ip.ip_analysis_service import parse_object_refs
 
 
 class IpAnalysisRestApiUrlTests(SimpleTestCase):
@@ -171,8 +171,8 @@ class IpAnalysisRestApiTests(SimpleTestCase):
 
 
 class ParseObjectRefsTests(SimpleTestCase):
-    @patch("netbox_nsm.analysis.ip_analysis_service._object_is_addr_analyzable", return_value=True)
-    @patch("netbox_nsm.analysis.ip_analysis_service.ContentType")
+    @patch("netbox_nsm.analyzers.ip.ip_analysis_service._object_is_addr_analyzable", return_value=True)
+    @patch("netbox_nsm.analyzers.ip.ip_analysis_service.ContentType")
     def test_parse_object_refs_accepts_content_type_and_id(self, content_type_cls, analyzable_fn):
         obj = MagicMock()
         obj.pk = 9
@@ -197,8 +197,8 @@ class ParseObjectRefsTests(SimpleTestCase):
         self.assertIn((10, 9), obj_by_key)
         self.assertEqual(unauthorized, [])
 
-    @patch("netbox_nsm.analysis.ip_analysis_service._object_is_addr_analyzable", return_value=True)
-    @patch("netbox_nsm.analysis.ip_analysis_service.ContentType")
+    @patch("netbox_nsm.analyzers.ip.ip_analysis_service._object_is_addr_analyzable", return_value=True)
+    @patch("netbox_nsm.analyzers.ip.ip_analysis_service.ContentType")
     def test_parse_object_refs_skips_object_without_view_permission(
         self, content_type_cls, analyzable_fn
     ):
@@ -231,8 +231,8 @@ class ParseObjectRefsTests(SimpleTestCase):
         self.assertEqual(unauthorized, [{"ct": "10", "pk": "9"}])
         user.has_perm.assert_called_once_with("ipam.view_ipaddress")
 
-    @patch("netbox_nsm.analysis.ip_analysis_service._object_is_addr_analyzable", return_value=True)
-    @patch("netbox_nsm.analysis.ip_analysis_service.ContentType")
+    @patch("netbox_nsm.analyzers.ip.ip_analysis_service._object_is_addr_analyzable", return_value=True)
+    @patch("netbox_nsm.analyzers.ip.ip_analysis_service.ContentType")
     def test_parse_object_refs_uses_object_level_restrict(
         self, content_type_cls, analyzable_fn
     ):

@@ -157,7 +157,7 @@ class RulebookTemplateTests(TestCase):
         self.assertEqual(source_row["label"], "Source")
         self.assertEqual(
             source_row["allowed_objects"],
-            ["Zone", "Label", "Address", "Address Group"],
+            ["Zone", "Label", "Address", "Address Custom", "Address Group"],
         )
         services_row = next(
             row for row in rows if row["name"] == "services_applications"

@@ -33,9 +33,9 @@ class IpAnalysisObjectDrilldownApiTests(SimpleTestCase):
         )
         self.assertEqual(response.status_code, 400)
 
-    @patch("netbox_nsm.analysis.ip.object_api.render_to_string")
-    @patch("netbox_nsm.analysis.ip.object_api._build_object_drilldown_nodes")
-    @patch("netbox_nsm.analysis.ip.object_api.ContentType")
+    @patch("netbox_nsm.analyzers.ip.endpoints.object_api.render_to_string")
+    @patch("netbox_nsm.analyzers.ip.endpoints.object_api._build_object_drilldown_nodes")
+    @patch("netbox_nsm.analyzers.ip.endpoints.object_api.ContentType")
     def test_returns_drilldown_html(
         self, content_type_cls, build_nodes_fn, render_fn
     ):

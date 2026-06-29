@@ -28,6 +28,7 @@ class CotRulebookCreateTests(TestCase):
         with self.assertRaises(ValidationError):
             resolve_rulebook_slug("0001_template")
 
+    @patch("netbox_nsm.rulebooks.create.is_deployed_rulebook_slug", return_value=True)
     @patch("netbox_nsm.rulebooks.rulebook_groups.apply_schema_yaml_field_groups")
     @patch("netbox_nsm.objects.rulebook_config.save_rulebook_config_for_cot")
     @patch("netbox_custom_objects.schema.executor.apply_document")
@@ -35,11 +36,12 @@ class CotRulebookCreateTests(TestCase):
     @patch("netbox_custom_objects.models.CustomObjectType")
     def test_create_from_schema_yaml_sets_matching_verbose_names(
         self,
-        mock_cot_model,
-        mock_template_cots,
-        mock_apply_document,
-        mock_set_parent,
+        _mock_deployed_slug,
         mock_apply_field_groups,
+        mock_set_parent,
+        mock_apply_document,
+        mock_template_cots,
+        mock_cot_model,
     ):
         mock_template_cots.return_value.none.return_value = mock_template_cots.return_value
         mock_template_cots.return_value.filter.return_value.exists.return_value = False
@@ -52,7 +54,7 @@ class CotRulebookCreateTests(TestCase):
 
         create_cot_rulebook_from_schema_yaml(
             schema_yaml=default_rulebook_schema_yaml(),
-            name="Test 01",
+            name="Unit Schema 01",
         )
 
         document = mock_apply_document.call_args[0][0]
@@ -62,6 +64,7 @@ class CotRulebookCreateTests(TestCase):
         self.assertEqual(type_def["fields"][3]["name"], "source")
         self.assertNotIn("group_name", type_def["fields"][3])
 
+    @patch("netbox_nsm.rulebooks.create.is_deployed_rulebook_slug", return_value=True)
     @patch("netbox_nsm.rulebooks.rulebook_groups.apply_schema_yaml_field_groups")
     @patch("netbox_nsm.objects.rulebook_config.save_rulebook_config_for_cot")
     @patch("netbox_custom_objects.schema.executor.apply_document")
@@ -70,12 +73,13 @@ class CotRulebookCreateTests(TestCase):
     @patch("netbox_custom_objects.models.CustomObjectType")
     def test_create_from_template_still_supported(
         self,
-        mock_cot_model,
-        mock_template_cots,
-        mock_get_template,
-        mock_apply_document,
-        mock_set_parent,
+        _mock_deployed_slug,
         mock_apply_field_groups,
+        mock_set_parent,
+        mock_apply_document,
+        mock_get_template,
+        mock_template_cots,
+        mock_cot_model,
     ):
         mock_template_cots.return_value.none.return_value = mock_template_cots.return_value
         mock_template_cots.return_value.filter.return_value.exists.return_value = False
@@ -92,7 +96,7 @@ class CotRulebookCreateTests(TestCase):
 
         create_cot_rulebook_from_template(
             template_slug="nsm_rb_custom_template",
-            name="Test 01",
+            name="Unit Template 01",
         )
 
         document = mock_apply_document.call_args[0][0]

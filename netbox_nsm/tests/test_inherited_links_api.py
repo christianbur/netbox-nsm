@@ -21,9 +21,9 @@ class InheritedLinksApiTests(SimpleTestCase):
         return request
 
     @patch("netbox_nsm.core.display_utils.get_display_template_map", return_value={})
-    @patch("netbox_nsm.views.inherited_links_api.iter_inherited_group_nsm_links")
-    @patch("netbox_nsm.views.inherited_links_api.ContentType")
-    @patch("netbox_nsm.views.inherited_links_api.iter_inherited_nsm_links")
+    @patch("netbox_nsm.security.views.inherited_links_api.iter_inherited_group_nsm_links")
+    @patch("netbox_nsm.security.views.inherited_links_api.ContentType")
+    @patch("netbox_nsm.security.views.inherited_links_api.iter_inherited_nsm_links")
     def test_returns_empty_when_iterator_yields_nothing(
         self, iter_links_fn, content_type_cls, group_iter_fn, _tmpl_map_fn
     ):
@@ -51,12 +51,12 @@ class InheritedLinksApiTests(SimpleTestCase):
         self.assertEqual(data["groups"], [])
         iter_links_fn.assert_called_once_with(ip)
 
-    @patch("netbox_nsm.views.inherited_links_api.iter_inherited_group_nsm_links")
+    @patch("netbox_nsm.security.views.inherited_links_api.iter_inherited_group_nsm_links")
     @patch("netbox_nsm.core.display_utils.render_object_display")
     @patch("netbox_nsm.core.display_utils.tc_panel_label")
     @patch("netbox_nsm.core.display_utils.get_display_template_map")
-    @patch("netbox_nsm.views.inherited_links_api.ContentType")
-    @patch("netbox_nsm.views.inherited_links_api.iter_inherited_nsm_links")
+    @patch("netbox_nsm.security.views.inherited_links_api.ContentType")
+    @patch("netbox_nsm.security.views.inherited_links_api.iter_inherited_nsm_links")
     def test_returns_inherited_groups_from_shared_iterator(
         self,
         iter_links_fn,

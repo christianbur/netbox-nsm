@@ -17,10 +17,14 @@ from netbox_nsm.addresses.address_cot_schema import (
     cot_ipam_address_flag,
     get_ipam_address_cot,
 )
-from netbox_nsm.addresses.address_custom import is_nsm_address_custom_object
+from netbox_nsm.addresses.address_custom import (
+    NSM_ADDRESS_CUSTOM_SLUG,
+    is_nsm_address_custom_object,
+)
 
 __all__ = (
     "NSM_ADDRESSES_SLUG",
+    "POLICY_ADDRESS_COT_SLUGS",
     "AddressIpamFkRef",
     "clear_address_ipam_link",
     "get_nsm_address_model",
@@ -34,6 +38,13 @@ __all__ = (
 )
 
 NSM_ADDRESSES_SLUG = "nsm_addresses"
+
+POLICY_ADDRESS_COT_SLUGS = frozenset(
+    {
+        NSM_ADDRESSES_SLUG,
+        NSM_ADDRESS_CUSTOM_SLUG,
+    }
+)
 
 _LEGACY_FK_FIELDS = (
     ("prefix", "prefix_id"),
@@ -84,9 +95,11 @@ def is_nsm_address_object(obj, addr_model=None) -> bool:
 
 def is_policy_address_object(obj, addr_model=None) -> bool:
     """True for IPAM-linked address rows and manual custom addresses."""
+    if is_nsm_address_custom_object(obj):
+        return True
     if is_nsm_address_object(obj, addr_model=addr_model):
         return True
-    return is_nsm_address_custom_object(obj)
+    return False
 
 
 def _iter_polymorphic_ref(addr_obj) -> Iterator[AddressIpamFkRef]:

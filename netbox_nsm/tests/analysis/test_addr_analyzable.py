@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.analysis.addr_analysis_utils import (
+from netbox_nsm.analyzers.ip.addr_analysis_utils import (
     _object_is_addr_analyzable,
     _object_supports_addr_analysis,
 )
@@ -21,7 +21,7 @@ class ObjectIsAddrAnalyzableTests(SimpleTestCase):
         self.assertFalse(_object_is_addr_analyzable(addr, 42, address_ct_ids))
 
     @patch(
-        "netbox_nsm.analysis.addr_analysis_utils._object_supports_addr_analysis", return_value=True
+        "netbox_nsm.analyzers.ip.addr_analysis_utils._object_supports_addr_analysis", return_value=True
     )
     def test_true_for_address_content_type(self, _supports):
         prefix = MagicMock()
@@ -35,23 +35,25 @@ class ObjectIsAddrAnalyzableTests(SimpleTestCase):
         self.assertTrue(_object_supports_addr_analysis(prefix))
         self.assertTrue(_object_is_addr_analyzable(prefix, 14, {}))
 
-    @patch("netbox_nsm.analysis.addr_analyzable._hub._addr_is_group_container", return_value=False)
-    @patch("netbox_nsm.analysis.addr_analyzable._hub._addr_ip_ref", return_value=None)
+    @patch("netbox_nsm.analyzers.ip.addr_analyzable._hub._addr_is_group_container", return_value=False)
+    @patch("netbox_nsm.analyzers.ip.addr_analyzable._hub._addr_ip_ref", return_value=None)
     def test_literal_any_address_supports_addr_analysis(self, _ip_ref, _group):
         obj = MagicMock()
         obj.comments = format_network_nsm_config_comments("0.0.0.0/0").rstrip()
         self.assertTrue(_object_supports_addr_analysis(obj))
         self.assertTrue(_object_is_addr_analyzable(obj, 275, {275}))
 
-    @patch("netbox_nsm.analysis.addr_analysis_utils.content_type_ids_for_cot_slugs")
+    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils.content_type_ids_for_cot_slugs")
     @patch(
-        "netbox_nsm.analysis.addr_analysis_utils._object_supports_addr_analysis",
+        "netbox_nsm.analyzers.ip.addr_analysis_utils._object_supports_addr_analysis",
         return_value=True,
     )
     def test_builds_address_ct_ids_when_none(self, _supports, ct_ids_fn):
         ct_ids_fn.return_value = {42}
         addr = MagicMock()
         self.assertTrue(_object_is_addr_analyzable(addr, 42))
-        ct_ids_fn.assert_called_once_with(["nsm_address", "nsm_address_group"])
+        ct_ids_fn.assert_called_once_with(
+            ["nsm_address", "nsm_address_custom", "nsm_address_group"]
+        )
 
 

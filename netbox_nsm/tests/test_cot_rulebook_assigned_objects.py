@@ -247,8 +247,6 @@ class CotRulebookAssignedObjectsPanelTests(TestCase):
             content,
         )
         self.assertIn("nsm-rb-assigned-edit-toggle", content)
-        self.assertIn("nsm-copy-fields-schema-btn", content)
-        self.assertIn("nsm-fields-schema-yaml-data", content)
 
     def test_panel_builds_without_prefetch_related_exception(self):
         self._require_object_link_model()

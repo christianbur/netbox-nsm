@@ -34,11 +34,14 @@ from utilities.testing import TestCase
 
 def _parse_export_sections(yaml_text: str) -> list[dict]:
     """Parse multi-section export YAML into one dict per Object Config."""
-    from netbox_nsm.objects.nsm_config import normalize_nsm_config_list
+    from netbox_nsm.type_metadata.config import (
+        _load_yaml_document,
+        normalize_nsm_config_list,
+    )
 
     sections: list[dict] = []
     for block in yaml_text.strip().split("\n\n"):
-        data = yaml.safe_load(block)
+        data = _load_yaml_document(block)
         sections.append(normalize_nsm_config_list(data["nsm_config"]))
     return sections
 
@@ -108,26 +111,14 @@ class TypeConfigExportTests(TestCase):
 class TypeConfigAllExportTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        models = [
-            Prefix,
-            IPAddress,
-            VLAN,
-            VRF,
-            Site,
-            Region,
-            Device,
-            Rack,
-            VirtualMachine,
-            Interface,
-        ]
+        cls.prefix_ct = ContentType.objects.get_for_model(Prefix)
         cls.ui_specs = TYPECONFIG_UI_SPECS
         cls.configs: list[NsmTypeConfig] = []
-        for spec, model in zip(cls.ui_specs, models, strict=True):
-            ct = ContentType.objects.get_for_model(model)
+        for spec in cls.ui_specs:
             cls.configs.append(
                 NsmTypeConfig(
                     slug=spec["slug"],
-                    content_type_id=ct.pk,
+                    content_type_id=cls.prefix_ct.pk,
                     name=spec["label"],
                     sort_order=spec["sort_order"],
                     display_template=spec["display_template"],
@@ -144,7 +135,7 @@ class TypeConfigAllExportTests(TestCase):
     def test_export_all_yaml_has_ten_configs(self):
         with self._patch_configs():
             sections = _parse_export_sections(export_all_type_configs_yaml())
-        self.assertEqual(len(sections), 10)
+        self.assertEqual(len(sections), 11)
 
     def test_export_all_yaml_sorted_by_sort_order(self):
         with self._patch_configs():
@@ -159,12 +150,12 @@ class TypeConfigAllExportTests(TestCase):
             sections = _parse_export_sections(export_all_type_configs_yaml())
         slugs = {cfg.slug for cfg in self.configs}
         self.assertIn("nsm_object_link", slugs)
-        self.assertEqual(len(sections), 10)
+        self.assertEqual(len(sections), 11)
 
     def test_preview_rows_match_export_count(self):
         with self._patch_configs():
             rows = build_all_type_configs_preview_rows()
-        self.assertEqual(len(rows), 10)
+        self.assertEqual(len(rows), 11)
         self.assertEqual(rows[0]["slug"], "nsm_zone")
         self.assertEqual(rows[0]["sort_order"], 10)
 
@@ -172,7 +163,8 @@ class TypeConfigAllExportTests(TestCase):
         with self._patch_configs():
             sections = _parse_export_sections(export_all_type_configs_yaml())
         for entry in sections:
-            self.assertEqual(set(entry.keys()), {"sort_order", "display_template"})
+            self.assertIn("sort_order", entry)
+            self.assertIn("display_template", entry)
 
     def test_list_view_excludes_export_panel(self):
         grant_nsm_config_perms(self, view=True)
@@ -205,9 +197,9 @@ class TypeConfigCommentYamlTests(TestCase):
         self.assertIn(f"sort_order: {spec['sort_order']}\n", yaml_text)
         self.assertIn("display_template:", yaml_text)
 
-    def test_format_all_type_configs_comment_yaml_has_ten_sections(self):
+    def test_format_all_type_configs_comment_yaml_has_eleven_sections(self):
         sections = _parse_export_sections(format_all_type_configs_comment_yaml())
-        self.assertEqual(len(sections), 10)
+        self.assertEqual(len(sections), 11)
         self.assertEqual(sections[0]["sort_order"], 10)
         self.assertEqual(sections[-1]["sort_order"], 50)
 

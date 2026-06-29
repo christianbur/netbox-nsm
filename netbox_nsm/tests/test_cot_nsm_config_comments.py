@@ -6,7 +6,7 @@ from netbox_nsm.objects.type_config_export import (
     backfill_cot_nsm_config_comments,
     sync_cot_nsm_config_comments,
 )
-from netbox_nsm.objects.type_config_specs import TYPECONFIG_UI_SPECS
+from netbox_nsm.objects.type_config_specs import TYPECONFIG_LIST_EXCLUDED_SLUGS, TYPECONFIG_UI_SPECS
 
 
 class CotNsmConfigCommentsApplyDocumentTests(TestCase):
@@ -54,9 +54,14 @@ class CotNsmConfigCommentsApplyDocumentTests(TestCase):
             )
 
         updated = backfill_cot_nsm_config_comments()
-        self.assertEqual(updated, len(TYPECONFIG_UI_SPECS))
+        expected = len(
+            [spec for spec in TYPECONFIG_UI_SPECS if spec["slug"] not in TYPECONFIG_LIST_EXCLUDED_SLUGS]
+        )
+        self.assertEqual(updated, expected)
 
         for spec in TYPECONFIG_UI_SPECS:
+            if spec["slug"] in TYPECONFIG_LIST_EXCLUDED_SLUGS:
+                continue
             cot = CustomObjectType.objects.get(slug=spec["slug"])
             self.assertIn("nsm_config:", cot.comments)
             self.assertNotIn(f"# {spec['label']}", cot.comments)

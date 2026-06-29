@@ -7,7 +7,7 @@ from netbox_nsm.core.interface_parent import (
     prefetch_interface_parents,
 )
 from netbox_nsm.rulebooks.assigned_objects import _interfaces_for_host
-from netbox_nsm.security.panel_links import build_object_link_rows
+from netbox_nsm.security.links.link_rows import build_object_link_rows
 
 __all__ = ("build_host_interface_analysis",)
 

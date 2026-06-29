@@ -4,9 +4,9 @@ from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.analysis.addr_constants import FIELD_TYPE_LABELS
+from netbox_nsm.analyzers.ip.addr_constants import FIELD_TYPE_LABELS
 from netbox_nsm.objects.address_literal import format_network_nsm_config_comments
-from netbox_nsm.analysis.ipa_object_node import (
+from netbox_nsm.analyzers.ip.ipa_object_node import (
     IPA_NODE_ROLE_GROUP,
     IPA_NODE_ROLE_HOST,
     IPA_NODE_ROLE_PREFIX,
@@ -63,13 +63,13 @@ class IpaObjectNodeRoleTests(SimpleTestCase):
             IPA_NODE_ROLE_HOST,
         )
 
-    @patch("netbox_nsm.analysis.ipa_object_node._hub._ipam_obj_from_ip_ref")
+    @patch("netbox_nsm.analyzers.ip.ipa_object_node._hub._ipam_obj_from_ip_ref")
     def test_role_from_polymorphic_address_ref_resolves_prefix(self, ipam_fn):
         prefix = MagicMock()
         prefix._meta = MagicMock(app_label="ipam", model_name="prefix")
         ipam_fn.return_value = prefix
         with patch(
-            "netbox_nsm.analysis.ipa_object_node._ipa_object_node_role_from_ipam_obj",
+            "netbox_nsm.analyzers.ip.ipa_object_node._ipa_object_node_role_from_ipam_obj",
             return_value=IPA_NODE_ROLE_PREFIX,
         ):
             self.assertEqual(
@@ -84,7 +84,7 @@ class IpaObjectNodeRoleTests(SimpleTestCase):
                 IPA_NODE_ROLE_PREFIX,
             )
 
-    @patch("netbox_nsm.analysis.ipa_object_node._hub._addr_ip_ref", return_value=None)
+    @patch("netbox_nsm.analyzers.ip.ipa_object_node._hub._addr_ip_ref", return_value=None)
     def test_role_from_literal_any_network(self, _ip_ref):
         obj = MagicMock()
         obj.comments = format_network_nsm_config_comments("0.0.0.0/0").rstrip()
@@ -111,7 +111,7 @@ class IpaObjectNodeRoleTests(SimpleTestCase):
         self.assertEqual(hints["kind"], "leaf")
         self.assertFalse(hints["drilldown"])
 
-    @patch("netbox_nsm.analysis.ipa_object_node._hub._addr_ip_ref")
+    @patch("netbox_nsm.analyzers.ip.ipa_object_node._hub._addr_ip_ref")
     def test_apply_presentation_prefix_node(self, ip_ref_fn):
         ip_ref_fn.return_value = {
             "str": "10.1.0.0/16",
@@ -123,10 +123,10 @@ class IpaObjectNodeRoleTests(SimpleTestCase):
         obj = MagicMock()
         node = {"name": "dm-addr", "url": "#", "ct": "10", "pk": "5", "children": []}
         with patch(
-            "netbox_nsm.analysis.ipa_object_node._hub._addr_ip_ref_node_dict",
+            "netbox_nsm.analyzers.ip.ipa_object_node._hub._addr_ip_ref_node_dict",
             side_effect=lambda r: dict(r),
         ), patch(
-            "netbox_nsm.analysis.ipa_object_node._hub._attach_addr_node_prefix_display",
+            "netbox_nsm.analyzers.ip.ipa_object_node._hub._attach_addr_node_prefix_display",
             side_effect=lambda n, **k: n,
         ):
             _ipa_object_node_apply_presentation(node, obj)
@@ -152,13 +152,13 @@ class IpaObjectNodeRoleTests(SimpleTestCase):
 
 class IpaNestedGroupTreeTests(SimpleTestCase):
     @patch("django.contrib.contenttypes.models.ContentType")
-    @patch("netbox_nsm.analysis.addr_analysis_utils._attach_ipa_object_tree_ipam_stats")
-    @patch("netbox_nsm.analysis.addr_analysis_utils._addr_ip_ref")
-    @patch("netbox_nsm.analysis.addr_analysis_utils._addr_group_members")
+    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._attach_ipa_object_tree_ipam_stats")
+    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_ip_ref")
+    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_group_members")
     def test_nested_groups_assign_group_depth_and_expand_members(
         self, members_fn, ip_ref_fn, _stats_fn, content_type_cls
     ):
-        from netbox_nsm.analysis.addr_analysis_utils import _build_ipa_cell_object_tree
+        from netbox_nsm.analyzers.ip.addr_analysis_utils import _build_ipa_cell_object_tree
 
         ct = MagicMock()
         ct.pk = 10

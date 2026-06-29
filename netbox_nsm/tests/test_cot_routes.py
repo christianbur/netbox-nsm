@@ -103,9 +103,12 @@ class CotRoutePatchTests(SimpleTestCase):
         if not hasattr(CustomObject.get_absolute_url, "__wrapped__"):
             apply_nsm_object_url_patches()
 
-        class _Cls:
-            custom_object_type = SimpleNamespace(slug="nsm_zone")
-
-        url = CustomObject._get_action_url(_Cls, action="security", kwargs={"pk": 1})
+        with patch.object(
+            CustomObject,
+            "custom_object_type",
+            SimpleNamespace(slug="nsm_zone"),
+            create=True,
+        ):
+            url = CustomObject._get_action_url(action="security", kwargs={"pk": 1})
         self.assertEqual(url, "/nsm/zone/1/security/")
         mock_reverse.assert_called_once_with("security", "nsm_zone", pk=1)

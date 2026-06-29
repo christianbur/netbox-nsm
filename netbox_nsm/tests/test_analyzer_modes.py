@@ -8,14 +8,14 @@ from django.test import SimpleTestCase
 from ipam.models import IPAddress, Prefix
 from utilities.testing import TestCase
 
-from netbox_nsm.analysis.analyzer.modes import (
+from netbox_nsm.analyzers.object_analyzer.modes import (
     AnalyzerMode,
     clear_security_mode_cache,
     edge_allowed_in_security,
     filter_edges_for_mode,
     parse_analyzer_mode,
 )
-from netbox_nsm.analysis.analyzer.registry import AnalyzerEdge, AnalyzerNode
+from netbox_nsm.analyzers.object_analyzer.registry import AnalyzerEdge, AnalyzerNode
 
 
 def _node(i, ct=10, node_type="object"):
@@ -74,7 +74,7 @@ class FilterEdgesForModeTests(SimpleTestCase):
         ]
         self.assertEqual(filter_edges_for_mode(edges, AnalyzerMode.ALL), edges)
 
-    @patch("netbox_nsm.analysis.analyzer.modes.get_security_allowed_ct_ids", return_value=frozenset({10}))
+    @patch("netbox_nsm.analyzers.object_analyzer.modes.get_security_allowed_ct_ids", return_value=frozenset({10}))
     def test_security_mode_filters(self, _mock_allowed):
         edges = [
             AnalyzerEdge("Console Port", "rev_cp", _node(1, ct=10)),
@@ -88,7 +88,7 @@ class FilterEdgesForModeTests(SimpleTestCase):
 
 class BuildPickerTreeModeTests(SimpleTestCase):
     def test_security_mode_filters_l1_and_l2(self):
-        from netbox_nsm.analysis.analyzer import picker as picker_mod
+        from netbox_nsm.analyzers.object_analyzer import picker as picker_mod
 
         root = MagicMock(name="root")
         child = MagicMock(name="child")
@@ -108,10 +108,10 @@ class BuildPickerTreeModeTests(SimpleTestCase):
                 return l2[1:]  # security: only Linked
             return []
 
-        with patch("netbox_nsm.analysis.analyzer.node_from_object", return_value=_node(1)), patch.object(
+        with patch("netbox_nsm.analyzers.object_analyzer.node_from_object", return_value=_node(1)), patch.object(
             picker_mod, "_bulk_resolve", return_value={(10, 2): child}
         ), patch(
-            "netbox_nsm.analysis.analyzer.modes.get_filtered_edges", side_effect=filtered_edges
+            "netbox_nsm.analyzers.object_analyzer.modes.get_filtered_edges", side_effect=filtered_edges
         ):
             tree = picker_mod.build_picker_tree(root, depth=2, mode="security")
 

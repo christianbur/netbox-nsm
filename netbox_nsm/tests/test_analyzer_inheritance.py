@@ -4,11 +4,11 @@ from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.analysis.analyzer.edge_sources import inherited_nsm_link_edges, rule_object_item_edges
+from netbox_nsm.analyzers.object_analyzer.edge_sources import inherited_nsm_link_edges, rule_object_item_edges
 
 
 class AnalyzerInheritanceTests(SimpleTestCase):
-    @patch("netbox_nsm.analysis.analyzer.registry.node_from_object")
+    @patch("netbox_nsm.analyzers.object_analyzer.registry.node_from_object")
     @patch("netbox_nsm.addresses.ipam_inheritance.iter_inherited_nsm_links")
     def test_inherited_edges_use_prefix_links(
         self,
@@ -33,7 +33,7 @@ class AnalyzerInheritanceTests(SimpleTestCase):
 
         self.assertEqual(edges, [])
 
-    @patch("netbox_nsm.analysis.analyzer.registry.node_from_object")
+    @patch("netbox_nsm.analyzers.object_analyzer.registry.node_from_object")
     @patch("netbox_nsm.security.references.cot_rule_references.scan_cot_security_references")
     def test_rule_edges_use_rule_instance_not_panel_wrapper(
         self,

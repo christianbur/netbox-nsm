@@ -7,7 +7,7 @@ from urllib.parse import quote
 from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
 
-from netbox_nsm.analysis.addr_analysis_utils import (
+from netbox_nsm.analyzers.ip.addr_analysis_utils import (
     _object_is_addr_analyzable,
     _object_supports_addr_analysis,
 )

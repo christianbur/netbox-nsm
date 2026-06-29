@@ -1,3 +1,2 @@
-"""Legacy import path — use ``analysis.analyzer.all_edges`` instead."""
-
-from netbox_nsm.analysis.analyzer.all_edges import *  # noqa: F401, F403
+"""Legacy import path — use ``netbox_nsm.analyzers.object_analyzer.all_edges`` instead."""
+from netbox_nsm.analyzers.object_analyzer.all_edges import *  # noqa: F401, F403

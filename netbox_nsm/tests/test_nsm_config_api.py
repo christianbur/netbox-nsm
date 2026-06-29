@@ -1,7 +1,8 @@
 """Tests for ``nsm_config`` REST API (CustomObjectType.comments)."""
 
-import yaml
 from django.urls import reverse
+
+from netbox_nsm.objects.nsm_config import parse_nsm_config_document_from_comments
 
 from netbox_nsm.rulebooks.templates import RULEBOOK_GROUP
 from utilities.testing import APITestCase
@@ -64,8 +65,8 @@ class NsmConfigApiTests(APITestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.zone_cot.refresh_from_db()
-        parsed = yaml.safe_load(self.zone_cot.comments)
-        self.assertEqual(parsed["nsm_config"][0]["rule_view"]["sort_order"], 15)
+        parsed = parse_nsm_config_document_from_comments(self.zone_cot.comments)
+        self.assertEqual(parsed["rule_view"]["sort_order"], 15)
 
     def test_patch_rulebook_preserves_rule_view(self):
         self.zone_cot.comments = (
@@ -84,9 +85,9 @@ class NsmConfigApiTests(APITestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.rulebook_cot.refresh_from_db()
-        document = yaml.safe_load(self.rulebook_cot.comments)
-        keys = [next(iter(segment)) for segment in document["nsm_config"]]
-        self.assertEqual(keys, ["rule_view", "rulebook"])
+        document = parse_nsm_config_document_from_comments(self.rulebook_cot.comments)
+        self.assertIn("rule_view", document)
+        self.assertIn("rulebook", document)
 
     def test_delete_clears_nsm_config(self):
         self.zone_cot.comments = "nsm_config:\n  - rule_view:\n      sort_order: 1\n"

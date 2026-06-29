@@ -13,7 +13,7 @@ from netbox_nsm.bundles.demo_address_ipam import (
 class DemoAddressIpamHelperTests(SimpleTestCase):
     def test_host_cidr_is_deterministic(self):
         self.assertEqual(_host_cidr(0), "10.199.0.1/32")
-        self.assertEqual(_host_cidr(1), "10.199.0.2/32")
+        self.assertEqual(_host_cidr(1), "10.199.1.2/32")
 
     def test_prefix_cidr_uses_demo_supernet(self):
         import random

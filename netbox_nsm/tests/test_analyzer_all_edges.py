@@ -4,19 +4,19 @@ from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.analysis.analyzer.all_edges import compose_all_edges, dcim_cable_edges
+from netbox_nsm.analyzers.object_analyzer.all_edges import compose_all_edges, dcim_cable_edges
 
 
 class AnalyzerAllEdgesTests(SimpleTestCase):
-    @patch("netbox_nsm.analysis.analyzer.all_edges.forward_relation_edges", return_value=[])
-    @patch("netbox_nsm.analysis.analyzer.all_edges.reverse_fk_edges", return_value=[])
-    @patch("netbox_nsm.analysis.analyzer.all_edges.dcim_cable_edges")
-    @patch("netbox_nsm.analysis.analyzer.all_edges.ContentType.objects.get_for_model")
-    @patch("netbox_nsm.analysis.analyzer.edge_sources.nsm_link_edges", return_value=[])
-    @patch("netbox_nsm.analysis.analyzer.edge_sources.rule_object_item_edges", return_value=[])
-    @patch("netbox_nsm.analysis.analyzer.edge_sources.group_m2m_edges", return_value=[])
-    @patch("netbox_nsm.analysis.analyzer.edge_sources.addr_fk_edges", return_value=[])
-    @patch("netbox_nsm.analysis.analyzer.edge_sources.inherited_nsm_link_edges", return_value=[])
+    @patch("netbox_nsm.analyzers.object_analyzer.all_edges.forward_relation_edges", return_value=[])
+    @patch("netbox_nsm.analyzers.object_analyzer.all_edges.reverse_fk_edges", return_value=[])
+    @patch("netbox_nsm.analyzers.object_analyzer.all_edges.dcim_cable_edges")
+    @patch("netbox_nsm.analyzers.object_analyzer.all_edges.ContentType.objects.get_for_model")
+    @patch("netbox_nsm.analyzers.object_analyzer.edge_sources.nsm_link_edges", return_value=[])
+    @patch("netbox_nsm.analyzers.object_analyzer.edge_sources.rule_object_item_edges", return_value=[])
+    @patch("netbox_nsm.analyzers.object_analyzer.edge_sources.group_m2m_edges", return_value=[])
+    @patch("netbox_nsm.analyzers.object_analyzer.edge_sources.addr_fk_edges", return_value=[])
+    @patch("netbox_nsm.analyzers.object_analyzer.edge_sources.inherited_nsm_link_edges", return_value=[])
     def test_compose_deduplicates_edges(
         self,
         _inh,
@@ -29,7 +29,7 @@ class AnalyzerAllEdgesTests(SimpleTestCase):
         _rev,
         _fwd,
     ):
-        from netbox_nsm.analysis.analyzer.registry import AnalyzerEdge, AnalyzerNode
+        from netbox_nsm.analyzers.object_analyzer.registry import AnalyzerEdge, AnalyzerNode
 
         node = AnalyzerNode(
             id="1:2",
@@ -47,7 +47,7 @@ class AnalyzerAllEdgesTests(SimpleTestCase):
         self.assertEqual(edges[0].edge_label, "Cable")
 
     def test_dcim_cable_edges_from_link_peers(self):
-        from netbox_nsm.analysis.analyzer.registry import AnalyzerNode
+        from netbox_nsm.analyzers.object_analyzer.registry import AnalyzerNode
 
         peer = MagicMock()
         peer.pk = 9
@@ -61,7 +61,7 @@ class AnalyzerAllEdgesTests(SimpleTestCase):
         obj.connected_endpoint = None
         obj.link_peers = [peer]
 
-        with patch("netbox_nsm.analysis.analyzer.all_edges.node_from_object") as mock_node:
+        with patch("netbox_nsm.analyzers.object_analyzer.all_edges.node_from_object") as mock_node:
             mock_node.return_value = AnalyzerNode(
                 id="3:9",
                 ct_id=3,

@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 from utilities.testing import TestCase
 
-from netbox_nsm.analysis.addr_analysis_utils import (
+from netbox_nsm.analyzers.ip.addr_analysis_utils import (
     _addr_navigation_refs,
     _addr_path_line,
     _addr_path_parts_for_leaf,
@@ -83,7 +83,7 @@ class AddrCopyPathTests(TestCase):
 
 class AddrNavigationRefTests(TestCase):
     def test_nav_append_dedupes_by_url(self):
-        from netbox_nsm.analysis.addr_navigation import _addr_nav_append
+        from netbox_nsm.analyzers.ip.addr_navigation import _addr_nav_append
 
         refs = []
         seen = set()
@@ -92,9 +92,9 @@ class AddrNavigationRefTests(TestCase):
         _addr_nav_append(refs, seen, ref)
         self.assertEqual(len(refs), 1)
 
-    @patch("netbox_nsm.analysis.addr_navigation._host_ref_chain")
+    @patch("netbox_nsm.analyzers.ip.addr_navigation._host_ref_chain")
     def test_assigned_interface_adds_iface_and_device_chain(self, host_chain):
-        from netbox_nsm.analysis.addr_navigation import _addr_nav_from_assigned
+        from netbox_nsm.analyzers.ip.addr_navigation import _addr_nav_from_assigned
 
         host_chain.return_value = [
             {"label": "Interface", "name": "eth0", "url": "/dcim/interfaces/1/"},
@@ -102,15 +102,15 @@ class AddrNavigationRefTests(TestCase):
         ]
         refs = []
         seen = set()
-        with patch("netbox_nsm.analysis._lazy_api.isinstance", return_value=True):
+        with patch("netbox_nsm.analyzers.ip._lazy_api.isinstance", return_value=True):
             _addr_nav_from_assigned(MagicMock(), refs, seen)
         self.assertEqual(
             [r["url"] for r in refs],
             ["/dcim/interfaces/1/", "/dcim/devices/1/"],
         )
 
-    @patch("netbox_nsm.analysis.addr_navigation._addr_nav_assigned_ips_in_prefix")
-    @patch("netbox_nsm.analysis.addr_navigation._addr_nav_object_link_hosts")
+    @patch("netbox_nsm.analyzers.ip.addr_navigation._addr_nav_assigned_ips_in_prefix")
+    @patch("netbox_nsm.analyzers.ip.addr_navigation._addr_nav_object_link_hosts")
     def test_prefix_collects_object_links_and_assigned_ips(
         self, link_hosts_fn, assigned_ips_fn
     ):
@@ -137,13 +137,13 @@ class AddrNavigationRefTests(TestCase):
         assigned_ips_fn.assert_called_once()
         self.assertEqual(len(refs), 2)
 
-    @patch("netbox_nsm.analysis.addr_navigation._host_ref_chain")
+    @patch("netbox_nsm.analyzers.ip.addr_navigation._host_ref_chain")
     @patch("netbox_nsm.security.links.object_link_service.iter_links_for_object")
     @patch("django.contrib.contenttypes.models.ContentType.objects")
     def test_object_link_host_refs_from_both_directions(
         self, ct_objects, iter_links_fn, host_chain
     ):
-        from netbox_nsm.analysis.addr_navigation import _addr_nav_object_link_hosts
+        from netbox_nsm.analyzers.ip.addr_navigation import _addr_nav_object_link_hosts
 
         device = MagicMock()
         host_chain.return_value = [
@@ -160,13 +160,13 @@ class AddrNavigationRefTests(TestCase):
         obj = MagicMock(pk=1)
         refs = []
         seen = set()
-        with patch("netbox_nsm.analysis._lazy_api.isinstance", return_value=True):
+        with patch("netbox_nsm.analyzers.ip._lazy_api.isinstance", return_value=True):
             _addr_nav_object_link_hosts(obj, refs, seen)
         self.assertEqual(len(refs), 1)
         self.assertEqual(refs[0]["url"], "/dcim/devices/1/")
 
     @patch("netbox_nsm.addresses.address_ipam_fk.is_nsm_address_object", return_value=True)
-    @patch("netbox_nsm.analysis.addr_navigation._addr_navigation_refs")
+    @patch("netbox_nsm.analyzers.ip.addr_navigation._addr_navigation_refs")
     def test_attach_merges_nsm_address_and_ipam_fk_refs(
         self, nav_refs_fn, _is_addr
     ):
@@ -192,7 +192,7 @@ class AddrNavigationRefTests(TestCase):
         self.assertEqual(nav_refs_fn.call_count, 2)
 
     @patch("netbox_nsm.addresses.address_ipam_fk.is_nsm_address_object", return_value=True)
-    @patch("netbox_nsm.analysis.addr_navigation._addr_navigation_refs")
+    @patch("netbox_nsm.analyzers.ip.addr_navigation._addr_navigation_refs")
     def test_attach_dedupes_merged_refs_by_url(self, nav_refs_fn, _is_addr):
         dup = {"label": "Device", "name": "fw-01", "url": "/dcim/devices/1/"}
         nav_refs_fn.side_effect = [[dup], [dup]]

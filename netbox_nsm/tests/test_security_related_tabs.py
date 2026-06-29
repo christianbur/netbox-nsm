@@ -22,7 +22,7 @@ class CotLinkTableFlagTests(SimpleTestCase):
         self.assertTrue(cot_link_table_flag(cot))
 
     @patch(
-        "netbox_nsm.security.tab.cot_metadata.resolve_nsm_config_dict_for_cot",
+        "netbox_nsm.objects.nsm_config.resolve_nsm_config_dict_for_cot",
         return_value={"links": {"link_table": True}},
     )
     def test_link_table_from_nsm_config_links_block(self, _mock_cfg):

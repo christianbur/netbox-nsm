@@ -46,19 +46,18 @@ _BUNDLE_SORT_ORDER = {
 
 def discover_schema_files() -> list[Path]:
     """Return ``bundle.json`` paths for discovered schema bundles (sorted by slug)."""
-    from netbox_nsm.bundles.paths import find_bundle_dirs
+    from netbox_nsm.bundles.paths import find_bundle_paths
 
     paths: list[Path] = []
-    for slug, bundle_dir in sorted(find_bundle_dirs().items()):
-        bundle_json = bundle_dir / "bundle.json"
-        if not bundle_json.is_file():
+    for slug, bundle_path in sorted(find_bundle_paths().items()):
+        if not bundle_path.is_file():
             continue
         try:
-            bundle = load_bundle(bundle_json)
+            bundle = load_bundle(bundle_path)
         except (OSError, ValueError, json.JSONDecodeError):
             continue
         if bundle.get("bundle_kind", "schema") == "schema":
-            paths.append(bundle_json)
+            paths.append(bundle_path)
     return paths
 
 
@@ -106,6 +105,30 @@ def to_portable_document(bundle: dict) -> dict:
     return document
 
 
+def _reconcile_portable_types_with_existing_cots(document: dict) -> None:
+    """Match bundle types to deployed COTs by unique ``name`` when slug differs.
+
+    ``apply_document`` only looks up COTs by slug. If a type was deployed earlier
+    (e.g. bench script) under the same ``name`` but a different slug, applying
+    the bundle would try to INSERT again and hit the unique ``name`` constraint.
+    """
+    from netbox_custom_objects.models import CustomObjectType
+
+    for type_def in document.get("types") or []:
+        if not isinstance(type_def, dict):
+            continue
+        slug = str(type_def.get("slug", "")).strip()
+        name = str(type_def.get("name", "")).strip()
+        if not slug or not name:
+            continue
+        if CustomObjectType.objects.filter(slug=slug).exists():
+            continue
+        existing = CustomObjectType.objects.filter(name=name).first()
+        if existing is None or existing.slug == slug:
+            continue
+        type_def["slug"] = existing.slug
+
+
 # ---------------------------------------------------------------------------
 # Bundle status
 # ---------------------------------------------------------------------------
@@ -119,19 +142,17 @@ def _get_cot_by_slug(slug: str):
 
 def get_bundle_status(slug: str) -> str:
     """Return ``missing``, ``partial``, or ``applied`` for bundle *slug*."""
-    from netbox_nsm.bundles.paths import find_bundle_dirs
+    from netbox_nsm.bundles.paths import find_bundle_paths
 
-    bundle_dirs = find_bundle_dirs()
-    if slug not in bundle_dirs:
+    paths = find_bundle_paths()
+    if slug not in paths:
         return "missing"
 
-    bundle_json = bundle_dirs[slug] / "bundle.json"
     try:
-        bundle = load_bundle(bundle_json)
+        bundle = load_bundle(paths[slug])
     except (OSError, ValueError, json.JSONDecodeError):
         return "missing"
 
-    # Python bundles have no schema types to check
     if bundle.get("bundle_kind") == "python":
         return "applied"
 
@@ -298,6 +319,7 @@ def preview_bundle(
     )
 
     portable = to_portable_document(bundle)
+    _reconcile_portable_types_with_existing_cots(portable)
     cot_diffs = diff_document(portable)
     return {
         "portable_document": portable,
@@ -329,23 +351,37 @@ def apply_bundle(
         apply_choice_sets,
         apply_seed_objects,
     )
+    from netbox_nsm.bundles.demo_address_ipam import demo_address_names_from_bundle
 
     portable = to_portable_document(bundle)
+    _reconcile_portable_types_with_existing_cots(portable)
     metadata = normalize_bundle_metadata(bundle)
+    ipam_linked = 0
     with transaction.atomic():
         choice_sets_applied = apply_choice_sets(bundle.get("choice_sets"))
         apply_document(portable, allow_destructive=allow_destructive)
         objects_seeded = apply_seed_objects(bundle.get("objects"))
+        ipam_linked = 0
+        demo_address_names = demo_address_names_from_bundle(bundle)
+        if demo_address_names:
+            from netbox_nsm.bundles.demo_address_ipam import seed_demo_address_ipam
+
+            ipam_linked = seed_demo_address_ipam(names=demo_address_names)
         meta_counts = sync_metadata(metadata)
 
-    from netbox_nsm.rulebooks.rulebook_groups import sync_all_rulebook_cots
+    from netbox_nsm.rulebooks.rulebook_groups import (
+        apply_portable_schema_field_groups,
+        sync_all_rulebook_cots,
+    )
 
+    apply_portable_schema_field_groups(portable)
     sync_all_rulebook_cots()
 
     return {
         "types_applied": len(portable.get("types") or []),
         "choice_sets_applied": choice_sets_applied,
         "objects_seeded": objects_seeded,
+        "ipam_addresses_linked": ipam_linked,
         "metadata_types_synced": meta_counts["types"],
         "metadata_rulebooks_synced": meta_counts["rulebooks"],
     }
@@ -358,12 +394,12 @@ def apply_bundle(
 
 def list_bundles() -> list[dict]:
     """Discover all bundles via paths.py and return a list of summary dicts."""
-    from netbox_nsm.bundles.paths import find_bundle_dirs
+    from netbox_nsm.bundles.paths import find_bundle_paths
 
     items: list[dict] = []
-    for slug, bundle_dir in find_bundle_dirs().items():
+    for slug, bundle_path in find_bundle_paths().items():
         try:
-            bundle = load_bundle(bundle_dir / "bundle.json")
+            bundle = load_bundle(bundle_path)
         except (OSError, ValueError, json.JSONDecodeError):
             continue
         bundle["_slug"] = slug
@@ -372,8 +408,13 @@ def list_bundles() -> list[dict]:
 
 
 def list_setup_bundles() -> list[dict]:
-    """All discovered bundles ordered as a dependency tree."""
-    return organize_bundles_tree(list_bundles())
+    """Schema JSON bundles ordered as a dependency tree (Setup wizard)."""
+    bundles = [
+        bundle
+        for bundle in list_bundles()
+        if bundle.get("format") == BUNDLE_FORMAT_JSON
+    ]
+    return organize_bundles_tree(bundles)
 
 
 # ---------------------------------------------------------------------------
@@ -401,6 +442,18 @@ def _resolve_portable_row_group_col_id(raw: str, *, rulebook_slug: str) -> str:
     return f"{field_name}::ct_{ct_ids[0]}"
 
 
+def _sync_cot_group_name_from_menu(cot) -> None:
+    """Keep CO sidebar ``group_name`` in sync with metadata ``menu`` (display only)."""
+    from netbox_nsm.type_metadata.menus import group_name_for_menu, resolve_menu_for_cot
+
+    menu = resolve_menu_for_cot(cot)
+    target = group_name_for_menu(menu)
+    if not target or cot.group_name == target:
+        return
+    cot.group_name = target
+    cot.save(update_fields=["group_name"])
+
+
 def sync_metadata(metadata: dict | None) -> dict[str, int]:
     """Write bundle ``metadata`` into COT ``comments`` (via ``nsm_config`` YAML)."""
     from netbox_nsm.objects.nsm_config import save_nsm_config_document_for_cot
@@ -424,9 +477,12 @@ def sync_metadata(metadata: dict | None) -> dict[str, int]:
             updates["links"] = block["links"]
         if "role" in block:
             updates["role"] = block["role"]
+        if "menu" in block:
+            updates["menu"] = block["menu"]
         if not updates:
             continue
         save_nsm_config_document_for_cot(cot, updates)
+        _sync_cot_group_name_from_menu(cot)
         types_count += 1
 
     rulebooks_count = 0
@@ -451,12 +507,17 @@ def sync_metadata(metadata: dict | None) -> dict[str, int]:
                 )
             updates["rulebook"] = rulebook_cfg
         if "types" in block:
-            updates["types"] = block["types"]
+            from netbox_nsm.type_metadata.rule_view import compact_rulebook_types_map
+
+            updates["types"] = compact_rulebook_types_map(block["types"])
         if "role" in block:
             updates["role"] = block["role"]
+        if "menu" in block:
+            updates["menu"] = block["menu"]
         if not updates:
             continue
         save_nsm_config_document_for_cot(cot, updates)
+        _sync_cot_group_name_from_menu(cot)
         rulebooks_count += 1
 
     from netbox_nsm.core.display_utils import get_display_template_map

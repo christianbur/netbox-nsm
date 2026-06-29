@@ -23,7 +23,6 @@ from netbox_nsm.core.nsm_object_status import (
     nsm_object_status_icon_html,
 )
 from netbox_nsm.core.plugin_labels import get_nsm_panel_label
-from netbox_nsm.security.links.object_link_service import build_panel_link_groups
 from netbox_nsm.security.tab.security_rows import append_cot_reference_link_groups
 from netbox_nsm.security.references.cot_rule_references import build_cot_security_rulebook_groups
 from netbox_nsm.security.tab.links import prepare_link_tab_view
@@ -32,7 +31,6 @@ from netbox_nsm.security.actions.panel_link_actions import (
     address_ipam_fk_action_urls,
     address_ipam_fk_ref_action_urls,
     group_m2m_action_urls,
-    object_link_action_urls,
 )
 
 __all__ = (
@@ -112,18 +110,16 @@ def build_security_tab_context(obj, request) -> dict:
 
     links_by_type: dict = {}
     return_url = request.path if request else "/"
-    cot_link_groups, _cot_total = build_panel_link_groups(
+
+    append_cot_reference_link_groups(
+        links_by_type,
         obj,
-        return_url=return_url,
+        request,
         panel_link_payload=panel_link_payload,
-        object_link_action_urls=object_link_action_urls,
+        tmpl_map=tmpl_map,
         type_label_fn=_link_type_label,
+        return_url=return_url,
     )
-    for group in cot_link_groups:
-        links_by_type[group["type_key"]] = {
-            "label": group["type_label"],
-            "objects": list(group["objects"]),
-        }
 
     try:
         from ipam.models import (
@@ -262,16 +258,6 @@ def build_security_tab_context(obj, request) -> dict:
             )
     except Exception:
         pass
-
-    append_cot_reference_link_groups(
-        links_by_type,
-        obj,
-        request,
-        panel_link_payload=panel_link_payload,
-        tmpl_map=tmpl_map,
-        type_label_fn=_link_type_label,
-        return_url=return_url,
-    )
 
     link_type_groups = finalize_link_type_groups(
         [

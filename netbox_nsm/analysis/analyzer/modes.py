@@ -49,6 +49,7 @@ SECURITY_ALLOWED_MODELS = frozenset({
 # NSM Custom Object Type slugs allowed in Security mode
 SECURITY_NSM_COT_SLUGS = frozenset({
     "nsm_address",
+    "nsm_address_custom",
     "nsm_address_group",
     "nsm_object_link",
     "nsm_service",

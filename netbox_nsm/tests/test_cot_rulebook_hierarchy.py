@@ -87,8 +87,8 @@ class CotRulebookHierarchyModelTests(TestCase):
         from netbox_custom_objects.models import CustomObjectType
 
         cls.cot = CustomObjectType.objects.create(
-            name="nsm_rb_zone_matrix",
-            slug="nsm_rb_zone_matrix",
+            name="nsm_rb_demo_zone_matrix",
+            slug="nsm_rb_demo_zone_matrix",
             verbose_name="Demo",
             description="",
             group_name=RULEBOOK_GROUP,
@@ -98,7 +98,7 @@ class CotRulebookHierarchyModelTests(TestCase):
         with self.assertRaises(ValidationError):
             save_rulebook_config_for_cot(
                 self.cot,
-                {"parent_slug": "nsm_rb_zone_matrix"},
+                {"parent_slug": "nsm_rb_demo_zone_matrix"},
             )
 
 

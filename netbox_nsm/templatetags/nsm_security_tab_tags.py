@@ -1,6 +1,7 @@
-"""Template tags for the NSM Security detail tab."""
+"""Template tags for registry-driven tabs on NSM custom-object detail pages."""
 
 from django import template
+from django.urls import reverse
 from django.urls.exceptions import NoReverseMatch
 from django.utils.module_loading import import_string
 
@@ -9,8 +10,44 @@ from utilities.views import get_action_url
 
 register = template.Library()
 
-# Rendered explicitly on NSM ``customobject.html`` (see ``nsm_security_tab_link``).
-_HARDCODED_TAB_NAMES = frozenset({"journal", "changelog", "custom_objects", "security"})
+# journal/changelog/custom_objects are rendered as hardcoded <li>s on NSM
+# ``customobject.html`` (NSM-scoped journal/changelog URLs). Security is rendered
+# via this tag from ``register_model_view`` + injected CO/NSM security URLs.
+_HARDCODED_TAB_NAMES = frozenset({"journal", "changelog", "custom_objects"})
+
+
+def _registry_model_name(instance) -> str:
+    """
+    Registry views for custom objects are keyed on ``CustomObject`` (``customobject``),
+    not on each dynamic table model (e.g. ``table7model``).
+    """
+    if instance._meta.app_label == "netbox_custom_objects":
+        return "customobject"
+    return instance._meta.model_name
+
+
+def _get_tab_action_url(instance, action, kwargs=None) -> str:
+    """
+    Resolve tab URLs for custom-object instances.
+
+    ``utilities.views.get_action_url`` delegates to the dynamic model's
+    ``_get_action_url``, which always targets netbox-custom-objects routes.
+    Use the patched ``get_viewname`` helper instead so menu=objects COTs resolve
+    to ``plugins:netbox_nsm:nsm_object_*`` URLs.
+    """
+    kwargs = dict(kwargs or {})
+    if kwargs.get("pk") is None and getattr(instance, "pk", None) is not None:
+        kwargs["pk"] = instance.pk
+
+    if instance._meta.app_label == "netbox_custom_objects":
+        from netbox_custom_objects.utilities import get_viewname
+
+        slug = getattr(getattr(instance, "custom_object_type", None), "slug", None)
+        if slug is not None:
+            kwargs.setdefault("custom_object_type", slug)
+        return reverse(get_viewname(instance, action=action), kwargs=kwargs)
+
+    return get_action_url(instance, action=action, kwargs=kwargs)
 
 
 @register.inclusion_tag("tabs/model_view_tabs.html", takes_context=True)
@@ -20,12 +57,13 @@ def nsm_plugin_extra_tabs(context, instance):
     on NSM custom-object detail pages.
     """
     app_label = instance._meta.app_label
-    model_name = instance._meta.model_name
+    registry_model_name = _registry_model_name(instance)
     user = context["request"].user
+    request = context.get("request")
     tabs = []
 
     try:
-        views = registry["views"][app_label][model_name]
+        views = registry["views"][app_label][registry_model_name]
     except KeyError:
         views = []
 
@@ -42,13 +80,18 @@ def nsm_plugin_extra_tabs(context, instance):
                 continue
             if attrs := tab.render(instance):
                 try:
-                    url = get_action_url(
+                    url = _get_tab_action_url(
                         instance,
                         action=config["name"],
                         kwargs={"pk": instance.pk},
                     )
                 except NoReverseMatch:
                     continue
+                is_active = context.get("tab") == tab
+                # Custom-object host pages use injected generic routes; compare the
+                # request path to the tab URL (PR 482 ``custom_objects_tab_link`` pattern).
+                if app_label == "netbox_custom_objects" and request is not None:
+                    is_active = request.path == url
                 tabs.append(
                     {
                         "name": config["name"],
@@ -56,46 +99,9 @@ def nsm_plugin_extra_tabs(context, instance):
                         "label": attrs["label"],
                         "badge": attrs["badge"],
                         "weight": attrs["weight"],
-                        "is_active": context.get("tab") == tab,
+                        "is_active": is_active,
                     }
                 )
 
     tabs = sorted(tabs, key=lambda row: row["weight"])
     return {"tabs": tabs}
-
-
-@register.inclusion_tag(
-    "netbox_nsm/inc/security_tab_link.html",
-    takes_context=True,
-)
-def nsm_security_tab_link(context, instance):
-    """
-    Render the Security tab nav-link on custom-object detail pages.
-
-    Badge is computed live from the DB; the tab is always shown (like the
-    legacy right-hand Security panel on every object page).
-    """
-    from netbox_nsm.core.plugin_labels import get_nsm_panel_label
-    from netbox_nsm.tabs.badge import count_security_tab_badge
-
-    try:
-        url = get_action_url(
-            instance,
-            action="security",
-            kwargs={"pk": instance.pk},
-        )
-    except NoReverseMatch:
-        return {"tab": None}
-
-    request = context.get("request")
-    is_active = request is not None and request.path == url
-    badge = count_security_tab_badge(instance)
-
-    return {
-        "tab": {
-            "url": url,
-            "label": get_nsm_panel_label(),
-            "badge": badge or None,
-            "is_active": is_active,
-        }
-    }

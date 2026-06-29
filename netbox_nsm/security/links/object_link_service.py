@@ -9,6 +9,11 @@ from django.contrib.contenttypes.models import ContentType
 
 from netbox_nsm.objects.nsm_config import is_linkable_content_type
 from netbox_nsm.models.object_link import LinkPropagationChoices
+from netbox_nsm.security.links.cot_link_schema import (
+    ObjectLinkSchema,
+    get_object_link_schema,
+    read_link_endpoints,
+)
 from netbox_nsm.security.links.link_propagation import (
     CotObjectLinkPropagationChoices,
     cot_propagation_to_native,
@@ -60,7 +65,7 @@ __all__ = (
     "update_link",
 )
 
-NSM_OBJECT_LINK_SLUG = "nsm_object_link"
+NSM_OBJECT_LINK_SLUG = "nsm_object_link"  # bundle/schema slug; not used for runtime COT lookup
 LINK_TYPE_POLICY = "policy"
 LINK_TYPE_RULEBOOK = "rulebook"
 LINK_TYPE_ENFORCEMENT_POINT = "enforcement_point"
@@ -77,20 +82,29 @@ _INHERIT_GROUP_COT = (
 
 
 def get_object_link_model():
-    """Return the dynamic model for ``nsm_object_link``, or ``None``."""
+    """Return the dynamic model for the link-table COT, or ``None``."""
+    schema = get_object_link_schema()
+    if schema is None:
+        return None
     try:
-        from netbox_custom_objects.models import CustomObjectType
-
-        cot = CustomObjectType.objects.filter(slug=NSM_OBJECT_LINK_SLUG).first()
-        if cot is None:
-            return None
-        return cot.get_model()
+        return schema.cot.get_model()
     except Exception:
         return None
 
 
+def _require_object_link_schema() -> ObjectLinkSchema:
+    schema = get_object_link_schema()
+    if schema is None:
+        raise RuntimeError("link-table COT is not deployed")
+    return schema
+
+
+def _read_row_endpoints(schema: ObjectLinkSchema, instance):
+    return read_link_endpoints(schema, instance)
+
+
 def object_link_permission(action: str) -> str | None:
-    """Return ``netbox_custom_objects`` permission codename for ``nsm_object_link``."""
+    """Return ``netbox_custom_objects`` permission codename for the link-table COT."""
     model = get_object_link_model()
     if model is None:
         return None
@@ -224,11 +238,16 @@ class RulebookLinkRecord:
     comment: str = ""
 
     @classmethod
-    def from_instance(cls, instance) -> RulebookLinkRecord:
+    def from_instance(cls, instance, schema: ObjectLinkSchema | None = None) -> RulebookLinkRecord:
+        if schema is None:
+            schema = get_object_link_schema()
+        netbox_object = None
+        if schema is not None:
+            netbox_object, _ = _read_row_endpoints(schema, instance)
         return cls(
             pk=instance.pk,
             instance=instance,
-            netbox_object=getattr(instance, "netbox_object", None),
+            netbox_object=netbox_object,
             rulebook_slug=(getattr(instance, "rulebook_slug", None) or "").strip(),
             comment=(getattr(instance, "comment", None) or "").strip(),
         )
@@ -256,12 +275,18 @@ class EnforcementPointLinkRecord:
     comment: str = ""
 
     @classmethod
-    def from_instance(cls, instance) -> EnforcementPointLinkRecord:
+    def from_instance(cls, instance, schema: ObjectLinkSchema | None = None) -> EnforcementPointLinkRecord:
+        if schema is None:
+            schema = get_object_link_schema()
+        netbox_object = None
+        policy_object = None
+        if schema is not None:
+            netbox_object, policy_object = _read_row_endpoints(schema, instance)
         return cls(
             pk=instance.pk,
             instance=instance,
-            netbox_object=getattr(instance, "netbox_object", None),
-            policy_object=getattr(instance, "policy_object", None),
+            netbox_object=netbox_object,
+            policy_object=policy_object,
             rulebook_slug=(getattr(instance, "rulebook_slug", None) or "").strip(),
             comment=(getattr(instance, "comment", None) or "").strip(),
         )
@@ -290,7 +315,13 @@ class ObjectLinkRecord:
     policy_object: object | None = None
 
     @classmethod
-    def from_instance(cls, instance) -> ObjectLinkRecord:
+    def from_instance(cls, instance, schema: ObjectLinkSchema | None = None) -> ObjectLinkRecord:
+        if schema is None:
+            schema = get_object_link_schema()
+        netbox_object = None
+        policy_object = None
+        if schema is not None:
+            netbox_object, policy_object = _read_row_endpoints(schema, instance)
         cot_value = getattr(
             instance,
             "propagation",
@@ -303,8 +334,8 @@ class ObjectLinkRecord:
             comment=(getattr(instance, "comment", None) or "").strip(),
             propagation=propagation,
             propagate_stop_on_own=stop,
-            netbox_object=getattr(instance, "netbox_object", None),
-            policy_object=getattr(instance, "policy_object", None),
+            netbox_object=netbox_object,
+            policy_object=policy_object,
         )
 
     @property
@@ -373,21 +404,24 @@ def find_link_between(object_a, object_b) -> ObjectLinkRecord | None:
     """Find assignment between page object *object_a* and linked row *object_b*."""
     if object_a is None or object_b is None:
         return None
+    schema = get_object_link_schema()
+    if schema is None:
+        return None
     model = get_object_link_model()
     if model is None:
         return None
 
     netbox, policy = classify_link_endpoints(object_a, object_b)
-    for row in _filter_instances_by_object_ref(model, "netbox_object", netbox):
+    for row in _filter_instances_by_object_ref(model, schema.host_field, netbox):
         if not is_policy_link_instance(row):
             continue
-        row_policy = getattr(row, "policy_object", None)
+        row_netbox, row_policy = _read_row_endpoints(schema, row)
         if row_policy is None:
             continue
         if row_policy.pk == policy.pk and ContentType.objects.get_for_model(
             row_policy
         ) == ContentType.objects.get_for_model(policy):
-            return ObjectLinkRecord.from_instance(row)
+            return ObjectLinkRecord.from_instance(row, schema)
     return None
 
 
@@ -409,35 +443,37 @@ def iter_links_for_object(obj) -> Iterator[tuple[ObjectLinkRecord, str]]:
 
 
 def iter_policy_links_for_object(obj) -> Iterator[tuple[ObjectLinkRecord, str]]:
+    schema = get_object_link_schema()
     model = get_object_link_model()
-    if model is None or obj is None:
+    if schema is None or model is None or obj is None:
         return
 
     seen: set[int] = set()
-    for row in _filter_instances_by_object_ref(model, "netbox_object", obj):
+    for row in _filter_instances_by_object_ref(model, schema.host_field, obj):
         if row.pk in seen or not is_policy_link_instance(row):
             continue
         seen.add(row.pk)
-        yield ObjectLinkRecord.from_instance(row), "fwd"
+        yield ObjectLinkRecord.from_instance(row, schema), "fwd"
 
-    for row in _filter_instances_by_object_ref(model, "policy_object", obj):
+    for row in _filter_instances_by_object_ref(model, schema.policy_field, obj):
         if row.pk in seen or not is_policy_link_instance(row):
             continue
         seen.add(row.pk)
-        yield ObjectLinkRecord.from_instance(row), "rev"
+        yield ObjectLinkRecord.from_instance(row, schema), "rev"
 
 
 def iter_rulebook_links_for_object(obj) -> Iterator[RulebookLinkRecord]:
     """Yield rulebook assignment links stored on *obj*."""
+    schema = get_object_link_schema()
     model = get_object_link_model()
-    if model is None or obj is None:
+    if schema is None or model is None or obj is None:
         return
     seen: set[int] = set()
-    for row in _filter_instances_by_object_ref(model, "netbox_object", obj):
+    for row in _filter_instances_by_object_ref(model, schema.host_field, obj):
         if row.pk in seen or not is_rulebook_link_instance(row):
             continue
         seen.add(row.pk)
-        yield RulebookLinkRecord.from_instance(row)
+        yield RulebookLinkRecord.from_instance(row, schema)
 
 
 def iter_rulebook_links_for_slug(rulebook_slug: str) -> Iterator[RulebookLinkRecord]:
@@ -452,14 +488,15 @@ def iter_rulebook_links_for_slug(rulebook_slug: str) -> Iterator[RulebookLinkRec
 
 
 def find_rulebook_link(netbox_obj, rulebook_slug: str) -> RulebookLinkRecord | None:
+    schema = get_object_link_schema()
     model = get_object_link_model()
-    if model is None or netbox_obj is None or not rulebook_slug:
+    if schema is None or model is None or netbox_obj is None or not rulebook_slug:
         return None
-    for row in _filter_instances_by_object_ref(model, "netbox_object", netbox_obj):
+    for row in _filter_instances_by_object_ref(model, schema.host_field, netbox_obj):
         if not is_rulebook_link_instance(row):
             continue
         if (getattr(row, "rulebook_slug", None) or "").strip() == rulebook_slug.strip():
-            return RulebookLinkRecord.from_instance(row)
+            return RulebookLinkRecord.from_instance(row, schema)
     return None
 
 
@@ -482,9 +519,10 @@ def create_or_update_rulebook_link(
     *,
     comment: str = "",
 ) -> tuple[RulebookLinkRecord, bool]:
+    schema = _require_object_link_schema()
     model = get_object_link_model()
     if model is None:
-        raise RuntimeError("nsm_object_link COT is not deployed")
+        raise RuntimeError("link-table COT is not deployed")
     slug = (rulebook_slug or "").strip()
     if not slug:
         raise ValueError("rulebook_slug is required")
@@ -499,16 +537,18 @@ def create_or_update_rulebook_link(
             changed = True
         if changed:
             inst.save()
-        return RulebookLinkRecord.from_instance(inst), False
+        return RulebookLinkRecord.from_instance(inst, schema), False
 
     inst = model.objects.create(
         name=link_name_for_rulebook(netbox_obj, slug),
         link_type=LINK_TYPE_RULEBOOK,
-        netbox_object=netbox_obj,
-        rulebook_slug=slug,
-        comment=comment or "",
+        **{
+            schema.host_field: netbox_obj,
+            "rulebook_slug": slug,
+            "comment": comment or "",
+        },
     )
-    return RulebookLinkRecord.from_instance(inst), True
+    return RulebookLinkRecord.from_instance(inst, schema), True
 
 
 def delete_rulebook_link(link: RulebookLinkRecord) -> None:
@@ -521,14 +561,15 @@ def iter_enforcement_point_links_for_object(
     obj,
 ) -> Iterator[EnforcementPointLinkRecord]:
     """Yield enforcement-point host links stored on *obj*."""
+    schema = get_object_link_schema()
     model = get_object_link_model()
-    if model is None or obj is None:
+    if schema is None or model is None or obj is None:
         return
     seen: set[int] = set()
-    for row in _filter_instances_by_object_ref(model, "netbox_object", obj):
+    for row in _filter_instances_by_object_ref(model, schema.host_field, obj):
         if row.pk in seen or not is_enforcement_point_link_instance(row):
             continue
-        link = EnforcementPointLinkRecord.from_instance(row)
+        link = EnforcementPointLinkRecord.from_instance(row, schema)
         if not is_enforcement_point_host_link(link):
             continue
         seen.add(row.pk)
@@ -539,15 +580,16 @@ def iter_enforcement_point_links_stored_on_object(
     obj,
 ) -> Iterator[EnforcementPointLinkRecord]:
     """Yield enforcement-point rows stored on *obj* (host or interface netbox side)."""
+    schema = get_object_link_schema()
     model = get_object_link_model()
-    if model is None or obj is None:
+    if schema is None or model is None or obj is None:
         return
     seen: set[int] = set()
-    for row in _filter_instances_by_object_ref(model, "netbox_object", obj):
+    for row in _filter_instances_by_object_ref(model, schema.host_field, obj):
         if row.pk in seen or not is_enforcement_point_link_instance(row):
             continue
         seen.add(row.pk)
-        yield EnforcementPointLinkRecord.from_instance(row)
+        yield EnforcementPointLinkRecord.from_instance(row, schema)
 
 
 def iter_enforcement_point_links_for_slug(
@@ -584,17 +626,19 @@ def find_enforcement_point_host_link(
     netbox_obj,
     rulebook_slug: str,
 ) -> EnforcementPointLinkRecord | None:
+    schema = get_object_link_schema()
     model = get_object_link_model()
-    if model is None or netbox_obj is None or not rulebook_slug:
+    if schema is None or model is None or netbox_obj is None or not rulebook_slug:
         return None
-    for row in _filter_instances_by_object_ref(model, "netbox_object", netbox_obj):
+    for row in _filter_instances_by_object_ref(model, schema.host_field, netbox_obj):
         if not is_enforcement_point_link_instance(row):
             continue
         if (getattr(row, "rulebook_slug", None) or "").strip() != rulebook_slug.strip():
             continue
-        if getattr(row, "policy_object", None) is not None:
+        _, row_policy = _read_row_endpoints(schema, row)
+        if row_policy is not None:
             continue
-        return EnforcementPointLinkRecord.from_instance(row)
+        return EnforcementPointLinkRecord.from_instance(row, schema)
     return None
 
 
@@ -635,9 +679,10 @@ def create_or_update_enforcement_point_link(
     policy_object=None,
     comment: str = "",
 ) -> tuple[EnforcementPointLinkRecord, bool]:
+    schema = _require_object_link_schema()
     model = get_object_link_model()
     if model is None:
-        raise RuntimeError("nsm_object_link COT is not deployed")
+        raise RuntimeError("link-table COT is not deployed")
     slug = (rulebook_slug or "").strip()
     if not slug:
         raise ValueError("rulebook_slug is required")
@@ -656,7 +701,7 @@ def create_or_update_enforcement_point_link(
             changed = True
         if changed:
             inst.save()
-        return EnforcementPointLinkRecord.from_instance(inst), False
+        return EnforcementPointLinkRecord.from_instance(inst, schema), False
 
     create_kwargs = {
         "name": link_name_for_enforcement_point(
@@ -665,16 +710,16 @@ def create_or_update_enforcement_point_link(
             policy_obj=policy_object,
         ),
         "link_type": LINK_TYPE_ENFORCEMENT_POINT,
-        "netbox_object": netbox_obj,
+        schema.host_field: netbox_obj,
         "rulebook_slug": slug,
         "comment": comment or "",
     }
     if policy_object is not None:
-        create_kwargs["policy_object"] = policy_object
+        create_kwargs[schema.policy_field] = policy_object
         create_kwargs["propagation"] = CotObjectLinkPropagationChoices.DIRECT
 
     inst = model.objects.create(**create_kwargs)
-    return EnforcementPointLinkRecord.from_instance(inst), True
+    return EnforcementPointLinkRecord.from_instance(inst, schema), True
 
 
 def delete_enforcement_point_link(link: EnforcementPointLinkRecord) -> None:
@@ -689,8 +734,9 @@ def iter_links_on_container(
     inherit_mode: str,
 ) -> Iterator[ObjectLinkRecord]:
     """Yield inheriting links stored on *container_obj* (prefix, group, …)."""
+    schema = get_object_link_schema()
     model = get_object_link_model()
-    if model is None:
+    if schema is None or model is None:
         return
 
     if inherit_mode == LinkPropagationChoices.INHERIT_IPAM:
@@ -700,13 +746,13 @@ def iter_links_on_container(
     else:
         return
 
-    for row in _filter_instances_by_object_ref(model, "netbox_object", container_obj):
+    for row in _filter_instances_by_object_ref(model, schema.host_field, container_obj):
         if not is_policy_link_instance(row):
             continue
         prop = getattr(row, "propagation", "")
         if prop not in allowed_cot:
             continue
-        yield ObjectLinkRecord.from_instance(row)
+        yield ObjectLinkRecord.from_instance(row, schema)
 
 
 def direct_nsm_type_keys_for_object(obj, _ipam_ct=None) -> set[str]:
@@ -797,10 +843,11 @@ def create_or_update_links(
     cot_propagation: str,
     comment: str = "",
 ) -> tuple[ObjectLinkRecord, bool]:
-    """Create or update one ``nsm_object_link`` row. Returns ``(link, created)``."""
+    """Create or update one link-table row. Returns ``(link, created)``."""
+    schema = _require_object_link_schema()
     model = get_object_link_model()
     if model is None:
-        raise RuntimeError("nsm_object_link COT is not deployed")
+        raise RuntimeError("link-table COT is not deployed")
 
     netbox_obj, policy_obj = classify_link_endpoints(netbox_obj, policy_obj)
 
@@ -817,17 +864,19 @@ def create_or_update_links(
             changed = True
         if changed:
             inst.save()
-        return ObjectLinkRecord.from_instance(inst), False
+        return ObjectLinkRecord.from_instance(inst, schema), False
 
     inst = model.objects.create(
         name=link_name_for_endpoints(netbox_obj, policy_obj),
         link_type=LINK_TYPE_POLICY,
-        netbox_object=netbox_obj,
-        policy_object=policy_obj,
-        propagation=cot_propagation,
-        comment=comment or "",
+        **{
+            schema.host_field: netbox_obj,
+            schema.policy_field: policy_obj,
+            "propagation": cot_propagation,
+            "comment": comment or "",
+        },
     )
-    return ObjectLinkRecord.from_instance(inst), True
+    return ObjectLinkRecord.from_instance(inst, schema), True
 
 
 def update_link(

@@ -30,6 +30,7 @@ except ImportError:
                 continue
         return visible
 
+from netbox_nsm.security.links.cot_link_schema import object_fields_for_cot
 from netbox_nsm.security.tab.cot_metadata import cot_link_table_flag
 
 logger = logging.getLogger("netbox_nsm.tabs")
@@ -44,12 +45,34 @@ __all__ = (
     "_JunctionField",
     "_OutgoingFieldProxy",
     "_count_linked_custom_objects",
+    "_cot_is_junction",
     "_get_field_value",
     "_get_linked_custom_objects",
     "_outgoing_rows",
     "_transform_junctions",
+    "is_untransformed_junction_row",
     "reference_q",
 )
+
+
+def _cot_is_junction(cot) -> bool:
+    """True when *cot* is flagged as an n:m link / junction table."""
+    return cot_link_table_flag(cot)
+
+
+def is_untransformed_junction_row(row_obj, field) -> bool:
+    """True when the row is still the junction object, not a rewritten far endpoint."""
+    if getattr(field, "is_junction_row", False):
+        return False
+    cot = getattr(field, "custom_object_type", None)
+    if not _cot_is_junction(cot):
+        return False
+    row_cot = getattr(row_obj, "custom_object_type", None)
+    if row_cot is None:
+        return False
+    if getattr(row_cot, "pk", None) == getattr(cot, "pk", None):
+        return True
+    return getattr(row_cot, "slug", None) == getattr(cot, "slug", None)
 
 
 def reference_q(
@@ -198,15 +221,7 @@ def _filter_rows_by_menu(rows, menu_filter):
 
 
 def _object_fields_for_cot(cot):
-    return list(
-        CustomObjectTypeField.objects.filter(
-            custom_object_type=cot,
-            type__in=[
-                CustomFieldTypeChoices.TYPE_OBJECT,
-                CustomFieldTypeChoices.TYPE_MULTIOBJECT,
-            ],
-        )
-    )
+    return object_fields_for_cot(cot)
 
 
 def _field_has_value(instance, field):
@@ -265,6 +280,7 @@ class _JunctionField:
 
 
 def _far_field(near_field):
+    """The other object field on a link-table COT (two object fields topology)."""
     cot = getattr(near_field, "custom_object_type", None)
     if cot is None:
         return None
@@ -277,7 +293,7 @@ def _transform_junctions(rows):
     for obj, field in rows:
         try:
             cot = getattr(field, "custom_object_type", None)
-            if cot_link_table_flag(cot):
+            if _cot_is_junction(cot):
                 far = _far_field(field)
                 endpoint = getattr(obj, far.name, None) if far is not None else None
                 if endpoint is not None and hasattr(endpoint, "get_absolute_url"):
@@ -312,7 +328,7 @@ def _outgoing_rows(instance):
     cot = getattr(instance, "custom_object_type", None)
     if cot is None:
         return []
-    is_junction = cot_link_table_flag(cot)
+    is_junction = _cot_is_junction(cot)
     rows = []
     try:
         for field in _object_fields_for_cot(cot):

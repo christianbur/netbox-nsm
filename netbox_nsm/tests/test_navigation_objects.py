@@ -11,7 +11,7 @@ from netbox_nsm.navigation_objects import (
     build_nsm_objects_menu_group,
     iter_nsm_object_menu_items,
 )
-from netbox_nsm.objects.cot_routes import NSM_OBJECTS_GROUP_NAME
+from netbox_nsm.objects.nsm_config import merge_nsm_config_document_into_comments
 
 
 class NavigationObjectsMenuTests(SimpleTestCase):
@@ -19,7 +19,8 @@ class NavigationObjectsMenuTests(SimpleTestCase):
     def test_iter_yields_menu_item_for_nsm_objects_group_cot(self, iter_cots):
         cot = SimpleNamespace(
             slug="nsm_zone",
-            group_name=NSM_OBJECTS_GROUP_NAME,
+            group_name="Legacy CO Group Name",
+            comments=merge_nsm_config_document_into_comments("", {"menu": "objects"}),
             get_verbose_name_plural=lambda: "Zones",
             get_model=lambda: SimpleNamespace(
                 _meta=SimpleNamespace(model_name="table1model")

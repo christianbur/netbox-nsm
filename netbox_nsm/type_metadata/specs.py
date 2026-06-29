@@ -18,7 +18,8 @@ TYPECONFIG_SORT_ORDER_BY_SLUG = {
     "nsm_zone": 10,
     "nsm_label": 11,
     "nsm_address": 12,
-    "nsm_address_group": 13,
+    "nsm_address_custom": 13,
+    "nsm_address_group": 14,
     "nsm_service": 20,
     "nsm_service_group": 21,
     "nsm_app_network": 22,
@@ -55,6 +56,7 @@ REQUIRED_COT_SLUGS = [
     "nsm_service",
     "nsm_service_group",
     "nsm_address",
+    "nsm_address_custom",
     "nsm_address_group",
     "nsm_label",
     "nsm_zone",
@@ -82,6 +84,11 @@ def _typeconfig_spec(
 TYPECONFIG_SPECS = [
     _typeconfig_spec("nsm_zone", "Zones", display_template="{{ name }}"),
     _typeconfig_spec("nsm_address", "Addresses", display_template="{{ name }}"),
+    _typeconfig_spec(
+        "nsm_address_custom",
+        "Addresses Custom",
+        display_template="{{ name }}",
+    ),
     _typeconfig_spec("nsm_address_group", "Address Groups", display_template="{{ name }}"),
     _typeconfig_spec(
         "nsm_label",

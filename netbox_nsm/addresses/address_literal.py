@@ -19,6 +19,7 @@ __all__ = (
     "attach_literal_prefix_display",
     "format_network_nsm_config_comments",
     "get_network_literal",
+    "get_policy_address_cidr",
     "has_address_ipam_link",
     "is_literal_address",
     "merge_network_into_instance_comments",
@@ -154,8 +155,20 @@ def has_address_ipam_link(addr_obj) -> bool:
     return bool(list(iter_address_ipam_fk_refs(addr_obj)))
 
 
+def get_policy_address_cidr(addr_obj) -> str | None:
+    """Return manual CIDR from ``nsm_address_custom`` or legacy comments literal."""
+    from netbox_nsm.addresses.address_custom import (
+        get_custom_address_cidr,
+        is_nsm_address_custom_object,
+    )
+
+    if is_nsm_address_custom_object(addr_obj):
+        return get_custom_address_cidr(addr_obj)
+    return get_network_literal(addr_obj)
+
+
 def is_literal_address(addr_obj) -> bool:
-    return get_network_literal(addr_obj) is not None
+    return get_policy_address_cidr(addr_obj) is not None
 
 
 def _normalize_literal(cidr: str) -> str:
@@ -204,7 +217,7 @@ def attach_literal_prefix_display(node, obj) -> dict:
     """Attach CIDR display labels from literal ``network`` when no IPAM ref exists."""
     if node.get("ip_ref") or not obj:
         return node
-    literal = get_network_literal(obj)
+    literal = get_policy_address_cidr(obj)
     if not literal:
         return node
     from netbox_nsm.analysis.addr_netmask import sync_prefix_display_netmask

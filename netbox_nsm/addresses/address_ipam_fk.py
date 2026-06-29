@@ -13,13 +13,19 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Iterator
 
+from netbox_nsm.addresses.address_cot_schema import (
+    cot_ipam_address_flag,
+    get_ipam_address_cot,
+)
+from netbox_nsm.addresses.address_custom import is_nsm_address_custom_object
+
 __all__ = (
-    "NSM_ADDRESS_COT_SLUGS",
     "NSM_ADDRESSES_SLUG",
     "AddressIpamFkRef",
     "clear_address_ipam_link",
     "get_nsm_address_model",
     "is_nsm_address_object",
+    "is_policy_address_object",
     "iter_address_ipam_fk_refs",
     "iter_addresses_for_ipam_object",
     "addresses_for_ipam_object_queryset",
@@ -28,7 +34,6 @@ __all__ = (
 )
 
 NSM_ADDRESSES_SLUG = "nsm_addresses"
-NSM_ADDRESS_COT_SLUGS = (NSM_ADDRESSES_SLUG, "nsm_address")
 
 _LEGACY_FK_FIELDS = (
     ("prefix", "prefix_id"),
@@ -55,29 +60,33 @@ class AddressIpamFkRef:
 
 
 def get_nsm_address_model():
-    """Return the dynamic ``nsm_addresses`` model class, or ``None``."""
-    try:
-        from netbox_custom_objects.models import CustomObjectType
-    except ImportError:
+    """Return the dynamic IPAM-linked address model class, or ``None``."""
+    cot = get_ipam_address_cot()
+    if cot is None:
         return None
-
-    for slug in NSM_ADDRESS_COT_SLUGS:
-        cot = CustomObjectType.objects.filter(slug=slug).first()
-        if cot is not None:
-            return cot.get_model()
-    return None
+    try:
+        return cot.get_model()
+    except Exception:
+        return None
 
 
 def is_nsm_address_object(obj, addr_model=None) -> bool:
     if obj is None:
         return False
     cot = getattr(obj, "custom_object_type", None)
-    if cot is not None and getattr(cot, "slug", None) in NSM_ADDRESS_COT_SLUGS:
+    if cot is not None and cot_ipam_address_flag(cot):
         return True
     model = addr_model or get_nsm_address_model()
     if model is None:
         return False
     return isinstance(obj, model)
+
+
+def is_policy_address_object(obj, addr_model=None) -> bool:
+    """True for IPAM-linked address rows and manual custom addresses."""
+    if is_nsm_address_object(obj, addr_model=addr_model):
+        return True
+    return is_nsm_address_custom_object(obj)
 
 
 def _iter_polymorphic_ref(addr_obj) -> Iterator[AddressIpamFkRef]:

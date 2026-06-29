@@ -170,6 +170,8 @@ class TypeMetadataView(PermissionRequiredMixin, View):
             raise Http404
         config_dict = resolve_nsm_config_dict_for_cot(cot) or {}
         links = dict(config_dict.get("links") or {})
+        from netbox_nsm.addresses.address_cot_schema import cot_ipam_address_flag
+
         return render(
             request,
             self.template_name,
@@ -182,6 +184,7 @@ class TypeMetadataView(PermissionRequiredMixin, View):
                 "area_labels": area_labels_for_values(config_dict.get("areas")),
                 "links": links,
                 "has_stored_metadata": _has_metadata(cot),
+                "show_plugin_name_templates": cot_ipam_address_flag(cot),
                 "plugin_name_templates": _plugin_name_template_rows(),
             },
         )
@@ -209,7 +212,7 @@ class TypeMetadataEditView(PermissionRequiredMixin, View):
 
     def post(self, request, slug):
         cot = _get_ui_cot(slug)
-        form = config_form_class_for_slug(cot.slug)(request.POST)
+        form = config_form_class_for_slug(cot.slug, cot=cot)(request.POST)
         if not form.is_valid():
             return render(
                 request,

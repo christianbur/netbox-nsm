@@ -68,3 +68,60 @@ class NsmConfigFormatTests(TestCase):
         self.assertNotIn("object_builder", config)
         yaml_text = format_nsm_config_comment_yaml(config)
         self.assertNotIn("object_builder:", yaml_text)
+
+    def test_formatted_output_uses_markdown_fences(self):
+        config = {
+            "sort_order": 22,
+            "display_template": "{{ name }}",
+            "areas": ["srcdst"],
+            "links": {
+                "linkable": True,
+                "inherit_links": False,
+                "inherit_stop_on_own": False,
+                "allow_virtual_groups": False,
+            },
+            "role": "app_network",
+        }
+        yaml_text = format_nsm_config_comment_yaml(config)
+        self.assertTrue(yaml_text.startswith("```\n"))
+        self.assertTrue(yaml_text.endswith("```\n"))
+        self.assertNotIn("```yaml", yaml_text)
+        self.assertIn("nsm_config:", yaml_text)
+        self.assertIn("- role: app_network", yaml_text)
+
+    def test_parse_fenced_and_unfenced_comments(self):
+        config = {
+            "sort_order": 10,
+            "display_template": "{{ name }}",
+            "links": {"linkable": True},
+        }
+        fenced = format_nsm_config_comment_yaml(config)
+        unfenced = (
+            yaml.dump(
+                {"nsm_config": [{"rule_view": {"sort_order": 10, "display_template": "{{ name }}"}}, {"links": {"linkable": True}}]},
+                default_flow_style=False,
+                allow_unicode=True,
+                sort_keys=False,
+            ).rstrip()
+            + "\n"
+        )
+        for text in (fenced, unfenced):
+            parsed = parse_nsm_config_from_comments(text)
+            self.assertEqual(parsed["sort_order"], 10)
+            self.assertEqual(parsed["display_template"], "{{ name }}")
+            self.assertTrue(parsed["links"]["linkable"])
+
+    def test_format_includes_menu_when_present(self):
+        yaml_text = format_nsm_config_comment_yaml(
+            {
+                "sort_order": 0,
+                "display_template": "{{ name }}",
+                "menu": "objects",
+            }
+        )
+        self.assertIn("- menu: objects", yaml_text)
+        parsed = parse_nsm_config_from_comments(yaml_text)
+        self.assertIsNone(parsed.get("menu"))
+        from netbox_nsm.type_metadata.menus import parse_menu_from_comments
+
+        self.assertEqual(parse_menu_from_comments(yaml_text), "objects")

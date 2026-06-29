@@ -186,9 +186,9 @@ def iter_inherited_nsm_links(ipam_obj) -> Iterator[InheritedNsmLink]:
             yield from _yield_inherited(link, type_key, lct, linked, ancestor, tc)
 
     try:
-        from netbox_custom_objects.models import CustomObjectType as _COT
+        from netbox_nsm.addresses.address_cot_schema import get_ipam_address_cot
 
-        _addr_cot = _COT.objects.filter(slug="nsm_addresses").first()
+        _addr_cot = get_ipam_address_cot()
         if _addr_cot:
             _AddrModel = _addr_cot.get_model()
             _addr_ct = ContentType.objects.get_for_model(_AddrModel)

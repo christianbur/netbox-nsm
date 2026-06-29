@@ -31,7 +31,7 @@ def _sorted_nsm_objects_menu_cots():
 
 
 def iter_nsm_object_menu_items():
-    """Yield list menu items for COTs in Custom Objects group ``NSM Objects``."""
+    """Yield list menu items for COTs with metadata menu bucket ``objects``."""
     for cot in _sorted_nsm_objects_menu_cots():
         model = cot.get_model()
         add_button = PluginMenuButton(

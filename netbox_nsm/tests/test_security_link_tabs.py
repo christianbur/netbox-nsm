@@ -1,4 +1,4 @@
-"""Tests for Security tab object-type tabs + value sub-grouping + pagination."""
+"""Tests for Security tab flat linked-objects table."""
 
 from __future__ import annotations
 
@@ -9,7 +9,10 @@ from django.test import RequestFactory, SimpleTestCase
 
 from netbox_nsm.security.tab.links import (
     DEFAULT_PER_PAGE,
-    build_value_subgroups,
+    PARAM_Q,
+    PARAM_ROW_TYPE,
+    build_row_type_options,
+    flatten_link_type_groups,
     prepare_link_tab_view,
 )
 from netbox_nsm.security.tab.value_groups import (
@@ -19,13 +22,15 @@ from netbox_nsm.security.tab.value_groups import (
 )
 
 
-def _obj(name, value_key="_none", value_label="—"):
-    return {
+def _obj(name, value_key="_none", value_label="—", **extra):
+    row = {
         "name": name,
         "url": f"/o/{name}/",
         "value_key": value_key,
         "value_label": value_label,
     }
+    row.update(extra)
+    return row
 
 
 def _group(type_key, label, objects, **extra):
@@ -34,7 +39,6 @@ def _group(type_key, label, objects, **extra):
         "type_label": label,
         "count": len(objects),
         "objects": objects,
-        "show_comment": False,
         "show_actions": False,
     }
     base.update(extra)
@@ -54,36 +58,42 @@ class NsmObjectGroupValueTests(SimpleTestCase):
         obj = SimpleNamespace(name="addr-1")
         self.assertEqual(nsm_object_group_value(obj), (UNGROUPED_KEY, UNGROUPED_LABEL))
 
-    def test_empty_string_value_is_ignored(self):
-        obj = SimpleNamespace(value="   ")
-        self.assertEqual(nsm_object_group_value(obj), (UNGROUPED_KEY, UNGROUPED_LABEL))
+
+class FlattenLinkTypeGroupsTests(SimpleTestCase):
+    def test_stamps_former_tab_name_as_type_column(self):
+        rows = flatten_link_type_groups(
+            [
+                _group("co__zone", "Zones", [_obj("trust")]),
+                _group("co__rule", "Rules", [_obj("rule-1")]),
+            ]
+        )
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]["row_type_label"], "Zones")
+        self.assertEqual(rows[0]["row_type_filter_key"], "co__zone")
+        self.assertEqual(rows[1]["row_type_label"], "Rules")
 
 
-class BuildValueSubgroupsTests(SimpleTestCase):
-    def test_counts_per_value_and_ungrouped_last(self):
-        objects = [
-            _obj("a", "Permit", "Permit"),
-            _obj("b", "Deny", "Deny"),
-            _obj("c", "Permit", "Permit"),
-            _obj("d"),
-        ]
-        subgroups = build_value_subgroups(objects)
-        by_key = {sg["value_key"]: sg["count"] for sg in subgroups}
-        self.assertEqual(by_key, {"Permit": 2, "Deny": 1, UNGROUPED_KEY: 1})
-        self.assertEqual(subgroups[-1]["value_key"], UNGROUPED_KEY)
-
-    def test_single_value_yields_one_subgroup(self):
-        subgroups = build_value_subgroups([_obj("a", "Permit", "Permit")])
-        self.assertEqual(len(subgroups), 1)
+class BuildRowTypeOptionsTests(SimpleTestCase):
+    def test_collects_distinct_type_labels(self):
+        rows = flatten_link_type_groups(
+            [
+                _group("co__zone", "Zones", [_obj("a"), _obj("b")]),
+                _group("co__rule", "Rules", [_obj("c")]),
+            ]
+        )
+        options = build_row_type_options(rows)
+        self.assertEqual(
+            [(opt["label"], opt["count"]) for opt in options],
+            [("Rules", 1), ("Zones", 2)],
+        )
 
 
 class PrepareLinkTabViewTests(SimpleTestCase):
     def setUp(self):
         self.factory = RequestFactory()
 
-    def _ctx(self, query=""):
-        request = self.factory.get(f"/dcim/devices/1/security/{query}")
-        groups = [
+    def _groups(self):
+        return [
             _group(
                 "co__action",
                 "Action",
@@ -95,137 +105,78 @@ class PrepareLinkTabViewTests(SimpleTestCase):
             ),
             _group("ipam__prefix", "Prefix", [_obj("10.0.0.0/8")]),
         ]
-        return prepare_link_tab_view(groups, request)
 
-    def test_first_group_active_by_default(self):
-        ctx = self._ctx()
-        self.assertEqual(ctx["nsm_active_link_type"], "co__action")
-        active = next(g for g in ctx["nsm_link_type_groups"] if g["is_active"])
-        self.assertTrue(active["paginated"])
-        self.assertTrue(active["has_value_grouping"])
-        self.assertEqual(len(active["page"]), 3)
+    def test_flattens_all_groups_into_one_table(self):
+        ctx = prepare_link_tab_view(self._groups(), self.factory.get("/security/"))
+        table = ctx["nsm_link_table"]
+        self.assertIsNotNone(table)
+        self.assertEqual(ctx["nsm_link_count"], 4)
+        self.assertEqual(len(table["page"]), 4)
+        labels = {row["row_type_label"] for row in table["page"]}
+        self.assertEqual(labels, {"Action", "Prefix"})
 
-    def test_requested_type_becomes_active(self):
-        ctx = self._ctx("?nsm_lt=ipam__prefix")
-        self.assertEqual(ctx["nsm_active_link_type"], "ipam__prefix")
-        active = next(g for g in ctx["nsm_link_type_groups"] if g["is_active"])
-        self.assertEqual(len(active["page"]), 1)
-        self.assertFalse(active["has_value_grouping"])
+    def test_quicksearch_filters_rows(self):
+        request = self.factory.get(f"/security/?{PARAM_Q}=deny")
+        ctx = prepare_link_tab_view(self._groups(), request)
+        page = ctx["nsm_link_table"]["page"]
+        self.assertEqual(len(page), 1)
+        self.assertEqual(page[0]["name"], "act-deny-1")
 
-    def test_value_filter_restricts_page(self):
-        ctx = self._ctx("?nsm_lt=co__action&nsm_lv=Permit")
-        self.assertEqual(ctx["nsm_active_link_value"], "Permit")
-        active = next(g for g in ctx["nsm_link_type_groups"] if g["is_active"])
-        self.assertEqual(len(active["page"]), 2)
-        self.assertTrue(all(o["value_key"] == "Permit" for o in active["page"]))
-
-    def test_unknown_value_ignored(self):
-        ctx = self._ctx("?nsm_lt=co__action&nsm_lv=Bogus")
-        self.assertEqual(ctx["nsm_active_link_value"], "")
-        active = next(g for g in ctx["nsm_link_type_groups"] if g["is_active"])
-        self.assertEqual(len(active["page"]), 3)
+    def test_type_filter_restricts_rows(self):
+        request = self.factory.get(f"/security/?{PARAM_ROW_TYPE}=ipam__prefix")
+        ctx = prepare_link_tab_view(self._groups(), request)
+        page = ctx["nsm_link_table"]["page"]
+        self.assertEqual(len(page), 1)
+        self.assertEqual(page[0]["row_type_label"], "Prefix")
 
     def test_pagination_limits_page_objects(self):
-        request = self.factory.get("/x/?nsm_lt=co__action")
-        many = [
-            _obj(f"a-{i:04d}", "Permit", "Permit")
-            for i in range(DEFAULT_PER_PAGE + 20)
-        ]
+        request = self.factory.get("/security/")
+        many = [_obj(f"a-{i:04d}", "Permit", "Permit") for i in range(DEFAULT_PER_PAGE + 20)]
         groups = [_group("co__action", "Action", many)]
-        ctx = prepare_link_tab_view(groups, request)
-        active = ctx["nsm_link_type_groups"][0]
-        self.assertEqual(len(active["page"]), DEFAULT_PER_PAGE)
-        self.assertEqual(active["pagination"]["total"], DEFAULT_PER_PAGE + 20)
-        self.assertTrue(active["pagination"]["next_url"])
-        self.assertEqual(active["pagination"]["num_pages"], 2)
-
-    def test_second_page_returns_remaining(self):
-        request = self.factory.get("/x/?nsm_lt=co__action&nsm_lp=2")
-        many = [
-            _obj(f"a-{i:04d}", "Permit", "Permit")
-            for i in range(DEFAULT_PER_PAGE + 20)
-        ]
-        groups = [_group("co__action", "Action", many)]
-        ctx = prepare_link_tab_view(groups, request)
-        active = ctx["nsm_link_type_groups"][0]
-        self.assertEqual(len(active["page"]), 20)
-        self.assertTrue(active["pagination"]["prev_url"])
+        table = prepare_link_tab_view(groups, request)["nsm_link_table"]
+        self.assertEqual(len(table["page"]), DEFAULT_PER_PAGE)
+        self.assertEqual(table["pagination"]["total"], DEFAULT_PER_PAGE + 20)
 
     def test_sort_by_name_descending(self):
-        request = self.factory.get("/x/?nsm_lt=co__action&nsm_lo=-name")
+        request = self.factory.get("/security/?nsm_lo=-name")
         groups = [
-            _group(
-                "co__action",
-                "Action",
-                [_obj("alpha"), _obj("beta"), _obj("gamma")],
-            )
+            _group("co__action", "Action", [_obj("alpha"), _obj("beta"), _obj("gamma")])
         ]
-        ctx = prepare_link_tab_view(groups, request)
-        names = [o["name"] for o in ctx["nsm_link_type_groups"][0]["page"]]
-        self.assertEqual(names, ["gamma", "beta", "alpha"])
+        page = prepare_link_tab_view(groups, request)["nsm_link_table"]["page"]
+        self.assertEqual([o["name"] for o in page], ["gamma", "beta", "alpha"])
 
-    def test_empty_groups_returns_safe_context(self):
-        ctx = prepare_link_tab_view([], self.factory.get("/x/"))
-        self.assertEqual(ctx["nsm_link_type_groups"], [])
-        self.assertEqual(ctx["nsm_active_link_type"], "")
+    def test_empty_groups_return_no_table(self):
+        ctx = prepare_link_tab_view([], self.factory.get("/security/"))
+        self.assertIsNone(ctx["nsm_link_table"])
+        self.assertEqual(ctx["nsm_link_count"], 0)
 
 
-class LinkTabTemplateTests(SimpleTestCase):
+class SecurityLinkObjectsTemplateTests(SimpleTestCase):
     def _render(self, ctx):
-        base = {
-            "nsm_panel_label": "Security",
-            "nsm_security_badge": None,
-            "nsm_analyzer_url": "/analyzer/",
-            "nsm_assign_url": "/assign/",
-            "nsm_page_addr_analyzable": False,
-            "nsm_rulebook_groups": [],
-            "nsm_enforcement_point": None,
-        }
-        base.update(ctx)
-        return render_to_string("netbox_nsm/inc/security_links.html", base)
+        return render_to_string(
+            "netbox_nsm/inc/security_link_objects.html",
+            ctx,
+        )
 
-    def test_renders_type_tabs_and_value_pills(self):
-        request = RequestFactory().get("/dcim/devices/1/security/")
+    def test_renders_quicksearch_and_type_filter_without_tabs_or_pills(self):
         groups = [
-            _group(
-                "co__action",
-                "Action",
-                [
-                    _obj("act-permit", "Permit", "Permit"),
-                    _obj("act-deny", "Deny", "Deny"),
-                ],
-                show_actions=True,
-            ),
-            _group("ipam__prefix", "Prefix", [_obj("10.0.0.0/8")]),
+            _group("co__zone", "Zones", [_obj("trust")]),
+            _group("co__rule", "Rules", [_obj("rule-1")]),
         ]
-        ctx = prepare_link_tab_view(groups, request)
+        ctx = prepare_link_tab_view(groups, RequestFactory().get("/security/"))
         html = self._render(ctx)
-        self.assertIn("nsm-link-tabs", html)
-        self.assertIn("Action", html)
-        self.assertIn("Prefix", html)
-        # Value sub-filter pills for the active "Action" tab.
-        self.assertIn('class="nsm-link-value-filter', html)
-        self.assertIn("Permit", html)
-        self.assertIn("Deny", html)
-        # Active tab renders rows; the non-active "Prefix" pane is not emitted.
-        self.assertIn('id="nsm-ltab-co__action"', html)
-        self.assertNotIn('id="nsm-ltab-ipam__prefix"', html)
-
-    def test_value_filter_hidden_without_grouping(self):
-        request = RequestFactory().get("/x/")
-        groups = [
-            _group("ipam__prefix", "Prefix", [_obj("10.0.0.0/8"), _obj("10.1.0.0/16")])
-        ]
-        ctx = prepare_link_tab_view(groups, request)
-        html = self._render(ctx)
+        self.assertIn("nsm-link-controls", html)
+        self.assertIn('placeholder="Quick search"', html)
+        self.assertIn("All types", html)
+        self.assertIn("Zones", html)
+        self.assertIn("Rules", html)
+        self.assertNotIn('class="nav nav-tabs nsm-link-tabs"', html)
         self.assertNotIn('class="nsm-link-value-filter', html)
+        self.assertNotIn("nsm-link-value-badge", html)
 
-    def test_pagination_controls_rendered(self):
-        request = RequestFactory().get("/x/?nsm_lt=co__action&nsm_pp=25")
-        many = [_obj(f"a-{i:04d}", "Permit", "Permit") for i in range(60)]
-        groups = [_group("co__action", "Action", many)]
-        ctx = prepare_link_tab_view(groups, request)
+    def test_renders_type_column_from_former_tab_names(self):
+        groups = [_group("co__zone", "Zones", [_obj("trust")])]
+        ctx = prepare_link_tab_view(groups, RequestFactory().get("/security/"))
         html = self._render(ctx)
-        self.assertIn("nsm-link-paginator", html)
-        self.assertIn("Per Page", html)
-        self.assertIn("page-link", html)
+        self.assertIn('class="col-type"', html)
+        self.assertIn("Zones", html)

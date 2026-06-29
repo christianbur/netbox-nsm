@@ -43,6 +43,13 @@ class SecurityConfig(PluginConfig):
 
         register_branching_models()
         register_security_tabs()
+        from netbox_nsm.objects.cot_routes import (
+            apply_nsm_object_co_view_patches,
+            apply_nsm_object_url_patches,
+        )
+
+        apply_nsm_object_url_patches()
+        apply_nsm_object_co_view_patches()
         self._register_system_jobs()
         self._patch_color_field_widget()
         self._patch_poly_subfield_labels()

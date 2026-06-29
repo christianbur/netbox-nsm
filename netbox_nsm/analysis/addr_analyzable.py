@@ -34,7 +34,9 @@ def _object_is_addr_analyzable(obj, content_type_id, address_ct_ids=None):
         return True
     if address_ct_ids is None:
         address_ct_ids = set(
-            _hub.content_type_ids_for_cot_slugs(["nsm_address", "nsm_address_group"])
+            _hub.content_type_ids_for_cot_slugs(
+                ["nsm_address", "nsm_address_custom", "nsm_address_group"]
+            )
         )
     return is_address_content_type_id(content_type_id, cache=address_ct_ids)
 

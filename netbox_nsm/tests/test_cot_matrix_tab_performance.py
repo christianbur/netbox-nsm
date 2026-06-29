@@ -44,8 +44,8 @@ class CotMatrixTabPrefetchTests(SimpleTestCase):
 
         fields = MagicMock()
         fields.values_list.return_value = ["source_zones", "destination_zones"]
-        cot = SimpleNamespace(slug="nsm_rb_zone_matrix", fields=fields)
-        virtual_rb = SimpleNamespace(cot=cot, slug="nsm_rb_zone_matrix")
+        cot = SimpleNamespace(slug="nsm_rb_demo_zone_matrix", fields=fields)
+        virtual_rb = SimpleNamespace(cot=cot, slug="nsm_rb_demo_zone_matrix")
         request = RequestFactory().get("/matrix/")
 
         with (

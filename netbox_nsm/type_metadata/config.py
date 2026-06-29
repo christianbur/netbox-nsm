@@ -42,6 +42,10 @@ __all__ = (
 )
 
 _COT_MODEL_RE = re.compile(r"table(\d+)model", re.IGNORECASE)
+_MARKDOWN_FENCE_RE = re.compile(
+    r"^\s*```(?:\w*)?\s*\r?\n(.*)\r?\n```\s*$",
+    re.DOTALL,
+)
 
 _RULE_VIEW_KEYS = frozenset({"sort_order", "display_template", "areas"})
 _LINKS_KEYS = frozenset(
@@ -144,10 +148,28 @@ def normalize_nsm_config_list(raw_list: list | None) -> dict[str, Any] | None:
     return merged
 
 
+def _strip_markdown_fence(text: str) -> str:
+    """Return inner YAML when *text* is wrapped in markdown code fences."""
+    if not text:
+        return text
+    match = _MARKDOWN_FENCE_RE.match(text)
+    if match:
+        return match.group(1)
+    return text
+
+
+def _wrap_yaml_in_markdown_fence(yaml_text: str) -> str:
+    """Wrap YAML in plain markdown ``` fences for ``CustomObjectType.comments``."""
+    content = (yaml_text or "").rstrip()
+    if not content:
+        return ""
+    return f"```\n{content}\n```\n"
+
+
 def _load_yaml_document(text: str) -> Any:
     import yaml
 
-    return yaml.safe_load(text or "")
+    return yaml.safe_load(_strip_markdown_fence(text or ""))
 
 
 def _extract_nsm_config_list_from_document(document: Any) -> list | None:
@@ -197,6 +219,8 @@ def _normalize_config_dict(config: dict[str, Any]) -> dict[str, Any]:
         result["links"] = dict(config.get("links") or {})
     if "role" in config:
         result["role"] = config.get("role")
+    if "menu" in config:
+        result["menu"] = config.get("menu")
     return result
 
 
@@ -215,6 +239,9 @@ def _build_nsm_config_list(config: dict[str, Any]) -> list[dict]:
     role = normalized.get("role")
     if isinstance(role, str) and role.strip():
         segments.append({"role": role.strip()})
+    menu = normalized.get("menu")
+    if isinstance(menu, str) and menu.strip():
+        segments.append({"menu": menu.strip()})
     return segments
 
 
@@ -223,7 +250,7 @@ def format_nsm_config_comment_yaml(config: dict[str, Any]) -> str:
     import yaml
 
     payload = {"nsm_config": _build_nsm_config_list(config)}
-    return (
+    yaml_body = (
         yaml.dump(
             payload,
             default_flow_style=False,
@@ -232,6 +259,7 @@ def format_nsm_config_comment_yaml(config: dict[str, Any]) -> str:
         ).rstrip()
         + "\n"
     )
+    return _wrap_yaml_in_markdown_fence(yaml_body)
 
 
 def format_type_comments_for_setup_yaml(config: dict[str, Any]) -> list[dict]:
@@ -262,13 +290,20 @@ def _document_to_nsm_config_segments(document: dict[str, Any]) -> list[dict]:
     role = document.get("role")
     if isinstance(role, str) and role.strip():
         segments.append({"role": role.strip()})
+    menu = document.get("menu")
+    if isinstance(menu, str) and menu.strip():
+        segments.append({"menu": menu.strip()})
     if "rulebook" in document:
         normalized = normalize_rulebook_config(document.get("rulebook"))
         if not is_default_rulebook_config(normalized):
             segments.append({"rulebook": _rulebook_block_for_yaml(normalized)})
     types_map = document.get("types")
     if isinstance(types_map, dict) and types_map:
-        segments.append({"types": deepcopy(types_map)})
+        from netbox_nsm.type_metadata.rule_view import compact_rulebook_types_map
+
+        compacted = compact_rulebook_types_map(types_map)
+        if compacted:
+            segments.append({"types": deepcopy(compacted)})
     return segments
 
 
@@ -288,7 +323,7 @@ def _format_comments_with_nsm_document(
         document.pop("nsm_config", None)
     if not document:
         return ""
-    return (
+    yaml_body = (
         yaml.dump(
             document,
             default_flow_style=False,
@@ -297,6 +332,7 @@ def _format_comments_with_nsm_document(
         ).rstrip()
         + "\n"
     )
+    return _wrap_yaml_in_markdown_fence(yaml_body)
 
 
 def _stored_nsm_config_document(text: str) -> dict[str, Any]:
@@ -322,10 +358,14 @@ def _stored_nsm_config_document(text: str) -> dict[str, Any]:
                     if isinstance(block, dict) and block:
                         result["links"] = dict(block)
     from netbox_nsm.type_metadata.roles import parse_role_from_comments
+    from netbox_nsm.type_metadata.menus import parse_menu_from_comments
 
     role = parse_role_from_comments(text)
     if role:
         result["role"] = role
+    menu = parse_menu_from_comments(text)
+    if menu:
+        result["menu"] = menu
     if result:
         return result
     return {}
@@ -352,7 +392,7 @@ def merge_nsm_config_document_into_comments(
 ) -> str:
     """Merge ``rule_view`` / ``links`` / ``rulebook`` segments into comments."""
     current = _stored_nsm_config_document(existing_comments)
-    for key in ("rule_view", "rulebook", "links", "types", "role"):
+    for key in ("rule_view", "rulebook", "links", "types", "role", "menu"):
         if key not in updates:
             continue
         value = updates[key]
@@ -380,6 +420,8 @@ def save_nsm_config_document_for_cot(cot, updates: dict[str, Any], *, rulebook_c
     merge_updates = dict(updates)
 
     if "rule_view" in merge_updates and rulebook_cot is not None:
+        from netbox_nsm.type_metadata.rule_view import compact_rulebook_types_map
+
         policy_slug = cot.slug
         rule_view = merge_updates.pop("rule_view")
         rb_doc = _stored_nsm_config_document(rulebook_cot.comments or "")
@@ -390,7 +432,7 @@ def save_nsm_config_document_for_cot(cot, updates: dict[str, Any], *, rulebook_c
             entry = dict(types_map.get(policy_slug) or {})
             entry["rule_view"] = rule_view
             types_map[policy_slug] = entry
-        rb_updates = {"types": types_map}
+        rb_updates = {"types": compact_rulebook_types_map(types_map)}
         if "rulebook" in merge_updates:
             rb_updates["rulebook"] = merge_updates.pop("rulebook")
         new_comments = merge_nsm_config_document_into_comments(
@@ -408,7 +450,9 @@ def save_nsm_config_document_for_cot(cot, updates: dict[str, Any], *, rulebook_c
             return
 
     if "types" in merge_updates and cot.slug.startswith("nsm_rb_"):
-        pass
+        from netbox_nsm.type_metadata.rule_view import compact_rulebook_types_map
+
+        merge_updates["types"] = compact_rulebook_types_map(merge_updates["types"])
     elif "types" in merge_updates:
         merge_updates.pop("types", None)
 

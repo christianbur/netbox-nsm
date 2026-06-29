@@ -23,9 +23,9 @@ SECURITY_TAB_PATH = "security"
 SECURITY_TAB_WEIGHT = 1500
 _CO_BASE_TEMPLATE = "netbox_custom_objects/customobject.html"
 # NSM-scoped custom objects render their detail page (and Journal/Changelog tabs,
-# see ``NsmCustomObjectJournalView``) with the NSM template that adds the Security
-# tab nav-link. The Security tab itself must extend the same base so the tab stays
-# visible/active; the upstream CO template's tabs block has no Security tab.
+# see ``NsmCustomObjectJournalView``) with the NSM template whose tabs block
+# includes registry-driven Security via ``nsm_plugin_extra_tabs``. The Security tab
+# view must extend the same base so the tab stays visible/active.
 _NSM_CO_BASE_TEMPLATE = "netbox_nsm/customobject.html"
 
 

@@ -3,7 +3,7 @@
   "schema_version": "1",
   "bundle_kind": "schema",
   "title": "NSM Security Objects Schema",
-  "description": "Required NSM base import: Security Object custom types, choice sets, default seed objects, and type metadata (links settings, rulebook views). Defines nsm_rb_zone_matrix and sample policy objects.",
+  "description": "Required NSM base import: Security Object custom types, choice sets, default seed objects, and type metadata (links settings, rulebook views). Defines nsm_rb_demo_rulebook and sample policy objects.",
   "choice_sets": [
     {
       "name": "nsm_object_status",
@@ -73,7 +73,6 @@
       "verbose_name": "Action",
       "verbose_name_plural": "Actions",
       "description": "Policy action for matching traffic in a rule (e.g. permit, deny, drop, reject). Used in rulebook Action columns.",
-      "group_name": "NSM Objects",
       "fields": [
         {
           "id": 1,
@@ -124,7 +123,6 @@
       "verbose_name": "Service",
       "verbose_name_plural": "Services",
       "description": "Represents one network service (protocol + port). Used in rulebook Service columns and Security Panel links.",
-      "group_name": "NSM Objects",
       "fields": [
         {
           "id": 1,
@@ -194,7 +192,6 @@
       "verbose_name": "Service Group",
       "verbose_name_plural": "Service Groups",
       "description": "Named collection of services. Referenced in rulebook Service columns; members are nsm_service objects.",
-      "group_name": "NSM Objects",
       "fields": [
         {
           "id": 1,
@@ -255,7 +252,6 @@
       "verbose_name": "Address",
       "verbose_name_plural": "Addresses",
       "description": "Named address object for policy rules (host, prefix, or range). Used in Source/Destination columns and Security Panel links.",
-      "group_name": "NSM Objects",
       "fields": [
         {
           "id": 1,
@@ -342,12 +338,91 @@
       ]
     },
     {
+      "name": "nsm_address_custom",
+      "slug": "nsm_address_custom",
+      "verbose_name": "Address Custom",
+      "verbose_name_plural": "Addresses Custom",
+      "description": "Named address without IPAM: manual IPv4 or IPv6 plus prefix length (e.g. 0.0.0.0/0). Usable in rulebooks and address groups like nsm_address.",
+      "group_name": "NSM Objects",
+      "fields": [
+        {
+          "id": 1,
+          "name": "name",
+          "type": "text",
+          "label": "Name",
+          "primary": true,
+          "required": true,
+          "weight": 1
+        },
+        {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
+        },
+        {
+          "id": 2,
+          "name": "color",
+          "type": "text",
+          "label": "Color",
+          "weight": 91
+        },
+        {
+          "id": 3,
+          "name": "description",
+          "type": "text",
+          "label": "Description",
+          "weight": 90
+        },
+        {
+          "id": 4,
+          "name": "comments",
+          "type": "longtext",
+          "label": "Comments",
+          "weight": 100
+        },
+        {
+          "id": 110,
+          "name": "ipv4",
+          "type": "text",
+          "label": "IPv4",
+          "required": false,
+          "weight": 11,
+          "description": "IPv4 address (mutually exclusive with IPv6)."
+        },
+        {
+          "id": 111,
+          "name": "ipv6",
+          "type": "text",
+          "label": "IPv6",
+          "required": false,
+          "weight": 12,
+          "description": "IPv6 address (mutually exclusive with IPv4)."
+        },
+        {
+          "id": 112,
+          "name": "subnet",
+          "type": "integer",
+          "label": "Prefix length",
+          "required": true,
+          "weight": 13,
+          "description": "CIDR prefix length (0–32 for IPv4, 0–128 for IPv6).",
+          "validation_minimum": 0,
+          "validation_maximum": 128
+        }
+      ],
+      "removed_fields": []
+    },
+    {
       "name": "nsm_address_group",
       "slug": "nsm_address_group",
       "verbose_name": "Address Group",
       "verbose_name_plural": "Address Groups",
       "description": "Named collection of address objects. Used in Source/Destination columns; members are nsm_address objects.",
-      "group_name": "NSM Objects",
       "fields": [
         {
           "id": 1,
@@ -394,10 +469,14 @@
           "name": "group",
           "type": "multiobject",
           "label": "Group Members",
-          "description": "Member address objects in this group.",
+          "description": "Member address objects (IPAM-linked or custom manual).",
           "required": true,
           "weight": 10,
-          "related_object_type": "custom-objects/nsm_address"
+          "is_polymorphic": true,
+          "related_object_types": [
+            "custom-objects/nsm_address",
+            "custom-objects/nsm_address_custom"
+          ]
         }
       ],
       "removed_fields": []
@@ -408,7 +487,6 @@
       "verbose_name": "Label",
       "verbose_name_plural": "Labels",
       "description": "Classification tag for inventory or rules (e.g. compliance, tier). Used in label columns and Security Panel links.",
-      "group_name": "NSM Objects",
       "fields": [
         {
           "id": 1,
@@ -474,7 +552,6 @@
       "verbose_name": "Zone",
       "verbose_name_plural": "Zones",
       "description": "Logical security zone for segmentation. Linked to inventory via Security Panel; used in rulebook zone columns.",
-      "group_name": "NSM Objects",
       "fields": [
         {
           "id": 1,
@@ -525,7 +602,6 @@
       "verbose_name": "Business App",
       "verbose_name_plural": "Business Apps",
       "description": "Business application metadata for rule Info columns (ownership, criticality).",
-      "group_name": "NSM Objects",
       "fields": [
         {
           "id": 1,
@@ -600,7 +676,6 @@
       "verbose_name": "Network App",
       "verbose_name_plural": "Network Apps",
       "description": "Network application identifier, similar to Palo Alto App-ID (e.g. ssh, onedrive, ssl).",
-      "group_name": "NSM Objects",
       "fields": [
         {
           "id": 1,
@@ -674,7 +749,7 @@
       "verbose_name": "Object Link",
       "verbose_name_plural": "Object Links",
       "description": "Links NetBox inventory to security policy objects or rulebooks (Security Panel source of truth).",
-      "group_name": "NSM Links",
+      "link_table": true,
       "fields": [
         {
           "id": 1,
@@ -739,6 +814,7 @@
           "related_object_types": [
             "custom-objects/nsm_zone",
             "custom-objects/nsm_address",
+            "custom-objects/nsm_address_custom",
             "custom-objects/nsm_address_group",
             "custom-objects/nsm_label",
             "custom-objects/nsm_service",
@@ -799,11 +875,11 @@
       "removed_fields": []
     },
     {
-      "name": "nsm_rb_zone_matrix",
-      "slug": "nsm_rb_zone_matrix",
-      "verbose_name": "Zone Matrix Demo",
-      "verbose_name_plural": "Zone Matrix Demos",
-      "description": "Demo rulebook for zone-matrix evaluation (250×250); populated by bundle nsm_demo_zone_matrix.",
+      "name": "nsm_rb_demo_rulebook",
+      "slug": "nsm_rb_demo_rulebook",
+      "verbose_name": "Rulebook RB Demo Rulebook",
+      "verbose_name_plural": "Rulebook RB Demo Rulebook",
+      "description": "Starter rulebook shipped with NSM Schema (zones, addresses, and address groups).",
       "group_name": "NSM Rulebooks",
       "fields": [
         {
@@ -811,6 +887,7 @@
           "name": "index",
           "type": "integer",
           "label": "Index",
+          "description": "Rule sequence number (primary key).",
           "required": true,
           "weight": 1,
           "primary": true
@@ -820,6 +897,7 @@
           "name": "status",
           "type": "boolean",
           "label": "Status",
+          "description": "When false, the rule is disabled.",
           "required": false,
           "weight": 2
         },
@@ -828,36 +906,63 @@
           "name": "name",
           "type": "text",
           "label": "Name",
-          "required": true,
+          "description": "Optional short rule name.",
+          "required": false,
           "weight": 3
         },
         {
           "id": 4,
-          "name": "source",
+          "name": "source_zones",
           "type": "multiobject",
-          "label": "Source",
+          "label": "Zones",
+          "description": "Source objects: zones",
           "required": true,
           "weight": 11,
           "is_polymorphic": true,
           "related_object_types": [
-            "custom-objects/nsm_zone",
-            "custom-objects/nsm_label",
-            "custom-objects/nsm_address",
-            "custom-objects/nsm_address_group"
+            "custom-objects/nsm_zone"
           ]
         },
         {
-          "id": 5,
-          "name": "destination",
+          "id": 14,
+          "name": "destination_zones",
           "type": "multiobject",
-          "label": "Destination",
+          "label": "Zones",
+          "description": "Destination objects: zones",
           "required": true,
           "weight": 21,
           "is_polymorphic": true,
           "related_object_types": [
-            "custom-objects/nsm_zone",
-            "custom-objects/nsm_label",
+            "custom-objects/nsm_zone"
+          ]
+        },
+        {
+          "id": 6,
+          "name": "source_addresses",
+          "type": "multiobject",
+          "label": "Addresses",
+          "description": "Source objects: addresses and address groups",
+          "required": true,
+          "weight": 13,
+          "is_polymorphic": true,
+          "related_object_types": [
             "custom-objects/nsm_address",
+            "custom-objects/nsm_address_custom",
+            "custom-objects/nsm_address_group"
+          ]
+        },
+        {
+          "id": 7,
+          "name": "destination_addresses",
+          "type": "multiobject",
+          "label": "Addresses",
+          "description": "Destination objects: addresses and address groups",
+          "required": true,
+          "weight": 23,
+          "is_polymorphic": true,
+          "related_object_types": [
+            "custom-objects/nsm_address",
+            "custom-objects/nsm_address_custom",
             "custom-objects/nsm_address_group"
           ]
         },
@@ -866,6 +971,7 @@
           "name": "services_applications",
           "type": "multiobject",
           "label": "Services & Applications",
+          "description": "Service objects: service, service group, and network app.",
           "required": true,
           "weight": 40,
           "is_polymorphic": true,
@@ -880,26 +986,10 @@
           "name": "actions",
           "type": "multiobject",
           "label": "Actions",
+          "description": "Rule outcome(s), e.g. permit or deny.",
           "required": true,
           "weight": 50,
           "related_object_type": "custom-objects/nsm_action"
-        },
-        {
-          "id": 10,
-          "name": "infos",
-          "type": "multiobject",
-          "label": "Infos",
-          "required": false,
-          "weight": 60,
-          "related_object_type": "custom-objects/nsm_app_business"
-        },
-        {
-          "id": 11,
-          "name": "description",
-          "type": "longtext",
-          "label": "Description",
-          "required": false,
-          "weight": 100
         }
       ],
       "removed_fields": []
@@ -995,79 +1085,115 @@
       ]
     },
     {
-      "type": "nsm_rb_zone_matrix",
+      "type": "nsm_label",
+      "records": [
+        {
+          "name": "dev",
+          "status": "active",
+          "label_type": "environment"
+        },
+        {
+          "name": "test",
+          "status": "active",
+          "label_type": "environment"
+        },
+        {
+          "name": "prod",
+          "status": "active",
+          "label_type": "environment"
+        }
+      ]
+    },
+    {
+      "type": "nsm_rb_demo_rulebook",
       "records": [
         {
           "index": 1,
           "status": true,
           "name": "trust-to-untrust-https",
-          "source": [
+          "source_zones": [
             "nsm_zone/trust"
           ],
-          "destination": [
+          "destination_zones": [
             "nsm_zone/untrust"
           ],
+          "source_addresses": [],
+          "destination_addresses": [],
           "services_applications": [
             "nsm_service/HTTPS"
           ],
           "actions": [
             "nsm_action/Permit"
-          ],
-          "description": "HTTPS trust → untrust, permit"
+          ]
         },
         {
           "index": 2,
           "status": true,
           "name": "trust-to-untrust-http",
-          "source": [
+          "source_zones": [
             "nsm_zone/trust"
           ],
-          "destination": [
+          "destination_zones": [
             "nsm_zone/untrust"
           ],
+          "source_addresses": [],
+          "destination_addresses": [],
           "services_applications": [
             "nsm_service/HTTP"
           ],
           "actions": [
             "nsm_action/Permit"
-          ],
-          "description": "HTTP trust → untrust, permit"
+          ]
         },
         {
           "index": 3,
           "status": true,
           "name": "untrust-to-trust-https-deny",
-          "source": [
+          "source_zones": [
             "nsm_zone/untrust"
           ],
-          "destination": [
+          "destination_zones": [
             "nsm_zone/trust"
           ],
+          "source_addresses": [],
+          "destination_addresses": [],
           "services_applications": [
             "nsm_service/HTTPS"
           ],
           "actions": [
             "nsm_action/Deny"
-          ],
-          "description": "HTTPS untrust → trust, deny"
+          ]
         },
         {
           "index": 4,
           "status": true,
-          "name": "untrust-to-trust-http-deny",
-          "source": [
+          "name": "untrust-to-trust-dns-deny",
+          "source_zones": [
             "nsm_zone/untrust"
           ],
-          "destination": [
+          "destination_zones": [
             "nsm_zone/trust"
           ],
+          "source_addresses": [],
+          "destination_addresses": [],
           "services_applications": [
-            "nsm_service_group/G-DNS"
+            "nsm_service/DNS-UDP"
           ],
           "actions": [
             "nsm_action/Deny"
-          ],
-          "description": "DNS untrust → trust, deny"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "nsm_address_custom",
+      "records": [
+        {
+          "name": "ANY",
+          "status": "active",
+          "ipv4": "0.0.0.0",
+          "subnet": 0,
+          "description": "Match any IPv4 destination (0.0.0.0/0)"
         }
       ]
     }
@@ -1081,7 +1207,8 @@
           "inherit_stop_on_own": false,
           "allow_virtual_groups": false
         },
-        "role": "zone"
+        "role": "zone",
+        "menu": "objects"
       },
       "nsm_address": {
         "links": {
@@ -1090,7 +1217,8 @@
           "inherit_stop_on_own": false,
           "allow_virtual_groups": false
         },
-        "role": "address"
+        "role": "address",
+        "menu": "objects"
       },
       "nsm_address_group": {
         "links": {
@@ -1099,7 +1227,8 @@
           "inherit_stop_on_own": false,
           "allow_virtual_groups": false
         },
-        "role": "address_group"
+        "role": "address_group",
+        "menu": "objects"
       },
       "nsm_label": {
         "links": {
@@ -1108,7 +1237,8 @@
           "inherit_stop_on_own": false,
           "allow_virtual_groups": false
         },
-        "role": "label"
+        "role": "label",
+        "menu": "objects"
       },
       "nsm_service": {
         "links": {
@@ -1117,7 +1247,8 @@
           "inherit_stop_on_own": false,
           "allow_virtual_groups": false
         },
-        "role": "service"
+        "role": "service",
+        "menu": "objects"
       },
       "nsm_service_group": {
         "links": {
@@ -1126,7 +1257,8 @@
           "inherit_stop_on_own": false,
           "allow_virtual_groups": false
         },
-        "role": "service_group"
+        "role": "service_group",
+        "menu": "objects"
       },
       "nsm_action": {
         "links": {
@@ -1135,7 +1267,8 @@
           "inherit_stop_on_own": false,
           "allow_virtual_groups": false
         },
-        "role": "action"
+        "role": "action",
+        "menu": "objects"
       },
       "nsm_app_business": {
         "links": {
@@ -1144,7 +1277,8 @@
           "inherit_stop_on_own": false,
           "allow_virtual_groups": false
         },
-        "role": "app_business"
+        "role": "app_business",
+        "menu": "objects"
       },
       "nsm_app_network": {
         "links": {
@@ -1153,104 +1287,20 @@
           "inherit_stop_on_own": false,
           "allow_virtual_groups": false
         },
-        "role": "app_network"
+        "role": "app_network",
+        "menu": "objects"
       },
       "nsm_object_link": {
-        "link_table": true,
-        "role": "object_link"
+        "link_table": true
       }
     },
     "rulebooks": {
-      "nsm_rb_zone_matrix": {
+      "nsm_rb_demo_rulebook": {
         "rulebook": {
-          "parent_slug": "",
-          "matrix_tab_enabled": true,
-          "row_group_by_col_id": "source::nsm_zone"
+          "parent_slug": ""
         },
-        "types": {
-          "nsm_zone": {
-            "rule_view": {
-              "sort_order": 10,
-              "display_template": "{{ name }}",
-              "areas": [
-                "srcdst"
-              ]
-            }
-          },
-          "nsm_address": {
-            "rule_view": {
-              "sort_order": 12,
-              "display_template": "{{ name }}",
-              "areas": [
-                "srcdst"
-              ]
-            }
-          },
-          "nsm_address_group": {
-            "rule_view": {
-              "sort_order": 13,
-              "display_template": "{{ name }}",
-              "areas": [
-                "srcdst"
-              ]
-            }
-          },
-          "nsm_label": {
-            "rule_view": {
-              "sort_order": 11,
-              "display_template": "{{ label_type[0] | upper }}:{{ name }}",
-              "areas": [
-                "srcdst"
-              ]
-            }
-          },
-          "nsm_service": {
-            "rule_view": {
-              "sort_order": 20,
-              "display_template": "{{ name }} ({{ protocol }}/{{ port }})",
-              "areas": [
-                "services"
-              ]
-            }
-          },
-          "nsm_service_group": {
-            "rule_view": {
-              "sort_order": 21,
-              "display_template": "{{ name }}",
-              "areas": [
-                "services"
-              ]
-            }
-          },
-          "nsm_action": {
-            "rule_view": {
-              "sort_order": 30,
-              "display_template": "{{ name | upper }}",
-              "areas": [
-                "action"
-              ]
-            }
-          },
-          "nsm_app_business": {
-            "rule_view": {
-              "sort_order": 40,
-              "display_template": "{{ name }}",
-              "areas": [
-                "srcdst"
-              ]
-            }
-          },
-          "nsm_app_network": {
-            "rule_view": {
-              "sort_order": 22,
-              "display_template": "{{ name }}",
-              "areas": [
-                "srcdst"
-              ]
-            }
-          }
-        },
-        "role": "rulebook"
+        "role": "rulebook",
+        "menu": "rulebooks"
       }
     }
   }

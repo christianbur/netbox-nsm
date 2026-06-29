@@ -22,7 +22,7 @@ class CotRulesColumnFilterUrlTests(SimpleTestCase):
 
 class MatrixCellRulesFilterUrlTests(SimpleTestCase):
     def test_builds_matrix_cell_source_destination_filters_collapsed(self):
-        base = "/rulebooks/cot/nsm_rb_zone_matrix/rules/"
+        base = "/rulebooks/cot/nsm_rb_demo_zone_matrix/rules/"
         url = build_matrix_cell_rules_filter_url(
             base,
             src_column_key="source_zones",
@@ -36,7 +36,7 @@ class MatrixCellRulesFilterUrlTests(SimpleTestCase):
         self.assertNotIn("filter_q", query)
 
     def test_builds_matrix_cell_source_destination_filters_expanded(self):
-        base = "/rulebooks/cot/nsm_rb_zone_matrix/rules/"
+        base = "/rulebooks/cot/nsm_rb_demo_zone_matrix/rules/"
         url = build_matrix_cell_rules_filter_url(
             base,
             src_column_key="source::ct_12",

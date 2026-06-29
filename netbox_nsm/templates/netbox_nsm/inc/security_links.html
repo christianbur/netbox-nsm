@@ -111,15 +111,19 @@
     width: 100%;
   }
   .nsm-link-parent-host { font-size: 12px; }
-  .nsm-link-table .col-object {
-    width: auto;
-    padding-left: 3rem;
+  .nsm-link-table .col-type {
+    width: 9rem;
     font-size: 12px;
     vertical-align: middle;
   }
-  .nsm-link-table .col-comment {
-    font-size: 11px;
-    color: var(--bs-secondary-color);
+  .nsm-link-table .col-field {
+    font-size: 12px;
+    vertical-align: middle;
+  }
+  .nsm-link-table .col-object {
+    width: auto;
+    padding-left: 0.75rem;
+    font-size: 12px;
     vertical-align: middle;
   }
   .nsm-link-table .col-actions {
@@ -165,23 +169,21 @@
   .nsm-analysis-rulebooks {
     margin-top: 0.25rem;
   }
-  /* Linked objects: object-type tabs + value sub-filter + NetBox-style table */
-  .nsm-link-objects .nsm-link-tabs {
-    border-bottom: 1px solid var(--bs-border-color);
-    flex-wrap: wrap;
-    gap: 0;
+  .nsm-link-objects .nsm-link-controls {
+    gap: 0.5rem;
   }
-  .nsm-link-objects .nsm-link-tabs .nav-link {
-    font-size: 13px;
-    padding: 0.35rem 0.75rem;
-  }
-  .nsm-link-objects .nsm-link-value-filter {
-    border-bottom: 1px dashed var(--bs-border-color);
-    padding-bottom: 0.5rem !important;
-  }
-  .nsm-link-objects .nsm-link-value-filter .btn {
+  .nsm-link-objects .nsm-link-controls .form-select {
     font-size: 12px;
-    padding: 0.1rem 0.5rem;
+    min-width: 12rem;
+  }
+  .nsm-link-objects .nsm-link-controls .quicksearch .form-control {
+    font-size: 13px;
+  }
+  /* Linked objects: flat table */
+  .nsm-link-objects .nsm-link-tabs,
+  .nsm-link-objects .nsm-link-value-filter,
+  .nsm-link-objects .nsm-link-type-filter {
+    display: none;
   }
   .nsm-link-objects table.nsm-link-table {
     margin-bottom: 0;
@@ -246,93 +248,8 @@
   <div class="card-body p-0">
 {% endif %}
 
-    {% if not nsm_rulebook_groups and not nsm_link_type_groups and not nsm_enforcement_point and not nsm_interface_analysis %}
+    {% if not nsm_link_table and not nsm_enforcement_point and not nsm_interface_analysis %}
     <div class="ps-3 py-2 text-muted">{% trans "None" %}</div>
-    {% endif %}
-
-    {# ── Rulebooks → Rulebook → Field → Rule ────────────────────────────── #}
-    {% if nsm_rulebook_groups %}
-    <div class="border-bottom">
-      <div class="nsm-tree-hdr">
-        <button type="button"
-                class="nsm-tree-toggle"
-                data-bs-toggle="collapse"
-                data-bs-target="#nsm-cat-rulebook"
-                aria-expanded="true"
-                aria-label="{% trans 'Toggle Rulebooks' %}">
-          <i class="mdi mdi-chevron-right nsm-chev"></i>
-        </button>
-        <span>{% trans "Rulebooks" %}</span>
-        <span class="badge text-bg-secondary ms-1">{{ nsm_unique_rules_total }}</span>
-      </div>
-      <div id="nsm-cat-rulebook" class="collapse show">
-        <div class="nsm-rulebook-accordion"
-             id="nsm-accordion"
-             data-api-url="{{ nsm_api_url }}">
-
-          {% for group in nsm_rulebook_groups %}
-          {% with rb=group.rulebook %}
-          <div class="border-top" data-rb-pk="{{ rb.pk }}">
-            <div class="nsm-rb-hdr">
-              <button type="button"
-                      class="nsm-tree-toggle"
-                      data-bs-toggle="collapse"
-                      data-bs-target="#nsm-rb-{{ rb.pk }}"
-                      aria-expanded="true"
-                      aria-label="{% blocktrans with rb=rb.name %}Toggle {{ rb }}{% endblocktrans %}">
-                <i class="mdi mdi-chevron-right nsm-chev"></i>
-              </button>
-              {% if group.rules_tab_url %}
-              <a href="{{ group.rules_tab_url }}" class="nsm-rb-title-link">{{ rb.name }}</a>
-              {% else %}
-              <span>{{ rb.name }}</span>
-              {% endif %}
-              <span class="badge text-bg-secondary ms-1 nsm-rb-count">{{ group.unique_count }}</span>
-            </div>
-            <div id="nsm-rb-{{ rb.pk }}" class="collapse show">
-              {% for fg in group.field_groups %}
-              <div class="nsm-rb-field" data-field-pk="{{ fg.field.pk }}">
-                <div class="nsm-rb-field-hdr">
-                  <button type="button"
-                          class="nsm-tree-toggle"
-                          data-bs-toggle="collapse"
-                          data-bs-target="#nsm-rb-{{ rb.pk }}-f-{{ fg.field.pk }}"
-                          aria-expanded="false"
-                          aria-label="{% blocktrans with field=fg.field.name %}Toggle {{ field }}{% endblocktrans %}">
-                    <i class="mdi mdi-chevron-right nsm-chev"></i>
-                  </button>
-                  <span>{{ fg.field.name }}</span>
-                  <span class="badge text-bg-secondary ms-1 nsm-rb-field-count">{{ fg.rule_count }}</span>
-                </div>
-                <div id="nsm-rb-{{ rb.pk }}-f-{{ fg.field.pk }}"
-                     class="collapse nsm-rb-field-collapse"
-                     data-rb-pk="{{ rb.pk }}"
-                     data-field-pk="{{ fg.field.pk }}">
-                  <ul class="nsm-rb-rule-list nsm-rb-field-rules"
-                      data-offset="0"
-                      data-has-more="{% if fg.rule_count %}1{% else %}0{% endif %}"
-                      data-loaded="0"
-                      data-loading="0"></ul>
-                  <div class="nsm-rb-field-loading d-none" aria-live="polite">
-                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                    {% trans "Loading…" %}
-                  </div>
-                  <div class="nsm-rb-field-sentinel" style="height:1px;"></div>
-                </div>
-              </div>
-              {% endfor %}
-            </div>
-          </div>
-          {% endwith %}
-          {% endfor %}
-
-        </div>
-      </div>
-    </div>
-    {% endif %}
-
-    {% if nsm_rulebook_groups and nsm_link_type_groups %}
-    <hr class="nsm-link-section-separator">
     {% endif %}
 
     {# ── Linked objects (object-type tabs + value sub-grouping + pagination) ─ #}
@@ -436,67 +353,6 @@
                 {% endfor %}
               </div>
               {% endif %}
-
-              {% if iface.rulebook_groups %}
-              <div class="nsm-analysis-rulebooks nsm-rulebook-accordion"
-                   data-api-url="{{ iface.api_url }}">
-                {% for group in iface.rulebook_groups %}
-                {% with rb=group.rulebook %}
-                <div data-rb-pk="{{ rb.pk }}">
-                  <div class="nsm-rb-hdr">
-                    <button type="button"
-                            class="nsm-tree-toggle"
-                            data-bs-toggle="collapse"
-                            data-bs-target="#nsm-analysis-iface-{{ iface.pk }}-rb-{{ rb.pk }}"
-                            aria-expanded="false"
-                            aria-label="{% blocktrans with rb=rb.name %}Toggle {{ rb }}{% endblocktrans %}">
-                      <i class="mdi mdi-chevron-right nsm-chev"></i>
-                    </button>
-                    {% if group.rules_tab_url %}
-                    <a href="{{ group.rules_tab_url }}" class="nsm-rb-title-link">{{ rb.name }}</a>
-                    {% else %}
-                    <span>{{ rb.name }}</span>
-                    {% endif %}
-                    <span class="badge text-bg-secondary ms-1 nsm-rb-count">{{ group.unique_count }}</span>
-                  </div>
-                  <div id="nsm-analysis-iface-{{ iface.pk }}-rb-{{ rb.pk }}" class="collapse">
-                    {% for fg in group.field_groups %}
-                    <div class="nsm-rb-field" data-field-pk="{{ fg.field.pk }}">
-                      <div class="nsm-rb-field-hdr">
-                        <button type="button"
-                                class="nsm-tree-toggle"
-                                data-bs-toggle="collapse"
-                                data-bs-target="#nsm-analysis-iface-{{ iface.pk }}-rb-{{ rb.pk }}-f-{{ fg.field.pk }}"
-                                aria-expanded="false"
-                                aria-label="{% blocktrans with field=fg.field.name %}Toggle {{ field }}{% endblocktrans %}">
-                          <i class="mdi mdi-chevron-right nsm-chev"></i>
-                        </button>
-                        <span>{{ fg.field.name }}</span>
-                        <span class="badge text-bg-secondary ms-1 nsm-rb-field-count">{{ fg.rule_count }}</span>
-                      </div>
-                      <div id="nsm-analysis-iface-{{ iface.pk }}-rb-{{ rb.pk }}-f-{{ fg.field.pk }}"
-                           class="collapse nsm-rb-field-collapse"
-                           data-rb-pk="{{ rb.pk }}"
-                           data-field-pk="{{ fg.field.pk }}">
-                        <ul class="nsm-rb-rule-list nsm-rb-field-rules"
-                            data-offset="0"
-                            data-has-more="{% if fg.rule_count %}1{% else %}0{% endif %}"
-                            data-loaded="0"
-                            data-loading="0"></ul>
-                        <div class="nsm-rb-field-loading d-none" aria-live="polite">
-                          <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                          {% trans "Loading…" %}
-                        </div>
-                        <div class="nsm-rb-field-sentinel" style="height:1px;"></div>
-                      </div>
-                    </div>
-                    {% endfor %}
-                  </div>
-                </div>
-                {% endwith %}
-                {% endfor %}
-              </div>
-              {% endif %}
             </div>
           </div>
         </div>
@@ -508,144 +364,3 @@
   </div>
 </div>
 
-<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/nsm_branch_api.js' %}?v=1"></script>
-<script>
-(function () {
-  document.addEventListener("click", function (e) {
-    var link = e.target.closest("a.nsm-security-rule-link");
-    if (!link || !(e.ctrlKey || e.metaKey)) {
-      return;
-    }
-    var detailUrl = link.getAttribute("data-detail-url");
-    if (detailUrl) {
-      e.preventDefault();
-      window.location.href = detailUrl;
-    }
-  });
-})();
-</script>
-
-<script>
-(function () {
-  var fieldObservers = new WeakMap();
-  var FILTER_RULE_TITLE = "{% trans 'Filter rules by name (Ctrl+click: open rule detail)'|escapejs %}";
-
-  function mergeHeaders() {
-    return (window.NSM_BRANCH_API && NSM_BRANCH_API.mergeBranchHeaders({'X-Requested-With': 'XMLHttpRequest'}))
-      || {'X-Requested-With': 'XMLHttpRequest'};
-  }
-
-  function escHtml(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
-  function setFieldLoading(fieldCollapse, loading) {
-    var ruleList = fieldCollapse.querySelector('.nsm-rb-field-rules');
-    var loadingEl = fieldCollapse.querySelector('.nsm-rb-field-loading');
-    if (ruleList) {
-      ruleList.dataset.loading = loading ? '1' : '0';
-    }
-    if (loadingEl) {
-      loadingEl.classList.toggle('d-none', !loading);
-    }
-  }
-
-  function appendRules(ruleList, results) {
-    results.forEach(function (item) {
-      var li = document.createElement('li');
-      if (item.rule_id) {
-        li.dataset.ruleId = String(item.rule_id);
-      }
-      li.innerHTML =
-        '<a href="' + escHtml(item.rule_url) + '" class="nsm-security-rule-link" ' +
-        'data-detail-url="' + escHtml(item.rule_detail_url || '') + '" ' +
-        'title="' + escHtml(FILTER_RULE_TITLE) + '">' +
-        escHtml(item.rule_name) + '</a>';
-      ruleList.appendChild(li);
-    });
-  }
-
-  function observeFieldSentinel(fieldCollapse) {
-    if (fieldObservers.has(fieldCollapse)) {
-      return;
-    }
-    var sentinel = fieldCollapse.querySelector('.nsm-rb-field-sentinel');
-    if (!sentinel) {
-      return;
-    }
-    var observer = new IntersectionObserver(function (entries) {
-      if (!entries[0].isIntersecting) {
-        return;
-      }
-      var ruleList = fieldCollapse.querySelector('.nsm-rb-field-rules');
-      if (!ruleList || ruleList.dataset.hasMore !== '1' || ruleList.dataset.loading === '1') {
-        return;
-      }
-      fetchFieldRules(fieldCollapse, parseInt(ruleList.dataset.offset || '0', 10));
-    }, {root: null, threshold: 0});
-    observer.observe(sentinel);
-    fieldObservers.set(fieldCollapse, observer);
-  }
-
-  function disconnectFieldObserver(fieldCollapse) {
-    var observer = fieldObservers.get(fieldCollapse);
-    if (observer) {
-      observer.disconnect();
-      fieldObservers.delete(fieldCollapse);
-    }
-  }
-
-  function fetchFieldRules(fieldCollapse, offset) {
-    var accordion = fieldCollapse.closest('.nsm-rulebook-accordion');
-    if (!accordion) {
-      return;
-    }
-    var apiUrl = accordion.dataset.apiUrl;
-    var ruleList = fieldCollapse.querySelector('.nsm-rb-field-rules');
-    if (!ruleList || ruleList.dataset.loading === '1') {
-      return;
-    }
-    if (ruleList.dataset.hasMore !== '1' && ruleList.dataset.loaded === '1') {
-      return;
-    }
-
-    setFieldLoading(fieldCollapse, true);
-    var url = apiUrl
-      + '&rulebook_pk=' + encodeURIComponent(fieldCollapse.dataset.rbPk)
-      + '&field_pk=' + encodeURIComponent(fieldCollapse.dataset.fieldPk)
-      + '&offset=' + encodeURIComponent(offset || 0);
-
-    fetch(url, {headers: mergeHeaders()})
-      .then(function (r) { return r.json(); })
-      .then(function (data) {
-        appendRules(ruleList, data.results || []);
-        ruleList.dataset.offset = String(data.offset || 0);
-        ruleList.dataset.hasMore = data.has_more ? '1' : '0';
-        ruleList.dataset.loaded = '1';
-        setFieldLoading(fieldCollapse, false);
-        if (data.has_more) {
-          observeFieldSentinel(fieldCollapse);
-        } else {
-          disconnectFieldObserver(fieldCollapse);
-        }
-      })
-      .catch(function () {
-        setFieldLoading(fieldCollapse, false);
-      });
-  }
-
-  document.querySelectorAll('.nsm-rulebook-accordion').forEach(function (accordion) {
-    accordion.addEventListener('shown.bs.collapse', function (e) {
-      var fieldCollapse = e.target.closest('.nsm-rb-field-collapse');
-      if (!fieldCollapse || !accordion.contains(fieldCollapse)) {
-        return;
-      }
-      var ruleList = fieldCollapse.querySelector('.nsm-rb-field-rules');
-      if (!ruleList || ruleList.dataset.loaded === '1' || ruleList.dataset.hasMore !== '1') {
-        return;
-      }
-      fetchFieldRules(fieldCollapse, 0);
-    });
-  });
-})();
-</script>

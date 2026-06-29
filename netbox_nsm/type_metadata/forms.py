@@ -26,9 +26,26 @@ def area_labels_for_values(values) -> list[str]:
     return [str(AREA_LABEL_BY_VALUE.get(value, value)) for value in (values or [])]
 
 
-def config_form_class_for_slug(slug: str | None):
-    if slug == "nsm_address":
+def config_form_class_for_cot(cot) -> type:
+    from netbox_nsm.addresses.address_cot_schema import cot_ipam_address_flag
+
+    if cot is not None and cot_ipam_address_flag(cot):
         return NsmAddressConfigForm
+    return NsmConfigForm
+
+
+def config_form_class_for_slug(slug: str | None, *, cot=None):
+    if cot is not None:
+        return config_form_class_for_cot(cot)
+    if slug:
+        try:
+            from netbox_custom_objects.models import CustomObjectType
+
+            resolved = CustomObjectType.objects.filter(slug=slug).first()
+            if resolved is not None:
+                return config_form_class_for_cot(resolved)
+        except ImportError:
+            pass
     return NsmConfigForm
 
 

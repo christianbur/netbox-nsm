@@ -1,61 +1,48 @@
-"""Object-type tabs + value sub-grouping + server-side pagination.
+"""Security tab linked-objects table: quicksearch, type filter, pagination.
 
-The Security tab can link to very large numbers of objects (50k+). To keep the
-rendered page bounded, linked objects are presented as:
-
-1. **Object-type tabs** — one tab per linked content type, each with a count
-   badge. Only the *active* tab's rows are rendered into the DOM.
-2. **Value sub-filter** — within a tab, a segmented pill filter groups rows by a
-   secondary "value" (e.g. an *Action* object's Permit / Deny), each with its
-   own count.
-3. **Pagination** — the active tab/value selection is paginated server-side so
-   at most one page of rows (default 50) ever reaches the browser.
-
-This module is pure presentation logic over the already-collected link payloads
-(``finalize_link_type_groups`` output); it does not touch the link source of
-truth or tab registration.
+All linked objects render in a single flat table. Former object-type tabs are
+exposed as the **Type** column; quicksearch and a type dropdown sit above the
+table (PR #482-style controls, without value pills or object-type tabs).
 """
 
 from __future__ import annotations
 
-from django.core.paginator import Paginator
+import re
 
-from netbox_nsm.security.tab.value_groups import (
-    UNGROUPED_KEY,
-    UNGROUPED_LABEL,
-    nsm_object_group_value,
-)
+from django.core.paginator import Paginator
 
 __all__ = (
     "DEFAULT_PER_PAGE",
     "PARAM_ORDER",
     "PARAM_PAGE",
     "PARAM_PER_PAGE",
-    "PARAM_TYPE",
-    "PARAM_VALUE",
+    "PARAM_Q",
+    "PARAM_ROW_TYPE",
     "PER_PAGE_CHOICES",
-    "build_value_subgroups",
+    "build_row_type_options",
+    "flatten_link_type_groups",
     "prepare_link_tab_view",
 )
 
-PARAM_TYPE = "nsm_lt"
-PARAM_VALUE = "nsm_lv"
+PARAM_Q = "nsm_q"
+PARAM_ROW_TYPE = "nsm_ty"
 PARAM_PAGE = "nsm_lp"
 PARAM_PER_PAGE = "nsm_pp"
 PARAM_ORDER = "nsm_lo"
+
+# Legacy query params (object-type tabs / value pills) — ignored if present.
+PARAM_TYPE = "nsm_lt"
+PARAM_VALUE = "nsm_lv"
 
 DEFAULT_PER_PAGE = 50
 PER_PAGE_CHOICES = (25, 50, 100, 250)
 
 _VALID_ORDERS = ("name", "-name", "value", "-value")
+_STRIP_TAGS = re.compile(r"<[^>]+>")
 
 
 def _querystring(request, **overrides) -> str:
-    """Return a ``?a=b`` querystring from ``request.GET`` with overrides.
-
-    A value of ``None`` removes the parameter. The result always starts with
-    ``?`` (or is empty when there are no params).
-    """
+    """Return a ``?a=b`` querystring from ``request.GET`` with overrides."""
     if request is not None:
         params = request.GET.copy()
     else:
@@ -71,33 +58,53 @@ def _querystring(request, **overrides) -> str:
     return f"?{encoded}" if encoded else ""
 
 
-def build_value_subgroups(objects: list[dict]) -> list[dict]:
-    """Group ``objects`` by value, preserving counts and a stable order.
+def _row_type_filter_key(obj: dict) -> str:
+    return obj.get("row_type_filter_key") or ""
 
-    Returns a list of ``{value_key, value_label, count}``. Ungrouped objects
-    (no recognisable value) are collapsed under :data:`UNGROUPED_KEY` and sorted
-    last. When every object shares the same (or no) value the caller should not
-    render the value filter.
-    """
-    counts: dict[str, dict] = {}
+
+def _plain_text(value) -> str:
+    text = str(value or "")
+    return _STRIP_TAGS.sub("", text)
+
+
+def flatten_link_type_groups(groups: list[dict]) -> list[dict]:
+    """Merge grouped link payloads into one list with Type-column metadata."""
+    rows: list[dict] = []
+    for group in groups or []:
+        type_key = group.get("type_key") or ""
+        type_label = group.get("type_label") or type_key
+        for obj in group.get("objects") or []:
+            row = dict(obj)
+            row["row_type_label"] = type_label
+            row["row_type_filter_key"] = type_key
+            rows.append(row)
+    return rows
+
+
+def build_row_type_options(objects: list[dict]) -> list[dict]:
+    """Distinct Type-column values for the type dropdown."""
+    buckets: dict[str, dict] = {}
     for obj in objects:
-        value_key = obj.get("value_key") or UNGROUPED_KEY
-        value_label = obj.get("value_label") or UNGROUPED_LABEL
-        bucket = counts.get(value_key)
+        key = _row_type_filter_key(obj)
+        if not key:
+            continue
+        label = obj.get("row_type_label") or key
+        bucket = buckets.get(key)
         if bucket is None:
-            counts[value_key] = {
-                "value_key": value_key,
-                "value_label": value_label,
-                "count": 1,
-            }
+            buckets[key] = {"key": key, "label": label, "count": 1}
         else:
             bucket["count"] += 1
+    return sorted(buckets.values(), key=lambda entry: entry["label"].lower())
 
-    def _sort_key(entry: dict):
-        is_ungrouped = entry["value_key"] == UNGROUPED_KEY
-        return (is_ungrouped, entry["value_label"].lower())
 
-    return sorted(counts.values(), key=_sort_key)
+def _matches_quicksearch(obj: dict, query: str) -> bool:
+    if not query:
+        return True
+    needle = query.lower()
+    for field in ("name", "field_label", "row_type_label"):
+        if needle in _plain_text(obj.get(field)).lower():
+            return True
+    return False
 
 
 def _object_sort_key(order: str):
@@ -108,14 +115,14 @@ def _object_sort_key(order: str):
 
         def key(obj: dict):
             return (
-                (obj.get("value_label") or "").lower(),
-                (obj.get("name") or "").lower(),
+                _plain_text(obj.get("value_label")).lower(),
+                _plain_text(obj.get("name")).lower(),
             )
 
     else:
 
         def key(obj: dict):
-            return (obj.get("name") or "").lower()
+            return _plain_text(obj.get("name")).lower()
 
     return key, reverse
 
@@ -129,7 +136,6 @@ def _clamp_per_page(raw) -> int:
 
 
 def _smart_pages(page, paginator, *, window: int = 2) -> list[int | None]:
-    """Compact page-number list with ``None`` markers for elided ranges."""
     total = paginator.num_pages
     if total <= 1:
         return [1] if total == 1 else []
@@ -146,22 +152,17 @@ def _smart_pages(page, paginator, *, window: int = 2) -> list[int | None]:
     return pages
 
 
+def _row_has_actions(obj: dict) -> bool:
+    if obj.get("supports_addr_analysis") or obj.get("addr_analyzable"):
+        return True
+    return bool(obj.get("edit_url") or obj.get("delete_url"))
+
+
 def prepare_link_tab_view(link_type_groups: list[dict], request) -> dict:
-    """Build the object-type tab / value / pagination context.
-
-    ``link_type_groups`` is the finalized link-group list (each group carries a
-    ``objects`` list of payloads annotated with ``value_key`` / ``value_label``).
-
-    Returns ``{"nsm_link_type_groups", "nsm_active_link_type",
-    "nsm_active_link_value"}``. All per-tab rendering data (value pills, sorted
-    page slice, pagination, sort headers) is attached to the *active* group dict
-    so the template needs no per-key dictionary lookups.
-    """
-    groups = list(link_type_groups or [])
-
+    """Build flat-table context (controls + paginated page slice)."""
     get = request.GET if request is not None else {}
-    requested_type = get.get(PARAM_TYPE) or ""
-    requested_value = get.get(PARAM_VALUE) or ""
+    query = (get.get(PARAM_Q) or "").strip()
+    requested_row_type = get.get(PARAM_ROW_TYPE) or ""
     order = get.get(PARAM_ORDER) or "name"
     if order not in _VALID_ORDERS:
         order = "name"
@@ -171,48 +172,21 @@ def prepare_link_tab_view(link_type_groups: list[dict], request) -> dict:
     except (TypeError, ValueError):
         page_number = 1
 
-    type_keys = {g["type_key"] for g in groups}
-    active_type = requested_type if requested_type in type_keys else ""
-    if not active_type and groups:
-        active_type = groups[0]["type_key"]
+    all_objects = flatten_link_type_groups(link_type_groups)
+    if not all_objects:
+        return {"nsm_link_table": None, "nsm_link_count": 0}
 
-    tab_groups: list[dict] = []
-    active_group = None
-    for group in groups:
-        subgroups = build_value_subgroups(group.get("objects") or [])
-        is_active = group["type_key"] == active_type
-        entry = {
-            **group,
-            "value_subgroups": subgroups,
-            "has_value_grouping": len(subgroups) > 1,
-            "is_active": is_active,
-            "paginated": False,
-            "tab_url": _querystring(
-                request,
-                **{PARAM_TYPE: group["type_key"], PARAM_VALUE: None, PARAM_PAGE: None},
-            ),
-        }
-        tab_groups.append(entry)
-        if is_active:
-            active_group = entry
+    row_type_options = build_row_type_options(all_objects)
+    row_type_keys = {opt["key"] for opt in row_type_options}
+    active_row_type = (
+        requested_row_type if requested_row_type in row_type_keys else ""
+    )
 
-    context: dict = {
-        "nsm_link_type_groups": tab_groups,
-        "nsm_active_link_type": active_type,
-        "nsm_active_link_value": "",
-    }
-    if active_group is None:
-        return context
-
-    subgroup_keys = {sg["value_key"] for sg in active_group["value_subgroups"]}
-    active_value = requested_value if requested_value in subgroup_keys else ""
-    context["nsm_active_link_value"] = active_value
-
-    objects = list(active_group.get("objects") or [])
-    if active_value:
-        objects = [
-            o for o in objects if (o.get("value_key") or UNGROUPED_KEY) == active_value
-        ]
+    objects = all_objects
+    if active_row_type:
+        objects = [o for o in objects if _row_type_filter_key(o) == active_row_type]
+    if query:
+        objects = [o for o in objects if _matches_quicksearch(o, query)]
 
     sort_key, reverse = _object_sort_key(order)
     objects.sort(key=sort_key, reverse=reverse)
@@ -221,24 +195,14 @@ def prepare_link_tab_view(link_type_groups: list[dict], request) -> dict:
     page = paginator.get_page(page_number)
     smart_pages = _smart_pages(page, paginator)
 
-    def _tab_qs(**extra) -> str:
-        params = {PARAM_TYPE: active_type, PARAM_VALUE: active_value or None}
+    def _table_qs(**extra) -> str:
+        params = {
+            PARAM_Q: query or None,
+            PARAM_ROW_TYPE: active_row_type or None,
+        }
         params.update(extra)
         return _querystring(request, **params)
 
-    # Value filter pills (reset page).
-    active_group["all_value_url"] = _querystring(
-        request, **{PARAM_TYPE: active_type, PARAM_VALUE: None, PARAM_PAGE: None}
-    )
-    active_group["all_value_active"] = not active_value
-    for sg in active_group["value_subgroups"]:
-        sg["url"] = _querystring(
-            request,
-            **{PARAM_TYPE: active_type, PARAM_VALUE: sg["value_key"], PARAM_PAGE: None},
-        )
-        sg["is_active"] = sg["value_key"] == active_value
-
-    # Sortable column headers (toggle direction; keep tab/value; reset page).
     order_field = order.lstrip("-")
     descending = order.startswith("-")
     sort_headers = {}
@@ -246,38 +210,53 @@ def prepare_link_tab_view(link_type_groups: list[dict], request) -> dict:
         is_current = order_field == field
         next_order = f"-{field}" if (is_current and not descending) else field
         sort_headers[field] = {
-            "url": _tab_qs(**{PARAM_ORDER: next_order, PARAM_PAGE: None}),
+            "url": _table_qs(**{PARAM_ORDER: next_order, PARAM_PAGE: None}),
             "sorted": is_current,
             "descending": is_current and descending,
         }
-    active_group["sort_headers"] = sort_headers
 
-    active_group["paginated"] = True
-    active_group["page"] = list(page.object_list)
-    active_group["pagination"] = {
-        "num_pages": paginator.num_pages,
-        "total": paginator.count,
-        "showing_start": page.start_index(),
-        "showing_end": page.end_index(),
-        "prev_url": _tab_qs(**{PARAM_PAGE: page.previous_page_number()})
-        if page.has_previous()
-        else "",
-        "next_url": _tab_qs(**{PARAM_PAGE: page.next_page_number()})
-        if page.has_next()
-        else "",
-        "pages": [
-            {
-                "number": p,
-                "url": _tab_qs(**{PARAM_PAGE: p}) if p else "",
-                "current": p == page.number,
-                "gap": p is None,
-            }
-            for p in smart_pages
-        ],
-        "per_page": per_page,
-        "per_page_choices": [
-            {"n": n, "url": _tab_qs(**{PARAM_PER_PAGE: n, PARAM_PAGE: None})}
-            for n in PER_PAGE_CHOICES
-        ],
+    table = {
+        "page": list(page.object_list),
+        "paginated": True,
+        "show_actions": any(_row_has_actions(obj) for obj in all_objects),
+        "q": query,
+        "active_row_type": active_row_type,
+        "has_row_type_filter": len(row_type_options) > 1,
+        "row_type_options": row_type_options,
+        "clear_filters_url": _querystring(
+            request,
+            **{PARAM_Q: None, PARAM_ROW_TYPE: None, PARAM_PAGE: None},
+        ),
+        "sort_headers": sort_headers,
+        "pagination": {
+            "num_pages": paginator.num_pages,
+            "total": paginator.count,
+            "showing_start": page.start_index() if paginator.count else 0,
+            "showing_end": page.end_index() if paginator.count else 0,
+            "prev_url": _table_qs(**{PARAM_PAGE: page.previous_page_number()})
+            if page.has_previous()
+            else "",
+            "next_url": _table_qs(**{PARAM_PAGE: page.next_page_number()})
+            if page.has_next()
+            else "",
+            "pages": [
+                {
+                    "number": p,
+                    "url": _table_qs(**{PARAM_PAGE: p}) if p else "",
+                    "current": p == page.number,
+                    "gap": p is None,
+                }
+                for p in smart_pages
+            ],
+            "per_page": per_page,
+            "per_page_choices": [
+                {"n": n, "url": _table_qs(**{PARAM_PER_PAGE: n, PARAM_PAGE: None})}
+                for n in PER_PAGE_CHOICES
+            ],
+        },
     }
-    return context
+
+    return {
+        "nsm_link_table": table,
+        "nsm_link_count": len(all_objects),
+    }

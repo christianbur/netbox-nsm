@@ -47,6 +47,7 @@ COT_ROLE_CHOICES = (
 DEFAULT_ROLE_BY_SLUG = {
     "nsm_zone": "zone",
     "nsm_address": "address",
+    "nsm_address_custom": "address",
     "nsm_address_group": "address_group",
     "nsm_label": "label",
     "nsm_service": "service",

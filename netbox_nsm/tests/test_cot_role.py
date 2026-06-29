@@ -30,6 +30,7 @@ class CotRoleMetadataTests(TestCase):
                 "rule_view": {"sort_order": 0, "display_template": "{{ name }}"},
             },
         )
+        self.assertTrue(yaml_text.startswith("```\n"))
         self.assertIn("- role: rulebook", yaml_text)
         self.assertEqual(parse_role_from_comments(yaml_text), "rulebook")
         doc = parse_nsm_config_document_from_comments(yaml_text)

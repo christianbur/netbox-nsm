@@ -17,6 +17,7 @@ _IPAM_CT_KEYS = (
 
 _COT_CATEGORIES = (
     ("nsm_address", _("Address")),
+    ("nsm_address_custom", _("Address Custom")),
     ("nsm_address_group", _("Address Group")),
 )
 

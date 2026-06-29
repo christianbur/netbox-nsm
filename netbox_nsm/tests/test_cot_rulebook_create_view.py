@@ -68,7 +68,7 @@ class CotRulebookCreateViewTests(TestCase):
             {
                 "schema_yaml": default_rulebook_schema_yaml(),
                 "verbose_name": "Bench Addresses",
-                "name": "bench_addresses",
+                "name": "demo_zone_addresses",
                 "description": "",
             },
         )

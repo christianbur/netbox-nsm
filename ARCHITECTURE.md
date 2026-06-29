@@ -27,12 +27,12 @@ Details: [docs/DATABASE.md](docs/DATABASE.md), [docs/RULE_DATA_STORAGE.md](docs/
 
 ```
 netbox_nsm/
-├── bundles/           # Portable schema JSON + dispatch/apply/sync
-│   ├── data/          # nsm_schema.json
+├── bundles/           # Portable schema JSON, Setup wizard views, dispatch/apply/sync
+│   ├── builtin/       # nsm_schema.json, demo bundles (*.json only)
+│   ├── setup_context.py
 │   ├── dispatch.py
-│   ├── bundle_extensions.py
 │   └── schema_builder.py
-├── import_/             # Setup wizard, schema apply, custom-object import
+├── bench/             # Standalone performance/bench generators (not Setup)
 ├── tabs/                # Security tab registration, context, related-tab rows
 ├── objects/             # nsm_config, link services, type specs
 ├── rulebooks/           # Grid, Rules tab, matrix, COT views
@@ -42,11 +42,10 @@ netbox_nsm/
 ├── analysis/            # IP / address analysis
 ├── analyzer/            # Object Analyzer graph
 ├── api/                 # object-links, nsm-configs, ip-analysis
-├── demos/               # Starter, enterprise_dc, addresses_million_scale
 └── tests/
 ```
 
-Portable schema: `netbox_nsm/bundles/builtin/<slug>/bundle.json*.json` → Setup Apply → COT `apply_document` + `sync_metadata` → COT `comments`
+Portable schema: `netbox_nsm/bundles/builtin/*.json` → Setup Preview → Apply → COT `apply_document` + `sync_metadata` → COT `comments`
 
 ## Key URLs
 

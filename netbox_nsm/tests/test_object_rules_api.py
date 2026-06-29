@@ -25,13 +25,13 @@ class ObjectRulesFieldApiTests(SimpleTestCase):
         mock_ct_get.return_value = SimpleNamespace(pk=12)
         rulebook = SimpleNamespace(
             pk=16,
-            slug="nsm_rb_bench_addresses",
+            slug="nsm_rb_demo_zone_addresses",
             name="Bench Addresses",
-            get_rules_tab_url=lambda: "/rulebooks/cot/nsm_rb_bench_addresses/rules/",
+            get_rules_tab_url=lambda: "/rulebooks/cot/nsm_rb_demo_zone_addresses/rules/",
         )
         field = SimpleNamespace(pk=114, name="Services & Applications")
         rule = SimpleNamespace(pk=1, name="bench-rule-00001")
-        rule.get_absolute_url = lambda: "/plugins/custom-objects/nsm_rb_bench_addresses/1/"
+        rule.get_absolute_url = lambda: "/plugins/custom-objects/nsm_rb_demo_zone_addresses/1/"
         mock_fetch.return_value = (
             [
                 {

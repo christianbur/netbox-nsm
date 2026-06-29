@@ -6,6 +6,8 @@ import logging
 
 from django.urls import clear_url_caches, path as url_path
 
+from utilities.views import register_model_view
+
 from netbox_nsm.security.tab.security_views import (
     SECURITY_TAB_PATH,
     make_co_security_view,
@@ -48,7 +50,14 @@ def _inject_co_security_url():
 
 
 def _inject_nsm_object_security_url():
-    """Inject Security tab URL for NSM-scoped custom object routes."""
+    """
+    Inject Security tab URL for NSM-scoped custom object routes.
+
+    The route is declared statically in ``netbox_nsm.urls`` (alongside journal and
+    changelog) because importing that module from ``ready()`` can finish loading
+    ``urlpatterns`` after this append, discarding runtime injection. Keep this helper
+    as an idempotent fallback for older deployments.
+    """
     try:
         import netbox_nsm.urls as nsm_urls
     except ImportError:
@@ -77,7 +86,7 @@ def _public_host_model_classes():
 
     Mirrors netbox-custom-objects ``related_tabs`` host enumeration: every
     public ``ObjectType`` except dynamic custom-object models (those use the
-    injected generic URL plus ``nsm_security_tab_link`` / ``plugin_extra_tabs``).
+    injected generic URL plus ``nsm_plugin_extra_tabs`` on the detail template).
     """
     from core.models import ObjectType
     from django.db.utils import OperationalError, ProgrammingError
@@ -122,11 +131,31 @@ def _public_host_model_classes():
 
 
 def _register_custom_object_security_tab():
+    """
+    Register Security on ``CustomObject`` using the generic CO host view.
+
+    The tab nav-link is rendered by ``nsm_plugin_extra_tabs``; the page is
+    served by the slug-agnostic route injected in ``_inject_co_security_url``
+    / ``_inject_nsm_object_security_url`` (same split as CO PR 482 combined tab).
+    """
     try:
         from netbox_custom_objects.models import CustomObject
     except ImportError:
         return
-    register_security_tab_on_model(CustomObject)
+
+    from netbox.registry import registry
+
+    app_label = CustomObject._meta.app_label
+    model_name = CustomObject._meta.model_name
+    existing = registry["views"].get(app_label, {}).get(model_name, [])
+    if any(entry["name"] == SECURITY_TAB_PATH for entry in existing):
+        return
+
+    register_model_view(
+        CustomObject,
+        name=SECURITY_TAB_PATH,
+        path=SECURITY_TAB_PATH,
+    )(make_co_security_view())
 
 
 def register_security_tabs():

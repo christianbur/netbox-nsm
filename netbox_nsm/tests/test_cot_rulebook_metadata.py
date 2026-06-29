@@ -71,7 +71,7 @@ class CotRulebookMetadataFormTests(TestCase):
         schema_yaml = substitute_rulebook_schema_placeholders(
             default_rulebook_schema_yaml(),
             display_name="Bench Addresses",
-            name="bench_addresses",
+            name="demo_zone_addresses",
             description="Copied schema",
         )
         with patch(
@@ -88,7 +88,7 @@ class CotRulebookMetadataFormTests(TestCase):
                 }
             )
         self.assertTrue(form.is_valid(), form.errors)
-        self.assertEqual(form.cleaned_data["name"], "bench_addresses")
+        self.assertEqual(form.cleaned_data["name"], "demo_zone_addresses")
         self.assertEqual(
             form.cleaned_data["verbose_name"],
             format_rulebook_display_name("Bench Addresses"),

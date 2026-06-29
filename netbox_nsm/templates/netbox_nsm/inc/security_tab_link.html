@@ -1,9 +1,0 @@
-{% load i18n %}
-{% load helpers %}
-{% if tab %}
-<li class="nav-item" role="presentation">
-  <a class="nav-link{% if tab.is_active %} active{% endif %}" href="{{ tab.url }}">
-    {{ tab.label }}{% badge tab.badge %}
-  </a>
-</li>
-{% endif %}

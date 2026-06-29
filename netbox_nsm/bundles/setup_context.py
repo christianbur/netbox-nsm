@@ -1,4 +1,4 @@
-"""Setup: bundle status helpers and COT setup group metadata."""
+"""Setup wizard context: bundle status helpers and COT setup group metadata."""
 
 from __future__ import annotations
 

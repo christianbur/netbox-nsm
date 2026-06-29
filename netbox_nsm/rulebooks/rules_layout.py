@@ -606,7 +606,9 @@ def build_cot_grouped_rules_table_data(
 
     ct_cache: dict = {}
     address_ct_ids = set(
-        content_type_ids_for_cot_slugs(["nsm_address", "nsm_address_group"])
+        content_type_ids_for_cot_slugs(
+            ["nsm_address", "nsm_address_custom", "nsm_address_group"]
+        )
     )
 
     for instance in instances:

@@ -20,7 +20,7 @@ PLUGINS = ["netbox_custom_objects", "netbox_nsm"]
 | § | Content | Action |
 |---|---------|--------|
 | 2 | Schema bundles | **Apply** `nsm_schema` (required) — imports built-in `nsm_*` COTs and syncs bundle `metadata.types` / `metadata.rulebooks` into each type's `comments` (`nsm_config` YAML) |
-| 3 | Demo | Optional **NSM Demo Zone Matrix** (Python job `nsm_demo_zone_matrix`; `nsm_rb_demo` is included in NSM Schema) |
+| 3 | Demo | Optional **RB Demo Zone Matrix** (Python job `nsm_demo_zone_matrix`; `nsm_rb_demo_rulebook` is included in NSM Schema) |
 
 There is no separate Object Config step in Setup: `nsm_config` is written during bundle apply (`sync_metadata()`). Adjust per-type settings later via **Security → Object Config** or the REST API.
 
@@ -125,7 +125,7 @@ Portable schema: `POST /api/plugins/custom-objects/schema/apply/` with `netbox_n
 |------|---------|---------|
 | **Starter** | Zones, services, actions + rulebooks “Demo - Zone Matrix”, “Demo - Addresses” | Setup §3, synchronous |
 | **Enterprise DC** | DCIM/IPAM scenario + rulebooks | Setup §3, empty IP DB only |
-| **Addresses Million Scale** | Bench rulebook `nsm_rb_bench_addresses` | `scripts/create_addresses_million_scale.py`, RQ |
+| **Zone / Address demos** | Sample zones, addresses, groups, rules | Setup → Bundles (Preview → Apply) |
 
 ## Configuration
 

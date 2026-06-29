@@ -65,6 +65,18 @@ from netbox_nsm.security.actions.confirm_views import (
     GroupM2mEditView,
     GroupM2mRemoveView,
 )
+from netbox_nsm.security.tab.security_views import make_co_security_view
+from netbox_nsm.views.nsm_objects import (
+    NsmCustomObjectBulkDeleteView,
+    NsmCustomObjectBulkEditView,
+    NsmCustomObjectBulkImportView,
+    NsmCustomObjectChangeLogView,
+    NsmCustomObjectDeleteView,
+    NsmCustomObjectEditView,
+    NsmCustomObjectJournalView,
+    NsmCustomObjectListView,
+    NsmCustomObjectView,
+)
 
 app_name = "netbox_nsm"
 
@@ -262,5 +274,60 @@ urlpatterns = [
         "panel-link/group-m2m/edit/",
         GroupM2mEditView.as_view(),
         name="group_m2m_edit",
+    ),
+    path(
+        "objects/<str:custom_object_type>/",
+        NsmCustomObjectListView.as_view(),
+        name="nsm_object_list",
+    ),
+    path(
+        "objects/<str:custom_object_type>/add/",
+        NsmCustomObjectEditView.as_view(),
+        name="nsm_object_add",
+    ),
+    path(
+        "objects/<str:custom_object_type>/bulk-edit/",
+        NsmCustomObjectBulkEditView.as_view(),
+        name="nsm_object_bulk_edit",
+    ),
+    path(
+        "objects/<str:custom_object_type>/bulk-delete/",
+        NsmCustomObjectBulkDeleteView.as_view(),
+        name="nsm_object_bulk_delete",
+    ),
+    path(
+        "objects/<str:custom_object_type>/bulk-import/",
+        NsmCustomObjectBulkImportView.as_view(),
+        name="nsm_object_bulk_import",
+    ),
+    path(
+        "objects/<str:custom_object_type>/<int:pk>/",
+        NsmCustomObjectView.as_view(),
+        name="nsm_object",
+    ),
+    path(
+        "objects/<str:custom_object_type>/<int:pk>/edit/",
+        NsmCustomObjectEditView.as_view(),
+        name="nsm_object_edit",
+    ),
+    path(
+        "objects/<str:custom_object_type>/<int:pk>/delete/",
+        NsmCustomObjectDeleteView.as_view(),
+        name="nsm_object_delete",
+    ),
+    path(
+        "objects/<str:custom_object_type>/<int:pk>/journal/",
+        NsmCustomObjectJournalView.as_view(),
+        name="nsm_object_journal",
+    ),
+    path(
+        "objects/<str:custom_object_type>/<int:pk>/changelog/",
+        NsmCustomObjectChangeLogView.as_view(),
+        name="nsm_object_changelog",
+    ),
+    path(
+        "objects/<str:custom_object_type>/<int:pk>/security/",
+        make_co_security_view().as_view(),
+        name="nsm_object_security",
     ),
 ]

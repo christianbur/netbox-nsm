@@ -191,16 +191,67 @@ BUILTIN_CUSTOM_TYPES = [
         "default_objects": [],
     },
     {
+        "name": "Address Custom",
+        "areas": ["source", "destination"],
+        "description": (
+            "Named address without IPAM link: manual IPv4 or IPv6 plus prefix length "
+            "(e.g. 0.0.0.0/0 for ANY). Used wherever nsm_address is allowed."
+        ),
+        "display_template": "{{ name }}",
+        "field_definitions": [
+            {
+                "name": "ipv4",
+                "type": "text",
+                "label": "IPv4",
+                "description": "IPv4 host or network base address (mutually exclusive with IPv6).",
+                "required": False,
+                "weight": 11,
+            },
+            {
+                "name": "ipv6",
+                "type": "text",
+                "label": "IPv6",
+                "description": "IPv6 host or network base address (mutually exclusive with IPv4).",
+                "required": False,
+                "weight": 12,
+            },
+            {
+                "name": "subnet",
+                "type": "integer",
+                "label": "Prefix length",
+                "description": "CIDR prefix length (0–32 for IPv4, 0–128 for IPv6).",
+                "validation_minimum": 0,
+                "validation_maximum": 128,
+                "required": True,
+                "weight": 13,
+            },
+        ],
+        "default_objects": [
+            {
+                "name": "ANY",
+                "field_data": {
+                    "status": "active",
+                    "ipv4": "0.0.0.0",
+                    "subnet": 0,
+                    "description": "Match any IPv4 destination (0.0.0.0/0)",
+                },
+            },
+        ],
+    },
+    {
         "name": "Address Group",
         "areas": ["source", "destination"],
-        "description": "Named collection of address objects. Used in Source/Destination columns; members are nsm_address objects.",
+        "description": "Named collection of address objects. Used in Source/Destination columns; members are nsm_address or nsm_address_custom objects.",
         "display_template": "{{ name }}",
         "field_definitions": [
             {
                 "name": "group",
                 "type": "object_ref",
                 "label": "Group Members",
-                "model": "custom-objects.nsm_address",
+                "model": [
+                    "custom-objects.nsm_address",
+                    "custom-objects.nsm_address_custom",
+                ],
                 "group_name": "NSM Address Group",
                 "weight": 10,
             },
@@ -307,6 +358,7 @@ BUILTIN_CUSTOM_TYPES = [
     {
         "name": "Object Link",
         "areas": [],
+        "link_table": True,
         "description": (
             "Links NetBox inventory to an NSM policy object with propagation "
             "semantics. Sole source of truth for Security Panel object links."
@@ -336,6 +388,7 @@ BUILTIN_CUSTOM_TYPES = [
                 "model": [
                     "custom-objects.nsm_zone",
                     "custom-objects.nsm_address",
+                    "custom-objects.nsm_address_custom",
                     "custom-objects.nsm_address_group",
                     "custom-objects.nsm_label",
                     "custom-objects.nsm_service",

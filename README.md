@@ -94,7 +94,7 @@ Rules and policy objects: **netbox-custom-objects** API.
 |------|-------|-------|
 | Starter | Setup §4 | Sync; recommended — zone matrix + addresses schema |
 | Enterprise DC | Setup §4 | Empty IPAM DB only |
-| Addresses Million Scale | CLI `scripts/create_addresses_million_scale.py` | Bench; RQ worker required |
+| Zone / Address demos | Setup → Bundles (Preview → Apply) | JSON portable schema only |
 
 ## Documentation
 

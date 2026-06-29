@@ -3,8 +3,9 @@
 from types import SimpleNamespace
 
 from django.template.loader import render_to_string
-from django.test import SimpleTestCase
+from django.test import RequestFactory, SimpleTestCase
 
+from netbox_nsm.security.tab.links import prepare_link_tab_view
 from netbox_nsm.security.tab.context import (
     finalize_link_type_group,
     finalize_link_type_groups,
@@ -102,19 +103,18 @@ class FinalizeLinkTypeGroupTests(SimpleTestCase):
         )
         self.assertTrue(group["show_actions"])
 
-    def test_show_comment_column(self):
+    def test_show_field_via_payload(self):
         group = finalize_link_type_group(
             {
                 "objects": [
                     {
                         "name": "zone-a",
-                        "comment": "edge",
+                        "field_label": "source_zones",
                     },
-                    {"name": "zone-b"},
                 ]
             }
         )
-        self.assertTrue(group["show_comment"])
+        self.assertFalse(group["show_actions"])
 
     def test_finalize_link_type_groups_preserves_order(self):
         groups = finalize_link_type_groups(
@@ -129,123 +129,61 @@ class FinalizeLinkTypeGroupTests(SimpleTestCase):
 
 
 class SecurityRulebookTreeTemplateTests(SimpleTestCase):
-    def test_renders_rulebook_field_counts_without_rule_links(self):
-        rb = SimpleNamespace(
-            pk=5,
-            name="Firewall",
-            get_absolute_url=lambda: "/rulebooks/5/",
-            get_rules_tab_url=lambda: "/rulebooks/5/rules/",
-        )
-        field = SimpleNamespace(pk=9, slug="source", name="Source")
+    def test_does_not_render_rulebook_tree(self):
         html = render_to_string(
             "netbox_nsm/inc/security_links.html",
             {
                 "nsm_panel_label": "Security",
                 "nsm_security_badge": 1,
-                "nsm_unique_rules_total": 1,
                 "nsm_analyzer_url": "/analyzer/",
                 "nsm_assign_url": "/assign/",
                 "nsm_page_addr_analyzable": False,
-                "nsm_rulebook_groups": [
-                    {
-                        "rulebook": rb,
-                        "unique_count": 1,
-                        "rules_tab_url": "/rulebooks/5/rules/",
-                        "field_groups": [
-                            {
-                                "field": field,
-                                "rule_count": 1,
-                            }
-                        ],
-                    }
-                ],
-                "nsm_link_type_groups": [],
+                "nsm_link_table": None,
                 "nsm_enforcement_point": None,
-                "nsm_api_url": "/api/object-rules/?ct_id=1&obj_id=2",
             },
         )
-        self.assertIn('id="nsm-cat-rulebook"', html)
-        self.assertIn(">Rulebooks<", html)
-        self.assertIn("nsm-rb-hdr", html)
-        self.assertIn('data-rb-pk="5"', html)
-        self.assertIn(">Firewall<", html)
-        self.assertIn("/rulebooks/5/rules/", html)
-        self.assertIn('id="nsm-rb-5-f-9"', html)
-        self.assertIn(">Source<", html)
-        self.assertNotIn("f_source__ct_", html)
-        self.assertIn("nsm-rb-field-count", html)
-        self.assertIn('class="nsm-rb-rule-list', html)
-        self.assertIn('data-api-url="/api/object-rules/?ct_id=1&amp;obj_id=2"', html)
-        self.assertIn('data-rb-pk="5"', html)
-        self.assertIn('data-field-pk="9"', html)
-        self.assertIn('data-loaded="0"', html)
-        self.assertIn("nsm-rb-field-loading", html)
-        self.assertIn("fetchFieldRules", html)
-        self.assertNotIn('href="/rulebooks/5/rules/?f_name=rule1"', html)
-        self.assertNotIn(">rule1<", html)
-        self.assertIn('class="collapse nsm-rb-field-collapse"', html)
-        self.assertNotIn("nsm-sentinel", html)
-        self.assertNotIn("nsm-security-rulebook-header-links", html)
+        self.assertNotIn('id="nsm-cat-rulebook"', html)
+        self.assertNotIn("nsm-rulebook-accordion", html)
+        self.assertNotIn("fetchFieldRules", html)
+        self.assertNotIn(">Firewall<", html)
+        self.assertNotIn(">Source<", html)
 
-    def test_renders_dashed_separator_between_rulebooks_and_manual_links(self):
-        rb = SimpleNamespace(
-            pk=5,
-            name="Firewall",
-            get_absolute_url=lambda: "/rulebooks/5/",
-            get_rules_tab_url=lambda: "/rulebooks/5/rules/",
-        )
-        field = SimpleNamespace(pk=9, slug="source", name="Source")
+    def test_does_not_render_separator_between_rulebooks_and_links(self):
         html = render_to_string(
             "netbox_nsm/inc/security_links.html",
             {
                 "nsm_panel_label": "Security",
                 "nsm_security_badge": 1,
-                "nsm_unique_rules_total": 1,
                 "nsm_analyzer_url": "/analyzer/",
                 "nsm_assign_url": "/assign/",
                 "nsm_page_addr_analyzable": False,
-                "nsm_rulebook_groups": [
-                    {
-                        "rulebook": rb,
-                        "unique_count": 1,
-                        "rules_tab_url": "/rulebooks/5/rules/",
-                        "field_groups": [
-                            {
-                                "field": field,
-                                "rule_count": 1,
-                            }
-                        ],
-                    }
-                ],
-                "nsm_link_type_groups": [
-                    {
-                        "type_key": "zone",
-                        "type_label": "Zone",
-                        "count": 1,
-                        "show_comment": False,
-                        "show_actions": True,
-                        "objects": [
-                            {
-                                "name": "dmz",
-                                "url": "/zones/1/",
-                                "edit_url": "/edit/",
-                                "delete_url": "/delete/",
-                            }
-                        ],
-                    }
-                ],
+                **prepare_link_tab_view(
+                    [
+                        {
+                            "type_key": "zone",
+                            "type_label": "Zone",
+                            "count": 1,
+                            "show_actions": True,
+                            "objects": [
+                                {
+                                    "name": "dmz",
+                                    "url": "/zones/1/",
+                                    "row_type_label": "Zone",
+                                    "field_label": "Object link",
+                                    "edit_url": "/edit/",
+                                    "delete_url": "/delete/",
+                                }
+                            ],
+                        }
+                    ],
+                    RequestFactory().get("/"),
+                ),
                 "nsm_enforcement_point": None,
-                "nsm_api_url": "/api/object-rules/?ct_id=1&obj_id=2",
             },
         )
-        self.assertIn('<hr class="nsm-link-section-separator">', html)
-        self.assertIn('id="nsm-cat-rulebook"', html)
-        self.assertIn('id="nsm-ltab-zone"', html)
-        rulebook_pos = html.index('id="nsm-cat-rulebook"')
-        separator_pos = html.index('<hr class="nsm-link-section-separator">')
-        manual_pos = html.index('id="nsm-ltab-zone"')
-        self.assertLess(rulebook_pos, separator_pos)
-        self.assertLess(separator_pos, manual_pos)
+        self.assertNotIn('id="nsm-cat-rulebook"', html)
+        self.assertIn('id="nsm-link-objects"', html)
+        self.assertNotIn('<hr class="nsm-link-section-separator">', html)
 
     def test_hides_separator_when_only_one_link_type_present(self):
         html = render_to_string(
@@ -256,20 +194,25 @@ class SecurityRulebookTreeTemplateTests(SimpleTestCase):
                 "nsm_analyzer_url": "/analyzer/",
                 "nsm_assign_url": "/assign/",
                 "nsm_page_addr_analyzable": False,
-                "nsm_rulebook_groups": [],
-                "nsm_link_type_groups": [
-                    {
-                        "type_key": "zone",
-                        "type_label": "Zone",
-                        "count": 1,
-                        "show_comment": False,
-                        "show_actions": False,
-                        "objects": [{"name": "dmz", "url": "/zones/1/"}],
-                    }
-                ],
+                "nsm_link_table": prepare_link_tab_view(
+                    [
+                        {
+                            "type_key": "zone",
+                            "type_label": "Zone",
+                            "count": 1,
+                            "show_actions": False,
+                            "objects": [
+                                {
+                                    "name": "dmz",
+                                    "url": "/zones/1/",
+                                    "field_label": "Object link",
+                                }
+                            ],
+                        }
+                    ],
+                    RequestFactory().get("/"),
+                )["nsm_link_table"],
                 "nsm_enforcement_point": None,
-                "nsm_unique_rules_total": 0,
-                "nsm_api_url": "",
             },
         )
         self.assertNotIn('<hr class="nsm-link-section-separator">', html)
@@ -283,8 +226,7 @@ class SecurityPanelHeaderActionsTemplateTests(SimpleTestCase):
             "nsm_analyzer_url": "/plugins/netbox-nsm/object-analyzer/?ct=14&pk=5",
             "nsm_assign_url": "/assign/",
             "nsm_page_addr_analyzable": False,
-            "nsm_rulebook_groups": [],
-            "nsm_link_type_groups": [],
+            "nsm_link_table": None,
             "nsm_enforcement_point": None,
         }
         context.update(overrides)
@@ -324,287 +266,13 @@ class SecurityPanelHeaderActionsTemplateTests(SimpleTestCase):
 
 
 class SecurityLinkRowActionsTemplateTests(SimpleTestCase):
-    def test_row_actions_use_btn_group_at_row_end(self):
-        html = render_to_string(
-            "netbox_nsm/inc/security_links.html",
-            {
-                "nsm_panel_label": "Security",
-                "nsm_security_badge": None,
-                "nsm_analyzer_url": "/analyzer/",
-                "nsm_assign_url": "/assign/",
-                "nsm_page_addr_analyzable": False,
-                "nsm_rulebook_groups": [],
-                "nsm_link_type_groups": [
-                    {
-                        "type_key": "netbox_custom_objects__nsm_addresses",
-                        "type_label": "Addresses",
-                        "count": 1,
-                        "show_comment": False,
-                        "show_actions": True,
-                        "objects": [
-                            {
-                                "url": "/plugins/custom-objects/nsm_addresses/10/",
-                                "name": "demo-addr-0010",
-                                "ct_id": 99,
-                                "obj_id": 10,
-                                "addr_analyzable": True,
-                                "supports_addr_analysis": True,
-                                "edit_url": "/plugins/netbox-nsm/object-link/1/edit/",
-                                "delete_url": "/plugins/netbox-nsm/object-link/1/delete/",
-                            }
-                        ],
-                    }
-                ],
-                "nsm_enforcement_point": None,
-            },
+    """Linked-object rows keep analyze / edit / delete actions."""
+
+    def _render(self, objects, *, type_key="netbox_custom_objects__nsm_addresses", type_label="Addresses"):
+        ctx = prepare_link_tab_view(
+            [{"type_key": type_key, "type_label": type_label, "objects": objects, "show_actions": True}],
+            RequestFactory().get("/"),
         )
-        self.assertIn('class="btn-group btn-group-sm nsm-link-actions"', html)
-        self.assertIn('class="col-actions', html)
-        self.assertIn("btn-light", html)
-        self.assertIn("btn-warning", html)
-        self.assertIn("dropdown-toggle", html)
-        self.assertIn("dropdown-item", html)
-        self.assertIn("mdi-magnify text-dark", html)
-        self.assertIn("mdi-pencil", html)
-        self.assertIn("mdi-trash-can-outline", html)
-        row_html = html.split('class="nsm-link-row"', 1)[1].split("</tr>", 1)[0]
-        obj_cell, _, actions_cell = row_html.partition("</td>")
-        self.assertIn("demo-addr-0010", obj_cell)
-        self.assertIn("nsm-ipa-loupe", actions_cell)
-        self.assertIn("btn-light", actions_cell)
-        self.assertIn("mdi-magnify text-dark", actions_cell)
-        self.assertIn("btn-warning", actions_cell)
-        self.assertIn("mdi-pencil", actions_cell)
-        self.assertIn("dropdown-toggle", actions_cell)
-        self.assertIn("dropdown-item", actions_cell)
-        self.assertIn("mdi-trash-can-outline", actions_cell)
-        loupe_pos = actions_cell.index("nsm-ipa-loupe")
-        edit_pos = actions_cell.index("btn-warning")
-        delete_pos = actions_cell.index("dropdown-item")
-        self.assertLess(loupe_pos, edit_pos)
-        self.assertLess(edit_pos, delete_pos)
-
-    def test_loupe_only_for_analyzable_without_edit_delete(self):
-        html = render_to_string(
-            "netbox_nsm/inc/security_links.html",
-            {
-                "nsm_panel_label": "Security",
-                "nsm_security_badge": None,
-                "nsm_analyzer_url": "/analyzer/",
-                "nsm_assign_url": "/assign/",
-                "nsm_page_addr_analyzable": False,
-                "nsm_rulebook_groups": [],
-                "nsm_link_type_groups": [
-                    {
-                        "type_key": "netbox_custom_objects__nsm_addresses",
-                        "type_label": "Addresses",
-                        "count": 1,
-                        "show_comment": False,
-                        "show_actions": True,
-                        "objects": [
-                            {
-                                "url": "/plugins/custom-objects/nsm_addresses/10/",
-                                "name": "demo-addr-0010",
-                                "ct_id": 99,
-                                "obj_id": 10,
-                                "addr_analyzable": True,
-                                "supports_addr_analysis": True,
-                            }
-                        ],
-                    }
-                ],
-                "nsm_enforcement_point": None,
-            },
-        )
-        row_html = html.split('class="nsm-link-row"', 1)[1].split("</tr>", 1)[0]
-        self.assertIn("nsm-ipa-loupe", row_html)
-        self.assertIn("btn-light", row_html)
-        self.assertIn("mdi-magnify text-dark", row_html)
-        self.assertNotIn("btn-warning", row_html)
-        self.assertNotIn("dropdown-item", row_html)
-
-    def test_edit_delete_without_loupe_for_non_analyzable(self):
-        html = render_to_string(
-            "netbox_nsm/inc/security_links.html",
-            {
-                "nsm_panel_label": "Security",
-                "nsm_security_badge": None,
-                "nsm_analyzer_url": "/analyzer/",
-                "nsm_assign_url": "/assign/",
-                "nsm_page_addr_analyzable": False,
-                "nsm_rulebook_groups": [],
-                "nsm_link_type_groups": [
-                    {
-                        "type_key": "netbox_custom_objects__nsmzone",
-                        "type_label": "Zones",
-                        "count": 1,
-                        "show_comment": False,
-                        "show_actions": True,
-                        "objects": [
-                            {
-                                "url": "/zones/1/",
-                                "name": "prod",
-                                "ct_id": 1,
-                                "obj_id": 1,
-                                "addr_analyzable": False,
-                                "supports_addr_analysis": False,
-                                "edit_url": "/plugins/netbox-nsm/object-link/2/edit/",
-                                "delete_url": "/plugins/netbox-nsm/object-link/2/delete/",
-                            }
-                        ],
-                    }
-                ],
-                "nsm_enforcement_point": None,
-            },
-        )
-        row_html = html.split('class="nsm-link-row"', 1)[1].split("</tr>", 1)[0]
-        self.assertNotIn("nsm-ipa-loupe", row_html)
-        self.assertNotIn("mdi-magnify", row_html)
-        self.assertIn("btn-warning", row_html)
-        self.assertIn("mdi-pencil", row_html)
-        self.assertIn("dropdown-toggle", row_html)
-        self.assertIn("dropdown-item", row_html)
-        self.assertIn("mdi-trash-can-outline", row_html)
-
-    def test_ipam_prefix_row_shows_loupe_edit_and_delete_without_typeconfig(self):
-        """Prefix linked from address page: loupe via supports_addr_analysis."""
-        html = render_to_string(
-            "netbox_nsm/inc/security_links.html",
-            {
-                "nsm_panel_label": "Security",
-                "nsm_security_badge": None,
-                "nsm_analyzer_url": "/analyzer/",
-                "nsm_assign_url": "/assign/",
-                "nsm_page_addr_analyzable": True,
-                "nsm_rulebook_groups": [],
-                "nsm_link_type_groups": [
-                    {
-                        "type_key": "ipam__prefix",
-                        "type_label": "Prefix",
-                        "count": 1,
-                        "show_comment": False,
-                        "show_actions": True,
-                        "objects": [
-                            {
-                                "url": "/ipam/prefixes/5/",
-                                "name": "10.245.10.0/24",
-                                "ct_id": 14,
-                                "obj_id": 5,
-                                "addr_analyzable": False,
-                                "supports_addr_analysis": True,
-                                "edit_url": "/plugins/netbox-nsm/object-link/1/edit/",
-                                "delete_url": "/plugins/netbox-nsm/object-link/1/delete/",
-                            }
-                        ],
-                    }
-                ],
-                "nsm_enforcement_point": None,
-            },
-        )
-        row_html = html.split('class="nsm-link-row"', 1)[1].split("</tr>", 1)[0]
-        self.assertIn("nsm-ipa-loupe", row_html)
-        self.assertIn("btn-light", row_html)
-        self.assertIn("mdi-magnify text-dark", row_html)
-        self.assertIn('data-ct="14"', row_html)
-        self.assertIn('data-pk="5"', row_html)
-        self.assertIn("btn-warning", row_html)
-        self.assertIn("mdi-pencil", row_html)
-        self.assertIn("dropdown-toggle", row_html)
-        self.assertIn("dropdown-item", row_html)
-        self.assertIn("mdi-trash-can-outline", row_html)
-        loupe_pos = row_html.index("nsm-ipa-loupe")
-        edit_pos = row_html.index("btn-warning")
-        delete_pos = row_html.index("dropdown-item")
-        self.assertLess(loupe_pos, edit_pos)
-        self.assertLess(edit_pos, delete_pos)
-
-    def test_ipam_fk_row_shows_loupe_edit_and_delete(self):
-        html = render_to_string(
-            "netbox_nsm/inc/security_links.html",
-            {
-                "nsm_panel_label": "Security",
-                "nsm_security_badge": None,
-                "nsm_analyzer_url": "/analyzer/",
-                "nsm_assign_url": "/assign/",
-                "nsm_page_addr_analyzable": False,
-                "nsm_rulebook_groups": [],
-                "nsm_link_type_groups": [
-                    {
-                        "type_key": "netbox_custom_objects__nsm_addresses",
-                        "type_label": "Addresses",
-                        "count": 1,
-                        "show_comment": False,
-                        "show_actions": True,
-                        "objects": [
-                            {
-                                "url": "/plugins/custom-objects/nsm_addresses/10/",
-                                "name": "demo-addr-0010",
-                                "ct_id": 99,
-                                "obj_id": 10,
-                                "addr_analyzable": True,
-                                "supports_addr_analysis": True,
-                                "edit_url": "/plugins/netbox-nsm/object-link/assign/?ct_id=234&obj_id=5&object_b_type_id=99&object_b_id=10&return_url=%2Fipam%2Fprefixes%2F5%2F",
-                                "delete_url": "/plugins/netbox-nsm/panel-link/address-ipam-fk/nsm_addresses/clear/?field=prefix",
-                            }
-                        ],
-                    }
-                ],
-                "nsm_enforcement_point": None,
-            },
-        )
-        row_html = html.split('class="nsm-link-row"', 1)[1].split("</tr>", 1)[0]
-        self.assertIn("col-actions", row_html)
-        self.assertIn("nsm-ipa-loupe", row_html)
-        self.assertIn("btn-light", row_html)
-        self.assertIn("mdi-magnify text-dark", row_html)
-        self.assertIn("btn-warning", row_html)
-        self.assertIn("mdi-pencil", row_html)
-        self.assertIn('aria-label="Edit assignment"', row_html)
-        self.assertIn("dropdown-toggle", row_html)
-        self.assertIn("dropdown-item", row_html)
-        self.assertIn("mdi-trash-can-outline", row_html)
-
-    def test_object_link_row_uses_edit_assignment_label(self):
-        html = render_to_string(
-            "netbox_nsm/inc/security_links.html",
-            {
-                "nsm_panel_label": "Security",
-                "nsm_security_badge": None,
-                "nsm_analyzer_url": "/analyzer/",
-                "nsm_assign_url": "/assign/",
-                "nsm_page_addr_analyzable": False,
-                "nsm_rulebook_groups": [],
-                "nsm_link_type_groups": [
-                    {
-                        "type_key": "netbox_custom_objects__nsmzone",
-                        "type_label": "Zones",
-                        "count": 1,
-                        "show_comment": False,
-                        "show_actions": True,
-                        "objects": [
-                            {
-                                "url": "/zones/1/",
-                                "name": "prod",
-                                "ct_id": 1,
-                                "obj_id": 1,
-                                "addr_analyzable": False,
-                                "edit_url": "/plugins/netbox-nsm/object-link/2/edit/",
-                                "delete_url": "/plugins/netbox-nsm/object-link/2/delete/",
-                            }
-                        ],
-                    }
-                ],
-                "nsm_enforcement_point": None,
-            },
-        )
-        self.assertIn('aria-label="Edit assignment"', html)
-        self.assertIn('aria-label="Remove assignment"', html)
-        self.assertIn('href="/plugins/netbox-nsm/object-link/2/edit/"', html)
-        self.assertIn('href="/plugins/netbox-nsm/object-link/2/delete/"', html)
-
-
-class SecurityLinkTableHeaderTests(SimpleTestCase):
-    def _render_link_groups(self, groups):
         return render_to_string(
             "netbox_nsm/inc/security_links.html",
             {
@@ -613,26 +281,167 @@ class SecurityLinkTableHeaderTests(SimpleTestCase):
                 "nsm_analyzer_url": "/analyzer/",
                 "nsm_assign_url": "/assign/",
                 "nsm_page_addr_analyzable": False,
-                "nsm_rulebook_groups": [],
-                "nsm_link_type_groups": groups,
                 "nsm_enforcement_point": None,
+                **ctx,
             },
         )
 
-    def test_group_renders_netbox_style_table_with_name_header(self):
+    def _row(self, html):
+        return html.split('class="nsm-link-row"', 1)[1].split("</tr>", 1)[0]
+
+    def test_row_actions_use_btn_group_at_row_end(self):
+        html = self._render(
+            [
+                {
+                    "url": "/plugins/custom-objects/nsm_addresses/10/",
+                    "name": "demo-addr-0010",
+                    "ct_id": 99,
+                    "obj_id": 10,
+                    "addr_analyzable": True,
+                    "supports_addr_analysis": True,
+                    "edit_url": "/plugins/netbox-nsm/object-link/1/edit/",
+                    "delete_url": "/plugins/netbox-nsm/object-link/1/delete/",
+                }
+            ]
+        )
+        self.assertIn('class="btn-group btn-group-sm nsm-link-actions"', html)
+        self.assertNotIn('data-col="actions"', html)
+        self.assertIn("btn-light", html)
+        self.assertIn("btn-warning", html)
+        self.assertIn("btn-danger", html)
+        self.assertIn("mdi-magnify text-dark", html)
+        self.assertIn("mdi-pencil", html)
+        self.assertIn("mdi-trash-can-outline", html)
+        row_html = self._row(html)
+        self.assertIn("demo-addr-0010", row_html)
+        loupe_pos = row_html.index("nsm-ipa-loupe")
+        edit_pos = row_html.index("btn-warning")
+        delete_pos = row_html.index("btn-danger")
+        self.assertLess(loupe_pos, edit_pos)
+        self.assertLess(edit_pos, delete_pos)
+
+    def test_loupe_only_for_analyzable_without_edit_delete(self):
+        html = self._render(
+            [
+                {
+                    "url": "/plugins/custom-objects/nsm_addresses/10/",
+                    "name": "demo-addr-0010",
+                    "ct_id": 99,
+                    "obj_id": 10,
+                    "addr_analyzable": True,
+                    "supports_addr_analysis": True,
+                }
+            ]
+        )
+        row_html = self._row(html)
+        self.assertIn("nsm-ipa-loupe", row_html)
+        self.assertIn("btn-light", row_html)
+        self.assertIn("mdi-magnify text-dark", row_html)
+        self.assertNotIn("btn-warning", row_html)
+        self.assertNotIn("btn-danger", row_html)
+
+    def test_edit_delete_without_loupe_for_non_analyzable(self):
+        html = self._render(
+            [
+                {
+                    "url": "/zones/1/",
+                    "name": "prod",
+                    "ct_id": 1,
+                    "obj_id": 1,
+                    "addr_analyzable": False,
+                    "supports_addr_analysis": False,
+                    "edit_url": "/plugins/netbox-nsm/object-link/2/edit/",
+                    "delete_url": "/plugins/netbox-nsm/object-link/2/delete/",
+                }
+            ],
+            type_key="netbox_custom_objects__nsmzone",
+            type_label="Zones",
+        )
+        row_html = self._row(html)
+        self.assertNotIn("nsm-ipa-loupe", row_html)
+        self.assertNotIn("mdi-magnify", row_html)
+        self.assertIn("btn-warning", row_html)
+        self.assertIn("mdi-pencil", row_html)
+        self.assertIn("btn-danger", row_html)
+        self.assertIn("mdi-trash-can-outline", row_html)
+
+    def test_ipam_fk_row_shows_loupe_edit_and_delete(self):
+        html = self._render(
+            [
+                {
+                    "url": "/plugins/custom-objects/nsm_addresses/10/",
+                    "name": "demo-addr-0010",
+                    "ct_id": 99,
+                    "obj_id": 10,
+                    "addr_analyzable": True,
+                    "supports_addr_analysis": True,
+                    "source": "ipam_fk",
+                    "source_label": "IPAM",
+                    "edit_url": "/plugins/netbox-nsm/object-link/assign/?ct_id=234",
+                    "delete_url": "/plugins/netbox-nsm/panel-link/address-ipam-fk/nsm_addresses/clear/?field=prefix",
+                }
+            ]
+        )
+        row_html = self._row(html)
+        self.assertIn("nsm-ipa-loupe", row_html)
+        self.assertIn("btn-light", row_html)
+        self.assertIn("mdi-magnify text-dark", row_html)
+        self.assertIn("btn-warning", row_html)
+        self.assertIn('aria-label="Edit assignment"', row_html)
+        self.assertIn("btn-danger", row_html)
+        self.assertIn("mdi-trash-can-outline", row_html)
+
+    def test_object_link_row_uses_edit_assignment_label(self):
+        html = self._render(
+            [
+                {
+                    "url": "/zones/1/",
+                    "name": "prod",
+                    "ct_id": 1,
+                    "obj_id": 1,
+                    "addr_analyzable": False,
+                    "edit_url": "/plugins/netbox-nsm/object-link/2/edit/",
+                    "delete_url": "/plugins/netbox-nsm/object-link/2/delete/",
+                }
+            ],
+            type_key="netbox_custom_objects__nsmzone",
+            type_label="Zones",
+        )
+        self.assertIn('aria-label="Edit assignment"', html)
+        self.assertIn('aria-label="Remove assignment"', html)
+        self.assertIn('href="/plugins/netbox-nsm/object-link/2/edit/"', html)
+        self.assertIn('href="/plugins/netbox-nsm/object-link/2/delete/"', html)
+
+
+class SecurityLinkTableTests(SimpleTestCase):
+    """Linked objects use a flat PR #482-style table."""
+
+    def _render_link_groups(self, groups):
+        ctx = prepare_link_tab_view(groups, RequestFactory().get("/"))
+        return render_to_string(
+            "netbox_nsm/inc/security_links.html",
+            {
+                "nsm_panel_label": "Security",
+                "nsm_security_badge": None,
+                "nsm_analyzer_url": "/analyzer/",
+                "nsm_assign_url": "/assign/",
+                "nsm_page_addr_analyzable": False,
+                "nsm_enforcement_point": None,
+                **ctx,
+            },
+        )
+
+    def test_renders_flat_table_with_controls(self):
         html = self._render_link_groups(
             [
                 {
                     "type_key": "netbox_custom_objects__nsm_addresses",
                     "type_label": "Addresses",
-                    "count": 1,
-                    "show_comment": False,
-                    "show_actions": True,
                     "objects": [
                         {
                             "url": "/plugins/custom-objects/nsm_addresses/10/",
                             "name": "demo-addr-0010",
-                            "addr_analyzable": True,
+                            "field_label": "Object link",
                             "supports_addr_analysis": True,
                             "edit_url": "/edit/",
                             "delete_url": "/delete/",
@@ -641,45 +450,43 @@ class SecurityLinkTableHeaderTests(SimpleTestCase):
                 }
             ]
         )
-        # New design: object-type tab + NetBox-style child-object table.
-        self.assertIn("nsm-link-tabs", html)
+        self.assertNotIn('class="nav nav-tabs nsm-link-tabs"', html)
+        self.assertNotIn('class="nsm-link-value-filter', html)
+        self.assertIn("Quick search", html)
         self.assertIn("object-list", html)
-        table_html = html.split(
-            'class="table table-hover object-list nsm-link-table"', 1
-        )[1]
-        self.assertIn("<thead", table_html)
-        self.assertIn("Name", table_html.split("<tbody", 1)[0])
-        self.assertNotIn("Link type", html)
+        thead = html.split("<thead", 1)[1].split("<tbody", 1)[0]
+        self.assertIn("Type", thead)
+        self.assertIn("Object", thead)
+        self.assertIn("Value", thead)
+        self.assertIn("Field", thead)
+        self.assertIn("demo-addr-0010", html)
+        self.assertIn("Object link", html)
 
-    def test_comment_renders_with_header_and_inline_cell(self):
+    def test_field_column_shows_link_source_labels(self):
         html = self._render_link_groups(
             [
                 {
-                    "type_key": "netbox_custom_objects__nsmzone",
-                    "type_label": "Zones",
-                    "count": 1,
-                    "show_comment": True,
-                    "show_actions": True,
+                    "type_key": "ipam__ipaddress",
+                    "type_label": "IP Addresses",
                     "objects": [
                         {
-                            "url": "/zones/1/",
-                            "name": "prod",
-                            "comment": "edge firewall",
-                            "edit_url": "/edit/",
-                            "delete_url": "/delete/",
-                        }
+                            "name": "10.0.0.1/32",
+                            "url": "/x",
+                            "row_type_label": "IP Addresses",
+                            "field_label": "prefix",
+                        },
+                        {
+                            "name": "grp",
+                            "url": "/y",
+                            "row_type_label": "IP Addresses",
+                            "field_label": "Member of",
+                        },
                     ],
                 }
             ]
         )
-        table_html = html.split(
-            'class="table table-hover object-list nsm-link-table"', 1
-        )[1]
-        thead_html = table_html.split("<tbody", 1)[0]
-        self.assertIn("Comment", thead_html)
-        row_html = html.split('class="nsm-link-row"', 1)[1].split("</tr>", 1)[0]
-        self.assertIn('class="col-comment"', row_html)
-        self.assertIn("edge firewall", row_html)
+        self.assertIn("prefix", html)
+        self.assertIn("Member of", html)
 
 
 class EnforcementPointPanelTemplateTests(SimpleTestCase):
@@ -693,8 +500,7 @@ class EnforcementPointPanelTemplateTests(SimpleTestCase):
                 "nsm_analyzer_url": "/analyzer/",
                 "nsm_assign_url": "/assign/",
                 "nsm_page_addr_analyzable": False,
-                "nsm_rulebook_groups": [],
-                "nsm_link_type_groups": [],
+                "nsm_link_table": None,
                 "nsm_enforcement_point": {
                     "count": 1,
                     "add_url": "/rulebook-link/?ct_id=1&obj_id=2",
@@ -729,8 +535,7 @@ class EnforcementPointPanelTemplateTests(SimpleTestCase):
                 "nsm_analyzer_url": "/analyzer/",
                 "nsm_assign_url": "/assign/",
                 "nsm_page_addr_analyzable": False,
-                "nsm_rulebook_groups": [],
-                "nsm_link_type_groups": [],
+                "nsm_link_table": None,
                 "nsm_enforcement_point": {
                     "count": 1,
                     "add_url": None,
@@ -759,8 +564,7 @@ class EnforcementPointPanelTemplateTests(SimpleTestCase):
                 "nsm_analyzer_url": "/analyzer/",
                 "nsm_assign_url": "/assign/",
                 "nsm_page_addr_analyzable": False,
-                "nsm_rulebook_groups": [],
-                "nsm_link_type_groups": [],
+                "nsm_link_table": None,
                 "nsm_enforcement_point": None,
                 "nsm_api_url": "",
             },

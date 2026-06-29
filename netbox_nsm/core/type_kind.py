@@ -13,10 +13,13 @@ __all__ = (
     "type_config_icon",
 )
 
-ADDRESS_CONTENT_MODELS = frozenset({"nsm_address", "nsm_address_group"})
+ADDRESS_CONTENT_MODELS = frozenset(
+    {"nsm_address", "nsm_address_custom", "nsm_address_group"}
+)
 
 _MODEL_PROPERTY_HINTS = {
     "nsm_address": ["name", "description"],
+    "nsm_address_custom": ["name", "description", "ipv4", "ipv6"],
     "nsm_address_group": ["name"],
     "nsm_zone": ["name", "description"],
     "nsm_label": ["name", "label_type"],

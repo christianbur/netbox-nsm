@@ -52,7 +52,7 @@ from netbox_nsm.security.actions.confirm_views import (
     GroupM2mEditView,
     GroupM2mRemoveView,
 )
-from netbox_nsm.import_ import (
+from netbox_nsm.bundles.views import (
     SetupSchemaApplyView,
     SetupSchemaDetailView,
     SetupSchemaPreviewView,

@@ -1,7 +1,5 @@
 """COT comments field: nsm_config YAML sync and backfill."""
 
-from unittest.mock import patch
-
 from django.test import TestCase
 
 from netbox_nsm.objects.type_config_export import (
@@ -9,49 +7,6 @@ from netbox_nsm.objects.type_config_export import (
     sync_cot_nsm_config_comments,
 )
 from netbox_nsm.objects.type_config_specs import TYPECONFIG_UI_SPECS
-
-
-class CotNsmConfigCommentsImportTests(TestCase):
-    @patch("netbox_nsm.objects.type_config_export.sync_cot_nsm_config_comments_for_slugs")
-    @patch("netbox_nsm.views.custom_objects_sync._seed_default_objects")
-    @patch("netbox_nsm.views.custom_objects_sync._ensure_choice_sets")
-    @patch("netbox_custom_objects.schema.executor.apply_document")
-    def test_import_single_type_syncs_comments_after_apply(
-        self,
-        mock_apply,
-        _mock_choice_sets,
-        _mock_seed,
-        mock_sync_comments,
-    ):
-        from netbox_nsm.import_.custom_objects import import_single_type
-
-        import_single_type("nsm_zone")
-        mock_apply.assert_called_once()
-        mock_sync_comments.assert_called_once_with(["nsm_zone"])
-
-    @patch("netbox_nsm.objects.type_config_export.sync_cot_nsm_config_comments_for_slugs")
-    @patch("netbox_nsm.import_.custom_objects.import_rulebook_templates")
-    @patch("netbox_nsm.views.custom_objects_sync._seed_default_objects")
-    @patch("netbox_nsm.views.custom_objects_sync._prune_stale")
-    @patch("netbox_nsm.views.custom_objects_sync._ensure_choice_sets")
-    @patch("netbox_custom_objects.schema.executor.apply_document")
-    def test_import_all_types_syncs_comments_after_apply(
-        self,
-        mock_apply,
-        _mock_choice_sets,
-        _mock_prune,
-        _mock_seed,
-        _mock_rulebook_templates,
-        mock_sync_comments,
-    ):
-        from netbox_nsm.import_.custom_objects import import_all_types
-
-        import_all_types()
-        mock_apply.assert_called_once()
-        document = mock_apply.call_args[0][0]
-        expected_slugs = [t["slug"] for t in document["types"]]
-        actual_slugs = list(mock_sync_comments.call_args[0][0])
-        self.assertEqual(actual_slugs, expected_slugs)
 
 
 class CotNsmConfigCommentsApplyDocumentTests(TestCase):

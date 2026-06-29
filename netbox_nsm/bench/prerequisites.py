@@ -1,4 +1,4 @@
-"""Shared helpers for COT-based demo scripts (no ``netbox_nsm.views`` imports)."""
+"""Shared helpers for bench scripts and integration tests."""
 
 from __future__ import annotations
 
@@ -33,6 +33,7 @@ from netbox_nsm.rulebooks.templates import (
 __all__ = (
     "ensure_nsm_prerequisites",
     "ensure_rulebook_cot",
+    "ensure_zone_address_rulebook_deployed",
     "get_cot_field_through_model",
     "get_cot_model",
     "resolve_rulebook_address_field_names",
@@ -256,3 +257,19 @@ def ensure_rulebook_cot(
         )
     apply_document(document, allow_destructive=False)
     return CustomObjectType.objects.get(slug=slug)
+
+
+def ensure_zone_address_rulebook_deployed():
+    """Deploy ``nsm_rb_demo_zone_addresses`` COT + metadata from the demo bundle."""
+    from netbox_nsm.bundles.dispatch import apply_bundle, load_bundle
+    from netbox_nsm.bundles.paths import bundle_json_path
+    from netbox_nsm.rulebooks.templates import DEMO_ZONE_ADDRESSES_RULEBOOK_SLUG
+
+    existing = CustomObjectType.objects.filter(slug=DEMO_ZONE_ADDRESSES_RULEBOOK_SLUG).first()
+    if existing is not None:
+        return existing
+
+    bundle = load_bundle(bundle_json_path("nsm_demo_zone_address_adressgroup"))
+    schema_bundle = {**bundle, "bundle_kind": "schema"}
+    apply_bundle(schema_bundle, allow_destructive=False)
+    return CustomObjectType.objects.get(slug=DEMO_ZONE_ADDRESSES_RULEBOOK_SLUG)

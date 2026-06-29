@@ -112,7 +112,7 @@ class CotRulesRowGroupPageTests(SimpleTestCase):
         mock_load_display,
     ):
         layout = self._layout()
-        virtual_rb = SimpleNamespace(cot=SimpleNamespace(), slug="nsm_rb_zone_matrix")
+        virtual_rb = SimpleNamespace(cot=SimpleNamespace(), slug="nsm_rb_demo_zone_matrix")
         mock_prefetch_plan.return_value = ["source_zones"]
 
         base_qs = MagicMock()
@@ -201,7 +201,7 @@ class CotRulesRowGroupPageTests(SimpleTestCase):
         mock_load_display,
     ):
         layout = self._layout()
-        virtual_rb = SimpleNamespace(cot=SimpleNamespace(), slug="nsm_rb_zone_matrix")
+        virtual_rb = SimpleNamespace(cot=SimpleNamespace(), slug="nsm_rb_demo_zone_matrix")
         mock_prefetch_plan.return_value = ["source_zones"]
         group_column = {
             "kind": "object",

@@ -20,7 +20,7 @@
 
     <h1 class="h2 mb-1">{% trans "Bundles" %}</h1>
     <p class="text-muted mb-4">
-      {% trans "Deploy NSM schema from JSON bundles or run Python post-setup jobs after NSM Schema is applied." %}
+      {% trans "Deploy NSM schema, demo data, and metadata from JSON bundles. Apply NSM Schema first, then optional demo bundles." %}
     </p>
 
     {% if not custom_objects_plugin_loaded %}
@@ -32,11 +32,6 @@
     <div class="card mb-4">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="card-title mb-0">{% trans "Available bundles" %}</h5>
-        {% if not can_run_demo and setup_allow_destructive_actions %}
-        <span class="badge bg-warning-subtle text-warning border border-warning-subtle">
-          {% trans "Apply NSM Schema before running Python jobs" %}
-        </span>
-        {% endif %}
       </div>
       <div class="card-body p-0">
         <div class="table-responsive">
@@ -44,7 +39,6 @@
             <thead class="table-active">
               <tr>
                 <th>{% trans "Bundle" %}</th>
-                <th>{% trans "Format" %}</th>
                 <th>{% trans "Status" %}</th>
                 <th>{% trans "Contents" %}</th>
                 <th class="text-end">{% trans "Actions" %}</th>
@@ -68,23 +62,12 @@
                   {% endif %}
                 </td>
                 <td class="text-nowrap">
-                  {% if bundle.format == 'json' %}
-                  <span class="badge bg-info-subtle text-info border border-info-subtle">JSON</span>
+                  {% if bundle.status == 'applied' %}
+                  <span class="badge bg-success-subtle text-success border border-success-subtle">{% trans "Applied" %}</span>
+                  {% elif bundle.status == 'partial' %}
+                  <span class="badge bg-warning-subtle text-warning border border-warning-subtle">{% trans "Partial" %}</span>
                   {% else %}
-                  <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Python</span>
-                  {% endif %}
-                </td>
-                <td class="text-nowrap">
-                  {% if bundle.format == 'json' %}
-                    {% if bundle.status == 'applied' %}
-                    <span class="badge bg-success-subtle text-success border border-success-subtle">{% trans "Applied" %}</span>
-                    {% elif bundle.status == 'partial' %}
-                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle">{% trans "Partial" %}</span>
-                    {% else %}
-                    <span class="badge bg-secondary-subtle text-body-emphasis border border-secondary-subtle">{% trans "Missing" %}</span>
-                    {% endif %}
-                  {% else %}
-                  <span class="text-muted">—</span>
+                  <span class="badge bg-secondary-subtle text-body-emphasis border border-secondary-subtle">{% trans "Missing" %}</span>
                   {% endif %}
                 </td>
                 <td class="small text-muted">
@@ -103,21 +86,11 @@
                     {% if bundle.metadata_rulebook_count %}{% blocktrans count counter=bundle.metadata_rulebook_count %}{{ counter }} rulebook metadata{% plural %}{{ counter }} rulebook metadata blocks{% endblocktrans %}{% endif %}
                   </div>
                   {% endif %}
-                  {% elif bundle.format == 'python' %}
-                    {% if bundle.slug == 'nsm_demo_zone_matrix' %}
-                    <div>{% trans "250×250 zones · 62,500 rules" %}</div>
-                    {% elif bundle.slug == 'nsm_demo_zone_address_adressgroup' %}
-                    <div>{% trans "50 zones · 50,000 addresses · groups" %}</div>
-                    <div><code>198.18.0.0/13</code></div>
-                    {% else %}
-                    <span class="text-muted">—</span>
-                    {% endif %}
                   {% else %}
                   <span class="text-muted">—</span>
                   {% endif %}
                 </td>
                 <td class="text-end text-nowrap">
-                  {% if bundle.format == 'json' %}
                   <div class="d-inline-flex flex-wrap gap-1 justify-content-end">
                     <a class="btn btn-sm btn-outline-secondary"
                        href="{% url 'plugins:netbox_nsm:bundle_detail' bundle.slug %}?preview=1">
@@ -128,42 +101,10 @@
                       {% trans "Open" %}
                     </a>
                   </div>
-                  {% elif setup_allow_destructive_actions %}
-                  <form method="post"
-                        class="d-inline-flex flex-column align-items-end gap-2 m-0"
-                        id="nsm-bundle-form-{{ bundle.slug }}">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="{{ bundle.action }}">
-                    <input type="hidden" name="slug" value="{{ bundle.slug }}">
-                    {% if bundle.needs_confirm %}
-                    <div class="form-check text-start mb-0">
-                      <input type="checkbox"
-                             class="form-check-input nsm-bundle-confirm"
-                             name="confirm"
-                             value="1"
-                             id="nsm-bundle-confirm-{{ bundle.slug }}"
-                             data-form-id="nsm-bundle-form-{{ bundle.slug }}"
-                             {% if not can_run_demo %}disabled{% endif %}>
-                      <label class="form-check-label small text-start" for="nsm-bundle-confirm-{{ bundle.slug }}">
-                        {{ bundle.confirm_label }}
-                      </label>
-                    </div>
-                    {% endif %}
-                    <button type="submit"
-                            class="btn btn-sm btn-outline-primary nsm-bundle-run"
-                            {% if bundle.needs_confirm %}disabled{% endif %}
-                            {% if not can_run_demo %}disabled{% endif %}
-                            {% if bundle.missing_requires %}disabled{% endif %}>
-                      <i class="mdi mdi-play-circle-outline me-1" aria-hidden="true"></i>{% trans "Run" %}
-                    </button>
-                  </form>
-                  {% else %}
-                  <span class="text-muted small">{% trans "Disabled" %}</span>
-                  {% endif %}
                 </td>
               </tr>
               {% empty %}
-              <tr><td colspan="5" class="text-muted p-3">{% trans "No bundles found." %}</td></tr>
+              <tr><td colspan="4" class="text-muted p-3">{% trans "No bundles found." %}</td></tr>
               {% endfor %}
             </tbody>
           </table>
@@ -174,22 +115,4 @@
 
   </div>
 </div>
-
-{% if setup_allow_destructive_actions %}
-<script>
-(function () {
-  document.querySelectorAll(".nsm-bundle-confirm").forEach(function (checkbox) {
-    const form = document.getElementById(checkbox.dataset.formId);
-    if (!form) return;
-    const submit = form.querySelector(".nsm-bundle-run");
-    if (!submit) return;
-    function syncSubmit() {
-      submit.disabled = checkbox.disabled || !checkbox.checked;
-    }
-    checkbox.addEventListener("change", syncSubmit);
-    syncSubmit();
-  });
-})();
-</script>
-{% endif %}
 {% endblock %}

@@ -152,8 +152,9 @@ class AddressIpamFkRefTests(SimpleTestCase):
         self.assertIn("Prefix", label)
         self.assertIn("IPAM", label)
 
+    @patch("netbox_nsm.addresses.address_ipam_fk.cot_ipam_address_flag", return_value=True)
     @patch("netbox_nsm.addresses.address_ipam_fk.get_nsm_address_model")
-    def test_is_nsm_address_object_uses_custom_object_type_slug(self, get_model):
+    def test_is_nsm_address_object_uses_custom_object_type_slug(self, get_model, _flag):
         stale_model = type("StaleTable3Model", (), {})
         fresh_model = type("FreshTable3Model", (), {})
         get_model.return_value = fresh_model
@@ -163,10 +164,14 @@ class AddressIpamFkRefTests(SimpleTestCase):
         )
         self.assertTrue(is_nsm_address_object(addr))
 
-        other = SimpleNamespace(
-            custom_object_type=SimpleNamespace(slug="nsm_zones"),
-        )
-        self.assertFalse(is_nsm_address_object(other))
+        with patch(
+            "netbox_nsm.addresses.address_ipam_fk.cot_ipam_address_flag",
+            return_value=False,
+        ):
+            other = SimpleNamespace(
+                custom_object_type=SimpleNamespace(slug="nsm_zones"),
+            )
+            self.assertFalse(is_nsm_address_object(other))
 
         class StaleAddr(stale_model):
             pass

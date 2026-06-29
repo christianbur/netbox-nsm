@@ -33,14 +33,10 @@ def run_bundle(slug: str, request: Any = None) -> Any:
     ``HttpResponse``).  Raises ``ValueError`` for unknown or non-Python bundles.
     """
     from netbox_nsm.bundles.dispatch import load_bundle
-    from netbox_nsm.bundles.paths import find_bundle_dirs
+    from netbox_nsm.bundles.paths import bundle_json_path
 
-    bundle_dirs = find_bundle_dirs()
-    if slug not in bundle_dirs:
-        raise ValueError(f"Bundle not found: {slug!r}")
-
-    bundle_dir = bundle_dirs[slug]
-    bundle = load_bundle(bundle_dir / "bundle.json")
+    bundle_path = bundle_json_path(slug)
+    bundle = load_bundle(bundle_path)
     bundle["_slug"] = slug
 
     if bundle.get("bundle_kind") != "python":
@@ -49,5 +45,6 @@ def run_bundle(slug: str, request: Any = None) -> Any:
             f"(bundle_kind={bundle.get('bundle_kind')!r})"
         )
 
+    bundle_dir = bundle_path.parent
     entry = _load_entry(bundle_dir, bundle)
     return entry(request)

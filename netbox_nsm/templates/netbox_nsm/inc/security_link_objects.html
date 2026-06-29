@@ -1,141 +1,135 @@
 {% load i18n %}
-{# ── Linked objects: object-type tabs → value sub-filter → paginated table ── #}
-{% if nsm_link_type_groups %}
+{# ── Linked objects: quicksearch + type filter + flat table ── #}
+{% if nsm_link_table %}
 <div class="nsm-link-objects" id="nsm-link-objects">
 
-  {# Object-type tabs (one per linked content type) #}
-  <ul class="nav nav-tabs nsm-link-tabs px-2 pt-2" role="tablist">
-    {% for group in nsm_link_type_groups %}
-    <li class="nav-item" role="presentation">
-      <a class="nav-link{% if nsm_active_link_type %}{% if group.type_key == nsm_active_link_type %} active{% endif %}{% elif forloop.first %} active{% endif %}"
-         href="{{ group.tab_url|default:'#' }}">
-        {{ group.type_label }}
-        <span class="badge text-bg-secondary ms-1">{{ group.count }}</span>
-      </a>
-    </li>
-    {% endfor %}
-  </ul>
+  <form method="get"
+        class="nsm-link-controls d-flex flex-wrap align-items-center gap-2 px-2 pt-2 pb-2 border-bottom">
+    <div class="input-group input-group-flat quicksearch" style="max-width: 24rem;">
+      <span class="input-group-text">
+        <i class="mdi mdi-magnify" aria-hidden="true"></i>
+      </span>
+      <input type="search"
+             name="nsm_q"
+             value="{{ nsm_link_table.q }}"
+             class="form-control"
+             placeholder="{% trans 'Quick search' %}"
+             aria-label="{% trans 'Quick search' %}">
+      <span class="input-group-text">
+        {% if nsm_link_table.q or nsm_link_table.active_row_type %}
+        <a href="{{ nsm_link_table.clear_filters_url }}"
+           class="text-secondary"
+           aria-label="{% trans 'Clear filters' %}"><i class="mdi mdi-close-circle" aria-hidden="true"></i></a>
+        {% else %}
+        <span class="invisible"><i class="mdi mdi-close-circle" aria-hidden="true"></i></span>
+        {% endif %}
+      </span>
+    </div>
 
-  {% for group in nsm_link_type_groups %}
-  {% if nsm_active_link_type and group.type_key == nsm_active_link_type or not nsm_active_link_type and forloop.first %}
-  <div class="nsm-link-tabpane" id="nsm-ltab-{{ group.type_key }}">
-
-    {# Second-level grouping by value (e.g. Permit / Deny) #}
-    {% if group.has_value_grouping %}
-    <div class="nsm-link-value-filter d-flex flex-wrap align-items-center gap-1 px-2 pt-2" role="group" aria-label="{% trans 'Filter by value' %}">
-      <a class="btn btn-sm {% if group.all_value_active %}btn-primary{% else %}btn-outline-secondary{% endif %}"
-         href="{{ group.all_value_url|default:'#' }}">
-        {% trans "All" %} <span class="badge text-bg-secondary ms-1">{{ group.count }}</span>
-      </a>
-      {% for sg in group.value_subgroups %}
-      <a class="btn btn-sm {% if sg.is_active %}btn-primary{% else %}btn-outline-secondary{% endif %}"
-         href="{{ sg.url|default:'#' }}">
-        {{ sg.value_label }} <span class="badge text-bg-secondary ms-1">{{ sg.count }}</span>
-      </a>
+    {% if nsm_link_table.has_row_type_filter %}
+    <select name="nsm_ty"
+            class="form-select form-select-sm w-auto"
+            aria-label="{% trans 'Filter by type' %}"
+            onchange="this.form.submit()">
+      <option value=""{% if not nsm_link_table.active_row_type %} selected{% endif %}>
+        {% trans "All types" %}
+      </option>
+      {% for opt in nsm_link_table.row_type_options %}
+      <option value="{{ opt.key }}"{% if opt.key == nsm_link_table.active_row_type %} selected{% endif %}>
+        {{ opt.label }} ({{ opt.count }})
+      </option>
       {% endfor %}
-    </div>
+    </select>
     {% endif %}
+    {% if nsm_link_table.pagination.per_page %}
+    <input type="hidden" name="nsm_pp" value="{{ nsm_link_table.pagination.per_page }}">
+    {% endif %}
+    <button type="submit" class="visually-hidden">{% trans "Search" %}</button>
+  </form>
 
-    {# NetBox-style child-object table #}
-    <div class="htmx-container table-responsive">
-      <table class="table table-hover object-list nsm-link-table">
-        <thead>
-          <tr>
-            <th scope="col" class="col-object">
-              {% if group.sort_headers %}
-              <a href="{{ group.sort_headers.name.url }}" class="text-reset text-decoration-none">
-                {% trans "Name" %}
-                {% if group.sort_headers.name.sorted %}<i class="mdi {% if group.sort_headers.name.descending %}mdi-chevron-down{% else %}mdi-chevron-up{% endif %}" aria-hidden="true"></i>{% endif %}
-              </a>
-              {% else %}{% trans "Name" %}{% endif %}
-            </th>
-            {% if group.has_value_grouping %}
-            <th scope="col" class="col-value">
-              {% if group.sort_headers %}
-              <a href="{{ group.sort_headers.value.url }}" class="text-reset text-decoration-none">
-                {% trans "Value" %}
-                {% if group.sort_headers.value.sorted %}<i class="mdi {% if group.sort_headers.value.descending %}mdi-chevron-down{% else %}mdi-chevron-up{% endif %}" aria-hidden="true"></i>{% endif %}
-              </a>
-              {% else %}{% trans "Value" %}{% endif %}
-            </th>
-            {% endif %}
-            {% if group.show_comment %}<th scope="col" class="col-comment">{% trans "Comment" %}</th>{% endif %}
-            {% if group.show_actions %}<th scope="col" class="col-actions"></th>{% endif %}
-          </tr>
-        </thead>
-        <tbody>
-          {% if group.paginated %}
-            {% for linked in group.page %}
-              {% include "netbox_nsm/inc/security_link_row.html" with linked=linked group=group %}
-            {% empty %}
-              <tr><td colspan="4" class="text-muted ps-3 py-2">{% trans "No matching objects" %}</td></tr>
-            {% endfor %}
+  <div class="htmx-container table-responsive">
+    <table class="table table-hover object-list nsm-link-table">
+      <thead>
+        <tr>
+          <th scope="col" class="col-type">{% trans "Type" %}</th>
+          <th scope="col" class="col-object">
+            <a href="{{ nsm_link_table.sort_headers.name.url }}" class="text-reset text-decoration-none">
+              {% trans "Object" %}
+              {% if nsm_link_table.sort_headers.name.sorted %}<i class="mdi {% if nsm_link_table.sort_headers.name.descending %}mdi-chevron-down{% else %}mdi-chevron-up{% endif %}" aria-hidden="true"></i>{% endif %}
+            </a>
+          </th>
+          <th scope="col" class="col-value">
+            <a href="{{ nsm_link_table.sort_headers.value.url }}" class="text-reset text-decoration-none">
+              {% trans "Value" %}
+              {% if nsm_link_table.sort_headers.value.sorted %}<i class="mdi {% if nsm_link_table.sort_headers.value.descending %}mdi-chevron-down{% else %}mdi-chevron-up{% endif %}" aria-hidden="true"></i>{% endif %}
+            </a>
+          </th>
+          <th scope="col" class="col-field">{% trans "Field" %}</th>
+          {% if nsm_link_table.show_actions %}<th scope="col" class="col-actions"></th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for linked in nsm_link_table.page %}
+          {% include "netbox_nsm/inc/security_link_row.html" with linked=linked group=nsm_link_table %}
+        {% empty %}
+          <tr><td colspan="5" class="text-muted ps-3 py-2">{% trans "No matching objects" %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if nsm_link_table.pagination.num_pages > 1 or nsm_link_table.pagination.total %}
+  <div class="d-flex justify-content-between align-items-center border-top p-2 nsm-link-paginator">
+    {% if nsm_link_table.pagination.num_pages > 1 %}
+    <nav aria-label="{% trans 'Page selection' %}">
+      <ul class="pagination pagination-sm mb-0">
+        {% if nsm_link_table.pagination.prev_url %}
+        <li class="page-item">
+          <a href="{{ nsm_link_table.pagination.prev_url }}" class="page-link" aria-label="{% trans 'Previous page' %}">
+            <i class="mdi mdi-chevron-left" aria-hidden="true"></i>
+          </a>
+        </li>
+        {% endif %}
+        {% for p in nsm_link_table.pagination.pages %}
+          {% if p.gap %}
+          <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
           {% else %}
-            {% for linked in group.objects %}
-              {% include "netbox_nsm/inc/security_link_row.html" with linked=linked group=group %}
-            {% endfor %}
-          {% endif %}
-        </tbody>
-      </table>
-    </div>
-
-    {# Server-side pagination (only one page of rows ever reaches the DOM) #}
-    {% if group.pagination and group.pagination.num_pages > 1 or group.pagination.total %}
-    <div class="d-flex justify-content-between align-items-center border-top p-2 nsm-link-paginator">
-      {% if group.pagination.num_pages > 1 %}
-      <nav aria-label="{% trans 'Page selection' %}">
-        <ul class="pagination pagination-sm mb-0">
-          {% if group.pagination.prev_url %}
-          <li class="page-item">
-            <a href="{{ group.pagination.prev_url }}" class="page-link" aria-label="{% trans 'Previous page' %}">
-              <i class="mdi mdi-chevron-left" aria-hidden="true"></i>
-            </a>
+          <li class="page-item{% if p.current %} active{% endif %}"{% if p.current %} aria-current="page"{% endif %}>
+            <a href="{{ p.url }}" class="page-link">{{ p.number }}</a>
           </li>
           {% endif %}
-          {% for p in group.pagination.pages %}
-            {% if p.gap %}
-            <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
-            {% else %}
-            <li class="page-item{% if p.current %} active{% endif %}"{% if p.current %} aria-current="page"{% endif %}>
-              <a href="{{ p.url }}" class="page-link">{{ p.number }}</a>
-            </li>
-            {% endif %}
+        {% endfor %}
+        {% if nsm_link_table.pagination.next_url %}
+        <li class="page-item">
+          <a href="{{ nsm_link_table.pagination.next_url }}" class="page-link" aria-label="{% trans 'Next page' %}">
+            <i class="mdi mdi-chevron-right" aria-hidden="true"></i>
+          </a>
+        </li>
+        {% endif %}
+      </ul>
+    </nav>
+    {% else %}<span></span>{% endif %}
+
+    <small class="text-end text-muted">
+      {% blocktrans trimmed with start=nsm_link_table.pagination.showing_start end=nsm_link_table.pagination.showing_end total=nsm_link_table.pagination.total %}
+        Showing {{ start }}-{{ end }} of {{ total }}
+      {% endblocktrans %}
+    </small>
+
+    <nav aria-label="{% trans 'Pagination options' %}">
+      <div class="dropdown dropdown-menu-end">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+          {% trans "Per Page" %}
+        </button>
+        <ul class="dropdown-menu">
+          {% for choice in nsm_link_table.pagination.per_page_choices %}
+          <li><a href="{{ choice.url }}" class="dropdown-item{% if choice.n == nsm_link_table.pagination.per_page %} active{% endif %}">{{ choice.n }}</a></li>
           {% endfor %}
-          {% if group.pagination.next_url %}
-          <li class="page-item">
-            <a href="{{ group.pagination.next_url }}" class="page-link" aria-label="{% trans 'Next page' %}">
-              <i class="mdi mdi-chevron-right" aria-hidden="true"></i>
-            </a>
-          </li>
-          {% endif %}
         </ul>
-      </nav>
-      {% else %}<span></span>{% endif %}
-
-      <small class="text-end text-muted">
-        {% blocktrans trimmed with start=group.pagination.showing_start end=group.pagination.showing_end total=group.pagination.total %}
-          Showing {{ start }}-{{ end }} of {{ total }}
-        {% endblocktrans %}
-      </small>
-
-      <nav aria-label="{% trans 'Pagination options' %}">
-        <div class="dropdown dropdown-menu-end">
-          <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-            {% trans "Per Page" %}
-          </button>
-          <ul class="dropdown-menu">
-            {% for choice in group.pagination.per_page_choices %}
-            <li><a href="{{ choice.url }}" class="dropdown-item{% if choice.n == group.pagination.per_page %} active{% endif %}">{{ choice.n }}</a></li>
-            {% endfor %}
-          </ul>
-        </div>
-      </nav>
-    </div>
-    {% endif %}
-
+      </div>
+    </nav>
   </div>
   {% endif %}
-  {% endfor %}
 
 </div>
 {% endif %}

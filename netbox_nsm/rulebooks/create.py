@@ -213,7 +213,10 @@ def create_cot_rulebook_from_template(
     save_nsm_config_document_for_cot(cot, {"role": "rulebook"})
     if parent_slug:
         save_rulebook_config_for_cot(cot, {"parent_slug": parent_slug})
-    from netbox_nsm.rulebooks.rulebook_groups import sync_rulebook_field_groups
+    from netbox_nsm.rulebooks.rulebook_groups import apply_schema_yaml_field_groups
 
-    sync_rulebook_field_groups(cot)
+    apply_schema_yaml_field_groups(
+        cot,
+        list(document["types"][0].get("fields") or []),
+    )
     return cot

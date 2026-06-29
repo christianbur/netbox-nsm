@@ -95,24 +95,16 @@ _IPAM_MODELS = (
 # --------------------------------------------------------------------------- #
 # COT model / field resolution (read-only)
 # --------------------------------------------------------------------------- #
-def _cot_for_slug(slugs):
-    try:
-        from netbox_custom_objects.models import CustomObjectType
-    except ImportError:
-        return None
-    for slug in slugs:
-        cot = CustomObjectType.objects.filter(slug=slug).first()
-        if cot is not None:
-            return cot
-    return None
-
-
 def _address_cot():
-    return _cot_for_slug(("nsm_address", "nsm_addresses"))
+    from netbox_nsm.addresses.address_cot_schema import get_ipam_address_cot
+
+    return get_ipam_address_cot()
 
 
 def _group_cot():
-    return _cot_for_slug(("nsm_address_group", "nsm_address_groups"))
+    from netbox_nsm.addresses.address_cot_schema import get_address_group_cot
+
+    return get_address_group_cot()
 
 
 def _group_membership_through(group_cot):

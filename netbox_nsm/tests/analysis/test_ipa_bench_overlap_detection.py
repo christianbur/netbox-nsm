@@ -1,4 +1,4 @@
-"""Verify IPA detects bench overlap-bucket patterns from addresses_million_scale."""
+"""Verify IPA detects overlap-bucket naming patterns used in address demo bundles."""
 
 from __future__ import annotations
 
@@ -17,12 +17,14 @@ from netbox_nsm.analysis.addr_analysis_utils import (
     _mark_contained_addr_duplicate_flags,
 )
 from netbox_nsm.analysis.ipa_object_tree import IPA_TREE_NODE_INFO_GAP
-from netbox_nsm.import_.demo_scale import (
+from netbox_nsm.tests.fixtures.ipa_bench_overlap_naming import (
     BENCH_OVERLAP_SHOWCASE_RULE_COUNT,
     HOSTS_PER_SUBNET,
     OVERLAP_ALIAS_STRIDE,
     OVERLAP_DEMO_RULE_COUNT,
     OVERLAP_DUP_NAME_STRIDE,
+    PREFIX_LEN_SUPER,
+    PREFIX_LEN_WIDE,
     _alias_comments,
     _alias_name,
     _alias_stride_for_leaf,
@@ -37,8 +39,6 @@ from netbox_nsm.import_.demo_scale import (
     _wide_name,
     _wider_prefix_cidr,
     overlap_demo_rule_descriptions,
-    PREFIX_LEN_SUPER,
-    PREFIX_LEN_WIDE,
 )
 
 
@@ -547,7 +547,7 @@ class BenchRule00001CellTreeIntegrationTests(TestCase):
                 execute_ip_analysis_merge,
                 parse_object_refs,
             )
-            from netbox_nsm.import_.demo_common import (
+            from netbox_nsm.bench.prerequisites import (
                 get_cot_field_through_model,
                 get_cot_model,
                 resolve_rulebook_address_field_names,
@@ -556,7 +556,7 @@ class BenchRule00001CellTreeIntegrationTests(TestCase):
             self.skipTest("NetBox environment not available")
 
         try:
-            RuleModel, cot = get_cot_model("nsm_rb_bench_addresses")
+            RuleModel, cot = get_cot_model("nsm_rb_demo_zone_addresses")
         except RuntimeError:
             self.skipTest("Bench rulebook not deployed")
 

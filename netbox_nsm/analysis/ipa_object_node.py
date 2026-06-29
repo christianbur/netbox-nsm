@@ -119,9 +119,9 @@ def _ipa_object_node_role_from_obj(obj, *, expands_members: bool | None = None) 
     ip_ref = _hub._addr_ip_ref(obj)
     if ip_ref:
         return _ipa_object_node_role_from_ip_ref(ip_ref) or IPA_NODE_ROLE_EMPTY
-    from netbox_nsm.addresses.address_literal import get_network_literal
+    from netbox_nsm.addresses.address_literal import get_policy_address_cidr
 
-    literal = get_network_literal(obj)
+    literal = get_policy_address_cidr(obj)
     if literal:
         return _ipa_object_node_role_from_cidr_hint(literal) or IPA_NODE_ROLE_PREFIX
     return IPA_NODE_ROLE_EMPTY

@@ -20,14 +20,14 @@ from netbox_nsm.security.object_rules import (
 
 class CotSecurityPanelUrlTests(SimpleTestCase):
     def test_cot_name_filter_url(self):
-        url = build_cot_rule_name_column_filter_url("nsm_rb_zone_matrix", "allow-web")
-        self.assertIn("/rulebooks/cot/nsm_rb_zone_matrix/rules/", url)
+        url = build_cot_rule_name_column_filter_url("nsm_rb_demo_zone_matrix", "allow-web")
+        self.assertIn("/rulebooks/cot/nsm_rb_demo_zone_matrix/rules/", url)
         query = parse_qs(urlparse(url).query)
         self.assertEqual(query["f_name"][0], "allow-web")
 
     def test_cot_column_filter_url(self):
         url = build_cot_rules_column_filter_url(
-            "nsm_rb_zone_matrix",
+            "nsm_rb_demo_zone_matrix",
             "source_zones::ct_12",
             "trust",
         )
@@ -57,9 +57,9 @@ class CotSecurityPanelGroupTests(SimpleTestCase):
 
         rulebook = SimpleNamespace(
             pk=7,
-            slug="nsm_rb_zone_matrix",
+            slug="nsm_rb_demo_zone_matrix",
             name="Demo Rulebook",
-            get_rules_tab_url=lambda: "/rulebooks/cot/nsm_rb_zone_matrix/rules/",
+            get_rules_tab_url=lambda: "/rulebooks/cot/nsm_rb_demo_zone_matrix/rules/",
         )
         field = SimpleNamespace(pk=4, name="Zones (Source)", slug="source_zones")
         mock_panel_rulebook.return_value = rulebook
@@ -79,7 +79,7 @@ class CotSecurityPanelGroupTests(SimpleTestCase):
         self.assertEqual(field_group["field"].name, "Zones (Source)")
         self.assertEqual(field_group["rule_count"], 1)
         self.assertNotIn("rules", field_group)
-        self.assertIn("nsm_rb_zone_matrix", group["rules_tab_url"])
+        self.assertIn("nsm_rb_demo_zone_matrix", group["rules_tab_url"])
         mock_count.assert_called_once()
 
     @patch("netbox_nsm.security.references.cot_rule_references._scan_field_instances")

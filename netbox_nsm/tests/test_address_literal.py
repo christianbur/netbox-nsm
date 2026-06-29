@@ -63,7 +63,7 @@ class AddressLiteralValidationTests(SimpleTestCase):
 
     def test_validate_rejects_literal_and_ipam(self):
         with patch(
-            "netbox_nsm.objects.address_literal.has_address_ipam_link",
+            "netbox_nsm.addresses.address_literal.has_address_ipam_link",
             return_value=True,
         ):
             with self.assertRaises(ValidationError):

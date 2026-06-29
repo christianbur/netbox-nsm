@@ -60,19 +60,17 @@ def grant_rulebook_list_access(testcase):
     """Ensure the user may open the rulebook list (per-COT view permission)."""
     from netbox_custom_objects.models import CustomObjectType
 
+    from netbox_nsm.rulebooks.registry import iter_deployed_cot_rulebooks
     from netbox_nsm.rulebooks.templates import RULEBOOK_GROUP
+    from netbox_nsm.type_metadata.menus import group_name_for_menu
 
-    cot = (
-        CustomObjectType.objects.filter(group_name=RULEBOOK_GROUP)
-        .order_by("pk")
-        .first()
-    )
+    cot = next(iter_deployed_cot_rulebooks(), None)
     if cot is None:
         cot = CustomObjectType.objects.create(
             name="nsm_rb_list_access_helper",
             slug="nsm_rb_list_access_helper",
             verbose_name="List Access Helper",
-            group_name=RULEBOOK_GROUP,
+            group_name=group_name_for_menu("rulebooks") or RULEBOOK_GROUP,
         )
     grant_rulebook_cot_perms(testcase, cot, view=True)
     return cot

@@ -1,13 +1,14 @@
 """Interface parent host links for Security Panel and Rules."""
 
 from django.template.loader import render_to_string
-from django.test import SimpleTestCase
+from django.test import RequestFactory, SimpleTestCase
 
 from netbox_nsm.core.interface_parent import (
     get_interface_parent_host,
     interface_parent_host_payload,
 )
 from netbox_nsm.rulebooks.cell_html import render_rules_object_cell_html
+from netbox_nsm.security.tab.links import prepare_link_tab_view
 
 
 class _Host:
@@ -72,28 +73,31 @@ class InterfaceParentHostTests(SimpleTestCase):
         self.assertIn("GigabitEthernet1/0/1", html)
 
     def test_security_panel_renders_parent_host_link(self):
+        link_ctx = prepare_link_tab_view(
+            [
+                {
+                    "type_key": "dcim__interface",
+                    "type_label": "Interfaces",
+                    "count": 1,
+                    "show_actions": False,
+                    "objects": [
+                        {
+                            "url": "/dcim/interfaces/170/",
+                            "name": "GigabitEthernet1/0/1",
+                            "row_type_label": "Interfaces",
+                            "field_label": "Object link",
+                            "parent_url": "/dcim/devices/7/",
+                            "parent_name": "app-01",
+                        }
+                    ],
+                }
+            ],
+            RequestFactory().get("/"),
+        )
         html = render_to_string(
             "netbox_nsm/inc/security_links.html",
             {
-                "nsm_unique_rules_total": 0,
-                "nsm_rulebook_groups": [],
-                "nsm_link_type_groups": [
-                    {
-                        "type_key": "dcim__interface",
-                        "type_label": "Interfaces",
-                        "count": 1,
-                        "show_comment": False,
-                        "show_actions": False,
-                        "objects": [
-                            {
-                                "url": "/dcim/interfaces/170/",
-                                "name": "GigabitEthernet1/0/1",
-                                "parent_url": "/dcim/devices/7/",
-                                "parent_name": "app-01",
-                            }
-                        ],
-                    }
-                ],
+                **link_ctx,
                 "nsm_enforcement_point": None,
             },
         )
@@ -105,9 +109,7 @@ class InterfaceParentHostTests(SimpleTestCase):
         html = render_to_string(
             "netbox_nsm/inc/security_links.html",
             {
-                "nsm_unique_rules_total": 0,
-                "nsm_rulebook_groups": [],
-                "nsm_link_type_groups": [],
+                "nsm_link_table": None,
                 "nsm_enforcement_point": None,
                 "nsm_interface_analysis": [
                     {
@@ -118,8 +120,6 @@ class InterfaceParentHostTests(SimpleTestCase):
                         "parent_name": "dmi01-akron-sw01",
                         "entry_count": 1,
                         "link_rows": [],
-                        "rulebook_groups": [],
-                        "api_url": "/api/rules/?ct_id=1&obj_id=170",
                     }
                 ],
             },

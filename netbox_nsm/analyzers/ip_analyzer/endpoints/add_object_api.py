@@ -10,7 +10,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse
 from django.views import View
 
-from netbox_nsm.analyzers.ip.ipa_add_object_types import build_ipa_add_object_categories
+from netbox_nsm.analyzers.ip_analyzer.ipa_add_object_types import build_ipa_add_object_categories
 
 __all__ = ("IpAnalysisAddObjectTypesApiView",)
 

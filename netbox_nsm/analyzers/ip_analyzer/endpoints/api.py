@@ -13,7 +13,7 @@ from django.http import HttpResponse, JsonResponse
 from django.utils.translation import gettext as _
 from django.views import View
 
-from netbox_nsm.analyzers.ip.ip_analysis_service import (
+from netbox_nsm.analyzers.ip_analyzer.ip_analysis_service import (
     execute_ip_analysis_diff,
     execute_ip_analysis_merge,
     ip_analysis_json_response,
@@ -21,7 +21,7 @@ from netbox_nsm.analyzers.ip.ip_analysis_service import (
     parse_object_refs,
     parse_selections_from_request,
 )
-from netbox_nsm.analyzers.ip.ipa_yaml_export import (
+from netbox_nsm.analyzers.ip_analyzer.ipa_yaml_export import (
     build_ipa_export_child_objects,
     build_ipa_export_document,
     ipa_export_filename,

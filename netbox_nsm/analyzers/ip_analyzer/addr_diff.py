@@ -5,12 +5,12 @@ Implementation lives in ``addr_diff_collect``, ``addr_diff_fund``,
 import surface for ``addr_analysis_utils`` and tests.
 """
 
-from netbox_nsm.analyzers.ip.addr_diff_build import (
+from netbox_nsm.analyzers.ip_analyzer.addr_diff_build import (
     _build_addr_diff_analysis,
     _build_addr_diff_analysis_from_sides,
     _diff_status_for_exclusive_side,
 )
-from netbox_nsm.analyzers.ip.addr_diff_collect import (
+from netbox_nsm.analyzers.ip_analyzer.addr_diff_collect import (
     _addr_append_leaf_source,
     _addr_leaf_compare_key,
     _addr_leaf_source_object,
@@ -24,7 +24,7 @@ from netbox_nsm.analyzers.ip.addr_diff_collect import (
     _lookup_ipam_prefix_for_cidr,
     _prefix_group_to_diff_entry,
 )
-from netbox_nsm.analyzers.ip.addr_diff_fund import (
+from netbox_nsm.analyzers.ip_analyzer.addr_diff_fund import (
     _addr_cross_side_name_conflict,
     _addr_diff_fund_detail,
     _addr_diff_fund_detail_multi,
@@ -35,7 +35,7 @@ from netbox_nsm.analyzers.ip.addr_diff_fund import (
     _enrich_diff_name_pill_fields,
     _shallow_addr_leaf_for_diff,
 )
-from netbox_nsm.analyzers.ip.addr_diff_hierarchy import (
+from netbox_nsm.analyzers.ip_analyzer.addr_diff_hierarchy import (
     _build_addr_diff_group,
     _build_diff_ipam_hierarchy_prefix_node,
     _build_diff_ipam_hierarchy_prefix_node_from_prefix,

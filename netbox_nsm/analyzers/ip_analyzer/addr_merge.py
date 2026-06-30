@@ -1,7 +1,7 @@
 
 """Merged address analysis and summary type counts."""
 from __future__ import annotations
-import netbox_nsm.analyzers.ip._lazy_api as _hub
+import netbox_nsm.analyzers.ip_analyzer._lazy_api as _hub
 
 def _build_multi_object_addr_analysis(objs):
     """IP Analysis: merged tree for one or more selected objects."""
@@ -69,7 +69,7 @@ def _type_counts_for_addr_analysis(sections) -> dict:
 
 def _ipa_object_tree_type_counts(nodes):
     """Summary counts for the IPA cell object tree (visible rows, not IPAM inventory)."""
-    from netbox_nsm.analyzers.ip.ipa_object_tree import _ipa_cell_object_tree_type_counts
+    from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import _ipa_cell_object_tree_type_counts
 
     return _ipa_cell_object_tree_type_counts(nodes)
 

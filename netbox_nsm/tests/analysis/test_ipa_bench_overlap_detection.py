@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase, TestCase
 
-from netbox_nsm.analyzers.ip.addr_analysis_utils import (
+from netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils import (
     _build_ipa_cell_object_tree,
     _build_multi_object_addr_analysis,
     _count_addr_tree_duplicates,
@@ -16,7 +16,7 @@ from netbox_nsm.analyzers.ip.addr_analysis_utils import (
     _count_ipa_object_tree_group_duplicates,
     _mark_contained_addr_duplicate_flags,
 )
-from netbox_nsm.analyzers.ip.ipa_object_tree import IPA_TREE_NODE_INFO_GAP
+from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import IPA_TREE_NODE_INFO_GAP
 from netbox_nsm.tests.fixtures.ipa_bench_overlap_naming import (
     BENCH_OVERLAP_SHOWCASE_RULE_COUNT,
     HOSTS_PER_SUBNET,
@@ -104,9 +104,9 @@ class BenchOverlapExpectationTests(SimpleTestCase):
 class BenchOverlapIpaDetectionTests(SimpleTestCase):
     """IPA builders must surface each bench overlap mechanism."""
 
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._attach_ipa_object_tree_ip_meta")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_group_members", return_value=[])
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_ip_ref")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_object_tree_ip_meta")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_group_members", return_value=[])
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_ip_ref")
     @patch("django.contrib.contenttypes.models.ContentType")
     def test_alias_peer_same_ipam_merged_as_cell_addresses_multi(
         self, content_type_cls, ip_ref_fn, _members_fn, attach_fn
@@ -164,9 +164,9 @@ class BenchOverlapIpaDetectionTests(SimpleTestCase):
         )
         self.assertEqual(_count_ipa_object_tree_duplicates(nodes), 1)
 
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._attach_ipa_object_tree_ip_meta")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_group_members", return_value=[])
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_ip_ref")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_object_tree_ip_meta")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_group_members", return_value=[])
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_ip_ref")
     @patch("django.contrib.contenttypes.models.ContentType")
     def test_dup_name_peer_same_ipam_merged_as_cell_addresses_multi(
         self, content_type_cls, ip_ref_fn, _members_fn, attach_fn
@@ -223,10 +223,10 @@ class BenchOverlapIpaDetectionTests(SimpleTestCase):
         )
         self.assertEqual(_count_ipa_object_tree_duplicates(nodes), 1)
 
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._attach_ipa_object_tree_ipam_stats")
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._attach_ipa_object_tree_ip_meta")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_group_members", return_value=[])
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_ip_ref")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_object_tree_ipam_stats")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_object_tree_ip_meta")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_group_members", return_value=[])
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_ip_ref")
     @patch("django.contrib.contenttypes.models.ContentType")
     def test_bench_prefix_containment_nests_host_under_wider_prefixes(
         self, content_type_cls, ip_ref_fn, _members_fn, attach_fn, _stats_fn
@@ -303,8 +303,8 @@ class BenchOverlapIpaDetectionTests(SimpleTestCase):
         self.assertGreaterEqual(dup_count, 3)
 
     @patch("django.contrib.contenttypes.models.ContentType")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_group_members")
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._build_ipa_cell_flat_address_node")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_group_members")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._build_ipa_cell_flat_address_node")
     def test_overlap_group_shared_host_gets_cell_groups_multi(
         self, build_node_fn, members_fn, content_type_cls
     ):
@@ -360,10 +360,10 @@ class BenchOverlapIpaDetectionTests(SimpleTestCase):
         )
         self.assertEqual(_count_ipa_object_tree_group_duplicates(nodes), 1)
 
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._attach_ipa_object_tree_ipam_stats")
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._attach_ipa_object_tree_ip_meta")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_group_members")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_ip_ref")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_object_tree_ipam_stats")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_object_tree_ip_meta")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_group_members")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_ip_ref")
     @patch("django.contrib.contenttypes.models.ContentType")
     def test_bench_rule_00011_overlap_group_members_get_subnet_containment(
         self, content_type_cls, ip_ref_fn, members_fn, attach_fn, _stats_fn
@@ -453,8 +453,8 @@ class BenchOverlapIpaDetectionTests(SimpleTestCase):
         self.assertEqual(len(host_nodes), 1)
         self.assertEqual(host_nodes[0].get("subnet_contained_in"), net24)
 
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._build_addr_tree_nodes")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._object_supports_addr_analysis", return_value=True)
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._build_addr_tree_nodes")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._object_supports_addr_analysis", return_value=True)
     def test_addr_tree_marks_contained_bench_prefix_as_duplicate(
         self, _supports, build_nodes_fn
     ):
@@ -543,7 +543,7 @@ class BenchRule00001CellTreeIntegrationTests(TestCase):
         try:
             from django.contrib.contenttypes.models import ContentType
 
-            from netbox_nsm.analyzers.ip.ip_analysis_service import (
+            from netbox_nsm.analyzers.ip_analyzer.ip_analysis_service import (
                 execute_ip_analysis_merge,
                 parse_object_refs,
             )

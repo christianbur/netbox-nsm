@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.analyzers.ip.addr_analysis_utils import (
+from netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils import (
     _attach_addr_node_prefix_display,
 )
 

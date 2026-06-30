@@ -1,7 +1,7 @@
 """IPAM reference resolution for NSM address objects."""
 from __future__ import annotations
 
-from netbox_nsm.analyzers.ip.addr_constants import (
+from netbox_nsm.analyzers.ip_analyzer.addr_constants import (
     ADDR_IPAM_FK_FIELDS,
     ADDR_IPAM_FK_FIELDS_HOST,
     ADDR_IPAM_FK_FIELDS_SUBNET,
@@ -11,7 +11,7 @@ from netbox_nsm.analyzers.ip.addr_constants import (
     _ADDR_IPAM_FK_FIELDS_SUBNET,
     _FIELD_TYPE_LABELS,
 )
-import netbox_nsm.analyzers.ip._lazy_api as _hub
+import netbox_nsm.analyzers.ip_analyzer._lazy_api as _hub
 
 
 def _extract_ip_refs(obj):
@@ -237,7 +237,7 @@ def _addr_node_prefix_cidr(*, obj=None, ip_ref=None):
 
 def _attach_addr_node_prefix_display(node, *, obj=None, ip_ref=None):
     """Attach CIDR/netmask display labels to address-tree nodes for IPv4 prefixes/hosts."""
-    from netbox_nsm.analyzers.ip.addr_netmask import prefix_display_labels_for_cidr
+    from netbox_nsm.analyzers.ip_analyzer.addr_netmask import prefix_display_labels_for_cidr
 
     cidr = _addr_node_prefix_cidr(obj=obj, ip_ref=ip_ref)
     if not cidr:

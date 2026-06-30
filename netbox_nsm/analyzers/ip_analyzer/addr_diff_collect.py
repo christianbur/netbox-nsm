@@ -1,8 +1,8 @@
 """Collect address-tree leaves and prefix groups for diff analysis."""
 from __future__ import annotations
 
-import netbox_nsm.analyzers.ip._lazy_api as _hub
-from netbox_nsm.analyzers.ip.addr_ip_refs import _FIELD_TYPE_LABELS
+import netbox_nsm.analyzers.ip_analyzer._lazy_api as _hub
+from netbox_nsm.analyzers.ip_analyzer.addr_ip_refs import _FIELD_TYPE_LABELS
 
 def _addr_leaf_compare_key(node, path_prefix=None):
     """Stable key for address diff set comparison."""

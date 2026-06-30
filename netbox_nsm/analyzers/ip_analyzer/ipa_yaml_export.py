@@ -271,7 +271,7 @@ def build_ipa_export_child_objects(
 
     from django.contrib.contenttypes.models import ContentType
 
-    from netbox_nsm.analyzers.ip.ipa_ipam_tree import _build_ipa_object_drilldown_nodes
+    from netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree import _build_ipa_object_drilldown_nodes
 
     entries: list[dict[str, Any]] = []
     for ref in refs[: max(int(max_objects), 0)]:

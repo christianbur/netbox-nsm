@@ -3,7 +3,7 @@
 Architecture (SSOT in Python)
 -----------------------------
 All address analysis — merge, diff, tree building, dedupe, counts, warnings,
-YAML export — lives under ``netbox_nsm.analyzers.ip`` (see ``addr_merge``,
+YAML export — lives under ``netbox_nsm.analyzers.ip_analyzer`` (see ``addr_merge``,
 ``addr_diff*``, ``addr_tree``, ``ipa_object_tree``, ``ipa_yaml_export``).
 
 JavaScript (``plugin_assets/js/nsm_ipa_*.js`` and ``addr_analysis_assets.html``)
@@ -30,7 +30,7 @@ from django.http import JsonResponse
 from django.template.loader import render_to_string
 from django.utils.translation import gettext as _
 
-from netbox_nsm.analyzers.ip.addr_analysis_utils import (
+from netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils import (
     _apply_object_tree_copy_lines,
     _apply_summary_type_counts_to_addr_analysis,
     _build_addr_diff_analysis_from_sides,

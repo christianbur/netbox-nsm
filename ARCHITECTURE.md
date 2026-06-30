@@ -49,7 +49,7 @@ netbox_nsm/
 ├── analyzers/
 │   ├── registry.py       # ANALYZER_REGISTRY (object_analyzer, ip, object_report, label)
 │   ├── object_analyzer/
-│   ├── ip/
+│   ├── ip_analyzer/
 │   ├── object_report/    # check_registry.py — optional custom report checks
 │   └── label/            # skeleton capability (no route yet)
 ├── objects/

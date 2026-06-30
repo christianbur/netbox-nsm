@@ -1,8 +1,8 @@
 """Diff-fund markers and name-pill enrichment for address diff."""
 from __future__ import annotations
 
-import netbox_nsm.analyzers.ip._lazy_api as _hub
-from netbox_nsm.analyzers.ip.addr_diff_collect import (
+import netbox_nsm.analyzers.ip_analyzer._lazy_api as _hub
+from netbox_nsm.analyzers.ip_analyzer.addr_diff_collect import (
     _addr_append_leaf_source,
     _addr_leaf_source_object,
     _addr_source_name_set,

@@ -2,7 +2,7 @@
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.analyzers.ip.ipa_object_tree import _enrich_ipa_object_tree_cidr_from_names
+from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import _enrich_ipa_object_tree_cidr_from_names
 
 
 class IpaPrefixNetmaskEnrichTests(SimpleTestCase):

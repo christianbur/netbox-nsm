@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 from django.test import RequestFactory, SimpleTestCase
 from django.urls import reverse
 
-from netbox_nsm.analyzers.ip.endpoints import IpAnalysisObjectDrilldownApiView
+from netbox_nsm.analyzers.ip_analyzer.endpoints import IpAnalysisObjectDrilldownApiView
 
 
 class IpAnalysisObjectApiUrlTests(SimpleTestCase):
@@ -33,9 +33,9 @@ class IpAnalysisObjectDrilldownApiTests(SimpleTestCase):
         )
         self.assertEqual(response.status_code, 400)
 
-    @patch("netbox_nsm.analyzers.ip.endpoints.object_api.render_to_string")
-    @patch("netbox_nsm.analyzers.ip.endpoints.object_api._build_object_drilldown_nodes")
-    @patch("netbox_nsm.analyzers.ip.endpoints.object_api.ContentType")
+    @patch("netbox_nsm.analyzers.ip_analyzer.endpoints.object_api.render_to_string")
+    @patch("netbox_nsm.analyzers.ip_analyzer.endpoints.object_api._build_object_drilldown_nodes")
+    @patch("netbox_nsm.analyzers.ip_analyzer.endpoints.object_api.ContentType")
     def test_returns_drilldown_html(
         self, content_type_cls, build_nodes_fn, render_fn
     ):

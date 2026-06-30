@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 from django.test import RequestFactory, SimpleTestCase
 from django.urls import reverse
 
-from netbox_nsm.analyzers.ip.endpoints.api import IpAnalysisApiView
+from netbox_nsm.analyzers.ip_analyzer.endpoints.api import IpAnalysisApiView
 
 
 class IpAnalysisApiUrlTests(SimpleTestCase):
@@ -31,10 +31,10 @@ class IpAnalysisApiTests(SimpleTestCase):
         response = self.view(self._auth_request("/plugins/netbox-nsm/api/ip-analysis/"))
         self.assertEqual(response.status_code, 400)
 
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service.render_to_string")
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service._build_multi_object_addr_analysis")
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service._object_is_addr_analyzable")
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service.ContentType")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service.render_to_string")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service._build_multi_object_addr_analysis")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service._object_is_addr_analyzable")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service.ContentType")
     def test_returns_html_for_supported_object(
         self,
         content_type_cls,
@@ -68,7 +68,7 @@ class IpAnalysisApiTests(SimpleTestCase):
         self.assertEqual(data["html"], "<div>analysis</div>")
         self.assertEqual(data["objects"][0]["pk"], "42")
 
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service.ContentType")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service.ContentType")
     def test_skips_unsupported_objects(self, content_type_cls):
         obj = MagicMock()
         obj.pk = 7
@@ -82,7 +82,7 @@ class IpAnalysisApiTests(SimpleTestCase):
         content_type_cls.objects.get.return_value = ct
 
         with patch(
-            "netbox_nsm.analyzers.ip.ip_analysis_service._object_is_addr_analyzable",
+            "netbox_nsm.analyzers.ip_analyzer.ip_analysis_service._object_is_addr_analyzable",
             return_value=False,
         ):
             response = self.view(
@@ -94,10 +94,10 @@ class IpAnalysisApiTests(SimpleTestCase):
         self.assertEqual(data["html"], "")
         self.assertIn("No analyzable", data["message"])
 
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service.render_to_string")
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service._build_multi_object_addr_analysis")
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service._object_is_addr_analyzable")
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service.ContentType")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service.render_to_string")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service._build_multi_object_addr_analysis")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service._object_is_addr_analyzable")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service.ContentType")
     def test_merge_multiple_objects_single_analysis(
         self,
         content_type_cls,
@@ -140,15 +140,15 @@ class IpAnalysisApiTests(SimpleTestCase):
         merged_objs = build_fn.call_args[0][0]
         self.assertEqual(len(merged_objs), 2)
 
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service.render_to_string")
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service._build_multi_object_addr_analysis")
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service._object_is_addr_analyzable")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_ip_ref")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service.render_to_string")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service._build_multi_object_addr_analysis")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service._object_is_addr_analyzable")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_ip_ref")
     @patch(
-        "netbox_nsm.analyzers.ip.addr_analysis_utils._addr_is_group_container",
+        "netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_is_group_container",
         return_value=False,
     )
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service.ContentType")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service.ContentType")
     def test_multi_object_cell_shows_object_tree_for_drilldown(
         self,
         content_type_cls,
@@ -203,15 +203,15 @@ class IpAnalysisApiTests(SimpleTestCase):
         self.assertTrue(ctx.get("object_tree"))
         self.assertTrue(ctx.get("addr_analysis"))
 
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service.render_to_string")
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service._build_multi_object_addr_analysis")
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service._object_is_addr_analyzable")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_ip_ref")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service.render_to_string")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service._build_multi_object_addr_analysis")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service._object_is_addr_analyzable")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_ip_ref")
     @patch(
-        "netbox_nsm.analyzers.ip.addr_analysis_utils._addr_is_group_container",
+        "netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_is_group_container",
         return_value=False,
     )
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service.ContentType")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service.ContentType")
     def test_object_tree_shown_for_single_unique_object(
         self,
         content_type_cls,
@@ -249,15 +249,15 @@ class IpAnalysisApiTests(SimpleTestCase):
         ctx = render_fn.call_args[0][1]
         self.assertTrue(ctx.get("object_tree"))
 
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service.render_to_string")
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service._build_multi_object_addr_analysis")
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service._object_is_addr_analyzable")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_ip_ref")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service.render_to_string")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service._build_multi_object_addr_analysis")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service._object_is_addr_analyzable")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_ip_ref")
     @patch(
-        "netbox_nsm.analyzers.ip.addr_analysis_utils._addr_is_group_container",
+        "netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_is_group_container",
         return_value=False,
     )
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service.ContentType")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service.ContentType")
     def test_object_tree_rendered_for_duplicate_cell_entries(
         self,
         content_type_cls,
@@ -308,15 +308,15 @@ class IpAnalysisApiTests(SimpleTestCase):
         )
 
     @patch(
-        "netbox_nsm.analyzers.ip.ip_analysis_service._build_ipa_cell_object_tree",
+        "netbox_nsm.analyzers.ip_analyzer.ip_analysis_service._build_ipa_cell_object_tree",
         return_value=[],
     )
     @patch(
-        "netbox_nsm.analyzers.ip.ip_analysis_service._leaf_count_for_addr_analysis", return_value=0
+        "netbox_nsm.analyzers.ip_analyzer.ip_analysis_service._leaf_count_for_addr_analysis", return_value=0
     )
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service._build_multi_object_addr_analysis")
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service._object_is_addr_analyzable")
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service.ContentType")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service._build_multi_object_addr_analysis")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service._object_is_addr_analyzable")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service.ContentType")
     def test_empty_resolved_tree_returns_no_ips_message(
         self,
         content_type_cls,
@@ -350,10 +350,10 @@ class IpAnalysisApiTests(SimpleTestCase):
         self.assertIn("No IP addresses resolved", data["message"])
         self.assertEqual(len(data["objects"]), 1)
 
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service.render_to_string")
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service._build_multi_object_addr_analysis")
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service._object_is_addr_analyzable")
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service.ContentType")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service.render_to_string")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service._build_multi_object_addr_analysis")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service._object_is_addr_analyzable")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service.ContentType")
     def test_ipam_prefix_accepted_when_analyzable(
         self,
         content_type_cls,
@@ -402,10 +402,10 @@ class IpAnalysisApiTests(SimpleTestCase):
         self.assertEqual(data["count_ips"], 1)
         self.assertEqual(len(data["objects"]), 1)
 
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service.render_to_string")
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service._build_addr_diff_analysis_from_sides")
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service._object_is_addr_analyzable")
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service.ContentType")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service.render_to_string")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service._build_addr_diff_analysis_from_sides")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service._object_is_addr_analyzable")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service.ContentType")
     def test_diff_mode_compares_two_sides(
         self,
         content_type_cls,
@@ -472,10 +472,10 @@ class IpAnalysisApiTests(SimpleTestCase):
         self.assertEqual(len(side_specs[0]["objs"]), 1)
         self.assertEqual(len(side_specs[1]["objs"]), 1)
 
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service.render_to_string")
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service._build_addr_diff_analysis_from_sides")
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service._object_is_addr_analyzable")
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service.ContentType")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service.render_to_string")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service._build_addr_diff_analysis_from_sides")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service._object_is_addr_analyzable")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service.ContentType")
     def test_diff_mode_compares_three_indexed_sides(
         self,
         content_type_cls,
@@ -549,9 +549,9 @@ class IpAnalysisApiTests(SimpleTestCase):
         self.assertEqual(side_specs[0]["label"], "Tab 1")
         self.assertEqual(side_specs[2]["label"], "Tab 3")
 
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service._build_multi_object_addr_analysis")
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service._object_is_addr_analyzable")
-    @patch("netbox_nsm.analyzers.ip.ip_analysis_service.ContentType")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service._build_multi_object_addr_analysis")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service._object_is_addr_analyzable")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service.ContentType")
     def test_returns_yaml_attachment_for_format_yaml(
         self,
         content_type_cls,
@@ -607,8 +607,8 @@ class IpAnalysisApiTests(SimpleTestCase):
         self.assertIn(b"addr_analysis:", response.content)
         self.assertNotIn(b'"html"', response.content)
 
-    @patch("netbox_nsm.analyzers.ip.endpoints.api.execute_ip_analysis_merge")
-    @patch("netbox_nsm.analyzers.ip.endpoints.api.parse_selections_from_request")
+    @patch("netbox_nsm.analyzers.ip_analyzer.endpoints.api.execute_ip_analysis_merge")
+    @patch("netbox_nsm.analyzers.ip_analyzer.endpoints.api.parse_selections_from_request")
     def test_returns_json_error_on_unhandled_exception(
         self, parse_fn, merge_fn
     ):

@@ -2,7 +2,7 @@
 """IPAM prefix drilldown, stats, and lazy category loading."""
 from __future__ import annotations
 from django.utils.html import conditional_escape
-import netbox_nsm.analyzers.ip._lazy_api as _hub
+import netbox_nsm.analyzers.ip_analyzer._lazy_api as _hub
 from netbox_nsm.core.api_urls import get_api_url_for_content_type as _get_api_url_for_content_type
 
 _IPAM_ADDR_MODEL_NAMES = frozenset({"prefix", "ipaddress", "iprange"})
@@ -159,7 +159,7 @@ def _lookup_ipam_prefix_from_ip_ref(ip_ref):
     from django.contrib.contenttypes.models import ContentType
     from ipam.models import Prefix
 
-    from netbox_nsm.analyzers.ip.addr_constants import FIELD_TYPE_LABELS
+    from netbox_nsm.analyzers.ip_analyzer.addr_constants import FIELD_TYPE_LABELS
 
     ct_raw = ip_ref.get("ct")
     pk_raw = ip_ref.get("pk")
@@ -185,7 +185,7 @@ def _lookup_ipam_range_from_ip_ref(ip_ref):
     from django.contrib.contenttypes.models import ContentType
     from ipam.models import IPRange
 
-    from netbox_nsm.analyzers.ip.addr_constants import FIELD_TYPE_LABELS
+    from netbox_nsm.analyzers.ip_analyzer.addr_constants import FIELD_TYPE_LABELS
 
     ct_raw = ip_ref.get("ct")
     pk_raw = ip_ref.get("pk")
@@ -218,7 +218,7 @@ def _lookup_ipam_range_from_ip_ref(ip_ref):
 
 def _resolve_ipam_stats_from_ip_ref(ip_ref):
     """Return raw IPAM inventory stats for a prefix or range ref (never host IPs)."""
-    from netbox_nsm.analyzers.ip.addr_constants import FIELD_TYPE_LABELS
+    from netbox_nsm.analyzers.ip_analyzer.addr_constants import FIELD_TYPE_LABELS
 
     if not ip_ref:
         return None
@@ -446,8 +446,8 @@ def _build_ipam_range_lazy_batch_node(ip_range, *, count, loaded):
 
 def _build_ipam_range_resolve_nodes(ip_range, visited):
     """Expand an IPAM range to contained IP leaves (lazy when large)."""
-    import netbox_nsm.analyzers.ip._lazy_api as _hub
-    from netbox_nsm.analyzers.ip.addr_constants import FIELD_TYPE_LABELS
+    import netbox_nsm.analyzers.ip_analyzer._lazy_api as _hub
+    from netbox_nsm.analyzers.ip_analyzer.addr_constants import FIELD_TYPE_LABELS
 
     ip_count = _ipam_range_ip_count(ip_range)
     limit = _IPAM_PREFIX_CHILDREN_MAX
@@ -487,7 +487,7 @@ def _build_ipam_prefix_resolve_nodes(
 
     No IPAM category wrappers — nested subnets recurse until IP leaves.
     """
-    import netbox_nsm.analyzers.ip._lazy_api as _hub
+    import netbox_nsm.analyzers.ip_analyzer._lazy_api as _hub
 
     if grouped is None or stats is None or truncated is None:
         grouped, stats, truncated = _collect_ipam_prefix_children_impl(
@@ -561,9 +561,9 @@ def _build_ipam_prefix_layer_node(prefix, visited):
 
     Tree shape: ``dm-addr`` (NSM) → ``10.x/24`` (this node) → child prefixes / ranges / IPs.
     """
-    import netbox_nsm.analyzers.ip._lazy_api as _hub
+    import netbox_nsm.analyzers.ip_analyzer._lazy_api as _hub
     from django.contrib.contenttypes.models import ContentType
-    from netbox_nsm.analyzers.ip.addr_constants import FIELD_TYPE_LABELS
+    from netbox_nsm.analyzers.ip_analyzer.addr_constants import FIELD_TYPE_LABELS
 
     grouped, stats, truncated = _collect_ipam_prefix_children_impl(
         prefix, include_nsm_addresses=False
@@ -592,7 +592,7 @@ def _build_ipam_prefix_layer_node(prefix, visited):
 
 
 def _build_ipam_category_nodes(prefix, grouped, stats, visited):
-    import netbox_nsm.analyzers.ip._lazy_api as _hub
+    import netbox_nsm.analyzers.ip_analyzer._lazy_api as _hub
     """Build first-level category groups under a prefix inventory node."""
     nodes = []
     order = ("child_prefixes", "ip_addresses", "ip_ranges", "nsm_addresses")

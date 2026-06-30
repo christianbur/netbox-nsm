@@ -12,7 +12,7 @@ from django.http import JsonResponse
 from django.template.loader import render_to_string
 from django.views import View
 
-from netbox_nsm.analyzers.ip.addr_analysis_utils import (
+from netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils import (
     _build_addr_tree_node,
     _build_ipam_range_resolve_nodes,
     _enrich_addr_tree_copy_lines,

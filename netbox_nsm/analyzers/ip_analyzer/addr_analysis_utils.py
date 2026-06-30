@@ -2,7 +2,7 @@
 
 Public names without a leading underscore (e.g. ``build_multi_object_addr_analysis``)
 are the stable API for views and services. Underscore-prefixed names remain for
-unittest ``@patch("netbox_nsm.analyzers.ip.addr_analysis_utils.*")`` compatibility.
+unittest ``@patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils.*")`` compatibility.
 """
 
 from __future__ import annotations
@@ -14,14 +14,14 @@ from netbox_nsm.objects.type_config_specs import content_type_ids_for_cot_slugs
 # Test patches target these names on this module (see test_addr_copy_paths / applet tests).
 isinstance = builtins.isinstance
 
-from netbox_nsm.analyzers.ip.addr_constants import (
+from netbox_nsm.analyzers.ip_analyzer.addr_constants import (
     _ADDR_IPAM_FK_FIELDS,
     _ADDR_IPAM_FK_FIELDS_HOST,
     _ADDR_IPAM_FK_FIELDS_SUBNET,
     _FIELD_TYPE_LABELS,
 )
 
-from netbox_nsm.analyzers.ip.addr_ip_refs import (
+from netbox_nsm.analyzers.ip_analyzer.addr_ip_refs import (
     _addr_group_members,
     _addr_has_direct_ip_address,
     _addr_has_direct_range,
@@ -40,7 +40,7 @@ from netbox_nsm.analyzers.ip.addr_ip_refs import (
     _ipam_obj_from_ip_ref,
 )
 
-from netbox_nsm.analyzers.ip.addr_navigation import (
+from netbox_nsm.analyzers.ip_analyzer.addr_navigation import (
     _addr_nav_append,
     _addr_nav_append_chain,
     _addr_nav_assigned_ips_in_prefix,
@@ -53,7 +53,7 @@ from netbox_nsm.analyzers.ip.addr_navigation import (
     _navigation_ref,
 )
 
-from netbox_nsm.analyzers.ip.ipam_drilldown import (
+from netbox_nsm.analyzers.ip_analyzer.ipam_drilldown import (
     _attach_ipam_stats_meta,
     _attach_prefix_ipam_meta,
     _build_ipam_category_nodes,
@@ -88,7 +88,7 @@ from netbox_nsm.analyzers.ip.ipam_drilldown import (
     _resolve_ipam_stats_from_ip_ref,
 )
 
-from netbox_nsm.analyzers.ip.addr_tree import (
+from netbox_nsm.analyzers.ip_analyzer.addr_tree import (
     _addr_node_containment_map,
     _addr_path_line,
     _addr_path_parts_for_leaf,
@@ -112,12 +112,12 @@ from netbox_nsm.analyzers.ip.addr_tree import (
     _type_counts_for_addr_nodes,
 )
 
-from netbox_nsm.analyzers.ip.addr_analyzable import (
+from netbox_nsm.analyzers.ip_analyzer.addr_analyzable import (
     _object_is_addr_analyzable,
     _object_supports_addr_analysis,
 )
 
-from netbox_nsm.analyzers.ip.addr_diff import (
+from netbox_nsm.analyzers.ip_analyzer.addr_diff import (
     _addr_append_leaf_source,
     _addr_cross_side_name_conflict,
     _addr_diff_fund_detail,
@@ -162,7 +162,7 @@ from netbox_nsm.analyzers.ip.addr_diff import (
     _type_counts_for_multi_diff,
 )
 
-from netbox_nsm.analyzers.ip.addr_merge import (
+from netbox_nsm.analyzers.ip_analyzer.addr_merge import (
     _apply_summary_type_counts_to_addr_analysis,
     _build_multi_object_addr_analysis,
     _count_addr_tree_duplicates,
@@ -174,12 +174,12 @@ from netbox_nsm.analyzers.ip.addr_merge import (
     _type_counts_for_addr_analysis,
 )
 
-from netbox_nsm.analyzers.ip.ipa_ipam_tree import (
+from netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree import (
     _build_ipa_object_drilldown_nodes,
     _build_ipa_object_ipam_tree,
 )
 
-from netbox_nsm.analyzers.ip.ipa_object_node import (
+from netbox_nsm.analyzers.ip_analyzer.ipa_object_node import (
     IPA_NODE_ROLE_GROUP,
     IPA_NODE_ROLE_HOST,
     IPA_NODE_ROLE_PREFIX,
@@ -188,7 +188,7 @@ from netbox_nsm.analyzers.ip.ipa_object_node import (
     _ipa_object_node_role_from_ip_ref,
 )
 
-from netbox_nsm.analyzers.ip.ipa_object_tree import (
+from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import (
     _apply_object_tree_copy_lines,
     _attach_ipa_object_tree_ipam_stats,
     _attach_ipa_object_tree_ip_meta,

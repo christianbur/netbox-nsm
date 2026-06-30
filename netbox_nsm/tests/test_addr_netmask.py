@@ -2,7 +2,7 @@
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.analyzers.ip.addr_netmask import (
+from netbox_nsm.analyzers.ip_analyzer.addr_netmask import (
     ipv4_netmask_for_cidr,
     ipv4_prefix_length_to_netmask,
     prefix_display_labels_for_cidr,

@@ -16,7 +16,7 @@ from netbox_nsm.rulebooks.views.virtual_all import (
     AllRulesRulebookRulesView,
     AllRulesRulebookView,
 )
-from netbox_nsm.analyzers.ip.endpoints import (
+from netbox_nsm.analyzers.ip_analyzer.endpoints import (
     IpAnalysisAddObjectTypesApiView,
     IpAnalysisApiView,
     IpAnalysisCategoryApiView,

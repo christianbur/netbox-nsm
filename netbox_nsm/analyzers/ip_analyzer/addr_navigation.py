@@ -2,7 +2,7 @@
 """Navigation reference links for address tree nodes."""
 from __future__ import annotations
 from django.utils.translation import gettext as _
-import netbox_nsm.analyzers.ip._lazy_api as _hub
+import netbox_nsm.analyzers.ip_analyzer._lazy_api as _hub
 
 def _navigation_ref(label, obj) -> dict | None:
     if obj is None:

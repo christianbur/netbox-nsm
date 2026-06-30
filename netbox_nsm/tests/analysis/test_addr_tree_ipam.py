@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.analyzers.ip.addr_analysis_utils import (
+from netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils import (
     _ADDR_IPAM_FK_FIELDS_SUBNET,
     _addr_ip_ref,
     _addr_ip_ref_field_order,
@@ -37,10 +37,10 @@ from netbox_nsm.analyzers.ip.addr_analysis_utils import (
 )
 
 class IpamPrefixTreeTests(SimpleTestCase):
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._build_ipam_prefix_layer_node")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._collect_ipam_prefix_drilldown")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_is_group_container", return_value=False)
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_ip_ref")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._build_ipam_prefix_layer_node")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._collect_ipam_prefix_drilldown")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_is_group_container", return_value=False)
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_ip_ref")
     def test_nsm_address_prefix_only_expands_ipam_drilldown(
         self, ip_ref_fn, _group_container, prefix_drilldown_fn, layer_node_fn
     ):
@@ -105,15 +105,15 @@ class IpamPrefixTreeTests(SimpleTestCase):
         }
 
         with patch(
-            "netbox_nsm.analyzers.ip.addr_analysis_utils._ipam_obj_from_ip_ref",
+            "netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._ipam_obj_from_ip_ref",
             return_value=prefix,
         ):
             with patch(
-                "netbox_nsm.analyzers.ip.addr_analysis_utils._attach_addr_navigation_refs",
+                "netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._attach_addr_navigation_refs",
                 side_effect=lambda node, **kw: node,
             ):
                 with patch(
-                    "netbox_nsm.analyzers.ip.addr_analysis_utils._attach_addr_node_prefix_display",
+                    "netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._attach_addr_node_prefix_display",
                     side_effect=lambda node, **kw: node,
                 ):
                     node = _build_addr_tree_node(addr)
@@ -126,8 +126,8 @@ class IpamPrefixTreeTests(SimpleTestCase):
         layer_node_fn.assert_called_once_with(prefix, {addr.pk})
 
     @patch("django.contrib.contenttypes.models.ContentType")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._collect_ipam_prefix_drilldown")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_is_group_container", return_value=False)
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._collect_ipam_prefix_drilldown")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_is_group_container", return_value=False)
     def test_nsm_address_with_host_ip_stays_leaf_without_prefix_drilldown(
         self, _group_container, prefix_drilldown_fn, content_type_cls
     ):
@@ -159,15 +159,15 @@ class IpamPrefixTreeTests(SimpleTestCase):
         )
 
         with patch(
-            "netbox_nsm.analyzers.ip.addr_analysis_utils._ipam_obj_from_ip_ref",
+            "netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._ipam_obj_from_ip_ref",
             return_value=ip,
         ):
             with patch(
-                "netbox_nsm.analyzers.ip.addr_analysis_utils._attach_addr_navigation_refs",
+                "netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._attach_addr_navigation_refs",
                 side_effect=lambda node, **kw: node,
             ):
                 with patch(
-                    "netbox_nsm.analyzers.ip.addr_analysis_utils._attach_addr_node_prefix_display",
+                    "netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._attach_addr_node_prefix_display",
                     side_effect=lambda node, **kw: node,
                 ):
                     node = _build_addr_tree_node(addr)
@@ -179,7 +179,7 @@ class IpamPrefixTreeTests(SimpleTestCase):
 
     @patch("django.contrib.contenttypes.models.ContentType")
     def test_addr_ip_ref_prefers_host_ip_over_parent_prefix(self, content_type_cls):
-        from netbox_nsm.analyzers.ip.addr_analysis_utils import (
+        from netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils import (
             _ADDR_IPAM_FK_FIELDS_SUBNET,
             _addr_ip_ref,
             _addr_ip_ref_field_order,
@@ -213,7 +213,7 @@ class IpamPrefixTreeTests(SimpleTestCase):
 
     @patch("netbox_nsm.addresses.address_ipam_fk.iter_address_ipam_fk_refs")
     def test_addr_ip_ref_falls_back_to_polymorphic_gfk(self, iter_refs_fn):
-        from netbox_nsm.analyzers.ip.addr_analysis_utils import (
+        from netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils import (
             _addr_ip_ref,
             _ipam_fk_object_for_addr_node,
         )
@@ -243,13 +243,13 @@ class IpamPrefixTreeTests(SimpleTestCase):
         self.assertEqual(ip_ref["pk"], 25)
         self.assertIs(_ipam_fk_object_for_addr_node(addr), prefix)
 
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._object_supports_addr_analysis", return_value=True)
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._build_ipam_prefix_layer_node")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._collect_ipam_prefix_drilldown")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._attach_addr_navigation_refs", side_effect=lambda node, **kw: node)
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._attach_addr_node_prefix_display", side_effect=lambda node, **kw: node)
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_is_group_container", return_value=False)
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_ip_ref")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._object_supports_addr_analysis", return_value=True)
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._build_ipam_prefix_layer_node")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._collect_ipam_prefix_drilldown")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._attach_addr_navigation_refs", side_effect=lambda node, **kw: node)
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._attach_addr_node_prefix_display", side_effect=lambda node, **kw: node)
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_is_group_container", return_value=False)
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_ip_ref")
     def test_nsm_address_prefix_uses_two_layer_structure(
         self,
         ip_ref_fn,
@@ -317,7 +317,7 @@ class IpamPrefixTreeTests(SimpleTestCase):
         }
 
         with patch(
-            "netbox_nsm.analyzers.ip.addr_analysis_utils._ipam_obj_from_ip_ref",
+            "netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._ipam_obj_from_ip_ref",
             return_value=prefix,
         ):
             node = _build_addr_tree_node(addr)
@@ -336,7 +336,7 @@ class IpamPrefixTreeTests(SimpleTestCase):
             self.assertEqual(analysis[0]["types"][0]["leaf_count"], 2)
 
     @patch("netbox_nsm.addresses.address_ipam_fk.addresses_for_ipam_object_queryset")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._prefix_ipam_stats")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._prefix_ipam_stats")
     @patch("netbox_nsm.addresses.address_ipam_fk.get_nsm_address_model")
     def test_collect_ipam_prefix_children_queries_all_kinds(
         self, addr_model_fn, stats_fn, addr_qs_fn
@@ -426,8 +426,8 @@ class IpamPrefixTreeTests(SimpleTestCase):
         )
         self.assertEqual(_ipam_stats_ip_count(ordered), 200000)
 
-    @patch("netbox_nsm.analyzers.ip.ipam_drilldown._prefix_ipam_stats")
-    @patch("netbox_nsm.analyzers.ip.ipam_drilldown._lookup_ipam_prefix_from_ip_ref")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipam_drilldown._prefix_ipam_stats")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipam_drilldown._lookup_ipam_prefix_from_ip_ref")
     def test_resolve_ipam_stats_from_ip_ref_without_type_uses_lookup(
         self, lookup_fn, stats_fn
     ):
@@ -544,9 +544,9 @@ class IpamPrefixTreeTests(SimpleTestCase):
         self.assertEqual(_ipam_stats_range_count(ordered), 2)
         self.assertEqual(_ipam_stats_ip_count(ordered), 10)
 
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._object_supports_addr_analysis", return_value=True)
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._object_supports_addr_analysis", return_value=True)
     @patch(
-        "netbox_nsm.analyzers.ip.addr_analysis_utils._build_addr_tree_nodes",
+        "netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._build_addr_tree_nodes",
         return_value=([], ["all,line"]),
     )
     def test_build_multi_object_addr_analysis_includes_type_counts(
@@ -628,7 +628,7 @@ class IpamPrefixTreeTests(SimpleTestCase):
         self.assertEqual(counts["count_ranges"], 0)
         self.assertEqual(counts["count_ips"], 0)
 
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._ipam_obj_from_ip_ref")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._ipam_obj_from_ip_ref")
     def test_ipa_object_tree_type_counts_uses_unique_ipam_ips(self, ipam_obj_fn):
         def fake_ipam_obj(model_name, pk):
             obj = MagicMock()
@@ -995,7 +995,7 @@ class IpamPrefixTreeTests(SimpleTestCase):
         stats = {"child_prefixes": {"count": 50}, "ip_addresses": {"count": 1000}}
         self.assertFalse(_prefix_is_large(stats))
 
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._prefix_ipam_stats")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._prefix_ipam_stats")
     def test_large_prefix_collect_skips_child_queries(self, stats_fn):
         prefix = MagicMock()
         prefix.pk = 99
@@ -1012,7 +1012,7 @@ class IpamPrefixTreeTests(SimpleTestCase):
         self.assertTrue(truncated["child_prefixes"])
         self.assertTrue(truncated["ip_addresses"])
 
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._build_addr_tree_node")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._build_addr_tree_node")
     def test_large_prefix_category_nodes_lazy_only(self, build_node_fn):
         prefix = MagicMock()
         prefix.pk = 99
@@ -1038,12 +1038,12 @@ class IpamPrefixTreeTests(SimpleTestCase):
         self.assertFalse(nodes[2]["lazy_load"])
         self.assertEqual(nodes[2]["count"], 0)
 
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._attach_prefix_ipam_meta", side_effect=lambda n, *a, **k: n)
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._attach_addr_node_prefix_display", side_effect=lambda n, **k: n)
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._build_addr_tree_node")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._prefix_ipam_stats")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_is_group_container", return_value=False)
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_ip_ref", return_value=None)
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._attach_prefix_ipam_meta", side_effect=lambda n, *a, **k: n)
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._attach_addr_node_prefix_display", side_effect=lambda n, **k: n)
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._build_addr_tree_node")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._prefix_ipam_stats")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_is_group_container", return_value=False)
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_ip_ref", return_value=None)
     def test_large_ipam_prefix_tree_is_summary_only(
         self,
         _ip_ref,
@@ -1078,7 +1078,7 @@ class IpamPrefixTreeTests(SimpleTestCase):
 
 class AddrTreeCountingTests(SimpleTestCase):
     def test_prefix_leaf_counts_as_subnet_not_ip(self):
-        from netbox_nsm.analyzers.ip.addr_analysis_utils import (
+        from netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils import (
             _addr_tree_node_ip_count,
             _addr_tree_node_subnet_count,
             _FIELD_TYPE_LABELS,
@@ -1093,7 +1093,7 @@ class AddrTreeCountingTests(SimpleTestCase):
         self.assertEqual(_addr_tree_node_ip_count(node), 0)
 
     def test_prefix_group_with_empty_child_stats_counts_as_one_subnet(self):
-        from netbox_nsm.analyzers.ip.addr_analysis_utils import (
+        from netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils import (
             _addr_tree_node_subnet_count,
             _FIELD_TYPE_LABELS,
             _ordered_ipam_stats,
@@ -1114,7 +1114,7 @@ class AddrTreeCountingTests(SimpleTestCase):
         self.assertEqual(_addr_tree_node_subnet_count(node), 1)
 
     def test_filter_ipam_drilldown_drops_nsm_addresses_category(self):
-        from netbox_nsm.analyzers.ip.addr_analysis_utils import (
+        from netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils import (
             _filter_ipam_drilldown_category_nodes,
         )
 
@@ -1139,13 +1139,13 @@ class AddrTreeCountingTests(SimpleTestCase):
 
 class IpamResolveNodesTests(SimpleTestCase):
     @patch("django.contrib.contenttypes.models.ContentType")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._attach_addr_node_prefix_display", side_effect=lambda n, **k: n)
-    @patch("netbox_nsm.analyzers.ip.ipam_drilldown._build_ipam_prefix_resolve_nodes")
-    @patch("netbox_nsm.analyzers.ip.ipam_drilldown._collect_ipam_prefix_children_impl")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._attach_addr_node_prefix_display", side_effect=lambda n, **k: n)
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipam_drilldown._build_ipam_prefix_resolve_nodes")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipam_drilldown._collect_ipam_prefix_children_impl")
     def test_build_ipam_prefix_layer_node_creates_explicit_prefix_layer(
         self, collect_impl, resolve_nodes_fn, _display, content_type_cls
     ):
-        from netbox_nsm.analyzers.ip.addr_analysis_utils import _build_ipam_prefix_layer_node
+        from netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils import _build_ipam_prefix_layer_node
 
         ct = MagicMock()
         ct.pk = 14
@@ -1179,13 +1179,13 @@ class IpamResolveNodesTests(SimpleTestCase):
         self.assertEqual(_ipam_stats_ip_count(node["ipam_stats"]), 2)
         self.assertEqual(len(node["children"]), 1)
 
-    @patch("netbox_nsm.analyzers.ip._lazy_api._build_addr_tree_node")
-    @patch("netbox_nsm.analyzers.ip._lazy_api._addr_tree_child_visited", return_value=set())
-    @patch("netbox_nsm.analyzers.ip.ipam_drilldown._collect_ipam_prefix_children_impl")
+    @patch("netbox_nsm.analyzers.ip_analyzer._lazy_api._build_addr_tree_node")
+    @patch("netbox_nsm.analyzers.ip_analyzer._lazy_api._addr_tree_child_visited", return_value=set())
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipam_drilldown._collect_ipam_prefix_children_impl")
     def test_prefix_resolve_expands_nested_prefix_and_ips(
         self, collect_impl, _child_visited, build_node
     ):
-        from netbox_nsm.analyzers.ip.ipam_drilldown import _build_ipam_prefix_resolve_nodes
+        from netbox_nsm.analyzers.ip_analyzer.ipam_drilldown import _build_ipam_prefix_resolve_nodes
 
         parent = MagicMock()
         parent.pk = 1
@@ -1220,13 +1220,13 @@ class IpamResolveNodesTests(SimpleTestCase):
         self.assertEqual(nodes[0]["kind"], "group")
         self.assertEqual(nodes[1]["kind"], "leaf")
 
-    @patch("netbox_nsm.analyzers.ip._lazy_api._build_addr_tree_node")
-    @patch("netbox_nsm.analyzers.ip.ipam_drilldown._collect_ipam_range_ip_children")
-    @patch("netbox_nsm.analyzers.ip.ipam_drilldown._ipam_range_ip_count", return_value=3)
+    @patch("netbox_nsm.analyzers.ip_analyzer._lazy_api._build_addr_tree_node")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipam_drilldown._collect_ipam_range_ip_children")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipam_drilldown._ipam_range_ip_count", return_value=3)
     def test_range_resolve_uses_ipam_ip_count_for_badge(
         self, ip_count_fn, collect_ips, build_node
     ):
-        from netbox_nsm.analyzers.ip.ipam_drilldown import _build_ipam_range_resolve_nodes
+        from netbox_nsm.analyzers.ip_analyzer.ipam_drilldown import _build_ipam_range_resolve_nodes
 
         ip_range = MagicMock()
         ip_range.pk = 9
@@ -1257,7 +1257,7 @@ class IpamResolveNodesTests(SimpleTestCase):
 
 class AddrTreeDuplicateTests(SimpleTestCase):
     def test_contained_prefix_marked_duplicate_and_excluded_from_ip_count(self):
-        from netbox_nsm.analyzers.ip.addr_analysis_utils import (
+        from netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils import (
             _addr_tree_node_ip_count,
             _addr_tree_node_subnet_count,
             _mark_contained_addr_duplicate_flags,
@@ -1296,7 +1296,7 @@ class AddrTreeDuplicateTests(SimpleTestCase):
 
 
 def _hub_import_ip_count(node):
-    from netbox_nsm.analyzers.ip.addr_analysis_utils import _ipam_stats_ip_count
+    from netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils import _ipam_stats_ip_count
 
     return _ipam_stats_ip_count(node.get("ipam_stats") or [])
 
@@ -1306,7 +1306,7 @@ class LookupIpamPrefixForCidrTests(SimpleTestCase):
     def test_lookup_uses_netaddr_ipnetwork(self, prefix_mgr):
         from netaddr import IPNetwork
 
-        from netbox_nsm.analyzers.ip.addr_diff_collect import _lookup_ipam_prefix_for_cidr
+        from netbox_nsm.analyzers.ip_analyzer.addr_diff_collect import _lookup_ipam_prefix_for_cidr
 
         prefix_mgr.filter.return_value.order_by.return_value.first.return_value = (
             MagicMock()
@@ -1322,8 +1322,8 @@ class LookupIpamPrefixForCidrIntegrationTests(TestCase):
     def test_lookup_resolves_existing_prefix(self):
         from ipam.models import Prefix
 
-        from netbox_nsm.analyzers.ip.addr_diff_collect import _lookup_ipam_prefix_for_cidr
-        from netbox_nsm.analyzers.ip.ipam_drilldown import _resolve_ipam_stats_from_ip_ref
+        from netbox_nsm.analyzers.ip_analyzer.addr_diff_collect import _lookup_ipam_prefix_for_cidr
+        from netbox_nsm.analyzers.ip_analyzer.ipam_drilldown import _resolve_ipam_stats_from_ip_ref
 
         prefix = Prefix.objects.create(prefix="198.18.228.0/24", status="active")
         found = _lookup_ipam_prefix_for_cidr("198.18.228.0/24")

@@ -1,7 +1,7 @@
 
 """Analyzable-object checks for IP Analysis."""
 from __future__ import annotations
-import netbox_nsm.analyzers.ip._lazy_api as _hub
+import netbox_nsm.analyzers.ip_analyzer._lazy_api as _hub
 from netbox_nsm.core.type_kind import is_address_content_type_id
 from netbox_nsm.addresses.address_literal import is_literal_address
 from netbox_nsm.objects.type_config_specs import content_type_ids_for_cot_slugs

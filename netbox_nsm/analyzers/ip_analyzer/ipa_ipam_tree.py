@@ -12,13 +12,13 @@ Tree shape when expanding an NSM prefix/range node (lazy)::
 """
 from __future__ import annotations
 
-import netbox_nsm.analyzers.ip._lazy_api as _hub
-from netbox_nsm.analyzers.ip.ipa_object_node import _ipa_object_node_presentation
-from netbox_nsm.analyzers.ip.ipa_object_node import _ipa_object_node_role_from_tree_node
-from netbox_nsm.analyzers.ip.ipa_tree_dedupe import collapse_sibling_networks
-from netbox_nsm.analyzers.ip.ipa_tree_dedupe import dedupe_by_network
-from netbox_nsm.analyzers.ip.ipa_tree_dedupe import strip_redundant_parent_network
-from netbox_nsm.analyzers.ip.ipa_tree_dedupe import strip_self_referential_redundant_networks
+import netbox_nsm.analyzers.ip_analyzer._lazy_api as _hub
+from netbox_nsm.analyzers.ip_analyzer.ipa_object_node import _ipa_object_node_presentation
+from netbox_nsm.analyzers.ip_analyzer.ipa_object_node import _ipa_object_node_role_from_tree_node
+from netbox_nsm.analyzers.ip_analyzer.ipa_tree_dedupe import collapse_sibling_networks
+from netbox_nsm.analyzers.ip_analyzer.ipa_tree_dedupe import dedupe_by_network
+from netbox_nsm.analyzers.ip_analyzer.ipa_tree_dedupe import strip_redundant_parent_network
+from netbox_nsm.analyzers.ip_analyzer.ipa_tree_dedupe import strip_self_referential_redundant_networks
 
 
 def _resolve_ipam_object_for_drilldown(obj):
@@ -310,7 +310,7 @@ def _ipa_drilldown_nodes_are_shell_only(nodes, *, redundant_nets=()):
     if redundant_nets:
         net = _hub._addr_tree_node_network(node)
         if net is not None and any(net == redundant for redundant in redundant_nets):
-            from netbox_nsm.analyzers.ip.ipa_tree_dedupe import _node_renders_self_reference
+            from netbox_nsm.analyzers.ip_analyzer.ipa_tree_dedupe import _node_renders_self_reference
 
             if _node_renders_self_reference(node):
                 return not node.get("children")

@@ -439,12 +439,12 @@ class IpAnalyzerMergeAssetsTests(SimpleTestCase):
             r"\.nsm-ipa-applet-toolbar\s*\{[^}]*min-height:\s*0",
         )
 
-    @patch("netbox_nsm.analyzers.ip.ipa_add_object_types.get_api_url_for_content_type")
-    @patch("netbox_nsm.analyzers.ip.ipa_add_object_types.ContentType")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_add_object_types.get_api_url_for_content_type")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_add_object_types.ContentType")
     def test_build_ipa_add_object_categories_includes_ipam_and_cot(
         self, content_type_cls, api_url_fn
     ):
-        from netbox_nsm.analyzers.ip.ipa_add_object_types import build_ipa_add_object_categories
+        from netbox_nsm.analyzers.ip_analyzer.ipa_add_object_types import build_ipa_add_object_categories
 
         prefix_ct = MagicMock(pk=11)
         addr_ct = MagicMock(pk=22)

@@ -1,9 +1,9 @@
 
 """Address hierarchy tree building and enrichment."""
 from __future__ import annotations
-import netbox_nsm.analyzers.ip._lazy_api as _hub
-from netbox_nsm.analyzers.ip.addr_ip_refs import _FIELD_TYPE_LABELS
-from netbox_nsm.analyzers.ip.ipa_object_node import (
+import netbox_nsm.analyzers.ip_analyzer._lazy_api as _hub
+from netbox_nsm.analyzers.ip_analyzer.addr_ip_refs import _FIELD_TYPE_LABELS
+from netbox_nsm.analyzers.ip_analyzer.ipa_object_node import (
     IPA_NODE_ROLE_PREFIX,
     IPA_NODE_ROLE_RANGE,
     _ipa_object_node_role_from_cidr_hint,

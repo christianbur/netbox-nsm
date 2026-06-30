@@ -14,7 +14,7 @@ __all__ = (
 
 def __getattr__(name: str) -> Any:
     if name in __all__:
-        import netbox_nsm.analyzers.ip.addr_analysis_utils as utils
+        import netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils as utils
 
         return getattr(utils, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

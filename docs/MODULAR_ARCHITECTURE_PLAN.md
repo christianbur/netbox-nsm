@@ -10,7 +10,7 @@
 - [x] **mod-cot-flex** — `cot_roles`: Inferenz aus `related_object_types` (IPAM/Group); dynamische GFK-Spalten; Metadata nur Override (Phase B: `objects/cot_roles.py`, `address_*`/`type_kind` umgestellt)
 - [x] **mod-views** — `rulebooks/views/{table,matrix}/` + Registry aus `metadata.rulebook.views` (Phase C: `rulebooks/views/registry.py`, Tabs registry-getrieben)
 - [x] **mod-proxy** — `rulebooks/proxy/`: add/del/clone/edit Regeln auf COT (Phase C: `rulebooks/proxy/rule_rows.py`)
-- [x] **mod-analyzers** (Phase C: analyzers/{ip,object_analyzer,object_report} + shims) — `analyzers/{registry,object_analyzer,ip,object_report}/`; Migration; capability registry (Phase D: Registry verdrahtet; `modes` rollenbasiert) + Phase E `analyzers/label/`
+- [x] **mod-analyzers** (Phase C: analyzers/{ip_analyzer,object_analyzer,object_report} + shims) — `analyzers/{registry,object_analyzer,ip_analyzer,object_report}/`; Migration; capability registry (Phase D: Registry verdrahtet; `modes` rollenbasiert) + Phase E `analyzers/label/`
 - [x] **mod-docs** — `ARCHITECTURE.md`: 4 Module + Analyzer-Familie + Custom-COT-Matrix
 
 ---
@@ -197,7 +197,7 @@ netbox_nsm/
 ├── analyzers/
 │   ├── registry.py
 │   ├── object_analyzer/
-│   ├── ip/
+│   ├── ip_analyzer/
 │   ├── object_report/
 │   └── label/
 ├── objects/

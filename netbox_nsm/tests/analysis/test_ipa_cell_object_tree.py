@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.analyzers.ip.addr_analysis_utils import (
+from netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils import (
     _build_ipa_cell_object_tree,
     _count_ipa_object_tree_duplicates,
     _count_ipa_object_tree_group_duplicates,
@@ -14,12 +14,12 @@ from netbox_nsm.analyzers.ip.addr_analysis_utils import (
     _resolve_summary_type_counts,
 )
 from netbox_nsm.objects.address_literal import format_network_nsm_config_comments
-from netbox_nsm.analyzers.ip.ipa_object_node import (
+from netbox_nsm.analyzers.ip_analyzer.ipa_object_node import (
     IPA_NODE_ROLE_GROUP,
     IPA_NODE_ROLE_HOST,
     IPA_NODE_ROLE_PREFIX,
 )
-from netbox_nsm.analyzers.ip.ipa_object_tree import (
+from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import (
     _attach_ipa_cell_address_fields,
     _attach_ipa_explain_fields,
     _attach_ipa_drilldown_meta,
@@ -114,7 +114,7 @@ class IpaSubnetContainmentMetaTests(SimpleTestCase):
         self.assertEqual(child["subnet_containment_display_net"], "10.112.134.44")
 
     def test_mark_subnet_containment_peer_fallback_marks_flat_sibling_host(self):
-        from netbox_nsm.analyzers.ip.ipa_object_tree import (
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import (
             _mark_ipa_subnet_containment_peer_fallback,
             _mark_ipa_subnet_containment_warnings,
         )
@@ -152,7 +152,7 @@ class IpaCidrFromNameEnrichTests(SimpleTestCase):
 
 
 class IpaCellDrilldownMetaTests(SimpleTestCase):
-    @patch("netbox_nsm.analyzers.ip.ipa_ipam_tree._build_ipa_drilldown_source_meta")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._build_ipa_drilldown_source_meta")
     def test_attach_ipa_drilldown_meta_on_cell_direct_leaf_prefix(self, meta_fn):
         meta_fn.return_value = {
             "name": "dm-addr-10-112-128-0-28",
@@ -182,7 +182,7 @@ class IpaCellDrilldownMetaTests(SimpleTestCase):
         self.assertEqual(nodes[0]["ipa_drilldown_meta"]["count_ips"], 4)
         meta_fn.assert_called_once_with(obj)
 
-    @patch("netbox_nsm.analyzers.ip.ipa_ipam_tree._build_ipa_drilldown_source_meta")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._build_ipa_drilldown_source_meta")
     def test_attach_ipa_drilldown_meta_on_indirect_prefix(self, meta_fn):
         meta_fn.return_value = {
             "name": "dm-addr-10-112-128-0-28",
@@ -209,7 +209,7 @@ class IpaCellDrilldownMetaTests(SimpleTestCase):
         self.assertEqual(nodes[0]["ipa_drilldown_meta"]["count_ips"], 4)
         meta_fn.assert_called_once_with(obj)
 
-    @patch("netbox_nsm.analyzers.ip.ipa_ipam_tree._build_ipa_drilldown_source_meta")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._build_ipa_drilldown_source_meta")
     def test_attach_ipa_drilldown_meta_skips_host_rows(self, meta_fn):
         nodes = [
             {
@@ -223,8 +223,8 @@ class IpaCellDrilldownMetaTests(SimpleTestCase):
         self.assertNotIn("ipa_drilldown_meta", nodes[0])
         meta_fn.assert_not_called()
 
-    @patch("netbox_nsm.analyzers.ip.ipam_drilldown._prefix_ipam_stats")
-    @patch("netbox_nsm.analyzers.ip.ipam_drilldown._lookup_ipam_prefix_from_ip_ref")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipam_drilldown._prefix_ipam_stats")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipam_drilldown._lookup_ipam_prefix_from_ip_ref")
     def test_attach_ipa_drilldown_meta_from_cidr_without_nsm_object(
         self, lookup_fn, stats_fn
     ):
@@ -271,7 +271,7 @@ class IpaCellTreeNetworkLinkTests(SimpleTestCase):
         )
         self.assertEqual(nodes[0]["ip_ref"]["str"], "198.19.90.0/24")
 
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._hub._addr_ip_ref")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._hub._addr_ip_ref")
     def test_ensure_network_links_prefers_ipam_ref_from_object(self, ip_ref_fn):
         ip_ref_fn.return_value = {
             "str": "198.19.90.0/24",
@@ -305,7 +305,7 @@ class IpaCellObjectTreeTests(SimpleTestCase):
     def test_ipa_cell_object_tree_visible_shows_doppelt_on_single_object(self):
         nodes = [{"name": "a", "is_doppelt": True, "children": []}]
         self.assertTrue(_ipa_cell_object_tree_visible(nodes, 2))
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._build_ipa_cell_flat_address_node")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._build_ipa_cell_flat_address_node")
     def test_build_ipa_cell_object_tree_marks_doppelt(self, build_node_fn):
         build_node_fn.side_effect = lambda obj, **kwargs: {
             "name": obj.name,
@@ -328,8 +328,8 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         self.assertTrue(nodes[0].get("is_doppelt"))
         self.assertNotIn("object_duplicate", nodes[0])
 
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_group_members", return_value=[])
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_ip_ref", return_value=None)
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_group_members", return_value=[])
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_ip_ref", return_value=None)
     def test_build_ipa_cell_object_tree_includes_literal_any(
         self, _ip_ref_fn, _members_fn
     ):
@@ -346,7 +346,7 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         self.assertEqual(nodes[0]["prefix_display_cidr"], "0.0.0.0/0")
         self.assertEqual(nodes[0]["node_role"], "nsm_prefix")
 
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._build_ipa_cell_flat_address_node")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._build_ipa_cell_flat_address_node")
     def test_build_ipa_cell_object_tree_ungrouped_direct_omits_group_pill(
         self, build_node_fn
     ):
@@ -369,9 +369,9 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         self.assertFalse(nodes[0].get("cell_groups_multi"))
 
     @patch("django.contrib.contenttypes.models.ContentType")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_ip_ref", return_value=None)
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_group_members")
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._build_ipa_cell_flat_address_node")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_ip_ref", return_value=None)
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_group_members")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._build_ipa_cell_flat_address_node")
     def test_build_ipa_cell_object_tree_direct_plus_group_appends_none(
         self, build_node_fn, members_fn, _ip_ref_fn, content_type_cls
     ):
@@ -415,12 +415,12 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         self.assertFalse(nodes[0].get("cell_groups_none"))
 
     @patch("django.contrib.contenttypes.models.ContentType")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_group_members")
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._build_ipa_cell_flat_address_node")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_group_members")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._build_ipa_cell_flat_address_node")
     def test_build_ipa_cell_object_tree_direct_plus_multi_groups_appends_none(
         self, build_node_fn, members_fn, content_type_cls
     ):
-        from netbox_nsm.analyzers.ip.ipa_object_tree import _apply_node_cell_groups
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import _apply_node_cell_groups
 
         ct = MagicMock()
         ct.pk = 10
@@ -487,8 +487,8 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         self.assertTrue(node.get("cell_groups_multi"))
 
     @patch("django.contrib.contenttypes.models.ContentType")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_group_members")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_ip_ref", return_value=None)
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_group_members")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_ip_ref", return_value=None)
     def test_build_ipa_cell_object_tree_marks_shared_member_duplicate(
         self, _ip_ref, members_fn, content_type_cls
     ):
@@ -532,9 +532,9 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         )
         self.assertNotIn("object_duplicate", nodes[0])
 
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._attach_ipa_object_tree_ip_meta")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_group_members", return_value=[])
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_ip_ref")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_object_tree_ip_meta")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_group_members", return_value=[])
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_ip_ref")
     @patch("django.contrib.contenttypes.models.ContentType")
     def test_build_ipa_cell_object_tree_merges_same_network_once(
         self, content_type_cls, ip_ref_fn, _members_fn, attach_fn
@@ -587,9 +587,9 @@ class IpaCellObjectTreeTests(SimpleTestCase):
             ["dm-addr-10-112-134-0-24", "diff-test-10-112-134-0-24"],
         )
 
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._attach_ipa_object_tree_ip_meta")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_group_members", return_value=[])
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_ip_ref")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_object_tree_ip_meta")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_group_members", return_value=[])
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_ip_ref")
     @patch("django.contrib.contenttypes.models.ContentType")
     def test_build_ipa_cell_object_tree_nests_host_under_prefix(
         self, content_type_cls, ip_ref_fn, _members_fn, attach_fn
@@ -653,7 +653,7 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         self.assertNotIn("ipa_open_by_default", nodes[0]["children"][0])
 
     def test_mark_ipa_cell_open_by_default_skips_non_cell_direct_drilldown(self):
-        from netbox_nsm.analyzers.ip.ipa_object_tree import _mark_ipa_cell_open_by_default
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import _mark_ipa_cell_open_by_default
 
         nodes = [
             {
@@ -669,7 +669,7 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         self.assertNotIn("ipa_open_by_default", nodes[0])
 
     def test_mark_ipa_cell_open_by_default_opens_ancestor_of_cell_direct_leaf(self):
-        from netbox_nsm.analyzers.ip.ipa_object_tree import _mark_ipa_cell_open_by_default
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import _mark_ipa_cell_open_by_default
 
         nodes = [
             {
@@ -940,11 +940,11 @@ class IpaCellObjectTreeTests(SimpleTestCase):
             ["subnet", "host"],
         )
 
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._ipa_prefix_for_cell_object", return_value=None)
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._attach_ipa_object_tree_ipam_stats")
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._ipa_object_drilldown_has_visible_content", return_value=False)
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_group_members", return_value=[])
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_ip_ref")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_prefix_for_cell_object", return_value=None)
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_object_tree_ipam_stats")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_object_drilldown_has_visible_content", return_value=False)
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_group_members", return_value=[])
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_ip_ref")
     @patch("django.contrib.contenttypes.models.ContentType")
     def test_build_ipa_cell_object_tree_sorts_prefix_before_higher_hosts(
         self, content_type_cls, ip_ref_fn, _members_fn, _visible_fn, _stats_fn, _prefix_fn
@@ -1029,11 +1029,11 @@ class IpaCellObjectTreeTests(SimpleTestCase):
             ["10.112.129.0/24", "10.112.137.0/24"],
         )
 
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._ipa_object_drilldown_has_visible_content", return_value=True)
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._attach_ipa_object_tree_ipam_stats")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._attach_addr_node_prefix_display", side_effect=lambda n, **k: n)
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_ip_ref")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_group_members")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_object_drilldown_has_visible_content", return_value=True)
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._attach_ipa_object_tree_ipam_stats")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._attach_addr_node_prefix_display", side_effect=lambda n, **k: n)
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_ip_ref")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_group_members")
     @patch("django.contrib.contenttypes.models.ContentType")
     def test_nested_group_member_gets_addr_drilldown_lazy(
         self, content_type_cls, members_fn, ip_ref_fn, _attach_fn, _stats_fn, _visible_fn
@@ -1081,7 +1081,7 @@ class IpaCellObjectTreeTests(SimpleTestCase):
             ["dm-grp-005"],
         )
 
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._ipa_object_drilldown_has_visible_content", return_value=False)
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_object_drilldown_has_visible_content", return_value=False)
     def test_mark_addr_drilldown_lazy_skipped_when_no_visible_content(self, _visible_fn):
         nodes = [
             {
@@ -1096,7 +1096,7 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         _mark_ipa_object_addr_drilldown_flags(nodes, {(275, 42): obj})
         self.assertNotIn("addr_drilldown_lazy", nodes[0])
 
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._ipa_object_drilldown_has_visible_content", return_value=True)
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_object_drilldown_has_visible_content", return_value=True)
     def test_mark_addr_drilldown_lazy_skipped_without_resolved_object(self, _visible_fn):
         nodes = [
             {
@@ -1110,12 +1110,12 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         _mark_ipa_object_addr_drilldown_flags(nodes, {})
         self.assertNotIn("addr_drilldown_lazy", nodes[0])
 
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._ipa_object_drilldown_has_visible_content", return_value=True)
-    @patch("netbox_nsm.analyzers.ip.ipam_drilldown._prefix_ipam_stats")
-    @patch("netbox_nsm.analyzers.ip.ipam_drilldown._lookup_ipam_prefix_from_ip_ref")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._attach_addr_node_prefix_display", side_effect=lambda n, **k: n)
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_ip_ref")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_group_members")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_object_drilldown_has_visible_content", return_value=True)
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipam_drilldown._prefix_ipam_stats")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipam_drilldown._lookup_ipam_prefix_from_ip_ref")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._attach_addr_node_prefix_display", side_effect=lambda n, **k: n)
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_ip_ref")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_group_members")
     @patch("django.contrib.contenttypes.models.ContentType")
     def test_nested_group_member_drilldown_without_ip_ref_type(
         self, content_type_cls, members_fn, ip_ref_fn, _attach_fn, lookup_fn, stats_fn, _visible_fn
@@ -1168,9 +1168,9 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         )
 
     @patch("django.contrib.contenttypes.models.ContentType")
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._attach_ipa_object_tree_ip_meta", side_effect=lambda n, o: n)
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_group_members")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_ip_ref", return_value=None)
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_object_tree_ip_meta", side_effect=lambda n, o: n)
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_group_members")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_ip_ref", return_value=None)
     def test_build_ipa_cell_object_tree_collapses_members_under_parent(
         self, _ip_ref, members_fn, _attach_fn, content_type_cls
     ):
@@ -1220,9 +1220,9 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         self.assertTrue(by_name["objekt 2"].get("is_cell_direct"))
 
     @patch("django.contrib.contenttypes.models.ContentType")
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._attach_ipa_object_tree_ip_meta")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_group_members", return_value=[])
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_ip_ref")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_object_tree_ip_meta")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_group_members", return_value=[])
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_ip_ref")
     def test_build_ipa_cell_object_tree_nests_by_ip_containment(
         self, ip_ref_fn, _members_fn, attach_fn, content_type_cls
     ):
@@ -1281,10 +1281,10 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         self.assertEqual(grandchildren[0]["name"], "objekt 2")
         self.assertEqual(grandchildren[0]["subnet_contained_in"], "10.0.0.0/8")
 
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._attach_ipa_object_tree_ipam_stats")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_object_tree_ipam_stats")
     @patch("django.contrib.contenttypes.models.ContentType")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_group_members", return_value=[])
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._attach_ipa_object_tree_ip_meta")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_group_members", return_value=[])
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_object_tree_ip_meta")
     def test_build_ipa_cell_object_tree_nests_by_ipam_prefix_hierarchy(
         self, attach_fn, _members_fn, content_type_cls, _stats_fn
     ):
@@ -1382,9 +1382,9 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         self.assertTrue(nodes[0].get("is_cell_direct"))
 
     @patch("django.contrib.contenttypes.models.ContentType")
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._attach_ipa_object_tree_ip_meta", side_effect=lambda n, o: n)
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_group_members")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_ip_ref", return_value=None)
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_object_tree_ip_meta", side_effect=lambda n, o: n)
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_group_members")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_ip_ref", return_value=None)
     def test_build_ipa_cell_object_tree_cell_direct_only_for_raw_selections(
         self, _ip_ref, members_fn, _attach_fn, content_type_cls
     ):
@@ -1417,13 +1417,13 @@ class IpaCellObjectTreeTests(SimpleTestCase):
             ["g-10.0.0.0/8"],
         )
 
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._attach_addr_node_prefix_display", side_effect=lambda n, **k: n)
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_ip_ref", return_value={"str": "10.1.0.0/16", "url": "#", "type": "Prefix"})
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._attach_addr_node_prefix_display", side_effect=lambda n, **k: n)
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_ip_ref", return_value={"str": "10.1.0.0/16", "url": "#", "type": "Prefix"})
     @patch("django.contrib.contenttypes.models.ContentType")
     def test_build_ipa_object_tree_node_attaches_ip_ref(
         self, content_type_cls, _ip_ref, _attach_fn
     ):
-        from netbox_nsm.analyzers.ip.addr_analysis_utils import _build_ipa_object_tree_node
+        from netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils import _build_ipa_object_tree_node
 
         ct = MagicMock()
         ct.pk = 10
@@ -1442,10 +1442,10 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         self.assertEqual(node["ip_ref"]["type"], "Prefix")
         self.assertNotIn("is_cell_direct", node)
 
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._attach_addr_node_prefix_display", side_effect=lambda n, **k: n)
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._resolve_ipam_stats_from_ip_ref")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_ip_ref")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_group_members", return_value=[])
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._attach_addr_node_prefix_display", side_effect=lambda n, **k: n)
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._resolve_ipam_stats_from_ip_ref")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_ip_ref")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_group_members", return_value=[])
     @patch("django.contrib.contenttypes.models.ContentType")
     def test_resolve_summary_type_counts_from_object_tree_prefix_refs(
         self, content_type_cls, _members_fn, ip_ref_fn, resolve_stats_fn, _attach_fn
@@ -1643,7 +1643,7 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         ]
 
         with patch(
-            "netbox_nsm.analyzers.ip.ipa_object_tree._ipa_object_group_members",
+            "netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_object_group_members",
             side_effect=lambda obj: [member],
         ):
             coverage = _build_ipa_group_coverage(
@@ -1710,11 +1710,11 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         self.assertIn("alias/duplicate address names", title)
         self.assertIn("contained by 198.18.0.0/24", title)
 
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._ipa_object_drilldown_has_visible_content", return_value=False)
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._attach_ipa_object_tree_ipam_stats")
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._attach_ipa_object_tree_ip_meta")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_group_members", return_value=[])
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_ip_ref")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_object_drilldown_has_visible_content", return_value=False)
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_object_tree_ipam_stats")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_object_tree_ip_meta")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_group_members", return_value=[])
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_ip_ref")
     @patch("django.contrib.contenttypes.models.ContentType")
     def test_synthesize_ipam_parent_prefix_nests_hosts(
         self, content_type_cls, ip_ref_fn, _members_fn, attach_fn, _stats_fn, _visible_fn
@@ -1767,11 +1767,11 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         prefix.get_parents.return_value = []
 
         with patch(
-            "netbox_nsm.analyzers.ip.ipa_object_tree._lookup_containing_prefix_for_ipa_cell_node",
+            "netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._lookup_containing_prefix_for_ipa_cell_node",
             return_value=prefix,
         ):
             with patch(
-                "netbox_nsm.analyzers.ip.ipa_object_tree._ipa_prefix_for_cell_object",
+                "netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_prefix_for_cell_object",
                 return_value=None,
             ):
                 raw = [{"ct": "10", "pk": "1", "name": host.name}]
@@ -1793,7 +1793,7 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         self.assertEqual(child.get("subnet_contained_in_url"), "/ipam/prefixes/2/")
 
     def test_mark_ipa_cell_tree_parent_hints_uses_nearest_prefix_ancestor(self):
-        from netbox_nsm.analyzers.ip.ipa_object_tree import _mark_ipa_cell_tree_parent_hints
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import _mark_ipa_cell_tree_parent_hints
 
         nodes = [
             {
@@ -1829,7 +1829,7 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         self.assertEqual(host.get("ipa_tree_parent_url"), "/ipam/prefixes/24/")
 
     def test_addr_node_prefix_cidr_accepts_nsm_address_host_ref(self):
-        from netbox_nsm.analyzers.ip.addr_ip_refs import _addr_node_prefix_cidr
+        from netbox_nsm.analyzers.ip_analyzer.addr_ip_refs import _addr_node_prefix_cidr
 
         cidr = _addr_node_prefix_cidr(
             ip_ref={
@@ -1843,7 +1843,7 @@ class IpaCellObjectTreeTests(SimpleTestCase):
     def test_mark_ipa_subnet_containment_flags_group_with_same_cidr_as_parent_prefix(
         self,
     ):
-        from netbox_nsm.analyzers.ip.ipa_object_tree import (
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import (
             _mark_ipa_subnet_containment_warnings,
         )
 
@@ -1876,7 +1876,7 @@ class IpaCellObjectTreeTests(SimpleTestCase):
     def test_build_ipa_cell_object_tree_marks_nested_host_with_address_ip_ref(
         self,
     ):
-        from netbox_nsm.analyzers.ip.ipa_object_tree import _mark_ipa_subnet_containment_warnings
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import _mark_ipa_subnet_containment_warnings
 
         net24 = "198.18.0.0/24"
         host_cidr = "198.18.0.1/32"
@@ -1907,7 +1907,7 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         self.assertEqual(host.get("subnet_contained_in"), net24)
 
     def test_addr_tree_node_network_falls_back_to_prefix_display_cidr(self):
-        from netbox_nsm.analyzers.ip.addr_tree import _addr_tree_node_network
+        from netbox_nsm.analyzers.ip_analyzer.addr_tree import _addr_tree_node_network
 
         node = {
             "ip_ref": {"str": "<broken>", "type": "Prefix"},
@@ -1937,11 +1937,11 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         }
 
         with patch(
-            "netbox_nsm.analyzers.ip.ipa_object_tree._lookup_containing_prefix_for_ipa_cell_node",
+            "netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._lookup_containing_prefix_for_ipa_cell_node",
             return_value=prefix,
         ):
             with patch(
-                "netbox_nsm.analyzers.ip.ipa_object_tree._reorganize_ipa_object_tree_by_ipam_prefix_hierarchy",
+                "netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._reorganize_ipa_object_tree_by_ipam_prefix_hierarchy",
                 side_effect=lambda nodes, _obj: nodes,
             ):
                 result = _synthesize_ipa_cell_ipam_parent_prefixes([host], {})
@@ -1973,11 +1973,11 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         }
 
         with patch(
-            "netbox_nsm.analyzers.ip.ipa_object_tree._lookup_containing_prefix_for_ipa_cell_node",
+            "netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._lookup_containing_prefix_for_ipa_cell_node",
             return_value=prefix,
         ):
             with patch(
-                "netbox_nsm.analyzers.ip.ipa_object_tree._reorganize_ipa_object_tree_by_ipam_prefix_hierarchy",
+                "netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._reorganize_ipa_object_tree_by_ipam_prefix_hierarchy",
                 side_effect=lambda nodes, _obj: nodes,
             ):
                 result = _synthesize_ipa_cell_ipam_parent_prefixes([group], {})
@@ -1996,7 +1996,7 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         prefix.get_absolute_url.return_value = "/ipam/prefixes/2/"
 
         with patch(
-            "netbox_nsm.analyzers.ip.ipa_object_tree._enrich_ipa_node_from_resolved_prefix",
+            "netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._enrich_ipa_node_from_resolved_prefix",
             side_effect=lambda node, _prefix: node,
         ):
             node = _build_ipa_synthesized_parent_prefix_node(prefix)
@@ -2026,7 +2026,7 @@ class IpaCellTreeDisplayTests(SimpleTestCase):
         prefix.get_absolute_url.return_value = "/ipam/prefixes/16/"
 
         with patch(
-            "netbox_nsm.analyzers.ip.ipa_object_tree._enrich_ipa_node_from_resolved_prefix",
+            "netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._enrich_ipa_node_from_resolved_prefix",
             side_effect=lambda node, _prefix: node.update(
                 {"prefix_display_cidr": "10.0.0.0/16"}
             )
@@ -2079,11 +2079,11 @@ class IpaCellTreeDisplayTests(SimpleTestCase):
         obj_by_key = {(10, 24): MagicMock(pk=24, prefix=slash24)}
 
         with patch(
-            "netbox_nsm.analyzers.ip.ipa_object_tree._ipa_resolve_netbox_prefix_for_tree_node",
+            "netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_resolve_netbox_prefix_for_tree_node",
             side_effect=lambda node, _obj, **kwargs: slash24 if node.get("pk") == "24" else None,
         ):
             with patch(
-                "netbox_nsm.analyzers.ip.ipa_object_tree._build_ipa_ipam_filler_prefix_node",
+                "netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._build_ipa_ipam_filler_prefix_node",
                 side_effect=lambda prefix: {
                     "kind": "group",
                     "ipa_tree_node_type": IPA_TREE_NODE_IPAM_FILLER,
@@ -2161,11 +2161,11 @@ class IpaCellTreeDisplayTests(SimpleTestCase):
         obj_by_key = {(10, 24): MagicMock(pk=24, prefix=slash24)}
 
         with patch(
-            "netbox_nsm.analyzers.ip.ipa_object_tree._ipa_resolve_netbox_prefix_for_tree_node",
+            "netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_resolve_netbox_prefix_for_tree_node",
             side_effect=lambda node, _obj, **kwargs: slash24 if node.get("pk") == "24" else None,
         ):
             with patch(
-                "netbox_nsm.analyzers.ip.ipa_object_tree._build_ipa_ipam_filler_prefix_node",
+                "netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._build_ipa_ipam_filler_prefix_node",
                 side_effect=lambda prefix: {
                     "kind": "group",
                     "ipa_tree_node_type": IPA_TREE_NODE_IPAM_FILLER,
@@ -2215,7 +2215,7 @@ class IpaCellTreeDisplayTests(SimpleTestCase):
         ]
 
         with patch(
-            "netbox_nsm.analyzers.ip.ipa_object_tree._ipa_resolve_netbox_prefix_for_tree_node",
+            "netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_resolve_netbox_prefix_for_tree_node",
             return_value=prefix,
         ):
             result = _insert_ipa_host_gap_info_rows(tree, {})
@@ -2304,12 +2304,12 @@ class IpaCellTreeDisplayTests(SimpleTestCase):
         self.assertEqual(_ipa_info_gap_display_label(result[0]), label)
         self.assertEqual(result[1]["name"], "host")
 
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._attach_ipa_drilldown_meta")
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._ipa_object_drilldown_has_visible_content", return_value=False)
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._attach_ipa_object_tree_ipam_stats")
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._attach_ipa_object_tree_ip_meta")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_group_members", return_value=[])
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_ip_ref")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_drilldown_meta")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_object_drilldown_has_visible_content", return_value=False)
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_object_tree_ipam_stats")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_object_tree_ip_meta")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_group_members", return_value=[])
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_ip_ref")
     @patch("django.contrib.contenttypes.models.ContentType")
     def test_build_ipa_cell_tree_with_filler_and_gap_rows(
         self, content_type_cls, ip_ref_fn, _members_fn, attach_fn, _stats_fn, _visible_fn, _meta_fn
@@ -2407,7 +2407,7 @@ class IpaCellTreeDisplayTests(SimpleTestCase):
         }
 
         with patch(
-            "netbox_nsm.analyzers.ip.ipa_object_tree._ipa_prefix_for_cell_object",
+            "netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_prefix_for_cell_object",
             side_effect=prefix_for_cell,
         ):
             nodes = _build_ipa_cell_object_tree(raw, obj_by_key)
@@ -2471,13 +2471,13 @@ class IpaCellTreeDisplayTests(SimpleTestCase):
         self.assertEqual(pruned[0]["prefix_display_cidr"], "10.0.1.0/24")
         self.assertEqual(len(pruned[0]["children"]), 1)
 
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._attach_ipa_object_tree_ip_meta", side_effect=lambda n, o: n)
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_group_members")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_object_tree_ip_meta", side_effect=lambda n, o: n)
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_group_members")
     @patch("django.contrib.contenttypes.models.ContentType")
     def test_large_group_expands_only_cell_co_selected_members(
         self, content_type_cls, members_fn, _attach_fn
     ):
-        from netbox_nsm.analyzers.ip.ipa_object_tree import IPA_CELL_GROUP_FULL_EXPAND_MAX
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import IPA_CELL_GROUP_FULL_EXPAND_MAX
 
         ct = MagicMock()
         ct.pk = 10
@@ -2517,13 +2517,13 @@ class IpaCellTreeDisplayTests(SimpleTestCase):
         self.assertNotIn(extra_members[0].name, names)
         self.assertLessEqual(len(nodes), 5)
 
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._attach_ipa_object_tree_ip_meta", side_effect=lambda n, o: n)
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_group_members")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_object_tree_ip_meta", side_effect=lambda n, o: n)
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_group_members")
     @patch("django.contrib.contenttypes.models.ContentType")
     def test_large_group_without_co_selected_members_is_collapsed_row(
         self, content_type_cls, members_fn, _attach_fn
     ):
-        from netbox_nsm.analyzers.ip.ipa_object_tree import IPA_CELL_GROUP_FULL_EXPAND_MAX
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import IPA_CELL_GROUP_FULL_EXPAND_MAX
 
         ct = MagicMock()
         ct.pk = 10
@@ -2558,15 +2558,15 @@ class IpaCellTreeDisplayTests(SimpleTestCase):
             msg="collapsed address-group row must render an ADDRESS_GROUP pill",
         )
 
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._attach_ipa_object_tree_ip_meta", side_effect=lambda n, o: n)
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_group_members")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_object_tree_ip_meta", side_effect=lambda n, o: n)
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_group_members")
     @patch("django.contrib.contenttypes.models.ContentType")
     def test_large_collapsed_group_nests_under_member_subnet_in_ipam_tree(
         self, content_type_cls, members_fn, _attach_fn
     ):
         import ipaddress
 
-        from netbox_nsm.analyzers.ip.ipa_object_tree import (
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import (
             IPA_CELL_GROUP_FULL_EXPAND_MAX,
             _enrich_ipa_collapsed_group_networks_from_members,
             _reorganize_ipa_object_tree_by_ipam_prefix_hierarchy,
@@ -2622,7 +2622,7 @@ class IpaCellTreeDisplayTests(SimpleTestCase):
         obj_by_key = {(10, 1): subnet, (10, 500): group}
 
         with patch(
-            "netbox_nsm.analyzers.ip.ipa_object_tree._ipa_member_containment_network",
+            "netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_member_containment_network",
             side_effect=lambda member: (
                 ipaddress.ip_network("198.18.3.0/24")
                 if member is subnet
@@ -2665,7 +2665,7 @@ class IpaCellTreeDrilldownGuardTests(SimpleTestCase):
         }
         self.assertFalse(_ipa_cell_tree_has_visible_address_children(node))
 
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._ipa_object_drilldown_has_visible_content", return_value=True)
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_object_drilldown_has_visible_content", return_value=True)
     def test_mark_addr_drilldown_skipped_when_cell_children_present(self, _visible_fn):
         nodes = [
             {
@@ -2716,8 +2716,8 @@ class IpaCellTreeDrilldownGuardTests(SimpleTestCase):
         self.assertNotIn("cell_pill_group", nodes[0]["children"][0])
         self.assertNotIn("cell_pill_group", nodes[1])
 
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._hub._prefix_ipam_stats")
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._hub._attach_ipam_stats_meta")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._hub._prefix_ipam_stats")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._hub._attach_ipam_stats_meta")
     def test_attach_ipam_stats_uses_netbox_counts_not_visible_subtree(
         self, attach_fn, prefix_stats_fn
     ):
@@ -2746,10 +2746,10 @@ class IpaCellTreeDrilldownGuardTests(SimpleTestCase):
             }
         ]
         with patch(
-            "netbox_nsm.analyzers.ip.ipa_object_tree._ipa_prefix_for_cell_object",
+            "netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_prefix_for_cell_object",
             return_value=MagicMock(),
         ):
-            from netbox_nsm.analyzers.ip.ipa_object_tree import _attach_ipa_object_tree_ipam_stats
+            from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import _attach_ipa_object_tree_ipam_stats
 
             _attach_ipa_object_tree_ipam_stats(nodes, {(10, 599): obj})
         attach_fn.assert_called_once()
@@ -2757,7 +2757,7 @@ class IpaCellTreeDrilldownGuardTests(SimpleTestCase):
         self.assertEqual(stats_arg["child_prefixes"]["count"], 259)
         self.assertEqual(stats_arg["ip_addresses"]["count"], 0)
 
-    @patch("netbox_nsm.analyzers.ip.ipa_ipam_tree._build_ipa_drilldown_source_meta")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._build_ipa_drilldown_source_meta")
     def test_attach_ipa_drilldown_meta_keeps_netbox_counts_with_visible_children(
         self, meta_fn
     ):
@@ -2799,7 +2799,7 @@ class IpaContainingPrefixCacheTests(SimpleTestCase):
 
         from ipam.models import Prefix
 
-        from netbox_nsm.analyzers.ip.ipa_object_tree import (
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import (
             _IpaContainingPrefixCache,
             _ipa_most_specific_prefix_for_host,
         )
@@ -2809,7 +2809,7 @@ class IpaContainingPrefixCacheTests(SimpleTestCase):
         slash24.prefix = ipaddress.ip_network("198.18.0.0/24")
 
         with patch(
-            "netbox_nsm.analyzers.ip.ipa_object_tree._ipa_query_prefixes_containing_hosts",
+            "netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_query_prefixes_containing_hosts",
             return_value=[slash24],
         ) as query_fn:
             cache = _IpaContainingPrefixCache()
@@ -2843,7 +2843,7 @@ class IpaContainingPrefixCacheTests(SimpleTestCase):
 
         from ipam.models import Prefix
 
-        from netbox_nsm.analyzers.ip.ipa_object_tree import _ipa_most_specific_prefix_for_host
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import _ipa_most_specific_prefix_for_host
 
         slash16 = MagicMock(spec=Prefix)
         slash16.prefix = ipaddress.ip_network("198.18.0.0/16")
@@ -2855,12 +2855,12 @@ class IpaContainingPrefixCacheTests(SimpleTestCase):
         )
         self.assertIs(best, slash24)
 
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._attach_ipa_drilldown_meta")
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._ipa_object_drilldown_has_visible_content", return_value=False)
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._attach_ipa_object_tree_ipam_stats")
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._attach_ipa_object_tree_ip_meta")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_group_members", return_value=[])
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_ip_ref")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_drilldown_meta")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_object_drilldown_has_visible_content", return_value=False)
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_object_tree_ipam_stats")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_object_tree_ip_meta")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_group_members", return_value=[])
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_ip_ref")
     @patch("django.contrib.contenttypes.models.ContentType")
     def test_build_ipa_cell_tree_batches_prefix_lookups(
         self, content_type_cls, ip_ref_fn, _members_fn, attach_fn, _stats_fn, _visible_fn, _meta_fn
@@ -2869,7 +2869,7 @@ class IpaContainingPrefixCacheTests(SimpleTestCase):
 
         from ipam.models import Prefix
 
-        from netbox_nsm.analyzers.ip.ipa_object_tree import (
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import (
             _IpaContainingPrefixCache,
             _synthesize_ipa_cell_ipam_parent_prefixes,
         )
@@ -2929,7 +2929,7 @@ class IpaContainingPrefixCacheTests(SimpleTestCase):
             wraps=cache._resolve_hosts_batch,
         ) as batch_fn:
             with patch(
-                "netbox_nsm.analyzers.ip.ipa_object_tree._ipa_query_prefixes_containing_hosts",
+                "netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_query_prefixes_containing_hosts",
                 return_value=[slash24],
             ) as query_fn:
                 cache.register_tree(nodes)
@@ -2945,7 +2945,7 @@ class IpaContainingPrefixCacheTests(SimpleTestCase):
 
 class IpaCellGroupSelfRefTests(SimpleTestCase):
     def test_scrub_removes_self_from_cell_groups_on_group_row(self):
-        from netbox_nsm.analyzers.ip.ipa_object_tree import (
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import (
             _mark_ipa_cell_pill_roles,
             _scrub_ipa_cell_group_self_refs,
         )
@@ -2978,8 +2978,8 @@ class IpaCellGroupSelfRefTests(SimpleTestCase):
         self.assertFalse(nodes[0].get("cell_groups_multi"))
 
     @patch("django.contrib.contenttypes.models.ContentType")
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_group_members")
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._attach_ipa_object_tree_ip_meta", side_effect=lambda n, o: n)
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_group_members")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_object_tree_ip_meta", side_effect=lambda n, o: n)
     def test_nested_group_direct_selection_scrubs_self_membership(
         self, _attach_fn, members_fn, content_type_cls
     ):
@@ -3033,7 +3033,7 @@ class IpaCellGroupSelfRefTests(SimpleTestCase):
 
 class IpaCellDisplayHintTests(SimpleTestCase):
     def test_attach_cell_group_collapse_hints_from_count(self):
-        from netbox_nsm.analyzers.ip.ipa_object_tree import _attach_ipa_cell_display_hints
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import _attach_ipa_cell_display_hints
 
         groups = [{"name": f"grp-{idx}", "url": f"/g/{idx}/"} for idx in range(5)]
         nodes = [{"name": "addr", "cell_groups": groups, "cell_groups_multi": True, "children": []}]
@@ -3042,7 +3042,7 @@ class IpaCellDisplayHintTests(SimpleTestCase):
         self.assertEqual(nodes[0].get("collapsed_group_count"), 5)
 
     def test_attach_address_compact_hints_for_alias_peers(self):
-        from netbox_nsm.analyzers.ip.ipa_object_tree import _attach_ipa_cell_display_hints
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import _attach_ipa_cell_display_hints
 
         nodes = [
             {
@@ -3062,7 +3062,7 @@ class IpaCellDisplayHintTests(SimpleTestCase):
         self.assertEqual(len(nodes[0].get("cell_address_alternates") or []), 1)
 
     def test_attach_parent_containment_does_not_set_compact_hint(self):
-        from netbox_nsm.analyzers.ip.ipa_object_tree import _attach_ipa_cell_display_hints
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import _attach_ipa_cell_display_hints
 
         nodes = [
             {
@@ -3078,7 +3078,7 @@ class IpaCellDisplayHintTests(SimpleTestCase):
         self.assertNotIn("cell_cidr_parent_hint", nodes[0])
 
     def test_display_hints_preserve_collapsed_root_group_wrapper_count(self):
-        from netbox_nsm.analyzers.ip.ipa_object_tree import (
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import (
             _attach_ipa_cell_display_hints,
             _wrap_collapsed_root_group_nodes,
         )
@@ -3100,7 +3100,7 @@ class IpaCellDisplayHintTests(SimpleTestCase):
         self.assertEqual(wrapped[-1].get("collapsed_group_count"), 4)
 
     def test_wrap_collapsed_root_group_nodes(self):
-        from netbox_nsm.analyzers.ip.ipa_object_tree import (
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import (
             IPA_TREE_NODE_COLLAPSED_ROOT_GROUPS,
             _wrap_collapsed_root_group_nodes,
         )
@@ -3127,7 +3127,7 @@ class IpaCellDisplayHintTests(SimpleTestCase):
         self.assertEqual(len(wrapped[0].get("children") or []), 4)
 
     def test_annotate_ipa_cell_tree_depth(self):
-        from netbox_nsm.analyzers.ip.ipa_object_tree import _annotate_ipa_cell_tree_depth
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import _annotate_ipa_cell_tree_depth
 
         nodes = [
             {
@@ -3142,7 +3142,7 @@ class IpaCellDisplayHintTests(SimpleTestCase):
         self.assertEqual(nodes[0]["children"][0]["ipa_depth"], 1)
 
     def test_annotate_ipa_cell_tree_depth_skips_filler_depth_increment(self):
-        from netbox_nsm.analyzers.ip.ipa_object_tree import _annotate_ipa_cell_tree_depth
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import _annotate_ipa_cell_tree_depth
 
         nodes = [
             {
@@ -3171,7 +3171,7 @@ class IpaCellDisplayHintTests(SimpleTestCase):
         self.assertEqual(net24["ipa_depth"], 1)
 
     def test_ipa_cell_tree_flat_row_is_visible_excludes_filler(self):
-        from netbox_nsm.analyzers.ip.ipa_object_tree import _ipa_cell_tree_flat_row_is_visible
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import _ipa_cell_tree_flat_row_is_visible
 
         self.assertFalse(
             _ipa_cell_tree_flat_row_is_visible(
@@ -3196,7 +3196,7 @@ class IpaCellDisplayHintTests(SimpleTestCase):
         ``.1`` row lingered next to the ``/24`` instead of inside it. After
         re-nesting, every host shares one depth = prefix depth + 1.
         """
-        from netbox_nsm.analyzers.ip.ipa_object_tree import (
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import (
             _annotate_ipa_cell_tree_depth,
             _renest_ipa_contained_cell_siblings,
         )
@@ -3244,7 +3244,7 @@ class IpaCellDisplayHintTests(SimpleTestCase):
 
     def test_renest_contained_sibling_is_idempotent(self):
         """Already-nested trees are left untouched (no spurious moves)."""
-        from netbox_nsm.analyzers.ip.ipa_object_tree import (
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import (
             _renest_ipa_contained_cell_siblings,
         )
 
@@ -3274,7 +3274,7 @@ class IpaCellDisplayHintTests(SimpleTestCase):
 
 
 class IpaCellAddressFieldTests(SimpleTestCase):
-    @patch("netbox_nsm.analyzers.ip.addr_analysis_utils._addr_group_members")
+    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_group_members")
     def test_resolve_group_anchor_member_prefers_prefix_member(self, members_fn):
         import ipaddress
 
@@ -3294,7 +3294,7 @@ class IpaCellAddressFieldTests(SimpleTestCase):
         members_fn.return_value = [subnet, host]
 
         with patch(
-            "netbox_nsm.analyzers.ip.ipa_object_tree._ipa_member_containment_network",
+            "netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_member_containment_network",
             side_effect=lambda member: (
                 ipaddress.ip_network("198.19.90.0/24")
                 if member is subnet
@@ -3305,9 +3305,9 @@ class IpaCellAddressFieldTests(SimpleTestCase):
 
         self.assertIs(anchor, subnet)
 
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._ipa_resolve_group_anchor_member")
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._ipa_object_expands_members", return_value=True)
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._ipa_object_node_role_from_tree_node", return_value=IPA_NODE_ROLE_GROUP)
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_resolve_group_anchor_member")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_object_expands_members", return_value=True)
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_object_node_role_from_tree_node", return_value=IPA_NODE_ROLE_GROUP)
     def test_attach_cell_address_fields_sets_primary_for_collapsed_group(
         self, _role_fn, _expands_fn, anchor_fn
     ):
@@ -3352,7 +3352,7 @@ class IpaCellAddressFieldTests(SimpleTestCase):
             }
         ]
         with patch(
-            "netbox_nsm.analyzers.ip.ipa_object_tree._ipa_object_node_role_from_tree_node",
+            "netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_object_node_role_from_tree_node",
             return_value=IPA_NODE_ROLE_PREFIX,
         ):
             _attach_ipa_cell_address_fields(nodes, {(10, 200): obj})

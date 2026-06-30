@@ -1,13 +1,13 @@
 """Top-level address diff analysis builders (N-side comparison)."""
 from __future__ import annotations
 
-import netbox_nsm.analyzers.ip._lazy_api as _hub
-from netbox_nsm.analyzers.ip.addr_diff_collect import (
+import netbox_nsm.analyzers.ip_analyzer._lazy_api as _hub
+from netbox_nsm.analyzers.ip_analyzer.addr_diff_collect import (
     _collect_addr_tree_leaf_map,
     _collect_addr_tree_prefix_groups,
     _compute_diff_prefix_hierarchy_multi,
 )
-from netbox_nsm.analyzers.ip.addr_diff_fund import (
+from netbox_nsm.analyzers.ip_analyzer.addr_diff_fund import (
     _addr_diff_fund_detail,
     _addr_diff_fund_detail_multi,
     _addr_entries_is_diff_fund,
@@ -15,7 +15,7 @@ from netbox_nsm.analyzers.ip.addr_diff_fund import (
     _addr_side_has_name_conflict,
     _shallow_addr_leaf_for_diff,
 )
-from netbox_nsm.analyzers.ip.addr_diff_hierarchy import (
+from netbox_nsm.analyzers.ip_analyzer.addr_diff_hierarchy import (
     _build_addr_diff_group,
     _build_diff_ipam_intersection_tree_multi,
     _reorganize_diff_leaves_under_prefix_hierarchy,

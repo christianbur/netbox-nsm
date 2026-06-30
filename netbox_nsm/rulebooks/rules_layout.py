@@ -7,7 +7,7 @@ from collections import defaultdict
 from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
 
-from netbox_nsm.analyzers.ip.addr_analysis_utils import object_is_addr_analyzable
+from netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils import object_is_addr_analyzable
 from netbox_nsm.rulebooks.templates import _OBJECT_TYPE_LABELS, _field_display_label
 from netbox_nsm.core.interface_parent import (
     interface_parent_host_payload,

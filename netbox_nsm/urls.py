@@ -7,7 +7,7 @@ from netbox_nsm.analyzers.object_analyzer.api_view import (
     AnalyzerPickerAPIView,
 )
 from netbox_nsm.analyzers.object_analyzer.page_view import ObjectAnalyzerView
-from netbox_nsm.analyzers.ip.endpoints import (
+from netbox_nsm.analyzers.ip_analyzer.endpoints import (
     IpAnalysisAddObjectTypesApiView,
     IpAnalysisApiView,
     IpAnalysisCategoryApiView,

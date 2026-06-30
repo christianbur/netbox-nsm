@@ -4,13 +4,13 @@ from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.analyzers.ip.addr_analysis_utils import (
+from netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils import (
     _build_ipa_cell_object_tree,
     _flatten_ipa_object_tree_copy_lines,
     _ordered_ipam_stats,
     _resolve_summary_type_counts,
 )
-from netbox_nsm.analyzers.ip.ipa_object_tree import _attach_ipa_cell_display_hints
+from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import _attach_ipa_cell_display_hints
 
 class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
     _OBJECT_TREE_FIXTURE = [
@@ -376,7 +376,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
     def test_cell_group_labels_append_none_for_cell_direct_multi_group(self):
         from django.template.loader import render_to_string
 
-        from netbox_nsm.analyzers.ip.ipa_object_tree import _apply_node_cell_groups
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import _apply_node_cell_groups
 
         node = {
             "name": "dm-addr-10-112-134-0-24",
@@ -501,7 +501,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
     def test_multi_address_peers_render_vertically_in_address_column(self):
         from django.template.loader import render_to_string
 
-        from netbox_nsm.analyzers.ip.ipa_object_tree import _attach_ipa_cell_display_hints
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import _attach_ipa_cell_display_hints
 
         nodes = [
             {
@@ -771,7 +771,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
     def test_ipam_stats_renders_in_ipam_column_not_us(self):
         from django.template.loader import render_to_string
 
-        from netbox_nsm.analyzers.ip.ipam_drilldown import _attach_ipam_stats_meta
+        from netbox_nsm.analyzers.ip_analyzer.ipam_drilldown import _attach_ipam_stats_meta
 
         node = {
             "name": "10.0.0.0/24",
@@ -1093,7 +1093,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
     def test_ipa_cell_direct_leaf_prefix_renders_info_expand(self):
         from django.template.loader import render_to_string
 
-        from netbox_nsm.analyzers.ip.ipa_object_tree import _mark_ipa_cell_open_by_default
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import _mark_ipa_cell_open_by_default
 
         nodes = [
                     {
@@ -1142,7 +1142,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
     def test_ipa_cell_direct_nested_host_renders_parent_details_open(self):
         from django.template.loader import render_to_string
 
-        from netbox_nsm.analyzers.ip.ipa_object_tree import _mark_ipa_cell_open_by_default
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import _mark_ipa_cell_open_by_default
 
         nodes = [
             {
@@ -1184,7 +1184,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
     def test_ipa_cell_direct_drilldown_renders_open_by_default(self):
         from django.template.loader import render_to_string
 
-        from netbox_nsm.analyzers.ip.ipa_object_tree import _mark_ipa_cell_open_by_default
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import _mark_ipa_cell_open_by_default
 
         nodes = [
             {
@@ -1761,7 +1761,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
     def test_diff_in_some_summary_renders_present_label_lines(self):
         from django.template.loader import render_to_string
 
-        from netbox_nsm.analyzers.ip.ipa_object_tree import (
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import (
             _build_ipa_cell_object_tree_from_diff,
         )
 
@@ -2134,15 +2134,15 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         )
 
     @patch(
-        "netbox_nsm.analyzers.ip.ipa_object_tree._ipa_object_drilldown_has_visible_content",
+        "netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_object_drilldown_has_visible_content",
         return_value=True,
     )
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._ipa_object_has_addr_drilldown", return_value=True)
-    @patch("netbox_nsm.analyzers.ip.ipa_object_tree._build_ipa_object_tree_node")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_object_has_addr_drilldown", return_value=True)
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._build_ipa_object_tree_node")
     def test_build_ipa_cell_object_tree_marks_addr_drilldown_lazy(
         self, build_node_fn, _drilldown_fn, _visible_fn
     ):
-        from netbox_nsm.analyzers.ip.ipa_object_tree import _build_ipa_cell_object_tree
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import _build_ipa_cell_object_tree
 
         build_node_fn.side_effect = lambda obj, **kwargs: {
             "name": obj.name,
@@ -2521,7 +2521,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
     def test_collapsed_root_groups_survive_display_hints_and_render(self):
         from django.template.loader import render_to_string
 
-        from netbox_nsm.analyzers.ip.ipa_object_tree import (
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import (
             _attach_ipa_cell_display_hints,
             _wrap_collapsed_root_group_nodes,
         )

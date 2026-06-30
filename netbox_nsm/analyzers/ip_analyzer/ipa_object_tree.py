@@ -2,17 +2,17 @@
 """IP Analyzer cell object tree (rule-cell hierarchy)."""
 from __future__ import annotations
 from django.contrib.contenttypes.models import ContentType
-import netbox_nsm.analyzers.ip._lazy_api as _hub
-from netbox_nsm.analyzers.ip.addr_ip_refs import _FIELD_TYPE_LABELS
-from netbox_nsm.analyzers.ip.addr_netmask import sync_prefix_display_netmask
+import netbox_nsm.analyzers.ip_analyzer._lazy_api as _hub
+from netbox_nsm.analyzers.ip_analyzer.addr_ip_refs import _FIELD_TYPE_LABELS
+from netbox_nsm.analyzers.ip_analyzer.addr_netmask import sync_prefix_display_netmask
 from netbox_nsm.core.nsm_object_status import (
     NSM_OBJECT_STATUS_DEPRECATED,
     NSM_OBJECT_STATUS_RESERVED,
     get_nsm_object_status,
     normalize_nsm_object_status,
 )
-from netbox_nsm.analyzers.ip.ipa_ipam_tree import _ipa_object_drilldown_has_visible_content
-from netbox_nsm.analyzers.ip.ipa_object_node import (
+from netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree import _ipa_object_drilldown_has_visible_content
+from netbox_nsm.analyzers.ip_analyzer.ipa_object_node import (
     IPA_NODE_ROLE_EMPTY,
     IPA_NODE_ROLE_GROUP,
     IPA_NODE_ROLE_HOST,
@@ -105,14 +105,14 @@ def _parse_ipa_column_selections(request, col_suffix=""):
 
 def _ipa_object_expands_members(obj) -> bool:
     """Re-export from ``ipa_object_node`` (stable ``@patch`` target)."""
-    from netbox_nsm.analyzers.ip.ipa_object_node import _ipa_object_expands_members as _impl
+    from netbox_nsm.analyzers.ip_analyzer.ipa_object_node import _ipa_object_expands_members as _impl
 
     return _impl(obj)
 
 
 def _ipa_object_has_addr_drilldown(obj) -> bool:
     """Re-export from ``ipa_object_node`` (stable ``@patch`` target)."""
-    from netbox_nsm.analyzers.ip.ipa_object_node import _ipa_object_has_addr_drilldown as _impl
+    from netbox_nsm.analyzers.ip_analyzer.ipa_object_node import _ipa_object_has_addr_drilldown as _impl
 
     return _impl(obj)
 
@@ -220,7 +220,7 @@ def _ipa_drilldown_meta_from_ipam_stats(node, stats=None):
 
 def _resolve_ipa_drilldown_meta_for_node(node, obj_by_key=None):
     """Return drilldown counters for a prefix/range tree node."""
-    from netbox_nsm.analyzers.ip.ipa_ipam_tree import _build_ipa_drilldown_source_meta
+    from netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree import _build_ipa_drilldown_source_meta
 
     role = node.get("node_role") or _ipa_object_node_role_from_tree_node(node)
     if role not in {IPA_NODE_ROLE_PREFIX, IPA_NODE_ROLE_RANGE}:

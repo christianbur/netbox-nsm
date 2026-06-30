@@ -18,7 +18,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from netbox_nsm.analyzers.ip.ip_analysis_service import (
+from netbox_nsm.analyzers.ip_analyzer.ip_analysis_service import (
     execute_ip_analysis_diff,
     execute_ip_analysis_merge,
     parse_diff_sides_from_body,

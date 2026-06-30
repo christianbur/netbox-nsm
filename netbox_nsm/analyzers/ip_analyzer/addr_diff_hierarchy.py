@@ -1,12 +1,12 @@
 """IPAM prefix hierarchy and intersection tree for address diff."""
 from __future__ import annotations
 
-import netbox_nsm.analyzers.ip._lazy_api as _hub
-from netbox_nsm.analyzers.ip.addr_diff_collect import (
+import netbox_nsm.analyzers.ip_analyzer._lazy_api as _hub
+from netbox_nsm.analyzers.ip_analyzer.addr_diff_collect import (
     _addr_tree_node_prefix_compare_key,
     _lookup_ipam_prefix_for_cidr,
 )
-from netbox_nsm.analyzers.ip.addr_diff_fund import (
+from netbox_nsm.analyzers.ip_analyzer.addr_diff_fund import (
     _addr_diff_fund_detail,
     _addr_diff_fund_tooltip,
     _addr_entries_is_diff_fund,
@@ -14,7 +14,7 @@ from netbox_nsm.analyzers.ip.addr_diff_fund import (
     _enrich_diff_cell_pill_fields,
     _enrich_diff_name_pill_fields,
 )
-from netbox_nsm.analyzers.ip.addr_ip_refs import _FIELD_TYPE_LABELS
+from netbox_nsm.analyzers.ip_analyzer.addr_ip_refs import _FIELD_TYPE_LABELS
 
 def _build_addr_diff_group(
     name, leaves, *, diff_group, diff_present_labels=None, diff_label=None

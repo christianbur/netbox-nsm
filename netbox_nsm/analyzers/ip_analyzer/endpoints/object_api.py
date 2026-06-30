@@ -12,7 +12,7 @@ from django.http import JsonResponse
 from django.template.loader import render_to_string
 from django.views import View
 
-from netbox_nsm.analyzers.ip.ipa_ipam_tree import _build_ipa_object_drilldown_nodes
+from netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree import _build_ipa_object_drilldown_nodes
 
 __all__ = ("IpAnalysisObjectDrilldownApiView",)
 

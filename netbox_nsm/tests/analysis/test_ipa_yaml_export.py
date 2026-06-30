@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.analyzers.ip.ipa_yaml_export import (
+from netbox_nsm.analyzers.ip_analyzer.ipa_yaml_export import (
     build_ipa_export_child_objects,
     build_ipa_export_document,
     ipa_export_filename,
@@ -174,7 +174,7 @@ class IpaYamlExportTests(SimpleTestCase):
         self.assertIn("rule", filename)
 
     @patch(
-        "netbox_nsm.analyzers.ip.ipa_ipam_tree._build_ipa_object_drilldown_nodes"
+        "netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._build_ipa_object_drilldown_nodes"
     )
     @patch("django.contrib.contenttypes.models.ContentType")
     def test_build_ipa_export_child_objects_resolves_visible_objects(

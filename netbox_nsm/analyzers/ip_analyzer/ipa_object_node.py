@@ -14,8 +14,8 @@ Counts always come from IPAM prefix/range stats, never from direct host leaves.
 """
 from __future__ import annotations
 
-import netbox_nsm.analyzers.ip._lazy_api as _hub
-from netbox_nsm.analyzers.ip.addr_constants import FIELD_TYPE_LABELS
+import netbox_nsm.analyzers.ip_analyzer._lazy_api as _hub
+from netbox_nsm.analyzers.ip_analyzer.addr_constants import FIELD_TYPE_LABELS
 
 # Object-tree node roles (``node_role`` on tree dicts).
 IPA_NODE_ROLE_GROUP = "nsm_group"

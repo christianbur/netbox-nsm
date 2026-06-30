@@ -1,7 +1,7 @@
 """Generic tree-node deduplication primitives for IPA address trees."""
 from __future__ import annotations
 
-import netbox_nsm.analyzers.ip._lazy_api as _hub
+import netbox_nsm.analyzers.ip_analyzer._lazy_api as _hub
 
 
 def _default_object_key(node):

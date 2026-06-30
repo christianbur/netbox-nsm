@@ -7,15 +7,15 @@ Anzeige und UI-Interaktion zuständig.
 
 | Modul | Verantwortung |
 |-------|---------------|
-| `analysis/addr_tree.py` | Adress-Baumknoten, IPAM-Auflösung |
-| `analysis/addr_merge.py` | Multi-Objekt-Merge, Typ-Zählungen |
-| `analysis/addr_diff*.py` | Diff zwischen Seiten, Fundament, Hierarchie |
-| `analysis/ipa_object_tree.py` | Objektbaum für Zellen/Applet |
-| `analysis/ipa_ipam_tree.py` | IPAM-Drilldown-Knoten |
-| `analysis/ipa_tree_dedupe.py` | Dedupe/Warnungen im Objektbaum |
-| `analysis/addr_netmask.py` | IPv4 CIDR → Netmask (serverseitig) |
-| `analysis/ipa_yaml_export.py` | YAML-Export |
-| `analysis/ip_analyzer_service.py` | Gemeinsame Payload-Erzeugung (HTML + JSON) |
+| `analyzers/ip_analyzer/addr_tree.py` | Adress-Baumknoten, IPAM-Auflösung |
+| `analyzers/ip_analyzer/addr_merge.py` | Multi-Objekt-Merge, Typ-Zählungen |
+| `analyzers/ip_analyzer/addr_diff*.py` | Diff zwischen Seiten, Fundament, Hierarchie |
+| `analyzers/ip_analyzer/ipa_object_tree.py` | Objektbaum für Zellen/Applet |
+| `analyzers/ip_analyzer/ipa_ipam_tree.py` | IPAM-Drilldown-Knoten |
+| `analyzers/ip_analyzer/ipa_tree_dedupe.py` | Dedupe/Warnungen im Objektbaum |
+| `analyzers/ip_analyzer/addr_netmask.py` | IPv4 CIDR → Netmask (serverseitig) |
+| `analyzers/ip_analyzer/ipa_yaml_export.py` | YAML-Export |
+| `analyzers/ip_analyzer/ip_analyzer_service.py` | Gemeinsame Payload-Erzeugung (HTML + JSON) |
 
 ## API-Endpunkte
 
@@ -52,7 +52,7 @@ Netmask-Berechnung, YAML-Generierung.
 ### Zell-Pills (ADDRESS vs. ADDRESS_GROUP)
 
 Ob eine Zellzeile als **ADDRESS** oder **ADDRESS_GROUP** dargestellt wird, entscheidet
-ausschließlich Python: `_mark_ipa_cell_pill_roles` (`analysis/ipa_object_tree.py`) setzt
+ausschließlich Python: `_mark_ipa_cell_pill_roles` (`analyzers/ip_analyzer/ipa_object_tree.py`) setzt
 `cell_pill_group=True` für Knoten mit `node_role == nsm_group` (z. B. eingeklappte
 Adressgruppen-Zeilen großer `bench-grp-*`-Gruppen). Das Template
 `inc/ipa_cell_object_row_labels.html` rendert das Pill nur anhand dieses Flags —
@@ -88,14 +88,14 @@ Implementierung zurück (SimpleTestCase-kompatibel). Die Schritte
   and the former *fund* marker is shown as a clear **Name conflict** badge
   (DE: *Namenskonflikt*).
 - **YAML export v2:** the applet export emits `ipa_export_version: "2"` with a primary
-  `displayed` section (visible tree, counts, `copy_lines`, `addr_analysis`,
+  `displayed` section (visible tree, counts, `copy_lines`, `addr_analyzer`,
   `object_tree`) plus an optional `ipam_children` section.
 - **Rules-TOML export:** the rulebook rules table (not the applet) exports the visible
   rows as a structured TOML document (`format = "netbox-nsm-rules-visible-v1"`,
   `application/toml`, `*.toml`) via `exportRulesToml`; the previous CSV export is gone.
 - **Standalone IP Analyzer page removed:** `/plugins/netbox-nsm/ip-analyzer/` permanently
   redirects to **Object Analyzer**; address resolution lives only in this applet and the
-  analysis APIs.
+  ip_analyzer APIs.
 
 ## Datenfluss
 

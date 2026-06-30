@@ -6,6 +6,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- **IP Analyzer naming** — URLs, url_names, modules, views, templates, JS constants, and JSON payload keys use `ip_analyzer` / `addr_analyzer` instead of `ip_analysis` / `addr_analysis` (e.g. `/api/ip-analyzer/`, `ip_analyzer_api`). Legacy plugin UI path `/plugins/netbox-nsm/ip-analysis/` remains 404.
+
 ## 0.4.7 - 2026-06-19
 
 ### Removed

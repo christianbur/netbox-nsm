@@ -45,18 +45,18 @@ class AddressCotSchemaTests(SimpleTestCase):
         cot = SimpleNamespace(comments="nsm_config: ...")
         self.assertTrue(object_builder_in_nsm_config(cot))
 
-    @patch("netbox_custom_objects.models.CustomObjectTypeField")
-    def test_cot_address_group_flag_from_group_field(self, field_cls):
-        field_cls.objects.filter.return_value.exists.return_value = True
+    @patch("netbox_nsm.objects.cot_roles.resolve_members_field")
+    def test_cot_address_group_flag_from_group_field(self, resolve_members):
+        resolve_members.return_value = SimpleNamespace(name="group")
         cot = SimpleNamespace(slug="my_address_groups", comments="")
         self.assertTrue(cot_address_group_flag(cot))
 
+    @patch("netbox_nsm.objects.cot_roles.resolve_members_field")
     @patch("netbox_nsm.type_metadata.roles.resolve_role_for_cot")
-    @patch("netbox_custom_objects.models.CustomObjectTypeField")
     def test_cot_address_group_flag_from_role_metadata(
-        self, field_cls, resolve_role
+        self, resolve_role, resolve_members
     ):
-        field_cls.objects.filter.return_value.exists.return_value = False
+        resolve_members.return_value = None
         resolve_role.return_value = "address_group"
         cot = SimpleNamespace(slug="anything", comments="- role: address_group")
         self.assertTrue(cot_address_group_flag(cot))

@@ -10,11 +10,42 @@ from netbox_nsm.bundles.schema_builder import (
     export_portable_schema_yaml,
 )
 from netbox_nsm.objects.type_config_specs import REQUIRED_COT_SLUGS
-from netbox_nsm.bundles.dispatch import get_bundle_status, list_setup_bundles, load_bundle
+from netbox_nsm.bundles.dispatch import list_setup_bundles, load_bundle
 from netbox_nsm.bundles.paths import bundle_json_path
 
 NSM_PANEL_COT_SLUGS = ("nsm_object_link",)
 
+
+def expected_cot_slugs() -> list[str]:
+    """Return the policy COT slugs Setup tracks (discovered bundles first).
+
+    Phase A: derived from discovered schema bundles instead of a hardcoded
+    list. ``REQUIRED_COT_SLUGS`` is only a fallback (and a stable ordering hint)
+    so that swapping bundles changes the expected schema without code changes.
+    """
+    try:
+        from netbox_nsm.bundles.discovery import discovered_policy_cot_slugs
+
+        discovered = discovered_policy_cot_slugs()
+    except Exception:
+        discovered = []
+    if not discovered:
+        return list(REQUIRED_COT_SLUGS)
+    discovered_set = set(discovered)
+    ordered = [slug for slug in REQUIRED_COT_SLUGS if slug in discovered_set]
+    extras = [slug for slug in discovered if slug not in set(REQUIRED_COT_SLUGS)]
+    return ordered + extras
+
+
+def builtin_object_slugs() -> tuple[str, ...]:
+    """Discovered policy COT slugs excluding the NSM panel link types."""
+    return tuple(
+        slug for slug in expected_cot_slugs() if slug not in NSM_PANEL_COT_SLUGS
+    )
+
+
+# Back-compat module constant (static fallback ordering). Prefer
+# ``builtin_object_slugs()`` / ``expected_cot_slugs()`` for discovery-driven use.
 COT_BUILTIN_OBJECT_SLUGS = tuple(
     slug for slug in REQUIRED_COT_SLUGS if slug not in NSM_PANEL_COT_SLUGS
 )
@@ -41,10 +72,6 @@ COT_SETUP_GROUPS = (
 )
 
 
-def core_bundle_applied() -> bool:
-    return get_bundle_status("nsm_schema") == "applied"
-
-
 __all__ = (
     "COT_GROUP_OBJECTS",
     "COT_GROUP_NSM_PANEL",
@@ -52,7 +79,8 @@ __all__ = (
     "COT_BUILTIN_OBJECT_SLUGS",
     "NSM_PANEL_COT_SLUGS",
     "all_cots_ok",
-    "core_bundle_applied",
+    "builtin_object_slugs",
+    "expected_cot_slugs",
     "custom_objects_db_ready",
     "custom_objects_plugin_loaded",
     "empty_cot_status",
@@ -90,7 +118,7 @@ def custom_objects_db_ready() -> bool:
 
 
 def empty_cot_status():
-    return {slug: None for slug in REQUIRED_COT_SLUGS}
+    return {slug: None for slug in expected_cot_slugs()}
 
 
 def get_cot_status():
@@ -99,22 +127,35 @@ def get_cot_status():
     try:
         from netbox_custom_objects.models import CustomObjectType
 
+        slugs = expected_cot_slugs()
         existing = {
             cot.slug: cot
-            for cot in CustomObjectType.objects.filter(slug__in=REQUIRED_COT_SLUGS)
+            for cot in CustomObjectType.objects.filter(slug__in=slugs)
         }
-        return {slug: existing.get(slug) for slug in REQUIRED_COT_SLUGS}
+        return {slug: existing.get(slug) for slug in slugs}
     except (ProgrammingError, OperationalError):
         return empty_cot_status()
 
 
 def _type_metadata_by_slug() -> dict[str, dict]:
-    bundle = load_bundle(bundle_json_path("nsm_schema"))
-    return {
-        str(type_def.get("slug", "")): type_def
-        for type_def in bundle.get("types") or []
-        if isinstance(type_def, dict) and type_def.get("slug")
-    }
+    """Aggregate per-type metadata across discovered schema bundles (labels)."""
+    try:
+        from netbox_nsm.bundles.discovery import discovered_schema_bundles
+
+        bundles = discovered_schema_bundles()
+    except Exception:
+        bundles = []
+    if not bundles:
+        bundles = [load_bundle(bundle_json_path("nsm_schema"))]
+    metadata: dict[str, dict] = {}
+    for bundle in bundles:
+        for type_def in bundle.get("types") or []:
+            if not isinstance(type_def, dict):
+                continue
+            slug = str(type_def.get("slug", ""))
+            if slug:
+                metadata.setdefault(slug, type_def)
+    return metadata
 
 
 def get_builtin_object_entries(*, cot_status=None):
@@ -128,7 +169,7 @@ def get_builtin_object_entries(*, cot_status=None):
             "description": metadata.get(slug, {}).get("description", ""),
             "cot": cot_status.get(slug),
         }
-        for slug in COT_BUILTIN_OBJECT_SLUGS
+        for slug in builtin_object_slugs()
     ]
 
 
@@ -148,11 +189,11 @@ def get_nsm_panel_entries(*, cot_status=None):
 
 
 def get_cot_schema_yaml() -> str:
-    return export_portable_schema_yaml(slugs=set(REQUIRED_COT_SLUGS))
+    return export_portable_schema_yaml(slugs=set(expected_cot_slugs()))
 
 
 def get_cot_schema_preview() -> list[dict]:
-    return build_portable_schema_preview_types(slugs=set(REQUIRED_COT_SLUGS))
+    return build_portable_schema_preview_types(slugs=set(expected_cot_slugs()))
 
 
 def get_cot_setup_groups(*, cot_status=None, rulebook_template_status=None):
@@ -172,10 +213,11 @@ def get_cot_setup_groups(*, cot_status=None, rulebook_template_status=None):
 
 
 def all_cots_ok(cot_status, rulebook_template_status=None) -> bool:
+    """True when every discovered policy COT is deployed (Phase A: no schema gate)."""
     del rulebook_template_status
-    if not all(v is not None for v in cot_status.values()):
+    if not cot_status:
         return False
-    return core_bundle_applied()
+    return all(v is not None for v in cot_status.values())
 
 
 def get_schema_bundles():

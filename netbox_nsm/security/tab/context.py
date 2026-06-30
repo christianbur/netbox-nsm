@@ -297,8 +297,10 @@ def build_security_tab_context(obj, request) -> dict:
     unique_rules_total = panel_data["unique_rules_total"]
 
     obj_name = str(obj)
+    from netbox_nsm.analyzers.registry import analyzer_reverse
+
     analyzer_url = (
-        reverse("plugins:netbox_nsm:object_analyzer")
+        analyzer_reverse("object_analyzer")
         + f"?ct={ct.pk}&pk={obj.pk}&name={quote(obj_name)}"
     )
     assign_url = (

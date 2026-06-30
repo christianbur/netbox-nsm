@@ -93,24 +93,10 @@ def _field_targets_ipam(field) -> bool:
 
 
 def _cot_has_ipam_address_field(cot) -> bool:
-    try:
-        from extras.choices import CustomFieldTypeChoices
-        from netbox_custom_objects.models import CustomObjectTypeField
-    except ImportError:
-        return False
+    """True when *cot* exposes an IPAM-binding field (any name; cot_roles)."""
+    from netbox_nsm.objects.cot_roles import resolve_ipam_field
 
-    object_types = {
-        CustomFieldTypeChoices.TYPE_OBJECT,
-        CustomFieldTypeChoices.TYPE_MULTIOBJECT,
-    }
-    for field in CustomObjectTypeField.objects.filter(
-        custom_object_type=cot,
-        name="address",
-        type__in=object_types,
-    ):
-        if _field_targets_ipam(field):
-            return True
-    return False
+    return resolve_ipam_field(cot) is not None
 
 
 def cot_ipam_address_flag(cot) -> bool:
@@ -145,21 +131,10 @@ def get_ipam_address_cot():
 
 
 def _cot_has_group_members_field(cot) -> bool:
-    try:
-        from extras.choices import CustomFieldTypeChoices
-        from netbox_custom_objects.models import CustomObjectTypeField
-    except ImportError:
-        return False
+    """True when *cot* exposes an address-members field (any name; cot_roles)."""
+    from netbox_nsm.objects.cot_roles import resolve_members_field
 
-    object_types = {
-        CustomFieldTypeChoices.TYPE_OBJECT,
-        CustomFieldTypeChoices.TYPE_MULTIOBJECT,
-    }
-    return CustomObjectTypeField.objects.filter(
-        custom_object_type=cot,
-        name="group",
-        type__in=object_types,
-    ).exists()
+    return resolve_members_field(cot) is not None
 
 
 def cot_address_group_flag(cot) -> bool:

@@ -110,36 +110,13 @@ def _group_cot():
 def _group_membership_through(group_cot):
     """Return ``(ThroughModel, group_field, member_field)`` for the group M2M.
 
-    The member field on ``nsm_address_group`` (slug ``group``) is a
-    ``multiobject`` field whose through table stores one FK to the group
-    (source) and one FK to the member address (target). Field names are
-    resolved dynamically because the table name is data-driven
-    (``Through_custom_objects_<n>_group``).
+    The members field is resolved structurally via ``cot_roles`` (no hardcoded
+    ``group`` name); field names and the data-driven through table follow the
+    deployed schema.
     """
-    if group_cot is None:
-        return None, None, None
-    try:
-        from django.apps import apps
-        from netbox_custom_objects import constants
+    from netbox_nsm.objects.cot_roles import membership_through
 
-        field = group_cot.fields.get(name="group")
-        through = apps.get_model(constants.APP_LABEL, field.through_model_name)
-    except Exception:
-        return None, None, None
-
-    group_model = group_cot.get_model()
-    group_field = member_field = None
-    for fk in through._meta.concrete_fields:
-        related = getattr(fk, "related_model", None)
-        if related is None:
-            continue
-        if related is group_model:
-            group_field = fk.name
-        else:
-            member_field = fk.name
-    if not group_field or not member_field:
-        return None, None, None
-    return through, group_field, member_field
+    return membership_through(group_cot)
 
 
 def _builder_status_map():
@@ -852,6 +829,23 @@ def build_object_report(
         ),
     }
 
+    from netbox_nsm.analyzers.object_report.check_registry import (
+        ObjectReportContext,
+        run_extra_object_report_checks,
+    )
+
+    extra = run_extra_object_report_checks(
+        ObjectReportContext(
+            addr_cot=addr_cot,
+            addr_model=addr_model,
+            group_cot=group_cot,
+            sample_limit=sample_limit,
+            chunk_size=chunk_size,
+        )
+    )
+    for key, result in extra.items():
+        checks.setdefault(key, result)
+
     findings_total = sum(c.get("count", 0) for c in checks.values())
 
     return {
@@ -978,8 +972,11 @@ def prepare_object_report_check_rows(
     if not checks:
         return []
 
+    extra_keys = [key for key in checks if key not in OBJECT_REPORT_CHECK_KEYS]
+    ordered_keys = list(OBJECT_REPORT_CHECK_KEYS) + extra_keys
+
     rows: list[dict[str, Any]] = []
-    for key in OBJECT_REPORT_CHECK_KEYS:
+    for key in ordered_keys:
         data = checks.get(key)
         if data is None:
             continue

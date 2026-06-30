@@ -2,15 +2,18 @@ from django.urls import include, path
 
 from utilities.urls import get_model_urls
 
-from netbox_nsm.analysis.analyzer.api_view import AnalyzerAPIView, AnalyzerPickerAPIView
-from netbox_nsm.analysis.analyzer.page_view import ObjectAnalyzerView
-from netbox_nsm.analysis.ip import (
+from netbox_nsm.analyzers.object_analyzer.api_view import (
+    AnalyzerAPIView,
+    AnalyzerPickerAPIView,
+)
+from netbox_nsm.analyzers.object_analyzer.page_view import ObjectAnalyzerView
+from netbox_nsm.analyzers.ip.endpoints import (
     IpAnalysisAddObjectTypesApiView,
     IpAnalysisApiView,
     IpAnalysisCategoryApiView,
     IpAnalysisObjectDrilldownApiView,
 )
-from netbox_nsm.object_report.views import ObjectReportView
+from netbox_nsm.analyzers.object_report.views import ObjectReportView
 from netbox_nsm.type_metadata.views import (
     TypeMetadataAddView,
     TypeMetadataDeleteView,

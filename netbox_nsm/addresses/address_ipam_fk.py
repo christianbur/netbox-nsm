@@ -61,6 +61,36 @@ _POLYMORPHIC_OBJ_ATTR = "address_object_id"
 _POLYMORPHIC_FIELD = "address"
 
 
+def _ipam_gfk_attrs_for_obj(addr_obj) -> tuple[str, str, str]:
+    """Return ``(ct_attr, obj_attr, field_name)`` for *addr_obj*'s IPAM GFK.
+
+    Fast path uses the default ``address`` column names; for COTs with a
+    differently-named IPAM field the names are resolved via ``cot_roles``.
+    """
+    if hasattr(addr_obj, _POLYMORPHIC_CT_ATTR):
+        return _POLYMORPHIC_CT_ATTR, _POLYMORPHIC_OBJ_ATTR, _POLYMORPHIC_FIELD
+    cot = getattr(addr_obj, "custom_object_type", None)
+    if cot is not None:
+        from netbox_nsm.objects.cot_roles import ipam_gfk_attrs, resolve_ipam_field_name
+
+        ct_attr, obj_attr = ipam_gfk_attrs(cot)
+        return ct_attr, obj_attr, resolve_ipam_field_name(cot)
+    return _POLYMORPHIC_CT_ATTR, _POLYMORPHIC_OBJ_ATTR, _POLYMORPHIC_FIELD
+
+
+def _ipam_gfk_attrs_for_model(addr_model) -> tuple[str, str, str]:
+    """Resolve the IPAM GFK columns for an address *model* via its COT."""
+    if hasattr(addr_model, _POLYMORPHIC_CT_ATTR):
+        return _POLYMORPHIC_CT_ATTR, _POLYMORPHIC_OBJ_ATTR, _POLYMORPHIC_FIELD
+    cot = get_ipam_address_cot()
+    if cot is not None:
+        from netbox_nsm.objects.cot_roles import ipam_gfk_attrs, resolve_ipam_field_name
+
+        ct_attr, obj_attr = ipam_gfk_attrs(cot)
+        return ct_attr, obj_attr, resolve_ipam_field_name(cot)
+    return _POLYMORPHIC_CT_ATTR, _POLYMORPHIC_OBJ_ATTR, _POLYMORPHIC_FIELD
+
+
 @dataclass(frozen=True)
 class AddressIpamFkRef:
     """One IPAM object referenced by an ``nsm_addresses`` row."""
@@ -105,8 +135,9 @@ def is_policy_address_object(obj, addr_model=None) -> bool:
 def _iter_polymorphic_ref(addr_obj) -> Iterator[AddressIpamFkRef]:
     from django.contrib.contenttypes.models import ContentType
 
-    ct_id = getattr(addr_obj, _POLYMORPHIC_CT_ATTR, None)
-    obj_id = getattr(addr_obj, _POLYMORPHIC_OBJ_ATTR, None)
+    ct_attr, obj_attr, field_name = _ipam_gfk_attrs_for_obj(addr_obj)
+    ct_id = getattr(addr_obj, ct_attr, None)
+    obj_id = getattr(addr_obj, obj_attr, None)
     if not ct_id or not obj_id:
         return
 
@@ -126,7 +157,7 @@ def _iter_polymorphic_ref(addr_obj) -> Iterator[AddressIpamFkRef]:
     yield AddressIpamFkRef(
         ipam_obj=ipam_obj,
         ipam_ct=ct,
-        field_name=_POLYMORPHIC_FIELD,
+        field_name=field_name,
     )
 
 
@@ -193,19 +224,20 @@ def iter_addresses_for_ipam_object(ipam_obj) -> Iterator[tuple[object, str]]:
 
     from django.contrib.contenttypes.models import ContentType
 
+    ct_attr, obj_attr, field_name = _ipam_gfk_attrs_for_model(addr_model)
     seen: set[int] = set()
     ipam_ct = ContentType.objects.get_for_model(ipam_obj)
 
     for addr in addr_model.objects.filter(
         **{
-            _POLYMORPHIC_CT_ATTR: ipam_ct.pk,
-            _POLYMORPHIC_OBJ_ATTR: ipam_obj.pk,
+            ct_attr: ipam_ct.pk,
+            obj_attr: ipam_obj.pk,
         }
     ).order_by("name"):
         if addr.pk in seen:
             continue
         seen.add(addr.pk)
-        yield addr, _POLYMORPHIC_FIELD
+        yield addr, field_name
 
     legacy = _legacy_fk_attr_for_ipam_object(ipam_obj)
     if legacy is not None:
@@ -228,11 +260,12 @@ def addresses_for_ipam_object_queryset(addr_model, ipam_obj):
     if addr_model is None or ipam_obj is None or not getattr(ipam_obj, "pk", None):
         return addr_model.objects.none() if addr_model is not None else None
 
+    ct_attr, obj_attr, _field_name = _ipam_gfk_attrs_for_model(addr_model)
     ipam_ct = ContentType.objects.get_for_model(ipam_obj)
     q = Q(
         **{
-            _POLYMORPHIC_CT_ATTR: ipam_ct.pk,
-            _POLYMORPHIC_OBJ_ATTR: ipam_obj.pk,
+            ct_attr: ipam_ct.pk,
+            obj_attr: ipam_obj.pk,
         }
     )
     legacy = _legacy_fk_attr_for_ipam_object(ipam_obj)
@@ -246,12 +279,11 @@ def addresses_for_ipam_object_queryset(addr_model, ipam_obj):
 def clear_address_ipam_link(addr) -> list[str]:
     """Clear polymorphic and legacy IPAM links on an address row; return updated fields."""
     update_fields: list[str] = []
-    if hasattr(addr, _POLYMORPHIC_CT_ATTR):
-        setattr(addr, _POLYMORPHIC_CT_ATTR, None)
-        update_fields.append(_POLYMORPHIC_CT_ATTR)
-    if hasattr(addr, _POLYMORPHIC_OBJ_ATTR):
-        setattr(addr, _POLYMORPHIC_OBJ_ATTR, None)
-        update_fields.append(_POLYMORPHIC_OBJ_ATTR)
+    ct_attr, obj_attr, _field = _ipam_gfk_attrs_for_obj(addr)
+    for attr in (ct_attr, obj_attr):
+        if hasattr(addr, attr):
+            setattr(addr, attr, None)
+            update_fields.append(attr)
     for _field_name, fk_attr in _LEGACY_FK_FIELDS:
         if hasattr(addr, fk_attr):
             setattr(addr, fk_attr, None)

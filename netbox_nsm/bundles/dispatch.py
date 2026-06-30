@@ -523,4 +523,8 @@ def sync_metadata(metadata: dict | None) -> dict[str, int]:
     from netbox_nsm.core.display_utils import get_display_template_map
 
     get_display_template_map.cache_clear()
+
+    from netbox_nsm.core.type_kind import clear_address_content_type_cache
+
+    clear_address_content_type_cache()
     return {"types": types_count, "rulebooks": rulebooks_count}

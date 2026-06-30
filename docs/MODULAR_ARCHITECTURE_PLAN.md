@@ -1,17 +1,17 @@
-# NSM — Modulare Architektur (Entwurf)
+# NSM — Modulare Architektur
 
-> **Status:** Entwurf, noch nicht umgesetzt  
-> **Stand:** 2026-06-21  
+> **Status:** Umgesetzt (Phasen A–E, mit Legacy-Shims)  
+> **Stand:** 2026-06-30  
 > **Kontext:** Bundle-austauschbares, firewall-neutrales Plugin; eigene COTs; vier Module; Schema-Inferenz über `related_object_types`.
 
 ## Offene Arbeitspakete
 
-- [ ] **mod-bundles** — `bundles/`: Vertrag, Override, Platform ohne `REQUIRED_COT_SLUGS` / `nsm_schema`-Gate
-- [ ] **mod-cot-flex** — `cot_roles`: Inferenz aus `related_object_types` (IPAM/Group/Zone); dynamische GFK-Spalten; Metadata nur Override
-- [ ] **mod-views** — `rulebooks/views/{table,matrix}/` + Registry aus `metadata.rulebook.views`
-- [ ] **mod-proxy** — `rulebooks/proxy/`: add/del/clone/edit Regeln auf COT
-- [x] **mod-analyzers** (Phase C: analyzers/{ip,object_analyzer,object_report} + shims) — `analyzers/{registry,object_analyzer,ip,object_report}/`; Migration; capability registry
-- [ ] **mod-docs** — `ARCHITECTURE.md`: 4 Module + Analyzer-Familie + Custom-COT-Matrix
+- [x] **mod-bundles** — `bundles/`: Vertrag, Override, Platform ohne `REQUIRED_COT_SLUGS` / `nsm_schema`-Gate (Phase A: `bundles/discovery.py`, Setup-Health über discovered Bundles)
+- [x] **mod-cot-flex** — `cot_roles`: Inferenz aus `related_object_types` (IPAM/Group); dynamische GFK-Spalten; Metadata nur Override (Phase B: `objects/cot_roles.py`, `address_*`/`type_kind` umgestellt)
+- [x] **mod-views** — `rulebooks/views/{table,matrix}/` + Registry aus `metadata.rulebook.views` (Phase C: `rulebooks/views/registry.py`, Tabs registry-getrieben)
+- [x] **mod-proxy** — `rulebooks/proxy/`: add/del/clone/edit Regeln auf COT (Phase C: `rulebooks/proxy/rule_rows.py`)
+- [x] **mod-analyzers** (Phase C: analyzers/{ip,object_analyzer,object_report} + shims) — `analyzers/{registry,object_analyzer,ip,object_report}/`; Migration; capability registry (Phase D: Registry verdrahtet; `modes` rollenbasiert) + Phase E `analyzers/label/`
+- [x] **mod-docs** — `ARCHITECTURE.md`: 4 Module + Analyzer-Familie + Custom-COT-Matrix
 
 ---
 
@@ -24,18 +24,19 @@
 
 ---
 
-## Eigene COTs — kann das heute schon jemand?
+## Eigene COTs — Stand nach Phasen A–E
 
-| Anforderung | Heute | Nach Plan |
-|-------------|-------|-----------|
-| **Anderer Slug/Name** | Ja — via Bundle Apply | Ja; ohne `REQUIRED_COT_SLUGS` |
-| **Andere Feldreihenfolge** | Ja — `weight` im Schema | Ja; NSM irrelevant |
-| **IPAM-Feld, anderer Name** | **Nein** — Feld `address` hardcoded | Ja — `metadata.ipam.field` oder Auto-Discovery |
-| **Mehrere Address-COTs parallel** | **Nein** — nur ein Treffer | Ja — `iter_ipam_address_cots()` |
-| **In Rulebook referenzieren** | Ja — über `related_object_types` | Ja; kein Python-Katalog |
-| **Security-Tab IPAM** | Nur ein „Haupt“-Address-COT | Alle COTs mit `role: address` + IPAM-Feld |
+| Anforderung | Status | Hinweis |
+|-------------|--------|---------|
+| **Anderer Slug/Name** | ✅ | Bundle Apply; Setup-Health über `bundles/discovery.py` |
+| **Andere Feldreihenfolge** | ✅ | `weight` im Schema; NSM irrelevant |
+| **IPAM-Feld, anderer Name** | ✅ | `objects/cot_roles.resolve_ipam_field()`; dynamische GFK-Spalten |
+| **Mehrere Address-COTs parallel** | ⚠️ Teilweise | `iter_cots_by_role("address")` / rollenbasierte CT-IDs; `get_ipam_address_cot()` noch first-match |
+| **In Rulebook referenzieren** | ✅ | über `related_object_types` |
+| **Security-Tab IPAM** | ⚠️ Teilweise | CT-IDs rollenbasiert; nicht alle Codepfade iterieren mehrere Address-COTs |
+| **Zone/Label-Inferenz** | ⚠️ Teilweise | Metadata-`role` + `type_metadata.roles`; strukturelle Zone-Inferenz aus Rulebook-Referenzen noch offen |
 
-**Heute scheitert IPAM mit anderem Feldnamen** in `netbox_nsm/objects/address_cot_schema.py` und `netbox_nsm/objects/address_ipam_fk.py` — gleiche Blocker betreffen auch **Object Report**.
+**Legacy-Fallbacks (bewusst):** `REQUIRED_COT_SLUGS` (Ordering/Setup-Fallback), `ADDRESS_CONTENT_MODELS`, `SECURITY_NSM_COT_SLUGS`, Import-Shims unter `analysis/` / `analyzer/` / `object_report/`.
 
 ---
 
@@ -66,7 +67,7 @@ Gleiches Muster für Gruppen:
 
 → **Address Group** (Members zeigen auf Address-COTs), nicht nur weil das Feld `group` heißt.
 
-Rulebooks nutzen `related_object_types` schon so (`rules_layout.py`, Security-Panel, Matrix). Analyzer/Platform hinken hinterher.
+Rulebooks nutzen `related_object_types` schon so (`rules_layout.py`, Security-Panel, Matrix). Address/IPAM-Helfer und Analyzer nutzen seit Phase B **`objects/cot_roles.py`** (kein hardcodiertes Feld `address`/`group` mehr).
 
 ### Heute: Signal da, aber Code blockiert am Feldnamen
 
@@ -213,28 +214,31 @@ netbox_nsm/
 
 ## Roadmap
 
-### Phase A — Bundles + Platform entkoppeln
-- `REQUIRED_COT_SLUGS`, `core_bundle_applied("nsm_schema")` entfernen
-- Setup-Health: discovered Bundles
+### Phase A — Bundles + Platform entkoppeln ✅
+- `core_bundle_applied("nsm_schema")`-Gate entfernt; `all_cots_ok` prüft nur noch discovered COTs
+- `REQUIRED_COT_SLUGS` ist jetzt **Fallback/Ordering-Hint** — Setup-Health kommt aus `bundles/discovery.py` (`discovered_policy_cot_slugs`)
+- `setup_context` + `bench/prerequisites` über `expected_cot_slugs()` / Discovery
 
-### Phase B — Flexible COTs / Rollen-Vertrag
-- `objects/cot_roles.py` mit Schema-Inferenz aus `related_object_types`
-- Alle Analyzer auf `cot_roles` umstellen
-- `REQUIRED_COT_SLUGS` / `ADDRESS_CONTENT_MODELS` entfernen
+### Phase B — Flexible COTs / Rollen-Vertrag ✅
+- `objects/cot_roles.py`: `resolve_role`, `iter_cots_by_role`, `resolve_ipam_field`, `resolve_members_field`, `membership_through`, `ipam_gfk_attrs`, `is_universal_address`, `resolve_literal_network`
+- `addresses/address_cot_schema.py` + `address_ipam_fk.py`: keine hardcodierten Feldnamen `address`/`group` mehr (cot_roles + dynamische GFK-Spalten, Fast-Path-Fallback)
+- `core/type_kind.address_content_type_ids()` rollenbasiert (ADDRESS_CONTENT_MODELS nur Fallback), Cache + Invalidierung in `sync_metadata`
+- `object_report._group_membership_through` → `cot_roles.membership_through`
 
-### Phase C — Module strukturieren
-- `rulebooks/views/`, `rulebooks/proxy/`
-- `analyzer/` → `analyzers/object_analyzer/`
-- `analysis/` → `analyzers/ip/`
-- `object_report/` → `analyzers/object_report/`
+### Phase C — Module strukturieren ✅
+- `rulebooks/views/registry.py` (RulebookViewSpec, `resolve_rulebook_view_keys` aus `metadata.rulebook.views`)
+- `rulebooks/views/{table,matrix}/` (kanonische Importpfade, URLs stabil via `views/cot`)
+- `rulebooks/proxy/` (`rule_add/edit/delete_url`, `rulebook_clone_url`, `can_edit_rules`)
+- Tabs (`virtual_cot_tabs`) registry-getrieben
+- Analyzer-Migration bereits in Phase-C-Commit (analysis/analyzer/object_report → Shims)
 
-### Phase D — Metadata überall
-- Rulebook Loupe → analyzer registry
-- Object Analyzer ohne hardcoded Slugs
+### Phase D — Metadata überall ✅
+- `analyzers/registry.py`: Helper (`get_analyzer`, `analyzer_reverse`, …); verdrahtet in Security-Tab + IP-Legacy-Redirect; `urls.py` auf kanonische `analyzers.*`-Pfade
+- `analyzers/object_analyzer/modes.py`: `SECURITY_NSM_COT_SLUGS` → rollenbasiert (`SECURITY_ALLOWED_ROLES` + cot_roles), Slug-Liste nur Fallback
 
-### Phase E — Erweiterungen
-- `analyzers/label/`
-- Custom Object-Report-Checks (optional)
+### Phase E — Erweiterungen ✅
+- `analyzers/label/` Skeleton + `analyzer.label`-Capability in `ANALYZER_REGISTRY`
+- `analyzers/object_report/check_registry.py`: `register_object_report_check` Hook; in `build_object_report` / `prepare_object_report_check_rows` integriert
 
 ---
 

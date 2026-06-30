@@ -30,6 +30,17 @@ from netbox_nsm.rulebooks.templates import (
     format_rulebook_display_name,
 )
 
+
+def _expected_cot_slugs() -> list[str]:
+    """Discovered policy COT slugs (Phase A), falling back to the static list."""
+    try:
+        from netbox_nsm.bundles.discovery import discovered_policy_cot_slugs
+
+        discovered = discovered_policy_cot_slugs()
+    except Exception:
+        discovered = []
+    return discovered or list(REQUIRED_COT_SLUGS)
+
 __all__ = (
     "ensure_nsm_prerequisites",
     "ensure_rulebook_cot",
@@ -52,13 +63,14 @@ def _custom_objects_db_ready() -> bool:
 
 
 def _cot_status() -> dict[str, CustomObjectType | None]:
+    slugs = _expected_cot_slugs()
     if not _custom_objects_db_ready():
-        return {slug: None for slug in REQUIRED_COT_SLUGS}
+        return {slug: None for slug in slugs}
     existing = {
         cot.slug: cot
-        for cot in CustomObjectType.objects.filter(slug__in=REQUIRED_COT_SLUGS)
+        for cot in CustomObjectType.objects.filter(slug__in=slugs)
     }
-    return {slug: existing.get(slug) for slug in REQUIRED_COT_SLUGS}
+    return {slug: existing.get(slug) for slug in slugs}
 
 
 def _all_cots_ok(cot_status: dict) -> bool:
@@ -124,8 +136,8 @@ def _typeconfigs_ok(cot_status: dict) -> bool:
 
     if not _all_cots_ok(cot_status):
         return False
-    for slug in REQUIRED_COT_SLUGS:
-        cot = cot_status[slug]
+    for slug in _expected_cot_slugs():
+        cot = cot_status.get(slug)
         if cot is None:
             return False
         if not has_nsm_config_in_comments(cot.comments or ""):

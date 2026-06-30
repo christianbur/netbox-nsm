@@ -34,7 +34,9 @@ def _first_legacy_object_params(request) -> dict[str, str] | None:
 
 class IpAnalysisLegacyRedirectView(LoginRequiredMixin, View):
     def get(self, request):
-        target = reverse("plugins:netbox_nsm:object_analyzer")
+        from netbox_nsm.analyzers.registry import analyzer_reverse
+
+        target = analyzer_reverse("object_analyzer")
         legacy = _first_legacy_object_params(request)
         if legacy:
             target = f"{target}?{urlencode(legacy)}"

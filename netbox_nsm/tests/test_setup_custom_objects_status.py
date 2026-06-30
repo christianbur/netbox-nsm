@@ -1,7 +1,5 @@
 """Setup wizard: Custom Object status includes core types only."""
 
-from unittest.mock import patch
-
 from django.test import SimpleTestCase
 
 from netbox_nsm.objects.type_config_specs import REQUIRED_COT_SLUGS
@@ -12,8 +10,7 @@ class SetupCustomObjectsStatusTests(SimpleTestCase):
     def test_required_cot_slugs_include_object_link(self):
         self.assertIn("nsm_object_link", REQUIRED_COT_SLUGS)
 
-    @patch("netbox_nsm.bundles.setup_context.core_bundle_applied", return_value=True)
-    def test_all_cots_ok_when_core_types_present(self, _mock):
+    def test_all_cots_ok_when_core_types_present(self):
         cot_status = {slug: object() for slug in REQUIRED_COT_SLUGS}
         self.assertTrue(setup_context.all_cots_ok(cot_status))
 

@@ -580,6 +580,7 @@ def resolve_nsm_config_dict_for_cot(
     from netbox_nsm.type_metadata.roles import parse_role_from_comments, resolve_role_for_cot
     from netbox_nsm.type_metadata.specs import TYPECONFIG_SPEC_BY_SLUG
 
+    comments = getattr(cot, "comments", "") or ""
     spec = TYPECONFIG_SPEC_BY_SLUG.get(cot.slug)
     if spec:
         config = config_dict_from_spec(spec)
@@ -587,7 +588,7 @@ def resolve_nsm_config_dict_for_cot(
         if rule_view:
             config.update(rule_view)
         elif not rulebook_cot:
-            parsed = parse_nsm_config_from_comments(cot.comments or "")
+            parsed = parse_nsm_config_from_comments(comments)
             if parsed:
                 config = _merge_parsed_into_config(config, parsed)
     else:
@@ -597,11 +598,11 @@ def resolve_nsm_config_dict_for_cot(
             "areas": [],
             "links": {},
         }
-        parsed = parse_nsm_config_from_comments(cot.comments or "")
+        parsed = parse_nsm_config_from_comments(comments)
         if parsed:
             config = _merge_parsed_into_config(config, parsed)
 
-    role = parse_role_from_comments(cot.comments or "") or resolve_role_for_cot(cot)
+    role = parse_role_from_comments(comments) or resolve_role_for_cot(cot)
     if role:
         config["role"] = role
     return config

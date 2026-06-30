@@ -236,19 +236,27 @@ class CotRulebookMetadataViewTests(TestCase):
             CustomObjectType.objects.filter(pk=self.cot.pk).exists()
         )
 
-    def test_delete_post_removes_empty_rulebook(self):
+    @patch("netbox.context_managers.flush_events")
+    def test_delete_post_removes_empty_rulebook(self, _mock_flush_events):
         from netbox_custom_objects.models import CustomObjectType
 
-        grant_rulebook_cot_perms(self, self.cot, view=True, change=True)
+        cot = CustomObjectType.objects.create(
+            name="nsm_rb_meta_delete_post",
+            slug="nsm_rb_meta_delete_post",
+            verbose_name="Meta Delete Post",
+            description="",
+            group_name=RULEBOOK_GROUP,
+        )
+        grant_rulebook_cot_perms(self, cot, view=True, change=True)
         self.add_permissions("netbox_custom_objects.delete_customobjecttype")
         url = reverse(
             "plugins:netbox_nsm:cot_rulebook_delete",
-            kwargs={"slug": self.cot.slug},
+            kwargs={"slug": cot.slug},
         )
         response = self.client.post(url)
         self.assertEqual(response.status_code, 302)
         self.assertFalse(
-            CustomObjectType.objects.filter(pk=self.cot.pk).exists()
+            CustomObjectType.objects.filter(pk=cot.pk).exists()
         )
 
     def test_detail_edit_mode_shows_inline_form(self):

@@ -15,6 +15,7 @@ from netbox_nsm.analyzers.object_analyzer.registry import AnalyzerEdge
 __all__ = (
     "AnalyzerMode",
     "SECURITY_ALLOWED_MODELS",
+    "SECURITY_ALLOWED_ROLES",
     "SECURITY_DENIED_EDGE_TYPES",
     "SECURITY_DENIED_NODE_TYPES",
     "SECURITY_NSM_COT_SLUGS",
@@ -46,7 +47,21 @@ SECURITY_ALLOWED_MODELS = frozenset({
     ("ipam", "iprange"),
 })
 
-# NSM Custom Object Type slugs allowed in Security mode
+# Semantic COT roles allowed in Security mode (zone/label/rulebook excluded —
+# those are filtered separately as denied node types). Discovery is role-driven
+# via cot_roles, so custom COT slugs participate automatically.
+SECURITY_ALLOWED_ROLES = frozenset({
+    "address",
+    "address_group",
+    "object_link",
+    "service",
+    "service_group",
+    "action",
+    "app_business",
+    "app_network",
+})
+
+# Legacy default slugs — fallback only when role discovery yields nothing.
 SECURITY_NSM_COT_SLUGS = frozenset({
     "nsm_address",
     "nsm_address_custom",
@@ -130,11 +145,35 @@ def clear_security_mode_cache() -> None:
     _security_allowed_ct_ids_tuple.cache_clear()
 
 
+def _security_nsm_ct_ids() -> set[int]:
+    """Resolve security-allowed NSM COT content-type ids via roles (cot_roles)."""
+    from django.contrib.contenttypes.models import ContentType
+
+    ids: set[int] = set()
+    try:
+        from netbox_nsm.objects.cot_roles import iter_cots_by_role
+
+        for role in SECURITY_ALLOWED_ROLES:
+            for cot in iter_cots_by_role(role):
+                try:
+                    ct = ContentType.objects.get_for_model(cot.get_model())
+                except Exception:
+                    continue
+                ids.add(ct.pk)
+    except Exception:
+        ids = set()
+
+    if ids:
+        return ids
+
+    from netbox_nsm.objects.type_config_specs import content_type_ids_for_cot_slugs
+
+    return set(content_type_ids_for_cot_slugs(sorted(SECURITY_NSM_COT_SLUGS)))
+
+
 @lru_cache(maxsize=1)
 def _security_allowed_ct_ids_tuple() -> tuple[int, ...]:
     from django.contrib.contenttypes.models import ContentType
-
-    from netbox_nsm.objects.type_config_specs import content_type_ids_for_cot_slugs
 
     ids: set[int] = set()
     for app_label, model_name in SECURITY_ALLOWED_MODELS:
@@ -144,7 +183,7 @@ def _security_allowed_ct_ids_tuple() -> tuple[int, ...]:
             continue
         ids.add(ct.pk)
 
-    ids.update(content_type_ids_for_cot_slugs(sorted(SECURITY_NSM_COT_SLUGS)))
+    ids.update(_security_nsm_ct_ids())
     return tuple(sorted(ids))
 
 

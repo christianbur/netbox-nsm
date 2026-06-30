@@ -3,7 +3,7 @@
 Architecture (SSOT in Python)
 -----------------------------
 All address analysis — merge, diff, tree building, dedupe, counts, warnings,
-YAML export — lives under ``netbox_nsm.analysis`` (see ``addr_merge``,
+YAML export — lives under ``netbox_nsm.analyzers.ip`` (see ``addr_merge``,
 ``addr_diff*``, ``addr_tree``, ``ipa_object_tree``, ``ipa_yaml_export``).
 
 JavaScript (``plugin_assets/js/nsm_ipa_*.js`` and ``addr_analysis_assets.html``)

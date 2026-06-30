@@ -36,7 +36,7 @@
 | **Security-Tab IPAM** | ⚠️ Teilweise | CT-IDs rollenbasiert; nicht alle Codepfade iterieren mehrere Address-COTs |
 | **Zone/Label-Inferenz** | ⚠️ Teilweise | Metadata-`role` + `type_metadata.roles`; strukturelle Zone-Inferenz aus Rulebook-Referenzen noch offen |
 
-**Legacy-Fallbacks (bewusst):** `REQUIRED_COT_SLUGS` (Ordering/Setup-Fallback), `ADDRESS_CONTENT_MODELS`, `SECURITY_NSM_COT_SLUGS`, Import-Shims unter `analysis/` / `analyzer/` / `object_report/`.
+**Legacy-Fallbacks (bewusst):** `REQUIRED_COT_SLUGS` (Ordering/Setup-Fallback), `ADDRESS_CONTENT_MODELS`, `SECURITY_NSM_COT_SLUGS`.
 
 ---
 

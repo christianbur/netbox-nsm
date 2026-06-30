@@ -58,9 +58,6 @@ netbox_nsm/
 ├── security/             # tab, references, panel-link actions, object links
 ├── type_metadata/        # specs, roles, TypeConfig UI
 ├── api/                  # REST endpoints (ip-analysis, object-links, …)
-├── analysis/             # legacy shim → analyzers.ip
-├── analyzer/             # legacy shim → analyzers.object_analyzer
-├── object_report/        # legacy shim → analyzers.object_report
 └── tests/
 ```
 

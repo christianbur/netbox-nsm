@@ -13,7 +13,7 @@ from core.models import Job
 from netbox.registry import registry
 from utilities.testing import TestCase
 
-from netbox_nsm.object_report import object_report
+import netbox_nsm.analyzers.object_report.object_report as object_report
 from netbox_nsm.analyzers.object_report.jobs import (
     OBJECT_REPORT_JOB_NAME,
     ObjectReportJob,

@@ -16,15 +16,15 @@ from netbox_nsm.rulebooks.views.virtual_all import (
     AllRulesRulebookRulesView,
     AllRulesRulebookView,
 )
-from netbox_nsm.analysis.ip import (
+from netbox_nsm.analyzers.ip.endpoints import (
     IpAnalysisAddObjectTypesApiView,
     IpAnalysisApiView,
     IpAnalysisCategoryApiView,
     IpAnalysisLegacyRedirectView,
     IpAnalysisObjectDrilldownApiView,
 )
-from netbox_nsm.analysis.analyzer.page_view import ObjectAnalyzerView
-from netbox_nsm.object_report.views import ObjectReportView
+from netbox_nsm.analyzers.object_analyzer.page_view import ObjectAnalyzerView
+from netbox_nsm.analyzers.object_report.views import ObjectReportView
 from .custom_objects_sync import SyncBuiltinToCustomObjectsView, SyncTypeConfigsView
 from .type_metadata import (
     TypeMetadataAddView,

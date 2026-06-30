@@ -64,7 +64,7 @@ class SecurityConfig(PluginConfig):
         at startup; importing the module here ensures the decorator has run.
         """
         try:
-            import netbox_nsm.object_report.jobs  # noqa: F401
+            import netbox_nsm.analyzers.object_report.jobs  # noqa: F401
         except Exception:
             pass
 

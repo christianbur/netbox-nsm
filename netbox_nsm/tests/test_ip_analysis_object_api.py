@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 from django.test import RequestFactory, SimpleTestCase
 from django.urls import reverse
 
-from netbox_nsm.views.ip_analysis_object_api import IpAnalysisObjectDrilldownApiView
+from netbox_nsm.analyzers.ip.endpoints import IpAnalysisObjectDrilldownApiView
 
 
 class IpAnalysisObjectApiUrlTests(SimpleTestCase):

@@ -56,9 +56,9 @@
         </ul>
       </span>
       {% endwith %}
-    {% elif linked.supports_addr_analysis or linked.edit_url or linked.delete_url %}
+    {% elif linked.supports_addr_analyzer or linked.edit_url or linked.delete_url %}
     <span class="btn-group btn-group-sm nsm-link-actions" role="group">
-      {% if linked.supports_addr_analysis %}
+      {% if linked.supports_addr_analyzer %}
       <button type="button" class="btn btn-light btn-sm nsm-ipa-loupe"
               data-ct="{{ linked.ct_id }}"
               data-pk="{{ linked.obj_id }}"

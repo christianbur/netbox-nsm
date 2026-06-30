@@ -1,8 +1,8 @@
 """
 Lazy-load prefix/range inventory for the IP Analyzer tree.
 
-GET /plugins/netbox-nsm/api/ip-analysis/category/?prefix_pk=&category=&offset=
-GET /plugins/netbox-nsm/api/ip-analysis/category/?range_pk=&offset=
+GET /plugins/netbox-nsm/api/ip-analyzer/category/?prefix_pk=&category=&offset=
+GET /plugins/netbox-nsm/api/ip-analyzer/category/?range_pk=&offset=
 """
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ from django.http import JsonResponse
 from django.template.loader import render_to_string
 from django.views import View
 
-from netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils import (
+from netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils import (
     _build_addr_tree_node,
     _build_ipam_range_resolve_nodes,
     _enrich_addr_tree_copy_lines,
@@ -23,7 +23,7 @@ from netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils import (
     _query_ipam_range_ip_objects,
 )
 
-__all__ = ("IpAnalysisCategoryApiView",)
+__all__ = ("IpAnalyzerCategoryApiView",)
 
 _VALID_CATEGORIES = frozenset(
     ("child_prefixes", "ip_addresses", "ip_ranges", "nsm_addresses")
@@ -44,7 +44,7 @@ def _build_category_drilldown_nodes(obj, category):
     return [node] if node else []
 
 
-class IpAnalysisCategoryApiView(LoginRequiredMixin, View):
+class IpAnalyzerCategoryApiView(LoginRequiredMixin, View):
     http_method_names = ["get"]
 
     def get(self, request):

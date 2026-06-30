@@ -1,7 +1,7 @@
 """
 Lazy-load address drilldown for a single IP Analyzer cell object.
 
-GET /plugins/netbox-nsm/api/ip-analysis/object/?ct=&pk=
+GET /plugins/netbox-nsm/api/ip-analyzer/object/?ct=&pk=
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ from django.views import View
 
 from netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree import _build_ipa_object_drilldown_nodes
 
-__all__ = ("IpAnalysisObjectDrilldownApiView",)
+__all__ = ("IpAnalyzerObjectDrilldownApiView",)
 
 
 def _build_object_drilldown_nodes(obj):
@@ -22,7 +22,7 @@ def _build_object_drilldown_nodes(obj):
     return _build_ipa_object_drilldown_nodes(obj)
 
 
-class IpAnalysisObjectDrilldownApiView(LoginRequiredMixin, View):
+class IpAnalyzerObjectDrilldownApiView(LoginRequiredMixin, View):
     http_method_names = ["get"]
 
     def get(self, request):

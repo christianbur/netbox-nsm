@@ -2,12 +2,12 @@
 
 Implementation lives in ``addr_diff_collect``, ``addr_diff_fund``,
 ``addr_diff_hierarchy``, and ``addr_diff_build``. This module is the stable
-import surface for ``addr_analysis_utils`` and tests.
+import surface for ``ip_analyzer_utils`` and tests.
 """
 
 from netbox_nsm.analyzers.ip_analyzer.addr_diff_build import (
-    _build_addr_diff_analysis,
-    _build_addr_diff_analysis_from_sides,
+    _build_addr_diff,
+    _build_addr_diff_from_sides,
     _diff_status_for_exclusive_side,
 )
 from netbox_nsm.analyzers.ip_analyzer.addr_diff_collect import (
@@ -69,8 +69,8 @@ __all__ = (
     "_addr_side_has_name_conflict",
     "_addr_source_name_set",
     "_addr_tree_node_prefix_compare_key",
-    "_build_addr_diff_analysis",
-    "_build_addr_diff_analysis_from_sides",
+    "_build_addr_diff",
+    "_build_addr_diff_from_sides",
     "_build_addr_diff_group",
     "_build_diff_ipam_hierarchy_prefix_node",
     "_build_diff_ipam_hierarchy_prefix_node_from_prefix",

@@ -1,4 +1,4 @@
-"""Shared IP Analysis payload building for UI and REST APIs.
+"""Shared IP Analyzer payload building for UI and REST APIs.
 
 Architecture (SSOT in Python)
 -----------------------------
@@ -6,7 +6,7 @@ All address analysis — merge, diff, tree building, dedupe, counts, warnings,
 YAML export — lives under ``netbox_nsm.analyzers.ip_analyzer`` (see ``addr_merge``,
 ``addr_diff*``, ``addr_tree``, ``ipa_object_tree``, ``ipa_yaml_export``).
 
-JavaScript (``plugin_assets/js/nsm_ipa_*.js`` and ``addr_analysis_assets.html``)
+JavaScript (``plugin_assets/js/nsm_ipa_*.js`` and ``ip_analyzer_assets.html``)
 is display-only: fetch pre-rendered HTML or structured JSON from the plugin APIs,
 inject into the floating applet, and handle UI events (tabs, drag/resize,
 expand/collapse, lazy-load pagination, CIDR/netmask toggle).
@@ -14,13 +14,13 @@ expand/collapse, lazy-load pagination, CIDR/netmask toggle).
 Endpoints
 ---------
 UI (session auth, HTML + JSON):
-  ``GET /plugins/netbox-nsm/api/ip-analysis/`` — merge, diff, YAML export
-  ``GET /plugins/netbox-nsm/api/ip-analysis/category/`` — lazy prefix/range pages
-  ``GET /plugins/netbox-nsm/api/ip-analysis/object/`` — lazy object drilldown
-  ``GET /plugins/netbox-nsm/api/ip-analysis/add-object-types/`` — add-object menu
+  ``GET /plugins/netbox-nsm/api/ip-analyzer/`` — merge, diff, YAML export
+  ``GET /plugins/netbox-nsm/api/ip-analyzer/category/`` — lazy prefix/range pages
+  ``GET /plugins/netbox-nsm/api/ip-analyzer/object/`` — lazy object drilldown
+  ``GET /plugins/netbox-nsm/api/ip-analyzer/add-object-types/`` — add-object menu
 
 REST (token auth, JSON only):
-  ``GET|POST /api/plugins/netbox-nsm/ip-analysis/``
+  ``GET|POST /api/plugins/netbox-nsm/ip-analyzer/``
 """
 
 from __future__ import annotations
@@ -30,25 +30,25 @@ from django.http import JsonResponse
 from django.template.loader import render_to_string
 from django.utils.translation import gettext as _
 
-from netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils import (
+from netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils import (
     _apply_object_tree_copy_lines,
-    _apply_summary_type_counts_to_addr_analysis,
-    _build_addr_diff_analysis_from_sides,
+    _apply_summary_type_counts_to_addr_analyzer,
+    _build_addr_diff_from_sides,
     _build_ipa_group_coverage,
     _build_ipa_cell_object_tree,
     _build_ipa_cell_object_tree_from_diff,
-    _build_multi_object_addr_analysis,
+    _build_multi_object_addr_analyzer,
     _ipa_cell_object_tree_visible,
     _ipa_cell_tree_extended_summary_counts,
-    _leaf_count_for_addr_analysis,
+    _leaf_count_for_addr_analyzer,
     _object_is_addr_analyzable,
     _resolve_summary_type_counts,
 )
 
 __all__ = (
-    "build_ip_analysis_payload",
-    "execute_ip_analysis_diff",
-    "execute_ip_analysis_merge",
+    "build_ip_analyzer_payload",
+    "execute_ip_analyzer_diff",
+    "execute_ip_analyzer_merge",
     "parse_diff_sides_from_body",
     "parse_diff_sides_from_request",
     "parse_object_refs",
@@ -269,9 +269,9 @@ def parse_diff_sides_from_body(body, *, user=None):
     return []
 
 
-def build_ip_analysis_payload(
+def build_ip_analyzer_payload(
     *,
-    addr_analysis,
+    addr_analyzer,
     selections,
     unsupported,
     mode="merge",
@@ -284,18 +284,18 @@ def build_ip_analysis_payload(
     unauthorized=None,
 ):
     """Build a JSON-serializable analysis payload; optionally include rendered HTML."""
-    leaf_count = _leaf_count_for_addr_analysis(addr_analysis)
+    leaf_count = _leaf_count_for_addr_analyzer(addr_analyzer)
 
     object_tree = []
     object_tree_metadata = []
-    if mode == "diff" and addr_analysis:
-        object_tree_metadata = _build_ipa_cell_object_tree_from_diff(addr_analysis)
+    if mode == "diff" and addr_analyzer:
+        object_tree_metadata = _build_ipa_cell_object_tree_from_diff(addr_analyzer)
         if _ipa_cell_object_tree_visible(object_tree_metadata, 0):
             object_tree = object_tree_metadata
     elif raw_selections and obj_by_key:
         object_tree_metadata = _build_ipa_cell_object_tree(raw_selections, obj_by_key)
         prefer_logical_merge = bool(
-            addr_analysis and _leaf_count_for_addr_analysis(addr_analysis) > 0
+            addr_analyzer and _leaf_count_for_addr_analyzer(addr_analyzer) > 0
         )
         if _ipa_cell_object_tree_visible(
             object_tree_metadata,
@@ -305,10 +305,10 @@ def build_ip_analysis_payload(
             object_tree = object_tree_metadata
 
     if object_tree:
-        addr_analysis = _apply_object_tree_copy_lines(addr_analysis, object_tree)
+        addr_analyzer = _apply_object_tree_copy_lines(addr_analyzer, object_tree)
 
     type_counts = _resolve_summary_type_counts(
-        addr_analysis, object_tree or object_tree_metadata or None
+        addr_analyzer, object_tree or object_tree_metadata or None
     )
     group_coverage = None
     if mode != "diff" and raw_selections and obj_by_key and object_tree:
@@ -319,8 +319,8 @@ def build_ip_analysis_payload(
         type_counts.update(
             _ipa_cell_tree_extended_summary_counts(object_tree, group_coverage)
         )
-    if addr_analysis:
-        _apply_summary_type_counts_to_addr_analysis(addr_analysis, type_counts)
+    if addr_analyzer:
+        _apply_summary_type_counts_to_addr_analyzer(addr_analyzer, type_counts)
 
     payload = {
         "mode": mode,
@@ -342,7 +342,7 @@ def build_ip_analysis_payload(
     if unauthorized:
         payload["unauthorized"] = unauthorized
     if include_structured_data:
-        payload["addr_analysis"] = addr_analysis or []
+        payload["addr_analyzer"] = addr_analyzer or []
         payload["object_tree"] = object_tree or None
         payload["group_coverage"] = group_coverage
     if diff_summary is not None:
@@ -356,9 +356,9 @@ def build_ip_analysis_payload(
 
     if include_html and request is not None:
         payload["html"] = render_to_string(
-            "netbox_nsm/inc/addr_analysis_applet_body.html",
+            "netbox_nsm/inc/ip_analyzer_applet_body.html",
             {
-                "addr_analysis": addr_analysis,
+                "addr_analyzer": addr_analyzer,
                 "object_tree": object_tree or None,
                 "summary_type_counts": type_counts,
                 "group_coverage": group_coverage,
@@ -368,7 +368,7 @@ def build_ip_analysis_payload(
     return payload
 
 
-def execute_ip_analysis_merge(
+def execute_ip_analyzer_merge(
     *,
     selections,
     objs,
@@ -401,7 +401,7 @@ def execute_ip_analysis_merge(
         if unauthorized:
             payload["unauthorized"] = unauthorized
         if include_structured_data:
-            payload["addr_analysis"] = []
+            payload["addr_analyzer"] = []
             payload["object_tree"] = None
         if not include_html:
             payload.pop("html", None)
@@ -428,15 +428,15 @@ def execute_ip_analysis_merge(
         if unauthorized:
             payload["unauthorized"] = unauthorized
         if include_structured_data:
-            payload["addr_analysis"] = []
+            payload["addr_analyzer"] = []
             payload["object_tree"] = None
         if not include_html:
             payload.pop("html", None)
         return payload
 
-    addr_analysis = _build_multi_object_addr_analysis(objs)
-    payload = build_ip_analysis_payload(
-        addr_analysis=addr_analysis,
+    addr_analyzer = _build_multi_object_addr_analyzer(objs)
+    payload = build_ip_analyzer_payload(
+        addr_analyzer=addr_analyzer,
         selections=selections,
         unsupported=unsupported,
         mode="merge",
@@ -454,7 +454,7 @@ def execute_ip_analysis_merge(
     return payload
 
 
-def execute_ip_analysis_diff(
+def execute_ip_analyzer_diff(
     *, sides, request=None, include_html=False, include_structured_data=True
 ):
     unsupported = []
@@ -487,22 +487,22 @@ def execute_ip_analysis_diff(
         if unauthorized:
             payload["unauthorized"] = unauthorized
         if include_structured_data:
-            payload["addr_analysis"] = []
+            payload["addr_analyzer"] = []
             payload["object_tree"] = None
         if not include_html:
             payload.pop("html", None)
         return payload
 
-    addr_analysis = _build_addr_diff_analysis_from_sides(
+    addr_analyzer = _build_addr_diff_from_sides(
         [{"objs": side["objs"], "label": side["label"]} for side in sides]
     )
     diff_summary = None
-    if addr_analysis:
-        type_block = (addr_analysis[0].get("types") or [{}])[0]
+    if addr_analyzer:
+        type_block = (addr_analyzer[0].get("types") or [{}])[0]
         diff_summary = type_block.get("diff_summary")
 
-    payload = build_ip_analysis_payload(
-        addr_analysis=addr_analysis,
+    payload = build_ip_analyzer_payload(
+        addr_analyzer=addr_analyzer,
         selections=selections,
         unsupported=unsupported,
         mode="diff",
@@ -519,6 +519,6 @@ def execute_ip_analysis_diff(
     return payload
 
 
-def ip_analysis_json_response(payload, *, status=200):
+def ip_analyzer_json_response(payload, *, status=200):
     clean = {key: value for key, value in payload.items() if value is not None}
     return JsonResponse(clean, status=status)

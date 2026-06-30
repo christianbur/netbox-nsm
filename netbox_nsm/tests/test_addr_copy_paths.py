@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 from utilities.testing import TestCase
 
-from netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils import (
+from netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils import (
     _addr_navigation_refs,
     _addr_path_line,
     _addr_path_parts_for_leaf,

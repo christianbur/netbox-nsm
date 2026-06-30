@@ -319,7 +319,7 @@ def _ipa_drilldown_nodes_are_shell_only(nodes, *, redundant_nets=()):
 
 def _ipa_object_drilldown_has_visible_content(obj):
     """Whether lazy drilldown would render more than a redundant meta shell."""
-    if not obj or not _hub._object_supports_addr_analysis(obj):
+    if not obj or not _hub._object_supports_addr_analyzer(obj):
         return False
     nodes = _build_ipa_object_ipam_tree(obj)
     if nodes:
@@ -336,13 +336,13 @@ def _ipa_object_drilldown_has_visible_content(obj):
 
 def _build_ipa_object_drilldown_nodes(obj):
     """
-    Return ``(nodes, copy_lines)`` for ``IpAnalysisObjectDrilldownApiView``.
+    Return ``(nodes, copy_lines)`` for ``IpAnalyzerObjectDrilldownApiView``.
 
     Prefix containers resolve to an explicit ``ipam_prefix`` layer node whose
     children follow the NetBox IPAM hierarchy. Host-only objects fall back to
     a single enriched addr-tree leaf.
     """
-    if not obj or not _hub._object_supports_addr_analysis(obj):
+    if not obj or not _hub._object_supports_addr_analyzer(obj):
         return [], []
 
     parent_network = _ipa_drilldown_parent_network(obj)

@@ -25,7 +25,7 @@ class IpaYamlExportTests(SimpleTestCase):
             "count_duplicates": 0,
             "count_group_duplicates": 0,
             "objects": [{"ct": "10", "pk": "42", "name": "demo-addr"}],
-            "addr_analysis": [
+            "addr_analyzer": [
                 {
                     "field_name": "",
                     "types": [
@@ -73,7 +73,7 @@ class IpaYamlExportTests(SimpleTestCase):
         self.assertIn("all,demo-addr,10.0.0.1", displayed["copy_lines"])
         self.assertIn("demo-addr,10.0.0.1", displayed["copy_lines"])
 
-        addr_node = displayed["addr_analysis"][0]["types"][0]["nodes"][0]
+        addr_node = displayed["addr_analyzer"][0]["types"][0]["nodes"][0]
         self.assertEqual(addr_node["name"], "demo-addr")
         self.assertEqual(addr_node["ip"], "10.0.0.1")
         self.assertNotIn("url", addr_node)
@@ -163,7 +163,7 @@ class IpaYamlExportTests(SimpleTestCase):
         parsed = yaml.safe_load(yaml_text)
         self.assertEqual(parsed["mode"], "merge")
         self.assertIn("copy_lines", parsed["displayed"])
-        self.assertIn("addr_analysis", parsed["displayed"])
+        self.assertIn("addr_analyzer", parsed["displayed"])
 
     def test_ipa_export_filename_slugifies_title(self):
         filename = ipa_export_filename(

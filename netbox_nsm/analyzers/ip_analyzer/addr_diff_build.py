@@ -39,9 +39,9 @@ def _rollup_diff_leaves_by_ipam_prefix(leaves, prefix_hierarchy=None):
     )
 
 
-def _build_addr_diff_analysis_from_sides(side_specs):
+def _build_addr_diff_from_sides(side_specs):
     """
-    IP Analysis: diff N object sets (N >= 2).
+    IP Analyzer: diff N object sets (N >= 2).
 
     side_specs: list of {"objs": [...], "label": str}
     """
@@ -54,7 +54,7 @@ def _build_addr_diff_analysis_from_sides(side_specs):
     has_supported = False
     for spec in side_specs:
         supported = [
-            obj for obj in spec.get("objs") or [] if obj and _hub._object_supports_addr_analysis(obj)
+            obj for obj in spec.get("objs") or [] if obj and _hub._object_supports_addr_analyzer(obj)
         ]
         if supported:
             has_supported = True
@@ -276,9 +276,9 @@ def _build_addr_diff_analysis_from_sides(side_specs):
     ]
 
 
-def _build_addr_diff_analysis(objs_a, objs_b, *, label_a="A", label_b="B"):
-    """IP Analysis: diff two object sets into only-A / only-B / both groups."""
-    return _build_addr_diff_analysis_from_sides(
+def _build_addr_diff(objs_a, objs_b, *, label_a="A", label_b="B"):
+    """IP Analyzer: diff two object sets into only-A / only-B / both groups."""
+    return _build_addr_diff_from_sides(
         [
             {"objs": objs_a, "label": label_a},
             {"objs": objs_b, "label": label_b},

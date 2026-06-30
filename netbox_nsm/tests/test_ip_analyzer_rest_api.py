@@ -1,4 +1,4 @@
-"""Tests for the DRF IP Analysis REST API."""
+"""Tests for the DRF IP Analyzer REST API."""
 
 import json
 from unittest.mock import MagicMock, patch
@@ -7,22 +7,22 @@ from django.test import RequestFactory, SimpleTestCase
 from django.urls import reverse
 from rest_framework.test import APIRequestFactory, force_authenticate
 
-from netbox_nsm.api.ip_analysis import IpAnalysisRestApiView
-from netbox_nsm.analyzers.ip_analyzer.ip_analysis_service import parse_object_refs
+from netbox_nsm.api.ip_analyzer import IpAnalyzerRestApiView
+from netbox_nsm.analyzers.ip_analyzer.ip_analyzer_service import parse_object_refs
 
 
-class IpAnalysisRestApiUrlTests(SimpleTestCase):
-    def test_ip_analysis_rest_api_url_reverse(self):
+class IpAnalyzerRestApiUrlTests(SimpleTestCase):
+    def test_ip_analyzer_rest_api_url_reverse(self):
         self.assertEqual(
-            reverse("plugins-api:netbox_nsm-api:ip-analysis"),
-            "/api/plugins/netbox-nsm/ip-analysis/",
+            reverse("plugins-api:netbox_nsm-api:ip-analyzer"),
+            "/api/plugins/netbox-nsm/ip-analyzer/",
         )
 
 
-class IpAnalysisRestApiTests(SimpleTestCase):
+class IpAnalyzerRestApiTests(SimpleTestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
-        self.view = IpAnalysisRestApiView.as_view()
+        self.view = IpAnalyzerRestApiView.as_view()
         self.user = MagicMock(is_authenticated=True)
 
     def _get(self, path, data=None):
@@ -36,12 +36,12 @@ class IpAnalysisRestApiTests(SimpleTestCase):
         return self.view(request)
 
     def test_get_requires_ct_and_pk(self):
-        response = self._get("/api/plugins/netbox-nsm/ip-analysis/")
+        response = self._get("/api/plugins/netbox-nsm/ip-analyzer/")
         self.assertEqual(response.status_code, 400)
         self.assertIn("ct and pk", response.data["detail"])
 
-    @patch("netbox_nsm.api.ip_analysis.execute_ip_analysis_merge")
-    @patch("netbox_nsm.api.ip_analysis.parse_selections_from_request")
+    @patch("netbox_nsm.api.ip_analyzer.execute_ip_analyzer_merge")
+    @patch("netbox_nsm.api.ip_analyzer.parse_selections_from_request")
     def test_get_merge_returns_json_without_html(self, parse_fn, execute_fn):
         parse_fn.return_value = ([{"ct": "10", "pk": "42", "name": "demo"}], [MagicMock()], [], [{"ct": "10", "pk": "42", "name": "demo"}], {(10, 42): MagicMock()}, [])
         execute_fn.return_value = {
@@ -53,21 +53,21 @@ class IpAnalysisRestApiTests(SimpleTestCase):
             "count_duplicates": 0,
             "objects": [{"ct": "10", "pk": "42", "name": "demo"}],
             "unsupported": [],
-            "addr_analysis": [{"field_name": "", "types": [{"nodes": []}]}],
+            "addr_analyzer": [{"field_name": "", "types": [{"nodes": []}]}],
             "object_tree": None,
         }
 
-        response = self._get("/api/plugins/netbox-nsm/ip-analysis/?ct=10&pk=42")
+        response = self._get("/api/plugins/netbox-nsm/ip-analyzer/?ct=10&pk=42")
 
         self.assertEqual(response.status_code, 200)
         self.assertNotIn("html", response.data)
         self.assertEqual(response.data["leaf_count"], 2)
-        self.assertIn("addr_analysis", response.data)
+        self.assertIn("addr_analyzer", response.data)
         execute_fn.assert_called_once()
         self.assertFalse(execute_fn.call_args.kwargs["include_html"])
 
-    @patch("netbox_nsm.api.ip_analysis.execute_ip_analysis_diff")
-    @patch("netbox_nsm.api.ip_analysis.parse_diff_sides_from_request")
+    @patch("netbox_nsm.api.ip_analyzer.execute_ip_analyzer_diff")
+    @patch("netbox_nsm.api.ip_analyzer.parse_diff_sides_from_request")
     def test_get_diff_mode(self, parse_sides_fn, execute_fn):
         parse_sides_fn.return_value = [
             {"label": "A", "selections": [], "objs": [MagicMock()], "unsupported": []},
@@ -82,24 +82,24 @@ class IpAnalysisRestApiTests(SimpleTestCase):
             "count_duplicates": 0,
             "objects": [],
             "unsupported": [],
-            "addr_analysis": [{"field_name": "", "types": [{"nodes": [], "diff_summary": {"both": 1}}]}],
+            "addr_analyzer": [{"field_name": "", "types": [{"nodes": [], "diff_summary": {"both": 1}}]}],
             "diff_summary": {"both": 1},
         }
 
         response = self._get(
-            "/api/plugins/netbox-nsm/ip-analysis/?mode=diff&a_ct=10&a_pk=1&b_ct=10&b_pk=2"
+            "/api/plugins/netbox-nsm/ip-analyzer/?mode=diff&a_ct=10&a_pk=1&b_ct=10&b_pk=2"
         )
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["mode"], "diff")
         self.assertEqual(response.data["diff_summary"]["both"], 1)
 
-    @patch("netbox_nsm.api.ip_analysis.parse_selections_from_request")
+    @patch("netbox_nsm.api.ip_analyzer.parse_selections_from_request")
     def test_get_merge_reports_unauthorized_objects(self, parse_fn):
         # User cannot view the object -> excluded from analysis, surfaced separately.
         parse_fn.return_value = ([], [], [], [], {}, [{"ct": "10", "pk": "42"}])
 
-        response = self._get("/api/plugins/netbox-nsm/ip-analysis/?ct=10&pk=42")
+        response = self._get("/api/plugins/netbox-nsm/ip-analyzer/?ct=10&pk=42")
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["objects"], [])
@@ -109,11 +109,11 @@ class IpAnalysisRestApiTests(SimpleTestCase):
         self.assertIs(parse_fn.call_args.kwargs["user"], self.user)
 
     def test_post_merge_requires_objects(self):
-        response = self._post("/api/plugins/netbox-nsm/ip-analysis/", {"mode": "merge"})
+        response = self._post("/api/plugins/netbox-nsm/ip-analyzer/", {"mode": "merge"})
         self.assertEqual(response.status_code, 400)
 
-    @patch("netbox_nsm.api.ip_analysis.execute_ip_analysis_merge")
-    @patch("netbox_nsm.api.ip_analysis.parse_object_refs")
+    @patch("netbox_nsm.api.ip_analyzer.execute_ip_analyzer_merge")
+    @patch("netbox_nsm.api.ip_analyzer.parse_object_refs")
     def test_post_merge_accepts_object_list(self, parse_refs_fn, execute_fn):
         parse_refs_fn.return_value = ([{"ct": "10", "pk": "5", "name": "bench-ip"}], [MagicMock()], [], [{"ct": "10", "pk": "5", "name": "bench-ip"}], {(10, 5): MagicMock()}, [])
         execute_fn.return_value = {
@@ -125,11 +125,11 @@ class IpAnalysisRestApiTests(SimpleTestCase):
             "count_duplicates": 0,
             "objects": [{"ct": "10", "pk": "5", "name": "bench-ip"}],
             "unsupported": [],
-            "addr_analysis": [{"field_name": "", "types": [{"nodes": [{"name": "bench-ip"}]}]}],
+            "addr_analyzer": [{"field_name": "", "types": [{"nodes": [{"name": "bench-ip"}]}]}],
         }
 
         response = self._post(
-            "/api/plugins/netbox-nsm/ip-analysis/",
+            "/api/plugins/netbox-nsm/ip-analyzer/",
             {
                 "mode": "merge",
                 "objects": [{"content_type": 10, "id": 5}],
@@ -140,7 +140,7 @@ class IpAnalysisRestApiTests(SimpleTestCase):
         self.assertEqual(response.data["objects"][0]["name"], "bench-ip")
         parse_refs_fn.assert_called_once()
 
-    @patch("netbox_nsm.api.ip_analysis.execute_ip_analysis_diff")
+    @patch("netbox_nsm.api.ip_analyzer.execute_ip_analyzer_diff")
     def test_post_diff_accepts_sides(self, execute_fn):
         execute_fn.return_value = {
             "mode": "diff",
@@ -151,12 +151,12 @@ class IpAnalysisRestApiTests(SimpleTestCase):
             "count_duplicates": 0,
             "objects": [],
             "unsupported": [],
-            "addr_analysis": [],
+            "addr_analyzer": [],
             "message": "No valid objects selected for diff.",
         }
 
         response = self._post(
-            "/api/plugins/netbox-nsm/ip-analysis/",
+            "/api/plugins/netbox-nsm/ip-analyzer/",
             {
                 "mode": "diff",
                 "sides": [
@@ -171,8 +171,8 @@ class IpAnalysisRestApiTests(SimpleTestCase):
 
 
 class ParseObjectRefsTests(SimpleTestCase):
-    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service._object_is_addr_analyzable", return_value=True)
-    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service.ContentType")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_service._object_is_addr_analyzable", return_value=True)
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_service.ContentType")
     def test_parse_object_refs_accepts_content_type_and_id(self, content_type_cls, analyzable_fn):
         obj = MagicMock()
         obj.pk = 9
@@ -197,8 +197,8 @@ class ParseObjectRefsTests(SimpleTestCase):
         self.assertIn((10, 9), obj_by_key)
         self.assertEqual(unauthorized, [])
 
-    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service._object_is_addr_analyzable", return_value=True)
-    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service.ContentType")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_service._object_is_addr_analyzable", return_value=True)
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_service.ContentType")
     def test_parse_object_refs_skips_object_without_view_permission(
         self, content_type_cls, analyzable_fn
     ):
@@ -231,8 +231,8 @@ class ParseObjectRefsTests(SimpleTestCase):
         self.assertEqual(unauthorized, [{"ct": "10", "pk": "9"}])
         user.has_perm.assert_called_once_with("ipam.view_ipaddress")
 
-    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service._object_is_addr_analyzable", return_value=True)
-    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analysis_service.ContentType")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_service._object_is_addr_analyzable", return_value=True)
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_service.ContentType")
     def test_parse_object_refs_uses_object_level_restrict(
         self, content_type_cls, analyzable_fn
     ):

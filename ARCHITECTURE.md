@@ -57,7 +57,7 @@ netbox_nsm/
 ├── addresses/            # address_cot_schema, address_ipam_fk (→ cot_roles)
 ├── security/             # tab, references, panel-link actions, object links
 ├── type_metadata/        # specs, roles, TypeConfig UI
-├── api/                  # REST endpoints (ip-analysis, object-links, …)
+├── api/                  # REST endpoints (ip-analyzer, object-links, …)
 └── tests/
 ```
 

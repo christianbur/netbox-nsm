@@ -1,6 +1,6 @@
 {% load i18n %}
-{% if addr_analysis %}
-  {% for section in addr_analysis %}
+{% if addr_analyzer %}
+  {% for section in addr_analyzer %}
   <div class="{% if not forloop.last %}border-bottom mb-3 pb-3{% endif %}">
     {% if section.field_name %}
     <div class="nsm-addr-section-title mb-2">{{ section.field_name }}</div>

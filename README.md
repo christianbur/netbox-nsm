@@ -12,7 +12,7 @@ No firewall push — inventory and policy only.
 - **Security Panel** on prefix, IP, device, VM, custom objects — `+ Assign` for zones, addresses, …
 - **Rulebooks** with flexible columns (zones, addresses, labels, …)
 - **Rules** — table, grouping, zone matrix
-- **IP Analysis** — address resolution via the IP Analyzer applet on rule pages (loupe icon)
+- **IP Analyzer** — address resolution via the IP Analyzer applet on rule pages (loupe icon)
 - **Object Analyzer** — graph from any NetBox object
 - **Object Report** — daily background audit of NSM addresses/groups (status, duplicates, orphans, groups), TOML export
 
@@ -42,9 +42,9 @@ Zone matrix — permit/deny between zones:
 
 ![Zone matrix](docs/img/zone-matrix.png)
 
-IP Analysis — destination tree with merge/diff:
+IP Analyzer — destination tree with merge/diff:
 
-![IP Analysis](docs/img/ip-analysis.png)
+![IP Analyzer](docs/img/ip-analyzer.png)
 
 ## Installation
 
@@ -85,7 +85,7 @@ Details: [docs/using_netbox_nsm.md](docs/using_netbox_nsm.md)
 
 ## API
 
-`/api/plugins/netbox-nsm/` — `nsm-configs/<slug>/`, `object-links/`, `ip-analysis/`  
+`/api/plugins/netbox-nsm/` — `nsm-configs/<slug>/`, `object-links/`, `ip-analyzer/`  
 Rules and policy objects: **netbox-custom-objects** API.
 
 ## Demos

@@ -3,9 +3,9 @@
 from __future__ import annotations
 import netbox_nsm.analyzers.ip_analyzer._lazy_api as _hub
 
-def _build_multi_object_addr_analysis(objs):
-    """IP Analysis: merged tree for one or more selected objects."""
-    supported = [o for o in objs if o and _hub._object_supports_addr_analysis(o)]
+def _build_multi_object_addr_analyzer(objs):
+    """IP Analyzer: merged tree for one or more selected objects."""
+    supported = [o for o in objs if o and _hub._object_supports_addr_analyzer(o)]
     if not supported:
         return []
     nodes, all_copy_lines = _hub._build_addr_tree_nodes(supported)
@@ -38,7 +38,7 @@ def _build_multi_object_addr_analysis(objs):
     ]
 
 
-def _leaf_count_for_addr_analysis(sections) -> int:
+def _leaf_count_for_addr_analyzer(sections) -> int:
     total = 0
     for section in sections or []:
         for type_block in section.get("types") or []:
@@ -51,8 +51,8 @@ def _leaf_count_for_addr_analysis(sections) -> int:
     return total
 
 
-def _type_counts_for_addr_analysis(sections) -> dict:
-    """Aggregate subnet/range/IP counts from addr_analysis sections."""
+def _type_counts_for_addr_analyzer(sections) -> dict:
+    """Aggregate subnet/range/IP counts from addr_analyzer sections."""
     totals = {"count_subnets": 0, "count_ranges": 0, "count_ips": 0}
     for section in sections or []:
         for type_block in section.get("types") or []:
@@ -136,7 +136,7 @@ def _count_ipa_object_tree_group_duplicates(nodes):
     return count
 
 
-def _resolve_summary_type_counts(addr_analysis, object_tree=None) -> dict:
+def _resolve_summary_type_counts(addr_analyzer, object_tree=None) -> dict:
     """Summary counts for the All row; prefer object-tree IPAM stats when present."""
     if object_tree:
         counts = _ipa_object_tree_type_counts(object_tree)
@@ -147,13 +147,13 @@ def _resolve_summary_type_counts(addr_analysis, object_tree=None) -> dict:
         if not any(
             counts.get(key) for key in ("count_subnets", "count_ranges", "count_ips")
         ):
-            fallback = _type_counts_for_addr_analysis(addr_analysis)
+            fallback = _type_counts_for_addr_analyzer(addr_analyzer)
             for key in ("count_subnets", "count_ranges", "count_ips"):
                 counts[key] = fallback.get(key) or 0
         return counts
-    counts = _type_counts_for_addr_analysis(addr_analysis)
+    counts = _type_counts_for_addr_analyzer(addr_analyzer)
     dup_total = 0
-    for section in addr_analysis or []:
+    for section in addr_analyzer or []:
         for type_block in section.get("types") or []:
             dup_total += _count_addr_tree_duplicates(type_block.get("nodes") or [])
     counts["count_duplicates"] = dup_total
@@ -161,11 +161,11 @@ def _resolve_summary_type_counts(addr_analysis, object_tree=None) -> dict:
     return counts
 
 
-def _apply_summary_type_counts_to_addr_analysis(addr_analysis, type_counts):
-    """Mirror resolved All-row counts onto addr_analysis type blocks for templates/API."""
-    if not addr_analysis or not type_counts:
+def _apply_summary_type_counts_to_addr_analyzer(addr_analyzer, type_counts):
+    """Mirror resolved All-row counts onto addr_analyzer type blocks for templates/API."""
+    if not addr_analyzer or not type_counts:
         return
-    for section in addr_analysis:
+    for section in addr_analyzer:
         for type_block in section.get("types") or []:
             type_block["count_subnets"] = type_counts.get("count_subnets") or 0
             type_block["count_ranges"] = type_counts.get("count_ranges") or 0

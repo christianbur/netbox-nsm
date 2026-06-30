@@ -16,10 +16,10 @@ class RowHasLinkActionsTests(SimpleTestCase):
     def test_addr_analyzable_only(self):
         self.assertTrue(row_has_link_actions({"addr_analyzable": True}))
 
-    def test_supports_addr_analysis_only(self):
+    def test_supports_addr_analyzer_only(self):
         self.assertTrue(
             row_has_link_actions(
-                {"supports_addr_analysis": True, "addr_analyzable": False}
+                {"supports_addr_analyzer": True, "addr_analyzable": False}
             )
         )
 
@@ -298,7 +298,7 @@ class SecurityLinkRowActionsTemplateTests(SimpleTestCase):
                     "ct_id": 99,
                     "obj_id": 10,
                     "addr_analyzable": True,
-                    "supports_addr_analysis": True,
+                    "supports_addr_analyzer": True,
                     "edit_url": "/plugins/netbox-nsm/object-link/1/edit/",
                     "delete_url": "/plugins/netbox-nsm/object-link/1/delete/",
                 }
@@ -329,7 +329,7 @@ class SecurityLinkRowActionsTemplateTests(SimpleTestCase):
                     "ct_id": 99,
                     "obj_id": 10,
                     "addr_analyzable": True,
-                    "supports_addr_analysis": True,
+                    "supports_addr_analyzer": True,
                 }
             ]
         )
@@ -349,7 +349,7 @@ class SecurityLinkRowActionsTemplateTests(SimpleTestCase):
                     "ct_id": 1,
                     "obj_id": 1,
                     "addr_analyzable": False,
-                    "supports_addr_analysis": False,
+                    "supports_addr_analyzer": False,
                     "edit_url": "/plugins/netbox-nsm/object-link/2/edit/",
                     "delete_url": "/plugins/netbox-nsm/object-link/2/delete/",
                 }
@@ -374,7 +374,7 @@ class SecurityLinkRowActionsTemplateTests(SimpleTestCase):
                     "ct_id": 99,
                     "obj_id": 10,
                     "addr_analyzable": True,
-                    "supports_addr_analysis": True,
+                    "supports_addr_analyzer": True,
                     "source": "ipam_fk",
                     "source_label": "IPAM",
                     "edit_url": "/plugins/netbox-nsm/object-link/assign/?ct_id=234",
@@ -442,7 +442,7 @@ class SecurityLinkTableTests(SimpleTestCase):
                             "url": "/plugins/custom-objects/nsm_addresses/10/",
                             "name": "demo-addr-0010",
                             "field_label": "Object link",
-                            "supports_addr_analysis": True,
+                            "supports_addr_analyzer": True,
                             "edit_url": "/edit/",
                             "delete_url": "/delete/",
                         }

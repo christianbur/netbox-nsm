@@ -171,7 +171,7 @@ def _collect_copy_lines(payload: dict[str, Any]) -> list[str]:
                 seen.add(text)
                 lines.append(text)
 
-    for section in payload.get("addr_analysis") or []:
+    for section in payload.get("addr_analyzer") or []:
         if not isinstance(section, dict):
             continue
         for type_block in section.get("types") or []:
@@ -412,9 +412,9 @@ def build_ipa_export_document(
     if copy_lines:
         displayed["copy_lines"] = copy_lines
 
-    addr_analysis = _sanitize_tree(payload.get("addr_analysis") or [])
-    if addr_analysis:
-        displayed["addr_analysis"] = addr_analysis
+    addr_analyzer = _sanitize_tree(payload.get("addr_analyzer") or [])
+    if addr_analyzer:
+        displayed["addr_analyzer"] = addr_analyzer
 
     object_tree = _sanitize_tree(payload.get("object_tree") or [])
     if object_tree:

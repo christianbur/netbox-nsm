@@ -41,7 +41,7 @@ def _ipa_object_expands_members(obj) -> bool:
 
 def _ipa_object_has_addr_drilldown(obj) -> bool:
     """True when lazy-loading should expose IPAM resolution beyond cell members."""
-    if not obj or not _hub._object_supports_addr_analysis(obj):
+    if not obj or not _hub._object_supports_addr_analyzer(obj):
         return False
     if _ipa_object_expands_members(obj) and _hub._addr_ip_ref(obj) is None:
         return False
@@ -212,7 +212,7 @@ def _ipa_object_node_should_drilldown(
         if key and obj_by_key:
             obj = obj_by_key.get(key)
 
-    if obj is not None and not _hub._object_supports_addr_analysis(obj):
+    if obj is not None and not _hub._object_supports_addr_analyzer(obj):
         return False
 
     role = (

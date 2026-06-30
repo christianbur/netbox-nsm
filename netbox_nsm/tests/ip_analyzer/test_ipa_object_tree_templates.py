@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils import (
+from netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils import (
     _build_ipa_cell_object_tree,
     _flatten_ipa_object_tree_copy_lines,
     _ordered_ipam_stats,
@@ -41,8 +41,8 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         from django.template.loader import render_to_string
 
         return render_to_string(
-            "netbox_nsm/inc/addr_analysis_applet_body.html",
-            {"addr_analysis": [], "object_tree": self._OBJECT_TREE_FIXTURE},
+            "netbox_nsm/inc/ip_analyzer_applet_body.html",
+            {"addr_analyzer": [], "object_tree": self._OBJECT_TREE_FIXTURE},
         )
 
     def test_ipa_nested_leaf_renders_cell_object_link(self):
@@ -94,8 +94,8 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
             },
         ]
         html = render_to_string(
-            "netbox_nsm/inc/addr_analysis_applet_body.html",
-            {"addr_analysis": [], "object_tree": object_tree},
+            "netbox_nsm/inc/ip_analyzer_applet_body.html",
+            {"addr_analyzer": [], "object_tree": object_tree},
         )
 
         self.assertIn("nsm-addr-diff-group--in-all", html)
@@ -186,9 +186,9 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
             }
         ]
         html = render_to_string(
-            "netbox_nsm/inc/addr_analysis_applet_body.html",
+            "netbox_nsm/inc/ip_analyzer_applet_body.html",
             {
-                "addr_analysis": [],
+                "addr_analyzer": [],
                 "object_tree": object_tree,
                 "summary_type_counts": _resolve_summary_type_counts([], object_tree),
             },
@@ -225,8 +225,8 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
             }
         ]
         html = render_to_string(
-            "netbox_nsm/inc/addr_analysis_applet_body.html",
-            {"addr_analysis": [], "object_tree": object_tree},
+            "netbox_nsm/inc/ip_analyzer_applet_body.html",
+            {"addr_analyzer": [], "object_tree": object_tree},
         )
         self.assertIn("bench-grp-00346", html)
         self.assertNotIn("ADDRESS_GROUP", html)
@@ -328,8 +328,8 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
             }
         ]
         html = render_to_string(
-            "netbox_nsm/inc/addr_analysis_applet_body.html",
-            {"addr_analysis": [], "object_tree": object_tree},
+            "netbox_nsm/inc/ip_analyzer_applet_body.html",
+            {"addr_analyzer": [], "object_tree": object_tree},
         )
         self.assertIn("dm-grp-inner", html)
         self.assertIn("dm-grp-outer", html)
@@ -362,8 +362,8 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
             }
         ]
         html = render_to_string(
-            "netbox_nsm/inc/addr_analysis_applet_body.html",
-            {"addr_analysis": [], "object_tree": object_tree},
+            "netbox_nsm/inc/ip_analyzer_applet_body.html",
+            {"addr_analyzer": [], "object_tree": object_tree},
         )
         self.assertNotIn("nsm-ipa-cell-tree-groups", html)
         self.assertNotIn("nsm-ipa-cell-pill--group", html)
@@ -397,8 +397,8 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
             is_cell_direct=True,
         )
         html = render_to_string(
-            "netbox_nsm/inc/addr_analysis_applet_body.html",
-            {"addr_analysis": [], "object_tree": [node]},
+            "netbox_nsm/inc/ip_analyzer_applet_body.html",
+            {"addr_analyzer": [], "object_tree": [node]},
         )
         self.assertIn("nsm-ipa-cell-tree-groups--multi", html)
         self.assertNotIn("nsm-ipa-cell-pill--multi", html)
@@ -442,18 +442,18 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
             },
         ]
         html_multi_groups_only = render_to_string(
-            "netbox_nsm/inc/addr_analysis_applet_body.html",
-            {"addr_analysis": [], "object_tree": [object_tree[0]]},
+            "netbox_nsm/inc/ip_analyzer_applet_body.html",
+            {"addr_analyzer": [], "object_tree": [object_tree[0]]},
         )
         html_multi_addresses = render_to_string(
-            "netbox_nsm/inc/addr_analysis_applet_body.html",
-            {"addr_analysis": [], "object_tree": [object_tree[1]]},
+            "netbox_nsm/inc/ip_analyzer_applet_body.html",
+            {"addr_analyzer": [], "object_tree": [object_tree[1]]},
         )
         compact_tree = [dict(object_tree[1])]
         _attach_ipa_cell_display_hints(compact_tree)
         html_compact_addresses = render_to_string(
-            "netbox_nsm/inc/addr_analysis_applet_body.html",
-            {"addr_analysis": [], "object_tree": compact_tree},
+            "netbox_nsm/inc/ip_analyzer_applet_body.html",
+            {"addr_analyzer": [], "object_tree": compact_tree},
         )
         self.assertIn("nsm-ipa-cell-tree-groups--multi", html_multi_groups_only)
         self.assertNotIn("nsm-ipa-cell-tree-object--multi", html_multi_groups_only)
@@ -959,9 +959,9 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         from django.template.loader import render_to_string
 
         html = render_to_string(
-            "netbox_nsm/inc/addr_analysis_applet_body.html",
+            "netbox_nsm/inc/ip_analyzer_applet_body.html",
             {
-                "addr_analysis": [],
+                "addr_analyzer": [],
                 "object_tree": [
                     {
                         "name": "old-addr",
@@ -993,9 +993,9 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         from django.template.loader import render_to_string
 
         html = render_to_string(
-            "netbox_nsm/inc/addr_analysis_applet_body.html",
+            "netbox_nsm/inc/ip_analyzer_applet_body.html",
             {
-                "addr_analysis": [],
+                "addr_analyzer": [],
                 "object_tree": [
                     {
                         "name": "diff-test-10-112-134-0-24",
@@ -1202,8 +1202,8 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         ]
         _mark_ipa_cell_open_by_default(nodes)
         html = render_to_string(
-            "netbox_nsm/inc/addr_analysis_applet_body.html",
-            {"addr_analysis": [], "object_tree": nodes},
+            "netbox_nsm/inc/ip_analyzer_applet_body.html",
+            {"addr_analyzer": [], "object_tree": nodes},
         )
         self.assertIn("nsm-ipa-addr-drilldown", html)
         self.assertRegex(html, r'<details class="[^"]*nsm-ipa-drilldown-details[^"]*" open>')
@@ -1419,8 +1419,8 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         )
 
         body_html = render_to_string(
-            "netbox_nsm/inc/addr_analysis_applet_body.html",
-            {"addr_analysis": [], "object_tree": [node]},
+            "netbox_nsm/inc/ip_analyzer_applet_body.html",
+            {"addr_analyzer": [], "object_tree": [node]},
         )
         self.assertNotIn("Analysis failed", body_html)
 
@@ -1765,7 +1765,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
             _build_ipa_cell_object_tree_from_diff,
         )
 
-        addr_analysis = [
+        addr_analyzer = [
             {
                 "field_slug": "diff",
                 "types": [
@@ -1797,10 +1797,10 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
                 ],
             }
         ]
-        object_tree = _build_ipa_cell_object_tree_from_diff(addr_analysis)
+        object_tree = _build_ipa_cell_object_tree_from_diff(addr_analyzer)
         html = render_to_string(
-            "netbox_nsm/inc/addr_analysis_applet_body.html",
-            {"addr_analysis": addr_analysis, "object_tree": object_tree},
+            "netbox_nsm/inc/ip_analyzer_applet_body.html",
+            {"addr_analyzer": addr_analyzer, "object_tree": object_tree},
         )
         self.assertIn("nsm-ipa-cell-tree-table", html)
         self.assertIn("nsm-addr-diff-in-some-head", html)
@@ -1832,7 +1832,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
                 "is_doppelt": True,
             },
         ]
-        addr_analysis = [
+        addr_analyzer = [
             {
                 "field_name": "",
                 "field_slug": "selected",
@@ -1855,8 +1855,8 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
             }
         ]
         html = render_to_string(
-            "netbox_nsm/inc/addr_analysis_applet_body.html",
-            {"addr_analysis": addr_analysis, "object_tree": object_tree},
+            "netbox_nsm/inc/ip_analyzer_applet_body.html",
+            {"addr_analyzer": addr_analyzer, "object_tree": object_tree},
         )
         self.assertIn("nsm-addr-top", html)
         self.assertIn("nsm-ipa-object-tree-rows", html)
@@ -1907,8 +1907,8 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         ]
         _attach_ipa_cell_display_hints(object_tree)
         html = render_to_string(
-            "netbox_nsm/inc/addr_analysis_applet_body.html",
-            {"addr_analysis": [], "object_tree": object_tree},
+            "netbox_nsm/inc/ip_analyzer_applet_body.html",
+            {"addr_analyzer": [], "object_tree": object_tree},
         )
         self.assertNotIn("nsm-ipa-tree-dots", html)
         self.assertIn("record-depth", html)
@@ -1948,8 +1948,8 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
             }
         ]
         html = render_to_string(
-            "netbox_nsm/inc/addr_analysis_applet_body.html",
-            {"addr_analysis": [], "object_tree": object_tree},
+            "netbox_nsm/inc/ip_analyzer_applet_body.html",
+            {"addr_analyzer": [], "object_tree": object_tree},
         )
         self.assertIn("nsm-addr-top", html)
         self.assertIn("nsm-ipa-object-tree-rows", html)
@@ -1975,8 +1975,8 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
             }
         ]
         html = render_to_string(
-            "netbox_nsm/inc/addr_analysis_applet_body.html",
-            {"addr_analysis": [], "object_tree": object_tree},
+            "netbox_nsm/inc/ip_analyzer_applet_body.html",
+            {"addr_analyzer": [], "object_tree": object_tree},
         )
         self.assertIn("nsm-ipa-object-node", html)
         self.assertIn("nsm-ipa-addr-drilldown", html)
@@ -2007,8 +2007,8 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
             }
         ]
         html = render_to_string(
-            "netbox_nsm/inc/addr_analysis_applet_body.html",
-            {"addr_analysis": [], "object_tree": object_tree},
+            "netbox_nsm/inc/ip_analyzer_applet_body.html",
+            {"addr_analyzer": [], "object_tree": object_tree},
         )
         self.assertIn("dm-addr-10-112-137-0-24", html)
         self.assertIn("10.112.137.0/24", html)
@@ -2038,8 +2038,8 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
             }
         ]
         html = render_to_string(
-            "netbox_nsm/inc/addr_analysis_applet_body.html",
-            {"addr_analysis": [], "object_tree": object_tree},
+            "netbox_nsm/inc/ip_analyzer_applet_body.html",
+            {"addr_analyzer": [], "object_tree": object_tree},
         )
         self.assertNotIn("nsm-ipa-subnet-contained", html)
         self.assertIn("nsm-ipa-object-node--subnet-warning", html)
@@ -2078,8 +2078,8 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
             }
         ]
         html = render_to_string(
-            "netbox_nsm/inc/addr_analysis_applet_body.html",
-            {"addr_analysis": [], "object_tree": object_tree},
+            "netbox_nsm/inc/ip_analyzer_applet_body.html",
+            {"addr_analyzer": [], "object_tree": object_tree},
         )
         self.assertNotIn("nsm-ipa-duplicate-indicator", html)
         self.assertNotIn("nsm-ipa-expanded-warnings", html)
@@ -2107,8 +2107,8 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
             }
         ]
         html = render_to_string(
-            "netbox_nsm/inc/addr_analysis_applet_body.html",
-            {"addr_analysis": [], "object_tree": object_tree},
+            "netbox_nsm/inc/ip_analyzer_applet_body.html",
+            {"addr_analyzer": [], "object_tree": object_tree},
         )
         self.assertNotIn("nsm-ipa-duplicate-indicator", html)
         self.assertNotIn("mdi-alert-circle-outline", html)
@@ -2162,7 +2162,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
     def test_all_summary_renders_subnet_range_ip_badges(self):
         from django.template.loader import render_to_string
 
-        addr_analysis = [
+        addr_analyzer = [
             {
                 "field_name": "",
                 "field_slug": "selected",
@@ -2194,8 +2194,8 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
             }
         ]
         html = render_to_string(
-            "netbox_nsm/inc/addr_analysis_applet_body.html",
-            {"addr_analysis": addr_analysis, "object_tree": None},
+            "netbox_nsm/inc/ip_analyzer_applet_body.html",
+            {"addr_analyzer": addr_analyzer, "object_tree": None},
         )
         self.assertIn("Subnets: 1", html)
         self.assertIn("Ranges: 0", html)
@@ -2225,9 +2225,9 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
             }
         ]
         html = render_to_string(
-            "netbox_nsm/inc/addr_analysis_applet_body.html",
+            "netbox_nsm/inc/ip_analyzer_applet_body.html",
             {
-                "addr_analysis": [],
+                "addr_analyzer": [],
                 "object_tree": object_tree,
                 "summary_type_counts": {
                     "count_subnets": 2,
@@ -2244,7 +2244,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
     def test_all_summary_renders_duplicate_badge_in_addr_analysis_row(self):
         from django.template.loader import render_to_string
 
-        addr_analysis = [
+        addr_analyzer = [
             {
                 "field_name": "",
                 "field_slug": "selected",
@@ -2263,9 +2263,9 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
             }
         ]
         html = render_to_string(
-            "netbox_nsm/inc/addr_analysis_applet_body.html",
+            "netbox_nsm/inc/ip_analyzer_applet_body.html",
             {
-                "addr_analysis": addr_analysis,
+                "addr_analyzer": addr_analyzer,
                 "object_tree": [{"name": "g-10.0.0.0/8", "children": []}],
             },
         )
@@ -2274,7 +2274,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
     def test_addr_tree_still_renders_without_object_tree(self):
         from django.template.loader import render_to_string
 
-        addr_analysis = [
+        addr_analyzer = [
             {
                 "field_name": "",
                 "field_slug": "selected",
@@ -2297,8 +2297,8 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
             }
         ]
         html = render_to_string(
-            "netbox_nsm/inc/addr_analysis_applet_body.html",
-            {"addr_analysis": addr_analysis, "object_tree": None},
+            "netbox_nsm/inc/ip_analyzer_applet_body.html",
+            {"addr_analyzer": addr_analyzer, "object_tree": None},
         )
         self.assertIn("10.0.0.1", html)
         self.assertNotIn("nsm-ipa-object-tree-rows", html)
@@ -2307,8 +2307,8 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         from django.template.loader import render_to_string
 
         html = render_to_string(
-            "netbox_nsm/inc/addr_analysis_applet_body.html",
-            {"addr_analysis": [], "object_tree": self._OBJECT_TREE_FIXTURE},
+            "netbox_nsm/inc/ip_analyzer_applet_body.html",
+            {"addr_analyzer": [], "object_tree": self._OBJECT_TREE_FIXTURE},
         )
         self.assertIn("nsm-ipa-cell-tree-header", html)
         self.assertIn("toggle-depth", html)
@@ -2476,8 +2476,8 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
             }
         ]
         html = render_to_string(
-            "netbox_nsm/inc/addr_analysis_applet_body.html",
-            {"addr_analysis": [], "object_tree": object_tree},
+            "netbox_nsm/inc/ip_analyzer_applet_body.html",
+            {"addr_analyzer": [], "object_tree": object_tree},
         )
         self.assertIn("nsm-ipa-cell-groups-collapsed", html)
         self.assertNotIn("nsm-ipa-cell-pill--group-summary", html)
@@ -2510,8 +2510,8 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
             }
         ]
         html = render_to_string(
-            "netbox_nsm/inc/addr_analysis_applet_body.html",
-            {"addr_analysis": [], "object_tree": object_tree},
+            "netbox_nsm/inc/ip_analyzer_applet_body.html",
+            {"addr_analyzer": [], "object_tree": object_tree},
         )
         self.assertIn("nsm-ipa-root-groups-collapsed", html)
         self.assertIn("4 address groups", html)
@@ -2545,8 +2545,8 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         self.assertEqual(object_tree[-1].get("collapsed_group_count"), 4)
 
         html = render_to_string(
-            "netbox_nsm/inc/addr_analysis_applet_body.html",
-            {"addr_analysis": [], "object_tree": object_tree},
+            "netbox_nsm/inc/ip_analyzer_applet_body.html",
+            {"addr_analyzer": [], "object_tree": object_tree},
         )
         self.assertIn("4 address groups", html)
         self.assertNotIn("Analysis failed", html)

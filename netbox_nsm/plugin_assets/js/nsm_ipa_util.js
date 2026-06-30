@@ -60,13 +60,13 @@
   }
 
   function apiUrl() {
-    return window.NSM_IP_ANALYSIS_API || "/plugins/netbox-nsm/api/ip-analysis/";
+    return window.NSM_IP_ANALYZER_API || "/plugins/netbox-nsm/api/ip-analyzer/";
   }
 
   function addObjectTypesApiUrl() {
     return (
-      window.NSM_IP_ANALYSIS_ADD_OBJECT_TYPES_API ||
-      "/plugins/netbox-nsm/api/ip-analysis/add-object-types/"
+      window.NSM_IP_ANALYZER_ADD_OBJECT_TYPES_API ||
+      "/plugins/netbox-nsm/api/ip-analyzer/add-object-types/"
     );
   }
 
@@ -94,7 +94,7 @@
     return fetch(url, options);
   }
 
-  var IPA_ANALYSIS_TIMEOUT_MS = 120000;
+  var IPA_ANALYZER_TIMEOUT_MS = 120000;
 
   function parseIpaApiErrorBody(body, status) {
     if (body && typeof body === "object") {
@@ -109,9 +109,9 @@
       }
     }
     if (status) {
-      return ipaTf("Analysis failed (HTTP %(status)s).", { status: status });
+      return ipaTf("Analyzer failed (HTTP %(status)s).", { status: status });
     }
-    return ipaT("Analysis could not be loaded.");
+    return ipaT("Analyzer could not be loaded.");
   }
 
   function readIpaApiJson(resp) {
@@ -128,15 +128,15 @@
         throw new Error(parseIpaApiErrorBody(body, resp.status));
       }
       if (body == null) {
-        throw new Error(ipaT("Analysis could not be loaded."));
+        throw new Error(ipaT("Analyzer could not be loaded."));
       }
       return body;
     });
   }
 
-  function fetchIpaAnalysis(url, options, timeoutMs) {
+  function fetchIpaAnalyzer(url, options, timeoutMs) {
     options = options || {};
-    var ms = timeoutMs == null ? IPA_ANALYSIS_TIMEOUT_MS : timeoutMs;
+    var ms = timeoutMs == null ? IPA_ANALYZER_TIMEOUT_MS : timeoutMs;
     if (ms > 0 && typeof AbortController !== "undefined") {
       var timeoutCtrl = new AbortController();
       var timer = setTimeout(function () {
@@ -162,12 +162,12 @@
 
   function ipaFetchAbortMessage(err) {
     if (err && err.name === "AbortError") {
-      return ipaT("Analysis timed out.");
+      return ipaT("Analyzer timed out.");
     }
     if (err && err.message) {
       return String(err.message);
     }
-    return ipaT("Analysis could not be loaded.");
+    return ipaT("Analyzer could not be loaded.");
   }
 
   function mergeBranchHeaders(headers) {
@@ -386,10 +386,10 @@
       return rulesTitle;
     }
     if (!objects.length) {
-      return ipaT("IP Analysis");
+      return ipaT("IP Analyzer");
     }
     if (objects.length === 1) {
-      return objects[0].name || ipaT("IP Analysis");
+      return objects[0].name || ipaT("IP Analyzer");
     }
     return ipaTf("%(count)s objects", { count: objects.length });
   }
@@ -651,7 +651,7 @@
     return (
       '<div class="nsm-ipa-applet-loading">' +
       '<span class="mdi mdi-loading mdi-spin" aria-hidden="true"></span> ' +
-      escHtml(ipaT("Analysis running…")) +
+      escHtml(ipaT("Analyzer running…")) +
       "</div>"
     );
   }
@@ -659,7 +659,7 @@
   function errorHtml(message) {
     return (
       '<div class="nsm-ipa-applet-error">' +
-      escHtml(message || ipaT("Analysis failed.")) +
+      escHtml(message || ipaT("Analyzer failed.")) +
       "</div>"
     );
   }
@@ -683,10 +683,10 @@
     debounce: debounce,
     getCsrfToken: getCsrfToken,
     nsmFetch: nsmFetch,
-    IPA_ANALYSIS_TIMEOUT_MS: IPA_ANALYSIS_TIMEOUT_MS,
+    IPA_ANALYZER_TIMEOUT_MS: IPA_ANALYZER_TIMEOUT_MS,
     parseIpaApiErrorBody: parseIpaApiErrorBody,
     readIpaApiJson: readIpaApiJson,
-    fetchIpaAnalysis: fetchIpaAnalysis,
+    fetchIpaAnalyzer: fetchIpaAnalyzer,
     ipaFetchAbortMessage: ipaFetchAbortMessage,
     mergeBranchHeaders: mergeBranchHeaders,
     normalizeObjects: normalizeObjects,

@@ -7,9 +7,9 @@ from urllib.parse import quote
 from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
 
-from netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils import (
+from netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils import (
     _object_is_addr_analyzable,
-    _object_supports_addr_analysis,
+    _object_supports_addr_analyzer,
 )
 from netbox_nsm.core.branch_urls import with_branch_query
 from netbox_nsm.core.display_utils import (
@@ -54,7 +54,7 @@ def panel_link_payload(linked, lct, tmpl_map, **extra):
         "ct_id": lct.pk,
         "obj_id": linked.pk,
         "addr_analyzable": _object_is_addr_analyzable(linked, lct.pk),
-        "supports_addr_analysis": _object_supports_addr_analysis(linked),
+        "supports_addr_analyzer": _object_supports_addr_analyzer(linked),
         "status": object_status,
         "status_icon_html": nsm_object_status_icon_html(object_status),
         "value_key": value_key,
@@ -67,7 +67,7 @@ def panel_link_payload(linked, lct, tmpl_map, **extra):
 
 def row_has_link_actions(obj: dict) -> bool:
     """True when a Security link row should show action icons."""
-    if obj.get("supports_addr_analysis") or obj.get("addr_analyzable"):
+    if obj.get("supports_addr_analyzer") or obj.get("addr_analyzable"):
         return True
     if obj.get("edit_url") or obj.get("delete_url"):
         return True
@@ -352,7 +352,7 @@ def build_security_tab_context(obj, request) -> dict:
         "nsm_assign_url": assign_url,
         "nsm_analyzer_url": analyzer_url,
         "nsm_panel_label": get_nsm_panel_label(),
-        "nsm_page_addr_analyzable": _object_supports_addr_analysis(obj),
+        "nsm_page_addr_analyzable": _object_supports_addr_analyzer(obj),
         "nsm_page_object_ct": ct.pk,
         "nsm_page_object_pk": obj.pk,
         "nsm_page_object_name": obj_name,

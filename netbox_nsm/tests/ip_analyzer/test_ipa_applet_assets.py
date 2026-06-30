@@ -401,7 +401,7 @@ class IpAnalyzerMergeAssetsTests(SimpleTestCase):
             encoding="utf-8"
         )
         assets = (
-            _PLUGIN_ROOT / "templates/netbox_nsm/inc/addr_analysis_assets.html"
+            _PLUGIN_ROOT / "templates/netbox_nsm/inc/ip_analyzer_assets.html"
         ).read_text(encoding="utf-8")
         for source in (css, assets):
             self.assertRegex(
@@ -500,7 +500,7 @@ class IpAnalyzerMergeAssetsTests(SimpleTestCase):
 
     def test_applet_body_enables_ipa_cell_pills_for_diff(self):
         body = (
-            _PLUGIN_ROOT / "templates/netbox_nsm/inc/addr_analysis_applet_body.html"
+            _PLUGIN_ROOT / "templates/netbox_nsm/inc/ip_analyzer_applet_body.html"
         ).read_text(encoding="utf-8")
         self.assertIn("ipa_cell_pill=True", body)
         self.assertIn('prefix="ipa"', body)
@@ -514,7 +514,7 @@ class IpAnalyzerMergeAssetsTests(SimpleTestCase):
         self.assertIn("nsm_ipa_cell.js", assets)
         self.assertIn("?v=202606261", assets)
         self.assertIn("?v=202606258", assets)
-        self.assertIn("NSM_IP_ANALYSIS_ADD_OBJECT_TYPES_API", assets)
+        self.assertIn("NSM_IP_ANALYZER_ADD_OBJECT_TYPES_API", assets)
 
     def test_ipam_parent_prefix_css(self):
         css = (_PLUGIN_ROOT / "plugin_assets/css/nsm_ip_analyzer_applet.css").read_text(
@@ -595,7 +595,7 @@ class IpAnalyzerMergeAssetsTests(SimpleTestCase):
 
     def test_fetch_object_drilldown_hides_empty_html_container(self):
         assets = (
-            _PLUGIN_ROOT / "templates/netbox_nsm/inc/addr_analysis_assets.html"
+            _PLUGIN_ROOT / "templates/netbox_nsm/inc/ip_analyzer_assets.html"
         ).read_text(encoding="utf-8")
         self.assertIn("function fetchObjectDrilldown", assets)
         self.assertIn("container.hidden = true", assets)
@@ -609,7 +609,7 @@ class IpAnalyzerMergeAssetsTests(SimpleTestCase):
             encoding="utf-8"
         )
         assets = (
-            _PLUGIN_ROOT / "templates/netbox_nsm/inc/addr_analysis_assets.html"
+            _PLUGIN_ROOT / "templates/netbox_nsm/inc/ip_analyzer_assets.html"
         ).read_text(encoding="utf-8")
         for source in (css, assets):
             self.assertIn(".nsm-addr-diff-fund-row", source)
@@ -619,12 +619,12 @@ class IpAnalyzerMergeAssetsTests(SimpleTestCase):
         """Merge/diff/tree/netmask must stay in Python; JS only fetches and displays."""
         js = ipa_js_bundle()
         assets = (
-            _PLUGIN_ROOT / "templates/netbox_nsm/inc/addr_analysis_assets.html"
+            _PLUGIN_ROOT / "templates/netbox_nsm/inc/ip_analyzer_assets.html"
         ).read_text(encoding="utf-8")
         forbidden = (
             "netmaskLabelForCidr",
             "0xffffffff",
-            "_build_multi_object_addr_analysis",
+            "_build_multi_object_addr_analyzer",
             "_build_addr_diff",
             "buildAddrTree",
         )
@@ -644,7 +644,7 @@ class IpAnalyzerMergeAssetsTests(SimpleTestCase):
         )
         for source in (js, util):
             self.assertIn("readIpaApiJson", source)
-            self.assertIn("fetchIpaAnalysis", source)
+            self.assertIn("fetchIpaAnalyzer", source)
             self.assertIn("ipaFetchAbortMessage", source)
         self.assertIn("_failTabLoad", js)
         self.assertIn("_resumeStaleTabLoad", js)
@@ -655,6 +655,6 @@ class IpAnalyzerMergeAssetsTests(SimpleTestCase):
         assets = (
             _PLUGIN_ROOT / "templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html"
         ).read_text(encoding="utf-8")
-        self.assertIn("Analysis timed out.", assets)
-        self.assertIn("Analysis failed (HTTP %(status)s).", assets)
+        self.assertIn("Analyzer timed out.", assets)
+        self.assertIn("Analyzer failed (HTTP %(status)s).", assets)
 

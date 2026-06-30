@@ -17,11 +17,11 @@ from netbox_nsm.rulebooks.views.virtual_all import (
     AllRulesRulebookView,
 )
 from netbox_nsm.analyzers.ip_analyzer.endpoints import (
-    IpAnalysisAddObjectTypesApiView,
-    IpAnalysisApiView,
-    IpAnalysisCategoryApiView,
-    IpAnalysisLegacyRedirectView,
-    IpAnalysisObjectDrilldownApiView,
+    IpAnalyzerAddObjectTypesApiView,
+    IpAnalyzerApiView,
+    IpAnalyzerCategoryApiView,
+    IpAnalyzerLegacyRedirectView,
+    IpAnalyzerObjectDrilldownApiView,
 )
 from netbox_nsm.analyzers.object_analyzer.page_view import ObjectAnalyzerView
 from netbox_nsm.analyzers.object_report.views import ObjectReportView

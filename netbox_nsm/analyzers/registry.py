@@ -1,7 +1,7 @@
 """Capability registry for NSM analyzer UIs.
 
 Single source of truth that maps each analyzer to its capability key, URL name,
-and run mode. UI entry points (Object Analyzer link, IP analysis applet, Object
+and run mode. UI entry points (Object Analyzer link, IP analyzer applet, Object
 Report) resolve their URLs through this registry instead of hardcoding url names.
 """
 
@@ -34,7 +34,7 @@ ANALYZER_REGISTRY: tuple[AnalyzerSpec, ...] = (
     AnalyzerSpec(
         "ip_analyzer",
         "analyzer.ip_analyzer",
-        "ip_analysis_api",
+        "ip_analyzer_api",
         "IP Analyzer",
         run_mode="applet",
     ),

@@ -147,7 +147,7 @@ class IpaObjectDrilldownNodesTests(SimpleTestCase):
     @patch("netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._hub._enrich_addr_tree_copy_lines")
     @patch("netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._hub._filter_ipam_drilldown_category_nodes", side_effect=lambda n: n)
     @patch("netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._build_ipa_object_ipam_tree")
-    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._hub._object_supports_addr_analysis", return_value=True)
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._hub._object_supports_addr_analyzer", return_value=True)
     def test_drilldown_uses_ipam_tree_for_prefix_container(
         self,
         _supports_fn,
@@ -186,7 +186,7 @@ class IpaObjectDrilldownNodesTests(SimpleTestCase):
     @patch("netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._hub._filter_ipam_drilldown_category_nodes", side_effect=lambda n: n)
     @patch("netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._build_ipa_drilldown_source_meta", return_value={"name": "dm-addr"})
     @patch("netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._build_ipa_object_ipam_tree")
-    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._hub._object_supports_addr_analysis", return_value=True)
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._hub._object_supports_addr_analyzer", return_value=True)
     def test_drilldown_omits_shell_only_prefix_meta(
         self,
         _supports_fn,
@@ -217,7 +217,7 @@ class IpaObjectDrilldownNodesTests(SimpleTestCase):
     @patch("netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._hub._enrich_addr_tree_copy_lines")
     @patch("netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._build_ipa_object_ipam_tree", return_value=[])
     @patch("netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._hub._build_addr_tree_node")
-    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._hub._object_supports_addr_analysis", return_value=True)
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._hub._object_supports_addr_analyzer", return_value=True)
     def test_drilldown_falls_back_to_host_leaf(
         self,
         _supports_fn,
@@ -660,7 +660,7 @@ class IpaIpamDrilldownDedupeTests(SimpleTestCase):
     @patch("netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._hub._enrich_addr_tree_copy_lines")
     @patch("netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._hub._filter_ipam_drilldown_category_nodes", side_effect=lambda n: n)
     @patch("netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._build_ipa_object_ipam_tree")
-    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._hub._object_supports_addr_analysis", return_value=True)
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._hub._object_supports_addr_analyzer", return_value=True)
     @patch("netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._hub._addr_ip_ref", return_value=None)
     @patch("netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._resolve_ipam_object_for_drilldown")
     def test_build_drilldown_finalize_strips_hoisted_28_self_reference(
@@ -749,7 +749,7 @@ class IpaIpamDrilldownDedupeTests(SimpleTestCase):
     @patch("netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._hub._enrich_addr_tree_copy_lines")
     @patch("netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._hub._filter_ipam_drilldown_category_nodes", side_effect=lambda n: n)
     @patch("netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._build_ipa_object_ipam_tree")
-    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._hub._object_supports_addr_analysis", return_value=True)
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._hub._object_supports_addr_analyzer", return_value=True)
     @patch("netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._hub._addr_ip_ref", return_value=None)
     @patch("netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._resolve_ipam_object_for_drilldown")
     def test_build_drilldown_omits_self_referential_prefix_shell(

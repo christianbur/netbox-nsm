@@ -1,7 +1,7 @@
 """
 REST API for IP address analysis (NetBox DRF, token-authenticated).
 
-GET/POST /api/plugins/netbox-nsm/ip-analysis/
+GET/POST /api/plugins/netbox-nsm/ip-analyzer/
 
 Scope: resolve **address-analyzable** objects to IP trees or multi-side diffs.
 Supported targets are NetBox IPAM objects (prefix, IP address, IP range) and COT
@@ -18,34 +18,34 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from netbox_nsm.analyzers.ip_analyzer.ip_analysis_service import (
-    execute_ip_analysis_diff,
-    execute_ip_analysis_merge,
+from netbox_nsm.analyzers.ip_analyzer.ip_analyzer_service import (
+    execute_ip_analyzer_diff,
+    execute_ip_analyzer_merge,
     parse_diff_sides_from_body,
     parse_diff_sides_from_request,
     parse_object_refs,
     parse_selections_from_request,
 )
 
-__all__ = ("IpAnalysisRestApiView",)
+__all__ = ("IpAnalyzerRestApiView",)
 
 
-class IpAnalysisRestApiView(APIView):
+class IpAnalyzerRestApiView(APIView):
     """Resolve address objects to IP trees or multi-side diffs (JSON only)."""
 
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
-        operation_id="netbox_nsm_ip_analysis_retrieve",
+        operation_id="netbox_nsm_ip_analyzer_retrieve",
         description=(
             "Analyze one or more address-analyzable objects: NetBox IPAM (prefix, "
             "IP address, IP range) or COT address types (e.g. ``nsm_address``, address "
             "groups). Objects are referenced by ``content_type`` id and object ``pk`` "
             "(query params ``ct``/``pk``). Use repeated ``ct``/``pk`` for merge mode, "
             "or ``mode=diff`` with ``a_ct``/``a_pk`` and ``b_ct``/``b_pk`` (or indexed "
-            "``s0_ct``/``s0_pk``, …). Returns structured JSON (``addr_analysis``, counts); "
+            "``s0_ct``/``s0_pk``, …). Returns structured JSON (``addr_analyzer``, counts); "
             "no HTML. For the UI applet use "
-            "``GET /plugins/netbox-nsm/api/ip-analysis/`` instead."
+            "``GET /plugins/netbox-nsm/api/ip-analyzer/`` instead."
         ),
         responses={200: dict},
         examples=[
@@ -100,7 +100,7 @@ class IpAnalysisRestApiView(APIView):
         )
 
     @extend_schema(
-        operation_id="netbox_nsm_ip_analysis_create",
+        operation_id="netbox_nsm_ip_analyzer_create",
         description=(
             "Analyze objects from a JSON body. Merge mode accepts ``objects``; "
             "diff mode accepts ``sides`` (or legacy ``side_a``/``side_b``)."
@@ -198,11 +198,11 @@ class IpAnalysisRestApiView(APIView):
         )
 
     def _respond_merge(self, **kwargs):
-        payload = execute_ip_analysis_merge(**kwargs, include_html=False)
+        payload = execute_ip_analyzer_merge(**kwargs, include_html=False)
         return Response(self._clean_payload(payload))
 
     def _respond_diff(self, sides):
-        payload = execute_ip_analysis_diff(sides=sides, include_html=False)
+        payload = execute_ip_analyzer_diff(sides=sides, include_html=False)
         return Response(self._clean_payload(payload))
 
     @staticmethod

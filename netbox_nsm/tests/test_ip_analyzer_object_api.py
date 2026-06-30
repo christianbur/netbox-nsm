@@ -1,4 +1,4 @@
-"""Tests for IpAnalysisObjectDrilldownApiView."""
+"""Tests for IpAnalyzerObjectDrilldownApiView."""
 
 import json
 from unittest.mock import MagicMock, patch
@@ -6,21 +6,21 @@ from unittest.mock import MagicMock, patch
 from django.test import RequestFactory, SimpleTestCase
 from django.urls import reverse
 
-from netbox_nsm.analyzers.ip_analyzer.endpoints import IpAnalysisObjectDrilldownApiView
+from netbox_nsm.analyzers.ip_analyzer.endpoints import IpAnalyzerObjectDrilldownApiView
 
 
-class IpAnalysisObjectApiUrlTests(SimpleTestCase):
+class IpAnalyzerObjectApiUrlTests(SimpleTestCase):
     def test_object_drilldown_api_url_reverse(self):
         self.assertEqual(
-            reverse("plugins:netbox_nsm:ip_analysis_object_api"),
-            "/plugins/netbox-nsm/api/ip-analysis/object/",
+            reverse("plugins:netbox_nsm:ip_analyzer_object_api"),
+            "/plugins/netbox-nsm/api/ip-analyzer/object/",
         )
 
 
-class IpAnalysisObjectDrilldownApiTests(SimpleTestCase):
+class IpAnalyzerObjectDrilldownApiTests(SimpleTestCase):
     def setUp(self):
         self.factory = RequestFactory()
-        self.view = IpAnalysisObjectDrilldownApiView.as_view()
+        self.view = IpAnalyzerObjectDrilldownApiView.as_view()
 
     def _auth_request(self, path):
         request = self.factory.get(path)
@@ -29,7 +29,7 @@ class IpAnalysisObjectDrilldownApiTests(SimpleTestCase):
 
     def test_requires_ct_and_pk(self):
         response = self.view(
-            self._auth_request("/plugins/netbox-nsm/api/ip-analysis/object/")
+            self._auth_request("/plugins/netbox-nsm/api/ip-analyzer/object/")
         )
         self.assertEqual(response.status_code, 400)
 
@@ -72,7 +72,7 @@ class IpAnalysisObjectDrilldownApiTests(SimpleTestCase):
 
         response = self.view(
             self._auth_request(
-                "/plugins/netbox-nsm/api/ip-analysis/object/?ct=10&pk=5&depth=1"
+                "/plugins/netbox-nsm/api/ip-analyzer/object/?ct=10&pk=5&depth=1"
             )
         )
 

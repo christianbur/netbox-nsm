@@ -87,12 +87,12 @@ Rule columns and the tab share the same **object config** entries — no separat
 
 Deployed COT rulebooks: `/plugins/netbox-nsm/rulebooks/cot/<slug>/rules/`
 
-## IP Analysis
+## IP Analyzer
 
 - **Applet:** loupe on analyzable objects in rule detail views (merge/diff address trees)
-- **Legacy URL:** `/plugins/netbox-nsm/ip-analysis/` redirects to Object Analyzer
-- **UI API:** `GET /plugins/netbox-nsm/api/ip-analysis/` (HTML fragments for the applet)
-- **REST API:** `GET/POST /api/plugins/netbox-nsm/ip-analysis/` (JSON)
+- **Legacy URL:** `/plugins/netbox-nsm/ip-analyzer/` redirects to Object Analyzer
+- **UI API:** `GET /plugins/netbox-nsm/api/ip-analyzer/` (HTML fragments for the applet)
+- **REST API:** `GET/POST /api/plugins/netbox-nsm/ip-analyzer/` (JSON)
 
 ## Object Analyzer
 
@@ -113,7 +113,7 @@ worker). Findings export as TOML (`?export=toml`). Sample lists are paginated cl
 |----------|---------|
 | `/api/plugins/netbox-nsm/nsm-configs/<slug>/` | Read/write `nsm_config` in COT comments |
 | `/api/plugins/netbox-nsm/object-links/` | Security panel links (`nsm_object_link`) |
-| `/api/plugins/netbox-nsm/ip-analysis/` | Address analysis (JSON) |
+| `/api/plugins/netbox-nsm/ip-analyzer/` | Address analysis (JSON) |
 
 Rules and policy objects: **netbox-custom-objects** API. Rulebook assignments: `object-links` with `link_type=rulebook`.
 

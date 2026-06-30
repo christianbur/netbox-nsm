@@ -4,10 +4,10 @@ from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils import (
+from netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils import (
     _addr_leaf_compare_key,
-    _build_addr_diff_analysis,
-    _build_addr_diff_analysis_from_sides,
+    _build_addr_diff,
+    _build_addr_diff_from_sides,
     _build_addr_diff_group,
     _collect_addr_tree_leaf_map,
     _count_addr_tree_duplicates,
@@ -17,7 +17,7 @@ from netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils import (
     _type_counts_for_diff_addr_keys,
 )
 
-class AddrDiffAnalysisTests(SimpleTestCase):
+class AddrDiffTests(SimpleTestCase):
     """Unit tests for IP analyzer diff partitioning."""
 
     def test_addr_leaf_compare_key_prefers_ip_ref(self):
@@ -71,12 +71,12 @@ class AddrDiffAnalysisTests(SimpleTestCase):
         names = {o["name"] for o in found["10.1.1.1/32"]["source_objects"]}
         self.assertEqual(names, {"bench-ip-001", "alias-host"})
 
-    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._build_addr_tree_nodes")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._build_addr_tree_nodes")
     @patch(
-        "netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._object_supports_addr_analysis",
+        "netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._object_supports_addr_analyzer",
         return_value=True,
     )
-    def test_build_addr_diff_analysis_partitions_leaves(
+    def test_build_addr_diff_partitions_leaves(
         self, _supports, build_nodes_fn
     ):
         leaf_a = {
@@ -105,7 +105,7 @@ class AddrDiffAnalysisTests(SimpleTestCase):
             ([leaf_b, leaf_common], []),
         ]
 
-        result = _build_addr_diff_analysis(
+        result = _build_addr_diff(
             [MagicMock()],
             [MagicMock()],
             label_a="Left",
@@ -142,12 +142,12 @@ class AddrDiffAnalysisTests(SimpleTestCase):
         self.assertTrue(pair.get("diff_same_name"))
         self.assertEqual(result[0]["types"][0]["intersection_leaf_count"], 1)
 
-    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._build_addr_tree_nodes")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._build_addr_tree_nodes")
     @patch(
-        "netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._object_supports_addr_analysis",
+        "netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._object_supports_addr_analyzer",
         return_value=True,
     )
-    def test_build_addr_diff_analysis_rolls_up_only_side_prefix(
+    def test_build_addr_diff_rolls_up_only_side_prefix(
         self, _supports, build_nodes_fn
     ):
         host_leaves = [
@@ -183,7 +183,7 @@ class AddrDiffAnalysisTests(SimpleTestCase):
         }
         build_nodes_fn.side_effect = [([prefix], []), ([], [])]
 
-        result = _build_addr_diff_analysis(
+        result = _build_addr_diff(
             [MagicMock()],
             [MagicMock()],
             label_a="Rule 1/5",
@@ -205,12 +205,12 @@ class AddrDiffAnalysisTests(SimpleTestCase):
             self.assertEqual(child.get("diff_status"), "only_a")
             self.assertEqual(child.get("diff_label"), "Rule 1/5")
 
-    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._build_addr_tree_nodes")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._build_addr_tree_nodes")
     @patch(
-        "netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._object_supports_addr_analysis",
+        "netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._object_supports_addr_analyzer",
         return_value=True,
     )
-    def test_build_addr_diff_analysis_three_tabs_partitions_leaves(
+    def test_build_addr_diff_three_tabs_partitions_leaves(
         self, _supports, build_nodes_fn
     ):
         leaf_tab1 = {
@@ -254,7 +254,7 @@ class AddrDiffAnalysisTests(SimpleTestCase):
             ([leaf_tab3, leaf_common, leaf_partial], []),
         ]
 
-        result = _build_addr_diff_analysis_from_sides(
+        result = _build_addr_diff_from_sides(
             [
                 {"objs": [MagicMock()], "label": "Tab 1"},
                 {"objs": [MagicMock()], "label": "Tab 2"},
@@ -304,9 +304,9 @@ class AddrDiffAnalysisTests(SimpleTestCase):
         self.assertEqual(group["name"], "In some")
         self.assertEqual(group["diff_present_labels"], ["Tab 1", "Tab 3"])
 
-    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._build_addr_tree_nodes")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._build_addr_tree_nodes")
     @patch(
-        "netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._object_supports_addr_analysis",
+        "netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._object_supports_addr_analyzer",
         return_value=True,
     )
     def test_build_addr_diff_in_some_splits_by_presence_pattern(
@@ -327,7 +327,7 @@ class AddrDiffAnalysisTests(SimpleTestCase):
             ([leaf("t2-only", "10.0.0.3"), leaf("shared", "10.0.0.9"), leaf("cd", "10.0.0.6")], []),
             ([leaf("t3-only", "10.0.0.4"), leaf("shared", "10.0.0.9"), leaf("ab", "10.0.0.5"), leaf("cd", "10.0.0.6")], []),
         ]
-        result = _build_addr_diff_analysis_from_sides(
+        result = _build_addr_diff_from_sides(
             [
                 {"objs": [MagicMock()], "label": "Rule A / destination"},
                 {"objs": [MagicMock()], "label": "Rule B / destination"},
@@ -370,12 +370,12 @@ class AddrDiffAnalysisTests(SimpleTestCase):
         self.assertEqual(counts["count_ranges"], 1)
         self.assertEqual(counts["count_ips"], 2)
 
-    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._build_addr_tree_nodes")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._build_addr_tree_nodes")
     @patch(
-        "netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._object_supports_addr_analysis",
+        "netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._object_supports_addr_analyzer",
         return_value=True,
     )
-    def test_build_addr_diff_analysis_includes_type_counts(
+    def test_build_addr_diff_includes_type_counts(
         self, _supports, build_nodes_fn
     ):
         leaf_a = {
@@ -404,7 +404,7 @@ class AddrDiffAnalysisTests(SimpleTestCase):
             ([leaf_b, leaf_common], []),
         ]
 
-        result = _build_addr_diff_analysis(
+        result = _build_addr_diff(
             [MagicMock()],
             [MagicMock()],
             label_a="Left",
@@ -420,9 +420,9 @@ class AddrDiffAnalysisTests(SimpleTestCase):
         from django.template.loader import render_to_string
 
         html = render_to_string(
-            "netbox_nsm/inc/addr_analysis_panel.html",
+            "netbox_nsm/inc/ip_analyzer_panel.html",
             {
-                "addr_analysis": [
+                "addr_analyzer": [
                     {
                         "field_slug": "diff",
                         "field_name": "",
@@ -463,13 +463,13 @@ class AddrDiffAnalysisTests(SimpleTestCase):
         self.assertIn("nsm-addr-diff-in-both", all_block)
         self.assertIn("bg-warning-subtle text-warning", all_block)
 
-    def test_addr_analysis_panel_omits_ipam_hierarchy_intersection_block(self):
+    def test_addr_analyzer_panel_omits_ipam_hierarchy_intersection_block(self):
         from django.template.loader import render_to_string
 
         html = render_to_string(
-            "netbox_nsm/inc/addr_analysis_panel.html",
+            "netbox_nsm/inc/ip_analyzer_panel.html",
             {
-                "addr_analysis": [
+                "addr_analyzer": [
                     {
                         "field_slug": "diff",
                         "field_name": "Diff",
@@ -522,12 +522,12 @@ class AddrDiffAnalysisTests(SimpleTestCase):
         all_pos = html.index("All")
         self.assertLess(all_pos, only_pos)
 
-    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._build_addr_tree_nodes")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._build_addr_tree_nodes")
     @patch(
-        "netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._object_supports_addr_analysis",
+        "netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._object_supports_addr_analyzer",
         return_value=True,
     )
-    def test_build_addr_diff_analysis_uses_descriptive_side_labels(
+    def test_build_addr_diff_uses_descriptive_side_labels(
         self, _supports, build_nodes_fn
     ):
         leaf_a = {
@@ -548,7 +548,7 @@ class AddrDiffAnalysisTests(SimpleTestCase):
 
         label_a = "Allow Web (2) / destination_addresses"
         label_b = "Deny SSH (3) / source_addresses"
-        result = _build_addr_diff_analysis(
+        result = _build_addr_diff(
             [MagicMock()],
             [MagicMock()],
             label_a=label_a,
@@ -562,9 +562,9 @@ class AddrDiffAnalysisTests(SimpleTestCase):
         self.assertEqual(summary["label_a"], label_a)
         self.assertEqual(summary["label_b"], label_b)
 
-    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._build_addr_tree_nodes")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._build_addr_tree_nodes")
     @patch(
-        "netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._object_supports_addr_analysis",
+        "netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._object_supports_addr_analyzer",
         return_value=True,
     )
     def test_build_addr_diff_intersection_tree_only_shared_keys(
@@ -596,7 +596,7 @@ class AddrDiffAnalysisTests(SimpleTestCase):
             ([leaf_b, leaf_common], []),
         ]
 
-        result = _build_addr_diff_analysis([MagicMock()], [MagicMock()])
+        result = _build_addr_diff([MagicMock()], [MagicMock()])
         intersection = result[0]["types"][0]["intersection_tree"]
         self.assertEqual(result[0]["types"][0]["intersection_leaf_count"], 1)
         pair = intersection[0]
@@ -657,12 +657,12 @@ class AddrDiffAnalysisTests(SimpleTestCase):
         self.assertNotIn("badge nsm-addr-diff", html_both)
         self.assertNotIn("nsm-addr-diff--side-a", html_both)
 
-    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._build_addr_tree_nodes")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._build_addr_tree_nodes")
     @patch(
-        "netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._object_supports_addr_analysis",
+        "netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._object_supports_addr_analyzer",
         return_value=True,
     )
-    def test_build_addr_diff_analysis_empty_intersection_tree_when_no_overlap(
+    def test_build_addr_diff_empty_intersection_tree_when_no_overlap(
         self, _supports, build_nodes_fn
     ):
         build_nodes_fn.side_effect = [
@@ -691,13 +691,13 @@ class AddrDiffAnalysisTests(SimpleTestCase):
                 [],
             ),
         ]
-        result = _build_addr_diff_analysis([MagicMock()], [MagicMock()])
+        result = _build_addr_diff([MagicMock()], [MagicMock()])
         self.assertEqual(result[0]["types"][0]["intersection_tree"], [])
         self.assertEqual(result[0]["types"][0]["intersection_leaf_count"], 0)
 
-    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._build_addr_tree_nodes")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._build_addr_tree_nodes")
     @patch(
-        "netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._object_supports_addr_analysis",
+        "netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._object_supports_addr_analyzer",
         return_value=True,
     )
     def test_build_addr_diff_same_subnet_different_hosts_not_in_both(
@@ -723,7 +723,7 @@ class AddrDiffAnalysisTests(SimpleTestCase):
             ([leaf_18210], []),
         ]
 
-        result = _build_addr_diff_analysis(
+        result = _build_addr_diff(
             [MagicMock()],
             [MagicMock()],
             label_a="Rule 2",
@@ -739,12 +739,12 @@ class AddrDiffAnalysisTests(SimpleTestCase):
         self.assertEqual(summary["only_b"], 1)
         self.assertEqual(result[0]["types"][0]["intersection_leaf_count"], 0)
 
-    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._build_addr_tree_nodes")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._build_addr_tree_nodes")
     @patch(
-        "netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._object_supports_addr_analysis",
+        "netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._object_supports_addr_analyzer",
         return_value=True,
     )
-    def test_build_addr_diff_analysis_fund_on_cross_side_name_mismatch(
+    def test_build_addr_diff_fund_on_cross_side_name_mismatch(
         self, _supports, build_nodes_fn
     ):
         leaf_a = {
@@ -766,7 +766,7 @@ class AddrDiffAnalysisTests(SimpleTestCase):
             ([leaf_b], []),
         ]
 
-        result = _build_addr_diff_analysis(
+        result = _build_addr_diff(
             [MagicMock()],
             [MagicMock()],
             label_a="Tab A",
@@ -787,12 +787,12 @@ class AddrDiffAnalysisTests(SimpleTestCase):
         self.assertEqual(summary["both"], 1)
         self.assertEqual(summary["fund"], 1)
 
-    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._build_addr_tree_nodes")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._build_addr_tree_nodes")
     @patch(
-        "netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._object_supports_addr_analysis",
+        "netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._object_supports_addr_analyzer",
         return_value=True,
     )
-    def test_build_addr_diff_analysis_no_fund_when_same_name_and_ip(
+    def test_build_addr_diff_no_fund_when_same_name_and_ip(
         self, _supports, build_nodes_fn
     ):
         leaf = {
@@ -807,7 +807,7 @@ class AddrDiffAnalysisTests(SimpleTestCase):
             ([dict(leaf)], []),
         ]
 
-        result = _build_addr_diff_analysis(
+        result = _build_addr_diff(
             [MagicMock()],
             [MagicMock()],
         )
@@ -888,7 +888,7 @@ class AddrDiffAnalysisTests(SimpleTestCase):
         self.assertNotIn("nsm-addr-ip", html)
         self.assertNotIn("→", html)
 
-    def test_build_addr_diff_analysis_sets_diff_name_fields_on_fund(self):
+    def test_build_addr_diff_sets_diff_name_fields_on_fund(self):
         leaf_a = {
             "kind": "leaf",
             "name": "bench-ip-0013031",
@@ -904,13 +904,13 @@ class AddrDiffAnalysisTests(SimpleTestCase):
             "children": [],
         }
         with patch(
-            "netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._build_addr_tree_nodes"
+            "netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._build_addr_tree_nodes"
         ) as build_nodes_fn, patch(
-            "netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._object_supports_addr_analysis",
+            "netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._object_supports_addr_analyzer",
             return_value=True,
         ):
             build_nodes_fn.side_effect = [([leaf_a], []), ([leaf_b], [])]
-            result = _build_addr_diff_analysis([MagicMock()], [MagicMock()])
+            result = _build_addr_diff([MagicMock()], [MagicMock()])
 
         both_leaf = next(
             g for g in result[0]["types"][0]["nodes"] if g["diff_group"] == "both"
@@ -924,9 +924,9 @@ class AddrDiffAnalysisTests(SimpleTestCase):
         self.assertEqual(intersection.get("diff_name_a"), "bench-ip-0013031")
         self.assertEqual(intersection.get("diff_name_b"), "server-prod")
 
-    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._build_addr_tree_nodes")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._build_addr_tree_nodes")
     @patch(
-        "netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._object_supports_addr_analysis",
+        "netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._object_supports_addr_analyzer",
         return_value=True,
     )
     def test_build_addr_diff_intersection_tree_rolls_up_shared_prefix(
@@ -970,7 +970,7 @@ class AddrDiffAnalysisTests(SimpleTestCase):
         }
         build_nodes_fn.side_effect = [([prefix_a], []), ([prefix_b], [])]
 
-        result = _build_addr_diff_analysis(
+        result = _build_addr_diff(
             [MagicMock()],
             [MagicMock()],
             label_a="Rule 2/5",
@@ -1002,9 +1002,9 @@ class AddrDiffAnalysisTests(SimpleTestCase):
             self.assertEqual(child.get("diff_status"), "both")
             self.assertTrue(child.get("diff_suppress_status"))
 
-    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._build_addr_tree_nodes")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._build_addr_tree_nodes")
     @patch(
-        "netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._object_supports_addr_analysis",
+        "netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._object_supports_addr_analyzer",
         return_value=True,
     )
     def test_build_addr_diff_both_group_rolls_up_many_shared_hosts(
@@ -1044,7 +1044,7 @@ class AddrDiffAnalysisTests(SimpleTestCase):
         }
         build_nodes_fn.side_effect = [([prefix_group], []), ([prefix_group], [])]
 
-        result = _build_addr_diff_analysis([MagicMock()], [MagicMock()])
+        result = _build_addr_diff([MagicMock()], [MagicMock()])
         both_group = next(
             g for g in result[0]["types"][0]["nodes"] if g["diff_group"] == "both"
         )
@@ -1057,9 +1057,9 @@ class AddrDiffAnalysisTests(SimpleTestCase):
         self.assertEqual(len(prefix_node.get("children") or []), host_count)
         self.assertEqual(result[0]["types"][0]["diff_summary"]["both"], host_count)
 
-    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._build_addr_tree_nodes")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._build_addr_tree_nodes")
     @patch(
-        "netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._object_supports_addr_analysis",
+        "netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._object_supports_addr_analyzer",
         return_value=True,
     )
     def test_build_addr_diff_intersection_tree_keeps_hosts_when_prefix_incomplete(
@@ -1120,7 +1120,7 @@ class AddrDiffAnalysisTests(SimpleTestCase):
             ([prefix_group], []),
         ]
 
-        result = _build_addr_diff_analysis([MagicMock()], [MagicMock()])
+        result = _build_addr_diff([MagicMock()], [MagicMock()])
         intersection = result[0]["types"][0]["intersection_tree"]
         self.assertEqual(len(intersection), 1)
         prefix_node = intersection[0]
@@ -1136,12 +1136,12 @@ class AddrDiffAnalysisTests(SimpleTestCase):
         self.assertEqual(host.get("kind"), "leaf")
 
     @patch("django.contrib.contenttypes.models.ContentType")
-    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._build_addr_tree_nodes")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._build_addr_tree_nodes")
     @patch(
-        "netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._object_supports_addr_analysis",
+        "netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._object_supports_addr_analyzer",
         return_value=True,
     )
-    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._lookup_containing_prefix_for_intersection_node")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._lookup_containing_prefix_for_intersection_node")
     def test_build_addr_diff_intersection_tree_nests_flat_ips_under_prefix(
         self, lookup_prefix_fn, _supports, build_nodes_fn, content_type_cls
     ):
@@ -1172,7 +1172,7 @@ class AddrDiffAnalysisTests(SimpleTestCase):
         ]
         build_nodes_fn.side_effect = [(shared_leaves, []), (shared_leaves, [])]
 
-        result = _build_addr_diff_analysis([MagicMock()], [MagicMock()])
+        result = _build_addr_diff([MagicMock()], [MagicMock()])
         intersection = result[0]["types"][0]["intersection_tree"]
         self.assertEqual(len(intersection), 1)
         prefix_node = intersection[0]
@@ -1299,10 +1299,10 @@ class AddrDiffAnalysisTests(SimpleTestCase):
         self.assertNotIn("nsm-addr-ip", html)
         self.assertNotIn("→", html)
 
-    def test_diff_mode_build_ip_analysis_payload_includes_object_tree(self):
-        from netbox_nsm.analyzers.ip_analyzer.ip_analysis_service import build_ip_analysis_payload
+    def test_diff_mode_build_ip_analyzer_payload_includes_object_tree(self):
+        from netbox_nsm.analyzers.ip_analyzer.ip_analyzer_service import build_ip_analyzer_payload
 
-        addr_analysis = [
+        addr_analyzer = [
             {
                 "field_slug": "diff",
                 "types": [
@@ -1331,8 +1331,8 @@ class AddrDiffAnalysisTests(SimpleTestCase):
                 ],
             }
         ]
-        payload = build_ip_analysis_payload(
-            addr_analysis=addr_analysis,
+        payload = build_ip_analyzer_payload(
+            addr_analyzer=addr_analyzer,
             selections=[],
             unsupported=[],
             mode="diff",

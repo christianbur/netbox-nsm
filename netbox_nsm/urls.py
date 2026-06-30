@@ -8,10 +8,10 @@ from netbox_nsm.analyzers.object_analyzer.api_view import (
 )
 from netbox_nsm.analyzers.object_analyzer.page_view import ObjectAnalyzerView
 from netbox_nsm.analyzers.ip_analyzer.endpoints import (
-    IpAnalysisAddObjectTypesApiView,
-    IpAnalysisApiView,
-    IpAnalysisCategoryApiView,
-    IpAnalysisObjectDrilldownApiView,
+    IpAnalyzerAddObjectTypesApiView,
+    IpAnalyzerApiView,
+    IpAnalyzerCategoryApiView,
+    IpAnalyzerObjectDrilldownApiView,
 )
 from netbox_nsm.analyzers.object_report.views import ObjectReportView
 from netbox_nsm.type_metadata.views import (
@@ -192,21 +192,21 @@ urlpatterns = [
         CotRulebookChangelogView.as_view(),
         name="cot_rulebook_changelog",
     ),
-    path("api/ip-analysis/", IpAnalysisApiView.as_view(), name="ip_analysis_api"),
+    path("api/ip-analyzer/", IpAnalyzerApiView.as_view(), name="ip_analyzer_api"),
     path(
-        "api/ip-analysis/category/",
-        IpAnalysisCategoryApiView.as_view(),
-        name="ip_analysis_category_api",
+        "api/ip-analyzer/category/",
+        IpAnalyzerCategoryApiView.as_view(),
+        name="ip_analyzer_category_api",
     ),
     path(
-        "api/ip-analysis/object/",
-        IpAnalysisObjectDrilldownApiView.as_view(),
-        name="ip_analysis_object_api",
+        "api/ip-analyzer/object/",
+        IpAnalyzerObjectDrilldownApiView.as_view(),
+        name="ip_analyzer_object_api",
     ),
     path(
-        "api/ip-analysis/add-object-types/",
-        IpAnalysisAddObjectTypesApiView.as_view(),
-        name="ip_analysis_add_object_types_api",
+        "api/ip-analyzer/add-object-types/",
+        IpAnalyzerAddObjectTypesApiView.as_view(),
+        name="ip_analyzer_add_object_types_api",
     ),
     path("object-analyzer/", ObjectAnalyzerView.as_view(), name="object_analyzer"),
     path("object-report/", ObjectReportView.as_view(), name="object_report"),

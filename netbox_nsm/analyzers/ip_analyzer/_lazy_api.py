@@ -1,8 +1,8 @@
 """Lazy cross-module import facade for address/IP analysis internals.
 
 Implementation modules import helpers through this module to break circular
-dependencies while keeping ``addr_analysis_utils`` as the stable patch surface
-for tests (``@patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils.*")``).
+dependencies while keeping ``ip_analyzer_utils`` as the stable patch surface
+for tests (``@patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils.*")``).
 """
 
 from __future__ import annotations
@@ -11,6 +11,6 @@ from typing import Any
 
 
 def __getattr__(name: str) -> Any:
-    import netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils as utils
+    import netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils as utils
 
     return getattr(utils, name)

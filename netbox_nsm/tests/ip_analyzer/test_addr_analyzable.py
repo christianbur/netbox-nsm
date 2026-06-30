@@ -4,9 +4,9 @@ from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils import (
+from netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils import (
     _object_is_addr_analyzable,
-    _object_supports_addr_analysis,
+    _object_supports_addr_analyzer,
 )
 from netbox_nsm.addresses.address_literal import format_network_nsm_config_comments
 
@@ -21,7 +21,7 @@ class ObjectIsAddrAnalyzableTests(SimpleTestCase):
         self.assertFalse(_object_is_addr_analyzable(addr, 42, address_ct_ids))
 
     @patch(
-        "netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._object_supports_addr_analysis", return_value=True
+        "netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._object_supports_addr_analyzer", return_value=True
     )
     def test_true_for_address_content_type(self, _supports):
         prefix = MagicMock()
@@ -32,20 +32,20 @@ class ObjectIsAddrAnalyzableTests(SimpleTestCase):
         prefix = MagicMock()
         prefix._meta.app_label = "ipam"
         prefix._meta.model_name = "prefix"
-        self.assertTrue(_object_supports_addr_analysis(prefix))
+        self.assertTrue(_object_supports_addr_analyzer(prefix))
         self.assertTrue(_object_is_addr_analyzable(prefix, 14, {}))
 
     @patch("netbox_nsm.analyzers.ip_analyzer.addr_analyzable._hub._addr_is_group_container", return_value=False)
     @patch("netbox_nsm.analyzers.ip_analyzer.addr_analyzable._hub._addr_ip_ref", return_value=None)
-    def test_literal_any_address_supports_addr_analysis(self, _ip_ref, _group):
+    def test_literal_any_address_supports_addr_analyzer(self, _ip_ref, _group):
         obj = MagicMock()
         obj.comments = format_network_nsm_config_comments("0.0.0.0/0").rstrip()
-        self.assertTrue(_object_supports_addr_analysis(obj))
+        self.assertTrue(_object_supports_addr_analyzer(obj))
         self.assertTrue(_object_is_addr_analyzable(obj, 275, {275}))
 
-    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils.content_type_ids_for_cot_slugs")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils.content_type_ids_for_cot_slugs")
     @patch(
-        "netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._object_supports_addr_analysis",
+        "netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._object_supports_addr_analyzer",
         return_value=True,
     )
     def test_builds_address_ct_ids_when_none(self, _supports, ct_ids_fn):

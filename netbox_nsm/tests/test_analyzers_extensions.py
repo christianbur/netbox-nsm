@@ -25,7 +25,7 @@ class IpAnalyzerRegistryTests(SimpleTestCase):
         self.assertIsNotNone(spec)
         self.assertEqual(spec.key, IP_ANALYZER_KEY)
         self.assertEqual(spec.capability, "analyzer.ip_analyzer")
-        self.assertEqual(spec.url_name, "ip_analysis_api")
+        self.assertEqual(spec.url_name, "ip_analyzer_api")
         self.assertIn(IP_ANALYZER_KEY, ANALYZER_BY_KEY)
 
 

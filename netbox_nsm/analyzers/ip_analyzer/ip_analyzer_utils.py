@@ -1,8 +1,8 @@
 """Address analysis — public API surface for IP analyzer tests and services.
 
-Public names without a leading underscore (e.g. ``build_multi_object_addr_analysis``)
+Public names without a leading underscore (e.g. ``build_multi_object_addr_analyzer``)
 are the stable API for views and services. Underscore-prefixed names remain for
-unittest ``@patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils.*")`` compatibility.
+unittest ``@patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils.*")`` compatibility.
 """
 
 from __future__ import annotations
@@ -114,7 +114,7 @@ from netbox_nsm.analyzers.ip_analyzer.addr_tree import (
 
 from netbox_nsm.analyzers.ip_analyzer.addr_analyzable import (
     _object_is_addr_analyzable,
-    _object_supports_addr_analysis,
+    _object_supports_addr_analyzer,
 )
 
 from netbox_nsm.analyzers.ip_analyzer.addr_diff import (
@@ -130,8 +130,8 @@ from netbox_nsm.analyzers.ip_analyzer.addr_diff import (
     _addr_side_has_name_conflict,
     _addr_source_name_set,
     _addr_tree_node_prefix_compare_key,
-    _build_addr_diff_analysis,
-    _build_addr_diff_analysis_from_sides,
+    _build_addr_diff,
+    _build_addr_diff_from_sides,
     _build_addr_diff_group,
     _build_diff_ipam_hierarchy_prefix_node,
     _build_diff_ipam_hierarchy_prefix_node_from_prefix,
@@ -163,15 +163,15 @@ from netbox_nsm.analyzers.ip_analyzer.addr_diff import (
 )
 
 from netbox_nsm.analyzers.ip_analyzer.addr_merge import (
-    _apply_summary_type_counts_to_addr_analysis,
-    _build_multi_object_addr_analysis,
+    _apply_summary_type_counts_to_addr_analyzer,
+    _build_multi_object_addr_analyzer,
     _count_addr_tree_duplicates,
     _count_ipa_object_tree_duplicates,
     _count_ipa_object_tree_group_duplicates,
     _ipa_object_tree_type_counts,
-    _leaf_count_for_addr_analysis,
+    _leaf_count_for_addr_analyzer,
     _resolve_summary_type_counts,
-    _type_counts_for_addr_analysis,
+    _type_counts_for_addr_analyzer,
 )
 
 from netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree import (
@@ -197,7 +197,7 @@ from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import (
     _build_ipa_cell_object_tree_from_diff,
     _build_ipa_object_columns,
     _build_ipa_object_tree_node,
-    _build_object_address_analysis,
+    _build_object_address_analyzer,
     _collapse_ipa_cell_object_tree_roots,
     _collect_ipa_object_tree_keys,
     _enrich_ipa_node_from_resolved_prefix,
@@ -227,20 +227,20 @@ from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import (
 
 # Public stable API — underscore names above remain for unittest ``@patch`` targets.
 apply_object_tree_copy_lines = _apply_object_tree_copy_lines
-apply_summary_type_counts_to_addr_analysis = _apply_summary_type_counts_to_addr_analysis
-build_addr_diff_analysis_from_sides = _build_addr_diff_analysis_from_sides
+apply_summary_type_counts_to_addr_analyzer = _apply_summary_type_counts_to_addr_analyzer
+build_addr_diff_from_sides = _build_addr_diff_from_sides
 build_addr_tree_node = _build_addr_tree_node
 build_ipa_object_drilldown_nodes = _build_ipa_object_drilldown_nodes
 build_ipa_object_ipam_tree = _build_ipa_object_ipam_tree
-build_multi_object_addr_analysis = _build_multi_object_addr_analysis
+build_multi_object_addr_analyzer = _build_multi_object_addr_analyzer
 enrich_addr_tree_copy_lines = _enrich_addr_tree_copy_lines
 enrich_addr_tree_leaf_counts = _enrich_addr_tree_leaf_counts
 flatten_addr_tree_paths = _flatten_addr_tree_paths
 filter_ipam_drilldown_category_nodes = _filter_ipam_drilldown_category_nodes
 ipa_cell_object_tree_visible = _ipa_cell_object_tree_visible
-leaf_count_for_addr_analysis = _leaf_count_for_addr_analysis
+leaf_count_for_addr_analyzer = _leaf_count_for_addr_analyzer
 object_is_addr_analyzable = _object_is_addr_analyzable
-object_supports_addr_analysis = _object_supports_addr_analysis
+object_supports_addr_analyzer = _object_supports_addr_analyzer
 parse_ipa_column_selections = _parse_ipa_column_selections
 prefix_ipam_stats = _prefix_ipam_stats
 query_ipam_category_objects = _query_ipam_category_objects
@@ -248,21 +248,21 @@ resolve_summary_type_counts = _resolve_summary_type_counts
 
 __all__ = (
     "apply_object_tree_copy_lines",
-    "apply_summary_type_counts_to_addr_analysis",
-    "build_addr_diff_analysis_from_sides",
+    "apply_summary_type_counts_to_addr_analyzer",
+    "build_addr_diff_from_sides",
     "build_addr_tree_node",
     "build_ipa_cell_object_tree",
     "build_ipa_object_drilldown_nodes",
     "build_ipa_object_ipam_tree",
-    "build_multi_object_addr_analysis",
+    "build_multi_object_addr_analyzer",
     "enrich_addr_tree_copy_lines",
     "enrich_addr_tree_leaf_counts",
     "flatten_addr_tree_paths",
     "filter_ipam_drilldown_category_nodes",
     "ipa_cell_object_tree_visible",
-    "leaf_count_for_addr_analysis",
+    "leaf_count_for_addr_analyzer",
     "object_is_addr_analyzable",
-    "object_supports_addr_analysis",
+    "object_supports_addr_analyzer",
     "parse_ipa_column_selections",
     "prefix_ipam_stats",
     "query_ipam_category_objects",
@@ -308,15 +308,15 @@ __all__ = (
     "_addr_tree_node_range_count",
     "_addr_tree_node_subnet_count",
     "_apply_object_tree_copy_lines",
-    "_apply_summary_type_counts_to_addr_analysis",
+    "_apply_summary_type_counts_to_addr_analyzer",
     "_attach_addr_navigation_refs",
     "_attach_addr_node_prefix_display",
     "_attach_ipa_object_tree_ipam_stats",
     "_attach_ipa_object_tree_ip_meta",
     "_attach_ipam_stats_meta",
     "_attach_prefix_ipam_meta",
-    "_build_addr_diff_analysis",
-    "_build_addr_diff_analysis_from_sides",
+    "_build_addr_diff",
+    "_build_addr_diff_from_sides",
     "_build_addr_diff_group",
     "_build_addr_tree_node",
     "_build_addr_tree_nodes",
@@ -334,8 +334,8 @@ __all__ = (
     "_build_ipam_category_nodes",
     "_build_ipam_prefix_layer_node",
     "_build_ipam_prefix_resolve_nodes",
-    "_build_multi_object_addr_analysis",
-    "_build_object_address_analysis",
+    "_build_multi_object_addr_analyzer",
+    "_build_object_address_analyzer",
     "_collapse_ipa_cell_object_tree_roots",
     "_collect_addr_tree_leaf_keys_under",
     "_collect_addr_tree_leaf_map",
@@ -390,7 +390,7 @@ __all__ = (
     "_ipam_stats_subnet_count",
     "_ipam_stats_total",
     "_is_ipam_addr_object",
-    "_leaf_count_for_addr_analysis",
+    "_leaf_count_for_addr_analyzer",
     "_lookup_containing_prefix_for_intersection_node",
     "_lookup_ipam_prefix_for_cidr",
     "_lookup_ipam_prefix_from_ip_ref",
@@ -404,7 +404,7 @@ __all__ = (
     "_navigation_ref",
     "_net_contains_ip_key",
     "_object_is_addr_analyzable",
-    "_object_supports_addr_analysis",
+    "_object_supports_addr_analyzer",
     "_ordered_ipam_stats",
     "_parse_ipa_column_selections",
     "_prefix_addr_copy_lines",
@@ -421,7 +421,7 @@ __all__ = (
     "_sort_ipa_object_tree_siblings",
     "_shallow_addr_leaf_for_diff",
     "_suppress_diff_status_on_both_group_leaves",
-    "_type_counts_for_addr_analysis",
+    "_type_counts_for_addr_analyzer",
     "_type_counts_for_addr_nodes",
     "_type_counts_for_diff_addr_entry",
     "_type_counts_for_diff_addr_keys",

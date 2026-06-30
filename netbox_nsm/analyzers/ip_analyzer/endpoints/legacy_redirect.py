@@ -1,7 +1,7 @@
 """
-Legacy redirect for the removed standalone IP Analysis page.
+Legacy redirect for the removed standalone IP Analyzer page.
 
-Bookmarks and old links under ``/plugins/netbox-nsm/ip-analysis/`` are sent to
+Bookmarks and old links under ``/plugins/netbox-nsm/ip-analyzer/`` are sent to
 Object Analyzer. When the old column-A query params are present, the first
 object is pre-selected.
 """
@@ -15,7 +15,7 @@ from django.shortcuts import redirect
 from django.urls import reverse
 from django.views import View
 
-__all__ = ("IpAnalysisLegacyRedirectView",)
+__all__ = ("IpAnalyzerLegacyRedirectView",)
 
 
 def _first_legacy_object_params(request) -> dict[str, str] | None:
@@ -32,7 +32,7 @@ def _first_legacy_object_params(request) -> dict[str, str] | None:
     return None
 
 
-class IpAnalysisLegacyRedirectView(LoginRequiredMixin, View):
+class IpAnalyzerLegacyRedirectView(LoginRequiredMixin, View):
     def get(self, request):
         from netbox_nsm.analyzers.registry import analyzer_reverse
 

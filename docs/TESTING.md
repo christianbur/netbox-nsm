@@ -96,4 +96,4 @@ Pushes to feature branches with an open PR do **not** start duplicate push + pul
 
 ## Test layout
 
-Tests live under `netbox_nsm/tests/`. Shared test bases are in `netbox_nsm/tests/custom.py`. The suite covers REST API (including `test_ip_analysis_rest_api`), rulebook/rules/matrix views, Security Panel, setup wizard, and related utilities.
+Tests live under `netbox_nsm/tests/`. Shared test bases are in `netbox_nsm/tests/custom.py`. The suite covers REST API (including `test_ip_analyzer_rest_api`), rulebook/rules/matrix views, Security Panel, setup wizard, and related utilities.

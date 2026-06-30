@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils import (
+from netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils import (
     _attach_addr_node_prefix_display,
 )
 
@@ -86,10 +86,10 @@ class AddrPrefixFormatTests(SimpleTestCase):
 
     def test_prefix_format_assets_expose_toggle_without_copy_buttons(self):
         assets = (
-            _PLUGIN_ROOT / "templates/netbox_nsm/inc/addr_analysis_assets.html"
+            _PLUGIN_ROOT / "templates/netbox_nsm/inc/ip_analyzer_assets.html"
         ).read_text(encoding="utf-8")
         panel = (
-            _PLUGIN_ROOT / "templates/netbox_nsm/inc/addr_analysis_panel.html"
+            _PLUGIN_ROOT / "templates/netbox_nsm/inc/ip_analyzer_panel.html"
         ).read_text(encoding="utf-8")
         tree = (
             _PLUGIN_ROOT / "templates/netbox_nsm/inc/addr_tree_node.html"

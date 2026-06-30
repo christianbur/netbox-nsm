@@ -15,7 +15,7 @@ Anzeige und UI-Interaktion zuständig.
 | `analysis/ipa_tree_dedupe.py` | Dedupe/Warnungen im Objektbaum |
 | `analysis/addr_netmask.py` | IPv4 CIDR → Netmask (serverseitig) |
 | `analysis/ipa_yaml_export.py` | YAML-Export |
-| `analysis/ip_analysis_service.py` | Gemeinsame Payload-Erzeugung (HTML + JSON) |
+| `analysis/ip_analyzer_service.py` | Gemeinsame Payload-Erzeugung (HTML + JSON) |
 
 ## API-Endpunkte
 
@@ -23,16 +23,16 @@ Anzeige und UI-Interaktion zuständig.
 
 | Endpunkt | Funktion |
 |----------|----------|
-| `GET /plugins/netbox-nsm/api/ip-analysis/` | Merge, Diff, YAML (`format=yaml`) |
-| `GET /plugins/netbox-nsm/api/ip-analysis/category/` | Lazy-Load Prefix/Range-Kategorien |
-| `GET /plugins/netbox-nsm/api/ip-analysis/object/` | Lazy-Load Objekt-Drilldown |
-| `GET /plugins/netbox-nsm/api/ip-analysis/add-object-types/` | Add-Object-Menü |
+| `GET /plugins/netbox-nsm/api/ip-analyzer/` | Merge, Diff, YAML (`format=yaml`) |
+| `GET /plugins/netbox-nsm/api/ip-analyzer/category/` | Lazy-Load Prefix/Range-Kategorien |
+| `GET /plugins/netbox-nsm/api/ip-analyzer/object/` | Lazy-Load Objekt-Drilldown |
+| `GET /plugins/netbox-nsm/api/ip-analyzer/add-object-types/` | Add-Object-Menü |
 
 ### REST (Token-Auth, nur JSON)
 
 | Endpunkt | Funktion |
 |----------|----------|
-| `GET\|POST /api/plugins/netbox-nsm/ip-analysis/` | Merge/Diff für Skripte und Integrationen |
+| `GET\|POST /api/plugins/netbox-nsm/ip-analyzer/` | Merge/Diff für Skripte und Integrationen |
 
 ## JavaScript (nur Anzeige)
 
@@ -41,7 +41,7 @@ Anzeige und UI-Interaktion zuständig.
 | `plugin_assets/js/nsm_ip_analyzer_applet.js` | Floating Applet: Tabs, Drag/Resize, API-Fetch, HTML-Injection |
 | `plugin_assets/js/nsm_ipa_util.js` | i18n, Query-Strings, Footer-Formatierung, Blob-Download |
 | `plugin_assets/js/nsm_ipa_cell.js` | Loupe-Klick: `ct`/`pk` aus DOM sammeln |
-| `templates/.../addr_analysis_assets.html` | CIDR/Netmask-Toggle, Lazy-Load-Handler |
+| `templates/.../ip_analyzer_assets.html` | CIDR/Netmask-Toggle, Lazy-Load-Handler |
 
 **Erlaubt in JS:** DOM lesen, API aufrufen, HTML einfügen, Expand/Collapse, Tab-Verwaltung,
 i18n-Formatierung von serverseitigen Zählungen (`diff_summary`, `count_*`).
@@ -93,7 +93,7 @@ Implementierung zurück (SimpleTestCase-kompatibel). Die Schritte
 - **Rules-TOML export:** the rulebook rules table (not the applet) exports the visible
   rows as a structured TOML document (`format = "netbox-nsm-rules-visible-v1"`,
   `application/toml`, `*.toml`) via `exportRulesToml`; the previous CSV export is gone.
-- **Standalone IP Analysis page removed:** `/plugins/netbox-nsm/ip-analysis/` permanently
+- **Standalone IP Analyzer page removed:** `/plugins/netbox-nsm/ip-analyzer/` permanently
   redirects to **Object Analyzer**; address resolution lives only in this applet and the
   analysis APIs.
 
@@ -102,17 +102,17 @@ Implementierung zurück (SimpleTestCase-kompatibel). Die Schritte
 ```
 Rules-Zelle / Loupe
     → JS sammelt ct/pk (+ optional Regel-Kontext)
-    → GET api/ip-analysis/?ct=…&pk=…
+    → GET api/ip-analyzer/?ct=…&pk=…
     → Python: merge/diff → HTML + counts
     → JS injiziert HTML in Applet-Body
 
 Lazy-Load (Prefix-Kategorie)
-    → GET api/ip-analysis/category/?prefix_pk=…&category=…&offset=…
+    → GET api/ip-analyzer/category/?prefix_pk=…&category=…&offset=…
     → Python rendert Baum-Fragment
     → JS fügt HTML ein, re-init Prefix-Toggle
 
 Export
-    → GET api/ip-analysis/?format=yaml&…
+    → GET api/ip-analyzer/?format=yaml&…
     → Python serialisiert YAML
     → JS löst Blob-Download aus
 ```

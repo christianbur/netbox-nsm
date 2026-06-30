@@ -1,7 +1,7 @@
 """
 JSON API for the floating IP Analyzer applet.
 
-GET /plugins/netbox-nsm/api/ip-analysis/?ct=<id>&pk=<id>&ct=...&pk=...
+GET /plugins/netbox-nsm/api/ip-analyzer/?ct=<id>&pk=<id>&ct=...&pk=...
 """
 
 from __future__ import annotations
@@ -13,10 +13,10 @@ from django.http import HttpResponse, JsonResponse
 from django.utils.translation import gettext as _
 from django.views import View
 
-from netbox_nsm.analyzers.ip_analyzer.ip_analysis_service import (
-    execute_ip_analysis_diff,
-    execute_ip_analysis_merge,
-    ip_analysis_json_response,
+from netbox_nsm.analyzers.ip_analyzer.ip_analyzer_service import (
+    execute_ip_analyzer_diff,
+    execute_ip_analyzer_merge,
+    ip_analyzer_json_response,
     parse_diff_sides_from_request,
     parse_object_refs,
     parse_selections_from_request,
@@ -29,23 +29,23 @@ from netbox_nsm.analyzers.ip_analyzer.ipa_yaml_export import (
     serialize_ipa_export_yaml,
 )
 
-__all__ = ("IpAnalysisApiView",)
+__all__ = ("IpAnalyzerApiView",)
 
 logger = logging.getLogger(__name__)
 
 
-class IpAnalysisApiView(LoginRequiredMixin, View):
+class IpAnalyzerApiView(LoginRequiredMixin, View):
     http_method_names = ["get"]
 
     def get(self, request):
         try:
             return self._get(request)
         except Exception as exc:
-            logger.exception("IP analysis UI API failed")
+            logger.exception("IP analyzer UI API failed")
             detail = str(exc).strip() or exc.__class__.__name__
             return JsonResponse(
                 {
-                    "error": _("Analysis failed: %(detail)s") % {"detail": detail},
+                    "error": _("Analyzer failed: %(detail)s") % {"detail": detail},
                     "detail": detail,
                 },
                 status=500,
@@ -67,7 +67,7 @@ class IpAnalysisApiView(LoginRequiredMixin, View):
         selections, objs, unsupported, raw_selections, obj_by_key, _unauthorized = (
             parse_selections_from_request(request)
         )
-        payload = execute_ip_analysis_merge(
+        payload = execute_ip_analyzer_merge(
             selections=selections,
             objs=objs,
             unsupported=unsupported,
@@ -79,7 +79,7 @@ class IpAnalysisApiView(LoginRequiredMixin, View):
         )
         if export_yaml:
             return self._yaml_response(request, payload)
-        return ip_analysis_json_response(payload)
+        return ip_analyzer_json_response(payload)
 
     def _get_diff(self, request, *, export_yaml=False):
         sides = parse_diff_sides_from_request(request)
@@ -88,7 +88,7 @@ class IpAnalysisApiView(LoginRequiredMixin, View):
                 {"error": "At least two diff sides required"}, status=400
             )
 
-        payload = execute_ip_analysis_diff(
+        payload = execute_ip_analyzer_diff(
             sides=sides,
             request=request,
             include_html=not export_yaml,
@@ -96,7 +96,7 @@ class IpAnalysisApiView(LoginRequiredMixin, View):
         )
         if export_yaml:
             return self._yaml_response(request, payload)
-        return ip_analysis_json_response(payload)
+        return ip_analyzer_json_response(payload)
 
     def _yaml_response(self, request, payload):
         export_context = parse_export_context_from_request(request)

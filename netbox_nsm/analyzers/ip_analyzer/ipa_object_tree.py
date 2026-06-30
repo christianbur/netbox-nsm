@@ -44,17 +44,17 @@ IPA_CELL_ROOT_GROUPS_COLLAPSE_THRESHOLD = 3
 IPA_TREE_NODE_COLLAPSED_ROOT_GROUPS = "collapsed_root_groups"
 
 def _build_ipa_object_columns(selections, objs):
-    """IP Analysis: one table column per selected object (name + counter in header)."""
+    """IP Analyzer: one table column per selected object (name + counter in header)."""
     columns = []
     for sel, obj in zip(selections, objs):
-        analysis = _hub._build_multi_object_addr_analysis([obj]) if obj else []
+        analysis = _hub._build_multi_object_addr_analyzer([obj]) if obj else []
         columns.append(
             {
                 "name": sel["name"],
                 "ct": sel["ct"],
                 "pk": sel["pk"],
-                "leaf_count": _hub._leaf_count_for_addr_analysis(analysis),
-                "addr_analysis": analysis,
+                "leaf_count": _hub._leaf_count_for_addr_analyzer(analysis),
+                "addr_analyzer": analysis,
             }
         )
     return columns
@@ -63,7 +63,7 @@ def _build_ipa_object_columns(selections, objs):
 def _parse_ipa_column_selections(request, col_suffix=""):
     """
     Parse repeated ip_ct/ip_pk/ip_name (or ip2_*) query params.
-    Returns (selections, addr_analysis) where selections is
+    Returns (selections, addr_analyzer) where selections is
     [{"ct", "pk", "name"}, ...].
     """
     from django.contrib.contenttypes.models import ContentType as _CT
@@ -2747,7 +2747,7 @@ def _ipa_cell_object_tree_visible(nodes, raw_count, *, prefer_logical_merge=Fals
 
     Always prefer the object tree when nodes were built: users expand prefixes via
     ``addr_drilldown_lazy`` and need ``ipam_stats`` on NSM objects. The merged
-    addr_analysis tree remains available for counts/CSV fallback only.
+    addr_analyzer tree remains available for counts/CSV fallback only.
     """
     del prefer_logical_merge, raw_count  # kept for stable call/patch signatures
     return bool(nodes)
@@ -3447,7 +3447,7 @@ def _flatten_ipa_object_tree_copy_lines(nodes, path_prefix=None):
 
 
 def _copy_ipa_cell_tree_subtree(node):
-    """Recursive copy of a cell-tree node dict (avoid mutating diff addr_analysis)."""
+    """Recursive copy of a cell-tree node dict (avoid mutating diff addr_analyzer)."""
     copied = {key: value for key, value in node.items() if key != "children"}
     children = node.get("children") or []
     if children:
@@ -3455,10 +3455,10 @@ def _copy_ipa_cell_tree_subtree(node):
     return copied
 
 
-def _collect_addr_diff_cell_tree_groups(addr_analysis):
-    """Extract diff group roots from ``addr_analysis`` sections."""
+def _collect_addr_diff_cell_tree_groups(addr_analyzer):
+    """Extract diff group roots from ``addr_analyzer`` sections."""
     groups = []
-    for section in addr_analysis or []:
+    for section in addr_analyzer or []:
         for type_block in section.get("types") or []:
             for group in type_block.get("nodes") or []:
                 if group.get("diff_group"):
@@ -3489,14 +3489,14 @@ def _prepare_diff_cell_tree_node(node):
     return prepared
 
 
-def _build_ipa_cell_object_tree_from_diff(addr_analysis):
+def _build_ipa_cell_object_tree_from_diff(addr_analyzer):
     """
     Convert addr diff analysis groups into IPA cell-tree ``object_tree`` nodes.
 
     Reuses the same nine-column flat table as merge/cell selection mode; diff
     badges live in the **Diff** column, group backgrounds via ``diff_group``.
     """
-    groups = _collect_addr_diff_cell_tree_groups(addr_analysis)
+    groups = _collect_addr_diff_cell_tree_groups(addr_analyzer)
     if not groups:
         return []
 
@@ -3513,26 +3513,26 @@ def _build_ipa_cell_object_tree_from_diff(addr_analysis):
     return nodes
 
 
-def _apply_object_tree_copy_lines(addr_analysis, object_tree):
+def _apply_object_tree_copy_lines(addr_analyzer, object_tree):
     """Replace All-level CSV paths when the cell object tree is shown."""
-    if not object_tree or not addr_analysis:
-        return addr_analysis
+    if not object_tree or not addr_analyzer:
+        return addr_analyzer
     lines = _hub._prefix_addr_copy_lines(
         _flatten_ipa_object_tree_copy_lines(object_tree),
         "all",
     )
     if not lines:
-        return addr_analysis
-    for section in addr_analysis:
+        return addr_analyzer
+    for section in addr_analyzer:
         for type_block in section.get("types") or []:
             type_block["all_copy_lines"] = lines
-    return addr_analysis
+    return addr_analyzer
 
 
-def _build_object_address_analysis(_rulebook, obj, content_type_id):
-    """Address analysis for a single object (IP Analysis — object only, no src/dst)."""
+def _build_object_address_analyzer(_rulebook, obj, content_type_id):
+    """Address analysis for a single object (IP Analyzer — object only, no src/dst)."""
     if not obj or not content_type_id:
         return []
-    return _hub._build_multi_object_addr_analysis([obj])
+    return _hub._build_multi_object_addr_analyzer([obj])
 
 

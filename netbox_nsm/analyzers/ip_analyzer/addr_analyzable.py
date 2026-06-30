@@ -1,12 +1,12 @@
 
-"""Analyzable-object checks for IP Analysis."""
+"""Analyzable-object checks for IP Analyzer."""
 from __future__ import annotations
 import netbox_nsm.analyzers.ip_analyzer._lazy_api as _hub
 from netbox_nsm.core.type_kind import is_address_content_type_id
 from netbox_nsm.addresses.address_literal import is_literal_address
 from netbox_nsm.type_metadata.specs import content_type_ids_for_cot_slugs
 
-def _object_supports_addr_analysis(obj):
+def _object_supports_addr_analyzer(obj):
     """True when obj can be expanded as an address tree (group container or IP leaf)."""
     if _hub._addr_ip_ref(obj) is not None or _hub._addr_is_group_container(obj):
         return True
@@ -28,7 +28,7 @@ def _object_is_addr_analyzable(obj, content_type_id, address_ct_ids=None):
     """True when content type is address-class and the object can be IP-analyzed."""
     if not obj or not content_type_id:
         return False
-    if not _hub._object_supports_addr_analysis(obj):
+    if not _hub._object_supports_addr_analyzer(obj):
         return False
     if _hub._is_ipam_addr_object(obj):
         return True

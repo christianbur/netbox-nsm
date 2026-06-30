@@ -152,13 +152,13 @@ class IpaObjectNodeRoleTests(SimpleTestCase):
 
 class IpaNestedGroupTreeTests(SimpleTestCase):
     @patch("django.contrib.contenttypes.models.ContentType")
-    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._attach_ipa_object_tree_ipam_stats")
-    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_ip_ref")
-    @patch("netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils._addr_group_members")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._attach_ipa_object_tree_ipam_stats")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._addr_ip_ref")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._addr_group_members")
     def test_nested_groups_assign_group_depth_and_expand_members(
         self, members_fn, ip_ref_fn, _stats_fn, content_type_cls
     ):
-        from netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils import _build_ipa_cell_object_tree
+        from netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils import _build_ipa_cell_object_tree
 
         ct = MagicMock()
         ct.pk = 10

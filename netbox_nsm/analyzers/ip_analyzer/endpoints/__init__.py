@@ -1,15 +1,15 @@
 """IP Analyzer HTTP views (plugin UI APIs and legacy redirect)."""
 
-from .add_object_api import IpAnalysisAddObjectTypesApiView
-from .api import IpAnalysisApiView
-from .category_api import IpAnalysisCategoryApiView
-from .legacy_redirect import IpAnalysisLegacyRedirectView
-from .object_api import IpAnalysisObjectDrilldownApiView
+from .add_object_api import IpAnalyzerAddObjectTypesApiView
+from .api import IpAnalyzerApiView
+from .category_api import IpAnalyzerCategoryApiView
+from .legacy_redirect import IpAnalyzerLegacyRedirectView
+from .object_api import IpAnalyzerObjectDrilldownApiView
 
 __all__ = (
-    "IpAnalysisAddObjectTypesApiView",
-    "IpAnalysisApiView",
-    "IpAnalysisCategoryApiView",
-    "IpAnalysisLegacyRedirectView",
-    "IpAnalysisObjectDrilldownApiView",
+    "IpAnalyzerAddObjectTypesApiView",
+    "IpAnalyzerApiView",
+    "IpAnalyzerCategoryApiView",
+    "IpAnalyzerLegacyRedirectView",
+    "IpAnalyzerObjectDrilldownApiView",
 )

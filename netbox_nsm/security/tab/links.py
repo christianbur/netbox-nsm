@@ -149,7 +149,7 @@ def _smart_pages(page, paginator, *, window: int = 2) -> list[int | None]:
 
 
 def _row_has_actions(obj: dict) -> bool:
-    if obj.get("supports_addr_analysis") or obj.get("addr_analyzable"):
+    if obj.get("supports_addr_analyzer") or obj.get("addr_analyzable"):
         return True
     return bool(obj.get("edit_url") or obj.get("delete_url"))
 

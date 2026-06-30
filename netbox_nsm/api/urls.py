@@ -2,7 +2,7 @@ from django.urls import path
 
 from netbox.api.routers import NetBoxRouter
 
-from .ip_analysis import IpAnalysisRestApiView
+from .ip_analyzer import IpAnalyzerRestApiView
 from .nsm_config import NsmConfigApiView
 from .views import (
     NetBoxSecurityRootView,
@@ -16,7 +16,7 @@ router.APIRootView = NetBoxSecurityRootView
 router.register("object-links", ObjectLinkViewSet, basename="objectlink")
 
 urlpatterns = [
-    path("ip-analysis/", IpAnalysisRestApiView.as_view(), name="ip-analysis"),
+    path("ip-analyzer/", IpAnalyzerRestApiView.as_view(), name="ip-analyzer"),
     path(
         "nsm-configs/<slug:slug>/",
         NsmConfigApiView.as_view(),

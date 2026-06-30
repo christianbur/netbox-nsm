@@ -20,7 +20,7 @@ class Command(BaseCommand):
             )
             return
 
-        from netbox_nsm.objects.type_config_export import backfill_cot_nsm_config_comments
+        from netbox_nsm.type_metadata.export import backfill_cot_nsm_config_comments
 
         updated = backfill_cot_nsm_config_comments()
         self.stdout.write(

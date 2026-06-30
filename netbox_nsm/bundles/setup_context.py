@@ -9,7 +9,7 @@ from netbox_nsm.bundles.schema_builder import (
     build_portable_schema_preview_types,
     export_portable_schema_yaml,
 )
-from netbox_nsm.objects.type_config_specs import REQUIRED_COT_SLUGS
+from netbox_nsm.type_metadata.specs import REQUIRED_COT_SLUGS
 from netbox_nsm.bundles.dispatch import list_setup_bundles, load_bundle
 from netbox_nsm.bundles.paths import bundle_json_path
 

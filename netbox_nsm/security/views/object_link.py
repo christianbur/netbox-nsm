@@ -7,7 +7,7 @@ from django.utils.translation import gettext_lazy as _
 from django.views import View
 
 from netbox_nsm.forms import ObjectLinkAssignForm, ObjectLinkEditForm
-from netbox_nsm.objects.nsm_config import (
+from netbox_nsm.type_metadata.config import (
     is_assignable_from_content_type,
     is_linkable_content_type,
 )

@@ -2,14 +2,14 @@
 
 import yaml
 
-from netbox_nsm.objects.nsm_config import (
+from netbox_nsm.type_metadata.config import (
     config_dict_from_spec,
     extract_nsm_config_from_type_comments,
     format_nsm_config_comment_yaml,
     normalize_nsm_config_list,
     parse_nsm_config_from_comments,
 )
-from netbox_nsm.objects.type_config_specs import TYPECONFIG_SPEC_BY_SLUG
+from netbox_nsm.type_metadata.specs import TYPECONFIG_SPEC_BY_SLUG
 from utilities.testing import TestCase
 
 

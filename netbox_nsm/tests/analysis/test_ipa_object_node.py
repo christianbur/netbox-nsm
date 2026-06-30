@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 from django.test import SimpleTestCase
 
 from netbox_nsm.analyzers.ip_analyzer.addr_constants import FIELD_TYPE_LABELS
-from netbox_nsm.objects.address_literal import format_network_nsm_config_comments
+from netbox_nsm.addresses.address_literal import format_network_nsm_config_comments
 from netbox_nsm.analyzers.ip_analyzer.ipa_object_node import (
     IPA_NODE_ROLE_GROUP,
     IPA_NODE_ROLE_HOST,

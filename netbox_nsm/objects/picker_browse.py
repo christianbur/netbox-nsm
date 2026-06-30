@@ -105,7 +105,7 @@ def _filter_queryset_by_query(qs, model_class, q: str):
 
 def is_picker_browse_allowed(ct_id: int) -> bool:
     """True when this content type may appear in a COT rulebook field picker."""
-    from netbox_nsm.objects.nsm_config import has_nsm_config_for_content_type
+    from netbox_nsm.type_metadata.config import has_nsm_config_for_content_type
 
     return has_nsm_config_for_content_type(ct_id)
 

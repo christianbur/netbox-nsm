@@ -14,7 +14,7 @@ from django.views import View
 
 from netbox_nsm.core.setup_flags import setup_allow_destructive_actions, setup_menu_enabled
 from netbox_nsm.bundles import setup_context
-from netbox_nsm.objects.nsm_config_permissions import (
+from netbox_nsm.type_metadata.permissions import (
     ADD_CUSTOM_OBJECT_TYPE,
     CHANGE_CUSTOM_OBJECT_TYPE,
     VIEW_CUSTOM_OBJECT_TYPE,

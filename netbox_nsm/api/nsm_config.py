@@ -15,12 +15,12 @@ from netbox_nsm.api.serializers_.nsm_config import (
     NsmConfigApiSerializer,
     NsmConfigDocumentSerializer,
 )
-from netbox_nsm.objects.nsm_config import (
+from netbox_nsm.type_metadata.config import (
     clear_nsm_config_from_cot_comments,
     parse_nsm_config_document_from_comments,
     save_nsm_config_document_for_cot,
 )
-from netbox_nsm.objects.nsm_config_permissions import (
+from netbox_nsm.type_metadata.permissions import (
     nsm_config_change_permission,
     nsm_config_view_permission,
 )

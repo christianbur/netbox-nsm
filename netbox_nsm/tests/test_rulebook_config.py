@@ -2,11 +2,11 @@
 
 import yaml
 
-from netbox_nsm.objects.nsm_config import (
+from netbox_nsm.type_metadata.config import (
     format_nsm_config_comment_yaml,
     parse_nsm_config_from_comments,
 )
-from netbox_nsm.objects.rulebook_config import (
+from netbox_nsm.type_metadata.rulebook import (
     DEFAULT_RULEBOOK_CONFIG,
     format_rulebook_config_yaml,
     is_default_rulebook_config,

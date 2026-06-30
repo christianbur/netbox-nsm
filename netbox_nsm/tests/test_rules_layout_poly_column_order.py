@@ -6,7 +6,7 @@ from unittest.mock import patch
 from django.contrib.contenttypes.models import ContentType
 from extras.choices import CustomFieldTypeChoices
 
-from netbox_nsm.objects.nsm_config import format_nsm_config_comment_yaml
+from netbox_nsm.type_metadata.config import format_nsm_config_comment_yaml
 from netbox_nsm.rulebooks.rules_layout import (
     build_cot_rules_layout,
     cot_field_allowed_object_labels,

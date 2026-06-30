@@ -10,8 +10,8 @@ from dcim.models import Device, Interface, Rack, Region, Site
 from ipam.models import IPAddress, Prefix, VLAN, VRF
 from virtualization.models import VirtualMachine
 
-from netbox_nsm.objects.nsm_config import NsmTypeConfig
-from netbox_nsm.objects.type_config_export import (
+from netbox_nsm.type_metadata.config import NsmTypeConfig
+from netbox_nsm.type_metadata.export import (
     backfill_cot_nsm_config_comments,
     build_all_type_configs_preview_rows,
     build_type_config_export_data,
@@ -26,9 +26,9 @@ from netbox_nsm.objects.type_config_export import (
     format_type_config_comment_yaml_for_config,
     sync_cot_nsm_config_comments,
 )
-from netbox_nsm.objects.type_config_specs import TYPECONFIG_UI_SPECS
+from netbox_nsm.type_metadata.specs import TYPECONFIG_UI_SPECS
 from netbox_nsm.tests.rulebook_permission_helpers import grant_nsm_config_perms
-from netbox_nsm.views.type_metadata import TypeMetadataListEntry
+from netbox_nsm.type_metadata.views import TypeMetadataListEntry
 from utilities.testing import TestCase
 
 

@@ -1,4 +1,4 @@
-"""Address analysis — re-export surface for tests and legacy imports.
+"""Address analysis — public API surface for IP analyzer tests and services.
 
 Public names without a leading underscore (e.g. ``build_multi_object_addr_analysis``)
 are the stable API for views and services. Underscore-prefixed names remain for
@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import builtins
 
-from netbox_nsm.objects.type_config_specs import content_type_ids_for_cot_slugs
+from netbox_nsm.type_metadata.specs import content_type_ids_for_cot_slugs
 
 # Test patches target these names on this module (see test_addr_copy_paths / applet tests).
 isinstance = builtins.isinstance

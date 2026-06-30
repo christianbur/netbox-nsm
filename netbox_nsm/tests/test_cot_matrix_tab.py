@@ -13,7 +13,7 @@ from netbox_nsm.matrix.cot_matrix_tab_context import (
     cot_rulebook_matrix_capable,
     cot_rulebook_matrix_enabled,
 )
-from netbox_nsm.objects.rulebook_config import (
+from netbox_nsm.type_metadata.rulebook import (
     resolve_rulebook_config_for_cot,
     save_rulebook_config_for_cot,
 )

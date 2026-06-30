@@ -11,7 +11,7 @@ from netbox_nsm.core.display_template import (
     validate_display_template,
 )
 from netbox_nsm.core.display_utils import apply_display_template
-from netbox_nsm.objects.nsm_config import normalize_nsm_config_list
+from netbox_nsm.type_metadata.config import normalize_nsm_config_list
 from utilities.testing import TestCase
 
 

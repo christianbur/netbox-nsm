@@ -9,7 +9,7 @@ from dcim.models import Device, Interface
 from ipam.models import Prefix
 
 from netbox_nsm.forms.object_link import ObjectLinkAssignForm, _build_type_choices
-from netbox_nsm.objects.nsm_config import NsmTypeConfig
+from netbox_nsm.type_metadata.config import NsmTypeConfig
 from utilities.testing import TestCase
 
 

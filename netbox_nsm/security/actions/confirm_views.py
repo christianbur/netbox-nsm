@@ -15,7 +15,7 @@ from netbox_nsm.addresses.address_ipam_fk import (
     get_nsm_address_model,
     panel_link_type_for_address_ipam_fk,
 )
-from netbox_nsm.objects.nsm_config_permissions import (
+from netbox_nsm.type_metadata.permissions import (
     can_change_cot_instance,
     can_delete_cot_instance,
 )

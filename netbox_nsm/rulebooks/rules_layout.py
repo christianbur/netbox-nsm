@@ -305,7 +305,7 @@ def _cot_for_object_type(object_type):
 
 def _build_type_config_sort_lookup(*, rulebook_cot=None) -> dict[int, tuple[int, str]]:
     """Map ``content_type_id`` → ``(sort_order, name)`` for layout column ordering."""
-    from netbox_nsm.objects.nsm_config import build_nsm_config_lookup
+    from netbox_nsm.type_metadata.config import build_nsm_config_lookup
 
     return {
         config.content_type_id: (config.sort_order, (config.name or "").strip())
@@ -318,7 +318,7 @@ def _sort_key_for_object_type(
     *,
     tc_lookup: dict[int, tuple[int, str]] | None = None,
 ) -> tuple[int, str, str]:
-    from netbox_nsm.objects.type_config_specs import default_sort_order_for_slug
+    from netbox_nsm.type_metadata.specs import default_sort_order_for_slug
 
     ct_id = None
     try:
@@ -602,7 +602,7 @@ def build_cot_grouped_rules_table_data(
     object_fields = list(
         virtual_rb.cot.fields.filter(name__in=field_names)
     )
-    from netbox_nsm.objects.type_config_specs import content_type_ids_for_cot_slugs
+    from netbox_nsm.type_metadata.specs import content_type_ids_for_cot_slugs
 
     ct_cache: dict = {}
     address_ct_ids = set(

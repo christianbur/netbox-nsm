@@ -16,7 +16,7 @@ from .modes import (
     get_security_allowed_ct_ids,
     parse_analyzer_mode,
 )
-from netbox_nsm.objects.nsm_config import build_nsm_config_lookup
+from netbox_nsm.type_metadata.config import build_nsm_config_lookup
 from netbox_nsm.rulebooks.permissions import user_can_access_rulebooks
 
 __all__ = ("ObjectAnalyzerView",)

@@ -29,16 +29,10 @@ def object_builder_in_nsm_config(cot) -> bool:
     if cot is None:
         return False
     comments = getattr(cot, "comments", "") or ""
-    try:
-        from netbox_nsm.type_metadata.config import (
-            parse_nsm_config_document_from_comments,
-            parse_nsm_config_from_comments,
-        )
-    except ImportError:
-        from netbox_nsm.objects.nsm_config import (
-            parse_nsm_config_document_from_comments,
-            parse_nsm_config_from_comments,
-        )
+    from netbox_nsm.type_metadata.config import (
+        parse_nsm_config_document_from_comments,
+        parse_nsm_config_from_comments,
+    )
 
     parsed = parse_nsm_config_from_comments(comments)
     if parsed and _truthy_object_builder_block(parsed.get("object_builder")):

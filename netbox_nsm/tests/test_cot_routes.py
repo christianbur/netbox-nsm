@@ -10,7 +10,7 @@ from netbox_nsm.objects.cot_routes import (
     cot_belongs_to_nsm_objects_menu,
     is_nsm_object_menu_slug,
 )
-from netbox_nsm.objects.nsm_config import merge_nsm_config_document_into_comments
+from netbox_nsm.type_metadata.config import merge_nsm_config_document_into_comments
 
 
 class CotRoutesTests(SimpleTestCase):

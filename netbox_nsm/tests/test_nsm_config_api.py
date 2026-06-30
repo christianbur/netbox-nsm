@@ -2,7 +2,7 @@
 
 from django.urls import reverse
 
-from netbox_nsm.objects.nsm_config import parse_nsm_config_document_from_comments
+from netbox_nsm.type_metadata.config import parse_nsm_config_document_from_comments
 
 from netbox_nsm.rulebooks.templates import RULEBOOK_GROUP
 from utilities.testing import APITestCase

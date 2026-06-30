@@ -173,7 +173,7 @@ class CotRulebookView(_CotRulebookMixin, View):
             raise PermissionDenied()
         form = CotRulebookDetailForm(cot=cot, rulebook_slug=slug, data=request.POST)
         if form.is_valid():
-            from netbox_nsm.objects.rulebook_config import save_rulebook_config_for_cot
+            from netbox_nsm.type_metadata.rulebook import save_rulebook_config_for_cot
 
             update_cot_rulebook_metadata(
                 slug,

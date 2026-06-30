@@ -133,7 +133,7 @@ def create_cot_rulebook_from_schema_yaml(
 ):
     from netbox_custom_objects.models import CustomObjectType
     from netbox_custom_objects.schema.executor import apply_document
-    from netbox_nsm.objects.rulebook_config import save_rulebook_config_for_cot
+    from netbox_nsm.type_metadata.rulebook import save_rulebook_config_for_cot
     from netbox_nsm.rulebooks.cot_hierarchy import validate_cot_parent_slug
 
     slug = resolve_rulebook_slug(name)
@@ -185,7 +185,7 @@ def create_cot_rulebook_from_template(
 ):
     from netbox_custom_objects.models import CustomObjectType
     from netbox_custom_objects.schema.executor import apply_document
-    from netbox_nsm.objects.rulebook_config import save_rulebook_config_for_cot
+    from netbox_nsm.type_metadata.rulebook import save_rulebook_config_for_cot
     from netbox_nsm.rulebooks.cot_hierarchy import validate_cot_parent_slug
 
     slug = resolve_rulebook_slug(name)

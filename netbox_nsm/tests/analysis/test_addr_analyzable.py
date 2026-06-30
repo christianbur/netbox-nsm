@@ -8,7 +8,7 @@ from netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils import (
     _object_is_addr_analyzable,
     _object_supports_addr_analysis,
 )
-from netbox_nsm.objects.address_literal import format_network_nsm_config_comments
+from netbox_nsm.addresses.address_literal import format_network_nsm_config_comments
 
 class ObjectIsAddrAnalyzableTests(SimpleTestCase):
     def test_nsm_object_requires_address_content_type(self):

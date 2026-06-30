@@ -13,7 +13,7 @@ from netbox_nsm.objects.group_inheritance import (
 from netbox_nsm.addresses.ipam_inheritance import should_include_inherited_type
 from netbox_nsm.models.object_link import LinkPropagationChoices
 from netbox_nsm.security.links.object_link_service import ObjectLinkRecord
-from netbox_nsm.objects.type_config_specs import TYPECONFIG_SPEC_BY_SLUG
+from netbox_nsm.type_metadata.specs import TYPECONFIG_SPEC_BY_SLUG
 
 
 class GroupInheritanceTests(SimpleTestCase):

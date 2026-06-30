@@ -11,7 +11,7 @@ from netbox_nsm.core.poly_subfield_labels import (
     poly_subfield_type_label,
     shorten_rulebook_poly_subfield_labels,
 )
-from netbox_nsm.objects.nsm_config import format_nsm_config_comment_yaml
+from netbox_nsm.type_metadata.config import format_nsm_config_comment_yaml
 from utilities.testing import TestCase
 
 

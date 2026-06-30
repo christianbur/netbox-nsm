@@ -2,9 +2,9 @@
 
 from django.utils.translation import gettext as _
 
-from netbox_nsm.forms.type_config import NsmAddressConfigForm, NsmConfigForm, area_labels_for_values
+from netbox_nsm.type_metadata.forms import NsmAddressConfigForm, NsmConfigForm, area_labels_for_values
 from netbox_nsm.forms.widgets import BtnCheckMultipleWidget
-from netbox_nsm.objects.type_config_specs import (
+from netbox_nsm.type_metadata.specs import (
     TYPECONFIG_SORT_ORDER_BY_SLUG,
     TYPECONFIG_SPECS,
     TYPECONFIG_UI_SPECS,

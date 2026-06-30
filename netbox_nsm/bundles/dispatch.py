@@ -434,7 +434,7 @@ def _resolve_portable_row_group_col_id(raw: str, *, rulebook_slug: str) -> str:
     cot_slug = type_ref.removeprefix("custom-objects/")
     if not cot_slug.startswith("nsm_"):
         return value
-    from netbox_nsm.objects.type_config_specs import content_type_ids_for_cot_slugs
+    from netbox_nsm.type_metadata.specs import content_type_ids_for_cot_slugs
 
     ct_ids = content_type_ids_for_cot_slugs([cot_slug])
     if not ct_ids:
@@ -456,7 +456,7 @@ def _sync_cot_group_name_from_menu(cot) -> None:
 
 def sync_metadata(metadata: dict | None) -> dict[str, int]:
     """Write bundle ``metadata`` into COT ``comments`` (via ``nsm_config`` YAML)."""
-    from netbox_nsm.objects.nsm_config import save_nsm_config_document_for_cot
+    from netbox_nsm.type_metadata.config import save_nsm_config_document_for_cot
 
     if not metadata:
         return {"types": 0, "rulebooks": 0}

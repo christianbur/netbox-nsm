@@ -2,7 +2,7 @@
 
 from types import SimpleNamespace
 
-from netbox_nsm.objects.nsm_config import (
+from netbox_nsm.type_metadata.config import (
     format_nsm_config_comment_yaml,
     merge_nsm_config_document_into_comments,
     parse_nsm_config_document_from_comments,

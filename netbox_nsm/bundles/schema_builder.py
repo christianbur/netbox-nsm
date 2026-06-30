@@ -156,11 +156,11 @@ def export_portable_schema_yaml(
     """Return portable schema as YAML with ``comments.nsm_config`` per UI type."""
     import yaml
 
-    from netbox_nsm.objects.nsm_config import (
+    from netbox_nsm.type_metadata.config import (
         config_dict_from_spec,
         format_type_comments_for_setup_yaml,
     )
-    from netbox_nsm.objects.type_config_specs import (
+    from netbox_nsm.type_metadata.specs import (
         TYPECONFIG_LIST_EXCLUDED_SLUGS,
         TYPECONFIG_SPEC_BY_SLUG,
     )
@@ -200,12 +200,12 @@ def build_portable_schema_preview_types(
     include_rulebook_templates: bool = False,
 ) -> list[dict]:
     """Human-readable preview rows per bundled COT type (slug, label, fields)."""
-    from netbox_nsm.objects.nsm_config import (
+    from netbox_nsm.type_metadata.config import (
         build_nsm_config_preview_rows,
         config_dict_from_spec,
         format_nsm_config_comment_yaml,
     )
-    from netbox_nsm.objects.type_config_specs import (
+    from netbox_nsm.type_metadata.specs import (
         TYPECONFIG_LIST_EXCLUDED_SLUGS,
         TYPECONFIG_SPEC_BY_SLUG,
     )
@@ -231,7 +231,7 @@ def build_portable_schema_preview_types(
         nsm_config_yaml = ""
         nsm_config_preview: list[dict] = []
         if spec and slug not in TYPECONFIG_LIST_EXCLUDED_SLUGS:
-            from netbox_nsm.objects.nsm_config import NsmTypeConfig
+            from netbox_nsm.type_metadata.config import NsmTypeConfig
 
             spec_config = config_dict_from_spec(spec)
             cfg = NsmTypeConfig(
@@ -274,7 +274,7 @@ def parse_custom_objects_schema_yaml(yaml_text: str) -> dict:
 
 
 def _validate_nsm_config_block(config: dict, *, slug: str) -> None:
-    from netbox_nsm.objects.nsm_config import normalize_nsm_config_list
+    from netbox_nsm.type_metadata.config import normalize_nsm_config_list
 
     if normalize_nsm_config_list(config) is None:
         raise ValueError(
@@ -284,7 +284,7 @@ def _validate_nsm_config_block(config: dict, *, slug: str) -> None:
 
 def validate_custom_objects_schema_yaml(yaml_text: str) -> dict:
     """Validate setup schema YAML and return the parsed document."""
-    from netbox_nsm.objects.nsm_config import extract_nsm_config_from_type_comments
+    from netbox_nsm.type_metadata.config import extract_nsm_config_from_type_comments
 
     document = parse_custom_objects_schema_yaml(yaml_text)
     for type_def in document.get("types", []):
@@ -313,7 +313,7 @@ def strip_nsm_config_sidecars(document: dict) -> tuple[dict, dict[str, dict]]:
     """Return apply-ready document and per-slug nsm_config payloads."""
     from copy import deepcopy
 
-    from netbox_nsm.objects.nsm_config import extract_nsm_config_from_type_comments
+    from netbox_nsm.type_metadata.config import extract_nsm_config_from_type_comments
 
     apply_doc = deepcopy(document)
     configs_by_slug: dict[str, dict] = {}

@@ -7,7 +7,7 @@ from typing import Iterator
 
 from django.contrib.contenttypes.models import ContentType
 
-from netbox_nsm.objects.nsm_config import is_linkable_content_type
+from netbox_nsm.type_metadata.config import is_linkable_content_type
 from netbox_nsm.models.object_link import LinkPropagationChoices
 from netbox_nsm.security.links.cot_link_schema import (
     ObjectLinkSchema,

@@ -166,7 +166,7 @@ def _security_nsm_ct_ids() -> set[int]:
     if ids:
         return ids
 
-    from netbox_nsm.objects.type_config_specs import content_type_ids_for_cot_slugs
+    from netbox_nsm.type_metadata.specs import content_type_ids_for_cot_slugs
 
     return set(content_type_ids_for_cot_slugs(sorted(SECURITY_NSM_COT_SLUGS)))
 

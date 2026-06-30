@@ -4,7 +4,7 @@ from __future__ import annotations
 import netbox_nsm.analyzers.ip_analyzer._lazy_api as _hub
 from netbox_nsm.core.type_kind import is_address_content_type_id
 from netbox_nsm.addresses.address_literal import is_literal_address
-from netbox_nsm.objects.type_config_specs import content_type_ids_for_cot_slugs
+from netbox_nsm.type_metadata.specs import content_type_ids_for_cot_slugs
 
 def _object_supports_addr_analysis(obj):
     """True when obj can be expanded as an address tree (group container or IP leaf)."""

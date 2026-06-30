@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from django.test import SimpleTestCase, override_settings
 
-from netbox_nsm.objects.address_name_templates import (
+from netbox_nsm.addresses.address_name_templates import (
     build_ipam_name_context,
     clear_name_template_caches,
     convert_short_syntax_to_jinja,

@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext_lazy as _
 
-from netbox_nsm.objects.nsm_config import (
+from netbox_nsm.type_metadata.config import (
     filter_assignable_configs,
     is_assignable_from_content_type,
     iter_linkable_configs,

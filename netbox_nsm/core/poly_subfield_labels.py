@@ -56,7 +56,7 @@ def poly_subfield_type_label(content_type_id: int) -> str:
     """
     from django.contrib.contenttypes.models import ContentType
 
-    from netbox_nsm.objects.nsm_config import resolve_nsm_config_for_content_type
+    from netbox_nsm.type_metadata.config import resolve_nsm_config_for_content_type
     from utilities.object_types import object_type_name
 
     config = resolve_nsm_config_for_content_type(content_type_id)

@@ -37,7 +37,7 @@ def get_display_template_map() -> dict[int, str]:
     Result is cached for the lifetime of the Python process (templates are
     virtually static at runtime; a container restart resets the cache).
     """
-    from netbox_nsm.objects.nsm_config import build_nsm_config_lookup
+    from netbox_nsm.type_metadata.config import build_nsm_config_lookup
 
     return {
         config.content_type_id: config.display_template
@@ -69,7 +69,7 @@ def changelog_content_type_label(content_type_id: int) -> str:
     from django.apps import apps as django_apps
     from django.contrib.contenttypes.models import ContentType
 
-    from netbox_nsm.objects.nsm_config import resolve_nsm_config_for_content_type
+    from netbox_nsm.type_metadata.config import resolve_nsm_config_for_content_type
 
     try:
         ct = ContentType.objects.get(pk=content_type_id)
@@ -116,7 +116,7 @@ def type_config_display_name(type_config, content_type=None) -> str:
 def type_config_display_name_for_ct_id(content_type_id: int) -> str:
     from django.contrib.contenttypes.models import ContentType
 
-    from netbox_nsm.objects.nsm_config import resolve_nsm_config_for_content_type
+    from netbox_nsm.type_metadata.config import resolve_nsm_config_for_content_type
 
     config = resolve_nsm_config_for_content_type(content_type_id)
     if config:

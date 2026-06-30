@@ -12,7 +12,7 @@ from netbox_nsm.bundles.schema_builder import (
     build_choice_set_specs,
     build_schema_document,
 )
-from netbox_nsm.objects.type_config_export import sync_cot_nsm_config_comments_for_slugs
+from netbox_nsm.type_metadata.export import sync_cot_nsm_config_comments_for_slugs
 
 choice_specs = build_choice_set_specs()
 for spec in choice_specs:

@@ -7,7 +7,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.test import RequestFactory, SimpleTestCase
 
 from netbox_nsm.addresses.ipam_inheritance import InheritedNsmLink
-from netbox_nsm.views.inherited_links_api import InheritedLinksApiView
+from netbox_nsm.security.views.inherited_links_api import InheritedLinksApiView
 
 
 class InheritedLinksApiTests(SimpleTestCase):

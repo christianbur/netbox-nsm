@@ -2,11 +2,11 @@
 
 from django.test import TestCase
 
-from netbox_nsm.objects.type_config_export import (
+from netbox_nsm.type_metadata.export import (
     backfill_cot_nsm_config_comments,
     sync_cot_nsm_config_comments,
 )
-from netbox_nsm.objects.type_config_specs import TYPECONFIG_LIST_EXCLUDED_SLUGS, TYPECONFIG_UI_SPECS
+from netbox_nsm.type_metadata.specs import TYPECONFIG_LIST_EXCLUDED_SLUGS, TYPECONFIG_UI_SPECS
 
 
 class CotNsmConfigCommentsApplyDocumentTests(TestCase):

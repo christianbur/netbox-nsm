@@ -13,11 +13,11 @@ from netbox_nsm.bundles.schema_builder import (
     iter_types,
     slugify_identifier,
 )
-from netbox_nsm.objects.type_config_export import (
+from netbox_nsm.type_metadata.export import (
     sync_cot_nsm_config_comments,
     sync_cot_nsm_config_comments_for_slugs,
 )
-from netbox_nsm.objects.type_config_specs import (
+from netbox_nsm.type_metadata.specs import (
     REQUIRED_COT_SLUGS,
     TYPECONFIG_SPEC_BY_SLUG,
 )
@@ -132,7 +132,7 @@ def _create_all_typeconfigs() -> None:
 
 
 def _typeconfigs_ok(cot_status: dict) -> bool:
-    from netbox_nsm.objects.nsm_config import has_nsm_config_in_comments
+    from netbox_nsm.type_metadata.config import has_nsm_config_in_comments
 
     if not _all_cots_ok(cot_status):
         return False

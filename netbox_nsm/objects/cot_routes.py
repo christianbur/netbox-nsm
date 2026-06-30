@@ -6,7 +6,7 @@ import contextvars
 
 from django.urls import reverse
 
-from netbox_nsm.objects.type_config_specs import TYPECONFIG_SPEC_BY_SLUG
+from netbox_nsm.type_metadata.specs import TYPECONFIG_SPEC_BY_SLUG
 from netbox_nsm.type_metadata.menus import (
     MENU_GROUP_NAMES,
     cot_has_menu,

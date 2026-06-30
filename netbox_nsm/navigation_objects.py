@@ -11,7 +11,7 @@ from netbox_nsm.objects.cot_routes import (
     iter_nsm_objects_menu_cots,
     nsm_object_menu_label_for_cot,
 )
-from netbox_nsm.objects.type_config_specs import default_sort_order_for_slug
+from netbox_nsm.type_metadata.specs import default_sort_order_for_slug
 
 __all__ = (
     "build_nsm_objects_menu_group",

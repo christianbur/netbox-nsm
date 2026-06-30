@@ -24,27 +24,27 @@ __all__ = (
 
 
 def load_cot_parent_map() -> dict[str, str]:
-    from netbox_nsm.objects.rulebook_config import load_rulebook_parent_map
+    from netbox_nsm.type_metadata.rulebook import load_rulebook_parent_map
 
     return load_rulebook_parent_map()
 
 
 def get_cot_parent_slug(slug: str) -> str:
-    from netbox_nsm.objects.rulebook_config import resolve_rulebook_config_for_slug
+    from netbox_nsm.type_metadata.rulebook import resolve_rulebook_config_for_slug
 
     return resolve_rulebook_config_for_slug(slug).get("parent_slug") or ""
 
 
 def get_cot_matrix_tab_enabled(slug: str) -> bool:
     """Return whether the Matrix tab is enabled; defaults to True."""
-    from netbox_nsm.objects.rulebook_config import resolve_rulebook_config_for_slug
+    from netbox_nsm.type_metadata.rulebook import resolve_rulebook_config_for_slug
 
     return resolve_rulebook_config_for_slug(slug)["matrix_tab_enabled"]
 
 
 def get_cot_row_group_by_col_id(slug: str) -> str:
     """Return configured rules-tab row group column id, or empty string."""
-    from netbox_nsm.objects.rulebook_config import resolve_rulebook_config_for_slug
+    from netbox_nsm.type_metadata.rulebook import resolve_rulebook_config_for_slug
 
     return resolve_rulebook_config_for_slug(slug).get("row_group_by_col_id") or ""
 

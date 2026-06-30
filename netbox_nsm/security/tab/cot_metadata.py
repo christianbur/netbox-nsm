@@ -31,7 +31,7 @@ def _link_table_from_mapping(mapping: dict | None) -> bool:
 
 def _link_table_from_nsm_config_comments(cot) -> bool:
     try:
-        from netbox_nsm.objects.nsm_config import (
+        from netbox_nsm.type_metadata.config import (
             parse_nsm_config_from_comments,
             resolve_nsm_config_dict_for_cot,
         )

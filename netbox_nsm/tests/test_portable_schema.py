@@ -3,7 +3,7 @@
 from unittest import TestCase
 
 from netbox_nsm.bundles.schema_builder import build_schema_document
-from netbox_nsm.objects.type_config_specs import REQUIRED_COT_SLUGS
+from netbox_nsm.type_metadata.specs import REQUIRED_COT_SLUGS
 from netbox_nsm.rulebooks.templates import (
     DEMO_ZONE_ADDRESSES_RULEBOOK_SLUG,
     DEMO_ZONE_MATRIX_RULEBOOK_SLUG,

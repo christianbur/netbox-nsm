@@ -26,7 +26,7 @@ from netbox_nsm.analyzers.ip_analyzer.endpoints import (
 from netbox_nsm.analyzers.object_analyzer.page_view import ObjectAnalyzerView
 from netbox_nsm.analyzers.object_report.views import ObjectReportView
 from .custom_objects_sync import SyncBuiltinToCustomObjectsView, SyncTypeConfigsView
-from .type_metadata import (
+from netbox_nsm.type_metadata.views import (
     TypeMetadataAddView,
     TypeMetadataDeleteView,
     TypeMetadataEditView,
@@ -40,8 +40,8 @@ from netbox_nsm.security.views.object_link import (
     ObjectLinkDeleteView,
     ObjectTypeElementsApiView,
 )
-from .rulebook_link import RulebookLinkAssignView, RulebookLinkDeleteView
-from .enforcement_point_link import (
+from netbox_nsm.security.views.rulebook_link import RulebookLinkAssignView, RulebookLinkDeleteView
+from netbox_nsm.security.views.enforcement_point_link import (
     EnforcementPointInterfaceAssignView,
     EnforcementPointLinkDeleteView,
 )

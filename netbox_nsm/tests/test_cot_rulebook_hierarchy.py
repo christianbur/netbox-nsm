@@ -9,7 +9,7 @@ from django.test import SimpleTestCase
 
 from utilities.testing import TestCase
 
-from netbox_nsm.objects.rulebook_config import save_rulebook_config_for_cot
+from netbox_nsm.type_metadata.rulebook import save_rulebook_config_for_cot
 from netbox_nsm.rulebooks.cot_hierarchy import collect_descendant_slugs, validate_cot_parent_slug
 from netbox_nsm.rulebooks.hierarchy import cot_rulebook_tree_order, hierarchy_depth, render_hierarchy_marker
 from netbox_nsm.rulebooks.templates import RULEBOOK_GROUP

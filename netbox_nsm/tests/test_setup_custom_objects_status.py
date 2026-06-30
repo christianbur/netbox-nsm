@@ -2,7 +2,7 @@
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.objects.type_config_specs import REQUIRED_COT_SLUGS
+from netbox_nsm.type_metadata.specs import REQUIRED_COT_SLUGS
 from netbox_nsm.bundles import setup_context
 
 

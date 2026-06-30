@@ -104,7 +104,7 @@ def should_include_inherited_type(
 
 
 def _type_config_map() -> dict:
-    from netbox_nsm.objects.nsm_config import build_nsm_config_lookup
+    from netbox_nsm.type_metadata.config import build_nsm_config_lookup
 
     return build_nsm_config_lookup()
 

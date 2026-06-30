@@ -11,7 +11,7 @@ from netbox_nsm.navigation_objects import (
     build_nsm_objects_menu_group,
     iter_nsm_object_menu_items,
 )
-from netbox_nsm.objects.nsm_config import merge_nsm_config_document_into_comments
+from netbox_nsm.type_metadata.config import merge_nsm_config_document_into_comments
 
 
 class NavigationObjectsMenuTests(SimpleTestCase):

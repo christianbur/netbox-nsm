@@ -13,7 +13,7 @@ from netbox_nsm.analyzers.ip_analyzer.addr_analysis_utils import (
     _ipa_object_tree_type_counts,
     _resolve_summary_type_counts,
 )
-from netbox_nsm.objects.address_literal import format_network_nsm_config_comments
+from netbox_nsm.addresses.address_literal import format_network_nsm_config_comments
 from netbox_nsm.analyzers.ip_analyzer.ipa_object_node import (
     IPA_NODE_ROLE_GROUP,
     IPA_NODE_ROLE_HOST,

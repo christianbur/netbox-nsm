@@ -11,7 +11,7 @@ from netbox.navigation.menu import MenuGroup
 
 from netbox_nsm.core.plugin_labels import get_nsm_menu_label
 from netbox_nsm.core.setup_flags import setup_menu_enabled
-from netbox_nsm.objects.nsm_config_permissions import (
+from netbox_nsm.type_metadata.permissions import (
     CHANGE_CUSTOM_OBJECT_TYPE,
     VIEW_CUSTOM_OBJECT_TYPE,
 )

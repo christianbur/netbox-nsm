@@ -8,7 +8,7 @@ from django.urls import reverse
 from netbox_nsm.tests.rulebook_permission_helpers import grant_rulebook_cot_perms
 from utilities.testing import TestCase
 
-from netbox_nsm.objects.rulebook_config import (
+from netbox_nsm.type_metadata.rulebook import (
     parse_rulebook_config_from_comments,
     resolve_rulebook_config_for_cot,
     save_rulebook_config_for_cot,

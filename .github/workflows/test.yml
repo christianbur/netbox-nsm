@@ -74,6 +74,10 @@ jobs:
                 ln -s $(pwd)/../netbox-nsm/media/configuration.testing.py netbox/netbox/configuration.py
                 pip install -r requirements.txt -U
 
+          - name: Legacy import check
+            working-directory: netbox-nsm
+            run: ./scripts/check_legacy_imports.sh
+
           - name: Run tests
             working-directory: netbox
             run: |

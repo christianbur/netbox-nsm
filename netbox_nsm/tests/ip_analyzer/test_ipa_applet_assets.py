@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.tests.analysis._ipa_helpers import PLUGIN_ROOT, ipa_cell_js, ipa_js_bundle
+from netbox_nsm.tests.ip_analyzer._ipa_helpers import PLUGIN_ROOT, ipa_cell_js, ipa_js_bundle
 
 _PLUGIN_ROOT = PLUGIN_ROOT
 

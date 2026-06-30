@@ -31,7 +31,13 @@ class AnalyzerSpec:
 
 ANALYZER_REGISTRY: tuple[AnalyzerSpec, ...] = (
     AnalyzerSpec("object_analyzer", "analyzer.object_analyzer", "object_analyzer", "Object Analyzer"),
-    AnalyzerSpec("ip", "analyzer.ip", "ip_analysis_api", "IP Analysis", run_mode="applet"),
+    AnalyzerSpec(
+        "ip_analyzer",
+        "analyzer.ip_analyzer",
+        "ip_analysis_api",
+        "IP Analyzer",
+        run_mode="applet",
+    ),
     AnalyzerSpec("object_report", "analyzer.object_report", "object_report", "Object Report", run_mode="job"),
     # Phase E skeleton — not yet routed (url_name empty, run_mode "planned").
     AnalyzerSpec("label", "analyzer.label", "", "Label Analyzer", run_mode="planned"),

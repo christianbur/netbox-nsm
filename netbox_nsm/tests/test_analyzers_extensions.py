@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 from django.test import SimpleTestCase
 
+from netbox_nsm.analyzers.ip_analyzer.capability import IP_ANALYZER_KEY, ip_analyzer_spec
 from netbox_nsm.analyzers.label import build_label_analysis, label_analyzer_spec
 from netbox_nsm.analyzers.object_report.check_registry import (
     ObjectReportContext,
@@ -16,6 +17,16 @@ from netbox_nsm.analyzers.object_report.object_report import (
     prepare_object_report_check_rows,
 )
 from netbox_nsm.analyzers.registry import ANALYZER_BY_KEY
+
+
+class IpAnalyzerRegistryTests(SimpleTestCase):
+    def test_ip_analyzer_spec_registered(self):
+        spec = ip_analyzer_spec()
+        self.assertIsNotNone(spec)
+        self.assertEqual(spec.key, IP_ANALYZER_KEY)
+        self.assertEqual(spec.capability, "analyzer.ip_analyzer")
+        self.assertEqual(spec.url_name, "ip_analysis_api")
+        self.assertIn(IP_ANALYZER_KEY, ANALYZER_BY_KEY)
 
 
 class LabelAnalyzerSkeletonTests(SimpleTestCase):

@@ -30,7 +30,7 @@ Details: [docs/DATABASE.md](docs/DATABASE.md), [docs/RULE_DATA_STORAGE.md](docs/
 | **Import** | `bundles/` | COT schemas, choice sets, seeds; `discovery.py` for Setup health |
 | **Views** | `rulebooks/views/` | Table + matrix display; `views/registry.py` drives tabs |
 | **Proxy** | `rulebooks/proxy/` | Rule-row add/edit/delete/clone URLs on COT rulebooks |
-| **Analyzers** | `analyzers/` | Object Analyzer, IP analysis, Object Report; `registry.py` |
+| **Analyzers** | `analyzers/` | Object Analyzer, IP Analyzer, Object Report; `registry.py` |
 
 Semantic roles (address, address_group, …) are resolved in `objects/cot_roles.py` from deployed field schema (`related_object_types`) and optional COT metadata — not from hardcoded slugs or field names.
 
@@ -47,7 +47,7 @@ netbox_nsm/
 │       ├── table/        # canonical import path → CotRulebookRulesView
 │       └── matrix/       # canonical import path → CotRulebookMatrixView
 ├── analyzers/
-│   ├── registry.py       # ANALYZER_REGISTRY (object_analyzer, ip, object_report, label)
+│   ├── registry.py       # ANALYZER_REGISTRY (object_analyzer, ip_analyzer, object_report, label)
 │   ├── object_analyzer/
 │   ├── ip_analyzer/
 │   ├── object_report/    # check_registry.py — optional custom report checks

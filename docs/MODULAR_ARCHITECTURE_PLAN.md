@@ -170,7 +170,7 @@ Heute: `address_literal.py` — `get_network_literal()`, `is_literal_address()`,
 | Analyzer | URL / Einstieg | Capability |
 |----------|----------------|------------|
 | **Object Analyzer** | `/object-analyzer/`, `/api/analyzer/` | `analyzer.object_analyzer` |
-| **IP-Analyse** | Applet in Rulebooks, `/api/ip-analysis/` | `analyzer.ip` |
+| **IP Analyzer** | Applet in Rulebooks, `/api/ip-analysis/` | `analyzer.ip_analyzer` |
 | **Object Report** | `/object-report/` | `analyzer.object_report` |
 
 | Frage | Object Analyzer | IP-Analyse | Object Report |

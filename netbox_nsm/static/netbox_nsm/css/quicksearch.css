@@ -1,0 +1,11 @@
+/*
+ * NetBox 4.6.3 adds a visually-hidden <label> as the first child of
+ * .input-group-flat.quicksearch. Tabler then treats the input as :not(:first-child)
+ * and removes its left border (border-left: 0), leaving an empty dark slot on the left.
+ */
+.input-group-flat.quicksearch > .form-control {
+  margin-left: 0 !important;
+  border-left: var(--tblr-border-width) solid var(--tblr-border-color) !important;
+  border-top-left-radius: var(--tblr-border-radius) !important;
+  border-bottom-left-radius: var(--tblr-border-radius) !important;
+}

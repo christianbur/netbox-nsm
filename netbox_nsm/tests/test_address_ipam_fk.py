@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.objects.address_ipam_fk import (
+from netbox_nsm.addresses.address_ipam_fk import (
     NSM_ADDRESSES_SLUG,
     is_nsm_address_object,
     iter_address_ipam_fk_refs,
@@ -83,7 +83,7 @@ class AddressIpamFkRefTests(SimpleTestCase):
         )
         self.assertEqual(list(iter_address_ipam_fk_refs(addr)), [])
 
-    @patch("netbox_nsm.objects.address_ipam_fk.get_nsm_address_model")
+    @patch("netbox_nsm.addresses.address_ipam_fk.get_nsm_address_model")
     @patch("django.contrib.contenttypes.models.ContentType.objects.get_for_model")
     def test_iter_addresses_for_ipam_object_polymorphic(
         self, get_for_model, get_addr_model
@@ -108,14 +108,14 @@ class AddressIpamFkRefTests(SimpleTestCase):
             address_object_id=10,
         )
 
-    @patch("netbox_nsm.objects.address_ipam_fk.get_nsm_address_model")
+    @patch("netbox_nsm.addresses.address_ipam_fk.get_nsm_address_model")
     @patch("django.contrib.contenttypes.models.ContentType.objects.get_for_model")
     def test_addresses_for_ipam_object_queryset_polymorphic(
         self, get_for_model, get_addr_model
     ):
         from django.db.models import Q
 
-        from netbox_nsm.objects.address_ipam_fk import (
+        from netbox_nsm.addresses.address_ipam_fk import (
             addresses_for_ipam_object_queryset,
         )
 
@@ -135,7 +135,7 @@ class AddressIpamFkRefTests(SimpleTestCase):
         self.assertIsInstance(q, Q)
 
     def test_fk_field_name_from_filter_prefix(self):
-        from netbox_nsm.objects.address_ipam_fk import fk_field_name_from_filter
+        from netbox_nsm.addresses.address_ipam_fk import fk_field_name_from_filter
 
         self.assertEqual(fk_field_name_from_filter({"prefix_id": 5}), "prefix")
         self.assertEqual(fk_field_name_from_filter({"ip_address_id": 1}), "ip_address")
@@ -152,8 +152,9 @@ class AddressIpamFkRefTests(SimpleTestCase):
         self.assertIn("Prefix", label)
         self.assertIn("IPAM", label)
 
-    @patch("netbox_nsm.objects.address_ipam_fk.get_nsm_address_model")
-    def test_is_nsm_address_object_uses_custom_object_type_slug(self, get_model):
+    @patch("netbox_nsm.addresses.address_ipam_fk.cot_ipam_address_flag", return_value=True)
+    @patch("netbox_nsm.addresses.address_ipam_fk.get_nsm_address_model")
+    def test_is_nsm_address_object_uses_custom_object_type_slug(self, get_model, _flag):
         stale_model = type("StaleTable3Model", (), {})
         fresh_model = type("FreshTable3Model", (), {})
         get_model.return_value = fresh_model
@@ -163,10 +164,14 @@ class AddressIpamFkRefTests(SimpleTestCase):
         )
         self.assertTrue(is_nsm_address_object(addr))
 
-        other = SimpleNamespace(
-            custom_object_type=SimpleNamespace(slug="nsm_zones"),
-        )
-        self.assertFalse(is_nsm_address_object(other))
+        with patch(
+            "netbox_nsm.addresses.address_ipam_fk.cot_ipam_address_flag",
+            return_value=False,
+        ):
+            other = SimpleNamespace(
+                custom_object_type=SimpleNamespace(slug="nsm_zones"),
+            )
+            self.assertFalse(is_nsm_address_object(other))
 
         class StaleAddr(stale_model):
             pass

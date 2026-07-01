@@ -5,7 +5,7 @@ from __future__ import annotations
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
-from netbox_nsm.objects.custom_objects_schema import slugify_identifier
+from netbox_nsm.bundles.schema_builder import slugify_identifier
 from netbox_nsm.rulebooks.templates import (
     build_rulebook_document,
     build_rulebook_document_from_schema,
@@ -17,12 +17,16 @@ from netbox_nsm.rulebooks.templates import (
 )
 
 __all__ = (
+    "apply_copy_prefix",
+    "build_rulebook_clone_form_initial",
     "create_cot_rulebook_from_schema_yaml",
     "create_cot_rulebook_from_template",
     "derive_rulebook_name",
     "format_rulebook_display_name",
+    "iter_deployed_rulebook_clone_choices",
     "normalize_rulebook_display_name",
     "resolve_rulebook_slug",
+    "rulebook_name_from_slug",
     "update_cot_rulebook_metadata",
 )
 
@@ -30,6 +34,64 @@ __all__ = (
 def derive_rulebook_name(verbose_name: str) -> str:
     """Derive the rulebook name segment (``nsm_rb_<name>``) from a display label."""
     return slugify_identifier(verbose_name)
+
+
+def apply_copy_prefix(value: str) -> str:
+    text = (value or "").strip()
+    if not text:
+        return "copy_"
+    if text.startswith("copy_"):
+        return text
+    return f"copy_{text}"
+
+
+def rulebook_name_from_slug(slug: str) -> str:
+    slug = (slug or "").strip()
+    if slug.startswith("nsm_rb_"):
+        return slug[len("nsm_rb_") :]
+    return slug
+
+
+def iter_deployed_rulebook_clone_choices(user):
+    """Return ``(slug, label)`` pairs for rulebooks the user may clone."""
+    from django.utils.translation import gettext_lazy as _
+
+    from netbox_nsm.rulebooks.permissions import can_view_rulebook
+    from netbox_nsm.rulebooks.registry import iter_deployed_cot_rulebooks
+
+    choices = [("", _("— New rulebook (paste or edit YAML) —"))]
+    for cot in iter_deployed_cot_rulebooks():
+        if not can_view_rulebook(user, cot):
+            continue
+        label = (cot.verbose_name or cot.name or cot.slug).strip()
+        choices.append((cot.slug, label))
+    return choices
+
+
+def build_rulebook_clone_form_initial(cot) -> dict:
+    """Build Add-Rulebook form defaults when cloning an existing COT rulebook."""
+    from netbox_nsm.rulebooks.templates import (
+        export_rulebook_schema_yaml_for_copy,
+        substitute_rulebook_schema_placeholders,
+    )
+
+    base_name = rulebook_name_from_slug(cot.slug)
+    copy_name = apply_copy_prefix(base_name)
+    source_verbose = (cot.verbose_name or cot.name or base_name).strip()
+    copy_verbose = apply_copy_prefix(source_verbose)
+    copy_description = (cot.description or "").strip()
+    schema_yaml = substitute_rulebook_schema_placeholders(
+        export_rulebook_schema_yaml_for_copy(cot),
+        display_name=copy_verbose,
+        name=copy_name,
+        description=copy_description,
+    )
+    return {
+        "schema_yaml": schema_yaml,
+        "verbose_name": normalize_rulebook_display_name(copy_verbose),
+        "name": copy_name,
+        "description": copy_description,
+    }
 
 
 def resolve_rulebook_slug(name: str) -> str:
@@ -71,7 +133,7 @@ def create_cot_rulebook_from_schema_yaml(
 ):
     from netbox_custom_objects.models import CustomObjectType
     from netbox_custom_objects.schema.executor import apply_document
-    from netbox_nsm.objects.rulebook_config import save_rulebook_config_for_cot
+    from netbox_nsm.type_metadata.rulebook import save_rulebook_config_for_cot
     from netbox_nsm.rulebooks.cot_hierarchy import validate_cot_parent_slug
 
     slug = resolve_rulebook_slug(name)
@@ -102,6 +164,9 @@ def create_cot_rulebook_from_schema_yaml(
     )
     apply_document(document, allow_destructive=False)
     cot = CustomObjectType.objects.get(slug=slug)
+    from netbox_nsm.type_metadata.config import save_nsm_config_document_for_cot
+
+    save_nsm_config_document_for_cot(cot, {"role": "rulebook"})
     if parent_slug:
         save_rulebook_config_for_cot(cot, {"parent_slug": parent_slug})
     from netbox_nsm.rulebooks.rulebook_groups import apply_schema_yaml_field_groups
@@ -120,7 +185,7 @@ def create_cot_rulebook_from_template(
 ):
     from netbox_custom_objects.models import CustomObjectType
     from netbox_custom_objects.schema.executor import apply_document
-    from netbox_nsm.objects.rulebook_config import save_rulebook_config_for_cot
+    from netbox_nsm.type_metadata.rulebook import save_rulebook_config_for_cot
     from netbox_nsm.rulebooks.cot_hierarchy import validate_cot_parent_slug
 
     slug = resolve_rulebook_slug(name)
@@ -143,9 +208,15 @@ def create_cot_rulebook_from_template(
     )
     apply_document(document, allow_destructive=False)
     cot = CustomObjectType.objects.get(slug=slug)
+    from netbox_nsm.type_metadata.config import save_nsm_config_document_for_cot
+
+    save_nsm_config_document_for_cot(cot, {"role": "rulebook"})
     if parent_slug:
         save_rulebook_config_for_cot(cot, {"parent_slug": parent_slug})
-    from netbox_nsm.rulebooks.rulebook_groups import sync_rulebook_field_groups
+    from netbox_nsm.rulebooks.rulebook_groups import apply_schema_yaml_field_groups
 
-    sync_rulebook_field_groups(cot)
+    apply_schema_yaml_field_groups(
+        cot,
+        list(document["types"][0].get("fields") or []),
+    )
     return cot

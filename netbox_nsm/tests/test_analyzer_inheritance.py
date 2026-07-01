@@ -4,12 +4,12 @@ from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.analyzer.edge_sources import inherited_nsm_link_edges, rule_object_item_edges
+from netbox_nsm.analyzers.object_analyzer.edge_sources import inherited_nsm_link_edges, rule_object_item_edges
 
 
 class AnalyzerInheritanceTests(SimpleTestCase):
-    @patch("netbox_nsm.analyzer.registry.node_from_object")
-    @patch("netbox_nsm.objects.ipam_inheritance.iter_inherited_nsm_links")
+    @patch("netbox_nsm.analyzers.object_analyzer.registry.node_from_object")
+    @patch("netbox_nsm.addresses.ipam_inheritance.iter_inherited_nsm_links")
     def test_inherited_edges_use_prefix_links(
         self,
         iter_inherited_fn,
@@ -27,14 +27,14 @@ class AnalyzerInheritanceTests(SimpleTestCase):
         self.assertEqual(edges[0].edge_type, "inherited_link")
         node_from_object_fn.assert_called_once_with(zone)
 
-    @patch("netbox_nsm.objects.ipam_inheritance.iter_inherited_nsm_links", return_value=[])
+    @patch("netbox_nsm.addresses.ipam_inheritance.iter_inherited_nsm_links", return_value=[])
     def test_inherited_edges_empty_when_no_ancestors(self, _iter_fn):
         edges = inherited_nsm_link_edges(MagicMock())
 
         self.assertEqual(edges, [])
 
-    @patch("netbox_nsm.analyzer.registry.node_from_object")
-    @patch("netbox_nsm.security.panel.scan_cot_security_references")
+    @patch("netbox_nsm.analyzers.object_analyzer.registry.node_from_object")
+    @patch("netbox_nsm.security.references.cot_rule_references.scan_cot_security_references")
     def test_rule_edges_use_rule_instance_not_panel_wrapper(
         self,
         scan_fn,

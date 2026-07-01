@@ -11,23 +11,15 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from netbox_nsm.rulebooks.rulebook_groups import (
-    GROUP_ACTIONS,
-    GROUP_COMMON,
-    GROUP_DESTINATION,
-    GROUP_INFOS,
-    GROUP_NOTES,
-    GROUP_SERVICES,
-    GROUP_SOURCE,
-    resolve_group_name_for_display,
-    rulebook_field_group_name,
-)
+from netbox_nsm.rulebooks.rulebook_groups import resolve_group_name_for_display
 
 __all__ = (
     "BUNDLED_RULEBOOK_TEMPLATE_SLUGS",
     "DEFAULT_RULEBOOK_SCHEMA_YAML",
     "DEMO_RULEBOOK_SCHEMA_YAML",
     "DEMO_RULEBOOK_SLUG",
+    "DEMO_ZONE_MATRIX_RULEBOOK_SLUG",
+    "SCHEMA_DEMO_RULEBOOK_SLUG",
     "RULEBOOK_GROUP",
     "RULEBOOK_TEMPLATE_GROUP",
     "RULEBOOK_TEMPLATE_SLUGS",
@@ -39,6 +31,7 @@ __all__ = (
     "bench_rulebook_schema_yaml",
     "default_rulebook_schema_yaml",
     "demo_rulebook_schema_yaml",
+    "schema_demo_rulebook_schema_yaml",
     "export_rulebook_schema_yaml_for_copy",
     "extract_rulebook_wizard_metadata_from_schema_yaml",
     "resolve_rulebook_schema_yaml_for_validation",
@@ -71,7 +64,6 @@ _FIELD_CATALOG: dict[str, dict] = {
         "required": True,
         "weight": 1,
         "primary": True,
-        "group_name": GROUP_COMMON,
     },
     "status": {
         "id": 2,
@@ -81,7 +73,6 @@ _FIELD_CATALOG: dict[str, dict] = {
         "description": "When false, the rule is disabled.",
         "required": False,
         "weight": 2,
-        "group_name": GROUP_COMMON,
     },
     "name": {
         "id": 3,
@@ -91,14 +82,12 @@ _FIELD_CATALOG: dict[str, dict] = {
         "description": "Optional short rule name.",
         "required": False,
         "weight": 3,
-        "group_name": GROUP_COMMON,
     },
     "source": {
         "id": 4,
         "name": "source",
         "type": "multiobject",
         "label": "Source",
-        "group_name": GROUP_SOURCE,
         "description": "Source objects: zones, labels, addresses, and address groups.",
         "required": True,
         "weight": 11,
@@ -107,6 +96,7 @@ _FIELD_CATALOG: dict[str, dict] = {
             "custom-objects/nsm_zone",
             "custom-objects/nsm_label",
             "custom-objects/nsm_address",
+            "custom-objects/nsm_address_custom",
             "custom-objects/nsm_address_group",
         ],
     },
@@ -115,7 +105,6 @@ _FIELD_CATALOG: dict[str, dict] = {
         "name": "destination",
         "type": "multiobject",
         "label": "Destination",
-        "group_name": GROUP_DESTINATION,
         "description": "Destination objects: zones, labels, addresses, and address groups.",
         "required": True,
         "weight": 21,
@@ -124,6 +113,7 @@ _FIELD_CATALOG: dict[str, dict] = {
             "custom-objects/nsm_zone",
             "custom-objects/nsm_label",
             "custom-objects/nsm_address",
+            "custom-objects/nsm_address_custom",
             "custom-objects/nsm_address_group",
         ],
     },
@@ -132,7 +122,6 @@ _FIELD_CATALOG: dict[str, dict] = {
         "name": "source_zones",
         "type": "multiobject",
         "label": "Zones",
-        "group_name": GROUP_SOURCE,
         "description": "Source objects: zones",
         "required": True,
         "weight": 11,
@@ -144,7 +133,6 @@ _FIELD_CATALOG: dict[str, dict] = {
         "name": "destination_zones",
         "type": "multiobject",
         "label": "Zones",
-        "group_name": GROUP_DESTINATION,
         "description": "Destination objects: zones",
         "required": True,
         "weight": 21,
@@ -156,7 +144,6 @@ _FIELD_CATALOG: dict[str, dict] = {
         "name": "source_labels",
         "type": "multiobject",
         "label": "Labels",
-        "group_name": GROUP_SOURCE,
         "description": "Source objects: labels",
         "required": False,
         "weight": 12,
@@ -168,7 +155,6 @@ _FIELD_CATALOG: dict[str, dict] = {
         "name": "destination_labels",
         "type": "multiobject",
         "label": "Labels",
-        "group_name": GROUP_DESTINATION,
         "description": "Destination objects: labels",
         "required": False,
         "weight": 22,
@@ -180,13 +166,13 @@ _FIELD_CATALOG: dict[str, dict] = {
         "name": "source_addresses",
         "type": "multiobject",
         "label": "Addresses",
-        "group_name": GROUP_SOURCE,
         "description": "Source objects: addresses and address groups",
         "required": True,
         "weight": 13,
         "is_polymorphic": True,
         "related_object_types": [
             "custom-objects/nsm_address",
+            "custom-objects/nsm_address_custom",
             "custom-objects/nsm_address_group",
         ],
     },
@@ -195,13 +181,13 @@ _FIELD_CATALOG: dict[str, dict] = {
         "name": "destination_addresses",
         "type": "multiobject",
         "label": "Addresses",
-        "group_name": GROUP_DESTINATION,
         "description": "Destination objects: addresses and address groups",
         "required": True,
         "weight": 23,
         "is_polymorphic": True,
         "related_object_types": [
             "custom-objects/nsm_address",
+            "custom-objects/nsm_address_custom",
             "custom-objects/nsm_address_group",
         ],
     },
@@ -210,7 +196,6 @@ _FIELD_CATALOG: dict[str, dict] = {
         "name": "services_applications",
         "type": "multiobject",
         "label": "Services & Applications",
-        "group_name": GROUP_SERVICES,
         "description": "Service objects: service, service group, and network app.",
         "required": True,
         "weight": 40,
@@ -226,7 +211,6 @@ _FIELD_CATALOG: dict[str, dict] = {
         "name": "actions",
         "type": "multiobject",
         "label": "Actions",
-        "group_name": GROUP_ACTIONS,
         "description": "Rule outcome(s), e.g. permit or deny.",
         "required": True,
         "weight": 50,
@@ -237,7 +221,6 @@ _FIELD_CATALOG: dict[str, dict] = {
         "name": "infos",
         "type": "multiobject",
         "label": "Infos",
-        "group_name": GROUP_INFOS,
         "description": "Informational objects, e.g. business app (documentation column).",
         "required": False,
         "weight": 60,
@@ -248,7 +231,6 @@ _FIELD_CATALOG: dict[str, dict] = {
         "name": "description",
         "type": "longtext",
         "label": "Description",
-        "group_name": GROUP_NOTES,
         "description": "Free-text rule description.",
         "required": False,
         "weight": 100,
@@ -259,6 +241,7 @@ _OBJECT_TYPE_LABELS: dict[str, str] = {
     "custom-objects/nsm_zone": "Zone",
     "custom-objects/nsm_label": "Label",
     "custom-objects/nsm_address": "Address",
+    "custom-objects/nsm_address_custom": "Address Custom",
     "custom-objects/nsm_address_group": "Address Group",
     "custom-objects/nsm_service": "Service",
     "custom-objects/nsm_service_group": "Service Group",
@@ -273,7 +256,10 @@ RULEBOOK_TEMPLATE_SLUGS = [spec["slug"] for spec in _RULEBOOK_TEMPLATES]
 BUNDLED_RULEBOOK_TEMPLATE_SLUGS = RULEBOOK_TEMPLATE_SLUGS
 RULEBOOK_TEMPLATE_BY_SLUG = {spec["slug"]: spec for spec in _RULEBOOK_TEMPLATES}
 
-DEMO_RULEBOOK_SLUG = "nsm_rb_demo"
+SCHEMA_DEMO_RULEBOOK_SLUG = "nsm_rb_demo_rulebook"
+DEMO_ZONE_ADDRESSES_RULEBOOK_SLUG = "nsm_rb_demo_zone_addresses"
+DEMO_ZONE_MATRIX_RULEBOOK_SLUG = "nsm_rb_demo_zone_matrix"
+DEMO_RULEBOOK_SLUG = DEMO_ZONE_MATRIX_RULEBOOK_SLUG
 
 DEFAULT_RULEBOOK_SCHEMA_YAML = """schema_version: "1"
 types:
@@ -314,6 +300,7 @@ types:
           - custom-objects/nsm_zone
           - custom-objects/nsm_label
           - custom-objects/nsm_address
+          - custom-objects/nsm_address_custom
           - custom-objects/nsm_address_group
       - id: 5
         name: destination
@@ -326,6 +313,7 @@ types:
           - custom-objects/nsm_zone
           - custom-objects/nsm_label
           - custom-objects/nsm_address
+          - custom-objects/nsm_address_custom
           - custom-objects/nsm_address_group
       - id: 8
         name: services_applications
@@ -422,7 +410,6 @@ types:
         weight: 100
     removed_fields: []
 """
-
 
 def default_rulebook_schema_yaml() -> str:
     """Return the default editable YAML schema for the rulebook add wizard."""
@@ -573,9 +560,33 @@ def demo_rulebook_schema_yaml() -> str:
     """Return resolved portable-schema YAML for the starter demo rulebook."""
     return substitute_rulebook_schema_placeholders(
         DEMO_RULEBOOK_SCHEMA_YAML,
-        display_name=format_rulebook_display_name("Demo"),
-        name="demo",
-        description="",
+        display_name="RB Demo Zone Matrix",
+        name="demo_zone_matrix",
+        description=(
+            "Demo rulebook for zone-matrix evaluation (30×30); "
+            "populated by bundle nsm_demo_zone_matrix."
+        ),
+    )
+
+
+def schema_demo_rulebook_schema_yaml() -> str:
+    """Resolved portable-schema YAML for ``nsm_rb_demo_rulebook`` (NSM Schema starter)."""
+    import yaml
+
+    raw = yaml.dump(
+        _bench_rulebook_schema_document(),
+        default_flow_style=False,
+        allow_unicode=True,
+        sort_keys=False,
+    ).strip() + "\n"
+    return substitute_rulebook_schema_placeholders(
+        raw,
+        display_name="RB Demo Rulebook",
+        name="demo_rulebook",
+        description=(
+            "Starter rulebook shipped with NSM Schema "
+            "(zones, addresses, and address groups)."
+        ),
     )
 
 
@@ -611,7 +622,7 @@ def _bench_rulebook_schema_document() -> dict:
 
 
 def bench_rulebook_schema_yaml() -> str:
-    """Resolved portable-schema YAML for ``nsm_rb_bench_addresses`` (zones + addresses)."""
+    """Resolved portable-schema YAML for ``nsm_rb_demo_zone_addresses`` (zones + addresses)."""
     import yaml
 
     raw = yaml.dump(
@@ -622,9 +633,12 @@ def bench_rulebook_schema_yaml() -> str:
     ).strip() + "\n"
     return substitute_rulebook_schema_placeholders(
         raw,
-        display_name=format_rulebook_display_name("Bench Addresses"),
-        name="bench_addresses",
-        description="",
+        display_name="RB Demo Zone/Address",
+        name="demo_zone_addresses",
+        description=(
+            "Zone, address, and address-group bench (5k hosts, 50k-scale groups/rules). "
+            "Fill with the RB Demo Zone/Address setup job."
+        ),
     )
 
 
@@ -821,19 +835,18 @@ def get_template(slug: str) -> dict:
 
 
 def is_deployed_rulebook_slug(slug: str) -> bool:
-    """Return True for concrete rulebooks (``nsm_rb_<name>``), not templates."""
+    """Return True when *slug* belongs to a concrete rulebook COT (``role: rulebook``)."""
+    from netbox_custom_objects.models import CustomObjectType
+    from netbox_nsm.rulebooks.registry import is_deployed_rulebook_cot
+
+    cot = CustomObjectType.objects.filter(slug=slug).first()
+    if cot is not None:
+        return is_deployed_rulebook_cot(cot)
     return slug.startswith("nsm_rb_") and not is_rulebook_template_slug(slug)
 
 
 def _fields_for_names(field_names: tuple[str, ...]) -> list[dict]:
-    fields = []
-    for name in field_names:
-        field_def = deepcopy(_FIELD_CATALOG[name])
-        group = rulebook_field_group_name(name)
-        if group:
-            field_def["group_name"] = group
-        fields.append(field_def)
-    return fields
+    return [deepcopy(_FIELD_CATALOG[name]) for name in field_names]
 
 
 def _allowed_object_labels(field_def: dict) -> list[str]:

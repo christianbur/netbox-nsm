@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from functools import lru_cache
+
 __all__ = (
     "ADDRESS_CONTENT_MODELS",
     "address_content_type_ids",
+    "clear_address_content_type_cache",
     "column_is_address",
     "is_address_content_model",
     "is_address_content_type_id",
@@ -13,10 +16,18 @@ __all__ = (
     "type_config_icon",
 )
 
-ADDRESS_CONTENT_MODELS = frozenset({"nsm_address", "nsm_address_group"})
+# Legacy default slugs — fallback only when structural role discovery yields
+# nothing (e.g. during early boot or before any bundle is applied). Analyzer
+# code should rely on ``address_content_type_ids`` (role-driven), not this set.
+ADDRESS_CONTENT_MODELS = frozenset(
+    {"nsm_address", "nsm_address_custom", "nsm_address_group"}
+)
+
+_ADDRESS_LIKE_ROLES = ("address", "address_group")
 
 _MODEL_PROPERTY_HINTS = {
     "nsm_address": ["name", "description"],
+    "nsm_address_custom": ["name", "description", "ipv4", "ipv6"],
     "nsm_address_group": ["name"],
     "nsm_zone": ["name", "description"],
     "nsm_label": ["name", "label_type"],
@@ -43,14 +54,40 @@ def is_address_content_model(model: str) -> bool:
     return (model or "") in ADDRESS_CONTENT_MODELS
 
 
-def address_content_type_ids() -> set[int]:
+@lru_cache(maxsize=1)
+def _address_content_type_ids_cached() -> tuple[int, ...]:
     from django.contrib.contenttypes.models import ContentType
 
-    return set(
-        ContentType.objects.filter(model__in=ADDRESS_CONTENT_MODELS).values_list(
-            "pk", flat=True
+    ids: set[int] = set()
+    try:
+        from netbox_nsm.objects.cot_roles import iter_cots_by_role
+
+        for role in _ADDRESS_LIKE_ROLES:
+            for cot in iter_cots_by_role(role):
+                try:
+                    ct = ContentType.objects.get_for_model(cot.get_model())
+                except Exception:
+                    continue
+                ids.add(ct.pk)
+    except Exception:
+        ids = set()
+
+    if not ids:
+        ids = set(
+            ContentType.objects.filter(model__in=ADDRESS_CONTENT_MODELS).values_list(
+                "pk", flat=True
+            )
         )
-    )
+    return tuple(sorted(ids))
+
+
+def clear_address_content_type_cache() -> None:
+    """Invalidate the cached address content-type ids (call after schema apply)."""
+    _address_content_type_ids_cached.cache_clear()
+
+
+def address_content_type_ids() -> set[int]:
+    return set(_address_content_type_ids_cached())
 
 
 def is_address_content_type_id(content_type_id, *, cache: set[int] | None = None) -> bool:

@@ -13,8 +13,8 @@ from core.models import Job
 from netbox.registry import registry
 from utilities.testing import TestCase
 
-from netbox_nsm.object_report import object_report
-from netbox_nsm.object_report.jobs import (
+import netbox_nsm.analyzers.object_report.object_report as object_report
+from netbox_nsm.analyzers.object_report.jobs import (
     OBJECT_REPORT_JOB_NAME,
     ObjectReportJob,
     get_latest_object_report_job,
@@ -251,7 +251,7 @@ class ObjectReportLogicTests(TestCase):
             "deprecated": {"enabled": True, "count": 2, "title": "d", "groups": [], "samples": []},
         }
         rows = object_report.prepare_object_report_check_rows(checks)
-        from netbox_nsm.object_report.tables import ObjectReportCheckTable
+        from netbox_nsm.analyzers.object_report.tables import ObjectReportCheckTable
 
         table = ObjectReportCheckTable(rows)
         table.order_by = ("-findings",)
@@ -265,15 +265,24 @@ class ObjectReportLogicTests(TestCase):
 
     def test_check_similar_groups_finds_pair(self):
         class FakeThrough:
-            objects = None
+            class objects:
+                @staticmethod
+                def values_list(*_args, **_kwargs):
+                    class _Qs:
+                        @staticmethod
+                        def iterator(*, chunk_size):
+                            return iter(
+                                [
+                                    (1, 10),
+                                    (1, 11),
+                                    (1, 12),
+                                    (2, 10),
+                                    (2, 11),
+                                    (2, 12),
+                                ]
+                            )
 
-            @staticmethod
-            def values_list(*_args, **_kwargs):
-                return FakeThrough
-
-            @staticmethod
-            def iterator(*, chunk_size):
-                return iter([(1, 10), (1, 11), (1, 12), (2, 10), (2, 11), (2, 12)])
+                    return _Qs()
 
         class FakeAddrQs:
             def filter(self, pk__in):
@@ -558,7 +567,7 @@ class ObjectReportTomlExportTests(TestCase):
         }
 
     def test_render_contains_structure(self):
-        from netbox_nsm.object_report.toml_export import (
+        from netbox_nsm.analyzers.object_report.toml_export import (
             OBJECT_REPORT_EXPORT_FORMAT,
             render_object_report_toml,
         )
@@ -585,7 +594,7 @@ class ObjectReportTomlExportTests(TestCase):
             import tomllib
         except ImportError:  # Python < 3.11
             self.skipTest("tomllib not available")
-        from netbox_nsm.object_report.toml_export import render_object_report_toml
+        from netbox_nsm.analyzers.object_report.toml_export import render_object_report_toml
 
         parsed = tomllib.loads(render_object_report_toml(self._sample_report()))
         self.assertEqual(parsed["format"], "netbox-nsm-object-report-v1")
@@ -609,8 +618,8 @@ class ObjectReportTomlExportTests(TestCase):
         }
 
     def test_render_contains_all_checks(self):
-        from netbox_nsm.object_report.object_report import OBJECT_REPORT_CHECK_KEYS
-        from netbox_nsm.object_report.toml_export import render_object_report_toml
+        from netbox_nsm.analyzers.object_report.object_report import OBJECT_REPORT_CHECK_KEYS
+        from netbox_nsm.analyzers.object_report.toml_export import render_object_report_toml
 
         body = render_object_report_toml(self._all_checks_report())
         # Every check key is emitted, including the newer ones.
@@ -630,8 +639,8 @@ class ObjectReportTomlExportTests(TestCase):
             import tomllib
         except ImportError:  # Python < 3.11
             self.skipTest("tomllib not available")
-        from netbox_nsm.object_report.object_report import OBJECT_REPORT_CHECK_KEYS
-        from netbox_nsm.object_report.toml_export import render_object_report_toml
+        from netbox_nsm.analyzers.object_report.object_report import OBJECT_REPORT_CHECK_KEYS
+        from netbox_nsm.analyzers.object_report.toml_export import render_object_report_toml
 
         parsed = tomllib.loads(render_object_report_toml(self._all_checks_report()))
         self.assertEqual(len(parsed["checks"]), len(OBJECT_REPORT_CHECK_KEYS))
@@ -642,7 +651,7 @@ class ObjectReportTomlExportTests(TestCase):
         self.assertEqual(orphans["samples"][0]["name"], "orphan-addr")
 
     def test_render_unavailable_report(self):
-        from netbox_nsm.object_report.toml_export import render_object_report_toml
+        from netbox_nsm.analyzers.object_report.toml_export import render_object_report_toml
 
         body = render_object_report_toml(
             {"available": False, "message": "Custom Object Type not deployed."}
@@ -682,7 +691,7 @@ class ObjectReportJobTests(TestCase):
         self.assertEqual(latest.data["findings_total"], 1)
 
     def test_get_latest_finds_legacy_audit_job_name(self):
-        from netbox_nsm.object_report.jobs import LEGACY_OBJECT_REPORT_JOB_NAMES
+        from netbox_nsm.analyzers.object_report.jobs import LEGACY_OBJECT_REPORT_JOB_NAMES
 
         legacy_name = LEGACY_OBJECT_REPORT_JOB_NAMES[0]
         Job.objects.create(
@@ -724,7 +733,7 @@ class ObjectReportJobTests(TestCase):
         )
         self.assertIsNotNone(get_pending_object_report_job())
 
-    @mock.patch("netbox_nsm.object_report.jobs._is_job_in_rq", return_value=False)
+    @mock.patch("netbox_nsm.analyzers.object_report.jobs._is_job_in_rq", return_value=False)
     def test_get_pending_finalizes_stale_job(self, _in_rq):
         stale = Job.objects.create(
             name=OBJECT_REPORT_JOB_NAME,
@@ -927,21 +936,23 @@ class ObjectReportViewTests(TestCase):
         response = self.client.get(url, {"export": "toml"})
         self.assertEqual(response.status_code, 403)
 
+    @mock.patch("netbox_nsm.analyzers.object_report.jobs.get_pending_object_report_job", return_value=None)
     @mock.patch(
-        "netbox_nsm.views.object_report._count_active_rq_workers", return_value=0
+        "netbox_nsm.analyzers.object_report.views._count_active_rq_workers", return_value=0
     )
-    def test_run_without_worker_errors(self, _workers):
+    def test_run_without_worker_errors(self, _workers, _pending):
         grant_nsm_config_perms(self, view=True)
         url = reverse("plugins:netbox_nsm:object_report")
         response = self.client.post(url, {"action": "run"}, follow=True)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "no RQ worker")
 
-    @mock.patch("netbox_nsm.object_report.jobs.ObjectReportJob.enqueue")
+    @mock.patch("netbox_nsm.analyzers.object_report.jobs.ObjectReportJob.enqueue")
+    @mock.patch("netbox_nsm.analyzers.object_report.jobs.get_pending_object_report_job", return_value=None)
     @mock.patch(
-        "netbox_nsm.views.object_report._count_active_rq_workers", return_value=1
+        "netbox_nsm.analyzers.object_report.views._count_active_rq_workers", return_value=1
     )
-    def test_run_enqueues_with_worker(self, _workers, mock_enqueue):
+    def test_run_enqueues_with_worker(self, _workers, _pending, mock_enqueue):
         mock_enqueue.return_value = mock.Mock(pk=99)
         grant_nsm_config_perms(self, view=True)
         url = reverse("plugins:netbox_nsm:object_report")

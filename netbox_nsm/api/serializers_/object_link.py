@@ -8,9 +8,9 @@ from netbox.api.fields import ContentTypeField
 from utilities.api import get_serializer_for_model
 from utilities.serialization import serialize_object
 
-from netbox_nsm.models.object_link import LinkPropagationChoices
-from netbox_nsm.objects.link_propagation import native_propagation_to_cot
-from netbox_nsm.objects.object_link_service import (
+from netbox_nsm.security.links.link_propagation import LinkPropagationChoices
+from netbox_nsm.security.links.link_propagation import native_propagation_to_cot
+from netbox_nsm.security.links.object_link_service import (
     ObjectLinkRecord,
     create_or_update_links,
     get_object_link_model,

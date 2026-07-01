@@ -1,0 +1,239 @@
+{% extends 'base/layout.html' %}
+{% load i18n %}
+
+{% block title %}{{ bundle.title }} — {% trans "Bundles" %}{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% url 'plugins:netbox_nsm:plugin_asset' 'css/bundle_preview.css' %}">
+<div class="row justify-content-center">
+  <div class="col-12 col-xl-10" id="bundlePreviewRoot"
+       data-preview-url="{% url 'plugins:netbox_nsm:bundle_preview' bundle_slug %}"
+       data-auto-open="{% if preview_open %}1{% else %}0{% endif %}">
+
+    <nav aria-label="breadcrumb" class="mb-2">
+      <ol class="breadcrumb mb-0">
+        <li class="breadcrumb-item"><a href="{% url 'plugins:netbox_nsm:bundles' %}">{% trans "Bundles" %}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ bundle.title }}</li>
+      </ol>
+    </nav>
+
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-3">
+      <div>
+        <h1 class="h2 mb-1">{{ bundle.title }}</h1>
+        <p class="text-muted mb-0">
+          <code>{{ bundle_slug }}.json</code>
+          {% if bundle_status == 'applied' %}
+          <span class="badge bg-success-subtle text-success border border-success-subtle ms-2">{% trans "Applied" %}</span>
+          {% elif bundle_status == 'partial' %}
+          <span class="badge bg-warning-subtle text-warning border border-warning-subtle ms-2">{% trans "Partial" %}</span>
+          {% else %}
+          <span class="badge bg-secondary-subtle text-body-emphasis border border-secondary-subtle ms-2">{% trans "Missing" %}</span>
+          {% endif %}
+        </p>
+      </div>
+      <span class="badge bg-info-subtle text-info border border-info-subtle align-self-start">JSON</span>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-body">
+        {% if bundle.description %}
+        <p class="text-muted">{{ bundle.description }}</p>
+        {% endif %}
+
+        <h6 class="text-muted text-uppercase small fw-semibold mb-2">{% trans "Types in bundle" %}</h6>
+        <div class="table-responsive mb-3">
+          <table class="table table-sm table-hover align-middle mb-0">
+            <thead class="table-active">
+              <tr>
+                <th>{% trans "Slug" %}</th>
+                <th>{% trans "Label" %}</th>
+                <th class="text-end">{% trans "Fields" %}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for t in types %}
+              <tr>
+                <td><code>{{ t.slug }}</code></td>
+                <td>{{ t.verbose_name|default:t.slug }}</td>
+                <td class="text-end">{{ t.fields|length }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <details>
+          <summary class="text-muted small">{% trans "Show bundle JSON" %}</summary>
+          <pre class="mt-2 p-3 mb-0 border rounded font-monospace small bg-body-secondary text-body overflow-auto" style="max-height: 40vh">{{ bundle_json }}</pre>
+        </details>
+      </div>
+
+      <div class="card-footer nsm-bundle-actions-bar py-3">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+          <div class="d-flex flex-wrap align-items-center gap-3">
+            {% if allow_destructive %}
+            <div class="form-check mb-0">
+              <input class="form-check-input"
+                     type="checkbox"
+                     name="allow_destructive"
+                     value="1"
+                     id="allowDestructive"
+                     {% if can_apply %}form="applyBundleForm"{% endif %}>
+              <label class="form-check-label" for="allowDestructive">{% trans "Allow destructive changes" %}</label>
+            </div>
+            {% endif %}
+          </div>
+
+          <div class="d-flex flex-wrap gap-2">
+            {% csrf_token %}
+            <button type="button"
+                    class="btn btn-outline-secondary"
+                    id="bundlePreviewToggle"
+                    aria-expanded="false"
+                    aria-controls="bundlePreviewPanel">
+              <i class="mdi mdi-eye-outline me-1" aria-hidden="true"></i>{% trans "Preview changes" %}</button>
+            {% if can_apply %}
+            <form method="post"
+                  action="{% url 'plugins:netbox_nsm:bundle_apply' bundle_slug %}"
+                  class="d-inline m-0"
+                  id="applyBundleForm">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-primary">
+                <i class="mdi mdi-play-circle-outline me-1" aria-hidden="true"></i>{% trans "Apply bundle" %}
+              </button>
+            </form>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-3 nsm-bundle-preview-panel d-none" id="bundlePreviewPanel">
+      <div class="card-header py-3 border-bottom-0">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+          <h5 class="card-title mb-0">{% trans "Change preview" %}</h5>
+          <div id="bundlePreviewSummary" class="nsm-bundle-preview-summary d-none"></div>
+        </div>
+        <div id="bundlePreviewDestructiveAlert"
+             class="alert alert-danger py-2 px-3 mb-0 mt-2 small d-none"
+             role="alert"></div>
+      </div>
+      <div class="card-body p-0">
+        <ul class="nav nav-tabs nsm-bundle-preview-tabs px-3" id="bundlePreviewTabNav" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active"
+                    id="bundle-preview-schema-tab"
+                    data-bs-toggle="tab"
+                    data-bs-target="#bundlePreviewSchemaPane"
+                    type="button"
+                    role="tab"
+                    aria-controls="bundlePreviewSchemaPane"
+                    aria-selected="true">
+              {% trans "Schema" %}
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link"
+                    id="bundle-preview-side-tab"
+                    data-bs-toggle="tab"
+                    data-bs-target="#bundlePreviewSideEffectsPane"
+                    type="button"
+                    role="tab"
+                    aria-controls="bundlePreviewSideEffectsPane"
+                    aria-selected="false">
+              {% trans "NSM side effects" %}
+            </button>
+          </li>
+        </ul>
+
+        <div class="nsm-bundle-preview-tab-body p-3">
+          <div id="bundlePreviewLoading" class="text-center py-4 text-muted d-none">
+            <div class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></div>
+            {% trans "Loading preview…" %}
+          </div>
+          <div id="bundlePreviewError" class="alert alert-danger d-none" role="alert"></div>
+
+          <div id="bundlePreviewTabs" class="tab-content d-none">
+            <div class="tab-pane fade show active"
+                 id="bundlePreviewSchemaPane"
+                 role="tabpanel"
+                 aria-labelledby="bundle-preview-schema-tab"
+                 tabindex="0">
+              <div id="bundlePreviewSchema"></div>
+            </div>
+            <div class="tab-pane fade"
+                 id="bundlePreviewSideEffectsPane"
+                 role="tabpanel"
+                 aria-labelledby="bundle-preview-side-tab"
+                 tabindex="0">
+              <div id="bundlePreviewSideEffects"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block javascript %}
+{{ block.super }}
+<script src="{% url 'plugins:netbox_nsm:plugin_asset' 'js/bundle_preview.js' %}"></script>
+<script id="bundlePreviewI18n" type="application/json">
+{
+  "previewFailed": "{% filter escapejs %}{% trans 'Preview request failed.' %}{% endfilter %}",
+  "noChanges": "{% filter escapejs %}{% trans 'No changes' %}{% endfilter %}",
+  "noSchemaChanges": "{% filter escapejs %}{% trans 'Schema matches the current database.' %}{% endfilter %}",
+  "noSideEffects": "{% filter escapejs %}{% trans 'No choice set, seed object, or metadata changes.' %}{% endfilter %}",
+  "destructiveBlocked": "{% filter escapejs %}{% trans 'Destructive schema changes are present. Enable “Allow destructive changes” before applying.' %}{% endfilter %}",
+  "destructivePresent": "{% filter escapejs %}{% trans 'This preview includes destructive schema changes (field or type removals).' %}{% endfilter %}",
+  "refreshPreview": "{% filter escapejs %}{% trans 'Refresh preview' %}{% endfilter %}",
+  "newType": "{% filter escapejs %}{% trans 'New' %}{% endfilter %}",
+  "changed": "{% filter escapejs %}{% trans 'Changed' %}{% endfilter %}",
+  "destructive": "{% filter escapejs %}{% trans 'Destructive' %}{% endfilter %}",
+  "blocked": "{% filter escapejs %}{% trans 'Apply blocked' %}{% endfilter %}",
+  "typeAttributes": "{% filter escapejs %}{% trans 'Type attributes' %}{% endfilter %}",
+  "fieldChanges": "{% filter escapejs %}{% trans 'Field changes' %}{% endfilter %}",
+  "warnings": "{% filter escapejs %}{% trans 'Warnings' %}{% endfilter %}",
+  "operation": "{% filter escapejs %}{% trans 'Operation' %}{% endfilter %}",
+  "schemaId": "{% filter escapejs %}{% trans 'Schema ID' %}{% endfilter %}",
+  "field": "{% filter escapejs %}{% trans 'Field' %}{% endfilter %}",
+  "details": "{% filter escapejs %}{% trans 'Details' %}{% endfilter %}",
+  "attribute": "{% filter escapejs %}{% trans 'Attribute' %}{% endfilter %}",
+  "before": "{% filter escapejs %}{% trans 'Before' %}{% endfilter %}",
+  "after": "{% filter escapejs %}{% trans 'After' %}{% endfilter %}",
+  "choiceSets": "{% filter escapejs %}{% trans 'Choice sets' %}{% endfilter %}",
+  "seedObjects": "{% filter escapejs %}{% trans 'Seed objects' %}{% endfilter %}",
+  "typeMetadata": "{% filter escapejs %}{% trans 'Type metadata' %}{% endfilter %}",
+  "rulebookMetadata": "{% filter escapejs %}{% trans 'Rulebook metadata' %}{% endfilter %}",
+  "choices": "{% filter escapejs %}{% trans 'Choices' %}{% endfilter %}",
+  "current": "{% filter escapejs %}{% trans 'Current' %}{% endfilter %}",
+  "desired": "{% filter escapejs %}{% trans 'Desired' %}{% endfilter %}",
+  "pending": "{% filter escapejs %}{% trans 'Pending' %}{% endfilter %}",
+  "typeNotInDb": "{% filter escapejs %}{% trans 'Type not in database yet' %}{% endfilter %}",
+  "name": "{% filter escapejs %}{% trans 'Name' %}{% endfilter %}",
+  "type": "{% filter escapejs %}{% trans 'Type' %}{% endfilter %}",
+  "opAdd": "{% filter escapejs %}{% trans 'Add' %}{% endfilter %}",
+  "opAlter": "{% filter escapejs %}{% trans 'Alter' %}{% endfilter %}",
+  "opRemove": "{% filter escapejs %}{% trans 'Remove' %}{% endfilter %}",
+  "summaryTypes": "{% filter escapejs %}{% trans 'type changes' %}{% endfilter %}",
+  "summaryChoiceSets": "{% filter escapejs %}{% trans 'choice sets' %}{% endfilter %}",
+  "summaryObjects": "{% filter escapejs %}{% trans 'seed objects' %}{% endfilter %}",
+  "summaryMetadata": "{% filter escapejs %}{% trans 'metadata blocks' %}{% endfilter %}"
+}
+</script>
+<script>
+(function () {
+  const root = document.getElementById("bundlePreviewRoot");
+  if (!root || !window.NSMBundlePreview) {
+    return;
+  }
+  NSMBundlePreview.init({
+    root: root,
+    previewUrl: root.dataset.previewUrl,
+    autoOpen: root.dataset.autoOpen === "1",
+    i18n: JSON.parse(document.getElementById("bundlePreviewI18n").textContent),
+  });
+})();
+</script>
+{% endblock %}

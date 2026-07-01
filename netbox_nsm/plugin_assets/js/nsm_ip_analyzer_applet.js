@@ -16,7 +16,7 @@
   var getCsrfToken = U.getCsrfToken;
   var nsmFetch = U.nsmFetch;
   var readIpaApiJson = U.readIpaApiJson;
-  var fetchIpaAnalysis = U.fetchIpaAnalysis;
+  var fetchIpaAnalyzer = U.fetchIpaAnalyzer;
   var ipaFetchAbortMessage = U.ipaFetchAbortMessage;
   var mergeBranchHeaders = U.mergeBranchHeaders;
   var normalizeObjects = U.normalizeObjects;
@@ -108,12 +108,12 @@
     panel.className = "nsm-ipa-applet";
     panel.setAttribute("role", "dialog");
     panel.setAttribute("aria-modal", "false");
-    panel.setAttribute("aria-label", ipaT("IP Analysis"));
+    panel.setAttribute("aria-label", ipaT("IP Analyzer"));
     panel.hidden = true;
     panel.innerHTML =
       '<div class="nsm-ipa-applet-header">' +
         '<h6 class="nsm-ipa-applet-title"><i class="mdi mdi-ip-network-outline" aria-hidden="true"></i><span class="nsm-ipa-applet-title-text">' +
-        escHtml(ipaT("IP Analysis")) +
+        escHtml(ipaT("IP Analyzer")) +
         '</span></h6>' +
         '<span class="badge bg-secondary-subtle text-secondary nsm-ipa-applet-rule-badge" hidden></span>' +
         '<div class="nsm-ipa-applet-actions">' +
@@ -808,7 +808,7 @@
     }
     var tab = this.getActiveTab();
     if (!tab) {
-      this.titleEl.textContent = ipaT("IP Analysis");
+      this.titleEl.textContent = ipaT("IP Analyzer");
       this.setRuleBadge();
       return;
     }
@@ -818,7 +818,7 @@
       return;
     }
     if (this.tabs.length > 1) {
-      this.titleEl.textContent = ipaTf("IP Analysis (%(count)s)", {
+      this.titleEl.textContent = ipaTf("IP Analyzer (%(count)s)", {
         count: this.tabs.length,
       });
       this.setRuleBadge();
@@ -1427,7 +1427,7 @@
     }
   };
 
-  Applet.prototype._applyTabAnalysisPayload = function (tab, data) {
+  Applet.prototype._applyTabAnalyzerPayload = function (tab, data) {
     tab.status = "ready";
     tab.error = "";
     tab.html = data.html || "";
@@ -1454,7 +1454,7 @@
       return;
     }
     tab.status = "error";
-    tab.error = message || ipaT("Analysis could not be loaded.");
+    tab.error = message || ipaT("Analyzer could not be loaded.");
     if (tab.id === this.activeTabId) {
       this.renderActiveContent();
       this.renderToolbar();
@@ -1469,7 +1469,7 @@
     if (!this.tabs.some(function (t) { return t.id === tab.id; })) {
       return;
     }
-    this._applyTabAnalysisPayload(tab, data);
+    this._applyTabAnalyzerPayload(tab, data);
     if (tab.id === this.activeTabId) {
       this.renderActiveContent();
       this.renderToolbar();
@@ -1501,7 +1501,7 @@
       tab.mode === "diff"
         ? apiUrl() + "?" + buildDiffQuery(tab.sides || [])
         : apiUrl() + "?" + buildQuery(tab.objects, tab.rawObjects);
-    fetchIpaAnalysis(url, {
+    fetchIpaAnalyzer(url, {
       headers: mergeBranchHeaders({ "X-Requested-With": "XMLHttpRequest" }),
     })
       .then(function (resp) {

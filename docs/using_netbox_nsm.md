@@ -19,10 +19,10 @@ PLUGINS = ["netbox_custom_objects", "netbox_nsm"]
 
 | § | Content | Action |
 |---|---------|--------|
-| 2 | Custom Object Schema | **Add all Custom Objects** — imports 10 built-in `nsm_*` COTs and writes `nsm_config` into each type's `comments` |
-| 3 | Demo | Optional **Starter demo** (recommended) |
+| 2 | Schema bundles | **Apply** `nsm_schema` (required) — imports built-in `nsm_*` COTs and syncs bundle `metadata.types` / `metadata.rulebooks` into each type's `comments` (`nsm_config` YAML) |
+| 3 | Demo | Optional **RB Demo Zone Matrix** (Python job `nsm_demo_zone_matrix`; `nsm_rb_demo_rulebook` is included in NSM Schema) |
 
-There is no separate Object Config step in Setup: `nsm_config` is applied during schema import. Adjust per-type settings later via **Security → Object Config** or the REST API.
+There is no separate Object Config step in Setup: `nsm_config` is written during bundle apply (`sync_metadata()`). Adjust per-type settings later via **Security → Object Config** or the REST API.
 
 Set `setup_allow_destructive_actions: True` in `PLUGINS_CONFIG` for demos.
 
@@ -87,12 +87,12 @@ Rule columns and the tab share the same **object config** entries — no separat
 
 Deployed COT rulebooks: `/plugins/netbox-nsm/rulebooks/cot/<slug>/rules/`
 
-## IP Analysis
+## IP Analyzer
 
 - **Applet:** loupe on analyzable objects in rule detail views (merge/diff address trees)
-- **Legacy URL:** `/plugins/netbox-nsm/ip-analysis/` redirects to Object Analyzer
-- **UI API:** `GET /plugins/netbox-nsm/api/ip-analysis/` (HTML fragments for the applet)
-- **REST API:** `GET/POST /api/plugins/netbox-nsm/ip-analysis/` (JSON)
+- **Legacy URL:** `/plugins/netbox-nsm/ip-analyzer/` redirects to Object Analyzer
+- **UI API:** `GET /plugins/netbox-nsm/api/ip-analyzer/` (HTML fragments for the applet)
+- **REST API:** `GET/POST /api/plugins/netbox-nsm/ip-analyzer/` (JSON)
 
 ## Object Analyzer
 
@@ -113,7 +113,7 @@ worker). Findings export as TOML (`?export=toml`). Sample lists are paginated cl
 |----------|---------|
 | `/api/plugins/netbox-nsm/nsm-configs/<slug>/` | Read/write `nsm_config` in COT comments |
 | `/api/plugins/netbox-nsm/object-links/` | Security panel links (`nsm_object_link`) |
-| `/api/plugins/netbox-nsm/ip-analysis/` | Address analysis (JSON) |
+| `/api/plugins/netbox-nsm/ip-analyzer/` | Address analysis (JSON) |
 
 Rules and policy objects: **netbox-custom-objects** API. Rulebook assignments: `object-links` with `link_type=rulebook`.
 
@@ -125,7 +125,7 @@ Portable schema: `POST /api/plugins/custom-objects/schema/apply/` with `netbox_n
 |------|---------|---------|
 | **Starter** | Zones, services, actions + rulebooks “Demo - Zone Matrix”, “Demo - Addresses” | Setup §3, synchronous |
 | **Enterprise DC** | DCIM/IPAM scenario + rulebooks | Setup §3, empty IP DB only |
-| **Addresses Million Scale** | Bench rulebook `nsm_rb_bench_addresses` | `scripts/create_addresses_million_scale.py`, RQ |
+| **Zone / Address demos** | Sample zones, addresses, groups, rules | Setup → Bundles (Preview → Apply) |
 
 ## Configuration
 

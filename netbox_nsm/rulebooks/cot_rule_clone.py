@@ -35,7 +35,7 @@ def build_rule_clone_url(request, cot_slug: str, pk, *, return_path: str) -> str
     from django.urls import reverse
 
     from netbox_nsm.core.branch_urls import with_branch_query
-    from netbox_nsm.security.panel_link_actions import append_return_url
+    from netbox_nsm.security.actions.panel_link_actions import append_return_url
 
     base = reverse(
         "plugins:netbox_custom_objects:customobject_add",

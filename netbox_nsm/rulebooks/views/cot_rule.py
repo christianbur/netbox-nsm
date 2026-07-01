@@ -5,7 +5,7 @@ from __future__ import annotations
 from extras.choices import CustomFieldTypeChoices
 
 from netbox_nsm.core.poly_subfield_labels import shorten_rulebook_poly_subfield_labels
-from netbox_nsm.matrix.cot_matrix_tab_context import resolve_matrix_field_names
+from netbox_nsm.rulebooks.matrix.cot_matrix_tab_context import resolve_matrix_field_names
 from netbox_nsm.rulebooks.cot_rule_clone import apply_rule_clone_prefill
 from netbox_nsm.rulebooks.cot_rule_index import next_rulebook_index
 from netbox_nsm.rulebooks.templates import is_deployed_rulebook_slug

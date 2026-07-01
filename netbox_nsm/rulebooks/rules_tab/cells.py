@@ -19,7 +19,7 @@ from netbox_nsm.rulebooks.grid.cells import (
     _description_line_count,
     enabled_status_labels,
 )
-from netbox_nsm.security.panel_link_actions import append_return_url
+from netbox_nsm.security.actions.panel_link_actions import append_return_url
 
 def _inject_rules_cell_context_attrs(
     html: str,
@@ -101,74 +101,21 @@ def _render_actions_cell_html(
     can_delete: bool,
     can_add: bool = False,
 ) -> str:
-    toggle_text = _("Toggle Dropdown")
-    dropdown_links = []
+    from netbox_nsm.core.split_actions import render_edit_delete_split_button_html
 
-    if can_delete:
-        delete_label = _("Delete")
-        dropdown_links.append(
-            f'<li><a class="dropdown-item nsm-ag-action-delete"'
-            f' href="{conditional_escape(delete_url)}">'
-            f'<i class="mdi mdi-trash-can-outline" aria-hidden="true"></i> '
-            f"{conditional_escape(delete_label)}</a></li>"
-        )
-    if can_add and clone_url:
-        clone_label = _("Clone")
-        dropdown_links.append(
-            f'<li><a class="dropdown-item nsm-ag-action-clone"'
-            f' href="{conditional_escape(clone_url)}">'
-            f'<i class="mdi mdi-content-copy" aria-hidden="true"></i> '
-            f"{conditional_escape(clone_label)}</a></li>"
-        )
-
-    if can_change:
-        edit_label = _("Edit")
-        edit_btn = (
-            f'<a class="btn btn-sm btn-warning nsm-ag-action-edit"'
-            f' href="{conditional_escape(edit_url)}" type="button"'
-            f' title="{conditional_escape(edit_label)}"'
-            f' aria-label="{conditional_escape(edit_label)}">'
-            f'<i class="mdi mdi-pencil" aria-hidden="true"></i></a>'
-        )
-    else:
-        edit_label = _("Edit")
-        edit_btn = (
-            f'<button type="button" class="btn btn-sm btn-warning" disabled'
-            f' aria-disabled="true" title="{conditional_escape(edit_label)}"'
-            f' aria-label="{conditional_escape(edit_label)}">'
-            f'<i class="mdi mdi-pencil" aria-hidden="true"></i></button>'
-        )
-
-    if edit_btn and dropdown_links:
-        html = (
-            f'<span class="btn-group btn-group-sm dropdown">'
-            f"  {edit_btn}"
-            f'  <a class="btn btn-sm btn-warning dropdown-toggle" type="button"'
-            f' data-bs-toggle="dropdown" style="padding-left: 2px">'
-            f'  <span class="visually-hidden">{conditional_escape(toggle_text)}</span></a>'
-            f'  <ul class="dropdown-menu">{"".join(dropdown_links)}</ul>'
-            f"</span>"
-        )
-    elif edit_btn:
-        html = f'<span class="btn-group btn-group-sm" role="group">{edit_btn}</span>'
-    elif dropdown_links:
-        html = (
-            f'<span class="btn-group btn-group-sm dropdown">'
-            f'  <a class="btn btn-sm btn-secondary dropdown-toggle" type="button"'
-            f' data-bs-toggle="dropdown">'
-            f'  <span class="visually-hidden">{conditional_escape(toggle_text)}</span></a>'
-            f'  <ul class="dropdown-menu">{"".join(dropdown_links)}</ul>'
-            f"</span>"
-        )
-    else:
-        html = ""
-
-    if not html:
-        return '<div class="text-end text-nowrap"></div>'
-
-    return f'<div class="text-end text-nowrap">{html}</div>'
-
-
+    return render_edit_delete_split_button_html(
+        edit_url,
+        delete_url,
+        clone_url,
+        can_edit=can_change,
+        can_delete=can_delete,
+        can_clone=can_add,
+        edit_css_class="nsm-ag-action-edit",
+        delete_css_class="nsm-ag-action-delete",
+        clone_css_class="nsm-ag-action-clone",
+        always_show_edit=True,
+        cell_wrapper=True,
+    )
 def _object_line_count(row: dict) -> int:
     cells_items = row.get("cells_items") or {}
     if not cells_items:

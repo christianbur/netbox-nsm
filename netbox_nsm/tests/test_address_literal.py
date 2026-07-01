@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 from django.core.exceptions import ValidationError
 from django.test import SimpleTestCase
 
-from netbox_nsm.objects.address_literal import (
+from netbox_nsm.addresses.address_literal import (
     ALLOWED_NETWORK_LITERALS,
     attach_literal_prefix_display,
     format_network_nsm_config_comments,
@@ -63,7 +63,7 @@ class AddressLiteralValidationTests(SimpleTestCase):
 
     def test_validate_rejects_literal_and_ipam(self):
         with patch(
-            "netbox_nsm.objects.address_literal.has_address_ipam_link",
+            "netbox_nsm.addresses.address_literal.has_address_ipam_link",
             return_value=True,
         ):
             with self.assertRaises(ValidationError):

@@ -1,0 +1,46 @@
+{% extends 'base/layout.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Delete Rulebook" %}{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col col-md-8 col-lg-6">
+    <div class="card border-danger">
+      <div class="card-header">
+        <h5 class="mb-0">{% trans "Delete Rulebook" %}</h5>
+      </div>
+      <div class="card-body">
+        {% if blockers %}
+        <div class="alert alert-danger mb-0">
+          <p class="mb-2"><strong>{% trans "This rulebook cannot be deleted:" %}</strong></p>
+          <ul class="mb-0">
+            {% for reason in blockers %}
+            <li>{{ reason }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% else %}
+        <p>
+          {% blocktrans trimmed with name=object.name %}
+            Are you sure you want to delete <strong>{{ name }}</strong>?
+          {% endblocktrans %}
+        </p>
+        <form method="post" class="btn-list">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">
+            <i class="mdi mdi-trash-can-outline" aria-hidden="true"></i> {% trans "Delete" %}
+          </button>
+          <a href="{{ return_url }}" class="btn btn-outline-secondary">{% trans "Cancel" %}</a>
+        </form>
+        {% endif %}
+      </div>
+      {% if blockers %}
+      <div class="card-footer text-end">
+        <a href="{{ return_url }}" class="btn btn-outline-secondary">{% trans "Back" %}</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock content %}

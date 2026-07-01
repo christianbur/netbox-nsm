@@ -37,11 +37,11 @@ class BuildEnforcementPointPanelTests(SimpleTestCase):
 
         rulebook = SimpleNamespace(
             name="Firewall Demo",
-            get_absolute_url=lambda: "/plugins/netbox-nsm/rulebooks/nsm_rb_demo/",
+            get_absolute_url=lambda: "/plugins/netbox-nsm/rulebooks/nsm_rb_demo_zone_matrix/",
         )
         ep_link = SimpleNamespace(
             pk=11,
-            rulebook_slug="nsm_rb_demo",
+            rulebook_slug="nsm_rb_demo_zone_matrix",
             rulebook=rulebook,
         )
         iter_ep_links.return_value = [ep_link]
@@ -60,7 +60,7 @@ class BuildEnforcementPointPanelTests(SimpleTestCase):
         self.assertIsNotNone(panel)
         self.assertEqual(panel["count"], 1)
         self.assertEqual(panel["rulebooks"][0]["name"], "Firewall Demo")
-        self.assertIn("nsm_rb_demo", panel["rulebooks"][0]["url"])
+        self.assertIn("nsm_rb_demo_zone_matrix", panel["rulebooks"][0]["url"])
 
     @patch("netbox_nsm.security.enforcement_point_panel.iter_rulebook_links_for_object")
     @patch(
@@ -73,11 +73,11 @@ class BuildEnforcementPointPanelTests(SimpleTestCase):
         iter_ep_links,
         iter_rb_links,
     ):
-        reverse_fn.return_value = "/plugins/netbox-nsm/rulebooks/nsm_rb_demo/"
+        reverse_fn.return_value = "/plugins/netbox-nsm/rulebooks/nsm_rb_demo_zone_matrix/"
 
         ep_link = SimpleNamespace(
             pk=11,
-            rulebook_slug="nsm_rb_demo",
+            rulebook_slug="nsm_rb_demo_zone_matrix",
             rulebook=None,
         )
         iter_ep_links.return_value = [ep_link]
@@ -92,14 +92,14 @@ class BuildEnforcementPointPanelTests(SimpleTestCase):
 
         self.assertIsNotNone(panel)
         self.assertEqual(panel["count"], 1)
-        self.assertEqual(panel["rulebooks"][0]["name"], "nsm_rb_demo")
+        self.assertEqual(panel["rulebooks"][0]["name"], "nsm_rb_demo_zone_matrix")
         self.assertEqual(
             panel["rulebooks"][0]["url"],
-            "/plugins/netbox-nsm/rulebooks/nsm_rb_demo/",
+            "/plugins/netbox-nsm/rulebooks/nsm_rb_demo_zone_matrix/",
         )
         reverse_fn.assert_called_once_with(
             "plugins:netbox_nsm:cot_rulebook",
-            kwargs={"slug": "nsm_rb_demo"},
+            kwargs={"slug": "nsm_rb_demo_zone_matrix"},
         )
 
     @patch(
@@ -150,11 +150,11 @@ class BuildEnforcementPointPanelTests(SimpleTestCase):
 
         rulebook = SimpleNamespace(
             name="Demo",
-            get_absolute_url=lambda: "/plugins/netbox-nsm/rulebooks/nsm_rb_demo/",
+            get_absolute_url=lambda: "/plugins/netbox-nsm/rulebooks/nsm_rb_demo_zone_matrix/",
         )
         ep_link = SimpleNamespace(
             pk=21,
-            rulebook_slug="nsm_rb_demo",
+            rulebook_slug="nsm_rb_demo_zone_matrix",
             rulebook=rulebook,
         )
         iter_ep_links.return_value = [ep_link]

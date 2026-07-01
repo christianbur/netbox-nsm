@@ -10,10 +10,10 @@ from netbox_nsm.objects.group_inheritance import (
     direct_parent_containers,
     iter_inherited_group_nsm_links,
 )
-from netbox_nsm.objects.ipam_inheritance import should_include_inherited_type
-from netbox_nsm.models.object_link import LinkPropagationChoices
-from netbox_nsm.objects.object_link_service import ObjectLinkRecord
-from netbox_nsm.objects.type_config_specs import TYPECONFIG_SPEC_BY_SLUG
+from netbox_nsm.addresses.ipam_inheritance import should_include_inherited_type
+from netbox_nsm.security.links.link_propagation import LinkPropagationChoices
+from netbox_nsm.security.links.object_link_service import ObjectLinkRecord
+from netbox_nsm.type_metadata.specs import TYPECONFIG_SPEC_BY_SLUG
 
 
 class GroupInheritanceTests(SimpleTestCase):
@@ -76,7 +76,7 @@ class GroupInheritanceTests(SimpleTestCase):
     @patch("netbox_nsm.objects.group_inheritance._type_config_map")
     @patch("netbox_nsm.objects.group_inheritance.direct_nsm_type_keys_for_ipam")
     @patch("netbox_nsm.objects.group_inheritance.ancestor_containers_for_group_inheritance")
-    @patch("netbox_nsm.objects.object_link_service.iter_links_on_container")
+    @patch("netbox_nsm.security.links.object_link_service.iter_links_on_container")
     @patch("django.contrib.contenttypes.models.ContentType")
     def test_iter_inherited_yields_group_links(
         self,

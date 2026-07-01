@@ -5,6 +5,7 @@ from unittest import TestCase
 from unittest.mock import patch
 
 from netbox_nsm.rulebooks.templates import (
+    BENCH_RULEBOOK_FIELD_NAMES,
     BUNDLED_RULEBOOK_TEMPLATE_SLUGS,
     DEFAULT_RULEBOOK_SCHEMA_YAML,
     DEMO_RULEBOOK_SCHEMA_YAML,
@@ -15,6 +16,8 @@ from netbox_nsm.rulebooks.templates import (
     build_rulebook_template_type_defs,
     default_rulebook_schema_yaml,
     demo_rulebook_schema_yaml,
+    schema_demo_rulebook_schema_yaml,
+    bench_rulebook_schema_yaml,
     export_rulebook_schema_yaml_for_copy,
     extract_rulebook_wizard_metadata_from_schema_yaml,
     resolve_rulebook_schema_yaml_for_validation,
@@ -64,11 +67,11 @@ class RulebookTemplateTests(TestCase):
         yaml_text = substitute_rulebook_schema_placeholders(
             default_rulebook_schema_yaml(),
             display_name="Bench Addresses",
-            name="bench_addresses",
+            name="demo_zone_addresses",
             description="Copied from existing rulebook",
         )
         meta = extract_rulebook_wizard_metadata_from_schema_yaml(yaml_text)
-        self.assertEqual(meta["name"], "bench_addresses")
+        self.assertEqual(meta["name"], "demo_zone_addresses")
         self.assertEqual(meta["verbose_name"], "Rulebook Bench Addresses")
         self.assertEqual(meta["description"], "Copied from existing rulebook")
 
@@ -82,7 +85,7 @@ class RulebookTemplateTests(TestCase):
         validate_substituted_rulebook_schema_yaml(
             default_rulebook_schema_yaml(),
             display_name="Bench Addresses",
-            name="bench_addresses",
+            name="demo_zone_addresses",
             description="Copied schema",
         )
 
@@ -93,10 +96,10 @@ class RulebookTemplateTests(TestCase):
         resolved = resolve_rulebook_schema_yaml_for_validation(
             default_rulebook_schema_yaml(),
             display_name="Bench Addresses",
-            name="bench_addresses",
+            name="demo_zone_addresses",
             description="Copied schema",
         )
-        self.assertIn("nsm_rb_bench_addresses", resolved)
+        self.assertIn("nsm_rb_demo_zone_addresses", resolved)
         self.assertIn("Bench Addresses", resolved)
         self.assertIn("Copied schema", resolved)
 
@@ -154,7 +157,7 @@ class RulebookTemplateTests(TestCase):
         self.assertEqual(source_row["label"], "Source")
         self.assertEqual(
             source_row["allowed_objects"],
-            ["Zone", "Label", "Address", "Address Group"],
+            ["Zone", "Label", "Address", "Address Custom", "Address Group"],
         )
         services_row = next(
             row for row in rows if row["name"] == "services_applications"
@@ -181,9 +184,10 @@ class RulebookTemplateTests(TestCase):
 
     def test_demo_schema_yaml_resolves_for_starter(self):
         type_def = parse_rulebook_schema_yaml(demo_rulebook_schema_yaml())
-        self.assertEqual(type_def["slug"], "nsm_rb_demo")
+        self.assertEqual(type_def["slug"], "nsm_rb_demo_zone_matrix")
         self.assertEqual(type_def["group_name"], "NSM Rulebooks")
-        self.assertEqual(type_def["verbose_name"], "Rulebook Demo")
+        self.assertEqual(type_def["verbose_name"], "Rulebook RB Demo Zone Matrix")
+        self.assertIn("nsm_demo_zone_matrix", type_def["description"])
         field_names = [field["name"] for field in type_def["fields"]]
         self.assertEqual(
             field_names,
@@ -211,22 +215,52 @@ class RulebookTemplateTests(TestCase):
         self.assertEqual(type_def["description"], "Custom schema")
         self.assertEqual(type_def["fields"][3]["name"], "source")
 
+    def test_schema_demo_rulebook_yaml_resolves_for_nsm_schema(self):
+        type_def = parse_rulebook_schema_yaml(schema_demo_rulebook_schema_yaml())
+        self.assertEqual(type_def["slug"], "nsm_rb_demo_rulebook")
+        self.assertEqual(type_def["verbose_name"], "Rulebook RB Demo Rulebook")
+        self.assertIn("NSM Schema", type_def["description"])
+        self.assertEqual(
+            [field["name"] for field in type_def["fields"]],
+            list(BENCH_RULEBOOK_FIELD_NAMES),
+        )
+        source_addresses = next(
+            field for field in type_def["fields"] if field["name"] == "source_addresses"
+        )
+        self.assertEqual(
+            source_addresses["related_object_types"],
+            [
+                "custom-objects/nsm_address",
+                "custom-objects/nsm_address_custom",
+                "custom-objects/nsm_address_group",
+            ],
+        )
+
+    def test_bench_schema_yaml_resolves_display_name_and_description(self):
+        type_def = parse_rulebook_schema_yaml(bench_rulebook_schema_yaml())
+        self.assertEqual(type_def["slug"], "nsm_rb_demo_zone_addresses")
+        self.assertEqual(type_def["verbose_name"], "Rulebook RB Demo Zone/Address")
+        self.assertIn(
+            "RB Demo Zone/Address setup job",
+            type_def["description"],
+        )
+
     def test_build_rulebook_document_from_schema_resolves_default_description(self):
         schema_type_def = parse_rulebook_schema_yaml(default_rulebook_schema_yaml())
         document = build_rulebook_document_from_schema(
             schema_type_def=schema_type_def,
-            rulebook_slug="nsm_rb_bench_addresses",
-            verbose_name="Rulebook Bench Addresses",
+            rulebook_slug="nsm_rb_custom",
+            verbose_name="Rulebook Custom",
             description="",
-            name="bench_addresses",
+            name="custom",
         )
         self.assertEqual(
             document["types"][0]["description"],
-            "NSM rulebook created from template nsm_rb_bench_addresses.",
+            "NSM rulebook created from template nsm_rb_custom.",
         )
 
     def test_deployed_rulebook_slug_detection(self):
-        self.assertTrue(is_deployed_rulebook_slug("nsm_rb_demo"))
+        self.assertTrue(is_deployed_rulebook_slug("nsm_rb_demo_zone_matrix"))
         self.assertFalse(is_deployed_rulebook_slug("nsm_rb_custom_template"))
 
     def test_is_rulebook_template_slug_pattern(self):

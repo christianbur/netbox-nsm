@@ -1,0 +1,82 @@
+{% load i18n %}
+{% if addr_analyzer %}
+  {% for section in addr_analyzer %}
+  <div class="{% if not forloop.last %}border-bottom mb-3 pb-3{% endif %}">
+    {% if section.field_name %}
+    <div class="nsm-addr-section-title mb-2">{{ section.field_name }}</div>
+    {% endif %}
+    {% for type_block in section.types %}
+    <div class="{% if not forloop.last %}mb-3{% endif %}">
+      {% if type_block.type_name and type_block.type_name != section.field_name %}
+      <div class="nsm-addr-type-title mb-1">{{ type_block.type_name }}</div>
+      {% endif %}
+      {% if type_block.nodes or object_tree %}
+      <details class="nsm-addr-details nsm-addr-top" open>
+        <summary class="nsm-addr-summary">
+          <span class="fw-semibold">{% trans "All" %}</span>
+          {% if summary_type_counts %}
+          {% include "netbox_nsm/inc/addr_type_count_badges.html" with counts=summary_type_counts diff_summary=type_block.diff_summary %}
+          {% else %}
+          {% include "netbox_nsm/inc/addr_type_count_badges.html" with counts=type_block diff_summary=type_block.diff_summary %}
+          {% endif %}
+          <span class="ms-auto d-inline-flex align-items-center gap-1">
+            <span class="btn-group btn-group-sm nsm-addr-prefix-format" role="group" onclick="event.stopPropagation();">
+              <input type="radio" class="btn-check nsm-addr-prefix-format-input" name="nsm-addr-pfx-{{ section.field_slug }}-{{ forloop.parentloop.counter }}-{{ forloop.counter }}" id="nsm-addr-pfx-cidr-{{ section.field_slug }}-{{ forloop.parentloop.counter }}-{{ forloop.counter }}" value="cidr" autocomplete="off" checked>
+              <label class="btn btn-outline-secondary py-0 px-1 small" for="nsm-addr-pfx-cidr-{{ section.field_slug }}-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">{% trans "CIDR" %}</label>
+              <input type="radio" class="btn-check nsm-addr-prefix-format-input" name="nsm-addr-pfx-{{ section.field_slug }}-{{ forloop.parentloop.counter }}-{{ forloop.counter }}" id="nsm-addr-pfx-netmask-{{ section.field_slug }}-{{ forloop.parentloop.counter }}-{{ forloop.counter }}" value="netmask" autocomplete="off">
+              <label class="btn btn-outline-secondary py-0 px-1 small" for="nsm-addr-pfx-netmask-{{ section.field_slug }}-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">{% trans "Mask" %}</label>
+            </span>
+          </span>
+        </summary>
+        <div class="nsm-addr-children">
+          {% include "netbox_nsm/inc/ipa_group_coverage_panel.html" %}
+          {% if object_tree %}
+          <table class="table table-hover object-list nsm-ipa-cell-tree-table mb-0">
+            {% include "netbox_nsm/inc/ipa_cell_tree_column_header.html" %}
+            <tbody class="nsm-ipa-object-tree-rows">
+              {% include "netbox_nsm/inc/ipa_object_tree_node.html" with nodes=object_tree depth=0 %}
+            </tbody>
+          </table>
+          {% else %}
+          {% for node in type_block.nodes %}
+            {% include "netbox_nsm/inc/addr_tree_node.html" with node=node depth=0 prefix=prefix|default:section.field_slug ipa_cell_pill=ipa_cell_pill|default:False forloop_counter=forloop.counter diff_label_a=type_block.diff_summary.label_a diff_label_b=type_block.diff_summary.label_b %}
+          {% endfor %}
+          {% endif %}
+        </div>
+      </details>
+      {% else %}
+      <span class="text-muted small">—</span>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+{% elif object_tree %}
+  <details class="nsm-addr-details nsm-addr-top" open>
+    <summary class="nsm-addr-summary">
+      <span class="fw-semibold">{% trans "All" %}</span>
+      {% if summary_type_counts %}
+      {% include "netbox_nsm/inc/addr_type_count_badges.html" with counts=summary_type_counts %}
+      {% endif %}
+      <span class="ms-auto d-inline-flex align-items-center gap-1">
+        <span class="btn-group btn-group-sm nsm-addr-prefix-format" role="group" onclick="event.stopPropagation();">
+          <input type="radio" class="btn-check nsm-addr-prefix-format-input" name="nsm-addr-pfx-object-tree" id="nsm-addr-pfx-cidr-object-tree" value="cidr" autocomplete="off" checked>
+          <label class="btn btn-outline-secondary py-0 px-1 small" for="nsm-addr-pfx-cidr-object-tree">{% trans "CIDR" %}</label>
+          <input type="radio" class="btn-check nsm-addr-prefix-format-input" name="nsm-addr-pfx-object-tree" id="nsm-addr-pfx-netmask-object-tree" value="netmask" autocomplete="off">
+          <label class="btn btn-outline-secondary py-0 px-1 small" for="nsm-addr-pfx-netmask-object-tree">{% trans "Mask" %}</label>
+        </span>
+      </span>
+    </summary>
+    <div class="nsm-addr-children">
+      {% include "netbox_nsm/inc/ipa_group_coverage_panel.html" %}
+      <table class="table table-hover object-list nsm-ipa-cell-tree-table mb-0">
+        {% include "netbox_nsm/inc/ipa_cell_tree_column_header.html" %}
+        <tbody class="nsm-ipa-object-tree-rows">
+          {% include "netbox_nsm/inc/ipa_object_tree_node.html" with nodes=object_tree depth=0 %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+{% elif show_empty_placeholder %}
+  <span class="text-muted small">—</span>
+{% endif %}

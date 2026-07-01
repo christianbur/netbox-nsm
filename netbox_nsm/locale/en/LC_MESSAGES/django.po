@@ -69,21 +69,21 @@ msgstr ""
 msgid "Assigned to"
 msgstr ""
 
-#: analysis/ip_analysis_service.py:260 analysis/ip_analysis_service.py:329
+#: analysis/ip_analyzer_service.py:260 analysis/ip_analyzer_service.py:329
 #: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:49
 msgid "No IP addresses resolved."
 msgstr ""
 
-#: analysis/ip_analysis_service.py:302 analysis/ip_analysis_service.py:327
-#: analysis/ip_analysis_service.py:381
+#: analysis/ip_analyzer_service.py:302 analysis/ip_analyzer_service.py:327
+#: analysis/ip_analyzer_service.py:381
 msgid "No analyzable address objects."
 msgstr ""
 
-#: analysis/ip_analysis_service.py:304
+#: analysis/ip_analyzer_service.py:304
 msgid "No valid objects selected."
 msgstr ""
 
-#: analysis/ip_analysis_service.py:383
+#: analysis/ip_analyzer_service.py:383
 msgid "No valid objects selected for diff."
 msgstr ""
 
@@ -814,29 +814,24 @@ msgstr ""
 msgid "Matrix"
 msgstr ""
 
-#: security/panel_sections.py:6
 #: templates/netbox_nsm/inc/rulebook_field_group_row_multiline.html:32
 #: templates/netbox_nsm/inc/rulebook_field_row.html:13
 msgid "Source"
 msgstr ""
 
-#: security/panel_sections.py:7
 #: templates/netbox_nsm/inc/rulebook_field_group_row_multiline.html:34
 #: templates/netbox_nsm/inc/rulebook_field_row.html:15
 msgid "Destination"
 msgstr ""
 
-#: security/panel_sections.py:8
 #, fuzzy
 #| msgid "Device"
 msgid "Services"
 msgstr "Device"
 
-#: security/panel_sections.py:9
 msgid "Action"
 msgstr ""
 
-#: security/panel_sections.py:10
 #: templates/netbox_nsm/inc/ipa_drilldown_source_meta.html:7
 msgid "Info"
 msgstr ""
@@ -1016,8 +1011,8 @@ msgstr ""
 msgid "The following objects will be deleted as a result of this action."
 msgstr ""
 
-#: templates/netbox_nsm/inc/addr_analysis_panel.html:16
-#: templates/netbox_nsm/inc/addr_analysis_panel.html:53
+#: templates/netbox_nsm/inc/ip_analyzer_panel.html:16
+#: templates/netbox_nsm/inc/ip_analyzer_panel.html:53
 msgid "All"
 msgstr ""
 
@@ -1300,7 +1295,7 @@ msgid "IP/Range/Prefix"
 msgstr ""
 
 #: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:10
-msgid "IP Analysis"
+msgid "IP Analyzer"
 msgstr ""
 
 #: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:11
@@ -1427,11 +1422,11 @@ msgid "Analyze object"
 msgstr ""
 
 #: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:35
-msgid "Analysis running…"
+msgid "Analyzer running…"
 msgstr ""
 
 #: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:36
-msgid "Analysis failed."
+msgid "Analyzer failed."
 msgstr ""
 
 #: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:37
@@ -1496,12 +1491,12 @@ msgid "%%(count)s skipped"
 msgstr ""
 
 #: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:51
-msgid "Analysis could not be loaded."
+msgid "Analyzer could not be loaded."
 msgstr ""
 
 #: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:52
 #, python-format
-msgid "IP Analysis (%%(count)s)"
+msgid "IP Analyzer (%%(count)s)"
 msgstr ""
 
 #: templates/netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html:53
@@ -1785,11 +1780,11 @@ msgstr ""
 msgid "Export displayed data and IPAM children (YAML)"
 msgstr ""
 
-#: templates/netbox_nsm/inc/addr_analysis_panel.html:25
+#: templates/netbox_nsm/inc/ip_analyzer_panel.html:25
 msgid "CIDR"
 msgstr ""
 
-#: templates/netbox_nsm/inc/addr_analysis_panel.html:27
+#: templates/netbox_nsm/inc/ip_analyzer_panel.html:27
 msgid "Mask"
 msgstr ""
 
@@ -2080,7 +2075,7 @@ msgstr ""
 msgid ""
 "\n"
 "              Bench scaling test: %(leaves)s nested nsm_address hosts, "
-"%(rules)s COT rules on «Bench Addresses» (nsm_rb_bench_addresses). Uses "
+"%(rules)s COT rules on «Bench Addresses» (nsm_rb_demo_zone_addresses). Uses "
 "dedicated bench-* objects in 10.128.0.0/9 — can run in parallel with the "
 "community demo. Runs in the background via the RQ worker. Full run (200,000 "
 "addresses) only via CLI: scripts/create_addresses_million_scale.py\n"

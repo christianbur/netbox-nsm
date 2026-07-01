@@ -15,8 +15,8 @@ from django.urls import reverse
 from ipam.models import IPAddress, Prefix
 from utilities.testing import TestCase
 
-from netbox_nsm.analyzer import picker as picker_mod
-from netbox_nsm.analyzer.registry import AnalyzerEdge, AnalyzerNode
+from netbox_nsm.analyzers.object_analyzer import picker as picker_mod
+from netbox_nsm.analyzers.object_analyzer.registry import AnalyzerEdge, AnalyzerNode
 
 
 def _node(i, ct=10):
@@ -40,10 +40,10 @@ class BuildPickerTreeUnitTests(SimpleTestCase):
             AnalyzerEdge("Linked", "nsm_link", _node(2)),
             AnalyzerEdge("Linked", "nsm_link", _node(3)),
         ]
-        with patch("netbox_nsm.analyzer.node_from_object", return_value=_node(1)), patch.object(
+        with patch("netbox_nsm.analyzers.object_analyzer.node_from_object", return_value=_node(1)), patch.object(
             picker_mod, "_bulk_resolve"
         ) as bulk, patch(
-            "netbox_nsm.analyzer.modes.get_filtered_edges", return_value=l1
+            "netbox_nsm.analyzers.object_analyzer.modes.get_filtered_edges", return_value=l1
         ):
             tree = picker_mod.build_picker_tree(root, depth=1)
 
@@ -54,8 +54,8 @@ class BuildPickerTreeUnitTests(SimpleTestCase):
 
     def test_mode_all_uses_get_filtered_edges(self):
         root = MagicMock(name="root")
-        with patch("netbox_nsm.analyzer.node_from_object", return_value=_node(1)), patch(
-            "netbox_nsm.analyzer.modes.get_filtered_edges", return_value=[]
+        with patch("netbox_nsm.analyzers.object_analyzer.node_from_object", return_value=_node(1)), patch(
+            "netbox_nsm.analyzers.object_analyzer.modes.get_filtered_edges", return_value=[]
         ) as get_edges:
             picker_mod.build_picker_tree(root, depth=1, mode="all")
         get_edges.assert_called_once()
@@ -86,12 +86,12 @@ class BuildPickerTreeUnitTests(SimpleTestCase):
                 return l2_for_3
             return []
 
-        with patch("netbox_nsm.analyzer.node_from_object", return_value=_node(1)), patch.object(
+        with patch("netbox_nsm.analyzers.object_analyzer.node_from_object", return_value=_node(1)), patch.object(
             picker_mod,
             "_bulk_resolve",
             return_value={(10, 2): child2, (10, 3): child3},
         ), patch(
-            "netbox_nsm.analyzer.modes.get_filtered_edges", side_effect=edges_side_effect
+            "netbox_nsm.analyzers.object_analyzer.modes.get_filtered_edges", side_effect=edges_side_effect
         ):
             tree = picker_mod.build_picker_tree(root, depth=2)
 
@@ -103,9 +103,9 @@ class BuildPickerTreeUnitTests(SimpleTestCase):
     def test_depth2_unresolved_child_yields_empty_l2(self):
         root = MagicMock(name="root")
         l1 = [AnalyzerEdge("Linked", "nsm_link", _node(2))]
-        with patch("netbox_nsm.analyzer.node_from_object", return_value=_node(1)), patch.object(
+        with patch("netbox_nsm.analyzers.object_analyzer.node_from_object", return_value=_node(1)), patch.object(
             picker_mod, "_bulk_resolve", return_value={}
-        ), patch("netbox_nsm.analyzer.modes.get_filtered_edges", return_value=l1):
+        ), patch("netbox_nsm.analyzers.object_analyzer.modes.get_filtered_edges", return_value=l1):
             tree = picker_mod.build_picker_tree(root, depth=2)
 
         self.assertEqual(tree["children"][0]["l2_count"], 0)
@@ -117,9 +117,9 @@ class BuildPickerTreeUnitTests(SimpleTestCase):
             AnalyzerEdge("Linked", "nsm_link", _node(2)),
             AnalyzerEdge("Other", "other", _node(2)),
         ]
-        with patch("netbox_nsm.analyzer.node_from_object", return_value=_node(1)), patch.object(
+        with patch("netbox_nsm.analyzers.object_analyzer.node_from_object", return_value=_node(1)), patch.object(
             picker_mod, "_bulk_resolve", return_value={}
-        ), patch("netbox_nsm.analyzer.modes.get_filtered_edges", return_value=l1):
+        ), patch("netbox_nsm.analyzers.object_analyzer.modes.get_filtered_edges", return_value=l1):
             tree = picker_mod.build_picker_tree(root, depth=1)
 
         self.assertEqual(len(tree["children"]), 1)
@@ -131,9 +131,9 @@ class BuildPickerTreeUnitTests(SimpleTestCase):
             AnalyzerEdge("Cable Termination", "rev_b", _node(3)),
             AnalyzerEdge("Interface", "rev_c", _node(4)),
         ]
-        with patch("netbox_nsm.analyzer.node_from_object", return_value=_node(1)), patch.object(
+        with patch("netbox_nsm.analyzers.object_analyzer.node_from_object", return_value=_node(1)), patch.object(
             picker_mod, "_bulk_resolve", return_value={}
-        ), patch("netbox_nsm.analyzer.modes.get_filtered_edges", return_value=l1):
+        ), patch("netbox_nsm.analyzers.object_analyzer.modes.get_filtered_edges", return_value=l1):
             tree = picker_mod.build_picker_tree(root, depth=1)
 
         self.assertIn("groups", tree)
@@ -152,9 +152,9 @@ class BuildPickerTreeUnitTests(SimpleTestCase):
             AnalyzerEdge("Console Port", "b", _node(3)),
             AnalyzerEdge("Cable Termination", "c", _node(4)),
         ]
-        with patch("netbox_nsm.analyzer.node_from_object", return_value=_node(1)), patch.object(
+        with patch("netbox_nsm.analyzers.object_analyzer.node_from_object", return_value=_node(1)), patch.object(
             picker_mod, "_bulk_resolve", return_value={}
-        ), patch("netbox_nsm.analyzer.modes.get_filtered_edges", return_value=l1):
+        ), patch("netbox_nsm.analyzers.object_analyzer.modes.get_filtered_edges", return_value=l1):
             tree = picker_mod.build_picker_tree(root, depth=1)
 
         labels = [g["label"] for g in tree["groups"]]
@@ -173,9 +173,9 @@ class BuildPickerTreeUnitTests(SimpleTestCase):
             AnalyzerEdge("Interface", "a", _node_with_label(2, "zebra")),
             AnalyzerEdge("Interface", "b", _node_with_label(3, "alpha")),
         ]
-        with patch("netbox_nsm.analyzer.node_from_object", return_value=_node(1)), patch.object(
+        with patch("netbox_nsm.analyzers.object_analyzer.node_from_object", return_value=_node(1)), patch.object(
             picker_mod, "_bulk_resolve", return_value={}
-        ), patch("netbox_nsm.analyzer.modes.get_filtered_edges", return_value=l1):
+        ), patch("netbox_nsm.analyzers.object_analyzer.modes.get_filtered_edges", return_value=l1):
             tree = picker_mod.build_picker_tree(root, depth=1)
 
         labels = [c["node"]["label"] for c in tree["groups"][0]["items"]]
@@ -187,9 +187,9 @@ class BuildPickerTreeUnitTests(SimpleTestCase):
             AnalyzerEdge("Interface", "a", _node(2)),
             AnalyzerEdge("Console Port", "b", _node(3)),
         ]
-        with patch("netbox_nsm.analyzer.node_from_object", return_value=_node(1)), patch.object(
+        with patch("netbox_nsm.analyzers.object_analyzer.node_from_object", return_value=_node(1)), patch.object(
             picker_mod, "_bulk_resolve", return_value={}
-        ), patch("netbox_nsm.analyzer.modes.get_filtered_edges", return_value=l1):
+        ), patch("netbox_nsm.analyzers.object_analyzer.modes.get_filtered_edges", return_value=l1):
             tree = picker_mod.build_picker_tree(root, depth=1)
 
         self.assertEqual(len(tree["children"]), 2)
@@ -318,9 +318,9 @@ class PickerGroupSelectionTests(SimpleTestCase):
             AnalyzerEdge("Cable Termination", "b", _node(3)),
             AnalyzerEdge("Interface", "c", _node(4)),
         ]
-        with patch("netbox_nsm.analyzer.node_from_object", return_value=_node(1)), patch.object(
+        with patch("netbox_nsm.analyzers.object_analyzer.node_from_object", return_value=_node(1)), patch.object(
             picker_mod, "_bulk_resolve", return_value={}
-        ), patch("netbox_nsm.analyzer.modes.get_filtered_edges", return_value=l1):
+        ), patch("netbox_nsm.analyzers.object_analyzer.modes.get_filtered_edges", return_value=l1):
             tree = picker_mod.build_picker_tree(root, depth=1)
 
         by_key = {g["key"]: g for g in tree["groups"]}
@@ -474,7 +474,7 @@ class PickerAlreadyLinkedFilterTests(SimpleTestCase):
             AnalyzerEdge("Connected to", "connected_endpoint", self._node(8)),
         ]
         with patch(
-            "netbox_nsm.analyzer.node_from_object",
+            "netbox_nsm.analyzers.object_analyzer.node_from_object",
             side_effect=lambda o: self._node(o.pk, ct=11 if o is device else 10),
         ):
             filtered = picker_mod.filter_already_linked_picker_edges(iface, edges)
@@ -487,7 +487,7 @@ class PickerAlreadyLinkedFilterTests(SimpleTestCase):
         iface.virtual_machine = vm
         edges = [AnalyzerEdge("Virtual Machine", "virtual_machine", self._node(7, ct=12))]
         with patch(
-            "netbox_nsm.analyzer.node_from_object",
+            "netbox_nsm.analyzers.object_analyzer.node_from_object",
             side_effect=lambda o: self._node(o.pk, ct=12),
         ):
             filtered = picker_mod.filter_already_linked_picker_edges(iface, edges)
@@ -502,7 +502,7 @@ class PickerAlreadyLinkedFilterTests(SimpleTestCase):
             AnalyzerEdge("Subnet", "in_prefix", self._node(9)),
         ]
         with patch(
-            "netbox_nsm.analyzer.node_from_object",
+            "netbox_nsm.analyzers.object_analyzer.node_from_object",
             side_effect=lambda o: self._node(o.pk),
         ):
             filtered = picker_mod.filter_already_linked_picker_edges(ip, edges)
@@ -528,7 +528,7 @@ class PickerAlreadyLinkedFilterTests(SimpleTestCase):
             return []
 
         with patch(
-            "netbox_nsm.analyzer.node_from_object",
+            "netbox_nsm.analyzers.object_analyzer.node_from_object",
             side_effect=lambda o: self._node(1)
             if o is root
             else self._node(o.pk, ct=11 if getattr(o, "pk", None) == 99 else 10),
@@ -537,7 +537,7 @@ class PickerAlreadyLinkedFilterTests(SimpleTestCase):
             "_bulk_resolve",
             return_value={(10, 2): child_iface},
         ), patch(
-            "netbox_nsm.analyzer.modes.get_filtered_edges", side_effect=edges_side_effect
+            "netbox_nsm.analyzers.object_analyzer.modes.get_filtered_edges", side_effect=edges_side_effect
         ):
             tree = picker_mod.build_picker_tree(root, depth=2)
 
@@ -572,7 +572,7 @@ class PickerAlreadyLinkedFilterTests(SimpleTestCase):
             return []
 
         with patch(
-            "netbox_nsm.analyzer.node_from_object",
+            "netbox_nsm.analyzers.object_analyzer.node_from_object",
             side_effect=lambda o: self._node(1)
             if o is root_iface
             else self._node(o.pk, ct=11 if getattr(o, "pk", None) == 99 else 10),
@@ -581,7 +581,7 @@ class PickerAlreadyLinkedFilterTests(SimpleTestCase):
             "_bulk_resolve",
             return_value={(10, 2): peer_iface},
         ), patch(
-            "netbox_nsm.analyzer.modes.get_filtered_edges", side_effect=edges_side_effect
+            "netbox_nsm.analyzers.object_analyzer.modes.get_filtered_edges", side_effect=edges_side_effect
         ):
             tree = picker_mod.build_picker_tree(root_iface, depth=2)
 

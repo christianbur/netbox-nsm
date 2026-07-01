@@ -2,12 +2,12 @@ from django import forms
 from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext_lazy as _
 
-from netbox_nsm.objects.nsm_config import (
+from netbox_nsm.type_metadata.config import (
     filter_assignable_configs,
     is_assignable_from_content_type,
-    iter_panel_linkable_configs,
+    iter_linkable_configs,
 )
-from netbox_nsm.objects.link_propagation import (
+from netbox_nsm.security.links.link_propagation import (
     CotObjectLinkPropagationChoices,
     cot_propagation_choices_for_form,
 )
@@ -52,7 +52,7 @@ def _build_type_choices(source_content_type_id=None):
         configs = filter_assignable_configs(int(source_content_type_id))
     else:
         configs = sorted(
-            iter_panel_linkable_configs(),
+            iter_linkable_configs(),
             key=lambda c: (c.name or "").lower(),
         )
 

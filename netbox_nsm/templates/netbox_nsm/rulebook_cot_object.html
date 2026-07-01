@@ -8,7 +8,11 @@
 
 {% block subtitle %}{% endblock subtitle %}
 
-{% block controls %}{% endblock controls %}
+{% block controls %}
+{% if tab_key == 'detail' %}
+{% include "netbox_nsm/inc/rulebook_cot_detail_actions.html" %}
+{% endif %}
+{% endblock controls %}
 
 {% block alerts %}{% endblock alerts %}
 

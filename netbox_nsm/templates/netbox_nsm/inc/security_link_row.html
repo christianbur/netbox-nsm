@@ -1,5 +1,6 @@
 {% load i18n %}
 <tr class="nsm-link-row">
+  <td class="col-type">{{ linked.row_type_label|default:"" }}</td>
   <td class="col-object">
     {% if linked.parent_url %}<a href="{{ linked.parent_url }}" class="nsm-link-parent-host text-decoration-none">{{ linked.parent_name }}</a><span class="text-muted" aria-hidden="true"> / </span>{% endif %}<a href="{{ linked.url }}"{% if linked.inherited_from_name %} class="text-muted fst-italic"{% endif %}>{{ linked.name }}</a>{% if linked.status_icon_html %}{{ linked.status_icon_html|safe }}{% endif %}
     {% if linked.inherited_from_name %}
@@ -8,12 +9,56 @@
     </span>
     {% endif %}
   </td>
-  {% if group.has_value_grouping %}<td class="col-value">{% if linked.value_label and linked.value_key != "_none" %}<span class="badge text-bg-light border nsm-link-value-badge">{{ linked.value_label }}</span>{% endif %}</td>{% endif %}
-  {% if group.show_comment %}<td class="col-comment">{{ linked.comment|default:"" }}</td>{% endif %}
-  {% if group.show_actions %}<td class="col-actions pe-2 text-end" style="white-space:nowrap;">
-    {% if linked.supports_addr_analysis or linked.edit_url or linked.delete_url %}
+  <td class="col-value">
+    {% if linked.is_junction_row %}
+      {% if linked.via_obj_url %}
+        <span class="text-muted">{% trans "via" %}</span>
+        <a href="{{ linked.via_obj_url }}">{{ linked.via_obj_name }}</a>
+      {% else %}
+        &mdash;
+      {% endif %}
+    {% elif linked.value_label and linked.value_key != "_none" %}
+      {% if linked.value_url %}
+        <a href="{{ linked.value_url }}">{{ linked.value_label }}</a>
+      {% else %}
+        {{ linked.value_label }}
+      {% endif %}
+    {% else %}
+      &mdash;
+    {% endif %}
+  </td>
+  <td class="col-field">{{ linked.field_label|default:"" }}</td>
+  {% if group.show_actions %}
+  <td class="col-actions pe-2 text-end text-nowrap noprint">
+    {% if linked.is_cot_row and linked.cot_slug %}
+      {% with action_edit=linked.edit_url action_delete=linked.delete_url action_changelog=linked.changelog_url %}
+      <span class="btn-group dropdown">
+        {% if action_edit %}
+        <a class="btn btn-sm btn-warning"
+           href="{{ action_edit }}"
+           type="button"
+           aria-label="{% trans 'Edit' %}"><i class="mdi mdi-pencil"></i></a>
+        {% endif %}
+        <button type="button"
+                class="btn btn-sm btn-warning dropdown-toggle"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+                style="padding-left: 2px">
+          <span class="visually-hidden">{% trans 'Toggle Dropdown' %}</span>
+        </button>
+        <ul class="dropdown-menu">
+          {% if action_changelog %}
+          <li><a class="dropdown-item" href="{{ action_changelog }}"><i class="mdi mdi-history" aria-hidden="true"></i> {% trans "Changelog" %}</a></li>
+          {% endif %}
+          {% if action_delete %}
+          <li><a class="dropdown-item" href="{{ action_delete }}"><i class="mdi mdi-trash-can-outline" aria-hidden="true"></i> {% trans "Delete" %}</a></li>
+          {% endif %}
+        </ul>
+      </span>
+      {% endwith %}
+    {% elif linked.supports_addr_analyzer or linked.edit_url or linked.delete_url %}
     <span class="btn-group btn-group-sm nsm-link-actions" role="group">
-      {% if linked.supports_addr_analysis %}
+      {% if linked.supports_addr_analyzer %}
       <button type="button" class="btn btn-light btn-sm nsm-ipa-loupe"
               data-ct="{{ linked.ct_id }}"
               data-pk="{{ linked.obj_id }}"
@@ -37,5 +82,6 @@
       {% endif %}
     </span>
     {% endif %}
-  </td>{% endif %}
+  </td>
+  {% endif %}
 </tr>

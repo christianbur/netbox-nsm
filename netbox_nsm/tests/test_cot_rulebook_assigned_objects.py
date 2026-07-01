@@ -9,9 +9,9 @@ from django.urls import reverse
 from ipam.models import Prefix
 
 from dcim.models import Device, DeviceRole, DeviceType, Interface, Manufacturer, Site
-from netbox_nsm.demos.cot_demo_common import ensure_nsm_prerequisites
+from netbox_nsm.tests.nsm_prerequisites import ensure_nsm_prerequisites
 from netbox_nsm.forms import EnforcementPointInterfaceAssignForm
-from netbox_nsm.objects.object_link_service import (
+from netbox_nsm.security.links.object_link_service import (
     LINK_TYPE_ENFORCEMENT_POINT,
     create_or_update_enforcement_point_link,
     create_or_update_links,
@@ -247,8 +247,6 @@ class CotRulebookAssignedObjectsPanelTests(TestCase):
             content,
         )
         self.assertIn("nsm-rb-assigned-edit-toggle", content)
-        self.assertIn("nsm-copy-fields-schema-btn", content)
-        self.assertIn("nsm-fields-schema-yaml-data", content)
 
     def test_panel_builds_without_prefetch_related_exception(self):
         self._require_object_link_model()

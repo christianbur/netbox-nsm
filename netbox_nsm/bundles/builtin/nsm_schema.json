@@ -1,0 +1,1237 @@
+{
+  "schema_type": "nsm",
+  "schema_version": "1",
+  "bundle_kind": "schema",
+  "title": "NSM Security Objects Schema",
+  "description": "Required NSM base import: Security Object custom types, choice sets, default seed objects, and type metadata (links settings, rulebook views). Defines nsm_rb_demo_rulebook and sample policy objects.",
+  "choice_sets": [
+    {
+      "name": "nsm_object_status",
+      "choices": [
+        "active",
+        "reserved",
+        "deprecated"
+      ]
+    },
+    {
+      "name": "nsm_service_protocol",
+      "choices": [
+        "tcp",
+        "udp",
+        "sctp",
+        "icmp",
+        "icmpv6",
+        "gre",
+        "esp",
+        "ah",
+        "ip",
+        "any"
+      ]
+    },
+    {
+      "name": "nsm_label_type",
+      "choices": [
+        "role",
+        "application",
+        "environment",
+        "location",
+        "custom"
+      ]
+    },
+    {
+      "name": "nsm_app_business_criticality",
+      "choices": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
+    },
+    {
+      "name": "nsm_object_link_type",
+      "choices": [
+        "policy",
+        "rulebook",
+        "enforcement_point"
+      ]
+    },
+    {
+      "name": "nsm_object_link_propagation",
+      "choices": [
+        "direct",
+        "inherit_ipam",
+        "inherit_ipam_stop",
+        "inherit_group",
+        "inherit_group_stop"
+      ]
+    }
+  ],
+  "types": [
+    {
+      "name": "nsm_action",
+      "slug": "nsm_action",
+      "verbose_name": "Action",
+      "verbose_name_plural": "Actions",
+      "group_name": "NSM Objects",
+      "description": "Policy action for matching traffic in a rule (e.g. permit, deny, drop, reject). Used in rulebook Action columns.",
+      "fields": [
+        {
+          "id": 1,
+          "name": "name",
+          "type": "text",
+          "label": "Name",
+          "primary": true,
+          "required": true,
+          "weight": 1
+        },
+        {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
+        },
+        {
+          "id": 2,
+          "name": "color",
+          "type": "text",
+          "label": "Color",
+          "weight": 91
+        },
+        {
+          "id": 3,
+          "name": "description",
+          "type": "text",
+          "label": "Description",
+          "weight": 90
+        },
+        {
+          "id": 4,
+          "name": "comments",
+          "type": "longtext",
+          "label": "Comments",
+          "weight": 100
+        }
+      ],
+      "removed_fields": []
+    },
+    {
+      "name": "nsm_service",
+      "slug": "nsm_service",
+      "verbose_name": "Service",
+      "verbose_name_plural": "Services",
+      "group_name": "NSM Objects",
+      "description": "Represents one network service (protocol + port). Used in rulebook Service columns and Security Panel links.",
+      "fields": [
+        {
+          "id": 1,
+          "name": "name",
+          "type": "text",
+          "label": "Name",
+          "primary": true,
+          "required": true,
+          "weight": 1
+        },
+        {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
+        },
+        {
+          "id": 2,
+          "name": "color",
+          "type": "text",
+          "label": "Color",
+          "weight": 91
+        },
+        {
+          "id": 3,
+          "name": "description",
+          "type": "text",
+          "label": "Description",
+          "weight": 90
+        },
+        {
+          "id": 4,
+          "name": "comments",
+          "type": "longtext",
+          "label": "Comments",
+          "weight": 100
+        },
+        {
+          "id": 100,
+          "name": "protocol",
+          "type": "select",
+          "label": "Protocol",
+          "required": true,
+          "weight": 10,
+          "choice_set": "nsm_service_protocol"
+        },
+        {
+          "id": 101,
+          "name": "port",
+          "type": "integer",
+          "label": "Port",
+          "description": "Port 0–65535 (TCP/UDP/SCTP only).",
+          "validation_minimum": 0,
+          "validation_maximum": 65535,
+          "weight": 11
+        }
+      ],
+      "removed_fields": []
+    },
+    {
+      "name": "nsm_service_group",
+      "slug": "nsm_service_group",
+      "verbose_name": "Service Group",
+      "verbose_name_plural": "Service Groups",
+      "group_name": "NSM Objects",
+      "description": "Named collection of services. Referenced in rulebook Service columns; members are nsm_service objects.",
+      "fields": [
+        {
+          "id": 1,
+          "name": "name",
+          "type": "text",
+          "label": "Name",
+          "primary": true,
+          "required": true,
+          "weight": 1
+        },
+        {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
+        },
+        {
+          "id": 2,
+          "name": "color",
+          "type": "text",
+          "label": "Color",
+          "weight": 91
+        },
+        {
+          "id": 3,
+          "name": "description",
+          "type": "text",
+          "label": "Description",
+          "weight": 90
+        },
+        {
+          "id": 4,
+          "name": "comments",
+          "type": "longtext",
+          "label": "Comments",
+          "weight": 100
+        },
+        {
+          "id": 100,
+          "name": "group",
+          "type": "multiobject",
+          "label": "Group Members",
+          "description": "Member service objects in this group.",
+          "required": true,
+          "weight": 10,
+          "related_object_type": "custom-objects/nsm_service"
+        }
+      ],
+      "removed_fields": []
+    },
+    {
+      "name": "nsm_address",
+      "slug": "nsm_address",
+      "verbose_name": "Address",
+      "verbose_name_plural": "Addresses",
+      "group_name": "NSM Objects",
+      "description": "Named address object for policy rules (host, prefix, or range). Used in Source/Destination columns and Security Panel links.",
+      "fields": [
+        {
+          "id": 1,
+          "name": "name",
+          "type": "text",
+          "label": "Name",
+          "primary": true,
+          "required": true,
+          "weight": 1
+        },
+        {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
+        },
+        {
+          "id": 2,
+          "name": "color",
+          "type": "text",
+          "label": "Color",
+          "weight": 91
+        },
+        {
+          "id": 3,
+          "name": "description",
+          "type": "text",
+          "label": "Description",
+          "weight": 90
+        },
+        {
+          "id": 4,
+          "name": "comments",
+          "type": "longtext",
+          "label": "Comments",
+          "weight": 100
+        },
+        {
+          "id": 104,
+          "name": "address",
+          "type": "object",
+          "label": "Address",
+          "description": "NetBox IP address, range, or prefix this policy object represents.",
+          "required": false,
+          "weight": 11,
+          "is_polymorphic": true,
+          "related_object_types": [
+            "ipam/ipaddress",
+            "ipam/iprange",
+            "ipam/prefix"
+          ]
+        }
+      ],
+      "removed_fields": []
+    },
+    {
+      "name": "nsm_address_custom",
+      "slug": "nsm_address_custom",
+      "verbose_name": "Address Custom",
+      "verbose_name_plural": "Addresses Custom",
+      "group_name": "NSM Objects",
+      "description": "Named address without IPAM: manual IPv4 or IPv6 plus prefix length (e.g. 0.0.0.0/0). Usable in rulebooks and address groups like nsm_address.",
+      "fields": [
+        {
+          "id": 1,
+          "name": "name",
+          "type": "text",
+          "label": "Name",
+          "primary": true,
+          "required": true,
+          "weight": 1
+        },
+        {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
+        },
+        {
+          "id": 2,
+          "name": "color",
+          "type": "text",
+          "label": "Color",
+          "weight": 91
+        },
+        {
+          "id": 3,
+          "name": "description",
+          "type": "text",
+          "label": "Description",
+          "weight": 90
+        },
+        {
+          "id": 4,
+          "name": "comments",
+          "type": "longtext",
+          "label": "Comments",
+          "weight": 100
+        },
+        {
+          "id": 110,
+          "name": "ipv4",
+          "type": "text",
+          "label": "IPv4",
+          "required": false,
+          "weight": 11,
+          "description": "IPv4 address (mutually exclusive with IPv6)."
+        },
+        {
+          "id": 111,
+          "name": "ipv6",
+          "type": "text",
+          "label": "IPv6",
+          "required": false,
+          "weight": 12,
+          "description": "IPv6 address (mutually exclusive with IPv4)."
+        },
+        {
+          "id": 112,
+          "name": "subnet",
+          "type": "integer",
+          "label": "Prefix length",
+          "required": true,
+          "weight": 13,
+          "description": "CIDR prefix length (0–32 for IPv4, 0–128 for IPv6).",
+          "validation_minimum": 0,
+          "validation_maximum": 128
+        }
+      ],
+      "removed_fields": []
+    },
+    {
+      "name": "nsm_address_group",
+      "slug": "nsm_address_group",
+      "verbose_name": "Address Group",
+      "verbose_name_plural": "Address Groups",
+      "group_name": "NSM Objects",
+      "description": "Named collection of address objects. Used in Source/Destination columns; members are nsm_address objects.",
+      "fields": [
+        {
+          "id": 1,
+          "name": "name",
+          "type": "text",
+          "label": "Name",
+          "primary": true,
+          "required": true,
+          "weight": 1
+        },
+        {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
+        },
+        {
+          "id": 2,
+          "name": "color",
+          "type": "text",
+          "label": "Color",
+          "weight": 91
+        },
+        {
+          "id": 3,
+          "name": "description",
+          "type": "text",
+          "label": "Description",
+          "weight": 90
+        },
+        {
+          "id": 4,
+          "name": "comments",
+          "type": "longtext",
+          "label": "Comments",
+          "weight": 100
+        },
+        {
+          "id": 100,
+          "name": "group",
+          "type": "multiobject",
+          "label": "Group Members",
+          "description": "Member address objects (IPAM-linked or custom manual).",
+          "required": true,
+          "weight": 10,
+          "is_polymorphic": true,
+          "related_object_types": [
+            "custom-objects/nsm_address",
+            "custom-objects/nsm_address_custom"
+          ]
+        }
+      ],
+      "removed_fields": []
+    },
+    {
+      "name": "nsm_label",
+      "slug": "nsm_label",
+      "verbose_name": "Label",
+      "verbose_name_plural": "Labels",
+      "group_name": "NSM Objects",
+      "description": "Classification tag for inventory or rules (e.g. compliance, tier). Used in label columns and Security Panel links.",
+      "fields": [
+        {
+          "id": 1,
+          "name": "name",
+          "type": "text",
+          "label": "Name",
+          "primary": true,
+          "required": true,
+          "weight": 1
+        },
+        {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
+        },
+        {
+          "id": 2,
+          "name": "color",
+          "type": "text",
+          "label": "Color",
+          "weight": 91
+        },
+        {
+          "id": 3,
+          "name": "description",
+          "type": "text",
+          "label": "Description",
+          "weight": 90
+        },
+        {
+          "id": 4,
+          "name": "comments",
+          "type": "longtext",
+          "label": "Comments",
+          "weight": 100
+        },
+        {
+          "id": 100,
+          "name": "label_type",
+          "type": "select",
+          "label": "Label Type",
+          "required": true,
+          "weight": 10,
+          "choice_set": "nsm_label_type"
+        }
+      ],
+      "removed_fields": [
+        {
+          "id": 101,
+          "name": "custom_type",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "name": "nsm_zone",
+      "slug": "nsm_zone",
+      "verbose_name": "Zone",
+      "verbose_name_plural": "Zones",
+      "group_name": "NSM Objects",
+      "description": "Logical security zone for segmentation. Linked to inventory via Security Panel; used in rulebook zone columns.",
+      "fields": [
+        {
+          "id": 1,
+          "name": "name",
+          "type": "text",
+          "label": "Name",
+          "primary": true,
+          "required": true,
+          "weight": 1
+        },
+        {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
+        },
+        {
+          "id": 2,
+          "name": "color",
+          "type": "text",
+          "label": "Color",
+          "weight": 91
+        },
+        {
+          "id": 3,
+          "name": "description",
+          "type": "text",
+          "label": "Description",
+          "weight": 90
+        },
+        {
+          "id": 4,
+          "name": "comments",
+          "type": "longtext",
+          "label": "Comments",
+          "weight": 100
+        }
+      ],
+      "removed_fields": []
+    },
+    {
+      "name": "nsm_app_business",
+      "slug": "nsm_app_business",
+      "verbose_name": "Business App",
+      "verbose_name_plural": "Business Apps",
+      "group_name": "NSM Objects",
+      "description": "Business application metadata for rule Info columns (ownership, criticality).",
+      "fields": [
+        {
+          "id": 1,
+          "name": "name",
+          "type": "text",
+          "label": "Name",
+          "primary": true,
+          "required": true,
+          "weight": 1
+        },
+        {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
+        },
+        {
+          "id": 2,
+          "name": "color",
+          "type": "text",
+          "label": "Color",
+          "weight": 91
+        },
+        {
+          "id": 3,
+          "name": "description",
+          "type": "text",
+          "label": "Description",
+          "weight": 90
+        },
+        {
+          "id": 4,
+          "name": "comments",
+          "type": "longtext",
+          "label": "Comments",
+          "weight": 100
+        },
+        {
+          "id": 100,
+          "name": "criticality",
+          "type": "select",
+          "label": "Criticality",
+          "weight": 10,
+          "choice_set": "nsm_app_business_criticality"
+        },
+        {
+          "id": 101,
+          "name": "business_owner",
+          "type": "object",
+          "label": "Business Owner",
+          "weight": 11,
+          "related_object_type": "tenancy/contactgroup"
+        },
+        {
+          "id": 102,
+          "name": "technical_owner",
+          "type": "object",
+          "label": "Technical Owner",
+          "weight": 12,
+          "related_object_type": "tenancy/contactgroup"
+        }
+      ],
+      "removed_fields": []
+    },
+    {
+      "name": "nsm_app_network",
+      "slug": "nsm_app_network",
+      "verbose_name": "Network App",
+      "verbose_name_plural": "Network Apps",
+      "group_name": "NSM Objects",
+      "description": "Network application identifier, similar to Palo Alto App-ID (e.g. ssh, onedrive, ssl).",
+      "fields": [
+        {
+          "id": 1,
+          "name": "name",
+          "type": "text",
+          "label": "Name",
+          "primary": true,
+          "required": true,
+          "weight": 1
+        },
+        {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
+        },
+        {
+          "id": 2,
+          "name": "color",
+          "type": "text",
+          "label": "Color",
+          "weight": 91
+        },
+        {
+          "id": 3,
+          "name": "description",
+          "type": "text",
+          "label": "Description",
+          "weight": 90
+        },
+        {
+          "id": 4,
+          "name": "comments",
+          "type": "longtext",
+          "label": "Comments",
+          "weight": 100
+        },
+        {
+          "id": 100,
+          "name": "app_category",
+          "type": "text",
+          "label": "Category",
+          "weight": 10
+        },
+        {
+          "id": 101,
+          "name": "app_risk",
+          "type": "text",
+          "label": "Risk Level",
+          "description": "Risk level 1 (lowest) to 5 (highest), matching Palo Alto App-ID convention.",
+          "weight": 11
+        },
+        {
+          "id": 102,
+          "name": "default_ports",
+          "type": "text",
+          "label": "Default Ports",
+          "description": "Comma-separated list of default ports/protocols, e.g. tcp/443,tcp/80",
+          "weight": 12
+        }
+      ],
+      "removed_fields": []
+    },
+    {
+      "name": "nsm_object_link",
+      "slug": "nsm_object_link",
+      "verbose_name": "Object Link",
+      "verbose_name_plural": "Object Links",
+      "group_name": "NSM Object Links",
+      "description": "Links NetBox inventory to security policy objects or rulebooks (Security Panel source of truth).",
+      "link_table": true,
+      "fields": [
+        {
+          "id": 1,
+          "name": "name",
+          "type": "text",
+          "label": "Name",
+          "primary": true,
+          "required": true,
+          "weight": 1
+        },
+        {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
+        },
+        {
+          "id": 2,
+          "name": "color",
+          "type": "text",
+          "label": "Color",
+          "weight": 91
+        },
+        {
+          "id": 3,
+          "name": "description",
+          "type": "text",
+          "label": "Description",
+          "weight": 90
+        },
+        {
+          "id": 4,
+          "name": "comments",
+          "type": "longtext",
+          "label": "Comments",
+          "weight": 100
+        },
+        {
+          "id": 99,
+          "name": "link_type",
+          "type": "select",
+          "label": "Link Type",
+          "description": "policy: inventory ↔ policy object; rulebook: device/VM/VDC ↔ rulebook (Security Panel); enforcement_point: rulebook enforcement host assignment or interface ↔ security object.",
+          "required": true,
+          "weight": 9,
+          "default": "policy",
+          "choice_set": "nsm_object_link_type"
+        },
+        {
+          "id": 100,
+          "name": "policy_object",
+          "type": "object",
+          "label": "Policy Object",
+          "description": "security policy object (zone, address, label, service, …). Required for policy links.",
+          "required": false,
+          "weight": 10,
+          "is_polymorphic": true,
+          "related_object_types": [
+            "custom-objects/nsm_zone",
+            "custom-objects/nsm_address",
+            "custom-objects/nsm_address_custom",
+            "custom-objects/nsm_address_group",
+            "custom-objects/nsm_label",
+            "custom-objects/nsm_service",
+            "custom-objects/nsm_service_group",
+            "custom-objects/nsm_app_business",
+            "custom-objects/nsm_app_network"
+          ]
+        },
+        {
+          "id": 101,
+          "name": "netbox_object",
+          "type": "object",
+          "label": "NetBox Object",
+          "description": "NetBox inventory object this link is stored on (device, VM, VDC, interface, prefix, …).",
+          "required": true,
+          "weight": 11,
+          "is_polymorphic": true,
+          "related_object_types": [
+            "dcim/device",
+            "virtualization/virtualmachine",
+            "dcim/virtualdevicecontext",
+            "dcim/interface",
+            "virtualization/vminterface",
+            "ipam/prefix",
+            "ipam/ipaddress",
+            "ipam/iprange"
+          ]
+        },
+        {
+          "id": 102,
+          "name": "propagation",
+          "type": "select",
+          "label": "Propagation",
+          "description": "How the link is stored and inherited to IPAM children or group members.",
+          "required": false,
+          "weight": 12,
+          "default": "direct",
+          "choice_set": "nsm_object_link_propagation"
+        },
+        {
+          "id": 103,
+          "name": "comment",
+          "type": "longtext",
+          "label": "Comment",
+          "description": "Optional note shown in the Security Panel link row.",
+          "weight": 13
+        },
+        {
+          "id": 104,
+          "name": "rulebook_slug",
+          "type": "text",
+          "label": "Rulebook Slug",
+          "description": "Deployed COT rulebook slug (nsm_rb_*) when link_type is rulebook or enforcement_point.",
+          "required": false,
+          "weight": 14
+        }
+      ],
+      "removed_fields": []
+    },
+    {
+      "name": "nsm_rb_demo_rulebook",
+      "slug": "nsm_rb_demo_rulebook",
+      "verbose_name": "Rulebook RB Demo Rulebook",
+      "verbose_name_plural": "Rulebook RB Demo Rulebook",
+      "description": "Starter rulebook shipped with NSM Schema (zones, addresses, and address groups).",
+      "group_name": "NSM Rulebooks",
+      "fields": [
+        {
+          "id": 1,
+          "name": "index",
+          "type": "integer",
+          "label": "Index",
+          "description": "Rule sequence number (primary key).",
+          "required": true,
+          "weight": 1,
+          "primary": true
+        },
+        {
+          "id": 2,
+          "name": "status",
+          "type": "boolean",
+          "label": "Status",
+          "description": "When false, the rule is disabled.",
+          "required": false,
+          "weight": 2
+        },
+        {
+          "id": 3,
+          "name": "name",
+          "type": "text",
+          "label": "Name",
+          "description": "Optional short rule name.",
+          "required": false,
+          "weight": 3
+        },
+        {
+          "id": 4,
+          "name": "source_zones",
+          "type": "multiobject",
+          "label": "Zones",
+          "description": "Source objects: zones",
+          "required": true,
+          "weight": 11,
+          "is_polymorphic": true,
+          "related_object_types": [
+            "custom-objects/nsm_zone"
+          ]
+        },
+        {
+          "id": 14,
+          "name": "destination_zones",
+          "type": "multiobject",
+          "label": "Zones",
+          "description": "Destination objects: zones",
+          "required": true,
+          "weight": 21,
+          "is_polymorphic": true,
+          "related_object_types": [
+            "custom-objects/nsm_zone"
+          ]
+        },
+        {
+          "id": 6,
+          "name": "source_addresses",
+          "type": "multiobject",
+          "label": "Addresses",
+          "description": "Source objects: addresses and address groups",
+          "required": true,
+          "weight": 13,
+          "is_polymorphic": true,
+          "related_object_types": [
+            "custom-objects/nsm_address",
+            "custom-objects/nsm_address_custom",
+            "custom-objects/nsm_address_group"
+          ]
+        },
+        {
+          "id": 7,
+          "name": "destination_addresses",
+          "type": "multiobject",
+          "label": "Addresses",
+          "description": "Destination objects: addresses and address groups",
+          "required": true,
+          "weight": 23,
+          "is_polymorphic": true,
+          "related_object_types": [
+            "custom-objects/nsm_address",
+            "custom-objects/nsm_address_custom",
+            "custom-objects/nsm_address_group"
+          ]
+        },
+        {
+          "id": 8,
+          "name": "services_applications",
+          "type": "multiobject",
+          "label": "Services & Applications",
+          "description": "Service objects: service, service group, and network app.",
+          "required": true,
+          "weight": 40,
+          "is_polymorphic": true,
+          "related_object_types": [
+            "custom-objects/nsm_service",
+            "custom-objects/nsm_service_group",
+            "custom-objects/nsm_app_network"
+          ]
+        },
+        {
+          "id": 9,
+          "name": "actions",
+          "type": "multiobject",
+          "label": "Actions",
+          "description": "Rule outcome(s), e.g. permit or deny.",
+          "required": true,
+          "weight": 50,
+          "related_object_type": "custom-objects/nsm_action"
+        }
+      ],
+      "removed_fields": []
+    }
+  ],
+  "objects": [
+    {
+      "type": "nsm_action",
+      "records": [
+        {
+          "name": "Permit",
+          "status": "active",
+          "color": "#28a745",
+          "description": "Allow traffic"
+        },
+        {
+          "name": "Deny",
+          "status": "active",
+          "color": "#dc3545",
+          "description": "Deny traffic"
+        },
+        {
+          "name": "Drop",
+          "status": "active",
+          "color": "#6c757d",
+          "description": "Drop traffic"
+        }
+      ]
+    },
+    {
+      "type": "nsm_service",
+      "records": [
+        {
+          "name": "HTTP",
+          "status": "active",
+          "protocol": "tcp",
+          "port": 80
+        },
+        {
+          "name": "HTTPS",
+          "status": "active",
+          "protocol": "tcp",
+          "port": 443
+        },
+        {
+          "name": "DNS-UDP",
+          "status": "active",
+          "protocol": "tcp",
+          "port": 53
+        },
+        {
+          "name": "DNS-TCP",
+          "status": "active",
+          "protocol": "tcp",
+          "port": 53
+        },
+        {
+          "name": "NTP",
+          "status": "active",
+          "protocol": "udp",
+          "port": 123
+        }
+      ]
+    },
+    {
+      "type": "nsm_service_group",
+      "records": [
+        {
+          "name": "G-DNS",
+          "status": "active",
+          "group": [
+            "nsm_service/DNS-UDP",
+            "nsm_service/DNS-TCP"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "nsm_zone",
+      "records": [
+        {
+          "name": "trust",
+          "status": "active",
+          "color": "#28a745",
+          "description": "Trusted zone"
+        },
+        {
+          "name": "untrust",
+          "status": "active",
+          "color": "#dc3545",
+          "description": "Untrusted zone"
+        }
+      ]
+    },
+    {
+      "type": "nsm_label",
+      "records": [
+        {
+          "name": "dev",
+          "status": "active",
+          "label_type": "environment"
+        },
+        {
+          "name": "test",
+          "status": "active",
+          "label_type": "environment"
+        },
+        {
+          "name": "prod",
+          "status": "active",
+          "label_type": "environment"
+        }
+      ]
+    },
+    {
+      "type": "nsm_rb_demo_rulebook",
+      "records": [
+        {
+          "index": 1,
+          "status": true,
+          "name": "trust-to-untrust-https",
+          "source_zones": [
+            "nsm_zone/trust"
+          ],
+          "destination_zones": [
+            "nsm_zone/untrust"
+          ],
+          "source_addresses": [],
+          "destination_addresses": [],
+          "services_applications": [
+            "nsm_service/HTTPS"
+          ],
+          "actions": [
+            "nsm_action/Permit"
+          ]
+        },
+        {
+          "index": 2,
+          "status": true,
+          "name": "trust-to-untrust-http",
+          "source_zones": [
+            "nsm_zone/trust"
+          ],
+          "destination_zones": [
+            "nsm_zone/untrust"
+          ],
+          "source_addresses": [],
+          "destination_addresses": [],
+          "services_applications": [
+            "nsm_service/HTTP"
+          ],
+          "actions": [
+            "nsm_action/Permit"
+          ]
+        },
+        {
+          "index": 3,
+          "status": true,
+          "name": "untrust-to-trust-https-deny",
+          "source_zones": [
+            "nsm_zone/untrust"
+          ],
+          "destination_zones": [
+            "nsm_zone/trust"
+          ],
+          "source_addresses": [],
+          "destination_addresses": [],
+          "services_applications": [
+            "nsm_service/HTTPS"
+          ],
+          "actions": [
+            "nsm_action/Deny"
+          ]
+        },
+        {
+          "index": 4,
+          "status": true,
+          "name": "untrust-to-trust-dns-deny",
+          "source_zones": [
+            "nsm_zone/untrust"
+          ],
+          "destination_zones": [
+            "nsm_zone/trust"
+          ],
+          "source_addresses": [],
+          "destination_addresses": [],
+          "services_applications": [
+            "nsm_service/DNS-UDP"
+          ],
+          "actions": [
+            "nsm_action/Deny"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "nsm_address_custom",
+      "records": [
+        {
+          "name": "ANY",
+          "status": "active",
+          "ipv4": "0.0.0.0",
+          "subnet": 0,
+          "description": "Match any IPv4 destination (0.0.0.0/0)"
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "types": {
+      "nsm_zone": {
+        "role": "zone",
+        "menu": "objects"
+      },
+      "nsm_address": {
+        "role": "address",
+        "menu": "objects"
+      },
+      "nsm_address_group": {
+        "role": "address_group",
+        "menu": "objects"
+      },
+      "nsm_label": {
+        "role": "label",
+        "menu": "objects"
+      },
+      "nsm_service": {
+        "role": "service",
+        "menu": "objects"
+      },
+      "nsm_service_group": {
+        "role": "service_group",
+        "menu": "objects"
+      },
+      "nsm_action": {
+        "role": "action",
+        "menu": "objects"
+      },
+      "nsm_app_business": {
+        "role": "app_business",
+        "menu": "objects"
+      },
+      "nsm_app_network": {
+        "role": "app_network",
+        "menu": "objects"
+      },
+      "nsm_object_link": {
+        "link_table": true
+      }
+    },
+    "rulebooks": {
+      "nsm_rb_demo_rulebook": {
+        "rulebook": {
+          "parent_slug": ""
+        },
+        "role": "rulebook",
+        "menu": "rulebooks"
+      }
+    }
+  }
+}

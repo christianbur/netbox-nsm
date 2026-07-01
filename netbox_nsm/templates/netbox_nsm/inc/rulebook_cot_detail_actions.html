@@ -1,0 +1,6 @@
+{% load i18n %}
+{% if not edit_mode and can_edit or can_show_delete %}
+<div class="btn-list justify-content-end mb-2 d-print-none">
+  {% include "netbox_nsm/inc/nsm_edit_delete_split_button.html" with edit_url=rulebook_edit_url delete_url=rulebook_delete_url can_edit=can_edit show_edit_text=True large=True %}
+</div>
+{% endif %}

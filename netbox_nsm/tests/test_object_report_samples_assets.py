@@ -39,7 +39,7 @@ def _samples_js() -> str:
 
 def _object_report_source() -> str:
     return (
-        _PLUGIN_ROOT / "object_report/object_report.py"
+        _PLUGIN_ROOT / "analyzers/object_report/object_report.py"
     ).read_text(encoding="utf-8")
 
 

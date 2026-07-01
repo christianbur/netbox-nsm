@@ -41,7 +41,7 @@ class CotRulesTabFastPathTests(SimpleTestCase):
         self, mock_qs_fn, mock_build_rows, mock_prefetch_plan, mock_m2m_prefetch
     ):
         layout = self._layout()
-        virtual_rb = SimpleNamespace(cot=SimpleNamespace(), slug="nsm_rb_demo")
+        virtual_rb = SimpleNamespace(cot=SimpleNamespace(), slug="nsm_rb_demo_zone_matrix")
         mock_prefetch_plan.return_value = ["source_addresses", "actions"]
 
         page_instance = SimpleNamespace(pk=99)
@@ -92,7 +92,7 @@ class CotRulesTabFastPathTests(SimpleTestCase):
         self, mock_qs_fn, mock_build_rows, mock_prefetch_plan, mock_m2m_prefetch
     ):
         layout = self._layout()
-        virtual_rb = SimpleNamespace(cot=SimpleNamespace(), slug="nsm_rb_demo")
+        virtual_rb = SimpleNamespace(cot=SimpleNamespace(), slug="nsm_rb_demo_zone_matrix")
         mock_prefetch_plan.return_value = ["source_addresses"]
 
         page_instance = SimpleNamespace(pk=7)
@@ -147,7 +147,7 @@ class CotRulesTabFastPathTests(SimpleTestCase):
         self, mock_qs_fn, mock_build_rows, mock_prefetch_plan, mock_m2m_prefetch
     ):
         layout = self._layout()
-        virtual_rb = SimpleNamespace(cot=SimpleNamespace(), slug="nsm_rb_demo")
+        virtual_rb = SimpleNamespace(cot=SimpleNamespace(), slug="nsm_rb_demo_zone_matrix")
         mock_prefetch_plan.return_value = ["source_addresses"]
         mock_qs_fn.return_value = [SimpleNamespace(pk=1), SimpleNamespace(pk=2)]
         mock_build_rows.return_value = {
@@ -194,7 +194,7 @@ class CotGroupedRulesTableDataTests(SimpleTestCase):
         }
         virtual_rb = SimpleNamespace(
             cot=SimpleNamespace(fields=SimpleNamespace(filter=lambda **_kw: [])),
-            slug="nsm_rb_demo",
+            slug="nsm_rb_demo_zone_matrix",
         )
         result = build_cot_grouped_rules_table_data([], virtual_rb, layout=layout)
         mock_layout.assert_not_called()

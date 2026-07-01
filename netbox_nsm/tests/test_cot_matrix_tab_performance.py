@@ -5,19 +5,19 @@ from unittest.mock import MagicMock, patch
 
 from django.test import RequestFactory, SimpleTestCase
 
-from netbox_nsm.matrix.cot_matrix_tab_context import build_cot_matrix_tab_context
+from netbox_nsm.rulebooks.matrix.cot_matrix_tab_context import build_cot_matrix_tab_context
 
 
 class CotMatrixTabPrefetchTests(SimpleTestCase):
-    @patch("netbox_nsm.matrix.cot_matrix_tab_context.build_sparse_matrix_cells")
-    @patch("netbox_nsm.matrix.cot_matrix_tab_context.serialize_matrix_zone_axis")
-    @patch("netbox_nsm.matrix.cot_matrix_tab_context._action_legend")
-    @patch("netbox_nsm.matrix.cot_matrix_tab_context.resolve_matrix_object_type_selection")
-    @patch("netbox_nsm.matrix.cot_matrix_tab_context.dedupe_matrix_object_types")
-    @patch("netbox_nsm.matrix.cot_matrix_tab_context._matrix_available_types")
-    @patch("netbox_nsm.matrix.cot_matrix_tab_context.prefetch_cot_multiobject_fields")
-    @patch("netbox_nsm.matrix.cot_matrix_tab_context.cot_rule_instances_queryset")
-    @patch("netbox_nsm.matrix.cot_matrix_tab_context.cot_rulebook_matrix_enabled")
+    @patch("netbox_nsm.rulebooks.matrix.cot_matrix_tab_context.build_sparse_matrix_cells")
+    @patch("netbox_nsm.rulebooks.matrix.cot_matrix_tab_context.serialize_matrix_zone_axis")
+    @patch("netbox_nsm.rulebooks.matrix.cot_matrix_tab_context._action_legend")
+    @patch("netbox_nsm.rulebooks.matrix.cot_matrix_tab_context.resolve_matrix_object_type_selection")
+    @patch("netbox_nsm.rulebooks.matrix.cot_matrix_tab_context.dedupe_matrix_object_types")
+    @patch("netbox_nsm.rulebooks.matrix.cot_matrix_tab_context._matrix_available_types")
+    @patch("netbox_nsm.rulebooks.matrix.cot_matrix_tab_context.prefetch_cot_multiobject_fields")
+    @patch("netbox_nsm.rulebooks.matrix.cot_matrix_tab_context.cot_rule_instances_queryset")
+    @patch("netbox_nsm.rulebooks.matrix.cot_matrix_tab_context.cot_rulebook_matrix_enabled")
     def test_build_prefetches_zone_and_action_fields(
         self,
         mock_enabled,
@@ -44,25 +44,25 @@ class CotMatrixTabPrefetchTests(SimpleTestCase):
 
         fields = MagicMock()
         fields.values_list.return_value = ["source_zones", "destination_zones"]
-        cot = SimpleNamespace(slug="nsm_rb_demo", fields=fields)
-        virtual_rb = SimpleNamespace(cot=cot, slug="nsm_rb_demo")
+        cot = SimpleNamespace(slug="nsm_rb_demo_zone_matrix", fields=fields)
+        virtual_rb = SimpleNamespace(cot=cot, slug="nsm_rb_demo_zone_matrix")
         request = RequestFactory().get("/matrix/")
 
         with (
             patch(
-                "netbox_nsm.matrix.cot_matrix_tab_context.get_display_template_map",
+                "netbox_nsm.rulebooks.matrix.cot_matrix_tab_context.get_display_template_map",
                 return_value={},
             ),
             patch(
-                "netbox_nsm.matrix.cot_matrix_tab_context.reverse",
+                "netbox_nsm.rulebooks.matrix.cot_matrix_tab_context.reverse",
                 return_value="/rules/",
             ),
             patch(
-                "netbox_nsm.matrix.cot_matrix_tab_context.with_branch_query",
+                "netbox_nsm.rulebooks.matrix.cot_matrix_tab_context.with_branch_query",
                 side_effect=lambda url, _req: url,
             ),
             patch(
-                "netbox_nsm.matrix.cot_matrix_tab_context.ContentType"
+                "netbox_nsm.rulebooks.matrix.cot_matrix_tab_context.ContentType"
             ) as mock_ct,
         ):
             mock_ct.DoesNotExist = Exception

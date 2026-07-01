@@ -7,7 +7,7 @@ from collections import defaultdict
 from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
 
-from netbox_nsm.analysis.addr_analysis_utils import object_is_addr_analyzable
+from netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils import object_is_addr_analyzable
 from netbox_nsm.rulebooks.templates import _OBJECT_TYPE_LABELS, _field_display_label
 from netbox_nsm.core.interface_parent import (
     interface_parent_host_payload,
@@ -303,13 +303,13 @@ def _cot_for_object_type(object_type):
     return CustomObjectType.objects.filter(pk=int(match.group(1))).first()
 
 
-def _build_type_config_sort_lookup() -> dict[int, tuple[int, str]]:
+def _build_type_config_sort_lookup(*, rulebook_cot=None) -> dict[int, tuple[int, str]]:
     """Map ``content_type_id`` → ``(sort_order, name)`` for layout column ordering."""
-    from netbox_nsm.objects.nsm_config import build_nsm_config_lookup
+    from netbox_nsm.type_metadata.config import build_nsm_config_lookup
 
     return {
         config.content_type_id: (config.sort_order, (config.name or "").strip())
-        for config in build_nsm_config_lookup().values()
+        for config in build_nsm_config_lookup(rulebook_cot=rulebook_cot).values()
     }
 
 
@@ -318,7 +318,7 @@ def _sort_key_for_object_type(
     *,
     tc_lookup: dict[int, tuple[int, str]] | None = None,
 ) -> tuple[int, str, str]:
-    from netbox_nsm.objects.type_config_specs import default_sort_order_for_slug
+    from netbox_nsm.type_metadata.specs import default_sort_order_for_slug
 
     ct_id = None
     try:
@@ -438,7 +438,7 @@ def build_cot_rules_layout(cot) -> dict:
     fields = list(
         cot.fields.exclude(ui_visible="hidden").order_by("weight", "name")
     )
-    tc_lookup = _build_type_config_sort_lookup()
+    tc_lookup = _build_type_config_sort_lookup(rulebook_cot=cot)
     rules_layout = []
     header_groups = []
     grouped_columns = []
@@ -602,11 +602,13 @@ def build_cot_grouped_rules_table_data(
     object_fields = list(
         virtual_rb.cot.fields.filter(name__in=field_names)
     )
-    from netbox_nsm.objects.type_config_specs import content_type_ids_for_cot_slugs
+    from netbox_nsm.type_metadata.specs import content_type_ids_for_cot_slugs
 
     ct_cache: dict = {}
     address_ct_ids = set(
-        content_type_ids_for_cot_slugs(["nsm_address", "nsm_address_group"])
+        content_type_ids_for_cot_slugs(
+            ["nsm_address", "nsm_address_custom", "nsm_address_group"]
+        )
     )
 
     for instance in instances:

@@ -59,7 +59,7 @@ class VirtualCotRulesTabBadgeTests(SimpleTestCase):
         request = RequestFactory().get("/")
         request.user = SimpleNamespace(has_perm=lambda perm: False)
         instance = SimpleNamespace(
-            slug="nsm_rb_demo",
+            slug="nsm_rb_zone_matrix",
             cot=SimpleNamespace(),
             rules_tab_badge="120/62500",
             rule_count=62500,

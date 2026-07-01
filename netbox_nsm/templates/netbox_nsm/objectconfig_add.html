@@ -1,10 +1,10 @@
 {% extends 'base/layout.html' %}
 {% load i18n %}
 
-{% block title %}{% trans "Add Object Config" %}{% endblock %}
+{% block title %}{% trans "Add Type Metadata" %}{% endblock %}
 
 {% block content %}
-<h1 class="h2 mb-3">{% trans "Add Object Config" %}</h1>
+<h1 class="h2 mb-3">{% trans "Add Type Metadata" %}</h1>
 {% if missing %}
 <form method="post">
   {% csrf_token %}
@@ -23,12 +23,12 @@
         {% endfor %}
       </div>
       <button type="submit" class="btn btn-primary mt-3">{% trans "Create with defaults" %}</button>
-      <a href="{% url 'plugins:netbox_nsm:objectconfig_list' %}" class="btn btn-secondary mt-3">{% trans "Cancel" %}</a>
+      <a href="{% url 'plugins:netbox_nsm:typemetadata_list' %}" class="btn btn-secondary mt-3">{% trans "Cancel" %}</a>
     </div>
   </div>
 </form>
 {% else %}
 <div class="alert alert-info">{% trans "All UI object types already have nsm_config in comments." %}</div>
-<a href="{% url 'plugins:netbox_nsm:objectconfig_list' %}" class="btn btn-secondary">{% trans "Back" %}</a>
+<a href="{% url 'plugins:netbox_nsm:typemetadata_list' %}" class="btn btn-secondary">{% trans "Back" %}</a>
 {% endif %}
 {% endblock %}

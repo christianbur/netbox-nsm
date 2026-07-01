@@ -9,7 +9,7 @@ from django.test import SimpleTestCase
 
 from utilities.testing import TestCase
 
-from netbox_nsm.objects.rulebook_config import save_rulebook_config_for_cot
+from netbox_nsm.type_metadata.rulebook import save_rulebook_config_for_cot
 from netbox_nsm.rulebooks.cot_hierarchy import collect_descendant_slugs, validate_cot_parent_slug
 from netbox_nsm.rulebooks.hierarchy import cot_rulebook_tree_order, hierarchy_depth, render_hierarchy_marker
 from netbox_nsm.rulebooks.templates import RULEBOOK_GROUP
@@ -45,10 +45,14 @@ class CotRulebookHierarchyUnitTests(SimpleTestCase):
         )
 
     @patch(
+        "netbox_nsm.rulebooks.cot_hierarchy.is_deployed_rulebook_slug",
+        return_value=True,
+    )
+    @patch(
         "netbox_nsm.rulebooks.cot_hierarchy.get_deployed_cot_rulebook",
         return_value=object(),
     )
-    def test_validate_parent_cycle(self, _mock):
+    def test_validate_parent_cycle(self, _mock_get, _mock_deployed):
         parent_map = {"nsm_rb_child": "nsm_rb_root"}
         self.assertIsNone(
             validate_cot_parent_slug(
@@ -87,8 +91,8 @@ class CotRulebookHierarchyModelTests(TestCase):
         from netbox_custom_objects.models import CustomObjectType
 
         cls.cot = CustomObjectType.objects.create(
-            name="nsm_rb_demo",
-            slug="nsm_rb_demo",
+            name="nsm_rb_demo_zone_matrix",
+            slug="nsm_rb_demo_zone_matrix",
             verbose_name="Demo",
             description="",
             group_name=RULEBOOK_GROUP,
@@ -98,7 +102,7 @@ class CotRulebookHierarchyModelTests(TestCase):
         with self.assertRaises(ValidationError):
             save_rulebook_config_for_cot(
                 self.cot,
-                {"parent_slug": "nsm_rb_demo"},
+                {"parent_slug": "nsm_rb_demo_zone_matrix"},
             )
 
 

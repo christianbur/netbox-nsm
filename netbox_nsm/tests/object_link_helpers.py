@@ -2,8 +2,8 @@
 
 import uuid
 
-from netbox_nsm.objects.link_propagation import CotObjectLinkPropagationChoices
-from netbox_nsm.objects.object_link_service import create_or_update_links
+from netbox_nsm.security.links.link_propagation import CotObjectLinkPropagationChoices
+from netbox_nsm.security.links.object_link_service import create_or_update_links
 
 
 def create_custom_object_instance(*, name="NSM link test object"):

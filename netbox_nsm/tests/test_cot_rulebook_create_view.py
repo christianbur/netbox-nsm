@@ -41,7 +41,7 @@ class CotRulebookCreateViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Source")
         self.assertContains(response, "Destination")
-        self.assertContains(response, "Zone, Label, Address, Address Group")
+        self.assertContains(response, "Zone, Label, Address, Address Custom, Address Group")
 
     def test_get_prefills_default_schema_yaml(self):
         self.add_permissions("netbox_custom_objects.add_customobjecttype")
@@ -68,7 +68,7 @@ class CotRulebookCreateViewTests(TestCase):
             {
                 "schema_yaml": default_rulebook_schema_yaml(),
                 "verbose_name": "Bench Addresses",
-                "name": "bench_addresses",
+                "name": "demo_zone_addresses",
                 "description": "",
             },
         )
@@ -94,3 +94,37 @@ class CotRulebookCreateViewTests(TestCase):
         self.add_permissions("netbox_custom_objects.add_customobjecttype")
         self.user = self.user.__class__.objects.get(pk=self.user.pk)
         self.assertTrue(can_create_rulebook(self.user))
+
+    def test_get_clone_from_existing_rulebook(self):
+        from extras.choices import CustomFieldTypeChoices
+        from netbox_custom_objects.models import CustomObjectType, CustomObjectTypeField
+
+        from netbox_nsm.rulebooks.templates import RULEBOOK_GROUP
+        from netbox_nsm.tests.rulebook_permission_helpers import grant_rulebook_cot_perms
+
+        cot = CustomObjectType.objects.create(
+            name="nsm_rb_clone_source",
+            slug="nsm_rb_clone_source",
+            verbose_name="Clone Source",
+            description="Source rulebook",
+            group_name=RULEBOOK_GROUP,
+        )
+        CustomObjectTypeField.objects.create(
+            custom_object_type=cot,
+            name="index",
+            label="Index",
+            type=CustomFieldTypeChoices.TYPE_INTEGER,
+            schema_id=1,
+            primary=True,
+            required=True,
+        )
+        grant_rulebook_cot_perms(self, cot, view=True)
+        self.add_permissions("netbox_custom_objects.add_customobjecttype")
+
+        url = reverse("plugins:netbox_nsm:cot_rulebook_add")
+        response = self.client.get(url, {"clone_from": cot.slug})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "nsm-clone-from")
+        self.assertEqual(response.context["clone_from"], cot.slug)
+        self.assertEqual(response.context["form"]["name"].value(), "copy_clone_source")
+        self.assertIn("copy_clone_source", response.context["form"]["schema_yaml"].value())

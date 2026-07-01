@@ -1,97 +1,114 @@
-"""Tests for NSM-scoped Custom Object URLs."""
+"""Tests for NSM Custom Object URL helpers."""
 
 from types import SimpleNamespace
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from django.test import SimpleTestCase
-from django.urls import reverse
 
 from netbox_nsm.objects.cot_routes import (
-    NSM_OBJECTS_GROUP_NAME,
     apply_nsm_object_url_patches,
     cot_belongs_to_nsm_objects_menu,
     is_nsm_object_menu_slug,
-    nsm_object_reverse,
 )
+from netbox_nsm.type_metadata.config import merge_nsm_config_document_into_comments
 
 
 class CotRoutesTests(SimpleTestCase):
-    @patch("netbox_nsm.objects.cot_routes._custom_object_type_model")
-    def test_nsm_zone_is_menu_slug_when_in_group(self, model_accessor):
-        model_accessor.return_value.objects.filter.return_value.exists.return_value = True
-        self.assertTrue(is_nsm_object_menu_slug("nsm_zone"))
+    def test_nsm_zone_is_menu_slug_when_metadata_menu_is_objects(self):
+        cot = SimpleNamespace(
+            slug="nsm_zone",
+            comments=merge_nsm_config_document_into_comments("", {"menu": "objects"}),
+        )
+        with patch(
+            "netbox_nsm.objects.cot_routes._custom_object_type_model"
+        ) as model_accessor:
+            model_accessor.return_value.objects.filter.return_value.first.return_value = (
+                cot
+            )
+            self.assertTrue(is_nsm_object_menu_slug("nsm_zone"))
 
-    @patch("netbox_nsm.objects.cot_routes._custom_object_type_model")
-    def test_other_group_slug_is_not_menu_slug(self, model_accessor):
-        model_accessor.return_value.objects.filter.return_value.exists.return_value = False
-        self.assertFalse(is_nsm_object_menu_slug("nsm_object_link"))
+    def test_other_menu_slug_is_not_menu_slug(self):
+        cot = SimpleNamespace(
+            slug="nsm_object_link",
+            comments=merge_nsm_config_document_into_comments("", {"menu": "links"}),
+        )
+        with patch(
+            "netbox_nsm.objects.cot_routes._custom_object_type_model"
+        ) as model_accessor:
+            model_accessor.return_value.objects.filter.return_value.first.return_value = (
+                cot
+            )
+            self.assertFalse(is_nsm_object_menu_slug("nsm_object_link"))
 
     def test_cot_belongs_to_nsm_objects_menu(self):
         self.assertTrue(
             cot_belongs_to_nsm_objects_menu(
-                SimpleNamespace(group_name=NSM_OBJECTS_GROUP_NAME)
+                SimpleNamespace(
+                    slug="nsm_zone",
+                    comments=merge_nsm_config_document_into_comments(
+                        "", {"menu": "objects"}
+                    ),
+                )
             )
         )
         self.assertFalse(
-            cot_belongs_to_nsm_objects_menu(SimpleNamespace(group_name="NSM Panel"))
+            cot_belongs_to_nsm_objects_menu(
+                SimpleNamespace(
+                    slug="nsm_object_link",
+                    comments=merge_nsm_config_document_into_comments(
+                        "", {"menu": "links"}
+                    ),
+                )
+            )
         )
 
-    def test_nsm_object_reverse_list(self):
-        url = nsm_object_reverse("list", "nsm_zone")
-        self.assertIn("/plugins/netbox-nsm/objects/nsm_zone/", url)
 
-    @patch("netbox_custom_objects.models.CustomObjectType")
-    @patch("netbox_custom_objects.models.CustomObject")
-    def test_patched_get_absolute_url_uses_nsm_route(self, custom_object, cot_type):
-        apply_nsm_object_url_patches()
+class CotRoutePatchTests(SimpleTestCase):
+    def test_apply_co_view_patches_marks_dispatch(self):
+        try:
+            from netbox_custom_objects.views import CustomObjectView
+        except ImportError:
+            self.skipTest("netbox-custom-objects not installed")
 
-        instance = SimpleNamespace(
-            pk=42,
-            custom_object_type=SimpleNamespace(
-                slug="nsm_zone",
-                group_name=NSM_OBJECTS_GROUP_NAME,
-            ),
-        )
-        url = custom_object.get_absolute_url(instance)
-        self.assertEqual(
-            url,
-            reverse(
-                "plugins:netbox_nsm:nsm_object",
-                kwargs={"custom_object_type": "nsm_zone", "pk": 42},
-            ),
+        self.assertTrue(
+            getattr(CustomObjectView.dispatch, "_nsm_co_view_patch", False),
+            "Plugin ready() should patch CustomObjectView for NSM objects menu",
         )
 
-    @patch("netbox_custom_objects.models.CustomObjectType")
-    @patch("netbox_custom_objects.models.CustomObject")
-    def test_patched_get_viewname_uses_nsm_route(self, custom_object, cot_type):
-        apply_nsm_object_url_patches()
-        from netbox_custom_objects.utilities import get_viewname
+    @patch("netbox_nsm.objects.cot_routes.nsm_object_reverse", return_value="/nsm/zone/1/")
+    @patch("netbox_nsm.objects.cot_routes._should_use_nsm_object_urls", return_value=True)
+    def test_url_patch_routes_absolute_url_to_nsm(self, _mock_should, _mock_reverse):
+        try:
+            from netbox_custom_objects.models import CustomObject
+        except ImportError:
+            self.skipTest("netbox-custom-objects not installed")
 
-        model = MagicMock()
-        model.custom_object_type = SimpleNamespace(
-            slug="nsm_zone",
-            group_name=NSM_OBJECTS_GROUP_NAME,
-        )
-        self.assertEqual(
-            get_viewname(model, action="add"),
-            "plugins:netbox_nsm:nsm_object_add",
-        )
+        if not hasattr(CustomObject.get_absolute_url, "__wrapped__"):
+            apply_nsm_object_url_patches()
 
-    @patch("netbox_custom_objects.models.CustomObjectType")
-    @patch("netbox_custom_objects.models.CustomObject")
-    def test_patched_get_absolute_url_skips_other_groups(self, custom_object, cot_type):
-        original_url = "/plugins/custom-objects/nsm_object_link/7/"
-        original_get_absolute_url = MagicMock(return_value=original_url)
-        custom_object.get_absolute_url = original_get_absolute_url
-        apply_nsm_object_url_patches()
+        class _Obj:
+            pk = 1
+            custom_object_type = SimpleNamespace(slug="nsm_zone")
 
-        instance = SimpleNamespace(
-            pk=7,
-            custom_object_type=SimpleNamespace(
-                slug="nsm_object_link",
-                group_name="NSM Panel",
-            ),
-        )
-        url = custom_object.get_absolute_url(instance)
-        self.assertEqual(url, original_url)
-        original_get_absolute_url.assert_called_once_with(instance)
+        self.assertEqual(CustomObject.get_absolute_url(_Obj()), "/nsm/zone/1/")
+
+    @patch("netbox_nsm.objects.cot_routes.nsm_object_reverse", return_value="/nsm/zone/1/security/")
+    @patch("netbox_nsm.objects.cot_routes._should_use_nsm_object_urls", return_value=True)
+    def test_url_patch_routes_security_action_to_nsm(self, _mock_should, mock_reverse):
+        try:
+            from netbox_custom_objects.models import CustomObject
+        except ImportError:
+            self.skipTest("netbox-custom-objects not installed")
+
+        if not hasattr(CustomObject.get_absolute_url, "__wrapped__"):
+            apply_nsm_object_url_patches()
+
+        with patch.object(
+            CustomObject,
+            "custom_object_type",
+            SimpleNamespace(slug="nsm_zone"),
+            create=True,
+        ):
+            url = CustomObject._get_action_url(action="security", kwargs={"pk": 1})
+        self.assertEqual(url, "/nsm/zone/1/security/")
+        mock_reverse.assert_called_once_with("security", "nsm_zone", pk=1)

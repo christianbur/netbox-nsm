@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections import deque
 from typing import Iterator
 
-from netbox_nsm.objects.ipam_inheritance import (
+from netbox_nsm.addresses.ipam_inheritance import (
     InheritedNsmLink,
     _linked_dedupe_key,
     _type_config_map,
@@ -75,8 +75,8 @@ def iter_inherited_group_nsm_links(obj) -> Iterator[InheritedNsmLink]:
     from django.contrib.contenttypes.models import ContentType
     from django.db.models import prefetch_related_objects
 
-    from netbox_nsm.models.object_link import LinkPropagationChoices
-    from netbox_nsm.objects.object_link_service import iter_links_on_container
+    from netbox_nsm.security.links.link_propagation import LinkPropagationChoices
+    from netbox_nsm.security.links.object_link_service import iter_links_on_container
 
     ancestors = ancestor_containers_for_group_inheritance(obj)
     if not ancestors:

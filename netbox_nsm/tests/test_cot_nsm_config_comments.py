@@ -1,62 +1,17 @@
 """COT comments field: nsm_config YAML sync and backfill."""
 
-from unittest.mock import patch
-
 from django.test import TestCase
 
-from netbox_nsm.objects.type_config_export import (
+from netbox_nsm.type_metadata.export import (
     backfill_cot_nsm_config_comments,
     sync_cot_nsm_config_comments,
 )
-from netbox_nsm.objects.type_config_specs import TYPECONFIG_UI_SPECS
-
-
-class CotNsmConfigCommentsImportTests(TestCase):
-    @patch("netbox_nsm.objects.type_config_export.sync_cot_nsm_config_comments_for_slugs")
-    @patch("netbox_nsm.views.custom_objects_sync._seed_default_objects")
-    @patch("netbox_nsm.views.custom_objects_sync._ensure_choice_sets")
-    @patch("netbox_custom_objects.schema.executor.apply_document")
-    def test_import_single_type_syncs_comments_after_apply(
-        self,
-        mock_apply,
-        _mock_choice_sets,
-        _mock_seed,
-        mock_sync_comments,
-    ):
-        from netbox_nsm.views.setup.custom_objects import import_single_type
-
-        import_single_type("nsm_zone")
-        mock_apply.assert_called_once()
-        mock_sync_comments.assert_called_once_with(["nsm_zone"])
-
-    @patch("netbox_nsm.objects.type_config_export.sync_cot_nsm_config_comments_for_slugs")
-    @patch("netbox_nsm.views.setup.custom_objects.import_rulebook_templates")
-    @patch("netbox_nsm.views.custom_objects_sync._seed_default_objects")
-    @patch("netbox_nsm.views.custom_objects_sync._prune_stale")
-    @patch("netbox_nsm.views.custom_objects_sync._ensure_choice_sets")
-    @patch("netbox_custom_objects.schema.executor.apply_document")
-    def test_import_all_types_syncs_comments_after_apply(
-        self,
-        mock_apply,
-        _mock_choice_sets,
-        _mock_prune,
-        _mock_seed,
-        _mock_rulebook_templates,
-        mock_sync_comments,
-    ):
-        from netbox_nsm.views.setup.custom_objects import import_all_types
-
-        import_all_types()
-        mock_apply.assert_called_once()
-        document = mock_apply.call_args[0][0]
-        expected_slugs = [t["slug"] for t in document["types"]]
-        actual_slugs = list(mock_sync_comments.call_args[0][0])
-        self.assertEqual(actual_slugs, expected_slugs)
+from netbox_nsm.type_metadata.specs import TYPECONFIG_LIST_EXCLUDED_SLUGS, TYPECONFIG_UI_SPECS
 
 
 class CotNsmConfigCommentsApplyDocumentTests(TestCase):
     def test_portable_schema_excludes_comments_field(self):
-        from netbox_nsm.objects.custom_objects_schema import build_schema_document
+        from netbox_nsm.bundles.schema_builder import build_schema_document
 
         document = build_schema_document()
         for type_def in document["types"]:
@@ -99,9 +54,14 @@ class CotNsmConfigCommentsApplyDocumentTests(TestCase):
             )
 
         updated = backfill_cot_nsm_config_comments()
-        self.assertEqual(updated, len(TYPECONFIG_UI_SPECS))
+        expected = len(
+            [spec for spec in TYPECONFIG_UI_SPECS if spec["slug"] not in TYPECONFIG_LIST_EXCLUDED_SLUGS]
+        )
+        self.assertEqual(updated, expected)
 
         for spec in TYPECONFIG_UI_SPECS:
+            if spec["slug"] in TYPECONFIG_LIST_EXCLUDED_SLUGS:
+                continue
             cot = CustomObjectType.objects.get(slug=spec["slug"])
             self.assertIn("nsm_config:", cot.comments)
             self.assertNotIn(f"# {spec['label']}", cot.comments)

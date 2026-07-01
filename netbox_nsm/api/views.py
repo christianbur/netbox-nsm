@@ -11,7 +11,7 @@ from .serializers import ObjectLinkSerializer
 
 from netbox_nsm.filtersets import ObjectLinkFilterSet
 
-from netbox_nsm.objects.object_link_service import (
+from netbox_nsm.security.links.object_link_service import (
     ObjectLinkRecord,
     delete_link,
     get_link_by_pk,
@@ -41,10 +41,10 @@ class NetBoxSecurityRootView(APIRootView):
         response = super().get(request, *args, **kwargs)
         data = dict(response.data)
         namespace = request.resolver_match.namespace
-        url_name = "ip-analysis"
+        url_name = "ip-analyzer"
         if namespace:
             url_name = f"{namespace}:{url_name}"
-        data["ip-analysis"] = reverse(
+        data["ip-analyzer"] = reverse(
             url_name,
             request=request,
             format=kwargs.get("format"),

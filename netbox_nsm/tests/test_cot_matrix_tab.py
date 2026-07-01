@@ -9,11 +9,11 @@ from django.urls import reverse
 from netbox_nsm.tests.rulebook_permission_helpers import grant_rulebook_cot_perms
 from utilities.testing import TestCase
 
-from netbox_nsm.matrix.cot_matrix_tab_context import (
+from netbox_nsm.rulebooks.matrix.cot_matrix_tab_context import (
     cot_rulebook_matrix_capable,
     cot_rulebook_matrix_enabled,
 )
-from netbox_nsm.objects.rulebook_config import (
+from netbox_nsm.type_metadata.rulebook import (
     resolve_rulebook_config_for_cot,
     save_rulebook_config_for_cot,
 )
@@ -220,3 +220,25 @@ class CotRulebookMatrixViewTests(SimpleTestCase):
         )
         with self.assertRaises(Http404):
             CotRulebookMatrixView.as_view()(request, slug="nsm_rb_test01")
+
+
+class MatrixObjectTypeSelectionTests(SimpleTestCase):
+    def test_defaults_to_zone_when_present(self):
+        from netbox_nsm.rulebooks.matrix.matrix_utils import resolve_matrix_object_type_selection
+
+        raw_types = [
+            {"ct_id": 256, "label": "Address"},
+            {"ct_id": 259, "label": "Zone"},
+        ]
+        available_types = [
+            {"ct_id": 256, "label": "Address"},
+            {"ct_id": 259, "label": "Zone"},
+        ]
+        self.assertEqual(
+            resolve_matrix_object_type_selection(
+                None,
+                raw_types=raw_types,
+                available_types=available_types,
+            ),
+            259,
+        )

@@ -3,29 +3,22 @@ from django.utils.html import format_html
 
 from netbox.plugins import PluginTemplateExtension
 
+from netbox_nsm.version import __version__
+
 
 class NsmStylesExtension(PluginTemplateExtension):
-    """Pill styles for rulebook/rule tables (also after HTMX table refresh)."""
+    """Global NSM styles (rule pills, quicksearch layout fix)."""
 
     def head(self):
+        cache_bust = f"?v={__version__}"
         return format_html(
-            '<link rel="stylesheet" href="{}" />',
+            '<link rel="stylesheet" href="{}{}" />'
+            '<link rel="stylesheet" href="{}{}" />',
             static("netbox_nsm/css/rule-pills.css"),
+            cache_bust,
+            static("netbox_nsm/css/quicksearch.css"),
+            cache_bust,
         )
 
 
-class NsmSecurityLinksExtension(PluginTemplateExtension):
-    """
-    Legacy Security panel hook — disabled; content moved to the Security tab.
-
-    Registered so existing plugin template extension lists stay stable; the right
-    panel is intentionally empty.
-    """
-
-    models = None
-
-    def right_page(self):
-        return ""
-
-
-template_extensions = [NsmStylesExtension, NsmSecurityLinksExtension]
+template_extensions = [NsmStylesExtension]

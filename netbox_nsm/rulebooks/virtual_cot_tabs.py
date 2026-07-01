@@ -18,6 +18,7 @@ def _cot_matrix_tab_visible(instance) -> bool:
 _COT_TAB_SPECS = (
     {
         "key": "rules",
+        "view_key": "table",
         "url_name": "cot_rulebook_rules",
         "view_tab": ViewTab(
             label=_("Rules"),
@@ -28,6 +29,7 @@ _COT_TAB_SPECS = (
     },
     {
         "key": "matrix",
+        "view_key": "matrix",
         "url_name": "cot_rulebook_matrix",
         "view_tab": ViewTab(
             label=_("Matrix"),
@@ -52,13 +54,19 @@ _COT_TAB_SPECS = (
 def build_virtual_cot_rulebook_tabs(
     request, instance, *, active_key: str | None = None
 ) -> list[dict]:
+    from netbox_nsm.rulebooks.views.registry import resolve_rulebook_view_keys
+
     user = request.user
     cot = getattr(instance, "cot", None)
+    enabled_view_keys = resolve_rulebook_view_keys(cot) if cot is not None else set()
     tabs: list[dict] = []
     for spec in _COT_TAB_SPECS:
         view_tab = spec["view_tab"]
         if spec.get("requires_rulebook_view"):
             if cot is None or not can_view_rulebook(user, cot):
+                continue
+            view_key = spec.get("view_key")
+            if view_key is not None and view_key not in enabled_view_keys:
                 continue
         elif view_tab.permission and not user.has_perm(view_tab.permission):
             continue

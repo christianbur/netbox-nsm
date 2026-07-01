@@ -1,4 +1,4 @@
-"""Tests for dynamic rulebook template discovery via COT group membership."""
+"""Tests for rulebook template slug helpers (legacy blueprint group)."""
 
 import uuid
 
@@ -15,7 +15,6 @@ from netbox_nsm.rulebooks.templates import (
     is_rulebook_template_slug,
     template_wizard_columns,
 )
-from netbox_nsm.views.setup import custom_objects
 
 
 class RulebookTemplateDiscoveryTests(TestCase):
@@ -60,31 +59,6 @@ class RulebookTemplateDiscoveryTests(TestCase):
         slugs = get_rulebook_template_slugs()
         self.assertIn(self.custom_slug, slugs)
 
-    def test_setup_status_includes_custom_template(self):
-        status = custom_objects.get_rulebook_template_status()
-        self.assertEqual(status[self.custom_slug].pk, self.custom_cot.pk)
-
-    def test_setup_groups_include_custom_template_when_present(self):
-        groups = custom_objects.get_cot_setup_groups()
-        group_ids = {group["id"] for group in groups}
-        self.assertIn("objects", group_ids)
-        self.assertIn("nsm_panel", group_ids)
-        entries = custom_objects.get_rulebook_template_entries()
-        self.assertIn(
-            self.custom_slug,
-            [entry["slug"] for entry in entries],
-        )
-
-    def test_setup_entries_include_custom_template(self):
-        entries = custom_objects.get_rulebook_template_entries()
-        entry_slugs = [entry["slug"] for entry in entries]
-        self.assertIn(self.custom_slug, entry_slugs)
-        custom_entry = next(
-            entry for entry in entries if entry["slug"] == self.custom_slug
-        )
-        self.assertEqual(custom_entry["label"], "Custom Template")
-        self.assertEqual(custom_entry["description"], "Manually created blueprint")
-
     def test_create_form_prefills_default_schema_yaml(self):
         from unittest.mock import patch
 
@@ -101,16 +75,3 @@ class RulebookTemplateDiscoveryTests(TestCase):
         self.assertEqual([row["name"] for row in columns], ["index", "name"])
         self.assertEqual(columns[0]["label"], "Index")
         self.assertTrue(columns[0]["required"])
-
-    def test_import_rulebook_templates_syncs_groups_only(self):
-        from unittest.mock import patch
-
-        with patch(
-            "netbox_custom_objects.schema.executor.apply_document"
-        ) as mock_apply, patch(
-            "netbox_nsm.rulebooks.rulebook_groups.sync_all_rulebook_cots"
-        ) as mock_sync:
-            custom_objects.import_rulebook_templates()
-
-        mock_apply.assert_not_called()
-        mock_sync.assert_called_once()

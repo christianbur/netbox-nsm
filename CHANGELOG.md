@@ -4,11 +4,28 @@ All notable changes to **netbox-nsm** are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.8] - 2026-07-01
+
+### Notes
+
+- Release
+
 ## [Unreleased]
 
 ### Changed
 
 - **IP Analyzer naming** — URLs, url_names, modules, views, templates, JS constants, and JSON payload keys use `ip_analyzer` / `addr_analyzer` instead of `ip_analysis` / `addr_analysis` (e.g. `/api/ip-analyzer/`, `ip_analyzer_api`). Legacy plugin UI path `/plugins/netbox-nsm/ip-analysis/` remains 404.
+- **Modular architecture (phases A–E)** — bundle discovery without `REQUIRED_COT_SLUGS` gating; rulebook matrix helpers under `rulebooks/matrix/`; object-link propagation under `security/links/`; legacy import shims removed after package moves.
+- **Type metadata** — drop `nsm_config.links` bundle blocks and UI/API fields (`linkable`, `inherit_links`, `inherit_stop_on_own`, `allow_virtual_groups`); linkability follows registered NSM type config instead.
+
+### Removed
+
+- **netbox-custom-objects PR #602 patch tooling** — local `patch/apply_pr602.py` and v0.5.2 runtime patch removed from the plugin repo.
+- **Legacy packages** — unused top-level modules (`ui/`, `models/`, `graphql/`, `bench/`, and related shims) after layout consolidation.
+
+### Fixed
+
+- **Rulebooks list** — restore split edit/delete button helper at `netbox_nsm.core.split_actions` after `ui/` removal (`ModuleNotFoundError: netbox_nsm.ui`).
 
 ## 0.4.7 - 2026-06-19
 
@@ -515,3 +532,4 @@ First release in the 0.2.x line.
 [0.3.0]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.3.0
 [0.2.5]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.2.5
 [0.4.1]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.1
+[0.4.8]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.8

@@ -75,7 +75,7 @@ def iter_inherited_group_nsm_links(obj) -> Iterator[InheritedNsmLink]:
     from django.contrib.contenttypes.models import ContentType
     from django.db.models import prefetch_related_objects
 
-    from netbox_nsm.models.object_link import LinkPropagationChoices
+    from netbox_nsm.security.links.link_propagation import LinkPropagationChoices
     from netbox_nsm.security.links.object_link_service import iter_links_on_container
 
     ancestors = ancestor_containers_for_group_inheritance(obj)

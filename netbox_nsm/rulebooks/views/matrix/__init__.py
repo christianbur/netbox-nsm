@@ -1,7 +1,8 @@
 """Rulebook **matrix** view — Phase C module home.
 
-The concrete view currently lives in ``rulebooks/views/cot`` for URL stability;
-this package is the canonical import path and exposes the registry spec.
+Matrix engine lives in ``rulebooks/matrix/``; the concrete view currently lives in
+``rulebooks/views/cot`` for URL stability. This package is the canonical import path
+and exposes the registry spec.
 """
 
 from __future__ import annotations

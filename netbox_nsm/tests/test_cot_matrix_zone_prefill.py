@@ -11,7 +11,7 @@ from utilities.querydict import normalize_querydict
 from extras.choices import CustomFieldTypeChoices
 from utilities.testing import TestCase
 
-from netbox_nsm.matrix.cot_matrix_tab_context import build_matrix_cell_add_href
+from netbox_nsm.rulebooks.matrix.cot_matrix_tab_context import build_matrix_cell_add_href
 from netbox_nsm.rulebooks.templates import RULEBOOK_GROUP
 from netbox_nsm.rulebooks.views.cot_rule import (
     apply_matrix_zone_prefill,

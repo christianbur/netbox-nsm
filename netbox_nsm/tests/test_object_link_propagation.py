@@ -2,7 +2,7 @@
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.models.object_link import LinkPropagationChoices
+from netbox_nsm.security.links.link_propagation import LinkPropagationChoices
 from netbox_nsm.security.links.link_propagation import (
     COT_OBJECT_LINK_PROPAGATION_CHOICES,
     CotObjectLinkPropagationChoices,

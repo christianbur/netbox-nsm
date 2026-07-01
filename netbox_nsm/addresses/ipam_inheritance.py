@@ -129,7 +129,7 @@ def iter_inherited_nsm_links(ipam_obj) -> Iterator[InheritedNsmLink]:
     from django.contrib.contenttypes.models import ContentType
     from django.db.models import prefetch_related_objects
 
-    from netbox_nsm.models.object_link import LinkPropagationChoices
+    from netbox_nsm.security.links.link_propagation import LinkPropagationChoices
     from netbox_nsm.security.links.object_link_service import (
         ObjectLinkRecord,
         iter_links_on_container,

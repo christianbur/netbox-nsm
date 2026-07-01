@@ -10,8 +10,8 @@ from django.urls import reverse
 
 from netbox_nsm.core.branch_urls import with_branch_query
 from netbox_nsm.core.display_utils import get_display_template_map
-from netbox_nsm.matrix.matrix_axis_filter import filter_objects_by_axis_query
-from netbox_nsm.matrix.matrix_utils import (
+from netbox_nsm.rulebooks.matrix.matrix_axis_filter import filter_objects_by_axis_query
+from netbox_nsm.rulebooks.matrix.matrix_utils import (
     MATRIX_AXIS_MAX,
     MATRIX_CELL_HEIGHT_DENSE_PX,
     MATRIX_CELL_HEIGHT_PX,

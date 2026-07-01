@@ -2,7 +2,7 @@
 
 from django.test import SimpleTestCase
 
-from netbox_nsm.matrix.matrix_utils import (
+from netbox_nsm.rulebooks.matrix.matrix_utils import (
     MATRIX_VIEWPORT_DEFAULT_COLS,
     MATRIX_VIEWPORT_DEFAULT_ROWS,
     dedupe_matrix_object_types,

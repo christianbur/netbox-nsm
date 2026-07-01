@@ -547,7 +547,7 @@ class BenchRule00001CellTreeIntegrationTests(TestCase):
                 execute_ip_analyzer_merge,
                 parse_object_refs,
             )
-            from netbox_nsm.bench.prerequisites import (
+            from netbox_nsm.tests.nsm_prerequisites import (
                 get_cot_field_through_model,
                 get_cot_model,
                 resolve_rulebook_address_field_names,

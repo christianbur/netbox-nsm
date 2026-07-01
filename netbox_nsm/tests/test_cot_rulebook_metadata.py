@@ -382,7 +382,7 @@ class CotRulebookMatrixTabMetadataTests(TestCase):
         )
 
     @patch(
-        "netbox_nsm.matrix.cot_matrix_tab_context.cot_rulebook_matrix_capable",
+        "netbox_nsm.rulebooks.matrix.cot_matrix_tab_context.cot_rulebook_matrix_capable",
         return_value=True,
     )
     def test_detail_form_includes_matrix_tab_field(self, _mock_capable):
@@ -412,7 +412,7 @@ class CotRulebookMatrixTabMetadataTests(TestCase):
         self.assertContains(response, "Show")
 
     @patch(
-        "netbox_nsm.matrix.cot_matrix_tab_context.cot_rulebook_matrix_capable",
+        "netbox_nsm.rulebooks.matrix.cot_matrix_tab_context.cot_rulebook_matrix_capable",
         return_value=True,
     )
     def test_post_detail_form_disables_matrix_tab(self, _mock_capable):
@@ -435,7 +435,7 @@ class CotRulebookMatrixTabMetadataTests(TestCase):
         self.assertFalse(config["matrix_tab_enabled"])
 
     @patch(
-        "netbox_nsm.matrix.cot_matrix_tab_context.cot_rulebook_matrix_capable",
+        "netbox_nsm.rulebooks.matrix.cot_matrix_tab_context.cot_rulebook_matrix_capable",
         return_value=True,
     )
     def test_post_detail_form_keeps_matrix_tab_enabled(self, _mock_capable):

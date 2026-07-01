@@ -11,7 +11,7 @@ from netbox_nsm.objects.group_inheritance import (
     iter_inherited_group_nsm_links,
 )
 from netbox_nsm.addresses.ipam_inheritance import should_include_inherited_type
-from netbox_nsm.models.object_link import LinkPropagationChoices
+from netbox_nsm.security.links.link_propagation import LinkPropagationChoices
 from netbox_nsm.security.links.object_link_service import ObjectLinkRecord
 from netbox_nsm.type_metadata.specs import TYPECONFIG_SPEC_BY_SLUG
 

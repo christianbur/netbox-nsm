@@ -14,7 +14,7 @@ from netbox_nsm.security.links.link_propagation import (
     supports_group_propagation,
     supports_ipam_propagation,
 )
-from netbox_nsm.models.object_link import LinkPropagationChoices
+from netbox_nsm.security.links.link_propagation import LinkPropagationChoices
 
 
 class LinkPropagationTests(SimpleTestCase):

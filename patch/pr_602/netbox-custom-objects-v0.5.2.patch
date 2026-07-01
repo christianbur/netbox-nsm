@@ -1,0 +1,340 @@
+--- api/serializers.py	2026-06-08 20:08:50.000000000 +0200
++++ api/serializers.py	2026-07-01 07:22:35.997163976 +0200
+@@ -9,6 +9,7 @@
+ from django.urls import NoReverseMatch
+ from django.utils.translation import gettext_lazy as _
+ from extras.choices import CustomFieldTypeChoices
++from extras.models import ConfigContextModel
+ from netbox.api.serializers import NetBoxModelSerializer
+ from rest_framework import serializers
+ from rest_framework.exceptions import ValidationError
+@@ -333,6 +334,7 @@
+             "version",
+             "group_name",
+             "description",
++            "config_context_enabled",
+             "tags",
+             "created",
+             "last_updated",
+@@ -344,6 +346,16 @@
+         read_only_fields = ("schema_document",)
+         brief_fields = ("id", "url", "name", "slug", "description")
+ 
++    def validate_config_context_enabled(self, value):
++        # Settable only at creation: the backing local_context_data column is
++        # created once when the type's table is built, so the flag is immutable
++        # afterwards (mirrors the disable-on-edit behaviour of the web form).
++        if self.instance is not None and value != self.instance.config_context_enabled:
++            raise serializers.ValidationError(
++                _("Config context support cannot be changed after creation.")
++            )
++        return value
++
+     def get_table_model_name(self, obj):
+         return obj.get_table_model_name(obj.id)
+ 
+@@ -461,6 +473,12 @@
+     # Create field list including all necessary fields
+     base_fields = ["id", "url", "display", "created", "last_updated", "tags"]
+ 
++    # Expose local_context_data when the type opted in to config context support
++    # (the generated model mixes in ConfigContextModel via
++    # CustomObjectConfigContextMixin).
++    if issubclass(model, ConfigContextModel):
++        base_fields.append("local_context_data")
++
+     # Include _context field when the model has designated context fields
+     has_context_fields = bool(getattr(model, '_context_field_ids', []))
+     if has_context_fields:
+--- constants.py	2026-06-08 20:08:50.000000000 +0200
++++ constants.py	2026-07-01 07:22:35.997163976 +0200
+@@ -36,6 +36,7 @@
+     "jobs",
+     "journal_entries",
+     "last_updated",
++    "local_context_data",
+     "model",
+     "objects",
+     "pk",
+--- forms.py	2026-06-08 20:08:50.000000000 +0200
++++ forms.py	2026-07-01 07:22:35.997163976 +0200
+@@ -63,7 +63,7 @@
+     fieldsets = (
+         FieldSet(
+             "name", "verbose_name", "verbose_name_plural", "slug",
+-            "version", "description", "group_name", "tags",
++            "version", "description", "group_name", "config_context_enabled", "tags",
+         ),
+     )
+     comments = CommentField()
+@@ -72,9 +72,20 @@
+         model = CustomObjectType
+         fields = (
+             "name", "verbose_name", "verbose_name_plural", "slug", "version", "description",
+-            "group_name", "comments", "tags",
++            "group_name", "config_context_enabled", "comments", "tags",
+         )
+ 
++    def __init__(self, *args, **kwargs):
++        super().__init__(*args, **kwargs)
++        # config_context_enabled controls whether the generated model carries a
++        # local_context_data column, which is created once at type creation. It
++        # cannot be toggled afterwards, so lock it when editing an existing type.
++        if self.instance.pk:
++            self.fields["config_context_enabled"].disabled = True
++            self.fields["config_context_enabled"].help_text = _(
++                "Config context support cannot be changed after creation."
++            )
++
+ 
+ class CustomObjectTypeBulkEditForm(NetBoxModelBulkEditForm):
+     description = forms.CharField(
+--- models.py	2026-06-08 20:08:50.000000000 +0200
++++ models.py	2026-07-01 07:23:54.691277296 +0200
+@@ -31,7 +31,7 @@
+     CustomFieldUIEditableChoices,
+     CustomFieldUIVisibleChoices,
+ )
+-from extras.models import CustomField
++from extras.models import ConfigContextModel, CustomField
+ from extras.models.customfields import SEARCH_TYPES
+ from extras.utils import run_validators
+ from netbox.config import get_config
+@@ -206,6 +206,25 @@
+         return reverse(cls._get_viewname(action, rest_api), kwargs=kwargs)
+ 
+ 
++class CustomObjectConfigContextMixin(ConfigContextModel):
++    """ConfigContextModel variant for dynamically generated custom object models.
++
++    Inherits ``local_context_data`` (a JSONField) and its ``clean()`` validator
++    from NetBox's ``ConfigContextModel``.  However, custom objects have none of
++    the site/tenant/role dimensions that ``ConfigContext`` assignment rules
++    filter on, so the parent's ``get_config_context()`` — which calls
++    ``ConfigContext.objects.get_for_object()`` and dereferences ``obj.site`` /
++    ``obj.tenant`` / ``obj.role`` — would raise ``AttributeError``.  We override
++    it to return only the locally-defined context data.
++    """
++
++    class Meta:
++        abstract = True
++
++    def get_config_context(self):
++        return self.local_context_data or {}
++
++
+ def validate_pep440(value):
+     """Validate that *value* is a valid PEP 440 version string."""
+     if not value:
+@@ -292,6 +311,14 @@
+         blank=True,
+         editable=False
+     )
++    config_context_enabled = models.BooleanField(
++        default=False,
++        verbose_name=_("config context support"),
++        help_text=_(
++            "Enable local config context data on objects of this type. "
++            "Can only be set when the type is created."
++        ),
++    )
+ 
+     class Meta:
+         verbose_name = "Custom Object Type"
+@@ -317,6 +344,24 @@
+                 {"slug": _("Slug field cannot be empty.")}
+             )
+ 
++        # config_context_enabled is immutable after creation: the local_context_data
++        # column is created once when the type's table is built (managed=False, no
++        # migration), so flipping the flag would desync the generated model from the
++        # physical schema (False→True makes every query raise "column does not exist").
++        # Enforce on validated paths (forms, full_clean()); raw QuerySet.update()/save()
++        # bypass clean() as with any Django model. Skip when None — clean() runs during
++        # branch revert with attributes hydrated from serialized data (see custom_field_data above).
++        if self.pk and self.config_context_enabled is not None:
++            original = CustomObjectType.objects.filter(pk=self.pk).values_list(
++                "config_context_enabled", flat=True
++            ).first()
++            if original is not None and self.config_context_enabled != original:
++                raise ValidationError({
++                    "config_context_enabled": _(
++                        "Config context support cannot be changed after creation."
++                    )
++                })
++
+         # Enforce max number of COTs that may be created (max_custom_object_types)
+         if not self.pk:
+             max_cots = get_plugin_config("netbox_custom_objects", "max_custom_object_types")
+@@ -779,10 +824,18 @@
+ 
+         TM.post_through_setup = wrapped_post_through_setup
+ 
++        # Optionally mix in config context support (local_context_data) when
++        # the type opts in.  The mixin contributes a concrete column, so the
++        # flag is only honoured at creation time (the table is built once via
++        # schema_editor.create_model() and is otherwise managed=False).
++        bases = (CustomObject, models.Model)
++        if self.config_context_enabled:
++            bases = (CustomObject, CustomObjectConfigContextMixin, models.Model)
++
+         try:
+             model = generate_model(
+                 str(model_name),
+-                (CustomObject, models.Model),
++                bases,
+                 attrs,
+             )
+         finally:
+--- urls.py	2026-06-08 20:08:50.000000000 +0200
++++ urls.py	2026-07-01 07:22:36.010164160 +0200
+@@ -79,4 +79,9 @@
+         views.CustomObjectChangeLogView.as_view(),
+         name="customobject_changelog",
+     ),
++    path(
++        "<str:custom_object_type>/<int:pk>/config-context/",
++        views.CustomObjectConfigContextView.as_view(),
++        name="customobject_configcontext",
++    ),
+ ]
+--- views.py	2026-06-08 20:08:50.000000000 +0200
++++ views.py	2026-07-01 07:22:36.010164160 +0200
+@@ -5,6 +5,7 @@
+ from django.apps import apps as django_apps
+ from django.contrib.contenttypes.models import ContentType
+ from django.db.models import ProtectedError, Q, RestrictedError
++from django.http import Http404
+ from django.shortcuts import get_object_or_404, redirect, render
+ from django.urls import reverse
+ from django.utils.translation import gettext_lazy as _
+@@ -1443,3 +1444,59 @@
+                 "tab": "changelog",
+             },
+         )
++
++
++class CustomObjectConfigContextView(ConditionalLoginRequiredMixin, View):
++    """
++    Config context view for CustomObject instances.
++
++    Only available when the instance's CustomObjectType has
++    ``config_context_enabled=True`` (i.e. the generated model mixes in
++    ConfigContextModel).  Custom objects have no site/tenant/role dimensions,
++    so there are no source contexts to aggregate — the rendered context is the
++    object's local_context_data (see CustomObjectConfigContextMixin).
++    """
++
++    base_template = None
++    tab = ViewTab(
++        label=_("Config Context"),
++        visible=lambda obj: obj.custom_object_type.config_context_enabled,
++        weight=2000,
++    )
++
++    def get(self, request, custom_object_type, **kwargs):
++        object_type = get_object_or_404(CustomObjectType, slug=custom_object_type)
++        if not object_type.config_context_enabled:
++            raise Http404(_("Config context support is not enabled for this type."))
++        model = object_type.get_model_with_serializer()
++
++        lookup_kwargs = {k: v for k, v in kwargs.items() if k != "custom_object_type"}
++        # Gate on object-level view permission so the config-context tab can't
++        # leak local_context_data past NetBox's RBAC (the detail view restricts too).
++        obj = get_object_or_404(model.objects.restrict(request.user, "view"), **lookup_kwargs)
++
++        # Determine the user's preferred output format (json/yaml), persisting
++        # an explicit choice the same way NetBox's ObjectConfigContextView does.
++        if request.GET.get("format") in ("json", "yaml"):
++            format = request.GET.get("format")
++            if request.user.is_authenticated:
++                request.user.config.set("data_format", format, commit=True)
++        elif request.user.is_authenticated:
++            format = request.user.config.get("data_format", "json")
++        else:
++            format = "json"
++
++        if self.base_template is None:
++            self.base_template = "netbox_custom_objects/customobject.html"
++
++        return render(
++            request,
++            "netbox_custom_objects/object_configcontext.html",
++            {
++                "object": obj,
++                "rendered_context": obj.get_config_context(),
++                "format": format,
++                "base_template": self.base_template,
++                "tab": "configcontext",
++            },
++        )
+--- migrations/0015_customobjecttype_config_context_enabled.py	1970-01-01 01:00:00.000000000 +0100
++++ migrations/0015_customobjecttype_config_context_enabled.py	1970-01-01 01:00:00.000000000 +0100
+@@ -0,0 +1,18 @@
++# Generated by Django 6.0.6 on 2026-06-30 22:28
++
++from django.db import migrations, models
++
++
++class Migration(migrations.Migration):
++
++    dependencies = [
++        ("netbox_custom_objects", "0014_fix_mixed_case_field_names"),
++    ]
++
++    operations = [
++        migrations.AddField(
++            model_name="customobjecttype",
++            name="config_context_enabled",
++            field=models.BooleanField(default=False),
++        ),
++    ]
+--- templates/netbox_custom_objects/customobject.html	2026-06-08 20:08:50.000000000 +0200
++++ templates/netbox_custom_objects/customobject.html	2026-07-01 07:22:36.008164132 +0200
+@@ -76,6 +76,11 @@
+     <li class="nav-item">
+       <a class="nav-link{% if tab == 'journal' %} active{% endif %}" href="{% url 'plugins:netbox_custom_objects:customobject_journal' object.custom_object_type.slug object.pk %}">{% trans "Journal" %}</a>
+     </li>
++    {% if object.custom_object_type.config_context_enabled %}
++    <li class="nav-item">
++      <a class="nav-link{% if tab == 'configcontext' %} active{% endif %}" href="{% url 'plugins:netbox_custom_objects:customobject_configcontext' object.custom_object_type.slug object.pk %}">{% trans "Config Context" %}</a>
++    </li>
++    {% endif %}
+     <li class="nav-item">
+       <a class="nav-link{% if tab == 'changelog' %} active{% endif %}" href="{% url 'plugins:netbox_custom_objects:customobject_changelog' object.custom_object_type.slug object.pk %}">{% trans "Changelog" %}</a>
+     </li>
+--- templates/netbox_custom_objects/customobjecttype.html	2026-06-08 20:08:50.000000000 +0200
++++ templates/netbox_custom_objects/customobjecttype.html	2026-07-01 07:22:36.008164132 +0200
+@@ -38,6 +38,10 @@
+             <td>{{ object.description|placeholder }}</td>
+           </tr>
+           <tr>
++            <th scope="row">{% trans "Config context support" %}</th>
++            <td>{% checkmark object.config_context_enabled %}</td>
++          </tr>
++          <tr>
+             <th scope="row">{% trans "Last activity" %}</th>
+             <td>
+               {{ latest_change.time|isodatetime|placeholder }}
+--- templates/netbox_custom_objects/object_configcontext.html	1970-01-01 01:00:00.000000000 +0100
++++ templates/netbox_custom_objects/object_configcontext.html	1970-01-01 01:00:00.000000000 +0100
+@@ -0,0 +1,19 @@
++{% extends base_template %}
++{% load helpers %}
++{% load i18n %}
++
++{% block content %}
++  <div class="row">
++    <div class="col col-12 col-md-6">
++      <div class="card">
++        {% include 'extras/inc/configcontext_data.html' with title="Local Context Data" data=rendered_context format=format copyid="local_context" %}
++        <div class="card-footer">
++          <span class="help-block">
++            <i class="mdi mdi-information-outline"></i>
++            {% trans "Custom objects cannot be assigned source config contexts, so the rendered context is the local context data shown here." %}
++          </span>
++        </div>
++      </div>
++    </div>
++  </div>
++{% endblock %}

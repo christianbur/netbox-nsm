@@ -1,0 +1,23 @@
+PR: https://github.com/netboxlabs/netbox-custom-objects/pull/602
+Issue: #98 — optional ConfigContext / local_context_data on Custom Object Types
+Target: netbox-custom-objects v0.5.2 (pip install from GitHub release tag)
+Source branch: 98-config-context (2026-06-30, commit series through 58b3fc3)
+
+Runtime patch only (no upstream test file changes). Includes migration
+0015_customobjecttype_config_context_enabled.py — run after apply:
+
+  python /opt/netbox/netbox/manage.py migrate netbox_custom_objects
+
+Then restart NetBox (gunicorn/rqworker).
+
+Files touched:
+  api/serializers.py
+  constants.py
+  forms.py
+  models.py
+  urls.py
+  views.py
+  migrations/0015_customobjecttype_config_context_enabled.py
+  templates/netbox_custom_objects/customobject.html
+  templates/netbox_custom_objects/customobjecttype.html
+  templates/netbox_custom_objects/object_configcontext.html (new)

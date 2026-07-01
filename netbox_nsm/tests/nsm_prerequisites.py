@@ -1,4 +1,4 @@
-"""Shared helpers for bench scripts and integration tests."""
+"""Shared helpers for integration tests (NSM schema/rulebook prerequisites)."""
 
 from __future__ import annotations
 

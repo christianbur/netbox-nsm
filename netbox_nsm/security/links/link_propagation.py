@@ -5,6 +5,7 @@ from __future__ import annotations
 __all__ = (
     "COT_OBJECT_LINK_PROPAGATION_CHOICES",
     "CotObjectLinkPropagationChoices",
+    "LinkPropagationChoices",
     "cot_propagation_choices_for_form",
     "cot_propagation_display",
     "cot_propagation_to_native",
@@ -20,7 +21,26 @@ __all__ = (
 
 from django.utils.translation import gettext_lazy as _
 
-from netbox_nsm.models.object_link import LinkPropagationChoices
+
+class LinkPropagationChoices:
+    """Native propagation modes for ``nsm_object_link`` (without COT ``*_stop`` values)."""
+
+    DIRECT = "direct"
+    INHERIT_IPAM = "inherit_ipam"
+    INHERIT_GROUP = "inherit_group"
+
+    choices = (
+        (DIRECT, _("Direct (bidirectional, visible on both sides)")),
+        (
+            INHERIT_IPAM,
+            _("Inherit to IPAM children (prefixes, addresses, ranges)"),
+        ),
+        (INHERIT_GROUP, _("Inherit to group members")),
+    )
+
+    @classmethod
+    def get_display(cls, value: str) -> str:
+        return dict(cls.choices).get(value, value)
 
 
 class CotObjectLinkPropagationChoices:

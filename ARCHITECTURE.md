@@ -42,6 +42,7 @@ netbox_nsm/
 │   └── builtin/          # portable schema JSON bundles
 ├── rulebooks/
 │   ├── proxy/            # rule_rows.py — CRUD URLs for rule COT rows
+│   ├── matrix/           # zone matrix engine (tab context, axis filter, layout)
 │   └── views/
 │       ├── registry.py   # RulebookViewSpec (table / matrix tabs)
 │       ├── table/        # canonical import path → CotRulebookRulesView

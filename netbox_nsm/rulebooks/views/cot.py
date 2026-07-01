@@ -37,7 +37,7 @@ from netbox_nsm.rulebooks.templates import (
     validate_substituted_rulebook_schema_yaml,
     wizard_columns_from_schema_yaml,
 )
-from netbox_nsm.matrix.cot_matrix_tab_context import (
+from netbox_nsm.rulebooks.matrix.cot_matrix_tab_context import (
     build_cot_matrix_tab_context,
     cot_rulebook_matrix_enabled,
 )

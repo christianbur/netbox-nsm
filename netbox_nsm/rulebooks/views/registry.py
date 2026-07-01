@@ -78,7 +78,7 @@ def resolve_rulebook_view_keys(cot) -> set[str]:
 
     keys = {"table"}
     try:
-        from netbox_nsm.matrix.cot_matrix_tab_context import cot_rulebook_matrix_enabled
+        from netbox_nsm.rulebooks.matrix.cot_matrix_tab_context import cot_rulebook_matrix_enabled
 
         if cot is not None and cot_rulebook_matrix_enabled(cot):
             keys.add("matrix")

@@ -9,7 +9,7 @@ from django.urls import reverse
 from ipam.models import Prefix
 
 from dcim.models import Device, DeviceRole, DeviceType, Interface, Manufacturer, Site
-from netbox_nsm.bench.prerequisites import ensure_nsm_prerequisites
+from netbox_nsm.tests.nsm_prerequisites import ensure_nsm_prerequisites
 from netbox_nsm.forms import EnforcementPointInterfaceAssignForm
 from netbox_nsm.security.links.object_link_service import (
     LINK_TYPE_ENFORCEMENT_POINT,

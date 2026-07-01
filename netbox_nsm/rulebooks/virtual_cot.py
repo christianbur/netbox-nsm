@@ -5,7 +5,7 @@ from __future__ import annotations
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from netbox_nsm.matrix.cot_matrix_tab_context import (
+from netbox_nsm.rulebooks.matrix.cot_matrix_tab_context import (
     cot_rulebook_matrix_capable,
     cot_rulebook_matrix_enabled,
 )

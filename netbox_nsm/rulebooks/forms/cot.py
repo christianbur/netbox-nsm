@@ -245,7 +245,7 @@ class CotRulebookDetailForm(forms.Form):
             invalid_parent_slugs,
             load_cot_parent_map,
         )
-        from netbox_nsm.matrix.cot_matrix_tab_context import cot_rulebook_matrix_capable
+        from netbox_nsm.rulebooks.matrix.cot_matrix_tab_context import cot_rulebook_matrix_capable
         from netbox_nsm.rulebooks.rules_row_grouping import build_cot_row_group_column_choices
 
         self.fields["row_group_by_col_id"].choices = build_cot_row_group_column_choices(

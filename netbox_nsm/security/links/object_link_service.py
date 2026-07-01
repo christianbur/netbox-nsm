@@ -8,7 +8,6 @@ from typing import Iterator
 from django.contrib.contenttypes.models import ContentType
 
 from netbox_nsm.type_metadata.config import is_linkable_content_type
-from netbox_nsm.models.object_link import LinkPropagationChoices
 from netbox_nsm.security.links.cot_link_schema import (
     ObjectLinkSchema,
     get_object_link_schema,
@@ -16,6 +15,7 @@ from netbox_nsm.security.links.cot_link_schema import (
 )
 from netbox_nsm.security.links.link_propagation import (
     CotObjectLinkPropagationChoices,
+    LinkPropagationChoices,
     cot_propagation_to_native,
 )
 

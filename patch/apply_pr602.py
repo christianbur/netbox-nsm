@@ -7,9 +7,11 @@ and restart NetBox once.
 
 Examples (inside NetBox container or venv):
 
-  python /opt/netbox-nsm/patch/apply_pr602.py --check
-  python /opt/netbox-nsm/patch/apply_pr602.py --apply
-  python /opt/netbox-nsm/patch/apply_pr602.py --apply --migrate
+  /opt/netbox/venv/bin/python /opt/netbox-nsm/patch/apply_pr602.py --check
+  /opt/netbox/venv/bin/python /opt/netbox-nsm/patch/apply_pr602.py --apply --migrate
+
+For pip-installed packages under site-packages, run ``--apply`` as root
+(``docker compose exec -u root netbox …``). Requires the ``patch`` CLI.
 """
 
 from __future__ import annotations
@@ -65,7 +67,16 @@ def find_netbox_custom_objects_dir() -> Path:
             return pkg_dir
         raise PatchError(f"NETBOX_CUSTOM_OBJECTS_DIR is not a package: {pkg_dir}")
 
+    venv = Path(os.environ.get("VIRTUAL_ENV", "/opt/netbox/venv"))
+    site_pkg = (
+        venv
+        / "lib"
+        / f"python{sys.version_info.major}.{sys.version_info.minor}"
+        / "site-packages"
+        / "netbox_custom_objects"
+    )
     for candidate in (
+        site_pkg,
         Path("/opt/netbox-custom-objects/netbox_custom_objects"),
     ):
         if (candidate / "models.py").is_file():

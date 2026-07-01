@@ -42,7 +42,6 @@ class CotRoleMetadataTests(TestCase):
                 "sort_order": 10,
                 "display_template": "{{ name }}",
                 "role": "zone",
-                "links": {"linkable": True},
             }
         )
         self.assertIn("- role: zone", yaml_text)

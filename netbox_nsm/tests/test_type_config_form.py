@@ -24,13 +24,14 @@ def _base_form_data(**overrides):
 
 
 class NsmConfigFormTests(TestCase):
-    def test_form_has_rule_view_and_links_fields(self):
+    def test_form_has_rule_view_fields(self):
         form = NsmConfigForm()
         self.assertIn("sort_order", form.fields)
         self.assertIn("display_template", form.fields)
         self.assertIn("areas", form.fields)
         self.assertIsInstance(form.fields["areas"].widget, BtnCheckMultipleWidget)
-        self.assertIn("inherit_links", form.fields)
+        self.assertNotIn("linkable", form.fields)
+        self.assertNotIn("inherit_links", form.fields)
         self.assertNotIn("linkable_types", form.fields)
 
     def test_areas_widget_renders_btn_check_group(self):
@@ -41,11 +42,11 @@ class NsmConfigFormTests(TestCase):
         self.assertIn("Source / Destination", html)
         self.assertIn('value="action"', html)
 
-    def test_form_has_rule_view_and_links_fieldsets(self):
+    def test_form_has_rule_view_fieldsets(self):
         fieldset_names = [fs.name for fs in NsmConfigForm.fieldsets]
         self.assertIn(_("Metadata"), fieldset_names)
         self.assertIn(_("Rule View"), fieldset_names)
-        self.assertIn(_("Security Links"), fieldset_names)
+        self.assertNotIn(_("Security Links"), fieldset_names)
         self.assertIn("role", NsmConfigForm().fields)
 
     def test_to_config_dict_round_trip(self):
@@ -58,33 +59,20 @@ class NsmConfigFormTests(TestCase):
                 "sort_order": 12,
                 "display_template": "{{ name }}",
                 "areas": ["srcdst", "services"],
-                "links": {
-                    "linkable": False,
-                    "inherit_links": False,
-                    "inherit_stop_on_own": False,
-                    "allow_virtual_groups": False,
-                },
             },
         )
 
-    def test_initial_from_config_dict_includes_links_and_areas(self):
+    def test_initial_from_config_dict_includes_areas(self):
         initial = NsmConfigForm.initial_from_config_dict(
             {
                 "role": "zone",
                 "sort_order": 5,
                 "display_template": "{{ name | upper }}",
                 "areas": ["action"],
-                "links": {
-                    "linkable": False,
-                    "inherit_links": True,
-                    "inherit_stop_on_own": True,
-                    "allow_virtual_groups": True,
-                },
             }
         )
         self.assertEqual(initial["areas"], ["action"])
-        self.assertFalse(initial["linkable"])
-        self.assertTrue(initial["inherit_links"])
+        self.assertNotIn("linkable", initial)
 
     def test_area_labels_for_values(self):
         self.assertEqual(
@@ -105,4 +93,4 @@ class NsmConfigFormTests(TestCase):
         form = NsmAddressConfigForm()
         fieldset_names = [fs.name for fs in form.fieldsets]
         self.assertIn(_("Rule View"), fieldset_names)
-        self.assertIn(_("Security Links"), fieldset_names)
+        self.assertNotIn(_("Security Links"), fieldset_names)

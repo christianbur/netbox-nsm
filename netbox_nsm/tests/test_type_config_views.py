@@ -66,24 +66,17 @@ class ObjectConfigViewMergeTests(TestCase):
         self.assertEqual(document["operator_note"], "keep-me")
         self.assertEqual(document["rule_view"]["sort_order"], 9)
 
-    def test_edit_persists_panel_and_areas(self):
+    def test_edit_persists_areas(self):
         response = self.client.post(
             reverse("plugins:netbox_nsm:typemetadata_edit", args=["nsm_zone"]),
-            _edit_post_data(
-                areas=["srcdst"],
-                linkable="on",
-                inherit_links="on",
-            ),
+            _edit_post_data(areas=["srcdst"]),
         )
         self.assertEqual(response.status_code, 302)
         self.cot.refresh_from_db()
         document = _parse_comments_document(self.cot.comments)
         rule_view = document["rule_view"]
-        panel = document["links"]
         self.assertEqual(rule_view["areas"], ["srcdst"])
-        self.assertTrue(panel["linkable"])
-        self.assertTrue(panel["inherit_links"])
-        self.assertNotIn("linkable_types", panel)
+        self.assertNotIn("links", document)
 
     def test_delete_only_clears_nsm_config_block(self):
         self.cot.comments = (

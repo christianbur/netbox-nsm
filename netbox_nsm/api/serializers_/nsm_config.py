@@ -8,7 +8,6 @@ from netbox_nsm.core.display_template import (
 
 __all__ = (
     "NsmConfigDocumentSerializer",
-    "NsmConfigLinksSerializer",
     "NsmConfigRuleViewSerializer",
     "NsmConfigRulebookSerializer",
 )
@@ -39,18 +38,9 @@ class NsmConfigRulebookSerializer(serializers.Serializer):
     )
 
 
-class NsmConfigLinksSerializer(serializers.Serializer):
-    linkable = serializers.BooleanField(required=False, default=True)
-    inherit_links = serializers.BooleanField(required=False, default=False)
-    inherit_stop_on_own = serializers.BooleanField(required=False, default=False)
-    allow_virtual_groups = serializers.BooleanField(required=False, default=False)
-    link_table = serializers.CharField(required=False, allow_blank=True, default="")
-
-
 class NsmConfigDocumentSerializer(serializers.Serializer):
     rule_view = NsmConfigRuleViewSerializer(required=False)
     rulebook = NsmConfigRulebookSerializer(required=False)
-    links = NsmConfigLinksSerializer(required=False)
 
 
 class NsmConfigApiSerializer(serializers.Serializer):

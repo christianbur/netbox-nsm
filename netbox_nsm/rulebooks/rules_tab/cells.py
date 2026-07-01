@@ -101,7 +101,7 @@ def _render_actions_cell_html(
     can_delete: bool,
     can_add: bool = False,
 ) -> str:
-    from netbox_nsm.ui.split_actions import render_edit_delete_split_button_html
+    from netbox_nsm.core.split_actions import render_edit_delete_split_button_html
 
     return render_edit_delete_split_button_html(
         edit_url,

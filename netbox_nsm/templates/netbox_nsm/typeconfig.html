@@ -69,29 +69,6 @@
         </tr>
       </table>
     </div>
-    {% if links %}
-    <div class="card mt-3">
-      <h5 class="card-header">{% trans "Security Links" %}</h5>
-      <table class="table table-hover attr-table mb-0">
-        <tr>
-          <th scope="row">{% trans "Linkable" %}</th>
-          <td>{% if links.linkable %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %}</td>
-        </tr>
-        <tr>
-          <th scope="row">{% trans "Inherit links" %}</th>
-          <td>{% if links.inherit_links %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %}</td>
-        </tr>
-        <tr>
-          <th scope="row">{% trans "Inherit stop on own" %}</th>
-          <td>{% if links.inherit_stop_on_own %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %}</td>
-        </tr>
-        <tr>
-          <th scope="row">{% trans "Allow virtual groups" %}</th>
-          <td>{% if links.allow_virtual_groups %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %}</td>
-        </tr>
-      </table>
-    </div>
-    {% endif %}
     {% if show_plugin_name_templates and plugin_name_templates %}
     <div class="card mt-3">
       <h5 class="card-header">{% trans "Plugin name templates" %}</h5>

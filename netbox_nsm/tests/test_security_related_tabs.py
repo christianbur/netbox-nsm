@@ -23,9 +23,9 @@ class CotLinkTableFlagTests(SimpleTestCase):
 
     @patch(
         "netbox_nsm.type_metadata.config.resolve_nsm_config_dict_for_cot",
-        return_value={"links": {"link_table": True}},
+        return_value={"link_table": True},
     )
-    def test_link_table_from_nsm_config_links_block(self, _mock_cfg):
+    def test_link_table_from_nsm_config_top_level(self, _mock_cfg):
         cot = SimpleNamespace(link_table=False, comments="nsm_config:", metadata="")
         self.assertTrue(cot_link_table_flag(cot))
 

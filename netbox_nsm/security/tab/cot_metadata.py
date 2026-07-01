@@ -21,12 +21,7 @@ def _truthy(value: Any) -> bool:
 def _link_table_from_mapping(mapping: dict | None) -> bool:
     if not isinstance(mapping, dict):
         return False
-    if _truthy(mapping.get("link_table")):
-        return True
-    links = mapping.get("links")
-    if isinstance(links, dict) and _truthy(links.get("link_table")):
-        return True
-    return False
+    return _truthy(mapping.get("link_table"))
 
 
 def _link_table_from_nsm_config_comments(cot) -> bool:
@@ -74,7 +69,7 @@ def cot_link_table_flag(cot) -> bool:
     Resolution order (first match wins):
 
     1. Native ``CustomObjectType.link_table`` when present (netbox-custom-objects PR #482).
-    2. ``nsm_config`` in ``CustomObjectType.comments`` — top-level or ``links.link_table``.
+    2. ``nsm_config`` in ``CustomObjectType.comments`` — top-level ``link_table``.
     3. Free-form ``CustomObjectType.metadata`` YAML/JSON with ``link_table: true``.
     """
     if cot is None:

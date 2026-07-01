@@ -112,12 +112,6 @@ def _config_dict_from_spec(slug: str, display_template: str, areas: list[str]) -
         "sort_order": TYPECONFIG_SORT_ORDER_BY_SLUG.get(slug, 0),
         "display_template": display_template,
         "areas": list(areas),
-        "links": {
-            "linkable": True,
-            "inherit_links": False,
-            "inherit_stop_on_own": False,
-            "allow_virtual_groups": False,
-        },
     }
 
 
@@ -164,7 +158,7 @@ def _build_metadata_types(builtin_types) -> dict:
             slug, display_template, areas_by_slug.get(slug, [])
         )
         role = DEFAULT_ROLE_BY_SLUG.get(slug)
-        entry = {"links": cfg["links"]}
+        entry: dict = {}
         if role:
             entry["role"] = role
             menu = DEFAULT_MENU_BY_ROLE.get(role)

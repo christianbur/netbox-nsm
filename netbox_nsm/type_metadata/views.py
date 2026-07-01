@@ -131,7 +131,7 @@ def _resolved_configs() -> list[TypeMetadataListEntry]:
 
 
 def _document_updates_from_config_dict(config: dict) -> dict:
-    updates = {
+    return {
         "role": config.get("role"),
         "rule_view": {
             "sort_order": config.get("sort_order", 0),
@@ -140,9 +140,7 @@ def _document_updates_from_config_dict(config: dict) -> dict:
             ),
             "areas": list(config.get("areas") or []),
         },
-        "links": dict(config.get("links") or {}),
     }
-    return updates
 
 
 class TypeMetadataListView(PermissionRequiredMixin, View):
@@ -169,7 +167,6 @@ class TypeMetadataView(PermissionRequiredMixin, View):
         if not config:
             raise Http404
         config_dict = resolve_nsm_config_dict_for_cot(cot) or {}
-        links = dict(config_dict.get("links") or {})
         from netbox_nsm.addresses.address_cot_schema import cot_ipam_address_flag
 
         return render(
@@ -182,7 +179,6 @@ class TypeMetadataView(PermissionRequiredMixin, View):
                 "role_label": config.role_label,
                 "areas": list(config_dict.get("areas") or []),
                 "area_labels": area_labels_for_values(config_dict.get("areas")),
-                "links": links,
                 "has_stored_metadata": _has_metadata(cot),
                 "show_plugin_name_templates": cot_ipam_address_flag(cot),
                 "plugin_name_templates": _plugin_name_template_rows(),

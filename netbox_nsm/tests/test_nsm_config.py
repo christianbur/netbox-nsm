@@ -45,7 +45,7 @@ class NsmConfigFormatTests(TestCase):
         config = normalize_nsm_config_list(legacy)
         self.assertEqual(config["sort_order"], 11)
 
-    def test_links_block_in_yaml_is_parsed(self):
+    def test_legacy_links_block_is_ignored(self):
         legacy = [
             {"rule_view": {"sort_order": 10, "display_template": "{{ name }}"}},
             {
@@ -58,28 +58,22 @@ class NsmConfigFormatTests(TestCase):
         ]
         config = normalize_nsm_config_list(legacy)
         self.assertEqual(config["sort_order"], 10)
-        self.assertEqual(config["links"]["inherit_links"], True)
+        self.assertNotIn("links", config)
 
-    def test_nsm_address_spec_has_links_defaults(self):
+    def test_nsm_address_spec_has_no_links_block(self):
         spec = TYPECONFIG_SPEC_BY_SLUG["nsm_address"]
         config = config_dict_from_spec(spec)
-        self.assertIn("links", config)
-        self.assertTrue(config["links"]["linkable"])
+        self.assertNotIn("links", config)
         self.assertNotIn("object_builder", config)
         yaml_text = format_nsm_config_comment_yaml(config)
         self.assertNotIn("object_builder:", yaml_text)
+        self.assertNotIn("- links:", yaml_text)
 
     def test_formatted_output_uses_markdown_fences(self):
         config = {
             "sort_order": 22,
             "display_template": "{{ name }}",
             "areas": ["srcdst"],
-            "links": {
-                "linkable": True,
-                "inherit_links": False,
-                "inherit_stop_on_own": False,
-                "allow_virtual_groups": False,
-            },
             "role": "app_network",
         }
         yaml_text = format_nsm_config_comment_yaml(config)
@@ -93,12 +87,11 @@ class NsmConfigFormatTests(TestCase):
         config = {
             "sort_order": 10,
             "display_template": "{{ name }}",
-            "links": {"linkable": True},
         }
         fenced = format_nsm_config_comment_yaml(config)
         unfenced = (
             yaml.dump(
-                {"nsm_config": [{"rule_view": {"sort_order": 10, "display_template": "{{ name }}"}}, {"links": {"linkable": True}}]},
+                {"nsm_config": [{"rule_view": {"sort_order": 10, "display_template": "{{ name }}"}}]},
                 default_flow_style=False,
                 allow_unicode=True,
                 sort_keys=False,
@@ -109,7 +102,6 @@ class NsmConfigFormatTests(TestCase):
             parsed = parse_nsm_config_from_comments(text)
             self.assertEqual(parsed["sort_order"], 10)
             self.assertEqual(parsed["display_template"], "{{ name }}")
-            self.assertTrue(parsed["links"]["linkable"])
 
     def test_format_includes_menu_when_present(self):
         yaml_text = format_nsm_config_comment_yaml(

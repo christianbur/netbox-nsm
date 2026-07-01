@@ -72,6 +72,7 @@
       "slug": "nsm_action",
       "verbose_name": "Action",
       "verbose_name_plural": "Actions",
+      "group_name": "NSM Objects",
       "description": "Policy action for matching traffic in a rule (e.g. permit, deny, drop, reject). Used in rulebook Action columns.",
       "fields": [
         {
@@ -122,6 +123,7 @@
       "slug": "nsm_service",
       "verbose_name": "Service",
       "verbose_name_plural": "Services",
+      "group_name": "NSM Objects",
       "description": "Represents one network service (protocol + port). Used in rulebook Service columns and Security Panel links.",
       "fields": [
         {
@@ -191,6 +193,7 @@
       "slug": "nsm_service_group",
       "verbose_name": "Service Group",
       "verbose_name_plural": "Service Groups",
+      "group_name": "NSM Objects",
       "description": "Named collection of services. Referenced in rulebook Service columns; members are nsm_service objects.",
       "fields": [
         {
@@ -251,6 +254,7 @@
       "slug": "nsm_address",
       "verbose_name": "Address",
       "verbose_name_plural": "Addresses",
+      "group_name": "NSM Objects",
       "description": "Named address object for policy rules (host, prefix, or range). Used in Source/Destination columns and Security Panel links.",
       "fields": [
         {
@@ -309,41 +313,15 @@
           ]
         }
       ],
-      "removed_fields": [
-        {
-          "id": 100,
-          "name": "ip_address",
-          "type": "object"
-        },
-        {
-          "id": 101,
-          "name": "range",
-          "type": "object"
-        },
-        {
-          "id": 102,
-          "name": "prefix",
-          "type": "object"
-        },
-        {
-          "id": 105,
-          "name": "network_literal",
-          "type": "text"
-        },
-        {
-          "id": 103,
-          "name": "group",
-          "type": "multiobject"
-        }
-      ]
+      "removed_fields": []
     },
     {
       "name": "nsm_address_custom",
       "slug": "nsm_address_custom",
       "verbose_name": "Address Custom",
       "verbose_name_plural": "Addresses Custom",
-      "description": "Named address without IPAM: manual IPv4 or IPv6 plus prefix length (e.g. 0.0.0.0/0). Usable in rulebooks and address groups like nsm_address.",
       "group_name": "NSM Objects",
+      "description": "Named address without IPAM: manual IPv4 or IPv6 plus prefix length (e.g. 0.0.0.0/0). Usable in rulebooks and address groups like nsm_address.",
       "fields": [
         {
           "id": 1,
@@ -422,6 +400,7 @@
       "slug": "nsm_address_group",
       "verbose_name": "Address Group",
       "verbose_name_plural": "Address Groups",
+      "group_name": "NSM Objects",
       "description": "Named collection of address objects. Used in Source/Destination columns; members are nsm_address objects.",
       "fields": [
         {
@@ -486,6 +465,7 @@
       "slug": "nsm_label",
       "verbose_name": "Label",
       "verbose_name_plural": "Labels",
+      "group_name": "NSM Objects",
       "description": "Classification tag for inventory or rules (e.g. compliance, tier). Used in label columns and Security Panel links.",
       "fields": [
         {
@@ -551,6 +531,7 @@
       "slug": "nsm_zone",
       "verbose_name": "Zone",
       "verbose_name_plural": "Zones",
+      "group_name": "NSM Objects",
       "description": "Logical security zone for segmentation. Linked to inventory via Security Panel; used in rulebook zone columns.",
       "fields": [
         {
@@ -601,6 +582,7 @@
       "slug": "nsm_app_business",
       "verbose_name": "Business App",
       "verbose_name_plural": "Business Apps",
+      "group_name": "NSM Objects",
       "description": "Business application metadata for rule Info columns (ownership, criticality).",
       "fields": [
         {
@@ -675,6 +657,7 @@
       "slug": "nsm_app_network",
       "verbose_name": "Network App",
       "verbose_name_plural": "Network Apps",
+      "group_name": "NSM Objects",
       "description": "Network application identifier, similar to Palo Alto App-ID (e.g. ssh, onedrive, ssl).",
       "fields": [
         {
@@ -748,6 +731,7 @@
       "slug": "nsm_object_link",
       "verbose_name": "Object Link",
       "verbose_name_plural": "Object Links",
+      "group_name": "NSM Object Links",
       "description": "Links NetBox inventory to security policy objects or rulebooks (Security Panel source of truth).",
       "link_table": true,
       "fields": [
@@ -1201,92 +1185,38 @@
   "metadata": {
     "types": {
       "nsm_zone": {
-        "links": {
-          "linkable": true,
-          "inherit_links": false,
-          "inherit_stop_on_own": false,
-          "allow_virtual_groups": false
-        },
         "role": "zone",
         "menu": "objects"
       },
       "nsm_address": {
-        "links": {
-          "linkable": true,
-          "inherit_links": false,
-          "inherit_stop_on_own": false,
-          "allow_virtual_groups": false
-        },
         "role": "address",
         "menu": "objects"
       },
       "nsm_address_group": {
-        "links": {
-          "linkable": true,
-          "inherit_links": false,
-          "inherit_stop_on_own": false,
-          "allow_virtual_groups": false
-        },
         "role": "address_group",
         "menu": "objects"
       },
       "nsm_label": {
-        "links": {
-          "linkable": true,
-          "inherit_links": false,
-          "inherit_stop_on_own": false,
-          "allow_virtual_groups": false
-        },
         "role": "label",
         "menu": "objects"
       },
       "nsm_service": {
-        "links": {
-          "linkable": true,
-          "inherit_links": false,
-          "inherit_stop_on_own": false,
-          "allow_virtual_groups": false
-        },
         "role": "service",
         "menu": "objects"
       },
       "nsm_service_group": {
-        "links": {
-          "linkable": true,
-          "inherit_links": false,
-          "inherit_stop_on_own": false,
-          "allow_virtual_groups": false
-        },
         "role": "service_group",
         "menu": "objects"
       },
       "nsm_action": {
-        "links": {
-          "linkable": true,
-          "inherit_links": false,
-          "inherit_stop_on_own": false,
-          "allow_virtual_groups": false
-        },
         "role": "action",
         "menu": "objects"
       },
       "nsm_app_business": {
-        "links": {
-          "linkable": true,
-          "inherit_links": false,
-          "inherit_stop_on_own": false,
-          "allow_virtual_groups": false
-        },
         "role": "app_business",
         "menu": "objects"
       },
       "nsm_app_network": {
-        "links": {
-          "linkable": true,
-          "inherit_links": false,
-          "inherit_stop_on_own": false,
-          "allow_virtual_groups": false
-        },
         "role": "app_network",
         "menu": "objects"
       },

@@ -64,7 +64,6 @@ class RulesLayoutPolyColumnOrderTests(TestCase):
                 {
                     "sort_order": sort_order,
                     "display_template": "{{ name }}",
-                    "links": {"linkable": True},
                 }
             ).rstrip()
             cot.save(update_fields=["comments"])

@@ -43,7 +43,6 @@ class PolySubfieldLabelTests(TestCase):
             {
                 "sort_order": 0,
                 "display_template": "{{ name }}",
-                "links": {"linkable": True},
             }
         ).rstrip()
         self.cot.save(update_fields=["comments"])

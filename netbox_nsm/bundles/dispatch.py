@@ -473,8 +473,6 @@ def sync_metadata(metadata: dict | None) -> dict[str, int]:
             cot.save(update_fields=["link_table"])
             types_count += 1
         updates: dict[str, Any] = {}
-        if "links" in block:
-            updates["links"] = block["links"]
         if "role" in block:
             updates["role"] = block["role"]
         if "menu" in block:

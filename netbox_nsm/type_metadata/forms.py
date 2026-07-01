@@ -80,37 +80,10 @@ class NsmConfigForm(forms.Form):
         help_text=_("Rulebook columns where objects of this type can be assigned."),
         widget=BtnCheckMultipleWidget,
     )
-    linkable = forms.BooleanField(
-        required=False,
-        initial=True,
-        label=_("Linkable"),
-    )
-    inherit_links = forms.BooleanField(
-        required=False,
-        initial=False,
-        label=_("Inherit links"),
-    )
-    inherit_stop_on_own = forms.BooleanField(
-        required=False,
-        initial=False,
-        label=_("Inherit stop on own"),
-    )
-    allow_virtual_groups = forms.BooleanField(
-        required=False,
-        initial=False,
-        label=_("Allow virtual groups"),
-    )
 
     fieldsets = (
         FieldSet("role", name=_("Metadata")),
         FieldSet("sort_order", "display_template", "areas", name=_("Rule View")),
-        FieldSet(
-            "linkable",
-            "inherit_links",
-            "inherit_stop_on_own",
-            "allow_virtual_groups",
-            name=_("Security Links"),
-        ),
     )
 
     @classmethod
@@ -122,7 +95,6 @@ class NsmConfigForm(forms.Form):
 
     @classmethod
     def initial_from_config_dict(cls, config: dict) -> dict:
-        links = dict(config.get("links") or {})
         return {
             "role": config.get("role") or "",
             "sort_order": config.get("sort_order", 0),
@@ -130,10 +102,6 @@ class NsmConfigForm(forms.Form):
                 config.get("display_template") or DEFAULT_DISPLAY_TEMPLATE
             ),
             "areas": list(config.get("areas") or []),
-            "linkable": bool(links.get("linkable", True)),
-            "inherit_links": bool(links.get("inherit_links", False)),
-            "inherit_stop_on_own": bool(links.get("inherit_stop_on_own", False)),
-            "allow_virtual_groups": bool(links.get("allow_virtual_groups", False)),
         }
 
     def to_config_dict(self) -> dict:
@@ -142,12 +110,6 @@ class NsmConfigForm(forms.Form):
             "sort_order": self.cleaned_data["sort_order"],
             "display_template": self.cleaned_data.get("display_template") or DEFAULT_DISPLAY_TEMPLATE,
             "areas": list(self.cleaned_data.get("areas") or []),
-            "links": {
-                "linkable": bool(self.cleaned_data.get("linkable")),
-                "inherit_links": bool(self.cleaned_data.get("inherit_links")),
-                "inherit_stop_on_own": bool(self.cleaned_data.get("inherit_stop_on_own")),
-                "allow_virtual_groups": bool(self.cleaned_data.get("allow_virtual_groups")),
-            },
         }
 
     def clean_role(self):

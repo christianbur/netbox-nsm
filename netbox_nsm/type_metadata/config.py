@@ -27,7 +27,6 @@ __all__ = (
     "is_assignable_from_content_type",
     "is_linkable_content_type",
     "iter_linkable_configs",
-    "resolve_links_config_for_content_type",
     "normalize_nsm_config_list",
     "parse_nsm_config_from_comments",
     "resolve_nsm_config_dict_for_cot",
@@ -48,15 +47,6 @@ _MARKDOWN_FENCE_RE = re.compile(
 )
 
 _RULE_VIEW_KEYS = frozenset({"sort_order", "display_template", "areas"})
-_LINKS_KEYS = frozenset(
-    {
-        "linkable",
-        "inherit_links",
-        "inherit_stop_on_own",
-        "allow_virtual_groups",
-        "link_table",
-    }
-)
 
 
 def _normalized_display_template(value: str | None) -> str:
@@ -97,12 +87,6 @@ def config_dict_from_spec(spec: dict) -> dict[str, Any]:
         "sort_order": spec.get("sort_order", 0),
         "display_template": _normalized_display_template(spec.get("display_template")),
         "areas": list(spec.get("areas") or _areas_for_cot_slug(slug)),
-        "links": {
-            "linkable": spec.get("linkable", True),
-            "inherit_links": bool(spec.get("inherit_links", False)),
-            "inherit_stop_on_own": bool(spec.get("inherit_stop_on_own", False)),
-            "allow_virtual_groups": bool(spec.get("allow_virtual_groups", False)),
-        },
     }
     role = default_role_for_slug(slug)
     if role:
@@ -125,11 +109,6 @@ def normalize_nsm_config_list(raw_list: list | None) -> dict[str, Any] | None:
                 for key in _RULE_VIEW_KEYS:
                     if key in block:
                         merged[key] = block[key]
-            continue
-        if len(entry) == 1 and "links" in entry:
-            block = entry.get("links") or {}
-            if isinstance(block, dict):
-                merged["links"] = block
             continue
         # Legacy flat keys and ``- sort_order:`` list items.
         for key in _RULE_VIEW_KEYS:
@@ -215,8 +194,6 @@ def _normalize_config_dict(config: dict[str, Any]) -> dict[str, Any]:
     }
     if "areas" in config:
         result["areas"] = list(config.get("areas") or [])
-    if "links" in config:
-        result["links"] = dict(config.get("links") or {})
     if "role" in config:
         result["role"] = config.get("role")
     if "menu" in config:
@@ -233,9 +210,6 @@ def _build_nsm_config_list(config: dict[str, Any]) -> list[dict]:
     if normalized.get("areas"):
         rule_view_block["areas"] = list(normalized["areas"])
     segments: list[dict] = [{"rule_view": rule_view_block}]
-    links = normalized.get("links")
-    if links:
-        segments.append({"links": links})
     role = normalized.get("role")
     if isinstance(role, str) and role.strip():
         segments.append({"role": role.strip()})
@@ -284,9 +258,6 @@ def _document_to_nsm_config_segments(document: dict[str, Any]) -> list[dict]:
         if rule_view.get("areas"):
             block["areas"] = list(rule_view.get("areas") or [])
         segments.append({"rule_view": block})
-    links = document.get("links")
-    if isinstance(links, dict) and links:
-        segments.append({"links": links})
     role = document.get("role")
     if isinstance(role, str) and role.strip():
         segments.append({"role": role.strip()})
@@ -346,17 +317,6 @@ def _stored_nsm_config_document(text: str) -> dict[str, Any]:
         }
         if policy.get("areas"):
             result["rule_view"]["areas"] = list(policy.get("areas") or [])
-        if policy.get("links"):
-            result["links"] = dict(policy.get("links") or {})
-    document = _load_yaml_document(text)
-    if isinstance(document, dict):
-        raw_list = _extract_nsm_config_list_from_document(document)
-        if raw_list:
-            for entry in raw_list:
-                if isinstance(entry, dict) and len(entry) == 1 and "links" in entry:
-                    block = entry.get("links")
-                    if isinstance(block, dict) and block:
-                        result["links"] = dict(block)
     from netbox_nsm.type_metadata.roles import parse_role_from_comments
     from netbox_nsm.type_metadata.menus import parse_menu_from_comments
 
@@ -390,9 +350,9 @@ def merge_nsm_config_document_into_comments(
     existing_comments: str,
     updates: dict[str, Any],
 ) -> str:
-    """Merge ``rule_view`` / ``links`` / ``rulebook`` segments into comments."""
+    """Merge ``rule_view`` / ``rulebook`` segments into comments."""
     current = _stored_nsm_config_document(existing_comments)
-    for key in ("rule_view", "rulebook", "links", "types", "role", "menu"):
+    for key in ("rule_view", "rulebook", "types", "role", "menu"):
         if key not in updates:
             continue
         value = updates[key]
@@ -481,7 +441,6 @@ def clear_nsm_config_from_cot_comments(cot) -> None:
         {
             "rule_view": None,
             "rulebook": None,
-            "links": None,
             "types": None,
             "role": None,
         },
@@ -564,8 +523,6 @@ def _merge_parsed_into_config(
     for key in ("sort_order", "display_template", "areas"):
         if key in parsed:
             result[key] = parsed[key]
-    if "links" in parsed:
-        result["links"] = {**result.get("links", {}), **dict(parsed["links"] or {})}
     if "role" in parsed:
         result["role"] = parsed["role"]
     return result
@@ -596,7 +553,6 @@ def resolve_nsm_config_dict_for_cot(
             "sort_order": 0,
             "display_template": DEFAULT_DISPLAY_TEMPLATE,
             "areas": [],
-            "links": {},
         }
         parsed = parse_nsm_config_from_comments(comments)
         if parsed:
@@ -682,57 +638,8 @@ def filter_assignable_configs(assigner_content_type_id: int) -> list[NsmTypeConf
     )
 
 
-def resolve_links_config_for_content_type(content_type_id: int) -> dict[str, Any]:
-    """Return normalized ``links`` block for *content_type_id*, or defaults."""
-    config = resolve_nsm_config_for_content_type(content_type_id)
-    if config is None:
-        return {"linkable": False}
-    ct = ContentType.objects.filter(pk=content_type_id).first()
-    if not ct:
-        return {"linkable": False}
-    slug = cot_slug_for_content_type(ct)
-    if not slug:
-        return {"linkable": False}
-    try:
-        from netbox_custom_objects.models import CustomObjectType
-    except ImportError:
-        return {"linkable": False}
-    cot = CustomObjectType.objects.filter(slug=slug).first()
-    if not cot:
-        return {"linkable": False}
-
-    global_meta = _stored_nsm_config_document(cot.comments or "")
-    stored_links = dict(global_meta.get("links") or {})
-    if not stored_links:
-        parsed = parse_nsm_config_from_comments(cot.comments or "")
-        stored_links = dict((parsed or {}).get("links") or {})
-    spec = None
-    if config.slug:
-        from netbox_nsm.type_metadata.specs import TYPECONFIG_SPEC_BY_SLUG
-
-        spec = TYPECONFIG_SPEC_BY_SLUG.get(config.slug)
-    defaults = (config_dict_from_spec(spec) if spec else {}).get("links") or {}
-    return {**defaults, **stored_links}
-
-
-def _cot_comments_for_content_type(content_type_id: int) -> str | None:
-    ct = ContentType.objects.filter(pk=content_type_id).first()
-    if not ct:
-        return None
-    slug = cot_slug_for_content_type(ct)
-    if not slug:
-        return None
-    try:
-        from netbox_custom_objects.models import CustomObjectType
-    except ImportError:
-        return None
-    cot = CustomObjectType.objects.filter(slug=slug).only("comments").first()
-    return cot.comments if cot else None
-
-
 def is_linkable_content_type(content_type_id: int) -> bool:
-    links = resolve_links_config_for_content_type(content_type_id)
-    return bool(links.get("linkable", True))
+    return has_nsm_config_for_content_type(content_type_id)
 
 
 def is_assignable_from_content_type(
@@ -793,8 +700,6 @@ def sync_cot_nsm_config_comments(cot, *, spec: dict | None = None) -> bool:
     }
     if config.get("areas"):
         updates["rule_view"]["areas"] = list(config["areas"])
-    if "links" in config:
-        updates["links"] = config["links"]
     if config.get("role"):
         updates["role"] = config["role"]
     before = (cot.comments or "").rstrip()

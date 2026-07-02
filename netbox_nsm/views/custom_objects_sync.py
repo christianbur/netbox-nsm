@@ -1,4 +1,4 @@
-"""Deprecated sync views — use Setup schema bundle apply instead."""
+"""Deprecated sync views — use Bundles schema apply instead."""
 
 from django.contrib import messages
 from django.http import Http404

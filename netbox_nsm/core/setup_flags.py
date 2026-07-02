@@ -1,4 +1,4 @@
-"""Feature flags for the NSM Setup page."""
+"""Feature flags for the Bundles page and related bundle actions."""
 
 from netbox.plugins import get_plugin_config
 

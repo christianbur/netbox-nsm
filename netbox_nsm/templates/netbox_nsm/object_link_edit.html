@@ -43,17 +43,6 @@
           <input type="hidden" name="return_url" value="{{ return_url }}">
 
           <div class="mb-3">
-            <label for="id_propagation" class="form-label fw-semibold">{% trans "Link type" %}</label>
-            {{ form.propagation }}
-            {% if form.propagation.help_text %}
-              <div class="form-text text-muted small">{{ form.propagation.help_text }}</div>
-            {% endif %}
-            {% for err in form.propagation.errors %}
-              <div class="invalid-feedback d-block">{{ err }}</div>
-            {% endfor %}
-          </div>
-
-          <div class="mb-3">
             <label for="id_comment" class="form-label fw-semibold">{% trans "Comment" %}</label>
             <textarea name="comment" id="id_comment" rows="3" class="form-control {% if form.comment.errors %}is-invalid{% endif %}">{{ form.comment.value|default:"" }}</textarea>
             {% for err in form.comment.errors %}

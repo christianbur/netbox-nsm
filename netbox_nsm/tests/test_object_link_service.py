@@ -8,8 +8,6 @@ from django.test import SimpleTestCase
 from netbox_nsm.security.links.link_propagation import LinkPropagationChoices
 from netbox_nsm.security.links.link_propagation import (
     CotObjectLinkPropagationChoices,
-    cot_propagation_choices_for_form,
-    cot_propagation_display,
     native_propagation_to_cot,
 )
 from netbox_nsm.security.links.cot_link_schema import (
@@ -31,19 +29,6 @@ def _test_schema(*, host_field="netbox_object", policy_field="policy_object"):
         host_field=host_field,
         policy_field=policy_field,
     )
-
-
-class CotPropagationFormChoicesTests(SimpleTestCase):
-    def test_form_choices_include_stop_variants(self):
-        values = [v for v, _ in cot_propagation_choices_for_form()]
-        self.assertIn(CotObjectLinkPropagationChoices.INHERIT_IPAM_STOP, values)
-        self.assertIn(CotObjectLinkPropagationChoices.INHERIT_GROUP_STOP, values)
-
-    def test_display_labels_stop_modes(self):
-        label = cot_propagation_display(
-            CotObjectLinkPropagationChoices.INHERIT_IPAM_STOP
-        )
-        self.assertIn("stop", label.lower())
 
 
 class ClassifyLinkEndpointsTests(SimpleTestCase):

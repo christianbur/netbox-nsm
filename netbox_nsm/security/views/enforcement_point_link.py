@@ -214,7 +214,6 @@ class EnforcementPointInterfaceAssignView(LoginRequiredMixin, View):
                 "return_url": return_url,
                 "prefill_object_b_id": prefill_object_b_id,
                 "prefill_object_b_display": prefill_object_b_display,
-                "hide_propagation": True,
                 "page_title": _("Assign Enforcement Point"),
                 "enforcement_point_mode": True,
                 "rulebook_slug": slug,

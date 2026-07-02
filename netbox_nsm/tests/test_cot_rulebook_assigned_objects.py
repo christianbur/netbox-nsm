@@ -142,7 +142,7 @@ class CotRulebookAssignedObjectsPanelTests(TestCase):
         )
         if get_object_link_model() is not None:
             create_or_update_enforcement_point_link(device, COT_SLUG)
-            create_or_update_links(iface, self.prefix, cot_propagation="direct")
+            create_or_update_links(iface, self.prefix)
 
         request = RequestFactory().get("/")
         request.user = self.user

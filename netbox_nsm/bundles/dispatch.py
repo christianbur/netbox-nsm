@@ -468,11 +468,13 @@ def sync_metadata(metadata: dict | None) -> dict[str, int]:
         cot = _get_cot_by_slug(slug)
         if cot is None:
             continue
-        if "link_table" in block and hasattr(cot, "link_table"):
-            cot.link_table = bool(block["link_table"])
-            cot.save(update_fields=["link_table"])
-            types_count += 1
         updates: dict[str, Any] = {}
+        if "link_table" in block:
+            link_table = bool(block["link_table"])
+            if hasattr(cot, "link_table"):
+                cot.link_table = link_table
+                cot.save(update_fields=["link_table"])
+            updates["link_table"] = link_table
         if "role" in block:
             updates["role"] = block["role"]
         if "menu" in block:

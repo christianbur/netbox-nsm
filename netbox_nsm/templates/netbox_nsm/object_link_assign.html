@@ -107,19 +107,6 @@
             <div id="element-selected" class="nsm-selected mt-2"></div>
           </div>
 
-          {# Link type / propagation #}
-          {% if not hide_propagation %}
-          <div class="mb-3">
-            <label for="id_propagation" class="form-label fw-semibold">{% trans "Link type" %}</label>
-            {{ form.propagation }}
-            {% if form.propagation.help_text %}
-              <div class="form-text text-muted small">{{ form.propagation.help_text }}</div>
-            {% endif %}
-            {% if form.propagation.errors %}
-              <div class="invalid-feedback d-block">{{ form.propagation.errors|join:", " }}</div>
-            {% endif %}
-          </div>
-          {% endif %}
           {# Comment #}
           <div class="mb-3">
             <label for="id_comment" class="form-label fw-semibold">{% trans "Comment" %}</label>
@@ -146,7 +133,6 @@
             <tr>
               <th class="ps-3">{% trans "Type" %}</th>
               <th>{% trans "Element" %}</th>
-              {% if not hide_propagation %}<th>{% trans "Link type" %}</th>{% endif %}
               <th>{% trans "Comment" %}</th>
               <th></th>
             </tr>
@@ -186,9 +172,6 @@
                   <span class="text-muted">–</span>
                 {% endif %}
               </td>
-              {% endif %}
-              {% if not hide_propagation %}
-              <td class="text-muted small">{{ link.get_propagation_display }}</td>
               {% endif %}
               <td class="text-muted small">{{ link.comment|default:"–" }}</td>
               <td class="text-end pe-3">

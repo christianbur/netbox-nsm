@@ -11,7 +11,6 @@ from netbox_nsm.type_metadata.config import (
     is_assignable_from_content_type,
     is_linkable_content_type,
 )
-from netbox_nsm.security.links.link_propagation import CotObjectLinkPropagationChoices
 from netbox_nsm.security.links.object_link_service import (
     create_or_update_links,
     delete_link,
@@ -28,6 +27,20 @@ __all__ = (
     "ObjectTypeElementsApiView",
 )
 
+_LINK_TABLE_MISSING_MSG = _(
+    "NSM link-table is not deployed. Apply the NSM Schema bundle first "
+    "(Security → Configuration → Bundles → nsm_schema)."
+)
+
+
+def _redirect_if_link_table_missing(request):
+    from netbox_nsm.security.links.cot_link_schema import get_object_link_schema
+
+    if get_object_link_schema() is not None:
+        return None
+    messages.error(request, _LINK_TABLE_MISSING_MSG)
+    return HttpResponseRedirect(request.GET.get("return_url") or request.POST.get("return_url") or "/")
+
 
 class ObjectLinkAssignView(LoginRequiredMixin, View):
     """
@@ -40,6 +53,9 @@ class ObjectLinkAssignView(LoginRequiredMixin, View):
     template_name = "netbox_nsm/object_link_assign.html"
 
     def dispatch(self, request, *args, **kwargs):
+        missing = _redirect_if_link_table_missing(request)
+        if missing is not None:
+            return missing
         from netbox_nsm.security.links.object_link_service import object_link_permission
 
         perm = object_link_permission("add")
@@ -75,8 +91,6 @@ class ObjectLinkAssignView(LoginRequiredMixin, View):
             initial["object_b_type"] = request.GET["object_b_type_id"]
         if request.GET.get("comment"):
             initial["comment"] = request.GET["comment"]
-        if request.GET.get("propagation"):
-            initial["propagation"] = request.GET["propagation"]
         if request.GET.get("object_b_id"):
             try:
                 b_ct = ContentType.objects.get(pk=int(request.GET["object_b_type_id"]))
@@ -123,9 +137,6 @@ class ObjectLinkAssignView(LoginRequiredMixin, View):
 
         b_ct_pk = form.cleaned_data["object_b_type"]
         comment = form.cleaned_data.get("comment", "")
-        cot_propagation = form.cleaned_data.get(
-            "propagation", CotObjectLinkPropagationChoices.DIRECT
-        )
 
         raw_ids = request.POST.getlist("object_b_id")
         b_obj_ids = []
@@ -167,12 +178,17 @@ class ObjectLinkAssignView(LoginRequiredMixin, View):
                 policy_obj = b_ct.get_object_for_this_type(pk=b_obj_id)
             except Exception:
                 continue
-            _link, created = create_or_update_links(
-                obj,
-                policy_obj,
-                cot_propagation=cot_propagation,
-                comment=comment,
-            )
+            try:
+                _link, created = create_or_update_links(
+                    obj,
+                    policy_obj,
+                    comment=comment,
+                )
+            except RuntimeError as exc:
+                if "link-table COT is not deployed" in str(exc):
+                    messages.error(request, _LINK_TABLE_MISSING_MSG)
+                    return HttpResponseRedirect(return_url)
+                raise
             if created:
                 created_count += 1
 
@@ -217,7 +233,7 @@ class ObjectLinkAssignView(LoginRequiredMixin, View):
 
 class ObjectLinkEditView(LoginRequiredMixin, View):
     """
-    Edit propagation and comment on an existing nsm_object_link row.
+    Edit comment on an existing nsm_object_link row.
 
     GET  /plugins/netbox-nsm/object-link/<pk>/edit/?return_url=...
     POST /plugins/netbox-nsm/object-link/<pk>/edit/
@@ -226,6 +242,9 @@ class ObjectLinkEditView(LoginRequiredMixin, View):
     template_name = "netbox_nsm/object_link_edit.html"
 
     def dispatch(self, request, *args, **kwargs):
+        missing = _redirect_if_link_table_missing(request)
+        if missing is not None:
+            return missing
         from netbox_nsm.security.links.object_link_service import object_link_permission
 
         perm = object_link_permission("change")
@@ -237,7 +256,6 @@ class ObjectLinkEditView(LoginRequiredMixin, View):
     def _form_initial(self, link):
         return {
             "comment": link.comment or "",
-            "propagation": link.cot_propagation,
         }
 
     def get(self, request, pk):
@@ -249,7 +267,6 @@ class ObjectLinkEditView(LoginRequiredMixin, View):
         return_url = request.GET.get("return_url", "/")
         form = ObjectLinkEditForm(
             initial=self._form_initial(link),
-            source_object=link.object_a,
         )
         from django.shortcuts import render
 
@@ -268,14 +285,10 @@ class ObjectLinkEditView(LoginRequiredMixin, View):
         return_url = request.POST.get("return_url", "/")
         form = ObjectLinkEditForm(
             request.POST,
-            source_object=link.object_a,
         )
         if form.is_valid():
             update_link(
                 link,
-                cot_propagation=form.cleaned_data.get(
-                    "propagation", CotObjectLinkPropagationChoices.DIRECT
-                ),
                 comment=form.cleaned_data.get("comment", ""),
             )
             messages.success(request, _("Link updated."))
@@ -297,6 +310,9 @@ class ObjectLinkDeleteView(LoginRequiredMixin, View):
     """
 
     def dispatch(self, request, *args, **kwargs):
+        missing = _redirect_if_link_table_missing(request)
+        if missing is not None:
+            return missing
         from netbox_nsm.security.links.object_link_service import object_link_permission
 
         perm = object_link_permission("delete")

@@ -1,7 +1,7 @@
 """Built-in Custom Type definitions for netbox_nsm.
 
-These types describe the *catalog* that the "Sync built-in types" button on
-Setup / sync applies them to ``netbox-custom-objects``. The portable
+These types describe the *catalog* that bundle apply syncs to
+``netbox-custom-objects``. The portable
 schema generator (`netbox_nsm.bundles.schema_builder`) automatically injects
 the following fields into every type, so they MUST NOT be repeated here:
 
@@ -360,8 +360,8 @@ BUILTIN_CUSTOM_TYPES = [
         "areas": [],
         "link_table": True,
         "description": (
-            "Links NetBox inventory to an NSM policy object with propagation "
-            "semantics. Sole source of truth for Security Panel object links."
+            "Links NetBox inventory to an NSM policy object. "
+            "Sole source of truth for Security Panel object links."
         ),
         "display_template": "{{ name }}",
         "field_definitions": [
@@ -370,7 +370,7 @@ BUILTIN_CUSTOM_TYPES = [
                 "type": "choice",
                 "label": "Link Type",
                 "description": (
-                    "policy: inventory ↔ policy object with propagation; "
+                    "policy: inventory ↔ policy object; "
                     "rulebook: device/VM/VDC ↔ deployed rulebook (Security Panel); "
                     "enforcement_point: rulebook enforcement host assignment or interface ↔ NSM object."
                 ),
@@ -418,25 +418,6 @@ BUILTIN_CUSTOM_TYPES = [
                     "ipam.IPRange",
                 ],
                 "weight": 11,
-            },
-            {
-                "name": "propagation",
-                "type": "choice",
-                "label": "Propagation",
-                "description": (
-                    "How the link is stored and inherited to IPAM children "
-                    "or group members."
-                ),
-                "required": False,
-                "choices": [
-                    "direct",
-                    "inherit_ipam",
-                    "inherit_ipam_stop",
-                    "inherit_group",
-                    "inherit_group_stop",
-                ],
-                "group_name": "NSM Object Link Propagation",
-                "weight": 12,
             },
             {
                 "name": "rulebook_slug",

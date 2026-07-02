@@ -104,7 +104,6 @@ def object_link_assign_url(
     if link is not None:
         if link.comment:
             params["comment"] = link.comment
-        params["propagation"] = link.cot_propagation
     query = urlencode(params, quote_via=quote)
     return reverse("plugins:netbox_nsm:object_link_assign") + f"?{query}"
 

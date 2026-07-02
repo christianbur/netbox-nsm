@@ -91,6 +91,11 @@ def get_object_link_cot():
         for cot in CustomObjectType.objects.all():
             if cot_link_table_flag(cot):
                 return cot
+        # Fallback when nsm_object_link exists but link_table was not synced to comments
+        # (netbox-custom-objects < PR #482 and bundle apply before 0.4.10 metadata fix).
+        cot = CustomObjectType.objects.filter(slug="nsm_object_link").first()
+        if cot is not None and classify_object_link_field_names(object_fields_for_cot(cot)):
+            return cot
     except Exception:
         return None
     return None

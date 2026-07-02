@@ -13,27 +13,27 @@ PLUGINS = ["netbox_custom_objects", "netbox_nsm"]
 ./manage.py migrate netbox_nsm --no-input
 ```
 
-## Setup wizard
+## Bundles
 
-**Security → Configuration → Setup**
+**Security → Configuration → Bundles**
 
-| § | Content | Action |
-|---|---------|--------|
-| 2 | Schema bundles | **Apply** `nsm_schema` (required) — imports built-in `nsm_*` COTs and syncs bundle `metadata.types` / `metadata.rulebooks` into each type's `comments` (`nsm_config` YAML) |
-| 3 | Demo | Optional **RB Demo Zone Matrix** (Python job `nsm_demo_zone_matrix`; `nsm_rb_demo_rulebook` is included in NSM Schema) |
+| Step | Content | Action |
+|------|---------|--------|
+| 1 | NSM Schema (`nsm_schema`) | **Apply** (required) — imports built-in `nsm_*` COTs and syncs bundle `metadata.types` / `metadata.rulebooks` into each type's `comments` (`nsm_config` YAML) |
+| 2 | Demo bundles | Optional **RB Demo Zone Matrix**, **RB Demo Zone/Address** (Preview → Apply) |
 
-There is no separate Object Config step in Setup: `nsm_config` is written during bundle apply (`sync_metadata()`). Adjust per-type settings later via **Security → Object Config** or the REST API.
+`nsm_config` is written during bundle apply (`sync_metadata()`). Adjust per-type settings later via **Security → Type Metadata** or the REST API.
 
-Set `setup_allow_destructive_actions: True` in `PLUGINS_CONFIG` for demos.
+Set `setup_allow_destructive_actions: True` in `PLUGINS_CONFIG` to enable the destructive-changes checkbox on Preview/Apply and demo bundle actions.
 
 ## Permissions (0.4.5+)
 
 | Area | Permission |
 |------|------------|
-| Setup (view) | `netbox_custom_objects.view_customobjecttype` |
-| Import COT types | `netbox_custom_objects.add_customobjecttype` |
-| Object Config (view) | `netbox_custom_objects.view_customobjecttype` |
-| Object Config (add/edit/delete) | `netbox_custom_objects.change_customobjecttype` |
+| Bundles (view) | `netbox_custom_objects.view_customobjecttype` |
+| Bundles (apply) | `netbox_custom_objects.add_customobjecttype` **and** `netbox_custom_objects.change_customobjecttype` |
+| Type Metadata (view) | `netbox_custom_objects.view_customobjecttype` |
+| Type Metadata (add/edit/delete) | `netbox_custom_objects.change_customobjecttype` |
 | Rulebook list / rules (per book) | `view` / `change` / `add` / `delete` on that rulebook's COT rule model |
 | Create rulebook | `netbox_custom_objects.add_customobjecttype` |
 | Security panel links | `add` / `change` / `delete` on `nsm_object_link` COT model |
@@ -56,25 +56,24 @@ Legacy `netbox_nsm.*_typeconfig` and `view_rulebook` / `add_rulebook` permission
 | `nsm_app_network` | Network apps |
 | `nsm_object_link` | Security panel and rulebook links |
 
-Per-type behaviour: `nsm_config` in COT `comments` or **Security → Object Config**.
+Per-type behaviour: `nsm_config` in COT `comments` or **Security → Type Metadata**.
 
 ## Security tab & links
 
 On supported NetBox objects (prefix, IP, device, VM, interface, …), the **Security** tab lists linked objects:
 
 1. **+ Assign** — link an NSM object (zone, service, …)
-2. **Link type:** direct, inherit to IPAM children, inherit to group members
-3. **Reverse view** — from an NSM object, all linked hosts and rulebook references
+2. **Reverse view** — from an NSM object, all linked hosts and rulebook references
 
 Linked objects render in a NetBox-style `object-list` table (sortable **Name**, paginator). They are grouped into **object-type tabs** (e.g. *COT Aktion*, *Prefix*) with count badges; within a tab, **value pills** (e.g. *Permit* / *Deny*) sub-filter by the object's value. Pagination is server-side, so tabs with 50k+ links load one page at a time. Tab, value, sort, and page selections are kept in the URL (`nsm_lt`, `nsm_lv`, `nsm_lo`, `nsm_lp`, `nsm_pp`).
 
-Rule columns and the tab share the same **object config** entries — no separate zone model per product.
+Rule columns and the tab share the same **type metadata** entries — no separate zone model per product.
 
 ### Custom object types
 
 1. Create a COT in **netbox-custom-objects**
-2. **Security → Object Config → + Add** (matching class, display template, panel flags)
-3. Use the object config in rulebook fields and the panel
+2. **Security → Type Metadata → + Add** (matching class, display template, panel flags)
+3. Use the type metadata in rulebook fields and the panel
 
 ## Rulebooks
 
@@ -111,7 +110,7 @@ worker). Findings export as TOML (`?export=toml`). Sample lists are paginated cl
 
 | Endpoint | Purpose |
 |----------|---------|
-| `/api/plugins/netbox-nsm/nsm-configs/<slug>/` | Read/write `nsm_config` in COT comments |
+| `/api/plugins/netbox-nsm/nsm-configs/<slug>/` | Read/write Type Metadata (`nsm_config` in COT comments) |
 | `/api/plugins/netbox-nsm/object-links/` | Security panel links (`nsm_object_link`) |
 | `/api/plugins/netbox-nsm/ip-analyzer/` | Address analysis (JSON) |
 
@@ -123,9 +122,9 @@ Portable schema: `POST /api/plugins/custom-objects/schema/apply/` with `netbox_n
 
 | Demo | Creates | Trigger |
 |------|---------|---------|
-| **Starter** | Zones, services, actions + rulebooks “Demo - Zone Matrix”, “Demo - Addresses” | Setup §3, synchronous |
-| **Enterprise DC** | DCIM/IPAM scenario + rulebooks | Setup §3, empty IP DB only |
-| **Zone / Address demos** | Sample zones, addresses, groups, rules | Setup → Bundles (Preview → Apply) |
+| **NSM Schema** | Built-in `nsm_*` COT types, choice sets, seed objects, type metadata | Bundles → `nsm_schema` (Apply) |
+| **RB Demo Zone Matrix** | 30×30 zone matrix, 900 rules | Bundles → `nsm_demo_zone_matrix` (Preview → Apply) |
+| **RB Demo Zone/Address** | Zones, addresses, groups, 500 rules | Bundles → `nsm_demo_zone_address_adressgroup` (Preview → Apply) |
 
 ## Configuration
 
@@ -135,16 +134,32 @@ PLUGINS_CONFIG = {
         "top_level_menu": True,
         "setup_menu": True,
         "setup_allow_destructive_actions": False,
-        "assignments_menu": False,
         "menu_label": "Security",
         "panel_label": "Security",
-        # Optional Jinja2 naming (see docs/address_name_templates.md)
-        "address_name_templates": [
-            {"template": "h-{ipam>ip}", "match": "host"},
-            {"template": "n-{ipam>prefix>network}-{ipam>prefix>cidr}", "match": "prefix"},
-        ],
+        "bundle_paths": [],
+        "builtin_bundles": True,
     },
 }
+```
+
+| Key | Purpose |
+|-----|---------|
+| `top_level_menu` | Show the top-level **Security** (or `menu_label`) sidebar menu |
+| `setup_menu` | Show **Configuration → Bundles** and allow `/bundles/` URLs |
+| `setup_allow_destructive_actions` | Enable destructive-changes checkbox on bundle Preview/Apply and demo actions |
+| `menu_label` | Top-level menu title (default: Security) |
+| `panel_label` | Security tab title on NetBox objects (default: same as menu or Security) |
+| `bundle_paths` | Extra directories for custom JSON bundles; same slug **overrides** a built-in bundle |
+| `builtin_bundles` | Include bundles shipped with the plugin under `bundles/builtin/` (default: True) |
+| `address_name_templates` | Optional Jinja2 naming rules for `nsm_address` (see [address_name_templates.md](address_name_templates.md)) |
+| `address_group_name_templates` | Optional Jinja2 naming rules for `nsm_address_group` (same doc) |
+
+Custom bundle layout per directory: flat `my_bundle.json` (slug = filename) or `my_bundle/bundle.json`.
+
+Built-in bundles load automatically when `builtin_bundles` is True — you do **not** need to add `bundles/builtin` to `bundle_paths`. Use `bundle_paths` for additional directories only, e.g.:
+
+```python
+"bundle_paths": ["/opt/netbox/custom-bundles"],
 ```
 
 Restart NetBox after changes.
@@ -153,7 +168,7 @@ Restart NetBox after changes.
 
 ```
 Security
-├── Configuration → Setup, Object Config, Object Report
+├── Configuration → Bundles, Type Metadata, Object Report
 ├── Rulebooks
 └── Analysis → Object Analyzer
 

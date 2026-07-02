@@ -4,7 +4,28 @@ All notable changes to **netbox-nsm** are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [0.4.11] - unreleased
+
+## [0.4.10] - 2026-07-02
+
+### Added
+
+- **`bundles/builtin/*.json` in PyPI wheel** — built-in schema/demo bundles are packaged again (`pyproject.toml`); new `test_bundle_discovery.py`.
+- **PLUGINS_CONFIG documentation** — `bundle_paths`, `builtin_bundles`, and full key table in `docs/using_netbox_nsm.md`.
+
+### Changed
+
+- **Docs / locale / API** — Bundles and Type Metadata replace legacy Setup wizard / Object Config wording; removed dead config keys from examples.
+
+### Fixed
+
+- **`link_table` metadata on bundle apply** — `sync_metadata()` now writes `link_table: true` into COT `comments` when netbox-custom-objects has no native `link_table` field (0.5.x). Fixes `RuntimeError: link-table COT is not deployed` on Security Panel **Assign**.
+- **Link-table discovery fallback** — `get_object_link_cot()` resolves deployed `nsm_object_link` by slug/field topology when comments lack the flag.
+- **Assign UX** — missing link-table shows a redirect + message instead of HTTP 500.
+
+### Removed
+
+- **Link type / propagation** — removed `propagation` from `nsm_object_link` bundle schema, Assign/Edit UI, REST API, and link service; new links are always direct. Re-apply **nsm_schema** bundle to drop the field from deployed COTs.
 
 ## [0.4.9] - 2026-07-02
 
@@ -552,3 +573,4 @@ First release in the 0.2.x line.
 [0.4.1]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.1
 [0.4.8]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.8
 [0.4.9]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.9
+[0.4.10]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.10

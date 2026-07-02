@@ -18,21 +18,21 @@ class SecurityConfig(PluginConfig):
     min_version = "4.5.0"
     max_version = "4.6.99"
     default_settings = {
+        # Show top-level NSM menu (default: on)
         "top_level_menu": True,
-        "assignments_menu": False,
-        # Show NSM → Configuration → Setup (default: on)
+        # Show NSM → Configuration → Bundles and allow /bundles/ URLs (default: on)
         "setup_menu": True,
-        # Setup: full sync, demo custom types, demo rulebooks (default: on)
+        # Bundles: destructive preview/apply checkbox and demo bundle actions (default: on)
         "setup_allow_destructive_actions": True,
         # Top-level menu and Security tab title (default: "Security")
         "menu_label": "",
         "panel_label": "",
-        # Jinja2 naming templates for nsm_address / nsm_address_group (see docs/address_name_templates.md)
+        # Optional Jinja2 naming for nsm_address / nsm_address_group (see docs/address_name_templates.md)
         "address_name_templates": [],
         "address_group_name_templates": [],
-        # Bundle discovery: list of additional directories to scan for bundles (higher priority than builtin)
+        # Extra bundle directories; same slug overrides built-in bundles
         "bundle_paths": [],
-        # Whether to include the built-in bundles shipped with the plugin (default: True)
+        # Include built-in bundles shipped with the plugin (default: True)
         "builtin_bundles": True,
     }
 

@@ -84,50 +84,6 @@
     window.location.assign(url.toString());
   }
 
-  function stripHtml(value) {
-    var text = value == null ? "" : String(value);
-    if (!/<[a-z][\s\S]*>/i.test(text)) {
-      return text.trim();
-    }
-    var tmp = document.createElement("div");
-    tmp.innerHTML = text;
-    return (tmp.textContent || tmp.innerText || "").trim();
-  }
-
-  function tomlString(value) {
-    var text = value == null ? "" : String(value);
-    return (
-      '"' +
-      text
-        .replace(/\\/g, "\\\\")
-        .replace(/"/g, '\\"')
-        .replace(/\r/g, "\\r")
-        .replace(/\n/g, "\\n")
-        .replace(/\t/g, "\\t") +
-      '"'
-    );
-  }
-
-  function tomlKey(value) {
-    return tomlString(value);
-  }
-
-  function tomlArray(values) {
-    return "[" + values.map(tomlString).join(", ") + "]";
-  }
-
-  function uniqueTomlKey(label, seen) {
-    var base = String(label == null ? "" : label).trim() || "column";
-    var key = base;
-    var index = 2;
-    while (Object.prototype.hasOwnProperty.call(seen, key)) {
-      key = base + " " + index;
-      index += 1;
-    }
-    seen[key] = true;
-    return key;
-  }
-
   function quoteNsmQueryValue(value) {
     var text = String(value == null ? "" : value).trim();
     return '"' + text.replace(/\\/g, "\\\\").replace(/"/g, '\\"') + '"';
@@ -319,67 +275,15 @@
     document.addEventListener("click", handleRulesFilterLoupeClick, true);
   }
 
-  function exportRulesToml(config) {
-    var table = document.querySelector("#rules .nsm-rules-table");
-    if (!table) {
+  function exportRulesJson(config) {
+    if (!config || !config.exportJsonUrl) {
       return;
     }
-    var headerCells = table.querySelectorAll("thead .nsm-rules-head-row--primary th");
-    var headers = [];
-    var seenHeaders = {};
-    headerCells.forEach(function (cell) {
-      var text = (cell.textContent || "").trim();
-      if (text) {
-        headers.push(uniqueTomlKey(text, seenHeaders));
-      }
-    });
-    if (!headers.length) {
-      return;
-    }
-    var rows = [];
-    table.querySelectorAll("tbody tr.nsm-rules-data-row").forEach(function (tr) {
-      var values = [];
-      tr.querySelectorAll("td").forEach(function (td) {
-        if (td.classList.contains("w-1")) {
-          return;
-        }
-        values.push(stripHtml(td.innerHTML));
-      });
-      if (values.length) {
-        rows.push(values);
-      }
-    });
-    var lines = [
-      'format = "netbox-nsm-rules-visible-v1"',
-      "rulebook = " + tomlString((config && config.rulebookName) || "rules"),
-      "exported_at = " + tomlString(new Date().toISOString()),
-      "visible_columns = " + tomlArray(headers),
-      "",
-    ];
-    rows.forEach(function (row, rowIndex) {
-      lines.push("[[rows]]");
-      lines.push("index = " + String(rowIndex + 1));
-      headers.forEach(function (header, colIndex) {
-        lines.push(tomlKey(header) + " = " + tomlString(row[colIndex] || ""));
-      });
-      lines.push("");
-    });
-    var blob = new Blob([lines.join("\n")], { type: "application/toml;charset=utf-8" });
-    var name = (config && config.rulebookName) || "rules";
-    name = String(name)
-      .trim()
-      .replace(/[^\w\-]+/g, "_")
-      .replace(/_+/g, "_")
-      .replace(/^_|_$/g, "");
-    var stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-    var filename = (name || "rules") + "_rules_" + stamp + ".toml";
-    var link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(link.href);
+    var url = new URL(config.exportJsonUrl, window.location.origin);
+    var params = new URLSearchParams(window.location.search);
+    params.delete("page");
+    url.search = params.toString();
+    window.location.assign(url.toString());
   }
 
   function copyText(text, callback) {
@@ -548,7 +452,7 @@
     toggle.addEventListener("click", function () {
       var nextMode =
         toggle.getAttribute("aria-pressed") === "true" ? "expanded" : "collapsed";
-      var currentMode = config.columnMode || "expanded";
+      var currentMode = config.columnMode || "collapsed";
       if (nextMode === currentMode) {
         return;
       }
@@ -561,7 +465,7 @@
     var applyBtn = document.getElementById("nsm-ag-filter-query-apply");
     var copyBtn = document.getElementById("nsm-ag-filter-query-copy");
     var clearBtn = document.getElementById("nsm-ag-clear-filters");
-    var exportBtn = document.getElementById("nsm-ag-toml-export");
+    var exportBtn = document.getElementById("nsm-ag-json-export");
     var validateTimer = null;
 
     if (input && config.filterQuery) {
@@ -667,7 +571,7 @@
     }
     if (exportBtn) {
       exportBtn.addEventListener("click", function () {
-        exportRulesToml(config);
+        exportRulesJson(config);
       });
     }
 

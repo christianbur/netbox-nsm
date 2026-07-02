@@ -230,11 +230,13 @@ class CotRulesRowGroupPageTests(SimpleTestCase):
         }
         mock_cached_summaries.side_effect = lambda _key, builder: builder()
 
+        page_instance = SimpleNamespace(pk=1)
         paginator = MagicMock()
         page_obj = MagicMock()
-        page_obj.object_list = mock_build_rows.return_value["rows"]
+        page_obj.object_list = [page_instance]
         paginator.get_page.return_value = page_obj
         paginator.num_pages = 1
+        filtered_qs.order_by.return_value = filtered_qs
 
         with patch(
             "netbox_nsm.rulebooks.rules_tab.context.EnhancedPaginator",
@@ -272,5 +274,8 @@ class CotRulesRowGroupPageTests(SimpleTestCase):
             virtual_rb,
             layout=layout,
             object_field_names={"source_zones"},
+            include_links=False,
         )
-        mock_load_display.assert_called_once()
+        mock_load_display.assert_called_once_with(
+            [page_instance], virtual_rb, layout=layout, m2m_prefetch=["source_zones"]
+        )

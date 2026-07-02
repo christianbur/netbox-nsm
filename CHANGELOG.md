@@ -4,12 +4,6 @@ All notable changes to **netbox-nsm** are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [0.4.9] - 2026-07-02
-
-### Notes
-
-- Release
-
 ## [Unreleased]
 
 ## [0.4.9] - 2026-07-02

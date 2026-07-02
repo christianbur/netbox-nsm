@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from functools import lru_cache
+
 from django.utils.translation import gettext_lazy as _
 
 __all__ = (
@@ -66,13 +68,14 @@ def default_menu_for_slug(slug: str) -> str | None:
     return DEFAULT_MENU_BY_ROLE.get(role)
 
 
+@lru_cache(maxsize=512)
 def parse_menu_from_comments(text: str) -> str | None:
     from netbox_nsm.type_metadata.config import (
         _extract_nsm_config_list_from_document,
         _load_yaml_document,
     )
 
-    document = _load_yaml_document(text)
+    document = _load_yaml_document(text or "")
     raw_list = _extract_nsm_config_list_from_document(document)
     if not raw_list:
         return None

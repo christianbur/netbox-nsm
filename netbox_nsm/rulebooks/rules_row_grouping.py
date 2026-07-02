@@ -22,6 +22,7 @@ __all__ = (
     "build_group_key",
     "build_row_group_column_choices",
     "build_row_group_tab_summaries",
+    "build_object_group_pk_index",
     "build_system_row_group_tab_summaries_from_queryset",
     "cached_row_group_tab_summaries",
     "filter_queryset_by_system_group_key",
@@ -354,6 +355,17 @@ def cached_row_group_tab_summaries(
     summaries = builder()
     cache.set(cache_key, summaries, ROW_GROUP_TAB_SUMMARIES_CACHE_TIMEOUT)
     return summaries
+
+
+def build_object_group_pk_index(
+    rows: list[dict],
+    group_column: dict,
+) -> dict[str, list]:
+    """Map row-group keys to rule primary keys (for object-column tabs)."""
+    buckets: dict[str, list] = defaultdict(list)
+    for row in rows:
+        buckets[build_group_key(row, group_column)].append(row["pk"])
+    return dict(buckets)
 
 
 def build_row_group_tab_summaries(

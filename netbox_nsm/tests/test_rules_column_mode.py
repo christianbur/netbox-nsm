@@ -142,7 +142,7 @@ class RulesColumnModeTests(SimpleTestCase):
         self.assertEqual(len(col["type_segments"]), 2)
         self.assertTrue(col["is_polymorphic"])
 
-    def test_flatten_expanded_mode_merges_address_types_only(self):
+    def test_flatten_expanded_mode_splits_address_types(self):
         grouped = _sample_grouped()
         column_defs = build_rulebook_rules_grid_column_defs(grouped)["columnDefs"]
         flat_columns = flatten_rules_column_defs(
@@ -150,16 +150,13 @@ class RulesColumnModeTests(SimpleTestCase):
         )
 
         object_cols = [col for col in flat_columns if col["kind"] == "object"]
-        self.assertEqual(len(object_cols), 1)
-        col = object_cols[0]
-        self.assertEqual(col["col_id"], "source_addresses")
-        self.assertEqual(col["header_subtitle"], "")
+        self.assertEqual(len(object_cols), 2)
         self.assertEqual(
-            col["merged_keys"],
+            [col["col_id"] for col in object_cols],
             ["source_addresses::ct_1", "source_addresses::ct_2"],
         )
-        self.assertEqual(len(col["type_segments"]), 2)
-        self.assertTrue(col["is_polymorphic"])
+        self.assertEqual(object_cols[0]["header_subtitle"], "Address")
+        self.assertEqual(object_cols[1]["header_subtitle"], "Address Group")
 
     def test_flatten_expanded_mode_keeps_non_address_type_columns(self):
         grouped = _sample_zone_polymorphic()
@@ -173,7 +170,7 @@ class RulesColumnModeTests(SimpleTestCase):
         self.assertEqual(object_cols[0]["header_subtitle"], "Zone")
         self.assertEqual(object_cols[1]["header_subtitle"], "Label")
 
-    def test_prepare_rules_column_defs_expanded_merges_address_only(self):
+    def test_prepare_rules_column_defs_expanded_keeps_all_type_columns(self):
         grouped = {
             "rules_layout": [
                 _sample_grouped()["rules_layout"][1],
@@ -186,12 +183,13 @@ class RulesColumnModeTests(SimpleTestCase):
         )
 
         address_col = next(
-            col for col in prepared if col.get("colId") == "source_addresses"
+            col for col in prepared if (col.get("headerName") or "").startswith("Addresses")
         )
         zone_col = next(
             col for col in prepared if (col.get("headerName") or "").startswith("Zones")
         )
-        self.assertIn("merged_keys", address_col)
+        self.assertIn("children", address_col)
+        self.assertNotIn("merged_keys", address_col)
         self.assertIn("children", zone_col)
 
     def test_flatten_assigns_col_position_excluding_actions(self):

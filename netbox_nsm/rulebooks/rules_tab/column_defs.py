@@ -157,14 +157,14 @@ def prepare_rules_column_defs(
     *,
     column_mode: str = COLUMN_MODE_DEFAULT,
 ) -> list[dict]:
-    """Apply column-mode layout: collapse all vs. merge address-only in expanded."""
+    """Apply column-mode layout: collapsed merges polymorphic children per field."""
     if column_mode == COLUMN_MODE_COLLAPSED and any(
         col.get("children") for col in column_defs or []
     ):
-        return collapse_rules_column_defs(column_defs)
-    if column_mode == COLUMN_MODE_EXPANDED:
-        return collapse_rules_column_defs(column_defs, address_only=True)
-    return column_defs
+        result = collapse_rules_column_defs(column_defs)
+    else:
+        result = column_defs
+    return result
 
 
 def build_rules_page_url(request, page_num: int, base_qs_str: str = "") -> str:

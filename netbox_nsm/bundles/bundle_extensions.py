@@ -14,6 +14,7 @@ __all__ = (
     "apply_seed_objects",
     "diff_choice_sets",
     "diff_seed_objects",
+    "format_portable_ref",
     "serialize_cot_diffs",
 )
 
@@ -90,6 +91,28 @@ def _resolve_portable_ref(ref: str) -> tuple[Any, Any]:
         raise ValueError(f"Object not found for portable reference: {ref!r}")
     content_type = ContentType.objects.get_for_model(model)
     return instance, content_type
+
+
+def format_portable_ref(instance) -> str:
+    """Format a custom object row as ``cot_slug/object_name`` for bundle export."""
+    import re
+
+    from django.contrib.contenttypes.models import ContentType
+    from netbox_custom_objects.models import CustomObjectType
+
+    ct = ContentType.objects.get_for_model(instance)
+    if ct.app_label != "netbox_custom_objects":
+        raise ValueError(f"Not a custom object instance: {instance!r}")
+    match = re.match(r"table(\d+)model", ct.model, re.IGNORECASE)
+    if not match:
+        raise ValueError(f"Not a custom object instance: {instance!r}")
+    cot = CustomObjectType.objects.filter(pk=int(match.group(1))).first()
+    if cot is None:
+        raise ValueError(f"Custom object type not found for instance: {instance!r}")
+    name = str(getattr(instance, "name", "") or "").strip()
+    if not name:
+        raise ValueError(f"Object has no name: {instance!r}")
+    return f"{cot.slug}/{name}"
 
 
 def _resolve_reference_value(field, value: Any) -> Any:

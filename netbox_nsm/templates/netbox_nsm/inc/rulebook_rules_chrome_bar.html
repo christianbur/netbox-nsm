@@ -17,10 +17,10 @@
     <div class="nsm-ag-toolbar-actions nsm-ag-toolbar-actions-end d-flex flex-nowrap align-items-center gap-2 flex-shrink-0 ms-auto">
       <button type="button"
               id="nsm-rules-col-mode-toggle"
-              class="btn btn-sm btn-outline-secondary nsm-rules-cell-mode-btn nsm-rules-col-mode-btn flex-shrink-0{% if rules_column_mode == 'collapsed' %} active{% endif %}"
-              aria-pressed="{% if rules_column_mode == 'collapsed' %}true{% else %}false{% endif %}"
-              title="{% trans 'Group object types into one column per field' %}"
-              aria-label="{% trans 'Group object types into one column per field' %}">
+              class="btn btn-sm btn-outline-secondary nsm-rules-cell-mode-btn nsm-rules-col-mode-btn flex-shrink-0{% if rules_column_mode != 'expanded' %} active{% endif %}"
+              aria-pressed="{% if rules_column_mode != 'expanded' %}true{% else %}false{% endif %}"
+              title="{% trans 'Group polymorphic object types into one column per field' %}"
+              aria-label="{% trans 'Group polymorphic object types into one column per field' %}">
         <span class="mdi mdi-view-column" aria-hidden="true"></span>
         <span class="nsm-rules-cell-mode-btn-label">{% trans "Grouped columns" %}</span>
       </button>
@@ -59,11 +59,11 @@
         </button>
       </div>
       <button type="button"
-              id="nsm-ag-toml-export"
+              id="nsm-ag-json-export"
               class="btn btn-sm btn-outline-secondary text-nowrap"
-              title="{% trans 'Export visible data as TOML' %}">
+              title="{% trans 'Export filtered rules as bundle JSON' %}">
         <span class="mdi mdi-download" aria-hidden="true"></span>
-        {% trans "Export TOML" %}
+        {% trans "Export JSON" %}
       </button>
     </div>
   </div>

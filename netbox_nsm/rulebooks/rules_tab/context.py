@@ -28,6 +28,7 @@ from netbox_nsm.rulebooks.rules_layout import (
 )
 from netbox_nsm.rulebooks.rules_row_grouping import (
     build_row_group_tab_summaries,
+    build_object_group_pk_index,
     build_system_row_group_tab_summaries_from_queryset,
     cached_row_group_tab_summaries,
     filter_queryset_by_system_group_key,
@@ -190,19 +191,24 @@ def _cot_rules_row_group_page(
         system_fields=RULES_SYSTEM_FIELDS,
     )
     all_rows: list[dict] = []
+    object_group_pk_index: dict[str, list] | None = None
     filtered_pks: set | None = None
 
-    if needs_full_scan:
-        instances = list(qs)
+    def _build_object_group_summary_rows(instances) -> list[dict]:
         prefetch_cot_multiobject_fields(
             instances, virtual_rb, sorted(scan_object_fields)
         )
-        all_rows = build_cot_grouped_rules_table_data(
+        return build_cot_grouped_rules_table_data(
             instances,
             virtual_rb,
             layout=layout,
             object_field_names=scan_object_fields,
+            include_links=False,
         ).get("rows") or []
+
+    if needs_full_scan:
+        instances = list(qs)
+        all_rows = _build_object_group_summary_rows(instances)
 
         if filter_model:
             records = [build_rulebook_rules_grid_row(row) for row in all_rows]
@@ -231,6 +237,9 @@ def _cot_rules_row_group_page(
                 ),
             )
         else:
+            object_group_pk_index = build_object_group_pk_index(
+                all_rows, row_group_column
+            )
             tab_summaries = cached_row_group_tab_summaries(
                 summaries_cache_key,
                 lambda: build_row_group_tab_summaries(
@@ -240,6 +249,7 @@ def _cot_rules_row_group_page(
                     sort_order=sort_order,
                 ),
             )
+            all_rows = []
     else:
         total_rule_count = qs.count()
         if db_group_field:
@@ -254,19 +264,14 @@ def _cot_rules_row_group_page(
             )
         else:
             instances = list(qs.order_by(*cot_db_order_fields(sort_field, sort_order)))
-            prefetch_cot_multiobject_fields(
-                instances, virtual_rb, sorted(scan_object_fields)
+            summary_rows = _build_object_group_summary_rows(instances)
+            object_group_pk_index = build_object_group_pk_index(
+                summary_rows, row_group_column
             )
-            all_rows = build_cot_grouped_rules_table_data(
-                instances,
-                virtual_rb,
-                layout=layout,
-                object_field_names=scan_object_fields,
-            ).get("rows") or []
             tab_summaries = cached_row_group_tab_summaries(
                 summaries_cache_key,
                 lambda: build_row_group_tab_summaries(
-                    all_rows,
+                    summary_rows,
                     row_group_column,
                     sort_field=sort_field,
                     sort_order=sort_order,
@@ -284,40 +289,13 @@ def _cot_rules_row_group_page(
     if filtered_pks is not None:
         tab_source_qs = qs.filter(pk__in=filtered_pks)
 
-    if active_group_key is None:
-        if db_group_field:
+    if db_group_field:
+        if active_group_key is None:
             tab_qs = tab_source_qs
-            if sort_field in RULES_SYSTEM_FIELDS or sort_field == "enabled":
-                tab_qs = tab_qs.order_by(*cot_db_order_fields(sort_field, sort_order))
-            paginator = EnhancedPaginator(tab_qs, per_page)
-            page_num = _rules_clamp_page(page_num, paginator)
-            page_obj = paginator.get_page(page_num)
-            rows = _cot_load_display_rows(
-                list(page_obj.object_list), virtual_rb, layout=layout, m2m_prefetch=m2m_prefetch
-            )
         else:
-            tab_rows = all_rows
-            if sort_field in RULES_SYSTEM_FIELDS or sort_field == "enabled":
-                tab_rows = _sort_rules_records(tab_rows, sort_field, sort_order)
-            elif not row_group_sort_applies_to_groups(sort_field, row_group_column):
-                tab_rows = _sort_rules_records(tab_rows, sort_field, sort_order)
-
-            paginator = EnhancedPaginator(tab_rows, per_page)
-            page_num = _rules_clamp_page(page_num, paginator)
-            page_obj = paginator.get_page(page_num)
-            page_pks = [row["pk"] for row in page_obj.object_list]
-            page_instances = list(tab_source_qs.filter(pk__in=page_pks))
-            rows_by_pk = {
-                row["pk"]: row
-                for row in _cot_load_display_rows(
-                    page_instances, virtual_rb, layout=layout, m2m_prefetch=m2m_prefetch
-                )
-            }
-            rows = [rows_by_pk[pk] for pk in page_pks if pk in rows_by_pk]
-    elif db_group_field:
-        tab_qs = filter_queryset_by_system_group_key(
-            tab_source_qs, row_group_column, active_group_key
-        )
+            tab_qs = filter_queryset_by_system_group_key(
+                tab_source_qs, row_group_column, active_group_key
+            )
         if sort_field in RULES_SYSTEM_FIELDS or sort_field == "enabled":
             tab_qs = tab_qs.order_by(*cot_db_order_fields(sort_field, sort_order))
         paginator = EnhancedPaginator(tab_qs, per_page)
@@ -326,6 +304,43 @@ def _cot_rules_row_group_page(
         rows = _cot_load_display_rows(
             list(page_obj.object_list), virtual_rb, layout=layout, m2m_prefetch=m2m_prefetch
         )
+    elif object_group_pk_index is not None:
+        tab_qs = tab_source_qs
+        if active_group_key is not None:
+            tab_qs = tab_qs.filter(
+                pk__in=object_group_pk_index.get(active_group_key, [])
+            )
+        if sort_field in RULES_SYSTEM_FIELDS or sort_field == "enabled":
+            tab_qs = tab_qs.order_by(*cot_db_order_fields(sort_field, sort_order))
+        elif active_group_key is None or not row_group_sort_applies_to_groups(
+            sort_field, row_group_column
+        ):
+            tab_qs = tab_qs.order_by(*cot_db_order_fields(sort_field, sort_order))
+        paginator = EnhancedPaginator(tab_qs, per_page)
+        page_num = _rules_clamp_page(page_num, paginator)
+        page_obj = paginator.get_page(page_num)
+        rows = _cot_load_display_rows(
+            list(page_obj.object_list), virtual_rb, layout=layout, m2m_prefetch=m2m_prefetch
+        )
+    elif active_group_key is None:
+        tab_rows = all_rows
+        if sort_field in RULES_SYSTEM_FIELDS or sort_field == "enabled":
+            tab_rows = _sort_rules_records(tab_rows, sort_field, sort_order)
+        elif not row_group_sort_applies_to_groups(sort_field, row_group_column):
+            tab_rows = _sort_rules_records(tab_rows, sort_field, sort_order)
+
+        paginator = EnhancedPaginator(tab_rows, per_page)
+        page_num = _rules_clamp_page(page_num, paginator)
+        page_obj = paginator.get_page(page_num)
+        page_pks = [row["pk"] for row in page_obj.object_list]
+        page_instances = list(tab_source_qs.filter(pk__in=page_pks))
+        rows_by_pk = {
+            row["pk"]: row
+            for row in _cot_load_display_rows(
+                page_instances, virtual_rb, layout=layout, m2m_prefetch=m2m_prefetch
+            )
+        }
+        rows = [rows_by_pk[pk] for pk in page_pks if pk in rows_by_pk]
     else:
         tab_rows = filter_rows_by_group_key(
             all_rows, row_group_column, active_group_key
@@ -585,6 +600,13 @@ def build_cot_rulebook_rules_tab_context(request, virtual_rb, *, readonly=False)
             "queryValidateUrl": "",
             "rulebookId": virtual_rb.slug,
             "rulebookName": virtual_rb.name,
+            "exportJsonUrl": with_branch_query(
+                reverse(
+                    "plugins:netbox_nsm:cot_rulebook_rules_export",
+                    kwargs={"slug": virtual_rb.slug},
+                ),
+                request,
+            ),
             "filterQuery": filter_q_raw,
             "filterQueryError": filter_q_error,
             "filterActive": filter_active,

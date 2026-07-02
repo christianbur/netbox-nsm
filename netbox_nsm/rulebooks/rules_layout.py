@@ -15,6 +15,7 @@ from netbox_nsm.core.interface_parent import (
 )
 from netbox_nsm.core.nsm_object_status import get_nsm_object_status
 from netbox_nsm.rulebooks.rules_pill_render import DEFAULT_MAX_VISIBLE_PILLS, render_rules_pill_cell
+from netbox_nsm.type_metadata.menus import cot_has_menu
 
 __all__ = (
     "apply_cot_system_field_filters",
@@ -406,8 +407,21 @@ def _object_item_dict(
     *,
     ct_cache: dict | None = None,
     address_ct_ids: set[int] | None = None,
+    include_links: bool = True,
 ) -> dict:
-    url = obj.get_absolute_url() if hasattr(obj, "get_absolute_url") else "#"
+    if not include_links:
+        return {"name": _display_name(obj)}
+
+    cot = getattr(obj, "custom_object_type", None)
+    slug = getattr(cot, "slug", None) if cot is not None else None
+    if slug and cot_has_menu(cot, "objects"):
+        from netbox_nsm.objects.cot_routes import nsm_object_reverse
+
+        url = nsm_object_reverse(None, slug, pk=getattr(obj, "pk", None))
+    elif hasattr(obj, "get_absolute_url"):
+        url = obj.get_absolute_url()
+    else:
+        url = "#"
     if ct_cache is not None:
         model_cls = obj.__class__
         if model_cls not in ct_cache:
@@ -587,6 +601,7 @@ def build_cot_grouped_rules_table_data(
     *,
     layout=None,
     object_field_names: set[str] | None = None,
+    include_links: bool = True,
 ) -> dict:
     if layout is None:
         layout = build_cot_rules_layout(virtual_rb.cot)
@@ -635,6 +650,7 @@ def build_cot_grouped_rules_table_data(
                             obj,
                             ct_cache=ct_cache,
                             address_ct_ids=address_ct_ids,
+                            include_links=include_links,
                         )
                     )
 
@@ -643,7 +659,7 @@ def build_cot_grouped_rules_table_data(
         cells_filter = {}
         for key, items in per_key.items():
             cells_items[key] = items
-            if object_field_names is None:
+            if object_field_names is None and include_links:
                 cells[key] = render_rules_pill_cell(
                     items, max_pills=DEFAULT_MAX_VISIBLE_PILLS, colored=True
                 )
@@ -654,29 +670,37 @@ def build_cot_grouped_rules_table_data(
         name_val = getattr(instance, "name", "") or ""
         desc_val = getattr(instance, "description", "") or "-"
         pk = instance.pk
+        detail_url = _cot_detail_url(cot_slug, pk) if include_links else ""
 
-        rows.append(
-            {
-                "pk": pk,
+        row = {
+            "pk": pk,
+            "index": index_val,
+            "enabled": status_val,
+            "name": name_val,
+            "description": desc_val or "-",
+            "system": {
                 "index": index_val,
                 "enabled": status_val,
                 "name": name_val,
-                "url": _cot_detail_url(cot_slug, pk),
                 "description": desc_val or "-",
-                "edit_url": _cot_edit_url(cot_slug, pk),
-                "delete_url": _cot_delete_url(cot_slug, pk),
-                "system": {
-                    "index": index_val,
-                    "enabled": status_val,
-                    "name": name_val,
-                    "url": _cot_detail_url(cot_slug, pk),
-                    "description": desc_val or "-",
-                },
-                "cells": cells,
-                "cells_items": cells_items,
-                "cells_filter": cells_filter,
-            }
-        )
+            },
+            "cells_items": cells_items,
+            "cells_filter": cells_filter,
+        }
+        if include_links:
+            row.update(
+                {
+                    "url": detail_url,
+                    "edit_url": _cot_edit_url(cot_slug, pk),
+                    "delete_url": _cot_delete_url(cot_slug, pk),
+                    "system": {
+                        **row["system"],
+                        "url": detail_url,
+                    },
+                    "cells": cells,
+                }
+            )
+        rows.append(row)
 
     layout["rows"] = rows
     return layout

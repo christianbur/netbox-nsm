@@ -8,10 +8,6 @@ from netbox_nsm.type_metadata.specs import content_type_ids_for_cot_slugs
 
 def _object_supports_addr_analyzer(obj):
     """True when obj can be expanded as an address tree (group container or IP leaf)."""
-    if _hub._addr_ip_ref(obj) is not None or _hub._addr_is_group_container(obj):
-        return True
-    if is_literal_address(obj):
-        return True
     try:
         if obj._meta.app_label == "ipam" and obj._meta.model_name in (
             "prefix",
@@ -21,6 +17,10 @@ def _object_supports_addr_analyzer(obj):
             return True
     except Exception:
         pass
+    if is_literal_address(obj):
+        return True
+    if _hub._addr_ip_ref(obj) is not None or _hub._addr_is_group_container(obj):
+        return True
     return False
 
 

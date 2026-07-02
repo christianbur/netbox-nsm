@@ -11,6 +11,7 @@ Reverse lookup (IPAM object → addresses) lives in ``template_content`` and
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import Iterator
 
 from netbox_nsm.addresses.address_cot_schema import (
@@ -71,11 +72,27 @@ def _ipam_gfk_attrs_for_obj(addr_obj) -> tuple[str, str, str]:
         return _POLYMORPHIC_CT_ATTR, _POLYMORPHIC_OBJ_ATTR, _POLYMORPHIC_FIELD
     cot = getattr(addr_obj, "custom_object_type", None)
     if cot is not None:
+        cot_pk = getattr(cot, "pk", None)
+        if cot_pk is not None:
+            return _ipam_gfk_attrs_for_cot_pk(cot_pk)
         from netbox_nsm.objects.cot_roles import ipam_gfk_attrs, resolve_ipam_field_name
 
         ct_attr, obj_attr = ipam_gfk_attrs(cot)
         return ct_attr, obj_attr, resolve_ipam_field_name(cot)
     return _POLYMORPHIC_CT_ATTR, _POLYMORPHIC_OBJ_ATTR, _POLYMORPHIC_FIELD
+
+
+@lru_cache(maxsize=256)
+def _ipam_gfk_attrs_for_cot_pk(cot_pk: int) -> tuple[str, str, str]:
+    from netbox_custom_objects.models import CustomObjectType
+    from netbox_nsm.objects.cot_roles import ipam_gfk_attrs, resolve_ipam_field_name
+
+    try:
+        cot = CustomObjectType.objects.get(pk=cot_pk)
+    except CustomObjectType.DoesNotExist:
+        return _POLYMORPHIC_CT_ATTR, _POLYMORPHIC_OBJ_ATTR, _POLYMORPHIC_FIELD
+    ct_attr, obj_attr = ipam_gfk_attrs(cot)
+    return ct_attr, obj_attr, resolve_ipam_field_name(cot)
 
 
 def _ipam_gfk_attrs_for_model(addr_model) -> tuple[str, str, str]:

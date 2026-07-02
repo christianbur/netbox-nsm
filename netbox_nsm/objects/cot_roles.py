@@ -20,6 +20,7 @@ Field names are irrelevant: GFK columns are derived as
 
 from __future__ import annotations
 
+from functools import lru_cache
 from typing import Iterator
 
 __all__ = (
@@ -63,16 +64,39 @@ def _multiobject_type():
     return CustomFieldTypeChoices.TYPE_MULTIOBJECT
 
 
-def _iter_object_fields(cot):
+def _load_object_fields(cot):
     try:
         from netbox_custom_objects.models import CustomObjectTypeField
     except ImportError:
-        return []
-    return list(
+        return ()
+    return tuple(
         CustomObjectTypeField.objects.filter(
             custom_object_type=cot, type__in=_object_field_types()
-        )
+        ).select_related("related_object_type").prefetch_related("related_object_types")
     )
+
+
+@lru_cache(maxsize=512)
+def _cached_object_fields(cot_pk: int) -> tuple:
+    """Cached object/multiobject fields for a COT (schema-stable within a worker)."""
+    try:
+        from netbox_custom_objects.models import CustomObjectType
+    except ImportError:
+        return ()
+    try:
+        cot = CustomObjectType.objects.get(pk=cot_pk)
+    except CustomObjectType.DoesNotExist:
+        return ()
+    return _load_object_fields(cot)
+
+
+def _iter_object_fields(cot):
+    if cot is None:
+        return []
+    cot_pk = getattr(cot, "pk", None)
+    if cot_pk is None:
+        return list(_load_object_fields(cot))
+    return list(_cached_object_fields(cot_pk))
 
 
 def _related_content_types(field) -> list:
@@ -139,12 +163,16 @@ def _cot_looks_like_address(cot) -> bool:
 # --------------------------------------------------------------------------- #
 # IPAM (address) field resolution
 # --------------------------------------------------------------------------- #
-def resolve_ipam_field(cot):
-    """Return the COT field that binds to IPAM objects, or ``None``.
+@lru_cache(maxsize=512)
+def _resolve_ipam_field_name_for_cot_pk(cot_pk: int) -> str:
+    """Return the IPAM field name for *cot_pk* (falls back to ``address``)."""
+    for field in _cached_object_fields(cot_pk):
+        if _field_targets_only_ipam(field):
+            return getattr(field, "name", None) or _DEFAULT_IPAM_FIELD
+    return _DEFAULT_IPAM_FIELD
 
-    Inference is structural: the first ``object``/``multiobject`` field whose
-    ``related_object_types`` are exclusively IPAM models.
-    """
+
+def _resolve_ipam_field_uncached(cot):
     if cot is None:
         return None
     for field in _iter_object_fields(cot):
@@ -153,11 +181,24 @@ def resolve_ipam_field(cot):
     return None
 
 
+def resolve_ipam_field(cot):
+    """Return the COT field that binds to IPAM objects, or ``None``.
+
+    Inference is structural: the first ``object``/``multiobject`` field whose
+    ``related_object_types`` are exclusively IPAM models.
+    """
+    return _resolve_ipam_field_uncached(cot)
+
+
 def resolve_ipam_field_name(cot) -> str:
     """Return the IPAM field name (falls back to ``address``)."""
-    field = resolve_ipam_field(cot)
-    name = getattr(field, "name", None)
-    return name or _DEFAULT_IPAM_FIELD
+    if cot is None:
+        return _DEFAULT_IPAM_FIELD
+    cot_pk = getattr(cot, "pk", None)
+    if cot_pk is None:
+        field = _resolve_ipam_field_uncached(cot)
+        return getattr(field, "name", None) or _DEFAULT_IPAM_FIELD
+    return _resolve_ipam_field_name_for_cot_pk(cot_pk)
 
 
 def ipam_gfk_attrs(cot) -> tuple[str, str]:

@@ -43,6 +43,7 @@ from netbox_nsm.rulebooks.views.cot import (
     CotRulebookCreateView,
     CotRulebookDeleteView,
     CotRulebookMatrixView,
+    CotRulebookRulesExportView,
     CotRulebookRulesView,
     CotRulebookSchemaValidateView,
     CotRulebookView,
@@ -176,6 +177,11 @@ urlpatterns = [
         "rulebooks/cot/<slug:slug>/enforcement-point/assign/",
         EnforcementPointInterfaceAssignView.as_view(),
         name="enforcement_point_link_assign",
+    ),
+    path(
+        "rulebooks/cot/<slug:slug>/rules/export.json",
+        CotRulebookRulesExportView.as_view(),
+        name="cot_rulebook_rules_export",
     ),
     path(
         "rulebooks/cot/<slug:slug>/rules/",

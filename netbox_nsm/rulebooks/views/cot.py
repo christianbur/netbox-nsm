@@ -57,6 +57,7 @@ __all__ = (
     "CotRulebookSchemaValidateView",
     "CotRulebookDeleteView",
     "CotRulebookMatrixView",
+    "CotRulebookRulesExportView",
     "CotRulebookRulesView",
     "CotRulebookView",
 )
@@ -334,6 +335,27 @@ class CotRulebookRulesView(_CotRulebookMixin, View):
         )
         ctx.update(rules_ctx)
         return render(request, self.template_name, ctx)
+
+
+class CotRulebookRulesExportView(_CotRulebookMixin, View):
+    """Download visible/filtered rules as bundle-compatible JSON."""
+
+    def get(self, request, slug: str):
+        import json
+
+        from django.http import HttpResponse
+        from django.utils.text import slugify
+
+        from netbox_nsm.rulebooks.rules_export import build_cot_rulebook_rules_export_bundle
+
+        instance = self.get_virtual_object(slug)
+        bundle = build_cot_rulebook_rules_export_bundle(request, instance)
+        exported_at = str(bundle.get("exported_at") or "").replace(":", "-")
+        filename = f"{slugify(slug) or 'rules'}_{exported_at or 'export'}.json"
+        payload = json.dumps(bundle, indent=2, ensure_ascii=False)
+        response = HttpResponse(payload, content_type="application/json; charset=utf-8")
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
 
 
 class CotRulebookMatrixView(_CotRulebookMixin, View):

@@ -50,11 +50,22 @@ class SecurityConfig(PluginConfig):
 
         apply_nsm_object_url_patches()
         apply_nsm_object_co_view_patches()
+        self._warm_url_resolver()
         self._register_system_jobs()
         self._patch_color_field_widget()
         self._patch_poly_subfield_labels()
         self._patch_cot_rule_add_index()
         self._patch_custom_object_list_polymorphic_sort()
+
+    @staticmethod
+    def _warm_url_resolver():
+        """Populate Django's URL resolver at startup (avoids ~2s first-request penalty)."""
+        try:
+            from django.urls import reverse
+
+            reverse("plugins:netbox_nsm:rulebook_list")
+        except Exception:
+            pass
 
     @staticmethod
     def _register_system_jobs():

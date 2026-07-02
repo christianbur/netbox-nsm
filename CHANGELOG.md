@@ -4,6 +4,34 @@ All notable changes to **netbox-nsm** are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.9] - 2026-07-02
+
+### Notes
+
+- Release
+
+## [Unreleased]
+
+## [0.4.9] - 2026-07-02
+
+### Added
+
+- **Rules export JSON** — the Rules tab **Export JSON** button downloads filtered rules as a bundle-compatible document (`objects[].records[]` with portable refs like `nsm_zone/zone_01`). Import via **Security → Configuration → Bundles**.
+- **`format_portable_ref()`** — shared helper for portable object references in bundle export/import.
+
+### Changed
+
+- **README** — updated for v0.4.9 UI (Bundles, Type Metadata, Object Report, Export JSON) and refreshed screenshots.
+- **Grouped columns toggle** — button active state matches grouped (`collapsed`) vs per-type (`expanded`) column layout.
+- **Rules row-group performance** — lightweight tab-summary scan (`include_links=False`), queryset pagination for the visible page, cached `parse_menu_from_comments`, direct NSM object URLs in rule rows.
+- **Plugin startup** — warm Django URL resolver in `SecurityConfig.ready()` to avoid a multi-second penalty on the first `reverse()` per worker.
+- **Assigned objects panel** — bulk interface prefetch per host type; early return before `reverse()` when the panel is empty.
+
+### Fixed
+
+- **Expanded column mode** — polymorphic object types render in separate columns (e.g. Address / Address Custom / Address Group) instead of a single merged column.
+- **Rulebook detail** — faster enforcement-targets panel on COT object pages.
+
 ## [0.4.8] - 2026-07-01
 
 ### Changed
@@ -39,7 +67,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **IP Analyzer — Diff rollup and tab-named diff column** — the IPAM tree now rolls IPAM children up under their containing prefixes, and the **Diff** column labels each side with its source tab name (e.g. `Rule 1/5`).
 - **IP Analyzer — Merge appends a new tab** — running **Merge** now creates a new merged tab and keeps the existing tabs instead of replacing them (`mergeTabs`, `this.tabs.push(mergedTab)`).
 - **IP Analyzer — YAML export v2** — the applet YAML export emits `ipa_export_version: "2"` with a primary `displayed` section (the visible tree, counts, `copy_lines`, `addr_analysis`, `object_tree`) plus an optional `ipam_children` section; the trigger tooltip reads *Export displayed data and IPAM children (YAML)*.
-- **Rulebook rules table — export is TOML, not CSV** — the visible-rules export button (`#nsm-ag-toml-export`, label **Export TOML**, tooltip *Export visible data as TOML*) downloads a structured TOML document (`format = "netbox-nsm-rules-visible-v1"`, MIME `application/toml`, `*.toml`) via `exportRulesToml`. The previous CSV export is removed.
+- **Rulebook rules table — export is JSON, not TOML** — the Rules tab **Export JSON** button downloads bundle-compatible JSON (`objects[].records[]`, portable refs). Import via **Security → Configuration → Bundles**. The previous visible-rules TOML export is removed.
 - **IP Analyzer — Explain tooltips, group coverage, and summary v2** — flat cell-tree rows now carry an Explain tooltip on the **Network** cell (`direct in rule cell`, `group member`, `contained by`, alias/duplicate names, diff status/presence, non-active status). The All summary includes coverage-oriented counters (**Groups**, **Addresses**, **Merged**, **Non-active**, **Direct/Indirect**) in addition to Subnets/Ranges/IPs/Warnings. A collapsible **Group coverage** panel lists every directly selected address group and whether it is visible as its own row, merged into a member row, or missing. Summary subnet/range/IP counts use the visible group anchor CIDRs as well as address rows, so bench-scale groups like `bench-grp-00001` contribute to the current table counts instead of collapsing the summary to `1/0/1`. Asset cache bump.
 
 - **IP Analyzer — cell tree Network column containment color** — flat cell-tree rows with `subnet_contained_in` (e.g. `10.128.0.0/24` nested under `10.128.0.0/16`) no longer render orange CIDR text or `nsm-ipa-subnet-contained` in the **Network** column. Cell-direct network links stay teal; indirect rows stay grey. Subnet containment warnings remain in the **Dup** column (`dup` badge + tooltip) and **Address** (`cell_addresses_multi` orange links only). Row class `nsm-ipa-object-node--subnet-warning` is kept for legacy drilldown markup; flat cell-tree orange CIDR styling is scoped to non-table drilldown nodes. Asset cache bump.
@@ -529,3 +557,4 @@ First release in the 0.2.x line.
 [0.2.5]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.2.5
 [0.4.1]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.1
 [0.4.8]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.8
+[0.4.9]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.9

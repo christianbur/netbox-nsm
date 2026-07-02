@@ -285,19 +285,6 @@
     resetBrowse();
   });
 
-  var propagationSelect = document.getElementById("id_propagation");
-  var propagateStopWrap = document.getElementById("propagate-stop-wrap");
-
-  function syncPropagationUi() {
-    if (!propagationSelect || !propagateStopWrap) return;
-    propagateStopWrap.style.display = propagationSelect.value === "direct" ? "none" : "";
-  }
-
-  if (propagationSelect) {
-    propagationSelect.addEventListener("change", syncPropagationUi);
-    syncPropagationUi();
-  }
-
   if (typeSelect.value) {
     currentCtId = typeSelect.value;
     pickerWrap.classList.remove("hidden");

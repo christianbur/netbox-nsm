@@ -45,6 +45,18 @@ class NsmConfigFormatTests(TestCase):
         config = normalize_nsm_config_list(legacy)
         self.assertEqual(config["sort_order"], 11)
 
+    def test_normalize_link_table_segment(self):
+        raw = [{"link_table": True}]
+        config = normalize_nsm_config_list(raw)
+        self.assertTrue(config["link_table"])
+
+    def test_merge_link_table_into_comments(self):
+        from netbox_nsm.type_metadata.config import merge_nsm_config_document_into_comments
+
+        comments = merge_nsm_config_document_into_comments("", {"link_table": True})
+        parsed = parse_nsm_config_from_comments(comments)
+        self.assertTrue(parsed["link_table"])
+
     def test_legacy_links_block_is_ignored(self):
         legacy = [
             {"rule_view": {"sort_order": 10, "display_template": "{{ name }}"}},

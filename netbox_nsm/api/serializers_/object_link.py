@@ -8,8 +8,6 @@ from netbox.api.fields import ContentTypeField
 from utilities.api import get_serializer_for_model
 from utilities.serialization import serialize_object
 
-from netbox_nsm.security.links.link_propagation import LinkPropagationChoices
-from netbox_nsm.security.links.link_propagation import native_propagation_to_cot
 from netbox_nsm.security.links.object_link_service import (
     ObjectLinkRecord,
     create_or_update_links,
@@ -47,8 +45,6 @@ class ObjectLinkSerializer(serializers.Serializer):
     object_b_id = serializers.IntegerField(required=False)
     object_b = serializers.SerializerMethodField(read_only=True)
     comment = serializers.CharField(required=False, allow_blank=True, default="")
-    propagation = serializers.CharField(required=False)
-    propagate_stop_on_own = serializers.BooleanField(required=False, default=False)
     created = serializers.DateTimeField(read_only=True)
     last_updated = serializers.DateTimeField(read_only=True)
 
@@ -93,8 +89,6 @@ class ObjectLinkSerializer(serializers.Serializer):
             "object_b_id": record.object_b_id,
             "object_b": self.get_object_b(cot),
             "comment": record.comment,
-            "propagation": record.propagation,
-            "propagate_stop_on_own": record.propagate_stop_on_own,
             "created": getattr(cot, "created", None),
             "last_updated": getattr(cot, "last_updated", None),
         }
@@ -106,28 +100,18 @@ class ObjectLinkSerializer(serializers.Serializer):
         b_id = validated_data.pop("object_b_id")
         object_a = a_type.get_object_for_this_type(pk=a_id)
         object_b = b_type.get_object_for_this_type(pk=b_id)
-        cot_propagation = native_propagation_to_cot(
-            validated_data.get("propagation", LinkPropagationChoices.DIRECT),
-            validated_data.get("propagate_stop_on_own", False),
-        )
         record, _created = create_or_update_links(
             object_a,
             object_b,
-            cot_propagation=cot_propagation,
             comment=validated_data.get("comment", ""),
         )
         return record.instance
 
     def update(self, instance, validated_data):
         record = self._record(instance)
-        cot_propagation = native_propagation_to_cot(
-            validated_data.get("propagation", record.propagation),
-            validated_data.get("propagate_stop_on_own", record.propagate_stop_on_own),
-        )
         updated = create_or_update_links(
             record.netbox_object,
             record.policy_object,
-            cot_propagation=cot_propagation,
             comment=validated_data.get("comment", record.comment),
         )[0]
         return updated.instance

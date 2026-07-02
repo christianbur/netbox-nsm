@@ -715,7 +715,6 @@ def create_or_update_enforcement_point_link(
     }
     if policy_object is not None:
         create_kwargs[schema.policy_field] = policy_object
-        create_kwargs["propagation"] = CotObjectLinkPropagationChoices.DIRECT
 
     inst = model.objects.create(**create_kwargs)
     return EnforcementPointLinkRecord.from_instance(inst, schema), True
@@ -770,7 +769,6 @@ def create_or_update_links(
     netbox_obj,
     policy_obj,
     *,
-    cot_propagation: str,
     comment: str = "",
 ) -> tuple[ObjectLinkRecord, bool]:
     """Create or update one link-table row. Returns ``(link, created)``."""
@@ -785,9 +783,6 @@ def create_or_update_links(
     if existing is not None and existing.instance is not None:
         inst = existing.instance
         changed = False
-        if getattr(inst, "propagation", None) != cot_propagation:
-            inst.propagation = cot_propagation
-            changed = True
         new_comment = comment or ""
         if (getattr(inst, "comment", None) or "") != new_comment:
             inst.comment = new_comment
@@ -802,7 +797,6 @@ def create_or_update_links(
         **{
             schema.host_field: netbox_obj,
             schema.policy_field: policy_obj,
-            "propagation": cot_propagation,
             "comment": comment or "",
         },
     )
@@ -812,13 +806,11 @@ def create_or_update_links(
 def update_link(
     link: ObjectLinkRecord,
     *,
-    cot_propagation: str,
     comment: str = "",
 ) -> ObjectLinkRecord:
     if link.instance is None:
         raise ValueError("Cannot update pseudo link record without instance")
     inst = link.instance
-    inst.propagation = cot_propagation
     inst.comment = comment or ""
     inst.save()
     return ObjectLinkRecord.from_instance(inst)

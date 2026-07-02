@@ -219,7 +219,7 @@ msgid "Sort order"
 msgstr ""
 
 #: forms/type_config.py:26
-msgid "Lower values appear first in the Rule Viewer and Object Config list."
+msgid "Lower values appear first in the Rule Viewer and Type Metadata list."
 msgstr ""
 
 #: forms/type_config.py:32 objects/nsm_config.py:620 tables/type_config.py:29
@@ -311,20 +311,26 @@ msgstr "Inherit to IPAM children (prefixes, addresses, ranges)"
 msgid "Inherit to group members"
 msgstr "Inherit to group members"
 
-#: models/permission_anchors.py:21 navigation.py:18
-#: templates/netbox_nsm/typeconfig.html:5
+#: navigation.py:21 templates/netbox_nsm/typeconfig.html:5
 #: templates/netbox_nsm/typeconfig.html:12
 #: templates/netbox_nsm/typeconfig_list.html:4
 #: templates/netbox_nsm/typeconfig_list.html:9
+msgid "Type Metadata"
+msgstr ""
+
+#: migrations/0001_initial.py:43
 msgid "Object Config"
 msgstr ""
 
-#: models/permission_anchors.py:22
+#: migrations/0001_initial.py:44
 msgid "Object Configs"
 msgstr ""
 
-#: navigation.py:24
-msgid "Setup"
+#: navigation.py:27 templates/netbox_nsm/setup.html:4
+#: templates/netbox_nsm/setup.html:21
+#: templates/netbox_nsm/setup_schema_detail.html:4
+#: templates/netbox_nsm/setup_schema_detail.html:15
+msgid "Bundles"
 msgstr ""
 
 #: navigation.py:37
@@ -2395,7 +2401,7 @@ msgstr ""
 
 #: templates/netbox_nsm/objectconfig_add.html:4
 #: templates/netbox_nsm/objectconfig_add.html:7
-msgid "Add Object Config"
+msgid "Add Type Metadata"
 msgstr ""
 
 #: templates/netbox_nsm/objectconfig_add.html:13
@@ -2532,9 +2538,6 @@ msgid ""
 "%(object_type_plural)s</strong> matching query"
 msgstr ""
 
-#: templates/netbox_nsm/setup.html:4
-msgid "NSM Setup"
-msgstr ""
 
 #: templates/netbox_nsm/typeconfig.html:44
 msgid "Enabled"
@@ -2549,7 +2552,7 @@ msgid "NSM settings stored in Custom Object Type comments (nsm_config)."
 msgstr ""
 
 #: templates/netbox_nsm/typeconfig_list.html:47
-msgid "No Object Configs found. Add one or complete Setup section 2."
+msgid "No type metadata found. Add one or apply the NSM Schema bundle."
 msgstr ""
 
 #: templates/netbox_nsm/virtual_rulebook_object.html:6
@@ -2833,20 +2836,20 @@ msgstr ""
 msgid "Error: %(error)s"
 msgstr ""
 
-#: views/type_config.py:153
-msgid "Object Config updated."
+#: type_metadata/views.py:226
+msgid "Type Metadata updated."
 msgstr ""
 
-#: views/type_config.py:176
-msgid "Object Config removed from comments."
+#: type_metadata/views.py:248
+msgid "Type Metadata removed from comments."
 msgstr ""
 
-#: views/type_config.py:199
+#: type_metadata/views.py:271
 msgid "Invalid object type slug."
 msgstr ""
 
-#: views/type_config.py:205
-msgid "Object Config created."
+#: type_metadata/views.py:279
+msgid "Type Metadata created."
 msgstr ""
 
 #: navigation.py:34 templates/netbox_nsm/object_report.html:4
@@ -3077,5 +3080,184 @@ msgstr ""
 
 #: object_report/object_report.py
 msgid "group"
+msgstr ""
+
+#: templates/netbox_nsm/setup.html:23
+msgid ""
+"Deploy NSM schema, demo data, and metadata from JSON bundles. Apply NSM "
+"Schema first, then optional demo bundles."
+msgstr ""
+
+#: templates/netbox_nsm/setup.html:27
+msgid "netbox-custom-objects plugin is not installed."
+msgstr ""
+
+#: templates/netbox_nsm/setup.html:29
+msgid "Run migrations for netbox-custom-objects first."
+msgstr ""
+
+#: templates/netbox_nsm/setup.html:34
+msgid "Available bundles"
+msgstr ""
+
+#: templates/netbox_nsm/setup.html:41
+msgid "Bundle"
+msgstr ""
+
+#: templates/netbox_nsm/setup.html:43
+msgid "Contents"
+msgstr ""
+
+#: templates/netbox_nsm/setup.html:59
+#, python-format
+msgid "Requires: %(reqs)s"
+msgstr ""
+
+#: templates/netbox_nsm/setup.html:66
+#: templates/netbox_nsm/setup_schema_detail.html:26
+msgid "Applied"
+msgstr ""
+
+#: templates/netbox_nsm/setup.html:68
+#: templates/netbox_nsm/setup_schema_detail.html:28
+msgid "Partial"
+msgstr ""
+
+#: templates/netbox_nsm/setup.html:70
+#: templates/netbox_nsm/setup_schema_detail.html:30
+msgid "Missing"
+msgstr ""
+
+#: templates/netbox_nsm/setup.html:75
+#, python-format
+msgid "%(counter)s type"
+msgid_plural "%(counter)s types"
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/netbox_nsm/setup.html:77
+#, python-format
+msgid "%(counter)s choice set"
+msgid_plural "%(counter)s choice sets"
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/netbox_nsm/setup.html:80
+#, python-format
+msgid "%(counter)s seed object"
+msgid_plural "%(counter)s seed objects"
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/netbox_nsm/setup.html:84
+#, python-format
+msgid "%(counter)s type metadata"
+msgid_plural "%(counter)s type metadata blocks"
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/netbox_nsm/setup.html:86
+#, python-format
+msgid "%(counter)s rulebook metadata"
+msgid_plural "%(counter)s rulebook metadata blocks"
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/netbox_nsm/setup.html:98
+#: templates/netbox_nsm/setup_schema_detail.html:94
+msgid "Preview"
+msgstr ""
+
+#: templates/netbox_nsm/setup.html:101
+msgid "Open"
+msgstr ""
+
+#: templates/netbox_nsm/setup.html:107
+msgid "No bundles found."
+msgstr ""
+
+#: templates/netbox_nsm/setup_schema_detail.html:43
+msgid "Types in bundle"
+msgstr ""
+
+#: templates/netbox_nsm/setup_schema_detail.html:49
+msgid "Label"
+msgstr ""
+
+#: templates/netbox_nsm/setup_schema_detail.html:50
+msgid "Fields"
+msgstr ""
+
+#: templates/netbox_nsm/setup_schema_detail.html:66
+msgid "Show bundle JSON"
+msgstr ""
+
+#: templates/netbox_nsm/setup_schema_detail.html:82
+msgid "Allow destructive changes"
+msgstr ""
+
+#: templates/netbox_nsm/setup_schema_detail.html:94
+msgid "Preview changes"
+msgstr ""
+
+#: templates/netbox_nsm/setup_schema_detail.html:102
+msgid "Apply bundle"
+msgstr ""
+
+#: templates/netbox_nsm/setup_schema_detail.html:114
+msgid "Change preview"
+msgstr ""
+
+#: templates/netbox_nsm/setup_schema_detail.html:132
+msgid "Schema"
+msgstr ""
+
+#: templates/netbox_nsm/setup_schema_detail.html:144
+msgid "NSM side effects"
+msgstr ""
+
+#: templates/netbox_nsm/setup_schema_detail.html:152
+msgid "Loading preview…"
+msgstr ""
+
+#: bundles/views.py:79
+msgid ""
+"netbox-custom-objects database tables are missing. Run: python manage.py "
+"migrate netbox_custom_objects"
+msgstr ""
+
+#: bundles/views.py:90
+#, python-format
+msgid "Unknown action: %(action)s"
+msgstr ""
+
+#: bundles/views.py:157
+msgid "Permission denied: custom object type add/change required."
+msgstr ""
+
+#: bundles/views.py:164
+msgid "Python bundles cannot be applied via this endpoint."
+msgstr ""
+
+#: bundles/views.py:177
+#, python-format
+msgid "Apply failed: %(error)s"
+msgstr ""
+
+#: bundles/views.py:182
+#, python-format
+msgid ""
+"Bundle '%(slug)s' applied (%(types)s types, %(meta_types)s type metadata, "
+"%(meta_rb)s rulebook metadata%(ipam)s)."
+msgstr ""
+
+#: bundles/views.py:193
+#, python-format
+msgid ", %(count)s demo addresses linked to IPAM"
+msgstr ""
+
+#: management/commands/migrate_object_links_to_cot.py:44
+msgid ""
+"Apply the NSM Schema bundle first (Security → Configuration → Bundles)."
 msgstr ""
 

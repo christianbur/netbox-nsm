@@ -311,7 +311,7 @@ def build_cot_rulebook_rules_export_bundle(request, virtual_rb) -> dict[str, Any
     title = _("Export: %(name)s rules") % {"name": virtual_rb.name}
     description = _(
         "Exported %(count)d rule(s) from %(slug)s at %(exported_at)s. "
-        "Import via NSM Setup → Bundles (objects seeding)."
+        "Import via Security → Configuration → Bundles (objects seeding)."
     ) % {
         "count": len(records),
         "slug": virtual_rb.slug,

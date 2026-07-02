@@ -48,7 +48,7 @@ class ObjectLinkApiPermissionTests(APITestCase):
         )
         self.prefix = Prefix.objects.create(prefix="10.77.0.0/24", status="active")
         record, _created = create_or_update_links(
-            self.device, self.prefix, cot_propagation="direct", comment="api-test"
+            self.device, self.prefix, comment="api-test"
         )
         self.link = record.instance
 

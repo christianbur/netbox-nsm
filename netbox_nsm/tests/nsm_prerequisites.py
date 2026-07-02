@@ -204,7 +204,7 @@ def get_cot_model(*slugs: str):
             return cot.get_model(), cot
     raise RuntimeError(
         f"Missing Custom Object Type (tried: {', '.join(slugs)}). "
-        "Run Setup → Import all types first."
+        "Apply the NSM Schema bundle first (Security → Configuration → Bundles)."
     )
 
 

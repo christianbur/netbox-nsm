@@ -10,7 +10,7 @@ policy links, rulebook host assignments) are **not** stored in native NSM tables
 `netbox-custom-objects` COT rows (`nsm_object_link` for panel links and rulebook assignments).
 Type metadata (`sort_order`, `display_template`, `areas`, `links`, `rulebook`) lives in each COT type's **`comments`** field
 (`nsm_config` YAML). Plugin-wide UI labels use
-**`PLUGINS_CONFIG`** only (`menu_label`, `panel_label`, `setup_menu`).
+**`PLUGINS_CONFIG`** only (`menu_label`, `panel_label`, `setup_menu`, `setup_allow_destructive_actions`, `top_level_menu`, `bundle_paths`, `builtin_bundles`).
 
 ---
 
@@ -36,7 +36,7 @@ python manage.py dbshell -c "\dt netbox_nsm_*"
 
 Type Metadata / `nsm_config` permissions (0.4.5+) use `netbox_custom_objects.view_customobjecttype` and `netbox_custom_objects.change_customobjecttype` — there is no `TypeConfig` anchor model.
 
-Setup bundles write **`metadata`** (JSON) → COT **`comments`** via `schema/dispatch.sync_metadata`.
+Bundle apply writes **`metadata`** (JSON) → COT **`comments`** via `schema/dispatch.sync_metadata`.
 
 No `netbox_nsm_*` data tables exist in current NSM. Configuration lives in COT `comments`; rulebook instances live in `netbox-custom-objects`.
 
@@ -80,7 +80,7 @@ See migrations `0004_delete_objectlink` and `0005_remove_legacy_object_and_prope
 | IP prefixes, IP addresses, devices, VMs | NetBox core (`ipam_*`, `dcim_*`, `virtualization_*`, …) |
 | Tags, custom fields, changelog | NetBox `extras_*` |
 
-`TypeConfig` was removed in 0.4.5. Configuration is edited via Object Config UI or
+`TypeConfig` was removed in 0.4.5. Configuration is edited via Type Metadata UI or
 `/api/plugins/netbox-nsm/nsm-configs/<slug>/` (updates COT `comments`). Requires
 `netbox_custom_objects.view_customobjecttype` (read) or `change_customobjecttype` (write).
 
@@ -108,9 +108,12 @@ python manage.py migrate netbox_nsm
 
 | Migration | Purpose |
 |-----------|---------|
-| `0001_initial` | **Squashed** baseline (unmanaged `TypeConfig` + `RulebookListProxy` permission shims only). Replaces migrations `0001`–`0007` from 0.4.1/0.4.2; existing DBs that already applied those migrations are marked applied without re-running data steps. |
+| `0001_initial` | **Squashed** baseline: unmanaged permission anchors `TypeConfig` + `RulebookListProxy` only (`managed=False`, no data tables). Replaces legacy migrations `0002`–`0007` from 0.4.1/0.4.2; DBs that already applied those are marked applied without re-running data steps. |
 | `0002_private_permission_anchors` | Mark permission anchors `_netbox_private` (excluded from `/core/system/` object counts) and drop legacy empty stub tables if present. |
 | `0003_remove_typeconfig_permissions` | Map legacy `*_typeconfig` group permissions to `netbox_custom_objects` COT permissions; delete `TypeConfig` model. |
+| `0004_nsm_metadata` | **No-op placeholder** — type/rulebook metadata lives in COT `comments` (`nsm_config`), not in Django tables. Keeps migration numbering stable for 0.4.10+ upgrades. |
+
+**Current chain (0.4.10):** `0001` → `0002` → `0003` → `0004` — no native NSM data tables; panel links and rulebook assignments use COT `nsm_object_link`. Schema-only changes (e.g. removing `propagation` from `nsm_object_link`) are applied via **Bundles → nsm_schema**, not Django migrations.
 
 **Squashing:** `0001_initial` is regenerated for new installs via
 `docker/netbox_dev/scripts/generate_nsm_0001.sh` (removes numbered migrations in the dev

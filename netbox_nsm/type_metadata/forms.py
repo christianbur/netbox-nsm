@@ -60,7 +60,7 @@ class NsmConfigForm(forms.Form):
         min_value=0,
         required=True,
         label=_("Sort order"),
-        help_text=_("Lower values appear first in the Rule Viewer and Object Config list."),
+        help_text=_("Lower values appear first in the Rule Viewer and Type Metadata list."),
     )
     display_template = forms.CharField(
         max_length=500,

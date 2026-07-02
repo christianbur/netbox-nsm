@@ -2,7 +2,6 @@
 
 import uuid
 
-from netbox_nsm.security.links.link_propagation import CotObjectLinkPropagationChoices
 from netbox_nsm.security.links.object_link_service import create_or_update_links
 
 
@@ -35,7 +34,6 @@ def create_object_link_with_custom_object_b(object_a):
     link, _created = create_or_update_links(
         object_a,
         custom_instance,
-        cot_propagation=CotObjectLinkPropagationChoices.DIRECT,
         comment="custom object b link",
     )
     return link, custom_instance

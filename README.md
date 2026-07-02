@@ -71,12 +71,14 @@ PLUGINS_CONFIG = {
     "netbox_nsm": {
         "menu_label": "Security",
         "panel_label": "Security",
+        "top_level_menu": True,
         "setup_menu": True,
-        "setup_allow_destructive_actions": True,  # demos only; disable in prod
-        # Optional: Jinja2 address naming — see docs/address_name_templates.md
+        "setup_allow_destructive_actions": True,  # destructive preview/apply + demos; disable in prod
+        "bundle_paths": [],
+        "builtin_bundles": True,
+        # Optional Jinja2 address naming — see docs/address_name_templates.md
         # "address_name_templates": [
         #     {"template": "h-{ipam>ip}", "match": "host"},
-        #     {"template": "n-{ipam>prefix>network}-{ipam>prefix>cidr}", "match": "prefix"},
         # ],
     },
 }
@@ -102,7 +104,7 @@ On a rulebook **Rules** tab, **Export JSON** downloads all rules matching the cu
 
 ## API
 
-`/api/plugins/netbox-nsm/` — `nsm-configs/<slug>/`, `object-links/`, `ip-analyzer/`  
+`/api/plugins/netbox-nsm/` — Type Metadata via `nsm-configs/<slug>/`, plus `object-links/`, `ip-analyzer/`  
 Rules and policy objects: **netbox-custom-objects** API.
 
 ## Demos
@@ -112,7 +114,6 @@ Rules and policy objects: **netbox-custom-objects** API.
 | NSM Schema | Bundles → `nsm_schema` | Required base import (types, choice sets, seed objects, metadata) |
 | RB Demo Zone Matrix | Bundles → `nsm_demo_zone_matrix` | 30×30 zone matrix, 900 rules |
 | RB Demo Zone/Address | Bundles → `nsm_demo_zone_address_adressgroup` | Zones, addresses, groups, 500 rules |
-| Starter / Enterprise DC | Legacy setup flows | See [docs/using_netbox_nsm.md](docs/using_netbox_nsm.md) |
 
 ## Documentation
 

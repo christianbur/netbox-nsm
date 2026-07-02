@@ -41,7 +41,7 @@ class Command(BaseCommand):
             self.stderr.write(
                 self.style.ERROR(
                     f"COT {NSM_OBJECT_LINK_SLUG!r} is not deployed. "
-                    "Run Setup → Import all types first."
+                    "Apply the NSM Schema bundle first (Security → Configuration → Bundles)."
                 )
             )
             return

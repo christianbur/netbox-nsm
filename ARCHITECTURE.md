@@ -8,7 +8,7 @@ Policy data (zones, rules, links) is stored as **Custom Object Types** via [netb
 
 - Type behaviour: **`metadata`** in JSON bundles → synced to COT **`comments`** (`nsm_config` YAML)
 - Instances: COT rows (`nsm_zone`, `nsm_rb_*`, `nsm_object_link`, …)
-- Built-in schemas: JSON bundles under `netbox_nsm/bundles/builtin/<slug>/bundle.json`; apply via Setup or `bundles/dispatch.py`
+- Built-in schemas: JSON bundles under `netbox_nsm/bundles/builtin/<slug>/bundle.json`; apply via Bundles UI or `bundles/dispatch.py`
 
 ## Data model (0.5.x setup rebuild)
 
@@ -27,7 +27,7 @@ Details: [docs/DATABASE.md](docs/DATABASE.md), [docs/RULE_DATA_STORAGE.md](docs/
 
 | Module | Path | Role |
 |--------|------|------|
-| **Import** | `bundles/` | COT schemas, choice sets, seeds; `discovery.py` for Setup health |
+| **Import** | `bundles/` | COT schemas, choice sets, seeds; `discovery.py` for bundle health |
 | **Views** | `rulebooks/views/` | Table + matrix display; `views/registry.py` drives tabs |
 | **Proxy** | `rulebooks/proxy/` | Rule-row add/edit/delete/clone URLs on COT rulebooks |
 | **Analyzers** | `analyzers/` | Object Analyzer, IP Analyzer, Object Report; `registry.py` |
@@ -57,14 +57,14 @@ netbox_nsm/
 │   └── cot_roles.py      # resolve_role, resolve_ipam_field, membership_through, …
 ├── addresses/            # address_cot_schema, address_ipam_fk (→ cot_roles)
 ├── security/             # tab, references, panel-link actions, object links
-├── type_metadata/        # specs, roles, TypeConfig UI
+├── type_metadata/        # specs, roles, Type Metadata UI
 ├── api/                  # REST endpoints (ip-analyzer, object-links, …)
 └── tests/
 ```
 
 Details: [docs/MODULAR_ARCHITECTURE_PLAN.md](docs/MODULAR_ARCHITECTURE_PLAN.md)
 
-Portable schema: `netbox_nsm/bundles/builtin/*.json` → Setup Preview → Apply → COT `apply_document` + `sync_metadata` → COT `comments`
+Portable schema: `netbox_nsm/bundles/builtin/*.json` → Bundles Preview → Apply → COT `apply_document` + `sync_metadata` → COT `comments`
 
 ## Key URLs
 

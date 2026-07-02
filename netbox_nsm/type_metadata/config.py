@@ -118,6 +118,8 @@ def normalize_nsm_config_list(raw_list: list | None) -> dict[str, Any] | None:
             key, value = next(iter(entry.items()))
             if key in _RULE_VIEW_KEYS:
                 merged[key] = value
+            elif key == "link_table":
+                merged["link_table"] = bool(value)
 
     if not merged:
         return None
@@ -264,6 +266,8 @@ def _document_to_nsm_config_segments(document: dict[str, Any]) -> list[dict]:
     menu = document.get("menu")
     if isinstance(menu, str) and menu.strip():
         segments.append({"menu": menu.strip()})
+    if document.get("link_table"):
+        segments.append({"link_table": True})
     if "rulebook" in document:
         normalized = normalize_rulebook_config(document.get("rulebook"))
         if not is_default_rulebook_config(normalized):
@@ -326,6 +330,9 @@ def _stored_nsm_config_document(text: str) -> dict[str, Any]:
     menu = parse_menu_from_comments(text)
     if menu:
         result["menu"] = menu
+    parsed = parse_nsm_config_from_comments(text)
+    if parsed and parsed.get("link_table"):
+        result["link_table"] = bool(parsed["link_table"])
     if result:
         return result
     return {}
@@ -352,7 +359,7 @@ def merge_nsm_config_document_into_comments(
 ) -> str:
     """Merge ``rule_view`` / ``rulebook`` segments into comments."""
     current = _stored_nsm_config_document(existing_comments)
-    for key in ("rule_view", "rulebook", "types", "role", "menu"):
+    for key in ("rule_view", "rulebook", "types", "role", "menu", "link_table"):
         if key not in updates:
             continue
         value = updates[key]
@@ -525,6 +532,8 @@ def _merge_parsed_into_config(
             result[key] = parsed[key]
     if "role" in parsed:
         result["role"] = parsed["role"]
+    if "link_table" in parsed:
+        result["link_table"] = bool(parsed["link_table"])
     return result
 
 

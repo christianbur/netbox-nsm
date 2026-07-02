@@ -7,43 +7,8 @@ from netbox_nsm.type_metadata.config import (
     is_assignable_from_content_type,
     iter_linkable_configs,
 )
-from netbox_nsm.security.links.link_propagation import (
-    CotObjectLinkPropagationChoices,
-    cot_propagation_choices_for_form,
-)
 
 __all__ = ("ObjectLinkAssignForm", "ObjectLinkEditForm", "EnforcementPointInterfaceAssignForm")
-
-
-class ObjectLinkPropagationForm(forms.Form):
-    """Base form with combined COT propagation field."""
-
-    propagation = forms.ChoiceField(
-        label=_("Link type"),
-        choices=[],
-        initial=CotObjectLinkPropagationChoices.DIRECT,
-        help_text=_(
-            "Direct: stored on this object and shown on both sides; not propagated "
-            "to children. Inherit modes also show the link on child objects in "
-            "their Security Panel (IPAM children or group members, when applicable)."
-        ),
-        widget=forms.Select(attrs={"class": "form-select", "id": "id_propagation"}),
-    )
-
-    def _configure_propagation_fields(self, source_object):
-        self.source_object = source_object
-        self.fields["propagation"].choices = cot_propagation_choices_for_form(
-            source_object
-        )
-
-    def _clean_propagation_fields(self, data):
-        propagation = data.get("propagation") or CotObjectLinkPropagationChoices.DIRECT
-        allowed_modes = {
-            value for value, _label in cot_propagation_choices_for_form(self.source_object)
-        }
-        if propagation not in allowed_modes:
-            self.add_error("propagation", _("Invalid link type."))
-        return data
 
 
 def _build_type_choices(source_content_type_id=None):
@@ -74,7 +39,7 @@ def _build_type_choices(source_content_type_id=None):
     return choices
 
 
-class ObjectLinkAssignForm(ObjectLinkPropagationForm):
+class ObjectLinkAssignForm(forms.Form):
     """
     Form shown when the user clicks "Assign" in the Security panel.
 
@@ -118,7 +83,6 @@ class ObjectLinkAssignForm(ObjectLinkPropagationForm):
             initial=self.initial,
         )
         self.fields["object_b_type"].choices = _build_type_choices(source_ct_id)
-        self._configure_propagation_fields(source_object)
 
     @staticmethod
     def _resolve_source_content_type_id(source_object, data=None, initial=None):
@@ -156,11 +120,11 @@ class ObjectLinkAssignForm(ObjectLinkPropagationForm):
                 _("This type is not linkable from the Security Panel."),
             )
 
-        return self._clean_propagation_fields(data)
+        return data
 
 
 class EnforcementPointInterfaceAssignForm(forms.Form):
-    """Assign NSM objects to an interface enforcement point (no propagation field)."""
+    """Assign NSM objects to an interface enforcement point."""
 
     object_a_type_id = forms.IntegerField(widget=forms.HiddenInput())
     object_a_id = forms.IntegerField(widget=forms.HiddenInput())
@@ -219,19 +183,11 @@ class EnforcementPointInterfaceAssignForm(forms.Form):
         return data
 
 
-class ObjectLinkEditForm(ObjectLinkPropagationForm):
-    """Edit propagation and comment on an existing nsm_object_link row."""
+class ObjectLinkEditForm(forms.Form):
+    """Edit comment on an existing nsm_object_link row."""
 
     comment = forms.CharField(
         label=_("Comment"),
         required=False,
         widget=forms.Textarea(attrs={"rows": 3, "class": "form-control"}),
     )
-
-    def __init__(self, *args, source_object=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._configure_propagation_fields(source_object)
-
-    def clean(self):
-        data = super().clean()
-        return self._clean_propagation_fields(data)

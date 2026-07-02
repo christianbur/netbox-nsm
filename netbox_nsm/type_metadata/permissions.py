@@ -1,4 +1,4 @@
-"""Permissions for Object Config / ``nsm_config`` (CustomObjectType-backed)."""
+"""Permissions for Type Metadata / ``nsm_config`` (CustomObjectType-backed)."""
 
 from __future__ import annotations
 

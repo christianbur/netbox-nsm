@@ -184,7 +184,7 @@
       "verbose_name": "Service Group",
       "verbose_name_plural": "Service Groups",
       "group_name": "NSM Objects",
-      "description": "Named collection of services. Referenced in rulebook Service columns; members are nsm_service objects.",
+      "description": "Named collection of services. Referenced in rulebook Service columns; members are nsm_service objects or nested nsm_service_group objects.",
       "fields": [
         {
           "id": 1,
@@ -231,10 +231,14 @@
           "name": "group",
           "type": "multiobject",
           "label": "Group Members",
-          "description": "Member service objects in this group.",
+          "description": "Member service objects or nested service groups.",
           "required": true,
           "weight": 10,
-          "related_object_type": "custom-objects/nsm_service"
+          "is_polymorphic": true,
+          "related_object_types": [
+            "custom-objects/nsm_service",
+            "custom-objects/nsm_service_group"
+          ]
         }
       ],
       "removed_fields": []
@@ -391,7 +395,7 @@
       "verbose_name": "Address Group",
       "verbose_name_plural": "Address Groups",
       "group_name": "NSM Objects",
-      "description": "Named collection of address objects. Used in Source/Destination columns; members are nsm_address objects.",
+      "description": "Named collection of address objects. Used in Source/Destination columns; members are nsm_address, nsm_address_custom, or nested nsm_address_group objects.",
       "fields": [
         {
           "id": 1,
@@ -438,13 +442,14 @@
           "name": "group",
           "type": "multiobject",
           "label": "Group Members",
-          "description": "Member address objects (IPAM-linked or custom manual).",
+          "description": "Member address objects, custom addresses, or nested address groups.",
           "required": true,
           "weight": 10,
           "is_polymorphic": true,
           "related_object_types": [
             "custom-objects/nsm_address",
-            "custom-objects/nsm_address_custom"
+            "custom-objects/nsm_address_custom",
+            "custom-objects/nsm_address_group"
           ]
         }
       ],

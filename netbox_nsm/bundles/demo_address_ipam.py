@@ -55,22 +55,55 @@ def _prefix_cidr(host_index: int, rng: random.Random) -> str:
     )
 
 
-def _get_or_create_prefix(cidr: str):
+def _demo_ipam_host_dns_name(addr_name: str) -> str:
+    return f"{addr_name}.demo.local"
+
+
+def _demo_ipam_host_description(addr_name: str) -> str:
+    return f"Demo host {addr_name}"
+
+
+def _demo_ipam_prefix_description(addr_name: str, cidr: str) -> str:
+    return f"Demo prefix {cidr} ({addr_name})"
+
+
+def _apply_demo_ipam_metadata(ipam_obj, *, addr_name: str):
+    """Ensure demo IPAM rows expose dns_name/description for the IPA cell tree."""
+    from ipam.models import IPAddress, Prefix
+
+    if isinstance(ipam_obj, IPAddress):
+        ipam_obj.dns_name = _demo_ipam_host_dns_name(addr_name)
+        ipam_obj.description = _demo_ipam_host_description(addr_name)
+        ipam_obj.save(update_fields=["dns_name", "description"])
+    elif isinstance(ipam_obj, Prefix):
+        ipam_obj.description = _demo_ipam_prefix_description(
+            addr_name, str(ipam_obj.prefix)
+        )
+        ipam_obj.save(update_fields=["description"])
+
+
+def _get_or_create_prefix(cidr: str, *, addr_name: str):
     from ipam.models import Prefix
 
     existing = Prefix.objects.filter(prefix=cidr).order_by("pk").first()
     if existing is not None:
+        _apply_demo_ipam_metadata(existing, addr_name=addr_name)
         return existing
-    return Prefix.objects.create(prefix=cidr, status="active")
+    prefix = Prefix.objects.create(prefix=cidr, status="active")
+    _apply_demo_ipam_metadata(prefix, addr_name=addr_name)
+    return prefix
 
 
-def _get_or_create_ipaddress(cidr: str):
+def _get_or_create_ipaddress(cidr: str, *, addr_name: str):
     from ipam.models import IPAddress
 
     existing = IPAddress.objects.filter(address=cidr).order_by("pk").first()
     if existing is not None:
+        _apply_demo_ipam_metadata(existing, addr_name=addr_name)
         return existing
-    return IPAddress.objects.create(address=cidr, status="active")
+    ip_address = IPAddress.objects.create(address=cidr, status="active")
+    _apply_demo_ipam_metadata(ip_address, addr_name=addr_name)
+    return ip_address
 
 
 def seed_demo_address_ipam(*, names: list[str] | None = None) -> int:
@@ -99,10 +132,14 @@ def seed_demo_address_ipam(*, names: list[str] | None = None) -> int:
     for host_index, addr_obj in enumerate(queryset):
         rng = random.Random(DEMO_ADDR_IPAM_SEED + host_index * 991)
         if rng.random() < DEMO_ADDR_IPAM_HOST_RATIO:
-            ipam_obj = _get_or_create_ipaddress(_host_cidr(host_index))
+            ipam_obj = _get_or_create_ipaddress(
+                _host_cidr(host_index), addr_name=addr_obj.name
+            )
             ct_id = ip_ct_id
         else:
-            ipam_obj = _get_or_create_prefix(_prefix_cidr(host_index, rng))
+            ipam_obj = _get_or_create_prefix(
+                _prefix_cidr(host_index, rng), addr_name=addr_obj.name
+            )
             ct_id = prefix_ct_id
 
         addr_obj.address_content_type_id = ct_id

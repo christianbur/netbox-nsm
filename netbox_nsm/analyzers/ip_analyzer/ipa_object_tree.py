@@ -2981,6 +2981,74 @@ def _ipa_ipam_model_name(obj):
     return ""
 
 
+def _ipa_nsm_object_description(nsm_obj):
+    """Return a stripped NSM policy-object description when present."""
+    if nsm_obj is None:
+        return ""
+    return str(getattr(nsm_obj, "description", "") or "").strip()
+
+
+def _ipa_ipam_object_display_ref(ipam_obj, nsm_obj=None):
+    """Build IPAM metadata for the cell-tree DNS/description column."""
+    model_name = _ipa_ipam_model_name(ipam_obj)
+    if model_name == "prefix":
+        kind = "prefix"
+    elif model_name == "ipaddress":
+        kind = "ipaddress"
+    elif model_name == "iprange":
+        kind = "iprange"
+    else:
+        return None
+
+    description = str(getattr(ipam_obj, "description", "") or "").strip()
+    if not description:
+        description = _ipa_nsm_object_description(nsm_obj)
+    dns_name = ""
+    if kind == "ipaddress":
+        dns_name = str(getattr(ipam_obj, "dns_name", "") or "").strip()
+
+    if kind == "ipaddress":
+        if not dns_name and not description:
+            return None
+    elif not description:
+        return None
+
+    url = None
+    if hasattr(ipam_obj, "get_absolute_url"):
+        try:
+            url = ipam_obj.get_absolute_url()
+        except Exception:
+            url = None
+    return {
+        "kind": kind,
+        "description": description,
+        "dns_name": dns_name,
+        "url": url,
+    }
+
+
+def _attach_ipa_cell_ipam_object_refs(nodes, obj_by_key=None):
+    """Attach resolved IPAM DNS/description metadata for the flat cell-tree."""
+    for node in nodes or []:
+        if node.get("layer") == "ipam_prefix":
+            _attach_ipa_cell_ipam_object_refs(node.get("children") or [], obj_by_key)
+            continue
+        if _ipa_tree_node_is_structural(node):
+            _attach_ipa_cell_ipam_object_refs(node.get("children") or [], obj_by_key)
+            continue
+
+        key = _ipa_object_tree_node_key(node)
+        obj = obj_by_key.get(key) if key and obj_by_key else None
+        ipam_obj = _ipa_cell_tree_ipam_object_for_node(node, obj=obj)
+        if ipam_obj is not None:
+            ipam_ref = _ipa_ipam_object_display_ref(ipam_obj, nsm_obj=obj)
+            if ipam_ref is not None:
+                node["ipam_object_ref"] = ipam_ref
+
+        _hub._attach_addr_navigation_refs(node, obj=obj, ipam_obj=ipam_obj)
+        _attach_ipa_cell_ipam_object_refs(node.get("children") or [], obj_by_key)
+
+
 def _ipa_queryset_pk_set(queryset):
     """Resolve primary keys from a QuerySet/list without assuming a concrete ORM type."""
     try:
@@ -3004,28 +3072,36 @@ def _ipa_lookup_ipam_ipaddress_from_ref(ip_ref):
         return None
 
 
-def _ipa_cell_tree_ipam_object_for_node(node):
+def _ipa_cell_tree_ipam_object_for_node(node, obj=None):
     """Resolve the IPAM object represented by one cell-tree row, if available."""
     ip_ref = node.get("ip_ref") or {}
     ipam_obj = _hub._ipam_obj_from_ip_ref(ip_ref)
     if ipam_obj is not None:
         return ipam_obj
 
-    role = _ipa_object_node_role_from_tree_node(node)
-    if role == IPA_NODE_ROLE_HOST or ip_ref.get("type") == _FIELD_TYPE_LABELS["ip_address"]:
-        ipam_obj = _ipa_lookup_ipam_ipaddress_from_ref(ip_ref)
+    if obj is not None:
+        ipam_obj = _hub._ipam_fk_object_for_addr_node(obj)
         if ipam_obj is not None:
             return ipam_obj
 
+    role = _ipa_object_node_role_from_tree_node(node)
+    is_host = role == IPA_NODE_ROLE_HOST or ip_ref.get("type") == _FIELD_TYPE_LABELS["ip_address"]
+
     candidates = []
     for candidate in (
-        node.get("prefix_display_cidr"),
         ip_ref.get("str"),
+        node.get("prefix_display_cidr"),
         _ipa_cidr_from_object_name(node.get("name")),
         _ipa_cidr_from_host_object_name(node.get("name")),
     ):
         if candidate and candidate not in candidates:
             candidates.append(candidate)
+
+    if is_host:
+        for cidr in candidates:
+            ipam_obj = _ipa_lookup_ipam_ipaddress_from_ref({"str": cidr})
+            if ipam_obj is not None:
+                return ipam_obj
 
     for cidr in candidates:
         if role == IPA_NODE_ROLE_RANGE or ip_ref.get("type") == _FIELD_TYPE_LABELS["range"]:
@@ -3034,6 +3110,8 @@ def _ipa_cell_tree_ipam_object_for_node(node):
             )
             if ipam_obj is not None:
                 return ipam_obj
+        if is_host:
+            continue
         if role in (IPA_NODE_ROLE_PREFIX, IPA_NODE_ROLE_GROUP) or "/" in str(cidr):
             ipam_obj = _hub._lookup_ipam_prefix_from_ip_ref(
                 {"str": cidr, "type": _FIELD_TYPE_LABELS["prefix"]}
@@ -3375,6 +3453,7 @@ def _build_ipa_cell_object_tree(raw_selections, obj_by_key):
     _attach_ipa_drilldown_meta(nodes, tree_obj_by_key)
     _ensure_ipa_cell_tree_network_links(nodes, tree_obj_by_key)
     _attach_ipa_cell_address_fields(nodes, tree_obj_by_key)
+    _attach_ipa_cell_ipam_object_refs(nodes, tree_obj_by_key)
     _sync_ipa_cell_tree_node_flags(nodes)
     nodes = _prune_ipa_info_gap_nodes(nodes)
     _mark_ipa_ipam_parent_prefix_flags(nodes)
@@ -3506,6 +3585,7 @@ def _build_ipa_cell_object_tree_from_diff(addr_analyzer):
     _mark_ipa_cell_tree_parent_hints(nodes)
     _attach_ipa_drilldown_meta(nodes, {})
     _ensure_ipa_cell_tree_network_links(nodes, {})
+    _attach_ipa_cell_ipam_object_refs(nodes, {})
     _sync_ipa_cell_tree_node_flags(nodes)
     _attach_ipa_cell_display_hints(nodes)
     _attach_ipa_explain_fields(nodes)

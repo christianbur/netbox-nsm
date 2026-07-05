@@ -1291,7 +1291,8 @@
 
 .nsm-ipa-applet .nsm-ipa-cell-tree-table {
   --nsm-ipa-cell-tree-network-width: 12.5rem;
-  --nsm-ipa-cell-tree-ipam-width: 5.5rem;
+  --nsm-ipa-cell-tree-ipam-width: 6.5rem;
+  --nsm-ipa-cell-tree-ipam-desc-width: 14rem;
   --nsm-ipa-cell-tree-duplicate-width: 3rem;
   --nsm-ipa-cell-tree-address-width: 9rem;
   --nsm-ipa-cell-tree-address-group-width: 12.5rem;
@@ -1300,8 +1301,8 @@
   --nsm-ipa-cell-tree-us-width: 18rem;
   --nsm-ipa-cell-tree-min-width: calc(
     var(--nsm-ipa-cell-tree-network-width) + var(--nsm-ipa-cell-tree-ipam-width) +
-      var(--nsm-ipa-cell-tree-duplicate-width) + var(--nsm-ipa-cell-tree-address-width) +
-      var(--nsm-ipa-cell-tree-address-group-width) +
+      var(--nsm-ipa-cell-tree-ipam-desc-width) + var(--nsm-ipa-cell-tree-duplicate-width) +
+      var(--nsm-ipa-cell-tree-address-width) + var(--nsm-ipa-cell-tree-address-group-width) +
       var(--nsm-ipa-cell-tree-merge-width) + var(--nsm-ipa-cell-tree-diff-width) +
       var(--nsm-ipa-cell-tree-us-width)
   );
@@ -1347,8 +1348,52 @@
 
 .nsm-ipa-applet .nsm-ipa-cell-tree-col--ipam {
   white-space: nowrap;
+  text-align: left;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-col--ipam .nsm-addr-ipam-short {
   font-variant-numeric: tabular-nums;
-  text-align: center;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-col--ipam-desc,
+.nsm-ipa-applet .nsm-ipa-cell-tree-header-col--ipam-desc {
+  width: var(--nsm-ipa-cell-tree-ipam-desc-width);
+  min-width: var(--nsm-ipa-cell-tree-ipam-desc-width);
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-col--ipam-desc {
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+  vertical-align: top;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-ipam-desc {
+  display: flex;
+  flex-direction: column;
+  gap: 0.08rem;
+  font-size: 0.78rem;
+  line-height: 1.25;
+  min-width: 0;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-ipam-desc-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-ipam-desc-link:hover {
+  text-decoration: underline;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-ipam-desc-dns {
+  display: block;
+  font-weight: 600;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-ipam-desc-text {
+  display: block;
 }
 
 .nsm-ipa-applet .nsm-ipa-cell-tree-col--address,

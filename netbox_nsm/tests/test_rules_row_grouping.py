@@ -1,5 +1,8 @@
 """Tests for Grouped Rows in the rules table."""
 
+from types import SimpleNamespace
+from unittest.mock import patch
+
 from django.test import RequestFactory, SimpleTestCase
 
 from netbox_nsm.rulebooks.rules_tab.badge import format_rules_tab_badge
@@ -137,6 +140,85 @@ class RulesRowGroupingTests(SimpleTestCase):
             for child in col["children"]
         ]
         self.assertIn("source_zones::ct_1", child_fields)
+
+    def test_build_row_group_tab_summaries_rulebook_slug_resolves_display_label(self):
+        rulebook_col = {"kind": "system", "slug": "rulebook", "col_id": "rulebook"}
+        rows = [
+            {
+                "pk": 1,
+                "rulebook_name": "nsm_rb_demo_zone_addresses",
+                "system": {"rulebook": "nsm_rb_demo_zone_addresses"},
+            },
+            {
+                "pk": 2,
+                "rulebook_name": "nsm_rb_demo_zone_addresses",
+                "system": {"rulebook": "nsm_rb_demo_zone_addresses"},
+            },
+        ]
+
+        with patch(
+            "netbox_nsm.rulebooks.registry.get_deployed_cot_rulebook"
+        ) as mock_get:
+            mock_get.return_value = SimpleNamespace(
+                slug="nsm_rb_demo_zone_addresses",
+                name="nsm_rb_demo_zone_addresses",
+                verbose_name="Rulebook Bench Addresses",
+            )
+            with patch(
+                "netbox_nsm.rulebooks.virtual_cot.build_virtual_cot_rulebook_row"
+            ) as mock_build:
+                mock_build.return_value = SimpleNamespace(
+                    name="Rulebook Bench Addresses"
+                )
+                summaries = build_row_group_tab_summaries(
+                    rows,
+                    rulebook_col,
+                    sort_field="index",
+                    sort_order="asc",
+                )
+
+        self.assertEqual(len(summaries), 1)
+        self.assertEqual(summaries[0]["group_key"], "Rulebook Bench Addresses")
+        self.assertEqual(summaries[0]["group_label"], "Rulebook Bench Addresses")
+
+    def test_build_row_group_tab_summaries_object_column_resolves_rulebook_slug(self):
+        address_col = {
+            "kind": "object",
+            "col_id": "destination_addresses::ct_1",
+            "key": "destination_addresses::ct_1",
+            "area_slug": "destination_addresses",
+        }
+        rows = [
+            {
+                "pk": 1,
+                "cells_items": {
+                    "destination_addresses::ct_1": [
+                        {"name": "nsm_rb_demo_zone_addresses"}
+                    ]
+                },
+            },
+        ]
+
+        with patch(
+            "netbox_nsm.rulebooks.registry.get_deployed_cot_rulebook"
+        ) as mock_get:
+            mock_get.return_value = SimpleNamespace(
+                slug="nsm_rb_demo_zone_addresses",
+                name="nsm_rb_demo_zone_addresses",
+                verbose_name="Rulebook RB Demo Zone/Address",
+            )
+            summaries = build_row_group_tab_summaries(
+                rows,
+                address_col,
+                sort_field="index",
+                sort_order="asc",
+            )
+
+        self.assertEqual(len(summaries), 1)
+        self.assertEqual(
+            summaries[0]["group_label"],
+            "Rulebook RB Demo Zone/Address",
+        )
 
     def test_build_row_group_tab_summaries_counts_and_sorts(self):
         rows = [

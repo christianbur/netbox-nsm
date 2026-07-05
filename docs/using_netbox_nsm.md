@@ -26,6 +26,20 @@ PLUGINS = ["netbox_custom_objects", "netbox_nsm"]
 
 Set `setup_allow_destructive_actions: True` in `PLUGINS_CONFIG` to enable the destructive-changes checkbox on Preview/Apply and demo bundle actions.
 
+### Disable Bundles menu
+
+To hide **Configuration → Bundles** and return HTTP 404 for `/plugins/netbox-nsm/bundles/` URLs (typical in production after initial schema deploy):
+
+```python
+PLUGINS_CONFIG = {
+    "netbox_nsm": {
+        "bundles_menu": False,
+    },
+}
+```
+
+Legacy key `setup_menu` is equivalent. Restart NetBox after changing `PLUGINS_CONFIG`.
+
 ## Permissions (0.4.5+)
 
 | Area | Permission |
@@ -132,7 +146,7 @@ Portable schema: `POST /api/plugins/custom-objects/schema/apply/` with `netbox_n
 PLUGINS_CONFIG = {
     "netbox_nsm": {
         "top_level_menu": True,
-        "setup_menu": True,
+        "bundles_menu": True,
         "setup_allow_destructive_actions": False,
         "menu_label": "Security",
         "panel_label": "Security",
@@ -145,7 +159,8 @@ PLUGINS_CONFIG = {
 | Key | Purpose |
 |-----|---------|
 | `top_level_menu` | Show the top-level **Security** (or `menu_label`) sidebar menu |
-| `setup_menu` | Show **Configuration → Bundles** and allow `/bundles/` URLs |
+| `bundles_menu` | Show **Configuration → Bundles** and allow `/bundles/` URLs (default: `True`; set `False` to hide menu and block bundle URLs) |
+| `setup_menu` | Legacy alias for `bundles_menu` |
 | `setup_allow_destructive_actions` | Enable destructive-changes checkbox on bundle Preview/Apply and demo actions |
 | `menu_label` | Top-level menu title (default: Security) |
 | `panel_label` | Security tab title on NetBox objects (default: same as menu or Security) |

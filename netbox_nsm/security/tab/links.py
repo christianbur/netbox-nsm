@@ -20,6 +20,7 @@ __all__ = (
     "PARAM_ROW_TYPE",
     "PER_PAGE_CHOICES",
     "build_row_type_options",
+    "build_row_type_url",
     "flatten_link_type_groups",
     "prepare_link_tab_view",
 )
@@ -71,8 +72,8 @@ def flatten_link_type_groups(groups: list[dict]) -> list[dict]:
         type_label = group.get("type_label") or type_key
         for obj in group.get("objects") or []:
             row = dict(obj)
-            row["row_type_label"] = type_label
-            row["row_type_filter_key"] = type_key
+            row["row_type_label"] = obj.get("row_type_label") or type_label
+            row["row_type_filter_key"] = obj.get("row_type_filter_key") or type_key
             rows.append(row)
     return rows
 
@@ -154,6 +155,95 @@ def _row_has_actions(obj: dict) -> bool:
     return bool(obj.get("edit_url") or obj.get("delete_url"))
 
 
+def _list_url_for_content_type_id(ct_id: int, *, cache: dict[int, str | None]) -> str | None:
+    if ct_id in cache:
+        return cache[ct_id]
+
+    url: str | None = None
+    try:
+        from django.contrib.contenttypes.models import ContentType
+        from django.urls import NoReverseMatch, reverse
+
+        ct = ContentType.objects.get(pk=ct_id)
+        model = ct.model_class()
+        if model is not None:
+            try:
+                from netbox_custom_objects.models import CustomObjectType
+
+                for cot in CustomObjectType.objects.only("pk", "slug"):
+                    try:
+                        if cot.get_model() == model:
+                            url = cot.get_list_url()
+                            break
+                    except Exception:
+                        continue
+            except Exception:
+                pass
+            if not url:
+                try:
+                    url = reverse(f"{ct.app_label}:{ct.model}_list")
+                except NoReverseMatch:
+                    pass
+    except Exception:
+        pass
+
+    cache[ct_id] = url
+    return url
+
+
+def build_row_type_url(
+    row: dict,
+    *,
+    request,
+    filter_url: str,
+    ct_cache: dict[int, str | None],
+) -> str:
+    """Return a list/detail URL for the linked object type, else the type filter URL."""
+    from netbox_nsm.core.branch_urls import with_branch_query
+
+    def _wrap(url: str) -> str:
+        if not url:
+            return filter_url
+        if request and not url.startswith("?"):
+            return with_branch_query(url, request)
+        return url
+
+    key = _row_type_filter_key(row)
+    slug = (row.get("cot_slug") or key or "").strip()
+
+    if slug.startswith("nsm_rb_"):
+        try:
+            from netbox_nsm.rulebooks.registry import get_deployed_cot_rulebook
+            from netbox_nsm.rulebooks.virtual_cot import VirtualCotRulebook
+
+            cot = get_deployed_cot_rulebook(slug)
+            if cot is not None:
+                return _wrap(VirtualCotRulebook(cot).get_absolute_url())
+        except Exception:
+            pass
+
+    cot_slug = (row.get("cot_slug") or "").strip()
+    if cot_slug and not cot_slug.startswith("nsm_rb_"):
+        try:
+            from netbox_custom_objects.models import CustomObjectType
+
+            cot = CustomObjectType.objects.filter(slug=cot_slug).first()
+            if cot is not None:
+                list_url = cot.get_list_url()
+                if list_url:
+                    return _wrap(list_url)
+        except Exception:
+            pass
+
+    ct_id = row.get("ct_id")
+    if ct_id:
+        list_url = _list_url_for_content_type_id(int(ct_id), cache=ct_cache)
+        if list_url:
+            return _wrap(list_url)
+
+    return filter_url
+
+
 def prepare_link_tab_view(link_type_groups: list[dict], request) -> dict:
     """Build flat-table context (controls + paginated page slice)."""
     get = request.GET if request is not None else {}
@@ -211,8 +301,22 @@ def prepare_link_tab_view(link_type_groups: list[dict], request) -> dict:
             "descending": is_current and descending,
         }
 
+    ct_cache: dict[int, str | None] = {}
+    page_rows = []
+    for obj in page.object_list:
+        row = dict(obj)
+        type_key = _row_type_filter_key(row)
+        filter_url = _table_qs(**{PARAM_ROW_TYPE: type_key or None, PARAM_PAGE: None})
+        row["row_type_url"] = build_row_type_url(
+            row,
+            request=request,
+            filter_url=filter_url,
+            ct_cache=ct_cache,
+        )
+        page_rows.append(row)
+
     table = {
-        "page": list(page.object_list),
+        "page": page_rows,
         "paginated": True,
         "show_actions": any(_row_has_actions(obj) for obj in all_objects),
         "q": query,

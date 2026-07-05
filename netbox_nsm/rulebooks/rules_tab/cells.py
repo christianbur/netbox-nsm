@@ -168,9 +168,20 @@ def _build_rules_cell_html(
                 system.get("name") or row.get("name") or "",
             )
         if slug == "rulebook":
+            label = (
+                system.get("rulebook")
+                or row.get("rulebook_name")
+                or ""
+            )
+            url = system.get("rulebook_url") or row.get("rulebook_url") or ""
+            rb_slug = system.get("rulebook_slug") or row.get("rulebook_slug") or ""
+            if not url and rb_slug:
+                from netbox_nsm.security.object_rules import build_rulebook_rules_tab_url
+
+                url = build_rulebook_rules_tab_url(rb_slug)
             return _render_name_cell_html(
-                system.get("rulebook") or "",
-                with_branch_query(system.get("rulebook_url") or "", request),
+                label,
+                with_branch_query(url, request),
             )
         if slug == "description":
             return _render_description_cell_html(

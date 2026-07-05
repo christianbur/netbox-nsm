@@ -28,6 +28,66 @@ def _display_name(value) -> str:
     return str(value)
 
 
+def _cot_type_display_label(cot) -> str:
+    """Readable Security-tab Type label for a custom object type."""
+    if cot is None:
+        return ""
+    slug = (getattr(cot, "slug", None) or "").strip()
+    if slug.startswith("nsm_rb_"):
+        from netbox_nsm.rulebooks.create import cot_rulebook_display_label
+
+        return cot_rulebook_display_label(cot)
+    verbose = (getattr(cot, "verbose_name", None) or "").strip()
+    if verbose:
+        return verbose
+    name = (getattr(cot, "name", None) or "").strip()
+    if name and name != slug:
+        return name
+    return name or slug or str(cot)
+
+
+def _object_absolute_url(obj) -> str:
+    if obj is None:
+        return ""
+    url_fn = getattr(obj, "get_absolute_url", None)
+    if not callable(url_fn):
+        return ""
+    try:
+        return url_fn() or ""
+    except Exception:
+        return ""
+
+
+def _value_item(obj) -> dict:
+    label = _display_name(obj)
+    return {"label": label, "url": _object_absolute_url(obj)}
+
+
+def _list_value_items(value) -> list[dict]:
+    return [_value_item(item) for item in value]
+
+
+def _apply_field_value(value) -> tuple[str, str, list[dict]]:
+    """Return ``(value_key, value_label, value_items)`` for a field value."""
+    if isinstance(value, list):
+        items = _list_value_items(value)
+        label = ", ".join(item["label"] for item in items)
+        return label or UNGROUPED_KEY, label, items
+    if value is not None:
+        item = _value_item(value)
+        label = item["label"]
+        if not label:
+            return UNGROUPED_KEY, "", []
+        return label, label, [item]
+    return UNGROUPED_KEY, "", []
+
+
+def _list_value_key_label(value) -> tuple[str, str]:
+    """Return ``(value_key, value_label)`` for a list field value."""
+    _key, label, _items = _apply_field_value(value)
+    return _key, label
+
+
 def _row_type_key(row_obj) -> tuple[str, ContentType]:
     ct = ContentType.objects.get_for_model(row_obj)
     return f"{ct.app_label}__{ct.model}", ct
@@ -100,6 +160,7 @@ def _payload_for_row(
     type_key, lct = _row_type_key(row_obj)
     value = _get_field_value(row_obj, field)
     value_key, value_label = nsm_object_group_value(row_obj)
+    value_items: list[dict] = []
 
     extra = {
         "source": "cot_reference",
@@ -120,12 +181,8 @@ def _payload_for_row(
         extra["via_obj_name"] = _display_name(via_obj)
         extra.update(_junction_via_action_urls(via_obj, return_url))
         extra["row_type_filter_key"] = type_key
-        if isinstance(value, list):
-            value_label = ", ".join(_display_name(v) for v in value[:3])
-            value_key = value_label or UNGROUPED_KEY
-        elif value is not None:
-            value_label = _display_name(value)
-            value_key = value_label
+        if isinstance(value, list) or value is not None:
+            value_key, value_label, value_items = _apply_field_value(value)
     elif isinstance(field, _OutgoingFieldProxy):
         host_ct = ContentType.objects.get_for_model(host_obj)
         row_obj = host_obj
@@ -133,23 +190,15 @@ def _payload_for_row(
         type_key = f"{host_ct.app_label}__{host_ct.model}"
         extra["is_outgoing_row"] = True
         extra["row_type_label"] = getattr(field, "type_label", None) or _type_label(host_obj)
-        if isinstance(value, list):
-            value_label = ", ".join(_display_name(v) for v in value[:3])
-            value_key = value_label or UNGROUPED_KEY
-        elif value is not None:
-            value_label = _display_name(value)
-            value_key = value_label
+        if isinstance(value, list) or value is not None:
+            value_key, value_label, value_items = _apply_field_value(value)
         extra.update(_cot_action_urls(host_obj, return_url))
     else:
         cot = getattr(field, "custom_object_type", None)
         if cot is not None:
-            extra["row_type_label"] = str(cot)
-        if isinstance(value, list):
-            value_label = ", ".join(_display_name(v) for v in value[:3])
-            value_key = value_label or UNGROUPED_KEY
-        elif value is not None and field.type == "object":
-            value_label = _display_name(value)
-            value_key = value_label
+            extra["row_type_label"] = _cot_type_display_label(cot)
+        if isinstance(value, list) or (value is not None and field.type == "object"):
+            value_key, value_label, value_items = _apply_field_value(value)
         extra.update(_cot_action_urls(row_obj, return_url))
 
     if "row_type_filter_key" not in extra:
@@ -163,6 +212,7 @@ def _payload_for_row(
         tmpl_map,
         value_key=value_key,
         value_label=value_label,
+        value_items=value_items,
         **extra,
     )
 
@@ -198,9 +248,10 @@ def append_cot_reference_link_groups(
         if dedupe in seen:
             continue
         seen.add(dedupe)
+        group_label = payload.get("row_type_label") or _type_label
         bucket = links_by_type.setdefault(
             type_key,
-            {"label": _type_label, "objects": []},
+            {"label": group_label, "objects": []},
         )
         bucket["objects"].append(payload)
         added += 1

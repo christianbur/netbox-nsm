@@ -94,9 +94,21 @@
     line-height: 1;
     padding: 0.12rem 0.28rem;
   }
-  .nsm-link-table .col-actions .nsm-link-actions.btn-group-sm > .btn .mdi {
+  .nsm-link-table .col-actions .nsm-link-actions .nsm-link-edit-menu > .btn {
+    line-height: 1;
+    padding: 0.12rem 0.28rem;
+  }
+  .nsm-link-table .col-actions .nsm-link-actions .nsm-link-edit-menu > .dropdown-toggle-split {
+    padding-left: 0.18rem;
+    padding-right: 0.22rem;
+  }
+  .nsm-link-table .col-actions .nsm-link-actions.btn-group-sm > .btn .mdi,
+  .nsm-link-table .col-actions .nsm-link-actions .nsm-link-edit-menu > .btn .mdi {
     font-size: 0.8rem;
     line-height: 1;
+  }
+  .nsm-link-objects .htmx-container.table-responsive {
+    overflow: visible;
   }
   .nsm-object-status-icon {
     font-size: 0.95rem;
@@ -181,7 +193,8 @@
   }
   .nsm-link-objects table.nsm-link-table {
     margin-bottom: 0;
-    table-layout: auto;
+    table-layout: fixed;
+    width: 100%;
   }
   .nsm-link-objects table.nsm-link-table thead th {
     font-size: 11px;
@@ -190,15 +203,49 @@
     color: var(--bs-secondary-color);
     white-space: nowrap;
   }
-  .nsm-link-objects table.nsm-link-table .col-object {
-    padding-left: 0.75rem;
+  /* Compact type/actions; object content-sized; value/field wrap fully. */
+  .nsm-link-objects table.nsm-link-table .col-type {
+    width: 14%;
+    min-width: 9rem;
+    max-width: 14rem;
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    vertical-align: middle;
+    font-size: 12px;
   }
+  .nsm-link-objects table.nsm-link-table .col-object {
+    width: 22%;
+    min-width: 9rem;
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    vertical-align: middle;
+    font-size: 12px;
+  }
+  .nsm-link-objects table.nsm-link-table .col-value {
+    width: 32%;
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    vertical-align: middle;
+    font-size: 12px;
+  }
+  .nsm-link-objects table.nsm-link-table .col-field {
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    vertical-align: middle;
+    font-size: 12px;
+  }
+  .nsm-link-objects table.nsm-link-table .col-object,
   .nsm-link-objects table.nsm-link-table thead th.col-object {
     padding-left: 0.75rem;
   }
-  .nsm-link-objects .col-value {
-    width: 9rem;
-    font-size: 12px;
+  .nsm-link-objects table.nsm-link-table .col-actions {
+    width: auto;
+    min-width: 7.25rem;
+    white-space: nowrap;
     vertical-align: middle;
   }
   .nsm-link-value-badge {

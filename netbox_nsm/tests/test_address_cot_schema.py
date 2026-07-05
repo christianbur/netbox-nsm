@@ -39,10 +39,11 @@ class AddressCotSchemaTests(SimpleTestCase):
         cot = SimpleNamespace(get_model=lambda: model, comments="")
         self.assertFalse(cot_ipam_address_flag(cot))
 
-    @patch("netbox_nsm.type_metadata.config.parse_nsm_config_from_comments")
-    def test_object_builder_in_nsm_config(self, parse_comments):
-        parse_comments.return_value = {"object_builder": {"enabled": True}}
-        cot = SimpleNamespace(comments="nsm_config: ...")
+    @patch("netbox_nsm.type_metadata.config.parse_nsm_config_from_cot")
+    @patch("netbox_nsm.type_metadata.config._is_custom_object_type", return_value=True)
+    def test_object_builder_in_nsm_config(self, _is_cot, parse_cot):
+        parse_cot.return_value = {"object_builder": {"enabled": True}}
+        cot = SimpleNamespace(comments="nsm_config: ...", get_model=lambda: None)
         self.assertTrue(object_builder_in_nsm_config(cot))
 
     @patch("netbox_nsm.objects.cot_roles.resolve_members_field")

@@ -17,7 +17,7 @@ from netbox_nsm.api.serializers_.nsm_config import (
 )
 from netbox_nsm.type_metadata.config import (
     clear_nsm_config_from_cot_comments,
-    parse_nsm_config_document_from_comments,
+    parse_nsm_config_document_from_cot,
     save_nsm_config_document_for_cot,
 )
 from netbox_nsm.type_metadata.permissions import (
@@ -76,7 +76,7 @@ def _serialize_cot(cot) -> dict:
     return {
         "slug": cot.slug,
         "custom_object_type_id": cot.pk,
-        "nsm_config": parse_nsm_config_document_from_comments(cot.comments or ""),
+        "nsm_config": parse_nsm_config_document_from_cot(cot),
         "comments": cot.comments or "",
     }
 

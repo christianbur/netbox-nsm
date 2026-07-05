@@ -8,6 +8,8 @@ from django.test import SimpleTestCase
 from netbox_nsm.security.object_rules import (
     build_cot_rule_name_column_filter_url,
     build_matrix_cell_rules_filter_url,
+    build_rulebook_list_quickfilter_url,
+    build_rulebook_rules_tab_url,
     build_rulebooks_panel_url,
 )
 
@@ -50,14 +52,30 @@ class MatrixCellRulesFilterUrlTests(SimpleTestCase):
         self.assertNotIn("filter_q", query)
 
 
+class RulebookLinkUrlTests(SimpleTestCase):
+    def test_rules_tab_url(self):
+        url = build_rulebook_rules_tab_url("nsm_rb_demo_zone_matrix")
+        self.assertIn("/rulebooks/cot/nsm_rb_demo_zone_matrix/rules/", url)
+
+    def test_list_quickfilter_url(self):
+        url = build_rulebook_list_quickfilter_url("Rulebook RB Demo Zone Matrix")
+        self.assertIn("/rulebooks/", url)
+        query = parse_qs(urlparse(url).query)
+        self.assertEqual(
+            query["q"][0],
+            "Rulebook RB Demo Zone Matrix",
+        )
+
+
 class RulebooksPanelUrlTests(SimpleTestCase):
-    def test_single_rulebook_links_to_detail(self):
+    def test_single_rulebook_links_to_rules_tab(self):
         rb = SimpleNamespace(
             pk=3,
             get_absolute_url=lambda: "/rulebooks/cot/nsm_rb_prod/",
+            get_rules_tab_url=lambda: "/rulebooks/cot/nsm_rb_prod/rules/",
         )
         url = build_rulebooks_panel_url([{"rulebook": rb}])
-        self.assertEqual(url, "/rulebooks/cot/nsm_rb_prod/")
+        self.assertEqual(url, "/rulebooks/cot/nsm_rb_prod/rules/")
 
     def test_multiple_rulebooks_links_to_list(self):
         rb_a = SimpleNamespace(pk=1, get_absolute_url=lambda: "/rulebooks/cot/a/")

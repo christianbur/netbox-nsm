@@ -13,8 +13,30 @@ __all__ = (
     "build_cot_rule_name_column_filter_url",
     "build_cot_rules_column_filter_url",
     "build_matrix_cell_rules_filter_url",
+    "build_rulebook_list_quickfilter_url",
+    "build_rulebook_rules_tab_url",
     "build_rulebooks_panel_url",
 )
+
+
+def build_rulebook_rules_tab_url(rulebook_slug: str) -> str:
+    """Security → rulebook Rules tab (column quick-search / filter_q chrome)."""
+    slug = (rulebook_slug or "").strip()
+    if not slug:
+        return ""
+    return reverse(
+        "plugins:netbox_nsm:cot_rulebook_rules",
+        kwargs={"slug": slug},
+    )
+
+
+def build_rulebook_list_quickfilter_url(label: str) -> str:
+    """Security → Rulebooks list with NetBox table quicksearch ``?q=``."""
+    base = reverse("plugins:netbox_nsm:rulebook_list")
+    text = (label or "").strip()
+    if not text:
+        return base
+    return f"{base}?q={quote(text)}"
 
 
 def build_matrix_cell_rules_filter_url(
@@ -82,5 +104,8 @@ def build_rulebooks_panel_url(rulebook_groups: list) -> str:
     if len(rulebook_groups) == 1:
         rb = rulebook_groups[0].get("rulebook")
         if rb is not None:
+            rules_url = getattr(rb, "get_rules_tab_url", None)
+            if callable(rules_url):
+                return rules_url()
             return rb.get_absolute_url()
     return reverse("plugins:netbox_nsm:rulebook_list")

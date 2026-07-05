@@ -5,7 +5,7 @@ No firewall push — inventory and policy only.
 
 > **⚠️ Work in progress** — Not recommended for production use yet. Breaking changes possible (e.g. 0.4.5 permission migration).
 
-**Status:** **NetBox:** 4.5–4.6 · **Plugin:** 0.4.9 · **Requires:** [netbox-custom-objects](https://github.com/netboxlabs/netbox-custom-objects)
+**Status:** **NetBox:** 4.5–4.6 · **Plugin:** 0.4.11 · **Requires:** [netbox-custom-objects](https://github.com/netboxlabs/netbox-custom-objects)
 
 ## Features
 
@@ -72,7 +72,7 @@ PLUGINS_CONFIG = {
         "menu_label": "Security",
         "panel_label": "Security",
         "top_level_menu": True,
-        "setup_menu": True,
+        "bundles_menu": True,  # False hides Configuration → Bundles
         "setup_allow_destructive_actions": True,  # destructive preview/apply + demos; disable in prod
         "bundle_paths": [],
         "builtin_bundles": True,

@@ -106,7 +106,16 @@ def parse_role_from_comments(text: str) -> str | None:
 
 def resolve_role_for_cot(cot) -> str | None:
     """Return the effective role for *cot* (comments override slug defaults)."""
-    stored = parse_role_from_comments(getattr(cot, "comments", "") or "")
+    from netbox_nsm.type_metadata.config import _custom_object_type_comments, _is_custom_object_type
+
+    if not _is_custom_object_type(cot):
+        parent = getattr(cot, "custom_object_type", None)
+        if parent is not None and parent is not cot:
+            return resolve_role_for_cot(parent)
+        return default_role_for_slug(getattr(parent, "slug", "") or "")
+
+    comments = _custom_object_type_comments(cot)
+    stored = parse_role_from_comments(comments or "")
     if stored:
         return stored
     return default_role_for_slug(getattr(cot, "slug", "") or "")

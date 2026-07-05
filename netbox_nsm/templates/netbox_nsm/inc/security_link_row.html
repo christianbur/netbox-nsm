@@ -1,6 +1,12 @@
 {% load i18n %}
 <tr class="nsm-link-row">
-  <td class="col-type">{{ linked.row_type_label|default:"" }}</td>
+  <td class="col-type"{% if linked.row_type_label %} title="{{ linked.row_type_label }}"{% endif %}>
+    {% if linked.row_type_url and linked.row_type_label %}
+      <a href="{{ linked.row_type_url }}" class="text-reset">{{ linked.row_type_label }}</a>
+    {% else %}
+      {{ linked.row_type_label|default:"" }}
+    {% endif %}
+  </td>
   <td class="col-object">
     {% if linked.parent_url %}<a href="{{ linked.parent_url }}" class="nsm-link-parent-host text-decoration-none">{{ linked.parent_name }}</a><span class="text-muted" aria-hidden="true"> / </span>{% endif %}<a href="{{ linked.url }}"{% if linked.inherited_from_name %} class="text-muted fst-italic"{% endif %}>{{ linked.name }}</a>{% if linked.status_icon_html %}{{ linked.status_icon_html|safe }}{% endif %}
     {% if linked.inherited_from_name %}
@@ -17,6 +23,14 @@
       {% else %}
         &mdash;
       {% endif %}
+    {% elif linked.value_items %}
+      {% for item in linked.value_items %}
+        {% if item.url %}
+          <a href="{{ item.url }}">{{ item.label }}</a>{% if not forloop.last %}<span class="text-muted" aria-hidden="true">, </span>{% endif %}
+        {% else %}
+          {{ item.label }}{% if not forloop.last %}<span class="text-muted" aria-hidden="true">, </span>{% endif %}
+        {% endif %}
+      {% endfor %}
     {% elif linked.value_label and linked.value_key != "_none" %}
       {% if linked.value_url %}
         <a href="{{ linked.value_url }}">{{ linked.value_label }}</a>
@@ -30,33 +44,7 @@
   <td class="col-field">{{ linked.field_label|default:"" }}</td>
   {% if group.show_actions %}
   <td class="col-actions pe-2 text-end text-nowrap noprint">
-    {% if linked.is_cot_row and linked.cot_slug %}
-      {% with action_edit=linked.edit_url action_delete=linked.delete_url action_changelog=linked.changelog_url %}
-      <span class="btn-group dropdown">
-        {% if action_edit %}
-        <a class="btn btn-sm btn-warning"
-           href="{{ action_edit }}"
-           type="button"
-           aria-label="{% trans 'Edit' %}"><i class="mdi mdi-pencil"></i></a>
-        {% endif %}
-        <button type="button"
-                class="btn btn-sm btn-warning dropdown-toggle"
-                data-bs-toggle="dropdown"
-                aria-expanded="false"
-                style="padding-left: 2px">
-          <span class="visually-hidden">{% trans 'Toggle Dropdown' %}</span>
-        </button>
-        <ul class="dropdown-menu">
-          {% if action_changelog %}
-          <li><a class="dropdown-item" href="{{ action_changelog }}"><i class="mdi mdi-history" aria-hidden="true"></i> {% trans "Changelog" %}</a></li>
-          {% endif %}
-          {% if action_delete %}
-          <li><a class="dropdown-item" href="{{ action_delete }}"><i class="mdi mdi-trash-can-outline" aria-hidden="true"></i> {% trans "Delete" %}</a></li>
-          {% endif %}
-        </ul>
-      </span>
-      {% endwith %}
-    {% elif linked.supports_addr_analyzer or linked.edit_url or linked.delete_url %}
+    {% if linked.supports_addr_analyzer or linked.edit_url or linked.delete_url or linked.changelog_url %}
     <span class="btn-group btn-group-sm nsm-link-actions" role="group">
       {% if linked.supports_addr_analyzer %}
       <button type="button" class="btn btn-light btn-sm nsm-ipa-loupe"
@@ -69,16 +57,42 @@
       </button>
       {% endif %}
       {% if linked.edit_url %}
-      <a href="{{ linked.edit_url }}" class="btn btn-warning btn-sm"
-         title="{% trans 'Edit assignment' %}" aria-label="{% trans 'Edit assignment' %}">
-        <i class="mdi mdi-pencil" aria-hidden="true"></i>
-      </a>
-      {% endif %}
-      {% if linked.delete_url %}
-      <a href="{{ linked.delete_url }}" class="btn btn-danger btn-sm"
-         title="{% trans 'Remove assignment' %}" aria-label="{% trans 'Remove assignment' %}">
-        <i class="mdi mdi-trash-can-outline" aria-hidden="true"></i>
-      </a>
+      <span class="btn-group btn-group-sm dropdown nsm-link-edit-menu">
+        <a href="{{ linked.edit_url }}" class="btn btn-warning btn-sm"
+           title="{% trans 'Edit' %}" aria-label="{% trans 'Edit' %}">
+          <i class="mdi mdi-pencil" aria-hidden="true"></i>
+        </a>
+        {% if linked.changelog_url or linked.delete_url %}
+        <button type="button"
+                class="btn btn-warning btn-sm dropdown-toggle dropdown-toggle-split"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+                aria-label="{% trans 'More actions' %}">
+          <span class="visually-hidden">{% trans 'More actions' %}</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          {% if linked.changelog_url %}
+          <li>
+            <a class="dropdown-item" href="{{ linked.changelog_url }}">
+              <i class="mdi mdi-history" aria-hidden="true"></i> {% trans "Changelog" %}
+            </a>
+          </li>
+          {% endif %}
+          {% if linked.delete_url %}
+          <li>
+            <a class="dropdown-item text-danger" href="{{ linked.delete_url }}">
+              <i class="mdi mdi-trash-can-outline" aria-hidden="true"></i>
+              {% if linked.is_cot_row %}
+                {% trans "Delete" %}
+              {% else %}
+                {% trans "Remove assignment" %}
+              {% endif %}
+            </a>
+          </li>
+          {% endif %}
+        </ul>
+        {% endif %}
+      </span>
       {% endif %}
     </span>
     {% endif %}

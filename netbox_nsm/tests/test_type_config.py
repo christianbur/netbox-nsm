@@ -14,7 +14,7 @@ class TypeMetadataPackageImportTests(TestCase):
             config_dict_from_spec,
             has_nsm_config_in_comments,
             normalize_nsm_config_list,
-            parse_nsm_config_from_comments,
+            parse_nsm_config_from_cot,
             resolve_nsm_config_for_cot,
         )
 

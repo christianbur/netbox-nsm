@@ -19,6 +19,7 @@ from netbox_nsm.rulebooks.templates import (
 __all__ = (
     "apply_copy_prefix",
     "build_rulebook_clone_form_initial",
+    "cot_rulebook_display_label",
     "create_cot_rulebook_from_schema_yaml",
     "create_cot_rulebook_from_template",
     "derive_rulebook_name",
@@ -50,6 +51,20 @@ def rulebook_name_from_slug(slug: str) -> str:
     if slug.startswith("nsm_rb_"):
         return slug[len("nsm_rb_") :]
     return slug
+
+
+def cot_rulebook_display_label(cot) -> str:
+    """Human-readable rulebook label for lists, tabs, and grouped rows."""
+    verbose = (getattr(cot, "verbose_name", None) or "").strip()
+    if verbose:
+        return verbose
+    slug = (getattr(cot, "slug", None) or "").strip()
+    name = (getattr(cot, "name", None) or "").strip()
+    if name and name != slug and not name.startswith("nsm_rb_"):
+        return format_rulebook_display_name(name)
+    if slug.startswith("nsm_rb_"):
+        return format_rulebook_display_name(rulebook_name_from_slug(slug))
+    return name or slug
 
 
 def iter_deployed_rulebook_clone_choices(user):

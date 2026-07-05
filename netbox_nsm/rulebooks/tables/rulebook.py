@@ -89,7 +89,7 @@ class RulebookNameColumn(tables.Column):
 
         depth = rulebook_list_depth(record)
         marker = render_hierarchy_marker(depth)
-        url = record.get_absolute_url()
+        url = record.get_rules_tab_url()
         link = format_html(
             '<a href="{}" class="nsm-rb-name-link">{}</a>',
             url,

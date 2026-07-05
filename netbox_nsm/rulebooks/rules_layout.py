@@ -396,10 +396,42 @@ def _content_type_for_object_type(object_type) -> ContentType:
     )
 
 
-def _display_name(obj) -> str:
+def _display_name(
+    obj,
+    *,
+    ct_pk: int | None = None,
+    tmpl_map: dict | None = None,
+) -> str:
+    raw_name = str(getattr(obj, "name", obj))
+    render_display_value = None
     if hasattr(obj, "render_display"):
-        return str(obj.render_display())
-    return str(getattr(obj, "name", obj))
+        try:
+            render_display_value = str(obj.render_display())
+        except Exception:
+            render_display_value = None
+
+    if ct_pk is None:
+        try:
+            ct_pk = ContentType.objects.get_for_model(obj).pk
+        except Exception:
+            ct_pk = None
+
+    render_object_display_value = None
+    if ct_pk is not None:
+        from netbox_nsm.core.display_utils import (
+            get_display_template_map,
+            render_object_display,
+        )
+
+        if tmpl_map is None:
+            tmpl_map = get_display_template_map()
+        render_object_display_value = render_object_display(obj, ct_pk, tmpl_map)
+
+    if render_object_display_value:
+        return render_object_display_value
+    if render_display_value:
+        return render_display_value
+    return raw_name
 
 
 def _object_item_dict(
@@ -408,9 +440,17 @@ def _object_item_dict(
     ct_cache: dict | None = None,
     address_ct_ids: set[int] | None = None,
     include_links: bool = True,
+    tmpl_map: dict | None = None,
 ) -> dict:
     if not include_links:
-        return {"name": _display_name(obj)}
+        ct_pk = None
+        if ct_cache is not None:
+            model_cls = obj.__class__
+            if model_cls not in ct_cache:
+                ct_cache[model_cls] = ContentType.objects.get_for_model(obj).pk
+            ct_pk = ct_cache[model_cls]
+        display_name = _display_name(obj, ct_pk=ct_pk, tmpl_map=tmpl_map)
+        return {"name": display_name}
 
     cot = getattr(obj, "custom_object_type", None)
     slug = getattr(cot, "slug", None) if cot is not None else None
@@ -430,9 +470,10 @@ def _object_item_dict(
     else:
         ct_pk = ContentType.objects.get_for_model(obj).pk
     status = get_nsm_object_status(obj)
+    display_name = _display_name(obj, ct_pk=ct_pk, tmpl_map=tmpl_map)
     return {
         "url": url,
-        "name": _display_name(obj),
+        "name": display_name,
         "color": getattr(obj, "color", "") or "",
         "status": status,
         "excluded": False,
@@ -625,6 +666,9 @@ def build_cot_grouped_rules_table_data(
             ["nsm_address", "nsm_address_custom", "nsm_address_group"]
         )
     )
+    from netbox_nsm.core.display_utils import get_display_template_map
+
+    tmpl_map = get_display_template_map()
 
     for instance in instances:
         per_key = {col["key"]: [] for col in grouped_columns}
@@ -651,6 +695,7 @@ def build_cot_grouped_rules_table_data(
                             ct_cache=ct_cache,
                             address_ct_ids=address_ct_ids,
                             include_links=include_links,
+                            tmpl_map=tmpl_map,
                         )
                     )
 

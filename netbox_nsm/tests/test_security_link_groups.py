@@ -1,11 +1,9 @@
 """Tests for Security Panel link table group metadata."""
 
-from types import SimpleNamespace
-
 from django.template.loader import render_to_string
 from django.test import RequestFactory, SimpleTestCase
 
-from netbox_nsm.security.tab.links import prepare_link_tab_view
+from netbox_nsm.security.tab.links import flatten_link_type_groups, prepare_link_tab_view
 from netbox_nsm.security.tab.context import (
     finalize_link_type_group,
     finalize_link_type_groups,
@@ -308,17 +306,17 @@ class SecurityLinkRowActionsTemplateTests(SimpleTestCase):
         self.assertNotIn('data-col="actions"', html)
         self.assertIn("btn-light", html)
         self.assertIn("btn-warning", html)
-        self.assertIn("btn-danger", html)
+        self.assertIn("dropdown-toggle-split", html)
         self.assertIn("mdi-magnify text-dark", html)
         self.assertIn("mdi-pencil", html)
         self.assertIn("mdi-trash-can-outline", html)
         row_html = self._row(html)
         self.assertIn("demo-addr-0010", row_html)
+        self.assertIn("dropdown-menu", row_html)
+        self.assertNotIn('class="btn btn-danger btn-sm"', row_html)
         loupe_pos = row_html.index("nsm-ipa-loupe")
-        edit_pos = row_html.index("btn-warning")
-        delete_pos = row_html.index("btn-danger")
+        edit_pos = row_html.index("nsm-link-edit-menu")
         self.assertLess(loupe_pos, edit_pos)
-        self.assertLess(edit_pos, delete_pos)
 
     def test_loupe_only_for_analyzable_without_edit_delete(self):
         html = self._render(
@@ -362,8 +360,40 @@ class SecurityLinkRowActionsTemplateTests(SimpleTestCase):
         self.assertNotIn("mdi-magnify", row_html)
         self.assertIn("btn-warning", row_html)
         self.assertIn("mdi-pencil", row_html)
-        self.assertIn("btn-danger", row_html)
+        self.assertIn("dropdown-toggle-split", row_html)
+        self.assertIn("Remove assignment", row_html)
         self.assertIn("mdi-trash-can-outline", row_html)
+        self.assertNotIn('class="btn btn-danger btn-sm"', row_html)
+
+    def test_cot_row_uses_same_button_group_as_object_links(self):
+        html = self._render(
+            [
+                {
+                    "url": "/plugins/custom-objects/nsm_address_group/5/",
+                    "name": "demo-addr-group-008",
+                    "ct_id": 99,
+                    "obj_id": 5,
+                    "is_cot_row": True,
+                    "cot_slug": "nsm_address_group",
+                    "supports_addr_analyzer": True,
+                    "edit_url": "/plugins/netbox_custom_objects/customobject/nsm_address_group/5/edit/",
+                    "delete_url": "/plugins/netbox_custom_objects/customobject/nsm_address_group/5/delete/",
+                    "changelog_url": "/plugins/netbox_custom_objects/customobject/nsm_address_group/5/changelog/",
+                }
+            ],
+            type_key="netbox_custom_objects__nsm_address_group",
+            type_label="Address Group",
+        )
+        row_html = self._row(html)
+        self.assertIn('class="btn-group btn-group-sm nsm-link-actions"', row_html)
+        self.assertIn("dropdown-toggle-split", row_html)
+        self.assertIn("nsm-ipa-loupe", row_html)
+        self.assertIn("mdi-pencil", row_html)
+        self.assertIn("mdi-history", row_html)
+        self.assertIn("mdi-trash-can-outline", row_html)
+        self.assertIn("Changelog", row_html)
+        self.assertIn("Delete", row_html)
+        self.assertNotIn('class="btn btn-danger btn-sm"', row_html)
 
     def test_ipam_fk_row_shows_loupe_edit_and_delete(self):
         html = self._render(
@@ -387,11 +417,13 @@ class SecurityLinkRowActionsTemplateTests(SimpleTestCase):
         self.assertIn("btn-light", row_html)
         self.assertIn("mdi-magnify text-dark", row_html)
         self.assertIn("btn-warning", row_html)
-        self.assertIn('aria-label="Edit assignment"', row_html)
-        self.assertIn("btn-danger", row_html)
+        self.assertIn('aria-label="Edit"', row_html)
+        self.assertIn("dropdown-toggle-split", row_html)
+        self.assertIn("Remove assignment", row_html)
         self.assertIn("mdi-trash-can-outline", row_html)
+        self.assertNotIn('class="btn btn-danger btn-sm"', row_html)
 
-    def test_object_link_row_uses_edit_assignment_label(self):
+    def test_object_link_row_uses_edit_and_delete_labels(self):
         html = self._render(
             [
                 {
@@ -407,8 +439,9 @@ class SecurityLinkRowActionsTemplateTests(SimpleTestCase):
             type_key="netbox_custom_objects__nsmzone",
             type_label="Zones",
         )
-        self.assertIn('aria-label="Edit assignment"', html)
-        self.assertIn('aria-label="Remove assignment"', html)
+        self.assertIn('aria-label="Edit"', html)
+        self.assertIn("dropdown-toggle-split", html)
+        self.assertIn("Remove assignment", html)
         self.assertIn('href="/plugins/netbox-nsm/object-link/2/edit/"', html)
         self.assertIn('href="/plugins/netbox-nsm/object-link/2/delete/"', html)
 
@@ -487,6 +520,357 @@ class SecurityLinkTableTests(SimpleTestCase):
         )
         self.assertIn("prefix", html)
         self.assertIn("Member of", html)
+
+    def test_value_and_field_columns_allow_text_wrapping(self):
+        html = self._render_link_groups(
+            [
+                {
+                    "type_key": "netbox_custom_objects__nsm_addresses",
+                    "type_label": "Addresses",
+                    "objects": [
+                        {
+                            "url": "/x/",
+                            "name": "addr-1",
+                            "row_type_label": "Addresses",
+                            "value_label": "alpha, beta, gamma",
+                            "field_label": "Object link",
+                        }
+                    ],
+                }
+            ]
+        )
+        self.assertIn("white-space: normal", html)
+        self.assertIn("overflow-wrap: break-word", html)
+        self.assertIn(".col-value", html)
+        self.assertIn(".col-field", html)
+        self.assertIn(".col-object", html)
+        self.assertNotIn("max-width: 18rem", html)
+
+    def test_type_column_allows_wrapping(self):
+        html = self._render_link_groups(
+            [
+                {
+                    "type_key": "k",
+                    "type_label": "Rulebook RB Demo Zone/Address",
+                    "objects": [
+                        {
+                            "url": "/x/",
+                            "name": "rule-1",
+                            "row_type_label": "Rulebook RB Demo Zone/Address",
+                            "field_label": "x",
+                        }
+                    ],
+                }
+            ]
+        )
+        marker = ".nsm-link-objects table.nsm-link-table .col-type"
+        idx = html.index(marker)
+        block = html[idx : idx + 260]
+        self.assertIn("white-space: normal", block)
+        self.assertNotIn("white-space: nowrap", block.split(".col-object")[0].split(marker, 1)[1])
+
+    def test_object_column_allows_wrapping(self):
+        html = self._render_link_groups(
+            [
+                {
+                    "type_key": "netbox_custom_objects__nsm_addresses",
+                    "type_label": "Addresses",
+                    "objects": [{"url": "/x/", "name": "addr-1", "field_label": "x"}],
+                }
+            ]
+        )
+        marker = ".nsm-link-objects table.nsm-link-table .col-object"
+        self.assertIn(marker, html)
+        idx = html.index(marker)
+        block = html[idx : idx + 280]
+        self.assertIn("white-space: normal", block)
+
+    def test_per_row_type_label_preserved_over_group_label(self):
+        readable = "Rulebook RB Demo Zone/Address"
+        html = self._render_link_groups(
+            [
+                {
+                    "type_key": "netbox_custom_objects__nsm_rb_demo",
+                    "type_label": "nsm_rb_demo_zone_addresses",
+                    "objects": [
+                        {
+                            "url": "/x/",
+                            "name": "rule-1",
+                            "row_type_label": readable,
+                            "row_type_filter_key": "nsm_rb_demo_zone_addresses",
+                            "cot_slug": "nsm_rb_demo_zone_addresses",
+                            "field_label": "Addresses (Source)",
+                        }
+                    ],
+                }
+            ]
+        )
+        self.assertIn(readable, html)
+        self.assertNotIn(">nsm_rb_demo_zone_addresses<", html)
+
+    def test_type_column_links_to_type_list_or_filter(self):
+        from unittest.mock import patch
+
+        with patch(
+            "netbox_nsm.security.tab.links.build_row_type_url",
+            return_value="/ipam/ip-addresses/",
+        ):
+            html = self._render_link_groups(
+                [
+                    {
+                        "type_key": "ipam__ipaddress",
+                        "type_label": "IP addresses",
+                        "objects": [
+                            {
+                                "url": "/ipam/ip-addresses/1/",
+                                "name": "10.0.0.1/32",
+                                "ct_id": 69,
+                                "row_type_label": "IP addresses",
+                                "row_type_filter_key": "ipam__ipaddress",
+                                "field_label": "",
+                            }
+                        ],
+                    }
+                ]
+            )
+        self.assertIn('href="/ipam/ip-addresses/"', html)
+        self.assertIn("IP addresses</a>", html)
+
+    def test_type_column_links_cot_list_by_slug(self):
+        from unittest.mock import patch
+
+        with patch(
+            "netbox_nsm.security.tab.links.build_row_type_url",
+            return_value="/plugins/netbox-nsm/objects/nsm_address_group/",
+        ):
+            html = self._render_link_groups(
+                [
+                    {
+                        "type_key": "netbox_custom_objects__nsm_address_group",
+                        "type_label": "Address Group",
+                        "objects": [
+                            {
+                                "url": "/plugins/netbox-nsm/objects/nsm_address_group/1/",
+                                "name": "demo-group",
+                                "ct_id": 1,
+                                "cot_slug": "nsm_address_group",
+                                "row_type_label": "Address Group",
+                                "row_type_filter_key": "nsm_address_group",
+                                "field_label": "Group Members",
+                            }
+                        ],
+                    }
+                ]
+            )
+        self.assertIn(
+            'href="/plugins/netbox-nsm/objects/nsm_address_group/"',
+            html,
+        )
+
+    def test_renders_full_value_label_and_long_field_text(self):
+        long_value = "slug-a, slug-b, slug-c, slug-d, slug-e"
+        long_field = "Address (this object -> remote endpoint)"
+        html = self._render_link_groups(
+            [
+                {
+                    "type_key": "netbox_custom_objects__nsm_addresses",
+                    "type_label": "Addresses",
+                    "objects": [
+                        {
+                            "url": "/x/",
+                            "name": "addr-1",
+                            "row_type_label": "Addresses",
+                            "value_label": long_value,
+                            "value_key": long_value,
+                            "field_label": long_field,
+                        }
+                    ],
+                }
+            ]
+        )
+        self.assertIn(long_value, html)
+        self.assertIn("Address (this object", html)
+        self.assertIn("remote endpoint)", html)
+
+    def test_value_column_renders_linked_items(self):
+        html = self._render_link_groups(
+            [
+                {
+                    "type_key": "netbox_custom_objects__nsm_addresses",
+                    "type_label": "Addresses",
+                    "objects": [
+                        {
+                            "url": "/x/",
+                            "name": "rule-1",
+                            "row_type_label": "Addresses",
+                            "value_key": "alpha, beta",
+                            "value_label": "alpha, beta",
+                            "value_items": [
+                                {"label": "alpha", "url": "/alpha/"},
+                                {"label": "beta", "url": "/beta/"},
+                            ],
+                            "field_label": "Addresses (Source)",
+                        }
+                    ],
+                }
+            ]
+        )
+        self.assertIn('href="/alpha/"', html)
+        self.assertIn('href="/beta/"', html)
+        self.assertIn(">alpha</a>", html)
+        self.assertIn(">beta</a>", html)
+
+
+class BuildRowTypeUrlTests(SimpleTestCase):
+    def test_rulebook_slug_links_to_rulebook_detail(self):
+        from unittest.mock import MagicMock, patch
+
+        from netbox_nsm.security.tab.links import build_row_type_url
+
+        with patch(
+            "netbox_nsm.rulebooks.registry.get_deployed_cot_rulebook",
+            return_value=MagicMock(),
+        ), patch(
+            "netbox_nsm.rulebooks.virtual_cot.VirtualCotRulebook.get_absolute_url",
+            return_value="/plugins/netbox-nsm/rulebooks/cot/nsm_rb_demo/",
+        ):
+            url = build_row_type_url(
+                {
+                    "row_type_filter_key": "nsm_rb_demo_zone_addresses",
+                    "cot_slug": "nsm_rb_demo_zone_addresses",
+                },
+                request=None,
+                filter_url="?nsm_ty=nsm_rb_demo_zone_addresses",
+                ct_cache={},
+            )
+        self.assertEqual(url, "/plugins/netbox-nsm/rulebooks/cot/nsm_rb_demo/")
+
+    def test_falls_back_to_type_filter_url(self):
+        from netbox_nsm.security.tab.links import build_row_type_url
+
+        url = build_row_type_url(
+            {"row_type_filter_key": "unknown__type"},
+            request=None,
+            filter_url="?nsm_ty=unknown__type",
+            ct_cache={},
+        )
+        self.assertEqual(url, "?nsm_ty=unknown__type")
+
+
+class TypeConfigDisplayNameTests(SimpleTestCase):
+    def test_verbose_name_plural_preserves_ip_acronym(self):
+        from unittest.mock import MagicMock
+
+        from netbox_nsm.core.display_utils import type_config_display_name
+
+        ct = MagicMock()
+        model = MagicMock()
+        model._meta.verbose_name_plural = "IP addresses"
+        ct.model_class.return_value = model
+
+        self.assertEqual(type_config_display_name(None, ct), "IP addresses")
+
+    def test_verbose_name_plural_preserves_german_ip_label(self):
+        from unittest.mock import MagicMock
+
+        from netbox_nsm.core.display_utils import type_config_display_name
+
+        ct = MagicMock()
+        model = MagicMock()
+        model._meta.verbose_name_plural = "IP-Adressen"
+        ct.model_class.return_value = model
+
+        self.assertEqual(type_config_display_name(None, ct), "IP-Adressen")
+
+
+class SecurityRowsListValueTests(SimpleTestCase):
+    def test_flatten_preserves_per_row_type_metadata(self):
+        rows = flatten_link_type_groups(
+            [
+                {
+                    "type_key": "netbox_custom_objects__nsm_rb_demo",
+                    "type_label": "nsm_rb_demo_zone_addresses",
+                    "objects": [
+                        {
+                            "name": "rule-1",
+                            "row_type_label": "Rulebook RB Demo Zone/Address",
+                            "row_type_filter_key": "nsm_rb_demo_zone_addresses",
+                        }
+                    ],
+                }
+            ]
+        )
+        self.assertEqual(rows[0]["row_type_label"], "Rulebook RB Demo Zone/Address")
+        self.assertEqual(rows[0]["row_type_filter_key"], "nsm_rb_demo_zone_addresses")
+
+    def test_cot_type_display_label_prefers_rulebook_verbose_name(self):
+        from netbox_nsm.security.tab.security_rows import _cot_type_display_label
+
+        class Cot:
+            slug = "nsm_rb_demo_zone_addresses"
+            verbose_name = "Rulebook RB Demo Zone/Address"
+            name = "nsm_rb_demo_zone_addresses"
+
+        self.assertEqual(
+            _cot_type_display_label(Cot()),
+            "Rulebook RB Demo Zone/Address",
+        )
+
+    def test_get_field_value_returns_all_multiobject_members(self):
+        from unittest.mock import MagicMock
+
+        from netbox_custom_objects.choices import CustomFieldTypeChoices
+
+        from netbox_nsm.security.tab.combined import _get_field_value
+
+        members = [object() for _ in range(6)]
+        manager = MagicMock()
+        manager.all.return_value = members
+
+        field = MagicMock()
+        field.is_junction_row = False
+        field.type = CustomFieldTypeChoices.TYPE_MULTIOBJECT
+        field.name = "addresses"
+
+        obj = MagicMock()
+        obj.addresses = manager
+
+        self.assertEqual(_get_field_value(obj, field), members)
+
+    def test_list_value_key_label_joins_all_items(self):
+        from netbox_nsm.security.tab.security_rows import _list_value_key_label
+
+        key, label = _list_value_key_label(["a", "b", "c", "d"])
+        self.assertEqual(label, "a, b, c, d")
+        self.assertEqual(key, "a, b, c, d")
+
+    def test_apply_field_value_builds_linked_items(self):
+        from unittest.mock import MagicMock
+
+        from netbox_nsm.security.tab.security_rows import _apply_field_value
+
+        obj_a = MagicMock()
+        obj_a.__str__ = lambda self: "demo-a"
+        obj_a.get_absolute_url.return_value = "/a/"
+        obj_b = MagicMock()
+        obj_b.__str__ = lambda self: "demo-b"
+        obj_b.get_absolute_url.return_value = "/b/"
+
+        key, label, items = _apply_field_value([obj_a, obj_b])
+        self.assertEqual(label, "demo-a, demo-b")
+        self.assertEqual(
+            items,
+            [{"label": "demo-a", "url": "/a/"}, {"label": "demo-b", "url": "/b/"}],
+        )
+        self.assertEqual(key, label)
+
+    def test_list_value_key_label_empty_list_uses_ungrouped(self):
+        from netbox_nsm.security.tab.security_rows import _list_value_key_label
+        from netbox_nsm.security.tab.value_groups import UNGROUPED_KEY
+
+        key, label = _list_value_key_label([])
+        self.assertEqual(label, "")
+        self.assertEqual(key, UNGROUPED_KEY)
 
 
 class EnforcementPointPanelTemplateTests(SimpleTestCase):

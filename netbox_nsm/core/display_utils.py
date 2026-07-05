@@ -109,7 +109,7 @@ def type_config_display_name(type_config, content_type=None) -> str:
         return ""
     model_class = ct.model_class()
     if model_class:
-        return str(model_class._meta.verbose_name_plural).title()
+        return str(model_class._meta.verbose_name_plural)
     return str(ct.model)
 
 

@@ -20,7 +20,9 @@ class SecurityConfig(PluginConfig):
     default_settings = {
         # Show top-level NSM menu (default: on)
         "top_level_menu": True,
-        # Show NSM → Configuration → Bundles and allow /bundles/ URLs (default: on)
+        # Show Security → Configuration → Bundles and allow /bundles/ URLs (default: on)
+        "bundles_menu": True,
+        # Legacy alias for bundles_menu (still supported)
         "setup_menu": True,
         # Bundles: destructive preview/apply checkbox and demo bundle actions (default: on)
         "setup_allow_destructive_actions": True,

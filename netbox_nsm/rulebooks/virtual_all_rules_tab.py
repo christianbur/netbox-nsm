@@ -54,13 +54,15 @@ def _aggregate_cot_rows(virtual_all_rules) -> tuple[list, dict]:
         if layout is None:
             layout = grouped
         rb_name = virtual_rb.name
-        rb_url = virtual_rb.get_absolute_url()
+        rb_url = virtual_rb.get_rules_tab_url()
         for row in grouped.get("rows") or []:
             row = dict(row)
             row["rulebook_name"] = rb_name
+            row["rulebook_slug"] = cot.slug
             row["rulebook_url"] = rb_url
             row["system"] = dict(row.get("system") or {})
             row["system"]["rulebook"] = rb_name
+            row["system"]["rulebook_slug"] = cot.slug
             row["system"]["rulebook_url"] = rb_url
             row["pk"] = f"{cot.slug}:{row['pk']}"
             all_rows.append(row)

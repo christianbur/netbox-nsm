@@ -350,13 +350,12 @@ def _get_field_value(obj, field, user=None):
         manager = getattr(obj, field.name, None)
         if manager is None:
             return []
-        limit = 4
         qs = manager.all()
         if user is not None:
             try:
                 qs = qs.restrict(user, "view")
             except AttributeError:
-                return restrict_to_viewable(user, list(qs))[:limit]
-            return list(qs[:limit])
-        return list(qs[:limit])
+                return restrict_to_viewable(user, list(qs))
+            return list(qs)
+        return list(qs)
     return None

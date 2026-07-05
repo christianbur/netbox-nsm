@@ -61,14 +61,14 @@ def build_enforcement_point_panel(
         if rulebook is not None:
             return {
                 "name": rulebook.name,
-                "url": panel_url(rulebook.get_absolute_url()),
+                "url": panel_url(rulebook.get_rules_tab_url()),
                 "delete_url": delete_url,
             }
+        from netbox_nsm.security.object_rules import build_rulebook_rules_tab_url
+
         return {
             "name": slug,
-            "url": panel_url(
-                reverse("plugins:netbox_nsm:cot_rulebook", kwargs={"slug": slug})
-            ),
+            "url": panel_url(build_rulebook_rules_tab_url(slug)),
             "delete_url": delete_url,
         }
 

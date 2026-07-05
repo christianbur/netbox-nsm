@@ -44,7 +44,9 @@ class VirtualCotRulebook:
         self.slug = cot.slug
         self.pk = f"cot:{cot.slug}"
         self.id = self.pk
-        self.name = cot.verbose_name or cot.name
+        from netbox_nsm.rulebooks.create import cot_rulebook_display_label
+
+        self.name = cot_rulebook_display_label(cot)
         self.status = "active"
         self.parent = None
         self.parent_slug = ""

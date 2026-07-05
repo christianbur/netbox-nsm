@@ -7,10 +7,24 @@ from utilities.testing import TestCase
 
 
 class SetupMenuStateTests(TestCase):
+    @override_settings(PLUGINS_CONFIG={"netbox_nsm": {"bundles_menu": True}})
+    def test_bundles_menu_enabled_via_config(self):
+        self.assertTrue(setup_menu_enabled())
+
+    @override_settings(PLUGINS_CONFIG={"netbox_nsm": {"bundles_menu": False}})
+    def test_bundles_menu_disabled_via_config(self):
+        self.assertFalse(setup_menu_enabled())
+
     @override_settings(PLUGINS_CONFIG={"netbox_nsm": {"setup_menu": True}})
-    def test_setup_menu_enabled_by_default_config(self):
+    def test_setup_menu_legacy_enabled_via_config(self):
         self.assertTrue(setup_menu_enabled())
 
     @override_settings(PLUGINS_CONFIG={"netbox_nsm": {"setup_menu": False}})
-    def test_setup_menu_disabled_via_config(self):
+    def test_setup_menu_legacy_disabled_via_config(self):
+        self.assertFalse(setup_menu_enabled())
+
+    @override_settings(
+        PLUGINS_CONFIG={"netbox_nsm": {"bundles_menu": False, "setup_menu": True}}
+    )
+    def test_bundles_menu_takes_precedence_over_setup_menu(self):
         self.assertFalse(setup_menu_enabled())

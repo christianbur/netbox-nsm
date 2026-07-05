@@ -28,13 +28,13 @@ __all__ = (
     "is_linkable_content_type",
     "iter_linkable_configs",
     "normalize_nsm_config_list",
-    "parse_nsm_config_from_comments",
+    "parse_nsm_config_from_cot",
+    "parse_nsm_config_document_from_cot",
     "resolve_nsm_config_dict_for_cot",
     "resolve_nsm_config_for_cot",
     "resolve_nsm_config_for_content_type",
     "sync_cot_nsm_config_comments",
     "sync_cot_nsm_config_comments_for_slugs",
-    "parse_nsm_config_document_from_comments",
     "merge_nsm_config_document_into_comments",
     "save_nsm_config_document_for_cot",
     "clear_nsm_config_from_cot_comments",
@@ -51,6 +51,27 @@ _RULE_VIEW_KEYS = frozenset({"sort_order", "display_template", "areas"})
 
 def _normalized_display_template(value: str | None) -> str:
     return normalize_display_template(value or DEFAULT_DISPLAY_TEMPLATE)
+
+
+def _is_custom_object_type(obj) -> bool:
+    """True when *obj* is a ``CustomObjectType``, not a ``CustomObject`` instance."""
+    if obj is None:
+        return False
+    try:
+        from netbox_custom_objects.models import CustomObjectType
+
+        return isinstance(obj, CustomObjectType)
+    except ImportError:
+        if getattr(obj, "custom_object_type", None) is not None:
+            return False
+        return callable(getattr(obj, "get_model", None))
+
+
+def _custom_object_type_comments(cot) -> str | None:
+    """Return COT type ``comments`` or ``None`` when *cot* is not a ``CustomObjectType``."""
+    if not _is_custom_object_type(cot):
+        return None
+    return getattr(cot, "comments", "") or ""
 
 
 def _areas_for_cot_slug(slug: str) -> list[str]:
@@ -150,7 +171,13 @@ def _wrap_yaml_in_markdown_fence(yaml_text: str) -> str:
 def _load_yaml_document(text: str) -> Any:
     import yaml
 
-    return yaml.safe_load(_strip_markdown_fence(text or ""))
+    stripped = _strip_markdown_fence(text or "")
+    if not stripped or not stripped.strip():
+        return None
+    try:
+        return yaml.safe_load(stripped)
+    except yaml.YAMLError:
+        return None
 
 
 def _extract_nsm_config_list_from_document(document: Any) -> list | None:
@@ -162,11 +189,19 @@ def _extract_nsm_config_list_from_document(document: Any) -> list | None:
     return None
 
 
-def parse_nsm_config_from_comments(text: str) -> dict[str, Any] | None:
-    """Parse canonical ``nsm_config`` YAML from ``CustomObjectType.comments``."""
+def _parse_nsm_config_yaml(text: str) -> dict[str, Any] | None:
+    """Parse canonical ``nsm_config`` YAML from type comment *text* (setup/sync only)."""
     document = _load_yaml_document(text)
     raw_list = _extract_nsm_config_list_from_document(document)
     return normalize_nsm_config_list(raw_list)
+
+
+def parse_nsm_config_from_cot(cot) -> dict[str, Any] | None:
+    """Parse ``nsm_config`` from ``CustomObjectType.comments`` only."""
+    comments = _custom_object_type_comments(cot)
+    if comments is None:
+        return None
+    return _parse_nsm_config_yaml(comments)
 
 
 def extract_nsm_config_from_type_comments(type_def: dict) -> dict[str, Any] | None:
@@ -175,7 +210,7 @@ def extract_nsm_config_from_type_comments(type_def: dict) -> dict[str, Any] | No
     if comments is None:
         return None
     if isinstance(comments, str):
-        return parse_nsm_config_from_comments(comments)
+        return _parse_nsm_config_yaml(comments)
     if not isinstance(comments, list):
         return None
     for entry in comments:
@@ -186,7 +221,7 @@ def extract_nsm_config_from_type_comments(type_def: dict) -> dict[str, Any] | No
 
 
 def has_nsm_config_in_comments(text: str) -> bool:
-    return parse_nsm_config_from_comments(text) is not None
+    return _parse_nsm_config_yaml(text) is not None
 
 
 def _normalize_config_dict(config: dict[str, Any]) -> dict[str, Any]:
@@ -313,7 +348,7 @@ def _format_comments_with_nsm_document(
 def _stored_nsm_config_document(text: str) -> dict[str, Any]:
     """Return only ``nsm_config`` segments present in *text* (no rulebook defaults)."""
     result: dict[str, Any] = {}
-    policy = parse_nsm_config_from_comments(text)
+    policy = _parse_nsm_config_yaml(text)
     if policy:
         result["rule_view"] = {
             "sort_order": int(policy.get("sort_order", 0)),
@@ -330,7 +365,7 @@ def _stored_nsm_config_document(text: str) -> dict[str, Any]:
     menu = parse_menu_from_comments(text)
     if menu:
         result["menu"] = menu
-    parsed = parse_nsm_config_from_comments(text)
+    parsed = _parse_nsm_config_yaml(text)
     if parsed and parsed.get("link_table"):
         result["link_table"] = bool(parsed["link_table"])
     if result:
@@ -339,7 +374,7 @@ def _stored_nsm_config_document(text: str) -> dict[str, Any]:
 
 
 def parse_nsm_config_document_from_comments(text: str) -> dict[str, Any]:
-    """Return API-friendly ``nsm_config`` segments from ``comments`` YAML."""
+    """Return API-friendly ``nsm_config`` segments from type comment *text* (setup/sync)."""
     from netbox_nsm.type_metadata.rulebook import (
         normalize_rulebook_config,
         parse_rulebook_config_from_comments,
@@ -351,6 +386,16 @@ def parse_nsm_config_document_from_comments(text: str) -> dict[str, Any]:
             parse_rulebook_config_from_comments(text)
         )
     return result
+
+
+def parse_nsm_config_document_from_cot(cot) -> dict[str, Any]:
+    """Return API-friendly ``nsm_config`` segments from ``CustomObjectType.comments`` only."""
+    comments = _custom_object_type_comments(cot)
+    if comments is None:
+        from netbox_nsm.type_metadata.rulebook import normalize_rulebook_config
+
+        return {"rulebook": normalize_rulebook_config(None)}
+    return parse_nsm_config_document_from_comments(comments)
 
 
 def merge_nsm_config_document_into_comments(
@@ -373,6 +418,9 @@ def merge_nsm_config_document_into_comments(
 def save_nsm_config_document_for_cot(cot, updates: dict[str, Any], *, rulebook_cot=None) -> None:
     """Persist ``nsm_config`` segments on COT ``comments`` (partial merge)."""
     from django.core.exceptions import ValidationError
+
+    if not _is_custom_object_type(cot):
+        return
 
     if "rulebook" in updates and updates["rulebook"] is not None:
         from netbox_nsm.rulebooks.cot_hierarchy import validate_cot_parent_slug
@@ -543,6 +591,9 @@ def resolve_nsm_config_dict_for_cot(
     rulebook_cot=None,
 ) -> dict[str, Any] | None:
     """Return merged spec + comments config dict for *cot*."""
+    if not _is_custom_object_type(cot):
+        return None
+
     from netbox_nsm.type_metadata.roles import parse_role_from_comments, resolve_role_for_cot
     from netbox_nsm.type_metadata.specs import TYPECONFIG_SPEC_BY_SLUG
 
@@ -554,7 +605,7 @@ def resolve_nsm_config_dict_for_cot(
         if rule_view:
             config.update(rule_view)
         elif not rulebook_cot:
-            parsed = parse_nsm_config_from_comments(comments)
+            parsed = parse_nsm_config_from_cot(cot)
             if parsed:
                 config = _merge_parsed_into_config(config, parsed)
     else:
@@ -563,7 +614,7 @@ def resolve_nsm_config_dict_for_cot(
             "display_template": DEFAULT_DISPLAY_TEMPLATE,
             "areas": [],
         }
-        parsed = parse_nsm_config_from_comments(comments)
+        parsed = parse_nsm_config_from_cot(cot)
         if parsed:
             config = _merge_parsed_into_config(config, parsed)
 

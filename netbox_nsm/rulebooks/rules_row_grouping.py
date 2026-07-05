@@ -25,6 +25,7 @@ __all__ = (
     "build_object_group_pk_index",
     "build_system_row_group_tab_summaries_from_queryset",
     "cached_row_group_tab_summaries",
+    "finalize_row_group_tab_summaries",
     "filter_queryset_by_system_group_key",
     "filter_rows_by_group_key",
     "find_row_group_column",
@@ -49,6 +50,37 @@ ROW_GROUP_TAB_ALL_ID = "all"
 
 def _empty_group_label() -> str:
     return str(_("(empty)"))
+
+
+def _display_label_for_rulebook_slug(raw: str) -> str:
+    """Map ``nsm_rb_*`` slug to COT ``verbose_name`` (readable rulebook label)."""
+    slug = (raw or "").strip()
+    if not slug.startswith("nsm_rb_"):
+        return slug
+    from netbox_nsm.rulebooks.create import cot_rulebook_display_label
+    from netbox_nsm.rulebooks.registry import get_deployed_cot_rulebook
+
+    cot = get_deployed_cot_rulebook(slug)
+    if cot is not None:
+        return cot_rulebook_display_label(cot)
+    return slug
+
+
+def _resolve_group_label(key: str, group_column: dict) -> str:
+    """Map a stable group key to a human-readable sidebar tab label."""
+    if not key or key == _empty_group_label():
+        return key
+
+    if "nsm_rb_" in key:
+        if ", " in key:
+            return ", ".join(
+                _display_label_for_rulebook_slug(part.strip())
+                for part in key.split(",")
+            )
+        if key.startswith("nsm_rb_"):
+            return _display_label_for_rulebook_slug(key)
+
+    return key
 
 
 def is_row_groupable_column(col: dict) -> bool:
@@ -167,9 +199,14 @@ def build_group_key(row: dict, column: dict) -> str:
             labels = enabled_status_labels()
             return labels["on"] if system.get("enabled") else labels["off"]
         if slug == "rulebook":
-            return str(
+            raw = str(
                 row.get("rulebook_name") or system.get("rulebook") or ""
-            ).strip() or _empty_group_label()
+            ).strip()
+            if not raw:
+                return _empty_group_label()
+            if raw.startswith("nsm_rb_"):
+                return _display_label_for_rulebook_slug(raw)
+            return raw
         if slug == "index":
             idx = system.get("index", row.get("index"))
             return "" if idx is None else str(idx)
@@ -201,7 +238,8 @@ def build_group_key(row: dict, column: dict) -> str:
         unique = sorted(set(names), key=lambda value: value.lower())
         if not unique:
             return _empty_group_label()
-        return ", ".join(unique)
+        group_key = ", ".join(unique)
+        return group_key
 
     return _empty_group_label()
 
@@ -255,7 +293,7 @@ def _summaries_from_group_counts(
     return [
         {
             "group_key": key,
-            "group_label": key,
+            "group_label": _resolve_group_label(key, group_column),
             "group_id": _slugify_group_id(key),
             "rule_count": buckets[key],
         }
@@ -339,9 +377,28 @@ def row_group_tab_summaries_cache_key(
     payload = json.dumps(filter_model or {}, sort_keys=True, default=str)
     digest = hashlib.sha256(payload.encode()).hexdigest()[:16]
     return (
-        f"nsm:row_group_tabs:{rulebook_slug}:{group_col_id}:"
+        f"nsm:row_group_tabs:v2:{rulebook_slug}:{group_col_id}:"
         f"{digest}:{sort_field}:{sort_order}"
     )
+
+
+def finalize_row_group_tab_summaries(
+    summaries: list[dict],
+    group_column: dict,
+) -> list[dict]:
+    """Re-resolve sidebar labels from stable group keys (e.g. after cache hit)."""
+    refreshed: list[dict] = []
+    for summary in summaries:
+        if summary.get("is_all_rules"):
+            refreshed.append(summary)
+            continue
+        group_key = summary.get("group_key")
+        if group_key is None:
+            refreshed.append(summary)
+            continue
+        new_label = _resolve_group_label(group_key, group_column)
+        refreshed.append({**summary, "group_label": new_label})
+    return refreshed
 
 
 def cached_row_group_tab_summaries(

@@ -31,6 +31,7 @@ from netbox_nsm.rulebooks.rules_row_grouping import (
     build_object_group_pk_index,
     build_system_row_group_tab_summaries_from_queryset,
     cached_row_group_tab_summaries,
+    finalize_row_group_tab_summaries,
     filter_queryset_by_system_group_key,
     filter_rows_by_group_key,
     find_row_group_column,
@@ -152,6 +153,16 @@ def _cot_load_display_rows(instances, virtual_rb, *, layout, m2m_prefetch):
     return grouped.get("rows") or []
 
 
+def _load_row_group_tab_summaries(
+    cache_key: str,
+    builder,
+    group_column: dict,
+) -> list[dict]:
+    """Load tab summaries from cache and refresh display labels from group keys."""
+    summaries = cached_row_group_tab_summaries(cache_key, builder)
+    return finalize_row_group_tab_summaries(summaries, group_column)
+
+
 def _cot_rules_row_group_page(
     request,
     virtual_rb,
@@ -227,7 +238,7 @@ def _cot_rules_row_group_page(
         )
 
         if db_group_field:
-            tab_summaries = cached_row_group_tab_summaries(
+            tab_summaries = _load_row_group_tab_summaries(
                 summaries_cache_key,
                 lambda: build_system_row_group_tab_summaries_from_queryset(
                     summary_qs,
@@ -235,12 +246,13 @@ def _cot_rules_row_group_page(
                     sort_field=sort_field,
                     sort_order=sort_order,
                 ),
+                row_group_column,
             )
         else:
             object_group_pk_index = build_object_group_pk_index(
                 all_rows, row_group_column
             )
-            tab_summaries = cached_row_group_tab_summaries(
+            tab_summaries = _load_row_group_tab_summaries(
                 summaries_cache_key,
                 lambda: build_row_group_tab_summaries(
                     all_rows,
@@ -248,12 +260,13 @@ def _cot_rules_row_group_page(
                     sort_field=sort_field,
                     sort_order=sort_order,
                 ),
+                row_group_column,
             )
             all_rows = []
     else:
         total_rule_count = qs.count()
         if db_group_field:
-            tab_summaries = cached_row_group_tab_summaries(
+            tab_summaries = _load_row_group_tab_summaries(
                 summaries_cache_key,
                 lambda: build_system_row_group_tab_summaries_from_queryset(
                     qs,
@@ -261,6 +274,7 @@ def _cot_rules_row_group_page(
                     sort_field=sort_field,
                     sort_order=sort_order,
                 ),
+                row_group_column,
             )
         else:
             instances = list(qs.order_by(*cot_db_order_fields(sort_field, sort_order)))
@@ -268,7 +282,7 @@ def _cot_rules_row_group_page(
             object_group_pk_index = build_object_group_pk_index(
                 summary_rows, row_group_column
             )
-            tab_summaries = cached_row_group_tab_summaries(
+            tab_summaries = _load_row_group_tab_summaries(
                 summaries_cache_key,
                 lambda: build_row_group_tab_summaries(
                     summary_rows,
@@ -276,6 +290,7 @@ def _cot_rules_row_group_page(
                     sort_field=sort_field,
                     sort_order=sort_order,
                 ),
+                row_group_column,
             )
 
     active_group_key, row_group_tab_active = resolve_row_group_tab(

@@ -6,6 +6,23 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [0.4.11] - unreleased
 
+### Added
+
+- **Security tab links** — TYP column links to filtered rulebook lists or rulebook URLs; WERT values link via `get_absolute_url()` (`value_items` in row payload).
+- **Rules row-group sidebar** — human-readable group labels from rulebook column metadata (not raw `nsm_rb_*` slugs); cache key `:v2` with tab-summary refresh after cache hit.
+
+### Changed
+
+- **`nsm_config` parsing API** — runtime paths use `parse_nsm_config_from_cot()` / `parse_nsm_config_document_from_cot()` on `CustomObjectType` only; `_parse_nsm_config_yaml()` remains internal for bundle setup/sync.
+- **Security tab table** — wider TYP/WERT/Object columns with wrap; localized COT type labels; unified edit split-button + dropdown actions; full field values (no truncation).
+- **Display labels** — `type_config_display_name()` no longer title-cases IPAM labels (`IP addresses` / `IP-Adressen`).
+- **Docs** — README plugin version, REST API table, migration chain note in `DATABASE.md`.
+
+### Fixed
+
+- **Security tab YAML crash** — invalid or free-text COT **instance** comments (e.g. Tufin metadata) are never parsed as `nsm_config`; guards on `resolve_nsm_config_dict_for_cot`, `cot_link_table_flag`, and `object_builder_in_nsm_config`.
+- **Invalid YAML in type comments** — `_load_yaml_document()` catches `yaml.YAMLError` and returns `None` instead of raising on the Security tab.
+
 ## [0.4.10] - 2026-07-02
 
 ### Added

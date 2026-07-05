@@ -27,10 +27,14 @@ def _link_table_from_mapping(mapping: dict | None) -> bool:
 def _link_table_from_nsm_config_comments(cot) -> bool:
     try:
         from netbox_nsm.type_metadata.config import (
-            parse_nsm_config_from_comments,
+            _is_custom_object_type,
+            parse_nsm_config_from_cot,
             resolve_nsm_config_dict_for_cot,
         )
     except ImportError:
+        return False
+
+    if not _is_custom_object_type(cot):
         return False
 
     try:
@@ -41,7 +45,7 @@ def _link_table_from_nsm_config_comments(cot) -> bool:
         logger.exception("could not read link_table from resolved nsm_config for %s", cot)
 
     try:
-        parsed = parse_nsm_config_from_comments(getattr(cot, "comments", "") or "")
+        parsed = parse_nsm_config_from_cot(cot)
         if _link_table_from_mapping(parsed):
             return True
     except Exception:
@@ -73,6 +77,13 @@ def cot_link_table_flag(cot) -> bool:
     3. Free-form ``CustomObjectType.metadata`` YAML/JSON with ``link_table: true``.
     """
     if cot is None:
+        return False
+    try:
+        from netbox_nsm.type_metadata.config import _is_custom_object_type
+    except ImportError:
+        _is_custom_object_type = lambda obj: not getattr(obj, "custom_object_type", None)  # noqa: E731
+
+    if not _is_custom_object_type(cot):
         return False
     try:
         if _truthy(getattr(cot, "link_table", False)):

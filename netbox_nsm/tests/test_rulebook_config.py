@@ -3,8 +3,8 @@
 import yaml
 
 from netbox_nsm.type_metadata.config import (
+    _parse_nsm_config_yaml,
     format_nsm_config_comment_yaml,
-    parse_nsm_config_from_comments,
 )
 from netbox_nsm.type_metadata.rulebook import (
     DEFAULT_RULEBOOK_CONFIG,
@@ -66,7 +66,7 @@ class RulebookConfigFormatTests(TestCase):
         parsed = parse_rulebook_config_from_comments(merged)
         self.assertEqual(parsed["parent_slug"], "nsm_rb_parent")
         self.assertFalse(parsed["matrix_tab_enabled"])
-        rule_view = parse_nsm_config_from_comments(merged)
+        rule_view = _parse_nsm_config_yaml(merged)
         self.assertEqual(rule_view["sort_order"], 5)
 
     def test_save_and_resolve_for_cot(self):

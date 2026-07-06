@@ -71,10 +71,13 @@ def default_menu_for_slug(slug: str) -> str | None:
 @lru_cache(maxsize=512)
 def parse_menu_from_comments(text: str) -> str | None:
     from netbox_nsm.type_metadata.config import (
+        _comments_may_contain_nsm_config,
         _extract_nsm_config_list_from_document,
         _load_yaml_document,
     )
 
+    if not _comments_may_contain_nsm_config(text):
+        return None
     document = _load_yaml_document(text or "")
     raw_list = _extract_nsm_config_list_from_document(document)
     if not raw_list:
@@ -86,8 +89,17 @@ def parse_menu_from_comments(text: str) -> str | None:
 
 
 def resolve_menu_for_cot(cot) -> str | None:
-    """Return the effective menu bucket for *cot* (comments override slug defaults)."""
-    stored = parse_menu_from_comments(getattr(cot, "comments", "") or "")
+    """Return the effective menu bucket for *cot* (COT type comments override slug defaults)."""
+    from netbox_nsm.type_metadata.config import _custom_object_type_comments, _is_custom_object_type
+
+    if not _is_custom_object_type(cot):
+        parent = getattr(cot, "custom_object_type", None)
+        if parent is not None and parent is not cot:
+            return resolve_menu_for_cot(parent)
+        slug = getattr(cot, "slug", "") or getattr(parent, "slug", "") or ""
+        return default_menu_for_slug(slug)
+
+    stored = parse_menu_from_comments(_custom_object_type_comments(cot) or "")
     if stored:
         return stored
     return default_menu_for_slug(getattr(cot, "slug", "") or "")

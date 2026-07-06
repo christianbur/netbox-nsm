@@ -86,10 +86,13 @@ def default_role_for_slug(slug: str) -> str | None:
 
 def parse_role_from_comments(text: str) -> str | None:
     from netbox_nsm.type_metadata.config import (
+        _comments_may_contain_nsm_config,
         _extract_nsm_config_list_from_document,
         _load_yaml_document,
     )
 
+    if not _comments_may_contain_nsm_config(text):
+        return None
     document = _load_yaml_document(text)
     raw_list = _extract_nsm_config_list_from_document(document)
     if not raw_list:

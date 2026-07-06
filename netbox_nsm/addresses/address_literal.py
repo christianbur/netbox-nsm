@@ -37,7 +37,13 @@ _PLAIN_CIDR_RE = re.compile(
 def _load_yaml_document(text: str):
     import yaml
 
-    return yaml.safe_load(text or "")
+    stripped = (text or "").strip()
+    if not stripped:
+        return None
+    try:
+        return yaml.safe_load(stripped)
+    except yaml.YAMLError:
+        return None
 
 
 def _extract_nsm_config_list(document) -> list | None:
@@ -67,7 +73,9 @@ def _network_from_nsm_config_list(raw_list: list | None) -> str | None:
 
 
 def parse_network_from_instance_comments(text: str) -> str | None:
-    """Return literal network CIDR from ``comments`` ``nsm_config`` YAML."""
+    """Return literal network CIDR from address instance ``comments`` ``nsm_config`` YAML."""
+    if not text or "nsm_config" not in text:
+        return None
     raw_list = _extract_nsm_config_list(_load_yaml_document(text))
     return _network_from_nsm_config_list(raw_list)
 

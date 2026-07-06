@@ -11,6 +11,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - **IP Analyzer — DNS / Description column** — flat cell-tree table adds a ninth column after **IP/Range/Prefix** showing NetBox IPAM metadata: IP addresses show `dns_name` and `description`; prefixes and IP ranges show `description` only. **IP/Range/Prefix** stays counter-only (`0/0/0` badges). Backend: `_ipa_ipam_object_display_ref()`, `_attach_ipa_cell_ipam_object_refs()`, template `ipa_cell_tree_ipam_desc_cell.html`. Asset cache bump (`?v=202607053`).
+- **Special IPAM CSV import** — `bundles/import_csv/special_prefixes.csv` (46 IANA/IETF special-use prefixes) and `special_ip_addresses.csv` (13 special host addresses) for NetBox IPAM bulk import with descriptions.
 
 ### Changed
 

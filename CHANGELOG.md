@@ -4,7 +4,23 @@ All notable changes to **netbox-nsm** are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [0.4.12] - unreleased
+## [0.4.13] - unreleased
+
+## [0.4.12] - 2026-07-05
+
+### Added
+
+- **IP Analyzer — DNS / Description column** — flat cell-tree table adds a ninth column after **IP/Range/Prefix** showing NetBox IPAM metadata: IP addresses show `dns_name` and `description`; prefixes and IP ranges show `description` only. **IP/Range/Prefix** stays counter-only (`0/0/0` badges). Backend: `_ipa_ipam_object_display_ref()`, `_attach_ipa_cell_ipam_object_refs()`, template `ipa_cell_tree_ipam_desc_cell.html`. Asset cache bump (`?v=202607053`).
+- **Special IPAM CSV import** — `bundles/import_csv/special_prefixes.csv` (46 IANA/IETF special-use prefixes) and `special_ip_addresses.csv` (13 special host addresses) for NetBox IPAM bulk import with descriptions.
+
+### Changed
+
+- **NSM Schema bundle — nested address/service groups** — `nsm_address_group.group` and `nsm_service_group.group` are polymorphic multiobject fields (nested groups, custom addresses, etc.); descriptions updated in `nsm_schema.json`.
+- **Demo IPAM seed** — `seed_demo_address_ipam()` sets `description` on linked prefixes and `dns_name` + `description` on linked host IPs so IPA demo rows are not empty.
+
+### Fixed
+
+- **IP Analyzer — IPAM metadata resolution** — host rows resolve `IPAddress` via `prefix_display_cidr` and NSM IPAM FK (`obj_by_key`); NSM `description` fills in when IPAM `description` is empty.
 
 ## [0.4.11] - 2026-07-05
 
@@ -594,3 +610,4 @@ First release in the 0.2.x line.
 [0.4.9]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.9
 [0.4.10]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.10
 [0.4.11]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.11
+[0.4.12]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.12

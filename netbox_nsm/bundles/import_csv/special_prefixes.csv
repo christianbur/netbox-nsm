@@ -1,0 +1,47 @@
+prefix,status,description,comments
+0.0.0.0/8,reserved,[Special] IANA not usable: This network (0.0.0.0/8),Source: https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
+10.0.0.0/8,container,[Special] IETF: Private-Use (10.0.0.0/8),Source: https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
+100.64.0.0/10,container,[Special] IETF: Shared Address Space (100.64.0.0/10),Source: https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
+127.0.0.0/8,reserved,[Special] IANA not usable: Loopback (127.0.0.0/8),Source: https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
+169.254.0.0/16,reserved,[Special] IANA not usable: Link Local (169.254.0.0/16),Source: https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
+172.16.0.0/12,container,[Special] IETF: Private-Use (172.16.0.0/12),Source: https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
+192.0.0.0/24,reserved,[Special] IANA not usable: IETF Protocol Assignments (192.0.0.0/24),Source: https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
+192.0.0.0/29,reserved,[Special] IANA not usable: IPv4 Service Continuity Prefix (192.0.0.0/29),Source: https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
+192.0.2.0/24,reserved,[Special] IANA not usable: Documentation (TEST-NET-1) (192.0.2.0/24),Source: https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
+192.31.196.0/24,reserved,[Special] IANA not usable: AS112-v4 (192.31.196.0/24),Source: https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
+192.52.193.0/24,reserved,[Special] IANA not usable: AMT (192.52.193.0/24),Source: https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
+192.88.99.0/24,reserved,[Special] IANA not usable: Deprecated (6to4 Relay Anycast) (192.88.99.0/24),Source: https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
+192.168.0.0/16,container,[Special] IETF: Private-Use (192.168.0.0/16),Source: https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
+192.175.48.0/24,reserved,[Special] IANA not usable: Direct Delegation AS112 Service (192.175.48.0/24),Source: https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
+198.18.0.0/15,reserved,[Special] IANA not usable: Benchmarking (198.18.0.0/15),Source: https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
+198.51.100.0/24,reserved,[Special] IANA not usable: Documentation (TEST-NET-2) (198.51.100.0/24),Source: https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
+203.0.113.0/24,reserved,[Special] IANA not usable: Documentation (TEST-NET-3) (203.0.113.0/24),Source: https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
+240.0.0.0/4,reserved,[Special] IANA not usable: Reserved (240.0.0.0/4),Source: https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
+::ffff:0.0.0.0/96,reserved,[Special] IANA not usable: IPv4-mapped Address (::ffff:0.0.0.0/96),Source: https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
+64:ff9b::/96,reserved,[Special] IANA not usable: IPv4-IPv6 Translat. (64:ff9b::/96),Source: https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
+64:ff9b:1::/48,reserved,[Special] IANA not usable: IPv4-IPv6 Translat. (64:ff9b:1::/48),Source: https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
+100::/64,reserved,[Special] IANA not usable: Discard-Only Address Block (100::/64),Source: https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
+100:0:0:1::/64,reserved,[Special] IANA not usable: Dummy IPv6 Prefix (100:0:0:1::/64),Source: https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
+2001::/23,reserved,[Special] IANA not usable: IETF Protocol Assignments (2001::/23),Source: https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
+2001::/32,reserved,[Special] IANA not usable: TEREDO (2001::/32),Source: https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
+2001:2::/48,reserved,[Special] IANA not usable: Benchmarking (2001:2::/48),Source: https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
+2001:3::/32,reserved,[Special] IANA not usable: AMT (2001:3::/32),Source: https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
+2001:4:112::/48,reserved,[Special] IANA not usable: AS112-v6 (2001:4:112::/48),Source: https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
+2001:10::/28,reserved,[Special] IANA not usable: Deprecated (previously ORCHID) (2001:10::/28),Source: https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
+2001:20::/28,reserved,[Special] IANA not usable: ORCHIDv2 (2001:20::/28),Source: https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
+2001:30::/28,reserved,[Special] IANA not usable: Drone Remote ID Protocol Entity Tags (DETs) Prefix (2001:30::/28),Source: https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
+2001:db8::/32,reserved,[Special] IANA not usable: Documentation (2001:db8::/32),Source: https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
+2002::/16,reserved,[Special] IANA not usable: 6to4 (2002::/16),Source: https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
+2620:4f:8000::/48,reserved,[Special] IANA not usable: Direct Delegation AS112 Service (2620:4f:8000::/48),Source: https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
+3fff::/20,reserved,[Special] IANA not usable: Documentation (3fff::/20),Source: https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
+5f00::/16,reserved,[Special] IANA not usable: Segment Routing (SRv6) SIDs (5f00::/16),Source: https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
+fc00::/7,container,[Special] IETF: Unique-Local (fc00::/7),Source: https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
+fe80::/10,reserved,[Special] IANA not usable: Link-Local Unicast (fe80::/10),Source: https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
+224.0.0.0/24,reserved,[Special] IANA not usable: IPv4 Multicast Local subnetwork (224.0.0.0/24),Source: https://en.wikipedia.org/wiki/Multicast_address
+224.0.1.0/24,reserved,[Special] IANA not usable: IPv4 Multicast Internetwork control (224.0.1.0/24),Source: https://en.wikipedia.org/wiki/Multicast_address
+224.1.0.0/16,reserved,[Special] IANA not usable: IPv4 Multicast Reserved (224.1.0.0/16),Source: https://en.wikipedia.org/wiki/Multicast_address
+224.2.0.0/16,reserved,[Special] IANA not usable: IPv4 Multicast SDP/SAP block (224.2.0.0/16),Source: https://en.wikipedia.org/wiki/Multicast_address
+232.0.0.0/16,reserved,[Special] IANA not usable: IPv4 Multicast Source-specific multicast (232.0.0.0/16),Source: https://en.wikipedia.org/wiki/Multicast_address
+233.252.0.0/22,reserved,[Special] IANA not usable: IPv4 Multicast AD-HOC block 3 (233.252.0.0/22),Source: https://en.wikipedia.org/wiki/Multicast_address
+234.0.0.0/16,reserved,[Special] IANA not usable: IPv4 Multicast Unicast-prefix-based (234.0.0.0/16),Source: https://en.wikipedia.org/wiki/Multicast_address
+239.0.0.0/16,reserved,[Special] IANA not usable: IPv4 Multicast Administratively scoped (239.0.0.0/16),Source: https://en.wikipedia.org/wiki/Multicast_address

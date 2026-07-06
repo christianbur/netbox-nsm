@@ -21,6 +21,9 @@ from netbox_nsm.analyzers.ip_analyzer.ipa_object_node import (
 )
 from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import (
     _attach_ipa_cell_address_fields,
+    _attach_ipa_cell_ipam_object_refs,
+    _ipa_ipam_object_display_ref,
+    _ipa_cell_tree_ipam_object_for_node,
     _attach_ipa_explain_fields,
     _attach_ipa_drilldown_meta,
     _build_ipa_group_coverage,
@@ -293,6 +296,88 @@ class IpaCellTreeNetworkLinkTests(SimpleTestCase):
         ]
         _ensure_ipa_cell_tree_network_links(nodes, {(10, 1): obj})
         self.assertEqual(nodes[0]["ip_ref"]["url"], "/ipam/prefixes/90/")
+
+
+class IpaCellTreeIpamObjectRefTests(SimpleTestCase):
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._hub._attach_addr_navigation_refs")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_cell_tree_ipam_object_for_node")
+    def test_attach_ipam_object_ref_uses_description(self, ipam_obj_fn, nav_fn):
+        prefix = MagicMock()
+        prefix.description = "[Special] IETF: Private-Use (10.0.0.0/8)"
+        prefix.prefix = "10.0.0.0/8"
+        prefix.get_absolute_url.return_value = "/ipam/prefixes/10/"
+        prefix._meta.app_label = "ipam"
+        prefix._meta.model_name = "prefix"
+        ipam_obj_fn.return_value = prefix
+
+        nodes = [
+            {
+                "name": "bench-net-private",
+                "prefix_display_cidr": "10.0.0.0/8",
+                "children": [],
+            }
+        ]
+        _attach_ipa_cell_ipam_object_refs(nodes, {})
+        self.assertEqual(nodes[0]["ipam_object_ref"]["kind"], "prefix")
+        self.assertEqual(
+            nodes[0]["ipam_object_ref"]["description"],
+            "[Special] IETF: Private-Use (10.0.0.0/8)",
+        )
+        self.assertEqual(nodes[0]["ipam_object_ref"]["url"], "/ipam/prefixes/10/")
+        nav_fn.assert_called_once()
+
+    def test_ipam_object_ref_prefix_without_description_returns_none(self):
+        prefix = MagicMock()
+        prefix.description = ""
+        prefix.prefix = "10.0.0.0/8"
+        prefix._meta.app_label = "ipam"
+        prefix._meta.model_name = "prefix"
+        self.assertIsNone(_ipa_ipam_object_display_ref(prefix))
+
+    def test_ipam_object_ref_uses_nsm_description_fallback(self):
+        prefix = MagicMock()
+        prefix.description = ""
+        prefix.prefix = "10.0.0.0/8"
+        prefix.get_absolute_url.return_value = "/ipam/prefixes/10/"
+        prefix._meta.app_label = "ipam"
+        prefix._meta.model_name = "prefix"
+        nsm_obj = MagicMock()
+        nsm_obj.description = "Policy prefix note"
+        ref = _ipa_ipam_object_display_ref(prefix, nsm_obj=nsm_obj)
+        self.assertEqual(ref["description"], "Policy prefix note")
+
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._hub._lookup_ipam_prefix_from_ip_ref")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_lookup_ipam_ipaddress_from_ref")
+    def test_cell_tree_ipam_object_for_host_uses_prefix_display_cidr(
+        self, ip_lookup_fn, prefix_lookup_fn
+    ):
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_node import IPA_NODE_ROLE_HOST
+
+        ip = MagicMock()
+        ip_lookup_fn.return_value = ip
+        node = {
+            "name": "demo-addr-host-031",
+            "prefix_display_cidr": "10.199.30.31/32",
+            "ip_ref": {},
+            "node_role": IPA_NODE_ROLE_HOST,
+        }
+        self.assertIs(_ipa_cell_tree_ipam_object_for_node(node), ip)
+        ip_lookup_fn.assert_called_once_with({"str": "10.199.30.31/32"})
+        prefix_lookup_fn.assert_not_called()
+
+    def test_ipam_object_ref_ipaddress_includes_dns_name_and_description(self):
+        ip = MagicMock()
+        ip.description = "Gateway"
+        ip.dns_name = "gw.example.com"
+        ip.address = "10.0.0.1/32"
+        ip.get_absolute_url.return_value = "/ipam/ip-addresses/1/"
+        ip._meta.app_label = "ipam"
+        ip._meta.model_name = "ipaddress"
+        ref = _ipa_ipam_object_display_ref(ip)
+        self.assertEqual(ref["kind"], "ipaddress")
+        self.assertEqual(ref["dns_name"], "gw.example.com")
+        self.assertEqual(ref["description"], "Gateway")
+        self.assertEqual(ref["url"], "/ipam/ip-addresses/1/")
 
 
 class IpaCellObjectTreeTests(SimpleTestCase):

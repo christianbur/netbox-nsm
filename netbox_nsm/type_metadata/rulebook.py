@@ -116,7 +116,11 @@ def merge_rulebook_config_into_comments(
 
 
 def resolve_rulebook_config_for_cot(cot) -> dict[str, Any]:
-    return parse_rulebook_config_from_comments(cot.comments or "")
+    from netbox_nsm.type_metadata.config import _custom_object_type_comments, _is_custom_object_type
+
+    if not _is_custom_object_type(cot):
+        return deepcopy(DEFAULT_RULEBOOK_CONFIG)
+    return parse_rulebook_config_from_comments(_custom_object_type_comments(cot) or "")
 
 
 def resolve_rulebook_config_for_slug(slug: str) -> dict[str, Any]:

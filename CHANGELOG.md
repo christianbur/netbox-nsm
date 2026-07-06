@@ -4,7 +4,16 @@ All notable changes to **netbox-nsm** are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [0.4.13] - unreleased
+## [0.4.13] - 2026-07-06
+
+### Fixed
+
+- **Security tab YAML crash** — linked address instances with free-text comments (e.g. Tufin metadata) no longer crash the IPAM prefix Security tab; `address_literal._load_yaml_document()` catches `yaml.YAMLError` instead of raising.
+- **`nsm_config` YAML scope** — runtime parsing is limited to `CustomObjectType.comments`; COT instances and IPAM objects (prefix, IP, range) are never parsed as `nsm_config` (`_comments_may_contain_nsm_config`, guards on `resolve_menu_for_cot`, `resolve_rulebook_config_for_cot`, `parse_role_from_comments`, `parse_menu_from_comments`).
+
+### Added
+
+- **Tests** — `test_security_tab_yaml.py` (prefix Security tab + Tufin address comments); extended `test_nsm_config` and `test_address_literal` for invalid YAML / IPAM guards.
 
 ## [0.4.12] - 2026-07-05
 
@@ -610,4 +619,5 @@ First release in the 0.2.x line.
 [0.4.9]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.9
 [0.4.10]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.10
 [0.4.11]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.11
+[0.4.13]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.13
 [0.4.12]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.12

@@ -104,6 +104,14 @@ class AddressLiteralValidationTests(SimpleTestCase):
             "0.0.0.0/0",
         )
 
+    def test_invalid_yaml_comments_are_ignored(self):
+        tufin_like = (
+            "network-3.65.246.96-29 | TufinType: subnet | TufinID: 1684006"
+        )
+        self.assertIsNone(parse_network_from_instance_comments(tufin_like))
+        self.assertIsNone(get_network_literal(self._addr(comments=tufin_like)))
+        self.assertFalse(is_literal_address(self._addr(comments=tufin_like)))
+
 
 class BuiltinAddressDefaultObjectTests(SimpleTestCase):
     def test_address_type_has_no_default_objects(self):

@@ -67,6 +67,25 @@ def _is_custom_object_type(obj) -> bool:
         return callable(getattr(obj, "get_model", None))
 
 
+def _is_ipam_object(obj) -> bool:
+    """True when *obj* is a native IPAM instance (prefix, IP, or range)."""
+    if obj is None:
+        return False
+    meta = getattr(obj, "_meta", None)
+    if meta is None:
+        return False
+    return getattr(meta, "app_label", None) == "ipam" and getattr(meta, "model_name", None) in {
+        "prefix",
+        "ipaddress",
+        "iprange",
+    }
+
+
+def _comments_may_contain_nsm_config(text: str) -> bool:
+    """Fast guard: canonical ``nsm_config`` YAML always contains this key."""
+    return bool(text and "nsm_config" in text)
+
+
 def _custom_object_type_comments(cot) -> str | None:
     """Return COT type ``comments`` or ``None`` when *cot* is not a ``CustomObjectType``."""
     if not _is_custom_object_type(cot):
@@ -190,7 +209,9 @@ def _extract_nsm_config_list_from_document(document: Any) -> list | None:
 
 
 def _parse_nsm_config_yaml(text: str) -> dict[str, Any] | None:
-    """Parse canonical ``nsm_config`` YAML from type comment *text* (setup/sync only)."""
+    """Parse canonical ``nsm_config`` YAML from COT type comment *text* (setup/sync only)."""
+    if not _comments_may_contain_nsm_config(text):
+        return None
     document = _load_yaml_document(text)
     raw_list = _extract_nsm_config_list_from_document(document)
     return normalize_nsm_config_list(raw_list)
@@ -597,7 +618,7 @@ def resolve_nsm_config_dict_for_cot(
     from netbox_nsm.type_metadata.roles import parse_role_from_comments, resolve_role_for_cot
     from netbox_nsm.type_metadata.specs import TYPECONFIG_SPEC_BY_SLUG
 
-    comments = getattr(cot, "comments", "") or ""
+    comments = _custom_object_type_comments(cot) or ""
     spec = TYPECONFIG_SPEC_BY_SLUG.get(cot.slug)
     if spec:
         config = config_dict_from_spec(spec)

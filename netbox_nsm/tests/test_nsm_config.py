@@ -177,3 +177,26 @@ class NsmConfigFormatTests(TestCase):
         self.assertIsNone(resolve_nsm_config_dict_for_cot(instance))
         self.assertFalse(object_builder_in_nsm_config(instance))
         self.assertFalse(cot_link_table_flag(instance))
+
+    def test_parse_nsm_config_skips_ipam_object_comments(self):
+        from ipam.models import Prefix
+
+        tufin_like = (
+            "network-3.65.246.96-29 | TufinType: subnet | TufinID: 1684006"
+        )
+        prefix = Prefix(prefix="3.65.246.96/29", status="active", comments=tufin_like)
+        self.assertIsNone(parse_nsm_config_from_cot(prefix))
+        self.assertIsNone(resolve_nsm_config_dict_for_cot(prefix))
+
+    def test_resolve_menu_for_cot_ignores_instance_comments(self):
+        from netbox_nsm.type_metadata.menus import resolve_menu_for_cot
+
+        tufin_like = (
+            "network-3.65.246.96-29 | TufinType: subnet | TufinID: 1684006"
+        )
+        instance = SimpleNamespace(
+            comments=tufin_like,
+            slug="nsm_address",
+            custom_object_type=SimpleNamespace(slug="nsm_address"),
+        )
+        self.assertEqual(resolve_menu_for_cot(instance), "objects")

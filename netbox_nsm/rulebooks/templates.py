@@ -9,6 +9,7 @@ are created by cloning a template schema via ``build_rulebook_document``.
 
 from __future__ import annotations
 
+import json
 from copy import deepcopy
 
 from netbox_nsm.rulebooks.rulebook_groups import resolve_group_name_for_display
@@ -29,6 +30,7 @@ __all__ = (
     "BENCH_RULEBOOK_FIELD_NAMES",
     "build_rulebook_template_type_defs",
     "bench_rulebook_schema_yaml",
+    "default_rulebook_schema_json",
     "default_rulebook_schema_yaml",
     "demo_rulebook_schema_yaml",
     "schema_demo_rulebook_schema_yaml",
@@ -411,9 +413,42 @@ types:
     removed_fields: []
 """
 
+def default_rulebook_schema_json() -> str:
+    """Return the default editable portable-schema JSON for the rulebook add wizard."""
+    import yaml
+
+    document = yaml.safe_load(DEFAULT_RULEBOOK_SCHEMA_YAML)
+    return json.dumps(document, indent=2, ensure_ascii=False) + "\n"
+
+
 def default_rulebook_schema_yaml() -> str:
-    """Return the default editable YAML schema for the rulebook add wizard."""
-    return DEFAULT_RULEBOOK_SCHEMA_YAML
+    """Return default rulebook schema text (JSON; legacy name retained for callers)."""
+    return default_rulebook_schema_json()
+
+
+def _load_rulebook_schema_document(raw: str) -> dict:
+    """Parse portable-schema JSON (preferred) or legacy YAML."""
+    from django.core.exceptions import ValidationError
+    from django.utils.translation import gettext_lazy as _
+
+    text = (raw or "").strip()
+    if not text:
+        raise ValidationError(_("Enter a rulebook schema."))
+    if text.lstrip().startswith("{"):
+        try:
+            document = json.loads(text)
+        except json.JSONDecodeError as exc:
+            raise ValidationError(_("Invalid JSON: %(error)s") % {"error": exc}) from exc
+    else:
+        import yaml
+
+        try:
+            document = yaml.safe_load(text)
+        except yaml.YAMLError as exc:
+            raise ValidationError(_("Invalid YAML: %(error)s") % {"error": exc}) from exc
+    if not isinstance(document, dict):
+        raise ValidationError(_("Schema must be a JSON object."))
+    return document
 
 
 _SCHEMA_YAML_PLACEHOLDER_TOKENS = (
@@ -438,17 +473,10 @@ def _rulebook_name_from_schema_slug(raw: str) -> str:
 
 
 def extract_rulebook_wizard_metadata_from_schema_yaml(text: str) -> dict[str, str]:
-    """Read concrete rulebook metadata from wizard YAML (no template placeholders)."""
-    import yaml
-
-    raw = (text or "").strip()
-    if not raw:
-        return {}
+    """Read concrete rulebook metadata from wizard schema JSON (legacy YAML accepted)."""
     try:
-        document = yaml.safe_load(raw)
-    except yaml.YAMLError:
-        return {}
-    if not isinstance(document, dict):
+        document = _load_rulebook_schema_document(text)
+    except Exception:
         return {}
     types = document.get("types")
     if not isinstance(types, list) or not types:
@@ -643,9 +671,7 @@ def bench_rulebook_schema_yaml() -> str:
 
 
 def export_rulebook_schema_yaml_for_copy(cot) -> str:
-    """Portable-schema YAML for clipboard copy (paste into Add Rulebook wizard)."""
-    import yaml
-
+    """Portable-schema JSON for clipboard copy (paste into Add Rulebook wizard)."""
     from netbox_custom_objects.schema.exporter import export_cot
 
     type_def = export_cot(cot)
@@ -664,31 +690,15 @@ def export_rulebook_schema_yaml_for_copy(cot) -> str:
             }
         ],
     }
-    return yaml.dump(
-        document,
-        default_flow_style=False,
-        allow_unicode=True,
-        sort_keys=False,
-    ).strip() + "\n"
+    return json.dumps(document, indent=2, ensure_ascii=False) + "\n"
 
 
 def parse_rulebook_schema_yaml(text: str) -> dict:
-    """Parse and validate portable-schema YAML for rulebook creation."""
-    import yaml
+    """Parse and validate portable-schema JSON (legacy YAML accepted) for rulebook creation."""
     from django.core.exceptions import ValidationError
     from django.utils.translation import gettext_lazy as _
 
-    raw = (text or "").strip()
-    if not raw:
-        raise ValidationError(_("Enter a rulebook schema."))
-
-    try:
-        document = yaml.safe_load(raw)
-    except yaml.YAMLError as exc:
-        raise ValidationError(_("Invalid YAML: %(error)s") % {"error": exc}) from exc
-
-    if not isinstance(document, dict):
-        raise ValidationError(_("Schema must be a YAML mapping."))
+    document = _load_rulebook_schema_document(text)
     if document.get("schema_version") != "1":
         raise ValidationError(_("schema_version must be '1'."))
 

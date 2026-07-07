@@ -5,14 +5,14 @@
 {% trans "Validation request failed." as schema_validate_failed_label %}
 
 <style>
-  .nsm-schema-yaml-editor,
-  #id_schema_yaml {
+  .nsm-schema-json-editor,
+  #id_schema_json {
     white-space: pre;
     overflow-x: auto;
     overflow-wrap: normal;
     word-break: normal;
   }
-  .nsm-schema-yaml-validity {
+  .nsm-schema-json-validity {
     font-size: 1.1rem;
     vertical-align: middle;
   }
@@ -32,7 +32,7 @@
         <option value="{{ value }}"{% if value == clone_from %} selected{% endif %}>{{ label }}</option>
         {% endfor %}
       </select>
-      <div class="form-text">{% trans "Optional: copy schema YAML from a deployed rulebook (name and slug get a copy_ prefix). Leave empty to start from the default YAML or paste your own." %}</div>
+      <div class="form-text">{% trans "Optional: copy portable-schema JSON from a deployed rulebook (name and slug get a copy_ prefix). Leave empty to start from the default JSON or paste your own." %}</div>
     </div>
   </div>
 </div>
@@ -41,8 +41,8 @@
   <div class="row">
     <h2 class="col-9 offset-3">
       {% trans "Schema" %}
-      <span id="nsm-schema-yaml-validity"
-            class="nsm-schema-yaml-validity ms-2"
+      <span id="nsm-schema-json-validity"
+            class="nsm-schema-json-validity ms-2"
             aria-live="polite"></span>
     </h2>
   </div>
@@ -58,7 +58,7 @@
                   role="tab"
                   aria-controls="schema-define"
                   aria-selected="true">
-            {% trans "YAML" %}
+            {% trans "JSON" %}
           </button>
         </li>
         <li class="nav-item" role="presentation">
@@ -79,7 +79,7 @@
              id="schema-define"
              role="tabpanel"
              aria-labelledby="schema-define-tab">
-          {% render_field form.schema_yaml %}
+          {% render_field form.schema_json %}
         </div>
         <div class="tab-pane fade"
              id="schema-preview"
@@ -160,11 +160,11 @@
     });
   }
 
-  const schemaInput = document.getElementById("id_schema_yaml");
+  const schemaInput = document.getElementById("id_schema_json");
   const displayInput = document.getElementById("id_verbose_name");
   const nameInput = document.getElementById("id_name");
   const descriptionInput = document.getElementById("id_description");
-  const validityEl = document.getElementById("nsm-schema-yaml-validity");
+  const validityEl = document.getElementById("nsm-schema-json-validity");
   const validateUrl = "{% url 'plugins:netbox_nsm:cot_rulebook_schema_validate' %}";
   if (!displayInput || !nameInput) {
     return;
@@ -183,17 +183,6 @@
       .replace(/^_|_$/g, "");
   }
 
-  function unquoteYamlScalar(value) {
-    var text = String(value || "").trim();
-    if (
-      (text.charAt(0) === '"' && text.charAt(text.length - 1) === '"') ||
-      (text.charAt(0) === "'" && text.charAt(text.length - 1) === "'")
-    ) {
-      return text.slice(1, -1);
-    }
-    return text;
-  }
-
   function isLiteral(value) {
     var text = String(value || "");
     if (!text.trim()) {
@@ -207,29 +196,29 @@
     return true;
   }
 
-  function readYamlLine(text, key) {
-    var pattern = new RegExp("^\\s*" + key + ":\\s*(.+)$", "m");
-    var match = text.match(pattern);
-    return match ? unquoteYamlScalar(match[1]) : "";
-  }
-
-  function extractMetadataFromSchemaYaml(text) {
-    var slug = readYamlLine(text, "slug") || readYamlLine(text, "name");
-    var verboseName = readYamlLine(text, "verbose_name");
-    var description = readYamlLine(text, "description");
+  function extractMetadataFromSchemaJson(text) {
     var meta = {};
-    if (isLiteral(slug)) {
-      if (slug.indexOf("nsm_rb_") === 0) {
-        meta.name = slug.slice("nsm_rb_".length);
-      } else if (slug) {
-        meta.name = slug;
+    try {
+      var doc = JSON.parse(text || "");
+      var typeDef = (doc.types && doc.types[0]) || {};
+      var slug = String(typeDef.slug || typeDef.name || "").trim();
+      var verboseName = String(typeDef.verbose_name || "").trim();
+      var description = String(typeDef.description || "").trim();
+      if (isLiteral(slug)) {
+        if (slug.indexOf("nsm_rb_") === 0) {
+          meta.name = slug.slice("nsm_rb_".length);
+        } else if (slug) {
+          meta.name = slug;
+        }
       }
-    }
-    if (isLiteral(verboseName)) {
-      meta.verbose_name = verboseName;
-    }
-    if (text.match(/^\s*description:\s*/m) && isLiteral(description)) {
-      meta.description = description;
+      if (isLiteral(verboseName)) {
+        meta.verbose_name = verboseName;
+      }
+      if (typeDef.description != null && isLiteral(description)) {
+        meta.description = description;
+      }
+    } catch (err) {
+      return {};
     }
     return meta;
   }
@@ -248,12 +237,12 @@
     input.removeAttribute("tabindex");
   }
 
-  function syncFromSchemaYaml() {
+  function syncFromSchemaJson() {
     if (!schemaInput) {
       syncNameFromDisplay();
       return;
     }
-    var meta = extractMetadataFromSchemaYaml(schemaInput.value || "");
+    var meta = extractMetadataFromSchemaJson(schemaInput.value || "");
     setFieldLock(
       displayInput,
       meta.verbose_name != null,
@@ -309,22 +298,22 @@
     if (validateTimer) {
       window.clearTimeout(validateTimer);
     }
-    validateTimer = window.setTimeout(validateSchemaYaml, 350);
+    validateTimer = window.setTimeout(validateSchemaJson, 350);
   }
 
-  function validateSchemaYaml() {
+  function validateSchemaJson() {
     if (!schemaInput || !validateUrl) {
       return;
     }
-    var yamlText = schemaInput.value || "";
-    if (!yamlText.trim()) {
+    var jsonText = schemaInput.value || "";
+    if (!jsonText.trim()) {
       setSchemaValidity("idle");
       return;
     }
     var requestId = validateRequestId + 1;
     validateRequestId = requestId;
     var body = new URLSearchParams();
-    body.set("schema_yaml", yamlText);
+    body.set("schema_json", jsonText);
     body.set("verbose_name", displayInput.value || "");
     body.set("name", nameInput.value || "");
     body.set("description", descriptionInput ? descriptionInput.value || "" : "");
@@ -369,15 +358,15 @@
   }
   if (schemaInput) {
     schemaInput.addEventListener("input", function () {
-      syncFromSchemaYaml();
+      syncFromSchemaJson();
       scheduleSchemaValidation();
     });
     schemaInput.addEventListener("change", function () {
-      syncFromSchemaYaml();
+      syncFromSchemaJson();
       scheduleSchemaValidation();
     });
   }
-  syncFromSchemaYaml();
+  syncFromSchemaJson();
   scheduleSchemaValidation();
 })();
 </script>

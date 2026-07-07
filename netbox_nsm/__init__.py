@@ -40,11 +40,13 @@ class SecurityConfig(PluginConfig):
 
     def ready(self):
         super().ready()
+        from netbox_nsm import checks  # noqa: F401 — register system checks
         from netbox_nsm.core.branching_support import register_branching_models
         from netbox_nsm.security.tab import register_security_tabs
 
         register_branching_models()
         register_security_tabs()
+        self._ensure_cot_db_compat()
         from netbox_nsm.objects.cot_routes import (
             apply_nsm_object_co_view_patches,
             apply_nsm_object_url_patches,
@@ -52,7 +54,6 @@ class SecurityConfig(PluginConfig):
 
         apply_nsm_object_url_patches()
         apply_nsm_object_co_view_patches()
-        self._warm_url_resolver()
         self._register_system_jobs()
         self._patch_color_field_widget()
         self._patch_poly_subfield_labels()
@@ -60,12 +61,11 @@ class SecurityConfig(PluginConfig):
         self._patch_custom_object_list_polymorphic_sort()
 
     @staticmethod
-    def _warm_url_resolver():
-        """Populate Django's URL resolver at startup (avoids ~2s first-request penalty)."""
+    def _ensure_cot_db_compat():
         try:
-            from django.urls import reverse
+            from netbox_nsm.bundles.cot_db_compat import ensure_cot_extension_column_defaults
 
-            reverse("plugins:netbox_nsm:rulebook_list")
+            ensure_cot_extension_column_defaults()
         except Exception:
             pass
 

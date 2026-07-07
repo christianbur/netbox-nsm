@@ -74,7 +74,7 @@ def iter_deployed_rulebook_clone_choices(user):
     from netbox_nsm.rulebooks.permissions import can_view_rulebook
     from netbox_nsm.rulebooks.registry import iter_deployed_cot_rulebooks
 
-    choices = [("", _("— New rulebook (paste or edit YAML) —"))]
+    choices = [("", _("— New rulebook (paste or edit JSON) —"))]
     for cot in iter_deployed_cot_rulebooks():
         if not can_view_rulebook(user, cot):
             continue
@@ -102,7 +102,7 @@ def build_rulebook_clone_form_initial(cot) -> dict:
         description=copy_description,
     )
     return {
-        "schema_yaml": schema_yaml,
+        "schema_json": schema_yaml,
         "verbose_name": normalize_rulebook_display_name(copy_verbose),
         "name": copy_name,
         "description": copy_description,
@@ -147,7 +147,7 @@ def create_cot_rulebook_from_schema_yaml(
     parent_slug: str | None = None,
 ):
     from netbox_custom_objects.models import CustomObjectType
-    from netbox_custom_objects.schema.executor import apply_document
+    from netbox_nsm.bundles.cot_db_compat import apply_schema_document
     from netbox_nsm.type_metadata.rulebook import save_rulebook_config_for_cot
     from netbox_nsm.rulebooks.cot_hierarchy import validate_cot_parent_slug
 
@@ -177,7 +177,7 @@ def create_cot_rulebook_from_schema_yaml(
         description=description,
         name=name,
     )
-    apply_document(document, allow_destructive=False)
+    apply_schema_document(document, allow_destructive=False)
     cot = CustomObjectType.objects.get(slug=slug)
     from netbox_nsm.type_metadata.config import save_nsm_config_document_for_cot
 
@@ -199,7 +199,7 @@ def create_cot_rulebook_from_template(
     parent_slug: str | None = None,
 ):
     from netbox_custom_objects.models import CustomObjectType
-    from netbox_custom_objects.schema.executor import apply_document
+    from netbox_nsm.bundles.cot_db_compat import apply_schema_document
     from netbox_nsm.type_metadata.rulebook import save_rulebook_config_for_cot
     from netbox_nsm.rulebooks.cot_hierarchy import validate_cot_parent_slug
 
@@ -221,7 +221,7 @@ def create_cot_rulebook_from_template(
         verbose_name=display_name,
         description=description,
     )
-    apply_document(document, allow_destructive=False)
+    apply_schema_document(document, allow_destructive=False)
     cot = CustomObjectType.objects.get(slug=slug)
     from netbox_nsm.type_metadata.config import save_nsm_config_document_for_cot
 

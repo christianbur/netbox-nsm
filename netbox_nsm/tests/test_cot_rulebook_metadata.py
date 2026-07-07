@@ -56,7 +56,7 @@ class CotRulebookMetadataFormTests(TestCase):
         ):
             form = CotRulebookCreateForm(
                 data={
-                    "schema_yaml": default_rulebook_schema_yaml(),
+                    "schema_json": default_rulebook_schema_yaml(),
                     "name": "",
                     "verbose_name": "",
                     "description": "",
@@ -67,8 +67,8 @@ class CotRulebookMetadataFormTests(TestCase):
         self.assertIn("verbose_name", form.errors)
         self.assertIn("name", form.errors)
 
-    def test_create_form_locks_metadata_from_literal_schema_yaml(self):
-        schema_yaml = substitute_rulebook_schema_placeholders(
+    def test_create_form_locks_metadata_from_literal_schema_json(self):
+        schema_json = substitute_rulebook_schema_placeholders(
             default_rulebook_schema_yaml(),
             display_name="Bench Addresses",
             name="demo_zone_addresses",
@@ -80,7 +80,7 @@ class CotRulebookMetadataFormTests(TestCase):
         ):
             form = CotRulebookCreateForm(
                 data={
-                    "schema_yaml": schema_yaml,
+                    "schema_json": schema_json,
                     "name": "tampered",
                     "verbose_name": "Tampered",
                     "description": "Tampered",
@@ -120,7 +120,7 @@ class CotRulebookMetadataFormTests(TestCase):
         ):
             form = CotRulebookCreateForm(
                 data={
-                    "schema_yaml": default_rulebook_schema_yaml(),
+                    "schema_json": default_rulebook_schema_yaml(),
                     "name": "",
                     "verbose_name": "Test 01",
                     "description": "",

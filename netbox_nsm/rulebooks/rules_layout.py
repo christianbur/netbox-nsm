@@ -106,10 +106,18 @@ def _prefetch_standard_m2m_field(instances, field) -> None:
 
 
 def _prefetch_polymorphic_m2m_field(instances, field) -> None:
-    from django.apps import apps
-    from netbox_custom_objects.constants import APP_LABEL
+    from netbox_nsm.core.cot_m2m_through import (
+        field_uses_polymorphic_through,
+        get_field_through_model,
+        read_m2m_ref_pairs,
+    )
 
-    through = apps.get_model(APP_LABEL, field.through_model_name)
+    if not field_uses_polymorphic_through(field):
+        return _prefetch_standard_m2m_field(instances, field)
+
+    through = get_field_through_model(field)
+    if through is None:
+        return
     instance_pks = [inst.pk for inst in instances]
     rows = list(
         through.objects.filter(source_id__in=instance_pks)

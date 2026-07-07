@@ -20,6 +20,8 @@ __all__ = (
     "discover_schema_files",
     "get_bundle_status",
     "load_bundle",
+    "parse_bundle_json_override",
+    "validate_bundle_document",
     "list_bundles",
     "list_setup_bundles",
     "normalize_bundle_metadata",
@@ -65,22 +67,36 @@ def bundle_slug_from_path(path: Path | str) -> str:
     return Path(path).stem
 
 
+def validate_bundle_document(document: dict, *, source: str = "bundle") -> None:
+    """Raise ``ValueError`` when *document* is not a valid NSM bundle."""
+    if not isinstance(document, dict):
+        raise ValueError(f"{source}: root must be a JSON object.")
+    if document.get("schema_type") != "nsm":
+        raise ValueError(f"{source}: schema_type must be 'nsm'.")
+    if str(document.get("schema_version", "")) != "1":
+        raise ValueError(f"{source}: schema_version must be '1'.")
+    bundle_kind = document.get("bundle_kind", "schema")
+    if bundle_kind not in ("schema", "python"):
+        raise ValueError(
+            f"{source}: bundle_kind must be 'schema' or 'python', got {bundle_kind!r}."
+        )
+
+
 def load_bundle(path: Path | str) -> dict:
     bundle_path = Path(path)
     with bundle_path.open(encoding="utf-8") as fh:
         document = json.load(fh)
-    if not isinstance(document, dict):
-        raise ValueError(f"{bundle_path.name}: root must be a JSON object.")
-    if document.get("schema_type") != "nsm":
-        raise ValueError(f"{bundle_path.name}: schema_type must be 'nsm'.")
-    if str(document.get("schema_version", "")) != "1":
-        raise ValueError(f"{bundle_path.name}: schema_version must be '1'.")
-    bundle_kind = document.get("bundle_kind", "schema")
-    if bundle_kind not in ("schema", "python"):
-        raise ValueError(
-            f"{bundle_path.name}: bundle_kind must be 'schema' or 'python', "
-            f"got {bundle_kind!r}."
-        )
+    validate_bundle_document(document, source=bundle_path.name)
+    return document
+
+
+def parse_bundle_json_override(text: str) -> dict:
+    """Parse edited bundle JSON from the setup detail textarea."""
+    try:
+        document = json.loads(text or "")
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Invalid JSON: {exc}") from exc
+    validate_bundle_document(document, source="bundle_json")
     return document
 
 
@@ -339,7 +355,7 @@ def apply_bundle(
     *,
     allow_destructive: bool = False,
 ) -> dict:
-    from netbox_custom_objects.schema.executor import apply_document
+    from netbox_nsm.bundles.cot_db_compat import apply_schema_document
 
     missing = _check_requires(bundle)
     if missing:
@@ -359,7 +375,10 @@ def apply_bundle(
     ipam_linked = 0
     with transaction.atomic():
         choice_sets_applied = apply_choice_sets(bundle.get("choice_sets"))
-        apply_document(portable, allow_destructive=allow_destructive)
+        apply_schema_document(portable, allow_destructive=allow_destructive)
+        from netbox_nsm.core.cot_m2m_through import through_table_column_names
+
+        through_table_column_names.cache_clear()
         objects_seeded = apply_seed_objects(bundle.get("objects"))
         ipam_linked = 0
         demo_address_names = demo_address_names_from_bundle(bundle)

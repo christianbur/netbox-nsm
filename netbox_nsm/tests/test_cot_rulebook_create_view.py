@@ -2,7 +2,7 @@
 
 from django.urls import reverse
 
-from netbox_nsm.rulebooks.templates import default_rulebook_schema_yaml
+from netbox_nsm.rulebooks.templates import default_rulebook_schema_json
 from utilities.testing import TestCase
 
 
@@ -28,11 +28,11 @@ class CotRulebookCreateViewTests(TestCase):
         url = reverse("plugins:netbox_nsm:cot_rulebook_add")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "YAML")
+        self.assertContains(response, "JSON")
         self.assertContains(response, "Preview")
         self.assertContains(response, "schema-define")
         self.assertContains(response, "schema-preview")
-        self.assertContains(response, "name: source")
+        self.assertContains(response, '&quot;name&quot;: &quot;source&quot;')
 
     def test_get_shows_columns_from_default_schema(self):
         self.add_permissions("netbox_custom_objects.add_customobjecttype")
@@ -43,30 +43,29 @@ class CotRulebookCreateViewTests(TestCase):
         self.assertContains(response, "Destination")
         self.assertContains(response, "Zone, Label, Address, Address Custom, Address Group")
 
-    def test_get_prefills_default_schema_yaml(self):
+    def test_get_prefills_default_schema_json(self):
         self.add_permissions("netbox_custom_objects.add_customobjecttype")
         response = self.client.get(reverse("plugins:netbox_nsm:cot_rulebook_add"))
-        self.assertEqual(
-            response.context["form"]["schema_yaml"].value().splitlines()[0],
-            default_rulebook_schema_yaml().splitlines()[0],
+        self.assertTrue(
+            response.context["form"]["schema_json"].value().strip().startswith("{")
         )
 
     def test_get_includes_schema_validity_indicator(self):
         self.add_permissions("netbox_custom_objects.add_customobjecttype")
         response = self.client.get(reverse("plugins:netbox_nsm:cot_rulebook_add"))
-        self.assertContains(response, "nsm-schema-yaml-validity")
+        self.assertContains(response, "nsm-schema-json-validity")
         self.assertContains(
             response,
             reverse("plugins:netbox_nsm:cot_rulebook_schema_validate"),
         )
 
-    def test_schema_validate_endpoint_accepts_valid_yaml(self):
+    def test_schema_validate_endpoint_accepts_valid_json(self):
         self.add_permissions("netbox_custom_objects.add_customobjecttype")
         url = reverse("plugins:netbox_nsm:cot_rulebook_schema_validate")
         response = self.client.post(
             url,
             {
-                "schema_yaml": default_rulebook_schema_yaml(),
+                "schema_json": default_rulebook_schema_json(),
                 "verbose_name": "Bench Addresses",
                 "name": "demo_zone_addresses",
                 "description": "",
@@ -75,12 +74,12 @@ class CotRulebookCreateViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"valid": True})
 
-    def test_schema_validate_endpoint_rejects_invalid_yaml(self):
+    def test_schema_validate_endpoint_rejects_invalid_json(self):
         self.add_permissions("netbox_custom_objects.add_customobjecttype")
         url = reverse("plugins:netbox_nsm:cot_rulebook_schema_validate")
         response = self.client.post(
             url,
-            {"schema_yaml": "not: [valid"},
+            {"schema_json": "{not-json"},
         )
         self.assertEqual(response.status_code, 200)
         payload = response.json()
@@ -99,9 +98,11 @@ class CotRulebookCreateViewTests(TestCase):
         from extras.choices import CustomFieldTypeChoices
         from netbox_custom_objects.models import CustomObjectType, CustomObjectTypeField
 
+        from netbox_nsm.bundles.cot_db_compat import ensure_cot_extension_column_defaults
         from netbox_nsm.rulebooks.templates import RULEBOOK_GROUP
         from netbox_nsm.tests.rulebook_permission_helpers import grant_rulebook_cot_perms
 
+        ensure_cot_extension_column_defaults()
         cot = CustomObjectType.objects.create(
             name="nsm_rb_clone_source",
             slug="nsm_rb_clone_source",
@@ -127,4 +128,4 @@ class CotRulebookCreateViewTests(TestCase):
         self.assertContains(response, "nsm-clone-from")
         self.assertEqual(response.context["clone_from"], cot.slug)
         self.assertEqual(response.context["form"]["name"].value(), "copy_clone_source")
-        self.assertIn("copy_clone_source", response.context["form"]["schema_yaml"].value())
+        self.assertIn("copy_clone_source", response.context["form"]["schema_json"].value())

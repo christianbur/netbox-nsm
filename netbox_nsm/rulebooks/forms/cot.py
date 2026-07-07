@@ -14,7 +14,7 @@ from netbox_nsm.rulebooks.create import (
     resolve_rulebook_slug,
 )
 from netbox_nsm.rulebooks.templates import (
-    default_rulebook_schema_yaml,
+    default_rulebook_schema_json,
     extract_rulebook_wizard_metadata_from_schema_yaml,
     validate_substituted_rulebook_schema_yaml,
 )
@@ -28,12 +28,14 @@ __all__ = (
 
 
 class CotRulebookCreateForm(forms.Form):
-    schema_yaml = forms.CharField(
+    schema_json = forms.CharField(
         label="",
-        help_text=_("Portable-schema YAML defining rulebook columns."),
+        help_text=_(
+            "Portable-schema JSON defining rulebook columns (netbox-custom-objects format)."
+        ),
         widget=forms.Textarea(
             attrs={
-                "class": "form-control font-monospace nsm-schema-yaml-editor",
+                "class": "form-control font-monospace nsm-schema-json-editor",
                 "rows": 24,
                 "spellcheck": "false",
                 "wrap": "off",
@@ -78,17 +80,20 @@ class CotRulebookCreateForm(forms.Form):
         self.fields["parent_slug"].choices = deployed_rulebook_parent_choices()
         self.schema_metadata_locked: dict[str, str] = {}
         if not self.is_bound:
-            self.initial.setdefault("schema_yaml", default_rulebook_schema_yaml())
+            self.initial.setdefault("schema_json", default_rulebook_schema_json())
             self.initial.setdefault("name", "")
-        self._apply_schema_yaml_metadata_lock()
+        self._apply_schema_metadata_lock()
 
-    def _apply_schema_yaml_metadata_lock(self) -> None:
-        schema_yaml = (
-            self.data.get("schema_yaml")
+    def _apply_schema_metadata_lock(self) -> None:
+        schema_text = (
+            self.data.get("schema_json")
+            or self.data.get("schema_yaml")
             if self.is_bound
-            else self.initial.get("schema_yaml") or ""
+            else self.initial.get("schema_json")
+            or self.initial.get("schema_yaml")
+            or ""
         )
-        locked = extract_rulebook_wizard_metadata_from_schema_yaml(schema_yaml)
+        locked = extract_rulebook_wizard_metadata_from_schema_yaml(schema_text)
         self.schema_metadata_locked = locked
         if not locked:
             return
@@ -106,8 +111,12 @@ class CotRulebookCreateForm(forms.Form):
                 self.initial["description"] = locked["description"]
             self.fields["description"].widget.attrs.update(readonly_attrs)
 
-    def clean_schema_yaml(self):
-        value = self.cleaned_data.get("schema_yaml") or ""
+    def clean_schema_json(self):
+        value = (
+            self.cleaned_data.get("schema_json")
+            or self.data.get("schema_yaml")
+            or ""
+        )
         try:
             validate_substituted_rulebook_schema_yaml(
                 value,
@@ -140,7 +149,7 @@ class CotRulebookCreateForm(forms.Form):
     def clean(self):
         cleaned = super().clean()
         locked = extract_rulebook_wizard_metadata_from_schema_yaml(
-            cleaned.get("schema_yaml") or ""
+            cleaned.get("schema_json") or ""
         )
         if locked.get("verbose_name") is not None:
             cleaned["verbose_name"] = locked["verbose_name"]

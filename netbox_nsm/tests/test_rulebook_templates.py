@@ -48,6 +48,7 @@ class RulebookTemplateTests(TestCase):
             "removed_fields": [],
         }
         yaml_text = export_rulebook_schema_yaml_for_copy(SimpleNamespace())
+        self.assertTrue(yaml_text.strip().startswith("{"))
         self.assertIn("nsm_rb_{{name}}", yaml_text)
         self.assertIn("{{display_name}}", yaml_text)
         self.assertIn("{{description}}", yaml_text)
@@ -128,15 +129,21 @@ class RulebookTemplateTests(TestCase):
             ],
         )
 
-    def test_default_schema_yaml_constant_matches_helper(self):
-        self.assertEqual(default_rulebook_schema_yaml(), DEFAULT_RULEBOOK_SCHEMA_YAML)
+    def test_default_schema_json_matches_yaml_constant(self):
+        parsed_json = parse_rulebook_schema_yaml(default_rulebook_schema_yaml())
+        parsed_yaml = parse_rulebook_schema_yaml(DEFAULT_RULEBOOK_SCHEMA_YAML)
+        self.assertEqual(parsed_json["slug"], parsed_yaml["slug"])
+        self.assertEqual(
+            parsed_json["fields"][3]["name"],
+            "source",
+        )
 
-    def test_default_schema_yaml_contains_placeholders(self):
-        yaml_text = default_rulebook_schema_yaml()
-        self.assertIn("{{display_name}}", yaml_text)
-        self.assertIn("{{name}}", yaml_text)
-        self.assertIn("{{description}}", yaml_text)
-        self.assertIn("nsm_rb_{{name}}", yaml_text)
+    def test_default_schema_json_contains_placeholders(self):
+        json_text = default_rulebook_schema_yaml()
+        self.assertIn("{{display_name}}", json_text)
+        self.assertIn("{{name}}", json_text)
+        self.assertIn("{{description}}", json_text)
+        self.assertIn("nsm_rb_{{name}}", json_text)
 
     def test_substitute_rulebook_schema_placeholders(self):
         resolved = substitute_rulebook_schema_placeholders(
@@ -145,9 +152,9 @@ class RulebookTemplateTests(TestCase):
             name="test_01",
             description="My description",
         )
-        self.assertIn("slug: nsm_rb_test_01", resolved)
-        self.assertIn('verbose_name: "Rulebook Test 01"', resolved)
-        self.assertIn('description: "My description"', resolved)
+        self.assertIn('"slug": "nsm_rb_test_01"', resolved)
+        self.assertIn('"verbose_name": "Rulebook Test 01"', resolved)
+        self.assertIn('"description": "My description"', resolved)
         type_def = parse_rulebook_schema_yaml(resolved)
         self.assertEqual(type_def["slug"], "nsm_rb_test_01")
 

@@ -317,6 +317,9 @@
     const sideTab = root.querySelector("#bundlePreviewSideEffects");
     const destructiveEl = root.querySelector("#allowDestructive");
     const destructiveAlert = root.querySelector("#bundlePreviewDestructiveAlert");
+    const jsonEditor = root.querySelector("#bundleJsonEditor");
+    const applyForm = root.querySelector("#applyBundleForm");
+    const applyJsonInput = root.querySelector("#applyBundleJson");
     let previewRequestId = 0;
     let panelOpen = false;
     let lastData = null;
@@ -327,11 +330,18 @@
     }
 
     function setState(state, message) {
-      loadingEl.classList.toggle("d-none", state !== "loading");
-      errorEl.classList.toggle("d-none", state !== "error");
-      root.querySelector("#bundlePreviewTabs").classList.toggle("d-none", state !== "content");
-      if (state === "error") {
-        errorEl.textContent = message || i18n.previewFailed;
+      if (loadingEl) {
+        loadingEl.classList.toggle("d-none", state !== "loading");
+      }
+      if (errorEl) {
+        errorEl.classList.toggle("d-none", state !== "error");
+        if (state === "error") {
+          errorEl.textContent = message || i18n.previewFailed;
+        }
+      }
+      const tabsEl = root.querySelector("#bundlePreviewTabs");
+      if (tabsEl) {
+        tabsEl.classList.toggle("d-none", state !== "content");
       }
     }
 
@@ -358,18 +368,35 @@
       setState("content");
     }
 
+    function bundleJsonText() {
+      return jsonEditor ? jsonEditor.value : "";
+    }
+
     function fetchPreview() {
+      if (!previewUrl) {
+        setState("error", i18n.previewFailed);
+        return;
+      }
       const requestId = ++previewRequestId;
       setState("loading");
       const body = new URLSearchParams();
       body.set("csrfmiddlewaretoken", csrfToken());
+      if (jsonEditor) {
+        body.set("bundle_json", bundleJsonText());
+      }
       if (destructiveEl && destructiveEl.checked) {
         body.set("allow_destructive", "1");
       }
 
+      const headers = {"Content-Type": "application/x-www-form-urlencoded"};
+      const csrf = csrfToken();
+      if (csrf) {
+        headers["X-CSRFToken"] = csrf;
+      }
+
       fetch(previewUrl, {
         method: "POST",
-        headers: {"Content-Type": "application/x-www-form-urlencoded"},
+        headers: headers,
         body: body.toString(),
         credentials: "same-origin",
       })
@@ -419,20 +446,30 @@
     }
 
     function togglePanel() {
-      if (!panelOpen) {
+      const opening = !panelOpen;
+      if (opening) {
         openPanel();
-        fetchPreview();
         requestAnimationFrame(function () {
           requestAnimationFrame(function () {
             scrollPanelIntoView(panel);
           });
         });
-        return;
       }
       fetchPreview();
     }
 
+    if (!toggleBtn || !panel) {
+      setState("error", i18n.previewFailed);
+      return;
+    }
+
     toggleBtn.addEventListener("click", togglePanel);
+
+    if (applyForm && applyJsonInput) {
+      applyForm.addEventListener("submit", function () {
+        applyJsonInput.value = bundleJsonText();
+      });
+    }
 
     if (destructiveEl) {
       destructiveEl.addEventListener("change", function () {
@@ -442,10 +479,8 @@
       });
     }
 
-    if (config.autoOpen) {
-      openPanel();
-      fetchPreview();
-    }
+    openPanel();
+    fetchPreview();
   }
 
   global.NSMBundlePreview = {init: init};

@@ -20,8 +20,11 @@ from netbox_nsm.analyzers.ip_analyzer.ipa_object_node import (
     IPA_NODE_ROLE_PREFIX,
 )
 from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import (
+    IPA_IPAM_CHILD_IP_ENUM_MAX,
     _attach_ipa_cell_address_fields,
     _attach_ipa_cell_ipam_object_refs,
+    _ipa_cell_object_tree_type_counts,
+    _ipa_ipam_ip_keys_for_object,
     _ipa_ipam_object_display_ref,
     _ipa_cell_tree_ipam_object_for_node,
     _attach_ipa_explain_fields,
@@ -1641,6 +1644,64 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         self.assertEqual(counts["count_subnets"], 3)
         self.assertEqual(counts["count_ranges"], 0)
         self.assertEqual(counts["count_ips"], 1)
+
+    def test_ipam_ip_keys_skips_large_prefix_enumeration(self):
+        from ipam.models import Prefix
+
+        prefix = MagicMock(spec=Prefix)
+        prefix._meta.app_label = "ipam"
+        prefix._meta.model_name = "prefix"
+        prefix.get_child_ips.return_value = MagicMock(count=MagicMock(return_value=50000))
+
+        keys, resolved = _ipa_ipam_ip_keys_for_object(prefix)
+        self.assertFalse(resolved)
+        self.assertEqual(keys, set())
+        prefix.get_child_ips.return_value.values_list.assert_not_called()
+
+    def test_cell_tree_type_counts_falls_back_for_large_prefix(self):
+        from ipam.models import Prefix
+
+        prefix = MagicMock(spec=Prefix)
+        prefix._meta.app_label = "ipam"
+        prefix._meta.model_name = "prefix"
+        prefix.get_child_ips.return_value = MagicMock(
+            count=MagicMock(return_value=IPA_IPAM_CHILD_IP_ENUM_MAX + 1)
+        )
+
+        tree = [
+            {
+                "name": "big-net",
+                "prefix_display_cidr": "10.0.0.0/8",
+                "node_role": IPA_NODE_ROLE_PREFIX,
+                "children": [
+                    {
+                        "name": "host-a",
+                        "prefix_display_cidr": "10.0.0.1/32",
+                        "node_role": IPA_NODE_ROLE_HOST,
+                        "children": [],
+                    }
+                ],
+            }
+        ]
+
+        with patch(
+            "netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_cell_tree_ipam_object_for_node",
+            return_value=prefix,
+        ):
+            counts = _ipa_cell_object_tree_type_counts(tree)
+
+        self.assertEqual(counts["count_subnets"], 1)
+        self.assertEqual(counts["count_ips"], 1)
+
+    def test_attach_ipam_refs_tolerates_unresolved_custom_object_type(self):
+        obj = MagicMock()
+        obj.pk = 42
+        obj.custom_object_type = MagicMock()
+        nodes = [{"ct": "10", "pk": "42", "name": "demo", "children": []}]
+        obj_by_key = {(10, 42): obj}
+
+        _attach_ipa_cell_ipam_object_refs(nodes, obj_by_key)
+        self.assertNotIn("related_refs", nodes[0])
 
     def test_summary_counts_include_group_anchor_networks(self):
         tree = [

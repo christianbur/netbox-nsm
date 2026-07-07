@@ -148,7 +148,7 @@ class CotRulebookCreateTests(TestCase):
         self.assertEqual(initial["name"], "copy_demo")
         self.assertEqual(initial["verbose_name"], "Rulebook copy_Demo")
         self.assertEqual(initial["description"], "Starter demo")
-        self.assertIn("copy_demo", initial["schema_yaml"])
+        self.assertIn("copy_demo", initial["schema_json"])
 
     def test_rulebook_name_from_slug(self):
         self.assertEqual(rulebook_name_from_slug("nsm_rb_demo"), "demo")

@@ -36,6 +36,8 @@ IPA_TREE_NODE_INFO_GAP = "info_gap"
 
 # Groups with more members expand only co-selected addresses (bench-scale safety).
 IPA_CELL_GROUP_FULL_EXPAND_MAX = 32
+# Skip full IPAM child-IP enumeration above this count (memory/timeout guard).
+IPA_IPAM_CHILD_IP_ENUM_MAX = 4096
 # Membership pills collapse to an expandable summary when many groups apply.
 IPA_CELL_GROUPS_COLLAPSE_THRESHOLD = 4
 # Multiple collapsed root-level group selections fold into one summary section.
@@ -3045,16 +3047,53 @@ def _attach_ipa_cell_ipam_object_refs(nodes, obj_by_key=None):
             if ipam_ref is not None:
                 node["ipam_object_ref"] = ipam_ref
 
-        _hub._attach_addr_navigation_refs(node, obj=obj, ipam_obj=ipam_obj)
+        try:
+            _hub._attach_addr_navigation_refs(node, obj=obj, ipam_obj=ipam_obj)
+        except Exception:
+            pass
         _attach_ipa_cell_ipam_object_refs(node.get("children") or [], obj_by_key)
 
 
-def _ipa_queryset_pk_set(queryset):
+def _ipa_is_django_queryset(obj) -> bool:
+    try:
+        from django.db.models.query import QuerySet
+
+        return isinstance(obj, QuerySet)
+    except Exception:
+        return False
+
+
+def _ipa_queryset_count_safe(queryset) -> int | None:
+    """Return queryset ``count()`` when cheap, else ``None``."""
+    if not _ipa_is_django_queryset(queryset):
+        return None
+    try:
+        return int(queryset.count())
+    except Exception:
+        pass
+    return None
+
+
+def _ipa_queryset_pk_set(queryset, *, max_rows=None):
     """Resolve primary keys from a QuerySet/list without assuming a concrete ORM type."""
     try:
+        if max_rows is not None and _ipa_is_django_queryset(queryset):
+            total = _ipa_queryset_count_safe(queryset)
+            if total is not None and total > max_rows:
+                return set()
         if hasattr(queryset, "values_list"):
-            return set(queryset.values_list("pk", flat=True))
-        return {getattr(item, "pk") for item in queryset if getattr(item, "pk", None) is not None}
+            qs = queryset
+            if max_rows is not None:
+                qs = queryset[:max_rows]
+            return set(qs.values_list("pk", flat=True))
+        items = queryset
+        if max_rows is not None:
+            items = list(queryset)[:max_rows]
+        return {
+            getattr(item, "pk")
+            for item in items
+            if type(getattr(item, "pk", None)) is int
+        }
     except Exception:
         return set()
 
@@ -3126,22 +3165,38 @@ def _ipa_ipam_ip_keys_for_object(ipam_obj):
     model_name = _ipa_ipam_model_name(ipam_obj)
     if model_name == "ipaddress":
         pk = getattr(ipam_obj, "pk", None)
-        return ({("ipam.ipaddress", pk)} if pk is not None else set(), True)
+        return ({("ipam.ipaddress", pk)} if type(pk) is int else set()), True
     if model_name == "prefix":
         try:
-            return _ipa_queryset_pk_set(ipam_obj.get_child_ips()), True
+            child_qs = ipam_obj.get_child_ips()
+            child_count = _ipa_queryset_count_safe(child_qs)
+            if child_count is not None and child_count > IPA_IPAM_CHILD_IP_ENUM_MAX:
+                return set(), False
+            keys = _ipa_queryset_pk_set(
+                child_qs, max_rows=IPA_IPAM_CHILD_IP_ENUM_MAX + 1
+            )
+            if len(keys) > IPA_IPAM_CHILD_IP_ENUM_MAX:
+                return set(), False
+            return keys, True
         except Exception:
             return set(), False
     if model_name == "iprange":
         try:
             from ipam.models import IPAddress
 
-            return _ipa_queryset_pk_set(
-                IPAddress.objects.filter(
-                    address__gte=ipam_obj.start_address,
-                    address__lte=ipam_obj.end_address,
-                )
-            ), True
+            child_qs = IPAddress.objects.filter(
+                address__gte=ipam_obj.start_address,
+                address__lte=ipam_obj.end_address,
+            )
+            child_count = _ipa_queryset_count_safe(child_qs)
+            if child_count is not None and child_count > IPA_IPAM_CHILD_IP_ENUM_MAX:
+                return set(), False
+            keys = _ipa_queryset_pk_set(
+                child_qs, max_rows=IPA_IPAM_CHILD_IP_ENUM_MAX + 1
+            )
+            if len(keys) > IPA_IPAM_CHILD_IP_ENUM_MAX:
+                return set(), False
+            return keys, True
         except Exception:
             return set(), False
     return set(), False

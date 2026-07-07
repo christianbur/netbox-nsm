@@ -4,6 +4,27 @@ All notable changes to **netbox-nsm** are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.14] - 2026-07-06
+
+### Added
+
+- **Rulebook create — JSON schema** — wizard uses editable portable-schema JSON (`schema_json`) instead of YAML; tab, help text, and client validation updated.
+- **Bundle detail — JSON editor** — editable bundle document on schema bundle pages; preview sends `bundle_json`; auto-load preview panel on page open.
+- **Service port ranges** — optional `port_end` on `nsm_service` (bundle schema, display template, query engine).
+- **COT DB compat** — `cot_db_compat.py` sets PostgreSQL defaults for extension columns (`menu_name`, etc.) before `apply_document`; fixes rulebook/bundle create on netbox-custom-objects 0.6.x.
+- **Polymorphic M2M through helper** — `core/cot_m2m_through.py` tolerates standard vs polymorphic through tables during bundle preview/apply.
+- **Deployment check** — `netbox_nsm.W001` warns when other plugins are listed after `netbox_nsm` in `PLUGINS` (contacts/journal/changelog URLs).
+
+### Changed
+
+- **Plugin startup** — removed URL resolver warm-up from `SecurityConfig.ready()` so later plugins register feature tab URLs before URLconf loads; document `PLUGINS` order (netbox_nsm last before netbox_branching).
+
+### Fixed
+
+- **IP Analyzer — large objects** — guard invalid COT PKs in navigation; cap IPAM child-IP enumeration at 4096 hosts (avoids HTTP 500 on large prefixes/groups).
+- **Bundle apply** — `content_type_id` FieldError when polymorphic flag and through-table schema mismatch; seed-object diff/apply uses `cot_m2m_through`.
+- **Rulebook clone / layout** — polymorphic multiobject reads use through-table column detection.
+
 ## [0.4.13] - 2026-07-06
 
 ### Fixed
@@ -619,5 +640,6 @@ First release in the 0.2.x line.
 [0.4.9]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.9
 [0.4.10]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.10
 [0.4.11]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.11
+[0.4.14]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.14
 [0.4.13]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.13
 [0.4.12]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.12

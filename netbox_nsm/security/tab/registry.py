@@ -162,14 +162,16 @@ def register_security_tabs():
     """
     Register the Security tab on all public models and inject CO host URLs.
 
-    Must run synchronously from ``SecurityConfig.ready()`` before the URLconf
-    freezes on first resolve.
+    Must run synchronously from ``SecurityConfig.ready()``.
+
+    Do not call ``reverse()`` or otherwise load the root URLconf from ``ready()``:
+    plugins listed after netbox_nsm in ``PLUGINS`` have not yet run
+    ``PluginConfig.ready()`` → ``register_models()``, so an early URLconf load
+    would omit their contacts/journal/changelog routes.
     """
-    try:
-        _inject_co_security_url()
-        _inject_nsm_object_security_url()
-        for model_class in _public_host_model_classes():
-            register_security_tab_on_model(model_class)
-        _register_custom_object_security_tab()
-    finally:
-        clear_url_caches()
+    _inject_co_security_url()
+    _inject_nsm_object_security_url()
+    for model_class in _public_host_model_classes():
+        register_security_tab_on_model(model_class)
+    _register_custom_object_security_tab()
+    clear_url_caches()

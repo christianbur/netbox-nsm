@@ -73,7 +73,7 @@ def _ipam_gfk_attrs_for_obj(addr_obj) -> tuple[str, str, str]:
     cot = getattr(addr_obj, "custom_object_type", None)
     if cot is not None:
         cot_pk = getattr(cot, "pk", None)
-        if cot_pk is not None:
+        if type(cot_pk) is int and cot_pk > 0:
             return _ipam_gfk_attrs_for_cot_pk(cot_pk)
         from netbox_nsm.objects.cot_roles import ipam_gfk_attrs, resolve_ipam_field_name
 
@@ -132,7 +132,8 @@ def is_nsm_address_object(obj, addr_model=None) -> bool:
     if obj is None:
         return False
     cot = getattr(obj, "custom_object_type", None)
-    if cot is not None and cot_ipam_address_flag(cot):
+    cot_pk = getattr(cot, "pk", None)
+    if cot is not None and type(cot_pk) is int and cot_pk > 0 and cot_ipam_address_flag(cot):
         return True
     model = addr_model or get_nsm_address_model()
     if model is None:

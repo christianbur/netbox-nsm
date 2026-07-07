@@ -42,5 +42,5 @@ file = "netbox-plugin.yaml"
 init_file = "netbox_nsm/__init__.py"
 
 [reminders]
-pypi_note = "PyPI publish runs in release-on-tag.yml after the tag push (same workflow as GitHub Release)."
+pypi_note = "PyPI publish runs via publish.yml on tag push (Trusted Publisher workflow name must stay publish.yml)."
 manual_push_hint = "sudo ./scripts/github_release.sh --version <X.Y.Z> && sudo ./scripts/promote_release_to_main.sh --version <X.Y.Z>"

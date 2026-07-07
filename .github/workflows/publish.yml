@@ -4,6 +4,9 @@ on:
     release:
         types:
           - published
+    push:
+        tags:
+          - "v*"
 
 jobs:
     publish:
@@ -14,10 +17,10 @@ jobs:
 
         steps:
           - name: Checkout code
-            uses: actions/checkout@main
+            uses: actions/checkout@v4
 
           - name: Setup Python
-            uses: actions/setup-python@main
+            uses: actions/setup-python@v5
             with:
               python-version: "3.12"
 

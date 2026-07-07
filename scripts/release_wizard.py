@@ -708,6 +708,34 @@ class ReleaseWizard:
             raise RuntimeError(commit.stderr.strip() or "git commit failed")
         print(commit.stdout.strip() or f"Commit created: {message}")
 
+    def _ensure_github_ssh_remote(self) -> None:
+        result = self._run_git("remote", "get-url", "origin", remote=True)
+        if result.returncode != 0:
+            raise RuntimeError(result.stderr.strip() or "git remote get-url origin failed")
+        url = result.stdout.strip()
+        if url.startswith("git@github.com:"):
+            return
+        match = re.match(r"^https://github\.com/([^/]+)/([^/]+?)(?:\.git)?$", url)
+        if not match:
+            return
+        ssh_url = f"git@github.com:{match.group(1)}/{match.group(2)}.git"
+        set_url = self._run_git("remote", "set-url", "origin", ssh_url, remote=True)
+        if set_url.returncode != 0:
+            raise RuntimeError(set_url.stderr.strip() or "git remote set-url failed")
+        print(f"origin switched to SSH: {ssh_url}")
+
+    def _verify_github_ssh(self) -> None:
+        cmd = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", "-T", "git@github.com"]
+        if not self._running_as_git_user() and os.geteuid() == 0:
+            cmd = ["sudo", "-u", self.config.git_user, "--", *cmd]
+        result = subprocess.run(cmd, text=True, capture_output=True)
+        combined = f"{result.stdout}\n{result.stderr}"
+        if "successfully authenticated" not in combined.lower():
+            raise RuntimeError(
+                f"SSH to GitHub failed for user {self.config.git_user}. "
+                "Check: ssh -T git@github.com"
+            )
+
     def _git_tag(self, version: str, dry_run: bool) -> None:
         tag = f"v{version}"
         if dry_run:
@@ -723,15 +751,21 @@ class ReleaseWizard:
         git_user = self.config.git_user
         if dry_run:
             prefix = f"sudo -u {git_user} " if not self._running_as_git_user() and os.geteuid() == 0 else ""
+            print(f"[dry-run] ensure SSH origin + verify github.com")
             print(f"[dry-run] {prefix}git push && {prefix}git push origin {tag}")
             return
+        self._ensure_github_ssh_remote()
+        self._verify_github_ssh()
         for args in (["push"], ["push", "origin", tag]):
             result = self._run_git(*args, remote=True)
             if result.returncode != 0:
                 raise RuntimeError(result.stderr.strip() or f"git {' '.join(args)} failed")
             if result.stdout.strip():
                 print(result.stdout.strip())
-        print(f"Push complete (branch + tag, as {git_user} when run as root).")
+        print(
+            f"Push complete (branch + tag via SSH as {git_user}; "
+            "GitHub Actions creates the release)."
+        )
 
     def _git_promote_to_main(self, version: str, dry_run: bool) -> None:
         script = self.config.root / "scripts" / "promote_release_to_main.sh"
@@ -769,8 +803,14 @@ class ReleaseWizard:
         _print_header("Next steps")
         step = 1
         if self.config.repo_url:
-            print(f"{step}. Create GitHub release: {self.config.repo_url}/releases/new?tag=v{version}")
-            print(f'   → Select tag, title e.g. "v{version}", paste CHANGELOG section as description.')
+            print(
+                f"{step}. GitHub release + PyPI: tag v{version} push triggers "
+                f"{self.config.repo_url}/actions/workflows/release-on-tag.yml "
+                "(SSH push as christian — no gh login)."
+            )
+            print(
+                f"   Re-run release workflow: ./scripts/github_release.sh --version {version} --force"
+            )
             step += 1
         if self.config.pypi_note:
             print(f"{step}. {self.config.pypi_note}")

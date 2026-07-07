@@ -12,6 +12,7 @@ from netbox_nsm.core.nsm_object_status import (
     normalize_nsm_object_status,
 )
 from netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree import _ipa_object_drilldown_has_visible_content
+from netbox_nsm.analyzers.ip_analyzer.ipa_perf import ipa_lazy_load_enabled
 from netbox_nsm.analyzers.ip_analyzer.ipa_object_node import (
     IPA_NODE_ROLE_EMPTY,
     IPA_NODE_ROLE_GROUP,
@@ -36,6 +37,8 @@ IPA_TREE_NODE_INFO_GAP = "info_gap"
 
 # Groups with more members expand only co-selected addresses (bench-scale safety).
 IPA_CELL_GROUP_FULL_EXPAND_MAX = 32
+# Skip full IPAM child-IP enumeration above this count (memory/timeout guard).
+IPA_IPAM_CHILD_IP_ENUM_MAX = 4096
 # Membership pills collapse to an expandable summary when many groups apply.
 IPA_CELL_GROUPS_COLLAPSE_THRESHOLD = 4
 # Multiple collapsed root-level group selections fold into one summary section.
@@ -221,8 +224,15 @@ def _ipa_drilldown_meta_from_ipam_stats(node, stats=None):
 def _resolve_ipa_drilldown_meta_for_node(node, obj_by_key=None):
     """Return drilldown counters for a prefix/range tree node."""
     from netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree import _build_ipa_drilldown_source_meta
+    from netbox_nsm.analyzers.ip_analyzer.ipa_object_node import (
+        _ipa_object_node_role_from_cidr_hint,
+    )
 
-    role = node.get("node_role") or _ipa_object_node_role_from_tree_node(node)
+    role = _ipa_object_node_role_from_tree_node(node)
+    cidr = node.get("prefix_display_cidr") or (node.get("ip_ref") or {}).get("str")
+    cidr_role = _ipa_object_node_role_from_cidr_hint(cidr)
+    if cidr_role in {IPA_NODE_ROLE_PREFIX, IPA_NODE_ROLE_RANGE}:
+        role = cidr_role
     if role not in {IPA_NODE_ROLE_PREFIX, IPA_NODE_ROLE_RANGE}:
         return None
     key = _ipa_object_tree_node_key(node)
@@ -250,7 +260,7 @@ def _resolve_ipa_drilldown_meta_for_node(node, obj_by_key=None):
 
 
 def _attach_ipa_drilldown_meta(nodes, obj_by_key=None):
-    """Attach NetBox child counters to every prefix/range row in the cell tree."""
+    """Attach NetBox child counters to prefix/range rows in the cell tree."""
     for node in nodes or []:
         if not node.get("ipa_drilldown_meta"):
             meta = _resolve_ipa_drilldown_meta_for_node(node, obj_by_key)
@@ -696,7 +706,8 @@ def _flatten_cell_selections_to_address_nodes(raw_selections, obj_by_key):
 
         if is_group_sel:
             members = list(_ipa_object_group_members(obj))
-            if len(members) > IPA_CELL_GROUP_FULL_EXPAND_MAX:
+            group_expand_max = IPA_CELL_GROUP_FULL_EXPAND_MAX
+            if len(members) > group_expand_max:
                 grp_ref = _cell_group_ref_for_object(obj)
                 direct_members = [
                     member
@@ -3045,16 +3056,53 @@ def _attach_ipa_cell_ipam_object_refs(nodes, obj_by_key=None):
             if ipam_ref is not None:
                 node["ipam_object_ref"] = ipam_ref
 
-        _hub._attach_addr_navigation_refs(node, obj=obj, ipam_obj=ipam_obj)
+        try:
+            _hub._attach_addr_navigation_refs(node, obj=obj, ipam_obj=ipam_obj)
+        except Exception:
+            pass
         _attach_ipa_cell_ipam_object_refs(node.get("children") or [], obj_by_key)
 
 
-def _ipa_queryset_pk_set(queryset):
+def _ipa_is_django_queryset(obj) -> bool:
+    try:
+        from django.db.models.query import QuerySet
+
+        return isinstance(obj, QuerySet)
+    except Exception:
+        return False
+
+
+def _ipa_queryset_count_safe(queryset) -> int | None:
+    """Return queryset ``count()`` when cheap, else ``None``."""
+    if not _ipa_is_django_queryset(queryset):
+        return None
+    try:
+        return int(queryset.count())
+    except Exception:
+        pass
+    return None
+
+
+def _ipa_queryset_pk_set(queryset, *, max_rows=None):
     """Resolve primary keys from a QuerySet/list without assuming a concrete ORM type."""
     try:
+        if max_rows is not None and _ipa_is_django_queryset(queryset):
+            total = _ipa_queryset_count_safe(queryset)
+            if total is not None and total > max_rows:
+                return set()
         if hasattr(queryset, "values_list"):
-            return set(queryset.values_list("pk", flat=True))
-        return {getattr(item, "pk") for item in queryset if getattr(item, "pk", None) is not None}
+            qs = queryset
+            if max_rows is not None:
+                qs = queryset[:max_rows]
+            return set(qs.values_list("pk", flat=True))
+        items = queryset
+        if max_rows is not None:
+            items = list(queryset)[:max_rows]
+        return {
+            getattr(item, "pk")
+            for item in items
+            if type(getattr(item, "pk", None)) is int
+        }
     except Exception:
         return set()
 
@@ -3123,25 +3171,43 @@ def _ipa_cell_tree_ipam_object_for_node(node, obj=None):
 
 def _ipa_ipam_ip_keys_for_object(ipam_obj):
     """Unique IPAM IPAddress keys represented by one Prefix/Range/IPAddress object."""
+    if ipa_lazy_load_enabled():
+        return set(), False
     model_name = _ipa_ipam_model_name(ipam_obj)
     if model_name == "ipaddress":
         pk = getattr(ipam_obj, "pk", None)
-        return ({("ipam.ipaddress", pk)} if pk is not None else set(), True)
+        return ({("ipam.ipaddress", pk)} if type(pk) is int else set()), True
     if model_name == "prefix":
         try:
-            return _ipa_queryset_pk_set(ipam_obj.get_child_ips()), True
+            child_qs = ipam_obj.get_child_ips()
+            child_count = _ipa_queryset_count_safe(child_qs)
+            if child_count is not None and child_count > IPA_IPAM_CHILD_IP_ENUM_MAX:
+                return set(), False
+            keys = _ipa_queryset_pk_set(
+                child_qs, max_rows=IPA_IPAM_CHILD_IP_ENUM_MAX + 1
+            )
+            if len(keys) > IPA_IPAM_CHILD_IP_ENUM_MAX:
+                return set(), False
+            return keys, True
         except Exception:
             return set(), False
     if model_name == "iprange":
         try:
             from ipam.models import IPAddress
 
-            return _ipa_queryset_pk_set(
-                IPAddress.objects.filter(
-                    address__gte=ipam_obj.start_address,
-                    address__lte=ipam_obj.end_address,
-                )
-            ), True
+            child_qs = IPAddress.objects.filter(
+                address__gte=ipam_obj.start_address,
+                address__lte=ipam_obj.end_address,
+            )
+            child_count = _ipa_queryset_count_safe(child_qs)
+            if child_count is not None and child_count > IPA_IPAM_CHILD_IP_ENUM_MAX:
+                return set(), False
+            keys = _ipa_queryset_pk_set(
+                child_qs, max_rows=IPA_IPAM_CHILD_IP_ENUM_MAX + 1
+            )
+            if len(keys) > IPA_IPAM_CHILD_IP_ENUM_MAX:
+                return set(), False
+            return keys, True
         except Exception:
             return set(), False
     return set(), False
@@ -3407,6 +3473,42 @@ def _attach_ipa_explain_fields(nodes):
         _attach_ipa_explain_fields(node.get("children") or [])
 
 
+def _mark_ipa_object_addr_drilldown_flags_lazy(nodes, obj_by_key=None):
+    """Mark IPAM drilldown only for prefix/range nodes (no empty spacer rows)."""
+    for node in nodes or []:
+        key = _ipa_object_tree_node_key(node)
+        obj = obj_by_key.get(key) if key and obj_by_key else None
+        if obj is not None:
+            role = _ipa_object_node_role_from_tree_node(node)
+            if role in (IPA_NODE_ROLE_PREFIX, IPA_NODE_ROLE_RANGE):
+                if not _ipa_cell_tree_has_visible_address_children(node):
+                    if _ipa_object_has_addr_drilldown(obj):
+                        node["addr_drilldown_lazy"] = True
+        _mark_ipa_object_addr_drilldown_flags_lazy(
+            node.get("children") or [], obj_by_key
+        )
+
+
+def _finalize_ipa_cell_object_tree_lazy(nodes, cell_object_keys, obj_by_key):
+    """Minimal cell-tree enrichment for lazy-first IPA loads (rules cells)."""
+    _enrich_ipa_object_tree_cidr_from_names(nodes)
+    _enrich_ipa_object_tree_networks_from_objects(nodes, obj_by_key)
+    nodes = _merge_ipa_cell_nodes_by_network(nodes)
+    nodes = _sort_ipa_object_tree_siblings(nodes)
+    nodes = _collapse_ipa_cell_siblings_by_network(nodes)
+    _refresh_ipa_cell_tree_inventory_roles(nodes, obj_by_key)
+    _mark_ipa_object_addr_drilldown_flags_lazy(nodes, obj_by_key)
+    _mark_ipa_cell_direct_flags(nodes, cell_object_keys)
+    _attach_ipa_object_tree_status(nodes, obj_by_key)
+    _attach_ipa_cell_address_fields(nodes, obj_by_key)
+    _attach_ipa_drilldown_meta(nodes, obj_by_key)
+    _attach_ipa_cell_ipam_object_refs(nodes, obj_by_key)
+    _attach_ipa_cell_display_hints(nodes)
+    _mark_ipa_cell_open_by_default(nodes)
+    _annotate_ipa_cell_tree_depth(nodes)
+    return nodes
+
+
 def _build_ipa_cell_object_tree(raw_selections, obj_by_key):
     """
     Build ordered root nodes for objects referenced in a rules cell.
@@ -3420,17 +3522,21 @@ def _build_ipa_cell_object_tree(raw_selections, obj_by_key):
             continue
 
     nodes = _flatten_cell_selections_to_address_nodes(raw_selections, obj_by_key)
+    if ipa_lazy_load_enabled():
+        return _finalize_ipa_cell_object_tree_lazy(nodes, cell_object_keys, obj_by_key)
     _enrich_ipa_object_tree_cidr_from_names(nodes)
     _enrich_ipa_object_tree_networks_from_objects(nodes, obj_by_key)
     nodes = _merge_ipa_cell_nodes_by_network(nodes)
     _enrich_ipa_collapsed_group_networks_from_members(nodes, obj_by_key)
     nodes = _reorganize_ipa_object_tree_by_ipam_prefix_hierarchy(nodes, obj_by_key)
-    prefix_cache = _IpaContainingPrefixCache()
-    prefix_cache.register_tree(nodes, obj_by_key)
-    nodes = _insert_ipam_filler_prefixes(nodes, obj_by_key, prefix_cache=prefix_cache)
-    nodes = _synthesize_ipa_cell_ipam_parent_prefixes(
-        nodes, obj_by_key, prefix_cache=prefix_cache
-    )
+    lazy = ipa_lazy_load_enabled()
+    if not lazy:
+        prefix_cache = _IpaContainingPrefixCache()
+        prefix_cache.register_tree(nodes, obj_by_key)
+        nodes = _insert_ipam_filler_prefixes(nodes, obj_by_key, prefix_cache=prefix_cache)
+        nodes = _synthesize_ipa_cell_ipam_parent_prefixes(
+            nodes, obj_by_key, prefix_cache=prefix_cache
+        )
     nodes = _sort_ipa_object_tree_siblings(nodes)
     nodes = _collapse_ipa_cell_siblings_by_network(nodes)
     nodes = _sort_ipa_object_tree_siblings(nodes)

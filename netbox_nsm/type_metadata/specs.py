@@ -98,7 +98,7 @@ TYPECONFIG_SPECS = [
     _typeconfig_spec(
         "nsm_service",
         "Services",
-        display_template="{{ name }} ({{ protocol }}/{{ port }})",
+        display_template="{{ name }} ({{ protocol }}/{% if port_end and port_end != port %}{{ port }}-{{ port_end }}{% elif port %}{{ port }}{% else %}—{% endif %})",
     ),
     _typeconfig_spec("nsm_service_group", "Service Groups", display_template="{{ name }}"),
     _typeconfig_spec("nsm_action", "Action", display_template="{{ name | upper }}"),

@@ -3,7 +3,7 @@
   "schema_version": "1",
   "bundle_kind": "schema",
   "title": "RB Demo Zone/Address",
-  "description": "Zone, address, and address-group demo on nsm_rb_demo_zone_addresses: 20 zones, 500 addresses, 100 groups, and 500 rules (rules 1–20: 1–20 addresses/groups per side, rule 1 destination includes nsm_address_custom/ANY; assigns random IPAM hosts/prefixes to demo addresses on apply). Requires nsm_schema (ANY seed object).",
+  "description": "Zone, address, and address-group demo on nsm_rb_demo_zone_addresses: 20 zones, 504 addresses (incl. 4-level IPA hierarchy Europa→Deutschland→Berlin→Host), 103 groups (incl. nested demo-ipa-grp-1/2/3), and 500 rules (rules 1–20: 1–20 addresses/groups per side; rule 21: all 4 IPA hierarchy levels; assigns random IPAM hosts/prefixes to demo-addr-host-* on apply). Requires nsm_schema (ANY seed object).",
   "requires": [
     "nsm_schema"
   ],
@@ -2219,6 +2219,22 @@
         {
           "name": "demo-addr-host-500",
           "status": "active"
+        },
+        {
+          "name": "demo-ipa-continent",
+          "status": "active"
+        },
+        {
+          "name": "demo-ipa-country",
+          "status": "active"
+        },
+        {
+          "name": "demo-ipa-city",
+          "status": "active"
+        },
+        {
+          "name": "demo-ipa-host",
+          "status": "active"
         }
       ]
     },
@@ -3324,6 +3340,27 @@
             "nsm_address/demo-addr-host-499",
             "nsm_address/demo-addr-host-500"
           ]
+        },
+        {
+          "name": "demo-ipa-grp-3",
+          "status": "active",
+          "group": [
+            "nsm_address/demo-ipa-host"
+          ]
+        },
+        {
+          "name": "demo-ipa-grp-2",
+          "status": "active",
+          "group": [
+            "nsm_address_group/demo-ipa-grp-3"
+          ]
+        },
+        {
+          "name": "demo-ipa-grp-1",
+          "status": "active",
+          "group": [
+            "nsm_address_group/demo-ipa-grp-2"
+          ]
         }
       ]
     },
@@ -4161,7 +4198,7 @@
         {
           "index": 21,
           "status": true,
-          "name": "demo-addr-rule-021",
+          "name": "demo-ipa-hierarchy-rule",
           "source_zones": [
             "nsm_zone/demo-addr-zone-01"
           ],
@@ -4169,18 +4206,28 @@
             "nsm_zone/demo-addr-zone-04"
           ],
           "source_addresses": [
-            "nsm_address/demo-addr-host-021",
-            "nsm_address_group/demo-addr-group-021"
+            "nsm_address/demo-ipa-continent",
+            "nsm_address/demo-ipa-country",
+            "nsm_address/demo-ipa-city",
+            "nsm_address/demo-ipa-host",
+            "nsm_address_group/demo-ipa-grp-1",
+            "nsm_address_group/demo-ipa-grp-2",
+            "nsm_address_group/demo-ipa-grp-3"
           ],
           "destination_addresses": [
-            "nsm_address/demo-addr-host-028",
-            "nsm_address_group/demo-addr-group-023"
+            "nsm_address/demo-ipa-continent",
+            "nsm_address/demo-ipa-country",
+            "nsm_address/demo-ipa-city",
+            "nsm_address/demo-ipa-host",
+            "nsm_address_group/demo-ipa-grp-1",
+            "nsm_address_group/demo-ipa-grp-2",
+            "nsm_address_group/demo-ipa-grp-3"
           ],
           "services_applications": [
-            "nsm_service/DNS-UDP"
+            "nsm_service/HTTPS"
           ],
           "actions": [
-            "nsm_action/Deny"
+            "nsm_action/Permit"
           ]
         },
         {

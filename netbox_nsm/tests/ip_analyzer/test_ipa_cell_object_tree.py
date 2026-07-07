@@ -20,8 +20,11 @@ from netbox_nsm.analyzers.ip_analyzer.ipa_object_node import (
     IPA_NODE_ROLE_PREFIX,
 )
 from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import (
+    IPA_IPAM_CHILD_IP_ENUM_MAX,
     _attach_ipa_cell_address_fields,
     _attach_ipa_cell_ipam_object_refs,
+    _ipa_cell_object_tree_type_counts,
+    _ipa_ipam_ip_keys_for_object,
     _ipa_ipam_object_display_ref,
     _ipa_cell_tree_ipam_object_for_node,
     _attach_ipa_explain_fields,
@@ -156,7 +159,7 @@ class IpaCidrFromNameEnrichTests(SimpleTestCase):
 
 class IpaCellDrilldownMetaTests(SimpleTestCase):
     @patch("netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._build_ipa_drilldown_source_meta")
-    def test_attach_ipa_drilldown_meta_on_cell_direct_leaf_prefix(self, meta_fn):
+    def test_attach_ipa_drilldown_meta_on_cell_direct_prefix(self, meta_fn):
         meta_fn.return_value = {
             "name": "dm-addr-10-112-128-0-28",
             "url": "/a/28/",
@@ -228,6 +231,30 @@ class IpaCellDrilldownMetaTests(SimpleTestCase):
 
     @patch("netbox_nsm.analyzers.ip_analyzer.ipam_drilldown._prefix_ipam_stats")
     @patch("netbox_nsm.analyzers.ip_analyzer.ipam_drilldown._lookup_ipam_prefix_from_ip_ref")
+    def test_attach_ipa_drilldown_meta_uses_prefix_cidr_when_node_role_is_host(
+        self, lookup_fn, stats_fn
+    ):
+        prefix = MagicMock()
+        lookup_fn.return_value = prefix
+        stats_fn.return_value = {
+            "child_prefixes": {"count": 0},
+            "ip_ranges": {"count": 0},
+            "ip_addresses": {"count": 12},
+        }
+        nodes = [
+            {
+                "name": "demo-addr-host-018",
+                "node_role": IPA_NODE_ROLE_HOST,
+                "prefix_display_cidr": "10.199.35.0/25",
+                "children": [],
+            }
+        ]
+        _attach_ipa_drilldown_meta(nodes, {})
+        self.assertIn("ipa_drilldown_meta", nodes[0])
+        self.assertEqual(nodes[0]["ipa_drilldown_meta"]["count_ips"], 12)
+
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipam_drilldown._prefix_ipam_stats")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipam_drilldown._lookup_ipam_prefix_from_ip_ref")
     def test_attach_ipa_drilldown_meta_from_cidr_without_nsm_object(
         self, lookup_fn, stats_fn
     ):
@@ -243,7 +270,6 @@ class IpaCellDrilldownMetaTests(SimpleTestCase):
                 "name": "198.18.228.0/24",
                 "prefix_display_cidr": "198.18.228.0/24",
                 "node_role": IPA_NODE_ROLE_PREFIX,
-                "is_cell_direct": True,
                 "subnet_contained_in": "198.18.0.0/16",
                 "children": [],
             }
@@ -378,6 +404,103 @@ class IpaCellTreeIpamObjectRefTests(SimpleTestCase):
         self.assertEqual(ref["dns_name"], "gw.example.com")
         self.assertEqual(ref["description"], "Gateway")
         self.assertEqual(ref["url"], "/ipam/ip-addresses/1/")
+
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._hub._attach_addr_navigation_refs")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_cell_tree_ipam_object_for_node")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_cell_address_fields")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_object_tree_status")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_drilldown_meta")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._mark_ipa_object_addr_drilldown_flags_lazy")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._enrich_ipa_object_tree_networks_from_objects")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._enrich_ipa_object_tree_cidr_from_names")
+    def test_lazy_finalize_attaches_ipam_object_refs(
+        self,
+        cidr_fn,
+        networks_fn,
+        drilldown_fn,
+        drilldown_meta_fn,
+        status_fn,
+        address_fields_fn,
+        ipam_obj_fn,
+        nav_fn,
+    ):
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import (
+            _finalize_ipa_cell_object_tree_lazy,
+        )
+
+        ip = MagicMock()
+        ip.description = "Gateway"
+        ip.dns_name = "gw.example.com"
+        ip.address = "10.0.0.1/32"
+        ip.get_absolute_url.return_value = "/ipam/ip-addresses/1/"
+        ip._meta.app_label = "ipam"
+        ip._meta.model_name = "ipaddress"
+        ipam_obj_fn.return_value = ip
+
+        nodes = [
+            {
+                "name": "bench-host",
+                "prefix_display_cidr": "10.0.0.1/32",
+                "ct": "10",
+                "pk": "1",
+                "children": [],
+            }
+        ]
+        obj_by_key = {(10, 1): MagicMock()}
+
+        result = _finalize_ipa_cell_object_tree_lazy(nodes, {(10, 1)}, obj_by_key)
+
+        self.assertEqual(result[0]["ipam_object_ref"]["dns_name"], "gw.example.com")
+        self.assertEqual(result[0]["ipam_object_ref"]["description"], "Gateway")
+        drilldown_meta_fn.assert_called_once()
+
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._resolve_ipa_drilldown_meta_for_node")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._hub._attach_addr_navigation_refs")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_cell_tree_ipam_object_for_node", return_value=None)
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_cell_address_fields")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_object_tree_status")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._mark_ipa_object_addr_drilldown_flags_lazy")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._enrich_ipa_object_tree_networks_from_objects")
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._enrich_ipa_object_tree_cidr_from_names")
+    def test_lazy_finalize_attaches_drilldown_meta_for_cell_direct_prefix(
+        self,
+        cidr_fn,
+        networks_fn,
+        drilldown_fn,
+        status_fn,
+        address_fields_fn,
+        ipam_obj_fn,
+        nav_fn,
+        meta_fn,
+    ):
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import (
+            _finalize_ipa_cell_object_tree_lazy,
+        )
+
+        meta_fn.return_value = {
+            "count_subnets": 0,
+            "count_ranges": 0,
+            "count_ips": 3,
+        }
+        nodes = [
+            {
+                "name": "bench-net-00000",
+                "url": "/a/1/",
+                "ct": "10",
+                "pk": "1",
+                "kind": "leaf",
+                "prefix_display_cidr": "198.18.0.0/24",
+                "node_role": IPA_NODE_ROLE_PREFIX,
+                "children": [],
+            }
+        ]
+        obj_by_key = {(10, 1): MagicMock()}
+
+        result = _finalize_ipa_cell_object_tree_lazy(nodes, {(10, 1)}, obj_by_key)
+
+        self.assertTrue(result[0].get("is_cell_direct"))
+        self.assertEqual(result[0]["prefix_display_cidr"], "198.18.0.0/24")
+        self.assertEqual(result[0]["ipa_drilldown_meta"]["count_ips"], 3)
 
 
 class IpaCellObjectTreeTests(SimpleTestCase):
@@ -1642,6 +1765,64 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         self.assertEqual(counts["count_ranges"], 0)
         self.assertEqual(counts["count_ips"], 1)
 
+    def test_ipam_ip_keys_skips_large_prefix_enumeration(self):
+        from ipam.models import Prefix
+
+        prefix = MagicMock(spec=Prefix)
+        prefix._meta.app_label = "ipam"
+        prefix._meta.model_name = "prefix"
+        prefix.get_child_ips.return_value = MagicMock(count=MagicMock(return_value=50000))
+
+        keys, resolved = _ipa_ipam_ip_keys_for_object(prefix)
+        self.assertFalse(resolved)
+        self.assertEqual(keys, set())
+        prefix.get_child_ips.return_value.values_list.assert_not_called()
+
+    def test_cell_tree_type_counts_falls_back_for_large_prefix(self):
+        from ipam.models import Prefix
+
+        prefix = MagicMock(spec=Prefix)
+        prefix._meta.app_label = "ipam"
+        prefix._meta.model_name = "prefix"
+        prefix.get_child_ips.return_value = MagicMock(
+            count=MagicMock(return_value=IPA_IPAM_CHILD_IP_ENUM_MAX + 1)
+        )
+
+        tree = [
+            {
+                "name": "big-net",
+                "prefix_display_cidr": "10.0.0.0/8",
+                "node_role": IPA_NODE_ROLE_PREFIX,
+                "children": [
+                    {
+                        "name": "host-a",
+                        "prefix_display_cidr": "10.0.0.1/32",
+                        "node_role": IPA_NODE_ROLE_HOST,
+                        "children": [],
+                    }
+                ],
+            }
+        ]
+
+        with patch(
+            "netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_cell_tree_ipam_object_for_node",
+            return_value=prefix,
+        ):
+            counts = _ipa_cell_object_tree_type_counts(tree)
+
+        self.assertEqual(counts["count_subnets"], 1)
+        self.assertEqual(counts["count_ips"], 1)
+
+    def test_attach_ipam_refs_tolerates_unresolved_custom_object_type(self):
+        obj = MagicMock()
+        obj.pk = 42
+        obj.custom_object_type = MagicMock()
+        nodes = [{"ct": "10", "pk": "42", "name": "demo", "children": []}]
+        obj_by_key = {(10, 42): obj}
+
+        _attach_ipa_cell_ipam_object_refs(nodes, obj_by_key)
+        self.assertNotIn("related_refs", nodes[0])
+
     def test_summary_counts_include_group_anchor_networks(self):
         tree = [
             {
@@ -2860,7 +3041,6 @@ class IpaCellTreeDrilldownGuardTests(SimpleTestCase):
                 "name": "bench-net-super-00000",
                 "ct": "10",
                 "pk": "599",
-                "is_cell_direct": True,
                 "prefix_display_cidr": "198.18.0.0/16",
                 "node_role": IPA_NODE_ROLE_PREFIX,
                 "children": [

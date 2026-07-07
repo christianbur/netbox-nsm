@@ -93,6 +93,94 @@ def _resolve_portable_ref(ref: str) -> tuple[Any, Any]:
     return instance, content_type
 
 
+def _is_unresolved_portable_reference_error(exc: BaseException) -> bool:
+    return isinstance(exc, ValueError) and str(exc).startswith(
+        "Object not found for portable reference:"
+    )
+
+
+def _apply_one_seed_record(
+    *,
+    cot,
+    model,
+    serializer_class,
+    record: dict,
+) -> bool:
+    """Upsert one seed record. Returns False when ``record`` has no name."""
+    payload = _record_payload(record)
+    if payload is None:
+        return False
+    payload = _resolve_payload_references(cot, payload)
+    ref_fields = _cot_ref_field_map(cot)
+    instance = model.objects.filter(name=payload["name"]).first()
+    serializer_payload = dict(payload)
+    deferred_m2m: dict[str, Any] = {}
+    from extras.choices import CustomFieldTypeChoices
+
+    from netbox_nsm.core.cot_m2m_through import field_uses_polymorphic_through
+
+    for key, field in ref_fields.items():
+        if key not in serializer_payload:
+            continue
+        if (
+            field.type == CustomFieldTypeChoices.TYPE_MULTIOBJECT
+            and getattr(field, "is_polymorphic", False)
+            and not field_uses_polymorphic_through(field)
+        ):
+            deferred_m2m[key] = serializer_payload.pop(key)
+
+    serializer = serializer_class(
+        instance,
+        data=serializer_payload,
+        partial=bool(instance),
+    )
+    serializer.is_valid(raise_exception=True)
+    instance = serializer.save()
+    if deferred_m2m:
+        merged = dict(serializer_payload)
+        merged.update(deferred_m2m)
+        _apply_standard_through_fields(instance, merged, ref_fields)
+    return True
+
+
+def _apply_seed_records_with_deferred_refs(
+    records: list | None,
+    *,
+    cot,
+    model,
+    serializer_class,
+) -> int:
+    """Apply seed records, retrying rows whose portable refs appear later in the bundle."""
+    pending = [record for record in (records or []) if isinstance(record, dict)]
+    seeded = 0
+    while pending:
+        progress = False
+        next_pending: list[dict] = []
+        last_error: ValueError | None = None
+        for record in pending:
+            try:
+                if _apply_one_seed_record(
+                    cot=cot,
+                    model=model,
+                    serializer_class=serializer_class,
+                    record=record,
+                ):
+                    seeded += 1
+                    progress = True
+            except ValueError as exc:
+                if _is_unresolved_portable_reference_error(exc):
+                    last_error = exc
+                    next_pending.append(record)
+                    continue
+                raise
+        if not progress:
+            if last_error is not None:
+                raise last_error
+            break
+        pending = next_pending
+    return seeded
+
+
 def format_portable_ref(instance) -> str:
     """Format a custom object row as ``cot_slug/object_name`` for bundle export."""
     import re
@@ -122,7 +210,9 @@ def _resolve_reference_value(field, value: Any) -> Any:
         return value
 
     instance, content_type = _resolve_portable_ref(value)
-    if field.is_polymorphic:
+    from netbox_nsm.core.cot_m2m_through import field_uses_polymorphic_through
+
+    if field_uses_polymorphic_through(field):
         return {
             "content_type_id": content_type.pk,
             "object_id": instance.pk,
@@ -155,19 +245,18 @@ def _resolve_payload_references(cot, payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def _current_ref_field_value(instance, field) -> Any:
-    from django.apps import apps as django_apps
     from extras.choices import CustomFieldTypeChoices
 
-    from netbox_custom_objects.constants import APP_LABEL
+    from netbox_nsm.core.cot_m2m_through import (
+        field_uses_polymorphic_through,
+        get_field_through_model,
+        read_m2m_ref_pairs,
+    )
 
     if field.type == CustomFieldTypeChoices.TYPE_MULTIOBJECT:
-        if field.is_polymorphic:
-            through = django_apps.get_model(APP_LABEL, field.through_model_name)
-            return sorted(
-                through.objects.filter(source_id=instance.pk).values_list(
-                    "content_type_id", "object_id"
-                )
-            )
+        if field_uses_polymorphic_through(field):
+            through = get_field_through_model(field)
+            return read_m2m_ref_pairs(through, instance.pk)
         related = getattr(instance, field.name, None)
         if related is not None and hasattr(related, "values_list"):
             return sorted(related.values_list("pk", flat=True))
@@ -187,8 +276,10 @@ def _current_ref_field_value(instance, field) -> Any:
 def _desired_ref_field_value(value: Any, field) -> Any:
     from extras.choices import CustomFieldTypeChoices
 
+    from netbox_nsm.core.cot_m2m_through import field_uses_polymorphic_through
+
     if field.type == CustomFieldTypeChoices.TYPE_MULTIOBJECT:
-        if field.is_polymorphic:
+        if field_uses_polymorphic_through(field):
             items = value if isinstance(value, list) else [value]
             normalized = []
             for item in items:
@@ -202,11 +293,57 @@ def _desired_ref_field_value(value: Any, field) -> Any:
         if isinstance(value, list):
             return sorted(value)
         return [value]
-    if field.type == CustomFieldTypeChoices.TYPE_OBJECT and field.is_polymorphic:
+    if (
+        field.type == CustomFieldTypeChoices.TYPE_OBJECT
+        and field_uses_polymorphic_through(field)
+    ):
         if isinstance(value, dict):
             return (value["content_type_id"], value["object_id"])
         return value
     return value
+
+
+def _coerce_standard_m2m_target_pks(value: Any) -> list[int]:
+    pks: list[int] = []
+    items = value if isinstance(value, list) else [value]
+    for item in items:
+        if isinstance(item, int):
+            pks.append(item)
+        elif isinstance(item, dict):
+            obj_id = item.get("object_id")
+            if obj_id is not None:
+                pks.append(int(obj_id))
+        elif isinstance(item, str) and "/" in item:
+            instance, _content_type = _resolve_portable_ref(item)
+            pks.append(int(instance.pk))
+    return pks
+
+
+def _apply_standard_through_fields(instance, payload: dict[str, Any], ref_fields) -> None:
+    from extras.choices import CustomFieldTypeChoices
+
+    from netbox_nsm.core.cot_m2m_through import (
+        field_uses_polymorphic_through,
+        get_field_through_model,
+        write_standard_m2m_targets,
+    )
+
+    for key, value in list(payload.items()):
+        if key == "name":
+            continue
+        field = ref_fields.get(key)
+        if field is None or field.type != CustomFieldTypeChoices.TYPE_MULTIOBJECT:
+            continue
+        if field_uses_polymorphic_through(field):
+            continue
+        through = get_field_through_model(field)
+        if through is None:
+            continue
+        write_standard_m2m_targets(
+            through,
+            instance.pk,
+            _coerce_standard_m2m_target_pks(value),
+        )
 
 
 def _record_payload(record: dict) -> dict[str, Any] | None:
@@ -399,20 +536,10 @@ def apply_seed_objects(objects: list | None) -> int:
             continue
         model = cot.get_model()
         serializer_class = get_serializer_class(model)
-        for record in entry.get("records") or []:
-            if not isinstance(record, dict):
-                continue
-            payload = _record_payload(record)
-            if payload is None:
-                continue
-            payload = _resolve_payload_references(cot, payload)
-            instance = model.objects.filter(name=payload["name"]).first()
-            serializer = serializer_class(
-                instance,
-                data=payload,
-                partial=bool(instance),
-            )
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            seeded += 1
+        seeded += _apply_seed_records_with_deferred_refs(
+            entry.get("records"),
+            cot=cot,
+            model=model,
+            serializer_class=serializer_class,
+        )
     return seeded

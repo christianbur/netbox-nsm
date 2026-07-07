@@ -412,10 +412,14 @@ class CotRulebookSchemaValidateView(LoginRequiredMixin, View):
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request):
-        schema_yaml = request.POST.get("schema_yaml", "")
+        schema_text = (
+            request.POST.get("schema_json")
+            or request.POST.get("schema_yaml")
+            or ""
+        )
         try:
             validate_substituted_rulebook_schema_yaml(
-                schema_yaml,
+                schema_text,
                 display_name=request.POST.get("verbose_name", ""),
                 name=request.POST.get("name", ""),
                 description=request.POST.get("description", ""),
@@ -457,7 +461,7 @@ class CotRulebookCreateView(LoginRequiredMixin, View):
         if form.is_valid():
             try:
                 cot = create_cot_rulebook_from_schema_yaml(
-                    schema_yaml=form.cleaned_data["schema_yaml"],
+                    schema_yaml=form.cleaned_data["schema_json"],
                     name=form.cleaned_data["name"],
                     verbose_name=form.cleaned_data.get("verbose_name") or None,
                     description=form.cleaned_data.get("description") or None,
@@ -485,7 +489,7 @@ class CotRulebookCreateView(LoginRequiredMixin, View):
     def _context(self, request, form, *, clone_from: str = "") -> dict:
         from netbox_nsm.rulebooks.create import resolve_rulebook_slug
         from netbox_nsm.rulebooks.templates import (
-            default_rulebook_schema_yaml,
+            default_rulebook_schema_json,
             substitute_rulebook_schema_placeholders,
         )
 
@@ -501,10 +505,13 @@ class CotRulebookCreateView(LoginRequiredMixin, View):
             except Exception:
                 preview_slug = ""
 
-        schema_yaml = (
-            form.data.get("schema_yaml")
+        schema_text = (
+            form.data.get("schema_json")
+            or form.data.get("schema_yaml")
             if form.is_bound
-            else form.initial.get("schema_yaml") or default_rulebook_schema_yaml()
+            else form.initial.get("schema_json")
+            or form.initial.get("schema_yaml")
+            or default_rulebook_schema_json()
         )
         preview_display = (
             (form.data.get("verbose_name") or "").strip() if form.is_bound else ""
@@ -516,7 +523,7 @@ class CotRulebookCreateView(LoginRequiredMixin, View):
             (form.data.get("description") or "").strip() if form.is_bound else ""
         )
         resolved_schema_yaml = substitute_rulebook_schema_placeholders(
-            schema_yaml,
+            schema_text,
             display_name=preview_display,
             name=preview_name,
             description=preview_description,

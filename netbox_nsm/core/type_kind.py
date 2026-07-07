@@ -31,7 +31,7 @@ _MODEL_PROPERTY_HINTS = {
     "nsm_address_group": ["name"],
     "nsm_zone": ["name", "description"],
     "nsm_label": ["name", "label_type"],
-    "nsm_service": ["name", "protocol", "port"],
+    "nsm_service": ["name", "protocol", "port", "port_end"],
     "nsm_service_group": ["name"],
     "nsm_action": ["name"],
 }

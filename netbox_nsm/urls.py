@@ -68,7 +68,7 @@ from netbox_nsm.security.actions.confirm_views import (
     GroupM2mEditView,
     GroupM2mRemoveView,
 )
-from netbox_nsm.security.tab.security_views import make_co_security_view
+from netbox_nsm.security.tab.security_views import make_co_security_view, make_host_security_view
 from netbox_nsm.views.nsm_objects import (
     NsmCustomObjectBulkDeleteView,
     NsmCustomObjectBulkEditView,
@@ -336,5 +336,10 @@ urlpatterns = [
         "objects/<str:custom_object_type>/<int:pk>/security/",
         make_co_security_view().as_view(),
         name="nsm_object_security",
+    ),
+    path(
+        "security/<str:app_label>/<str:model_name>/<int:pk>/",
+        make_host_security_view().as_view(),
+        name="host_security",
     ),
 ]

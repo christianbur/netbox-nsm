@@ -77,10 +77,23 @@ def build_rule_clone_initial(cot, source) -> dict:
         if field.type == CustomFieldTypeChoices.TYPE_MULTIOBJECT:
             if field.is_polymorphic:
                 try:
-                    through = django_apps.get_model(APP_LABEL, field.through_model_name)
-                    rows = through.objects.filter(source_id=source.pk).values_list(
-                        "content_type_id", "object_id"
+                    from netbox_nsm.core.cot_m2m_through import (
+                        field_uses_polymorphic_through,
+                        get_field_through_model,
+                        read_m2m_ref_pairs,
                     )
+
+                    through = get_field_through_model(field)
+                    if through is None:
+                        raise LookupError(field.through_model_name)
+                    if not field_uses_polymorphic_through(field):
+                        related = getattr(source, field.name, None)
+                        if related is not None and hasattr(related, "values_list"):
+                            initial[field.name] = list(
+                                related.values_list("pk", flat=True)
+                            )
+                        continue
+                    rows = read_m2m_ref_pairs(through, source.pk)
                     by_ct: dict[int, list] = {}
                     for ct_id, obj_id in rows:
                         by_ct.setdefault(ct_id, []).append(obj_id)

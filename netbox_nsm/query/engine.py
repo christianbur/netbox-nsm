@@ -780,7 +780,7 @@ def compute_facets(
 _TYPE_PROPERTY_HINTS: Dict[str, List[str]] = {
     "address": ["name", "prefix", "ip_address"],
     "zone": ["name"],
-    "service": ["name", "protocol", "port"],
+    "service": ["name", "protocol", "port", "port_end"],
     "action": ["name"],
     "label": ["name"],
     "label-scope": ["name"],

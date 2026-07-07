@@ -41,6 +41,19 @@ def _load_named_bundle(slug: str) -> dict:
     return bundle
 
 
+def _resolve_bundle_from_request(request, slug: str) -> dict:
+    """Return on-disk bundle, optionally replaced by edited ``bundle_json`` POST field."""
+    bundle = _load_named_bundle(slug)
+    override = (request.POST.get("bundle_json") or "").strip()
+    if not override:
+        return bundle
+    from netbox_nsm.bundles.dispatch import parse_bundle_json_override
+
+    bundle = parse_bundle_json_override(override)
+    bundle["_slug"] = slug
+    return bundle
+
+
 class _SetupBase(LoginRequiredMixin, View):
     def dispatch(self, request, *args, **kwargs):
         if not setup_menu_enabled():
@@ -130,7 +143,10 @@ class SetupSchemaPreviewView(_SetupBase):
     def post(self, request, slug: str):
         if not request.user.has_perm(VIEW_CUSTOM_OBJECT_TYPE):
             return JsonResponse({"error": "Permission denied."}, status=403)
-        bundle = _load_named_bundle(slug)
+        try:
+            bundle = _resolve_bundle_from_request(request, slug)
+        except ValueError as exc:
+            return JsonResponse({"error": str(exc)}, status=400)
         if bundle.get("bundle_kind") == "python":
             return JsonResponse({"error": "Python bundles have no schema preview."}, status=400)
         allow_destructive = (
@@ -158,7 +174,11 @@ class SetupSchemaApplyView(_SetupBase):
             )
             return redirect(reverse("plugins:netbox_nsm:bundle_detail", args=[slug]))
 
-        bundle = _load_named_bundle(slug)
+        try:
+            bundle = _resolve_bundle_from_request(request, slug)
+        except ValueError as exc:
+            messages.error(request, _("Invalid bundle JSON: %(error)s") % {"error": exc})
+            return redirect(reverse("plugins:netbox_nsm:bundle_detail", args=[slug]))
         if bundle.get("bundle_kind") == "python":
             messages.error(
                 request, _("Python bundles cannot be applied via this endpoint.")

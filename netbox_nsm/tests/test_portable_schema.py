@@ -69,8 +69,8 @@ class PortableSchemaTests(TestCase):
             for entry in bundle.get("objects") or []
         }
         self.assertEqual(counts["nsm_zone"], 20)
-        self.assertEqual(counts["nsm_address"], 500)
-        self.assertEqual(counts["nsm_address_group"], 100)
+        self.assertEqual(counts["nsm_address"], 504)
+        self.assertEqual(counts["nsm_address_group"], 103)
         self.assertEqual(counts[DEMO_ZONE_ADDRESSES_RULEBOOK_SLUG], 500)
 
     def test_zone_address_demo_showcase_rules_have_varied_address_counts(self):
@@ -116,6 +116,41 @@ class PortableSchemaTests(TestCase):
         )
         rule1 = next(r for r in rules.get("records") or [] if r.get("index") == 1)
         self.assertIn("nsm_address_custom/ANY", rule1.get("destination_addresses") or [])
+
+    def test_zone_address_demo_ipa_hierarchy_rule_21(self):
+        bundle = load_bundle(bundle_json_path("nsm_demo_zone_address_adressgroup"))
+        rules = next(
+            entry
+            for entry in bundle.get("objects") or []
+            if entry.get("type") == DEMO_ZONE_ADDRESSES_RULEBOOK_SLUG
+        )
+        rule21 = next(r for r in rules.get("records") or [] if r.get("index") == 21)
+        self.assertEqual(rule21.get("name"), "demo-ipa-hierarchy-rule")
+        expected = {
+            "nsm_address/demo-ipa-continent",
+            "nsm_address/demo-ipa-country",
+            "nsm_address/demo-ipa-city",
+            "nsm_address/demo-ipa-host",
+            "nsm_address_group/demo-ipa-grp-1",
+            "nsm_address_group/demo-ipa-grp-2",
+            "nsm_address_group/demo-ipa-grp-3",
+        }
+        self.assertEqual(set(rule21.get("source_addresses") or []), expected)
+        self.assertEqual(set(rule21.get("destination_addresses") or []), expected)
+
+    def test_ipa_nested_groups_ordered_deepest_first(self):
+        bundle = load_bundle(bundle_json_path("nsm_demo_zone_address_adressgroup"))
+        groups = next(
+            entry
+            for entry in bundle.get("objects") or []
+            if entry.get("type") == "nsm_address_group"
+        )
+        ipa_names = [
+            record["name"]
+            for record in groups.get("records") or []
+            if str(record.get("name", "")).startswith("demo-ipa-grp-")
+        ]
+        self.assertEqual(ipa_names, ["demo-ipa-grp-3", "demo-ipa-grp-2", "demo-ipa-grp-1"])
 
     def test_zone_matrix_demo_bundle_has_matrix_seed_objects(self):
         bundle = load_bundle(bundle_json_path("nsm_demo_zone_matrix"))

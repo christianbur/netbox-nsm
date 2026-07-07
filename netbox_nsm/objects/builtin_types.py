@@ -72,8 +72,8 @@ BUILTIN_CUSTOM_TYPES = [
     {
         "name": "Service",
         "areas": ["services"],
-        "description": "Represents one network service (protocol + port). Used in rulebook Service columns and Security Panel links.",
-        "display_template": "{{ name }} ({{ protocol }}/{{ port }})",
+        "description": "Represents one network service (protocol + port or port range). Used in rulebook Service columns and Security Panel links.",
+        "display_template": "{{ name }} ({{ protocol }}/{% if port_end and port_end != port %}{{ port }}-{{ port_end }}{% elif port %}{{ port }}{% else %}—{% endif %})",
         "field_definitions": [
             {
                 "name": "protocol",
@@ -99,11 +99,21 @@ BUILTIN_CUSTOM_TYPES = [
                 "name": "port",
                 "type": "integer",
                 "label": "Port",
-                "description": "Port 0\u201365535 (TCP/UDP/SCTP only).",
+                "description": "Start port 0\u201365535 (TCP/UDP/SCTP only).",
                 "validation_minimum": 0,
                 "validation_maximum": 65535,
                 "group_name": "NSM Service",
                 "weight": 11,
+            },
+            {
+                "name": "port_end",
+                "type": "integer",
+                "label": "Port end",
+                "description": "Optional end port for a range (must be \u2265 start port).",
+                "validation_minimum": 0,
+                "validation_maximum": 65535,
+                "group_name": "NSM Service",
+                "weight": 12,
             },
         ],
         "default_objects": [

@@ -4,6 +4,44 @@ All notable changes to **netbox-nsm** are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+
+- **IP Analyzer — performance** — configurable client timeout (`ipa_analyzer_timeout_ms`, default 120000 ms) and response cache (`ipa_analyzer_cache_timeout`, default 300 s; `0` disables). Initial applet loads use `lazy=1` (collapsed groups, deferred IPAM child enumeration); diff/merge/export unchanged. Cache bypass via `refresh=1` or full (`lazy=0`) requests.
+- **Security — generic host URL** — `/plugins/netbox-nsm/security/<app>/<model>/<pk>/` works regardless of `PLUGINS` order (`host_security` reverse + URL patches).
+- **Demo bundle — IPA hierarchy** — RB Demo Zone/Address adds 4-level IPAM tree (continent → country → city → host), nested groups, and rule 21 for IP Analyzer testing.
+
+### Changed
+
+- **IP Analyzer — cell tree columns** — **DNS** and **Description** are separate columns; **IP/Range/Prefix** shows IPAM child counters for prefix/range rows (Network keeps CIDR); depth markers (•) always visible in **Network**.
+
+### Fixed
+
+- **IP Analyzer — lazy load** — cell-direct prefix rows get IPAM counters; DNS/description refs attached on lazy finalize; response cache key bumped to invalidate stale HTML.
+- **Bundle apply** — seed objects with forward portable references (e.g. nested `demo-ipa-grp-*`) apply in multiple passes instead of failing mid-transaction.
+
+## [0.4.14] - 2026-07-06
+
+### Added
+
+- **Rulebook create — JSON schema** — wizard uses editable portable-schema JSON (`schema_json`) instead of YAML; tab, help text, and client validation updated.
+- **Bundle detail — JSON editor** — editable bundle document on schema bundle pages; preview sends `bundle_json`; auto-load preview panel on page open.
+- **Service port ranges** — optional `port_end` on `nsm_service` (bundle schema, display template, query engine).
+- **COT DB compat** — `cot_db_compat.py` sets PostgreSQL defaults for extension columns (`menu_name`, etc.) before `apply_document`; fixes rulebook/bundle create on netbox-custom-objects 0.6.x.
+- **Polymorphic M2M through helper** — `core/cot_m2m_through.py` tolerates standard vs polymorphic through tables during bundle preview/apply.
+- **Deployment check** — `netbox_nsm.W001` warns when other plugins are listed after `netbox_nsm` in `PLUGINS` (contacts/journal/changelog URLs).
+
+### Changed
+
+- **Plugin startup** — removed URL resolver warm-up from `SecurityConfig.ready()` so later plugins register feature tab URLs before URLconf loads; document `PLUGINS` order (netbox_nsm last before netbox_branching).
+
+### Fixed
+
+- **IP Analyzer — large objects** — guard invalid COT PKs in navigation; cap IPAM child-IP enumeration at 4096 hosts (avoids HTTP 500 on large prefixes/groups).
+- **Bundle apply** — `content_type_id` FieldError when polymorphic flag and through-table schema mismatch; seed-object diff/apply uses `cot_m2m_through`.
+- **Rulebook clone / layout** — polymorphic multiobject reads use through-table column detection.
+
 ## [0.4.13] - 2026-07-06
 
 ### Fixed
@@ -619,5 +657,6 @@ First release in the 0.2.x line.
 [0.4.9]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.9
 [0.4.10]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.10
 [0.4.11]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.11
+[0.4.14]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.14
 [0.4.13]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.13
 [0.4.12]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.12

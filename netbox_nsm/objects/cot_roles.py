@@ -64,6 +64,16 @@ def _multiobject_type():
     return CustomFieldTypeChoices.TYPE_MULTIOBJECT
 
 
+def _cot_pk(cot) -> int | None:
+    """Return a positive integer COT primary key, or ``None`` when unresolved."""
+    if cot is None:
+        return None
+    pk = getattr(cot, "pk", None)
+    if type(pk) is int and pk > 0:
+        return pk
+    return None
+
+
 def _load_object_fields(cot):
     try:
         from netbox_custom_objects.models import CustomObjectTypeField
@@ -93,9 +103,12 @@ def _cached_object_fields(cot_pk: int) -> tuple:
 def _iter_object_fields(cot):
     if cot is None:
         return []
-    cot_pk = getattr(cot, "pk", None)
+    cot_pk = _cot_pk(cot)
     if cot_pk is None:
-        return list(_load_object_fields(cot))
+        try:
+            return list(_load_object_fields(cot))
+        except Exception:
+            return []
     return list(_cached_object_fields(cot_pk))
 
 
@@ -194,7 +207,7 @@ def resolve_ipam_field_name(cot) -> str:
     """Return the IPAM field name (falls back to ``address``)."""
     if cot is None:
         return _DEFAULT_IPAM_FIELD
-    cot_pk = getattr(cot, "pk", None)
+    cot_pk = _cot_pk(cot)
     if cot_pk is None:
         field = _resolve_ipam_field_uncached(cot)
         return getattr(field, "name", None) or _DEFAULT_IPAM_FIELD

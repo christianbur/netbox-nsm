@@ -80,3 +80,9 @@
 .nsm-bundle-field-add-list li {
   margin-bottom: 0.15rem;
 }
+
+.nsm-bundle-json-editor {
+  max-height: 40vh;
+  resize: vertical;
+  tab-size: 2;
+}

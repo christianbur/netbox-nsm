@@ -8,6 +8,7 @@ from django.urls import clear_url_caches, path as url_path
 
 from utilities.views import register_model_view
 
+from netbox_nsm.security.tab.host_routes import apply_host_security_url_patches
 from netbox_nsm.security.tab.security_views import (
     SECURITY_TAB_PATH,
     make_co_security_view,
@@ -160,16 +161,24 @@ def _register_custom_object_security_tab():
 
 def register_security_tabs():
     """
-    Register the Security tab on all public models and inject CO host URLs.
+    Register the Security tab on all public models and inject host URLs.
 
-    Must run synchronously from ``SecurityConfig.ready()`` before the URLconf
-    freezes on first resolve.
+    Built-in and plugin host models use the generic ``host_security`` route
+    (``apply_host_security_url_patches()``); custom objects keep slug-agnostic
+    CO/NSM routes. Tab metadata is registered in the view registry; tab links
+    resolve via ``get_action_url`` without per-model URLconf snapshots.
+
+    Must run synchronously from ``SecurityConfig.ready()``.
+
+    Do not call ``reverse()`` or otherwise load the root URLconf from ``ready()``:
+    plugins listed after netbox_nsm in ``PLUGINS`` have not yet run
+    ``PluginConfig.ready()`` → ``register_models()``, so an early URLconf load
+    would omit their contacts/journal/changelog routes.
     """
-    try:
-        _inject_co_security_url()
-        _inject_nsm_object_security_url()
-        for model_class in _public_host_model_classes():
-            register_security_tab_on_model(model_class)
-        _register_custom_object_security_tab()
-    finally:
-        clear_url_caches()
+    _inject_co_security_url()
+    _inject_nsm_object_security_url()
+    apply_host_security_url_patches()
+    for model_class in _public_host_model_classes():
+        register_security_tab_on_model(model_class)
+    _register_custom_object_security_tab()
+    clear_url_caches()

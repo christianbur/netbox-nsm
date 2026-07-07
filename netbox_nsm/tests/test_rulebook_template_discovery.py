@@ -59,7 +59,7 @@ class RulebookTemplateDiscoveryTests(TestCase):
         slugs = get_rulebook_template_slugs()
         self.assertIn(self.custom_slug, slugs)
 
-    def test_create_form_prefills_default_schema_yaml(self):
+    def test_create_form_prefills_default_schema_json(self):
         from unittest.mock import patch
 
         with patch(
@@ -67,8 +67,8 @@ class RulebookTemplateDiscoveryTests(TestCase):
             return_value=[("", "—")],
         ):
             form = CotRulebookCreateForm()
-        self.assertEqual(form.initial["schema_yaml"], default_rulebook_schema_yaml())
-        self.assertIn("schema_yaml", form.fields)
+        self.assertTrue(form.initial["schema_json"].strip().startswith("{"))
+        self.assertIn("schema_json", form.fields)
 
     def test_wizard_columns_for_custom_template(self):
         columns = template_wizard_columns(self.custom_slug)

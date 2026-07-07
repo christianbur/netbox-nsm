@@ -1,0 +1,12 @@
+{% load i18n %}
+{% if node.ipam_object_ref and node.ipam_object_ref.description %}
+<div class="nsm-ipa-cell-ipam-description">
+  {% if node.ipam_object_ref.url %}
+  <a href="{{ node.ipam_object_ref.url }}" class="nsm-ipa-cell-ipam-description-link" title="{{ node.ipam_object_ref.description }}">{{ node.ipam_object_ref.description }}</a>
+  {% else %}
+  <span class="nsm-ipa-cell-ipam-description-text">{{ node.ipam_object_ref.description }}</span>
+  {% endif %}
+</div>
+{% else %}
+<span class="text-muted">—</span>
+{% endif %}

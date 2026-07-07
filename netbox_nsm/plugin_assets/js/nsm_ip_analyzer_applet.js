@@ -1500,7 +1500,13 @@
     var url =
       tab.mode === "diff"
         ? apiUrl() + "?" + buildDiffQuery(tab.sides || [])
-        : apiUrl() + "?" + buildQuery(tab.objects, tab.rawObjects);
+        : apiUrl() +
+          "?" +
+          buildQuery(
+            tab.objects,
+            tab.rawObjects,
+            tab.mode !== "diff" && tab.mode !== "merge" ? { lazy: true } : null
+          );
     fetchIpaAnalyzer(url, {
       headers: mergeBranchHeaders({ "X-Requested-With": "XMLHttpRequest" }),
     })

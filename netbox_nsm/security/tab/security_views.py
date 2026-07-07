@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from django.apps import apps
+from django.http import Http404
 from django.shortcuts import get_object_or_404, render
-from django.utils.translation import gettext_lazy as _
 from django.views.generic import View
 
 from netbox_nsm.core.plugin_labels import get_nsm_panel_label
@@ -14,13 +15,19 @@ from utilities.views import ConditionalLoginRequiredMixin, ViewTab, get_default_
 __all__ = (
     "SECURITY_TAB_PATH",
     "SECURITY_TAB_WEIGHT",
+    "SECURITY_VIEW_TAB",
     "make_co_security_view",
-    "make_security_tab_view",
+    "make_host_security_view",
     "register_security_tab_on_model",
 )
 
 SECURITY_TAB_PATH = "security"
 SECURITY_TAB_WEIGHT = 1500
+SECURITY_VIEW_TAB = ViewTab(
+    label=get_nsm_panel_label(),
+    badge=count_security_tab_badge,
+    weight=SECURITY_TAB_WEIGHT,
+)
 _CO_BASE_TEMPLATE = "netbox_custom_objects/customobject.html"
 # NSM-scoped custom objects render their detail page (and Journal/Changelog tabs,
 # see ``NsmCustomObjectJournalView``) with the NSM template whose tabs block
@@ -60,26 +67,52 @@ def _render_security_tab(request, instance, tab):
     return render(request, "netbox_nsm/security_tab.html", context)
 
 
-def make_security_tab_view(model_class):
-    """Return a unique Security tab view class for a built-in NetBox model."""
+_SECURITY_TAB_REGISTRY_VIEW = None
 
-    class _SecurityTabView(ConditionalLoginRequiredMixin, View):
-        tab = ViewTab(
-            label=get_nsm_panel_label(),
-            badge=count_security_tab_badge,
-            weight=SECURITY_TAB_WEIGHT,
-        )
+
+def _get_security_tab_registry_view():
+    """Shared registry view for tab metadata; page is served by ``host_security``."""
+    global _SECURITY_TAB_REGISTRY_VIEW
+    if _SECURITY_TAB_REGISTRY_VIEW is not None:
+        return _SECURITY_TAB_REGISTRY_VIEW
+
+    class SecurityTabRegistryView(ConditionalLoginRequiredMixin, View):
+        tab = SECURITY_VIEW_TAB
 
         def get(self, request, pk, **kwargs):
+            raise Http404
+
+    SecurityTabRegistryView.__name__ = "SecurityTabRegistryView"
+    SecurityTabRegistryView.__qualname__ = "SecurityTabRegistryView"
+    _SECURITY_TAB_REGISTRY_VIEW = SecurityTabRegistryView
+    return _SECURITY_TAB_REGISTRY_VIEW
+
+
+def make_host_security_view():
+    """
+    Generic Security tab view for built-in and plugin host models.
+
+    Resolves the target model from ``app_label`` / ``model_name`` at request time
+    so the tab works regardless of plugin load order or per-model URL snapshots.
+    """
+
+    class _HostSecurityTabView(ConditionalLoginRequiredMixin, View):
+        tab = SECURITY_VIEW_TAB
+
+        def get(self, request, app_label, model_name, pk, **kwargs):
+            try:
+                model_class = apps.get_model(app_label, model_name)
+            except LookupError:
+                raise Http404 from None
+            if model_class is None:
+                raise Http404
             qs = model_class.objects.all()
             if hasattr(qs, "restrict"):
                 qs = qs.restrict(request.user, "view")
             instance = get_object_or_404(qs, pk=pk)
             return _render_security_tab(request, instance, self.tab)
 
-    _SecurityTabView.__name__ = f"{model_class.__name__}SecurityTabView"
-    _SecurityTabView.__qualname__ = f"{model_class.__name__}SecurityTabView"
-    return _SecurityTabView
+    return _HostSecurityTabView
 
 
 def make_co_security_view():
@@ -124,5 +157,5 @@ def register_security_tab_on_model(model_class) -> bool:
         model_class,
         name=SECURITY_TAB_PATH,
         path=SECURITY_TAB_PATH,
-    )(make_security_tab_view(model_class))
+    )(_get_security_tab_registry_view())
     return True

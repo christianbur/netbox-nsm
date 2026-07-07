@@ -2,6 +2,7 @@
 """Address hierarchy tree building and enrichment."""
 from __future__ import annotations
 import netbox_nsm.analyzers.ip_analyzer._lazy_api as _hub
+from netbox_nsm.analyzers.ip_analyzer.ipa_perf import ipa_lazy_load_enabled
 from netbox_nsm.analyzers.ip_analyzer.addr_ip_refs import _FIELD_TYPE_LABELS
 from netbox_nsm.analyzers.ip_analyzer.ipa_object_node import (
     IPA_NODE_ROLE_PREFIX,
@@ -316,6 +317,14 @@ def _build_addr_tree_node(obj, visited=None):
     ip_ref = _hub._addr_ip_ref(obj)
 
     if ip_ref is None and _hub._addr_is_group_container(obj):
+        if ipa_lazy_load_enabled():
+            return {
+                "name": str(obj.name),
+                "url": obj.get_absolute_url(),
+                "kind": "group",
+                "ip_ref": None,
+                "children": [],
+            }
         children = []
         members = _hub._addr_group_members(obj)
         if getattr(obj, "address_type", None) == "address-group":
@@ -340,6 +349,27 @@ def _build_addr_tree_node(obj, visited=None):
     if ip_ref is not None:
         ipam_obj = _hub._ipam_obj_from_ip_ref(ip_ref) or _hub._ipam_fk_object_for_addr_node(obj)
         ip_ref_dict = _hub._addr_ip_ref_node_dict(ip_ref)
+        if ipa_lazy_load_enabled():
+            node = {
+                "name": str(obj.name),
+                "url": obj.get_absolute_url(),
+                "kind": "group" if ipam_obj is not None else "leaf",
+                "ip_ref": ip_ref_dict,
+                "children": [],
+            }
+            if ipam_obj is not None:
+                try:
+                    from ipam.models import Prefix as _Prefix
+
+                    if isinstance(ipam_obj, _Prefix):
+                        stats = _hub._prefix_ipam_stats(ipam_obj)
+                        if stats:
+                            _hub._attach_ipam_stats_meta(node, stats)
+                except ImportError:
+                    pass
+            return _hub._attach_addr_node_prefix_display(
+                node, obj=obj, ip_ref=ip_ref
+            )
         if ipam_obj is not None:
             grouped = None
             prefix_stats = None

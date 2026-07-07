@@ -94,7 +94,13 @@
     return fetch(url, options);
   }
 
-  var IPA_ANALYZER_TIMEOUT_MS = 120000;
+  var IPA_ANALYZER_TIMEOUT_MS =
+    window.NSM_IPA_ANALYZER_TIMEOUT_MS != null
+      ? Number(window.NSM_IPA_ANALYZER_TIMEOUT_MS)
+      : 120000;
+  if (!IPA_ANALYZER_TIMEOUT_MS || IPA_ANALYZER_TIMEOUT_MS < 0) {
+    IPA_ANALYZER_TIMEOUT_MS = 120000;
+  }
 
   function parseIpaApiErrorBody(body, status) {
     if (body && typeof body === "object") {
@@ -518,7 +524,8 @@
     return text.slice(0, TAB_TITLE_MAX - 1) + "…";
   }
 
-  function buildQuery(objects, rawObjects) {
+  function buildQuery(objects, rawObjects, options) {
+    options = options || {};
     var params = new URLSearchParams();
     var list =
       rawObjects && rawObjects.length ? rawObjects : objects || [];
@@ -526,6 +533,12 @@
       params.append("ct", obj.ct);
       params.append("pk", obj.pk);
     });
+    if (options.lazy) {
+      params.append("lazy", "1");
+    }
+    if (options.refresh) {
+      params.append("refresh", "1");
+    }
     return params.toString();
   }
 

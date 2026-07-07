@@ -282,6 +282,7 @@ def build_ip_analyzer_payload(
     include_html=False,
     include_structured_data=True,
     unauthorized=None,
+    lazy=False,
 ):
     """Build a JSON-serializable analysis payload; optionally include rendered HTML."""
     leaf_count = _leaf_count_for_addr_analyzer(addr_analyzer)
@@ -311,7 +312,13 @@ def build_ip_analyzer_payload(
         addr_analyzer, object_tree or object_tree_metadata or None
     )
     group_coverage = None
-    if mode != "diff" and raw_selections and obj_by_key and object_tree:
+    if (
+        not lazy
+        and mode != "diff"
+        and raw_selections
+        and obj_by_key
+        and object_tree
+    ):
         group_coverage = _build_ipa_group_coverage(
             raw_selections, obj_by_key, object_tree
         )
@@ -324,6 +331,7 @@ def build_ip_analyzer_payload(
 
     payload = {
         "mode": mode,
+        "lazy": bool(lazy),
         "leaf_count": leaf_count,
         "count_subnets": type_counts.get("count_subnets") or 0,
         "count_ranges": type_counts.get("count_ranges") or 0,
@@ -379,10 +387,12 @@ def execute_ip_analyzer_merge(
     include_html=False,
     include_structured_data=True,
     unauthorized=None,
+    lazy=False,
 ):
     if not objs and not raw_selections:
         payload = {
             "mode": "merge",
+            "lazy": bool(lazy),
             "html": "" if include_html else None,
             "leaf_count": 0,
             "count_subnets": 0,
@@ -410,6 +420,7 @@ def execute_ip_analyzer_merge(
     if not objs:
         payload = {
             "mode": "merge",
+            "lazy": bool(lazy),
             "html": "" if include_html else None,
             "leaf_count": 0,
             "count_subnets": 0,
@@ -434,7 +445,9 @@ def execute_ip_analyzer_merge(
             payload.pop("html", None)
         return payload
 
-    addr_analyzer = _build_multi_object_addr_analyzer(objs)
+    addr_analyzer = []
+    if not (lazy and raw_selections):
+        addr_analyzer = _build_multi_object_addr_analyzer(objs)
     payload = build_ip_analyzer_payload(
         addr_analyzer=addr_analyzer,
         selections=selections,
@@ -446,6 +459,7 @@ def execute_ip_analyzer_merge(
         include_html=include_html,
         include_structured_data=include_structured_data,
         unauthorized=unauthorized,
+        lazy=lazy,
     )
     if include_html and "html" not in payload:
         payload["html"] = ""
@@ -455,7 +469,7 @@ def execute_ip_analyzer_merge(
 
 
 def execute_ip_analyzer_diff(
-    *, sides, request=None, include_html=False, include_structured_data=True
+    *, sides, request=None, include_html=False, include_structured_data=True, lazy=False
 ):
     unsupported = []
     selections = []
@@ -469,6 +483,7 @@ def execute_ip_analyzer_diff(
     if not has_objs:
         payload = {
             "mode": "diff",
+            "lazy": bool(lazy),
             "html": "" if include_html else None,
             "leaf_count": 0,
             "count_subnets": 0,
@@ -511,6 +526,7 @@ def execute_ip_analyzer_diff(
         include_html=include_html,
         include_structured_data=include_structured_data,
         unauthorized=unauthorized,
+        lazy=lazy,
     )
     if include_html and "html" not in payload:
         payload["html"] = ""

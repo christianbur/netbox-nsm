@@ -2,7 +2,7 @@
 {% for node in nodes %}
   {% if node.ipa_tree_node_type == "collapsed_root_groups" %}
   <tr class="nsm-ipa-cell-tree-row nsm-ipa-root-groups-collapsed-header nsm-ipa-depth-{{ depth }}">
-    <td colspan="9" class="nsm-ipa-root-groups-collapsed-cell">
+    <td colspan="10" class="nsm-ipa-root-groups-collapsed-cell">
       <details class="nsm-ipa-root-groups-collapsed"{% if node.ipa_open_by_default %} open{% endif %}>
         <summary class="nsm-ipa-root-groups-collapsed-summary">
           <span class="nsm-ipa-root-groups-collapsed-title">{% blocktrans count counter=node.collapsed_group_count %}{{ counter }} address group{% plural %}{{ counter }} address groups{% endblocktrans %}</span>
@@ -13,7 +13,7 @@
   {% include "netbox_nsm/inc/ipa_object_tree_node.html" with nodes=node.children depth=depth|add:1 ipa_cell_pill=ipa_cell_pill|default_if_none:True root_groups_member=True %}
   {% elif node.kind == "lazy_batch" %}
   <tr class="nsm-ipa-cell-tree-row nsm-ipa-lazy-batch-row nsm-ipa-depth-{{ depth }}">
-    <td colspan="9" class="nsm-ipa-lazy-batch-cell">
+    <td colspan="10" class="nsm-ipa-lazy-batch-cell">
       <table class="table table-sm table-hover object-list nsm-ipa-cell-tree-table nsm-ipa-cell-tree-table--nested mb-0">
         <tbody>
           {% for child in node.children %}

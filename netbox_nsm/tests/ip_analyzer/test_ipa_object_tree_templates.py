@@ -801,7 +801,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         self.assertIn("0/1/0", ipam_html)
         self.assertNotIn("nsm-addr-ipam-short", us_html)
 
-    def test_ipa_drilldown_meta_stats_renders_in_ipam_column(self):
+    def test_ipa_drilldown_meta_stats_renders_counters_for_cell_direct_prefix(self):
         from django.template.loader import render_to_string
 
         html = render_to_string(
@@ -828,8 +828,9 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         ipam_html = html[ipam_start:ipam_end]
         self.assertIn("2/1/8", ipam_html)
         self.assertIn("nsm-addr-ipam-short", ipam_html)
+        self.assertNotIn("nsm-ipa-cell-cidr", ipam_html)
 
-    def test_ipa_drilldown_meta_prefix_599_renders_netbox_child_counts(self):
+    def test_ipa_drilldown_meta_prefix_599_renders_counters_for_cell_direct(self):
         from django.template.loader import render_to_string
 
         html = render_to_string(
@@ -862,9 +863,9 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         ipam_end = html.index("</td>", ipam_start)
         ipam_html = html[ipam_start:ipam_end]
         self.assertIn("259/0/0", ipam_html)
-        self.assertNotIn("0/0/1", ipam_html)
+        self.assertNotIn("198.18.0.0/16", ipam_html)
 
-    def test_ipa_drilldown_meta_slash24_renders_ip_count(self):
+    def test_ipa_drilldown_meta_slash24_renders_counters_for_cell_direct(self):
         from django.template.loader import render_to_string
 
         html = render_to_string(
@@ -890,7 +891,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         ipam_end = html.index("</td>", ipam_start)
         ipam_html = html[ipam_start:ipam_end]
         self.assertIn("0/0/100", ipam_html)
-        self.assertNotIn("—", ipam_html)
+        self.assertNotIn("198.18.228.0/24", ipam_html)
         dup_start = html.index("nsm-ipa-cell-tree-col--duplicate")
         dup_end = html.index("</td>", dup_start)
         dup_html = html[dup_start:dup_end]
@@ -1348,6 +1349,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
                 "depth": 3,
             },
         )
+        self.assertIn("record-depth", html)
         self.assertNotIn("nsm-ipa-cell-tree-col--parent", html)
         self.assertNotIn("nsm-ipa-cell-parent-hint", html)
 
@@ -2311,9 +2313,13 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
             {"addr_analyzer": [], "object_tree": self._OBJECT_TREE_FIXTURE},
         )
         self.assertIn("nsm-ipa-cell-tree-header", html)
-        self.assertIn("toggle-depth", html)
+        self.assertNotIn("toggle-depth", html)
+        self.assertNotIn("record-depth", html)
         self.assertIn("nsm-ipa-cell-tree-header-col--network", html)
         self.assertIn("nsm-ipa-cell-tree-header-col--ipam", html)
+        self.assertIn("nsm-ipa-cell-tree-header-col--dns", html)
+        self.assertIn("nsm-ipa-cell-tree-header-col--description", html)
+        self.assertNotIn("nsm-ipa-cell-tree-header-col--ipam-desc", html)
         self.assertIn("nsm-ipa-cell-tree-header-col--address", html)
         self.assertIn("nsm-ipa-cell-tree-header-col--address-group", html)
         self.assertNotIn("nsm-ipa-cell-tree-header-col--parent", html)
@@ -2326,7 +2332,6 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         address_pos = html.index("nsm-ipa-cell-tree-header-col--address")
         self.assertLess(ipam_pos, dup_pos)
         self.assertLess(dup_pos, address_pos)
-        self.assertIn('colspan="8"', html)
         self.assertIn("<colgroup>", html)
         self.assertIn("nsm-ipa-cell-tree-col--ipam", html)
         self.assertIn("nsm-ipa-cell-tree-col--merge", html)

@@ -297,6 +297,9 @@ def _enrich_ipa_drilldown_nodes(nodes, *, parent_network=None):
         )
     nodes = _collapse_duplicate_network_drilldown_siblings(nodes)
     nodes = _hub._sort_ipa_object_tree_siblings(nodes)
+    from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import _attach_ipa_drilldown_meta
+
+    _attach_ipa_drilldown_meta(nodes, {})
     return nodes
 
 

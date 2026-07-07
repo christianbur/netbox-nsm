@@ -4,6 +4,23 @@ All notable changes to **netbox-nsm** are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+
+- **IP Analyzer — performance** — configurable client timeout (`ipa_analyzer_timeout_ms`, default 120000 ms) and response cache (`ipa_analyzer_cache_timeout`, default 300 s; `0` disables). Initial applet loads use `lazy=1` (collapsed groups, deferred IPAM child enumeration); diff/merge/export unchanged. Cache bypass via `refresh=1` or full (`lazy=0`) requests.
+- **Security — generic host URL** — `/plugins/netbox-nsm/security/<app>/<model>/<pk>/` works regardless of `PLUGINS` order (`host_security` reverse + URL patches).
+- **Demo bundle — IPA hierarchy** — RB Demo Zone/Address adds 4-level IPAM tree (continent → country → city → host), nested groups, and rule 21 for IP Analyzer testing.
+
+### Changed
+
+- **IP Analyzer — cell tree columns** — **DNS** and **Description** are separate columns; **IP/Range/Prefix** shows IPAM child counters for prefix/range rows (Network keeps CIDR); depth markers (•) always visible in **Network**.
+
+### Fixed
+
+- **IP Analyzer — lazy load** — cell-direct prefix rows get IPAM counters; DNS/description refs attached on lazy finalize; response cache key bumped to invalidate stale HTML.
+- **Bundle apply** — seed objects with forward portable references (e.g. nested `demo-ipa-grp-*`) apply in multiple passes instead of failing mid-transaction.
+
 ## [0.4.14] - 2026-07-06
 
 ### Added

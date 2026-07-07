@@ -12,6 +12,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+# shellcheck source=git_ssh_helpers.sh
+source "${SCRIPT_DIR}/git_ssh_helpers.sh"
 
 GIT_USER="${GIT_USER:-christian}"
 DEV_BRANCH="${DEV_BRANCH:-dev}"
@@ -62,14 +64,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 run_git() {
-  if [[ "$(id -un)" == "$GIT_USER" ]]; then
-    git -C "$ROOT_DIR" "$@"
-  elif [[ "$(id -u)" -eq 0 ]]; then
-    sudo -u "$GIT_USER" -- git -C "$ROOT_DIR" "$@"
-  else
-    echo "Run as root or as ${GIT_USER} (current: $(id -un))." >&2
-    exit 1
-  fi
+  git_user -C "$ROOT_DIR" "$@"
 }
 
 plan() {
@@ -107,6 +102,9 @@ promote() {
   previous_branch="$(run_git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "$DEV_BRANCH")"
   merge_msg="$(merge_message)"
 
+  ensure_safe_directory "$ROOT_DIR"
+  ensure_github_ssh_remote "$ROOT_DIR"
+  verify_github_ssh
   do_fetch
   ensure_clean
 

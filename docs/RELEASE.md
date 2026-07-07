@@ -1,8 +1,8 @@
 # Release workflow (netbox-nsm)
 
-Development happens on **`dev`**. GitHub’s default branch is **`main`**. PyPI publish
-(`.github/workflows/publish.yml`) triggers on **GitHub Releases** tied to tags on
-**`main`**.
+Development happens on **`dev`**. GitHub’s default branch is **`main`**. Release
+tags are pushed on **`dev`** via **SSH** (user `christian`); GitHub Actions creates
+the release and publishes to PyPI (`.github/workflows/release-on-tag.yml`).
 
 ## Standard release
 
@@ -20,11 +20,16 @@ Development happens on **`dev`**. GitHub’s default branch is **`main`**. PyPI 
    ```
 
 3. The wizard bumps version files, updates `CHANGELOG.md`, commits, tags `vX.Y.Z` on
-   **`dev`**, pushes **`dev`** + tag, then merges **`dev` → `main`** (regular merge,
-   **not** squash) and pushes **`main`**.
+   **`dev`**, pushes **`dev`** + tag over **SSH**, merges **`dev` → `main`**
+   (regular merge, **not** squash), and pushes **`main`**.
 
-4. On GitHub: [Create release](https://github.com/christianbur/netbox-nsm/releases/new)
-   from tag `vX.Y.Z`, paste the CHANGELOG section.
+4. **GitHub Release** is created automatically when the tag is pushed (no `gh auth`,
+   no browser). Optional re-push:
+
+   ```bash
+   sudo ./scripts/github_release.sh --version X.Y.Z
+   sudo ./scripts/github_release.sh --version X.Y.Z --force   # re-trigger workflow
+   ```
 
 ## Why promote to `main`?
 
@@ -43,14 +48,16 @@ from the default branch view and release workflows may not see it.
 After a release on `dev` (tag already pushed):
 
 ```bash
-./scripts/promote_release_to_main.sh --version X.Y.Z
-```
-
-As root (uses `sudo -u christian` for SSH):
-
-```bash
 sudo ./scripts/promote_release_to_main.sh --version X.Y.Z
 ```
+
+## Manual GitHub release (tag already on origin)
+
+```bash
+sudo ./scripts/github_release.sh --version X.Y.Z
+```
+
+Uses `git@github.com:…` as `christian` (same pattern as `homelab/tools/github-push.sh`).
 
 ## GitHub pull requests
 

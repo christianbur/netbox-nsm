@@ -6,7 +6,6 @@ from django.utils.translation import ngettext, gettext_lazy as _
 
 from netbox_nsm.rulebooks.cot_hierarchy import load_cot_parent_map
 from netbox_nsm.rulebooks.registry import cot_rulebook_instance_count, get_deployed_cot_rulebook
-from netbox_nsm.security.links.object_link_service import iter_enforcement_point_links_for_slug
 
 __all__ = ("deployed_rulebook_delete_blockers",)
 
@@ -41,19 +40,6 @@ def deployed_rulebook_delete_blockers(cot, *, rule_count: int | None = None) -> 
         blockers.append(
             _("Child rulebooks must be deleted or reassigned first: %(names)s")
             % {"names": ", ".join(labels)}
-        )
-
-    assignment_count = sum(
-        1 for _ in iter_enforcement_point_links_for_slug(cot.slug)
-    )
-    if assignment_count:
-        blockers.append(
-            ngettext(
-                "This rulebook is assigned to %(count)s enforcement target. Remove the assignment first.",
-                "This rulebook is assigned to %(count)s enforcement targets. Remove the assignments first.",
-                assignment_count,
-            )
-            % {"count": assignment_count}
         )
 
     return blockers

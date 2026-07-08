@@ -23,11 +23,11 @@ from netbox_nsm.security.links.object_link_service import (
 )
 
 
-def _test_schema(*, host_field="netbox_object", policy_field="policy_object"):
+def _test_schema(*, host_field="netbox_object", security_field="security_object"):
     return ObjectLinkSchema(
         cot=SimpleNamespace(pk=99, get_model=lambda: MagicMock()),
         host_field=host_field,
-        policy_field=policy_field,
+        security_field=security_field,
     )
 
 
@@ -73,12 +73,12 @@ class ObjectLinkSchemaTests(SimpleTestCase):
 
         mock_linkable.side_effect = _linkable
 
-        host_name, policy_name = classify_object_link_field_names(
+        host_name, security_name = classify_object_link_field_names(
             [host_field, policy_field]
         )
 
         self.assertEqual(host_name, "inventory_side")
-        self.assertEqual(policy_name, "policy_side")
+        self.assertEqual(security_name, "policy_side")
 
     @patch("netbox_nsm.security.links.cot_link_schema.cot_link_table_flag")
     @patch("netbox_nsm.security.links.cot_link_schema.CustomObjectType")
@@ -91,6 +91,16 @@ class ObjectLinkSchemaTests(SimpleTestCase):
         mock_flag.side_effect = lambda cot: cot is flagged
 
         self.assertIs(get_object_link_cot(), flagged)
+
+    @patch("netbox_nsm.security.links.cot_link_schema.cot_link_table_flag", return_value=False)
+    @patch("netbox_nsm.security.links.cot_link_schema.CustomObjectType")
+    def test_get_object_link_cot_ignores_slug_without_link_table_flag(
+        self, cot_model, _mock_flag
+    ):
+        slug_only = SimpleNamespace(slug="nsm_object_link")
+        cot_model.objects.all.return_value = [slug_only]
+
+        self.assertIsNone(get_object_link_cot())
 
     @patch("netbox_nsm.security.links.object_link_service.get_object_link_schema")
     def test_get_object_link_model_from_schema(self, mock_schema):
@@ -112,14 +122,14 @@ class ObjectLinkRecordTests(SimpleTestCase):
             propagation=CotObjectLinkPropagationChoices.INHERIT_GROUP_STOP,
             comment="note",
             netbox_object=host,
-            policy_object=policy,
+            security_object=policy,
         )
         record = ObjectLinkRecord.from_instance(inst, schema)
         self.assertEqual(record.propagation, LinkPropagationChoices.INHERIT_GROUP)
         self.assertTrue(record.propagate_stop_on_own)
         self.assertEqual(record.comment, "note")
         self.assertIs(record.netbox_object, host)
-        self.assertIs(record.policy_object, policy)
+        self.assertIs(record.security_object, policy)
 
     def test_cot_propagation_round_trip(self):
         schema = _test_schema()
@@ -130,7 +140,7 @@ class ObjectLinkRecordTests(SimpleTestCase):
             ),
             comment="",
             netbox_object=None,
-            policy_object=None,
+            security_object=None,
         )
         record = ObjectLinkRecord.from_instance(inst, schema)
         self.assertEqual(
@@ -153,7 +163,7 @@ class IterLinksForObjectTests(SimpleTestCase):
             propagation=CotObjectLinkPropagationChoices.DIRECT,
             comment="",
             netbox_object=page,
-            policy_object=SimpleNamespace(pk=2),
+            security_object=SimpleNamespace(pk=2),
             link_type="policy",
         )
         rev_row = SimpleNamespace(
@@ -161,7 +171,7 @@ class IterLinksForObjectTests(SimpleTestCase):
             propagation=CotObjectLinkPropagationChoices.DIRECT,
             comment="",
             netbox_object=SimpleNamespace(pk=3),
-            policy_object=page,
+            security_object=page,
             link_type="policy",
         )
         filter_fn.side_effect = [[fwd_row], [rev_row]]
@@ -171,4 +181,4 @@ class IterLinksForObjectTests(SimpleTestCase):
         self.assertEqual(pairs[0][1], "fwd")
         self.assertEqual(pairs[1][1], "rev")
         filter_fn.assert_any_call(get_model.return_value, schema.host_field, page)
-        filter_fn.assert_any_call(get_model.return_value, schema.policy_field, page)
+        filter_fn.assert_any_call(get_model.return_value, schema.security_field, page)

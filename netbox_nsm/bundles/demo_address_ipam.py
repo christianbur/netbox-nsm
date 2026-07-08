@@ -210,7 +210,9 @@ def seed_demo_ipa_hierarchy_ipam(*, names: frozenset[str] | None = None) -> int:
             )
         else:
             ipam_obj = _get_or_create_prefix(
-                level.cidr, addr_name=level.addr_name, label=level.label
+                level.cidr,
+                addr_name=level.addr_name,
+                label=level.label,
             )
         _link_address_to_ipam(
             addr_obj,

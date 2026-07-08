@@ -62,7 +62,25 @@ class SecurityConfig(PluginConfig):
         self._patch_color_field_widget()
         self._patch_poly_subfield_labels()
         self._patch_cot_rule_add_index()
+        self._sync_object_link_field_labels()
+        self._migrate_policy_object_field_name()
         self._patch_custom_object_list_polymorphic_sort()
+
+    @staticmethod
+    def _sync_object_link_field_labels():
+        """Reserved for keeping link-table field labels in sync with bundled schema."""
+        return
+
+    @staticmethod
+    def _migrate_policy_object_field_name():
+        try:
+            from netbox_nsm.security.object_link_field_migration import (
+                migrate_policy_object_field_to_security_object,
+            )
+
+            migrate_policy_object_field_to_security_object()
+        except Exception:
+            pass
 
     @staticmethod
     def _ensure_cot_db_compat():

@@ -60,7 +60,7 @@ def _object_link_row(*, iface, zone, link_table=True):
         pk=42,
         custom_object_type=cot,
         netbox_object=iface,
-        policy_object=zone,
+        security_object=zone,
         get_absolute_url=lambda: "/plugins/custom-objects/nsm_object_link/42/",
         __str__=lambda self: f"{iface} → {zone}",
     )
@@ -69,10 +69,12 @@ def _object_link_row(*, iface, zone, link_table=True):
 
 class CotIsJunctionTests(SimpleTestCase):
     def test_link_table_flag_marks_junction(self):
-        self.assertTrue(_cot_is_junction(_link_cot(link_table=True)))
+        with patch("netbox_nsm.security.tab.combined.cot_link_table_flag", return_value=True):
+            self.assertTrue(_cot_is_junction(_link_cot(link_table=True)))
 
     def test_without_link_table_not_junction(self):
-        self.assertFalse(_cot_is_junction(_link_cot(link_table=False)))
+        with patch("netbox_nsm.security.tab.combined.cot_link_table_flag", return_value=False):
+            self.assertFalse(_cot_is_junction(_link_cot(link_table=False)))
 
     @patch("netbox_nsm.security.tab.combined.cot_link_table_flag", return_value=True)
     def test_link_table_flag_also_counts(self, _mock_flag):
@@ -87,23 +89,24 @@ class FarFieldTests(SimpleTestCase):
     def test_resolves_other_object_field_without_slug_mapping(self, mock_fields):
         cot = _link_cot(link_table=True)
         near = SimpleNamespace(name="netbox_object", custom_object_type=cot)
-        policy_field = SimpleNamespace(name="policy_object")
+        security_field = SimpleNamespace(name="security_object")
         netbox_field = SimpleNamespace(name="netbox_object")
-        mock_fields.return_value = [policy_field, netbox_field]
+        mock_fields.return_value = [security_field, netbox_field]
 
         far = _far_field(near)
 
-        self.assertEqual(far.name, "policy_object")
+        self.assertEqual(far.name, "security_object")
 
 
 class TransformJunctionsTests(SimpleTestCase):
+    @patch("netbox_nsm.security.tab.combined.cot_link_table_flag", return_value=True)
     @patch("netbox_nsm.security.tab.combined._object_fields_for_cot")
-    def test_rewrites_nsm_object_link_to_zone_with_via_metadata(self, mock_fields):
+    def test_rewrites_nsm_object_link_to_zone_with_via_metadata(self, mock_fields, _flag):
         iface = _interface()
         zone = _zone()
         row, field = _object_link_row(iface=iface, zone=zone)
         mock_fields.return_value = [
-            SimpleNamespace(name="policy_object"),
+            SimpleNamespace(name="security_object"),
             SimpleNamespace(name="netbox_object"),
         ]
 
@@ -126,18 +129,20 @@ class TransformJunctionsTests(SimpleTestCase):
 
 
 class UntransformedJunctionRowTests(SimpleTestCase):
-    def test_detects_raw_object_link_row(self):
+    @patch("netbox_nsm.security.tab.combined.cot_link_table_flag", return_value=True)
+    def test_detects_raw_object_link_row(self, _flag):
         row, field = _object_link_row(
             iface=_interface(),
             zone=_zone(),
         )
         self.assertTrue(is_untransformed_junction_row(row, field))
 
+    @patch("netbox_nsm.security.tab.combined.cot_link_table_flag", return_value=True)
     @patch("netbox_nsm.security.tab.combined._object_fields_for_cot")
-    def test_junction_rewrite_is_not_untransformed(self, mock_fields):
+    def test_junction_rewrite_is_not_untransformed(self, mock_fields, _flag):
         row, field = _object_link_row(iface=_interface(), zone=_zone())
         mock_fields.return_value = [
-            SimpleNamespace(name="policy_object"),
+            SimpleNamespace(name="security_object"),
             SimpleNamespace(name="netbox_object"),
         ]
         endpoint, jfield = _transform_junctions([(row, field)])[0]

@@ -152,7 +152,7 @@ class AddrNavigationRefTests(TestCase):
         ct_objects.get_for_model.return_value = MagicMock(pk=99)
 
         fwd_link = MagicMock()
-        fwd_link.policy_object = device
+        fwd_link.security_object = device
         rev_link = MagicMock()
         rev_link.netbox_object = device
         iter_links_fn.return_value = [(fwd_link, "fwd"), (rev_link, "rev")]

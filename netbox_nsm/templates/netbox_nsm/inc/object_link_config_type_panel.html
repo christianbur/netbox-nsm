@@ -1,0 +1,104 @@
+{% load i18n %}
+<div class="card h-100 object-link-config-panel" data-side="{{ side }}" data-field-name="{{ field_name }}">
+  <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <span class="text-nowrap">
+      <strong>{% if side == "host" %}{% trans "Netbox object" %}{% else %}{% trans "Security object" %}{% endif %}</strong>
+      <span class="badge text-bg-secondary ms-1">{{ selected|length }}</span>
+    </span>
+    {% if can_change %}
+    <div class="dropdown flex-shrink-0">
+      <button type="button"
+              class="btn btn-sm btn-outline-primary dropdown-toggle object-link-config-add-toggle{% if not available %} disabled{% endif %}"
+              data-bs-toggle="dropdown"
+              data-bs-auto-close="outside"
+              aria-expanded="false"
+              {% if not available %}aria-disabled="true"{% endif %}
+              title="{% if available %}{% trans 'Add type' %}{% else %}{% trans 'All available types are already selected.' %}{% endif %}">
+        <i class="mdi mdi-plus-thick" aria-hidden="true"></i> {% trans "Add type" %}
+      </button>
+      <div class="dropdown-menu dropdown-menu-end object-link-config-add-menu p-0">
+        {% if available %}
+        <div class="px-2 py-2 border-bottom object-link-config-add-search-wrap">
+          <div class="input-group input-group-flat quicksearch input-group-sm">
+            <span class="input-group-text">
+              <i class="mdi mdi-magnify" aria-hidden="true"></i>
+            </span>
+            <input type="search"
+                   class="form-control object-link-config-add-search"
+                   placeholder="{% trans 'Quick search' %}"
+                   autocomplete="off"
+                   aria-label="{% trans 'Quick search' %}">
+          </div>
+        </div>
+        <div class="object-link-config-add-items">
+          {% for entry in available %}
+          <button type="button"
+                  class="dropdown-item object-link-config-add"
+                  data-ref="{{ entry.ref }}"
+                  data-label="{{ entry.display_label }}">
+            {{ entry.display_label }}
+          </button>
+          {% endfor %}
+        </div>
+        <div class="dropdown-item-text text-muted object-link-config-add-no-match px-3 py-2 d-none">
+          {% trans "No matching types." %}
+        </div>
+        {% else %}
+        <span class="dropdown-item-text text-muted px-3 py-2">
+          {% trans "All available types are already selected." %}
+        </span>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  {% if can_change and not available %}
+  <div class="card-header border-top-0 pt-0">
+    <p class="text-muted small mb-0">
+      {% if side == "host" %}
+        {% trans "All eligible NetBox object types are selected." %}
+      {% else %}
+        {% trans "All custom object types are selected." %}
+      {% endif %}
+    </p>
+  </div>
+  {% endif %}
+  <div class="table-responsive">
+    <table class="table table-hover object-list mb-0">
+      <thead>
+        <tr>
+          <th>{% trans "Type" %}</th>
+          <th class="text-end" style="width: 1%;">{% trans "Instances" %}</th>
+          {% if can_change %}<th class="text-end" style="width: 1%;">{% trans "Remove" %}</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody class="object-link-config-rows" data-col-count="{% if can_change %}3{% else %}2{% endif %}">
+        {% for entry in selected %}
+        <tr data-ref="{{ entry.ref }}">
+          <td>{{ entry.display_label }}</td>
+          <td class="text-end">{{ entry.usage_count|default:0 }}</td>
+          {% if can_change %}
+          <td class="text-end text-nowrap">
+            <button type="button"
+                    class="btn btn-sm {% if entry.can_remove %}btn-danger{% else %}btn-outline-secondary{% endif %} object-link-config-remove"
+                    {% if not entry.can_remove %}disabled aria-disabled="true"{% endif %}
+                    title="{% if entry.can_remove %}{% trans 'Remove' %}{% else %}{% trans 'Cannot remove while link rows reference this type.' %}{% endif %}"
+                    aria-label="{% if entry.can_remove %}{% trans 'Remove' %}{% else %}{% trans 'Cannot remove while link rows reference this type.' %}{% endif %}"
+                    data-ref="{{ entry.ref }}"
+                    data-label="{{ entry.display_label }}">
+              <i class="mdi mdi-trash-can-outline" aria-hidden="true"></i>
+            </button>
+          </td>
+          {% endif %}
+        </tr>
+        {% empty %}
+        <tr class="object-link-config-empty-row">
+          <td colspan="{% if can_change %}3{% else %}2{% endif %}" class="text-muted">
+            {% trans "No types selected." %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>

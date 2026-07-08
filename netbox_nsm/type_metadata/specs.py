@@ -1,6 +1,11 @@
 """Shared TypeConfig definitions for Setup, sync, and demos."""
 
+from netbox_nsm.core.display_template import SERVICE_DISPLAY_TEMPLATE
+
+NSM_SERVICE_DISPLAY_TEMPLATE = SERVICE_DISPLAY_TEMPLATE
+
 __all__ = (
+    "NSM_SERVICE_DISPLAY_TEMPLATE",
     "REQUIRED_COT_SLUGS",
     "RULEBOOK_TEMPLATE_SLUGS",
     "TYPECONFIG_LIST_EXCLUDED_SLUGS",
@@ -98,7 +103,7 @@ TYPECONFIG_SPECS = [
     _typeconfig_spec(
         "nsm_service",
         "Services",
-        display_template="{{ name }} ({{ protocol }}/{% if port_end and port_end != port %}{{ port }}-{{ port_end }}{% elif port %}{{ port }}{% else %}—{% endif %})",
+        display_template=NSM_SERVICE_DISPLAY_TEMPLATE,
     ),
     _typeconfig_spec("nsm_service_group", "Service Groups", display_template="{{ name }}"),
     _typeconfig_spec("nsm_action", "Action", display_template="{{ name | upper }}"),

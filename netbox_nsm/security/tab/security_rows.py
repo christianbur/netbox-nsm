@@ -15,6 +15,8 @@ from netbox_nsm.security.tab.combined import (
 )
 from netbox_nsm.security.tab.value_groups import UNGROUPED_KEY, nsm_object_group_value
 
+_CUSTOM_OBJECTS_APP = "netbox_custom_objects"
+
 __all__ = (
     "append_cot_reference_link_groups",
     "count_cot_reference_links",
@@ -217,6 +219,20 @@ def _payload_for_row(
     )
 
 
+def _junction_endpoint_visible(row_obj, field) -> bool:
+    if not getattr(field, "is_junction_row", False):
+        return True
+    try:
+        from netbox_nsm.type_metadata.config import is_linkable_content_type
+
+        endpoint_ct = ContentType.objects.get_for_model(row_obj)
+        if endpoint_ct.app_label == _CUSTOM_OBJECTS_APP:
+            return is_linkable_content_type(endpoint_ct.pk)
+    except Exception:
+        return False
+    return True
+
+
 def append_cot_reference_link_groups(
     links_by_type: dict,
     obj,
@@ -234,6 +250,8 @@ def append_cot_reference_link_groups(
 
     for row_obj, field in _get_linked_custom_objects(obj, user=user):
         if is_untransformed_junction_row(row_obj, field):
+            continue
+        if not _junction_endpoint_visible(row_obj, field):
             continue
         type_key, _type_label, payload = _payload_for_row(
             row_obj,
@@ -263,6 +281,8 @@ def _iter_deduped_cot_reference_rows(obj, *, user=None):
     seen: set[tuple] = set()
     for row_obj, field in _get_linked_custom_objects(obj, user=user):
         if is_untransformed_junction_row(row_obj, field):
+            continue
+        if not _junction_endpoint_visible(row_obj, field):
             continue
         type_key, _lct = _row_type_key(row_obj)
         dedupe = (type_key, getattr(row_obj, "pk", None) or 0, str(field))
@@ -345,7 +365,9 @@ def count_security_link_table_rows(obj, *, user=None) -> int:
     total = 0
     existing_urls: set[str] = set()
 
-    for row_obj, _field in _iter_deduped_cot_reference_rows(obj, user=user):
+    for row_obj, field in _iter_deduped_cot_reference_rows(obj, user=user):
+        if not _junction_endpoint_visible(row_obj, field):
+            continue
         total += 1
         if hasattr(row_obj, "get_absolute_url"):
             existing_urls.add(row_obj.get_absolute_url())

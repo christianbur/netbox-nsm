@@ -80,6 +80,17 @@ class AddrTreePrefixDisplayTests(SimpleTestCase):
         _attach_addr_node_prefix_display(node, ip_ref=ip_ref)
         self.assertNotIn("prefix_display_cidr", node)
 
+    def test_attach_display_labels_for_custom_policy_address(self):
+        from netbox_nsm.addresses.address_literal import format_network_nsm_config_comments
+
+        obj = MagicMock()
+        obj.comments = format_network_nsm_config_comments("0.0.0.0/0").rstrip()
+        obj.custom_object_type = MagicMock(slug="nsm_address")
+        node = {"name": "ANY", "kind": "leaf", "children": []}
+        _attach_addr_node_prefix_display(node, obj=obj)
+        self.assertEqual(node["prefix_display_cidr"], "0.0.0.0/0")
+        self.assertEqual(node["prefix_display_netmask"], "0.0.0.0/0.0.0.0")
+
 
 class AddrPrefixFormatTests(SimpleTestCase):
     """CIDR/Mask toggle assets; CSV copy buttons removed in favor of YAML export."""

@@ -6,10 +6,20 @@ from netbox_nsm.core.interface_parent import (
     interface_parent_host_payload,
     prefetch_interface_parents,
 )
-from netbox_nsm.rulebooks.assigned_objects import _interfaces_for_host
 from netbox_nsm.security.links.link_rows import build_object_link_rows
 
 __all__ = ("build_host_interface_analysis",)
+
+
+def _interfaces_for_host(host):
+    from dcim.models import Device, Interface
+    from virtualization.models import VirtualMachine, VMInterface
+
+    if isinstance(host, Device):
+        return list(Interface.objects.filter(device=host).order_by("name"))
+    if isinstance(host, VirtualMachine):
+        return list(VMInterface.objects.filter(virtual_machine=host).order_by("name"))
+    return []
 
 
 def build_host_interface_analysis(host, *, request, panel_url) -> list[dict]:

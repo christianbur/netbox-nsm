@@ -1126,6 +1126,7 @@ msgstr ""
 #: templates/netbox_nsm/inc/cot_fields_readonly_table.html:7
 #: templates/netbox_nsm/inc/setup_custom_object_schema.html:205
 #: templates/netbox_nsm/object_analyzer.html:182
+#: templates/netbox_nsm/setup_schema_detail.html:49
 msgid "Label"
 msgstr "Bezeichnung"
 
@@ -1177,8 +1178,9 @@ msgstr ""
 
 #: templates/netbox_nsm/inc/cot_rulebook_create_fields.html:26
 #: templates/netbox_nsm/inc/setup_custom_object_schema.html:81
+#: templates/netbox_nsm/setup_schema_detail.html:132
 msgid "Schema"
-msgstr ""
+msgstr "Schema"
 
 #: templates/netbox_nsm/inc/cot_rulebook_create_fields.html:44
 #: templates/netbox_nsm/inc/setup_custom_object_schema.html:92
@@ -1187,8 +1189,10 @@ msgstr ""
 
 #: templates/netbox_nsm/inc/cot_rulebook_create_fields.html:56
 #: templates/netbox_nsm/inc/setup_custom_object_schema.html:107
+#: templates/netbox_nsm/setup.html:98
+#: templates/netbox_nsm/setup_schema_detail.html:94
 msgid "Preview"
-msgstr ""
+msgstr "Vorschau"
 
 #: templates/netbox_nsm/inc/cot_rulebook_create_fields.html:78
 #: templates/netbox_nsm/inc/setup_custom_object_schema.html:155
@@ -1266,9 +1270,10 @@ msgstr ""
 
 #: templates/netbox_nsm/inc/ipa_object_analysis_table.html:13
 #: templates/netbox_nsm/ip_analysis.html:329
+#: templates/netbox_nsm/inc/object_link_config_type_panel.html:54
 #: templates/netbox_nsm/object_link_assign.html:54
 msgid "Remove"
-msgstr ""
+msgstr "Entfernen"
 
 #: templates/netbox_nsm/inc/ipa_subnet_containment_meta.html:6
 #, python-format
@@ -1588,8 +1593,9 @@ msgstr ""
 #: templates/netbox_nsm/inc/rulebook_detail_content.html:86
 #: templates/netbox_nsm/propertytype.html:28
 #: templates/netbox_nsm/rulebook_cot_detail.html:162
+#: templates/netbox_nsm/setup_schema_detail.html:50
 msgid "Fields"
-msgstr ""
+msgstr "Felder"
 
 #: templates/netbox_nsm/inc/rulebook_detail_content.html:90
 msgid "Add Field"
@@ -1660,8 +1666,10 @@ msgid "Fixed"
 msgstr ""
 
 #: templates/netbox_nsm/inc/rulebook_field_row_actions.html:19
+#: templates/netbox_nsm/inc/object_link_config_type_panel.html:22
+#: templates/netbox_nsm/object_link_config_edit.html:144
 msgid "Add type"
-msgstr ""
+msgstr "Typ hinzufügen"
 
 #: templates/netbox_nsm/inc/rulebook_field_type_flags.html:3
 msgid "Type options"
@@ -2850,6 +2858,7 @@ msgstr ""
 "Alle TypeConfigs angelegt/aktualisiert (einschließlich NSM-Section-Links)."
 
 #: views/setup/view.py:103
+#: bundles/views.py:79
 msgid ""
 "netbox-custom-objects database tables are missing. Run: python manage.py "
 "migrate netbox_custom_objects"
@@ -2896,6 +2905,7 @@ msgstr ""
 "Address Bench gestartet wird."
 
 #: views/setup/view.py:180
+#: bundles/views.py:90
 #, python-format
 msgid "Unknown action: %(action)s"
 msgstr "Unbekannte Aktion: %(action)s"
@@ -2923,11 +2933,11 @@ msgstr "Typ-Metadaten angelegt."
 
 #: navigation.py:34 templates/netbox_nsm/object_report.html:4
 msgid "Object Report"
-msgstr "Object-Bericht"
+msgstr "Object Bericht"
 
 #: templates/netbox_nsm/object_report.html:15
 msgid "NSM Object Report"
-msgstr "NSM Object-Bericht"
+msgstr "NSM Object Bericht"
 
 #: templates/netbox_nsm/object_report.html:19
 msgid "Last run"
@@ -2960,7 +2970,7 @@ msgstr "Jetzt ausführen"
 
 #: templates/netbox_nsm/object_report.html:57
 msgid "No object report available yet. Start a run to generate one."
-msgstr "Noch kein Object-Bericht verfügbar. Starten Sie einen Lauf, um einen zu erzeugen."
+msgstr "Noch kein Object Bericht verfügbar. Starten Sie einen Lauf, um einen zu erzeugen."
 
 #: templates/netbox_nsm/object_report.html:72
 msgid "Address objects"
@@ -3067,20 +3077,20 @@ msgstr "Keine Beispiele."
 #: views/object_report.py:84
 #, python-format
 msgid "An object report run is already queued or running (job %(id)s)."
-msgstr "Ein Object-Bericht-Lauf ist bereits in der Warteschlange oder aktiv (Job %(id)s)."
+msgstr "Ein Object Bericht-Lauf ist bereits in der Warteschlange oder aktiv (Job %(id)s)."
 
 #: views/object_report.py:92
 msgid ""
 "Object report could not be queued: no RQ worker is running. Start the NetBox "
 "RQ worker and try again."
 msgstr ""
-"Object-Bericht konnte nicht gestartet werden: kein RQ-Worker aktiv. Starten "
+"Object Bericht konnte nicht gestartet werden: kein RQ-Worker aktiv. Starten "
 "Sie den NetBox-RQ-Worker und versuchen Sie es erneut."
 
 #: views/object_report.py:102
 #, python-format
 msgid "Object report started in the background (job %(id)s)."
-msgstr "Object-Bericht im Hintergrund gestartet (Job %(id)s)."
+msgstr "Object Bericht im Hintergrund gestartet (Job %(id)s)."
 
 #: object_report/object_report.py
 msgid "IPAM status ≠ address status"
@@ -3237,11 +3247,6 @@ msgid_plural "%(counter)s rulebook metadata blocks"
 msgstr[0] "%(counter)s Regelbuch-Metadaten"
 msgstr[1] "%(counter)s Regelbuch-Metadaten-Blöcke"
 
-#: templates/netbox_nsm/setup.html:98
-#: templates/netbox_nsm/setup_schema_detail.html:94
-msgid "Preview"
-msgstr "Vorschau"
-
 #: templates/netbox_nsm/setup.html:101
 msgid "Open"
 msgstr "Öffnen"
@@ -3253,14 +3258,6 @@ msgstr "Keine Bundles gefunden."
 #: templates/netbox_nsm/setup_schema_detail.html:43
 msgid "Types in bundle"
 msgstr "Typen im Bundle"
-
-#: templates/netbox_nsm/setup_schema_detail.html:49
-msgid "Label"
-msgstr "Bezeichnung"
-
-#: templates/netbox_nsm/setup_schema_detail.html:50
-msgid "Fields"
-msgstr "Felder"
 
 #: templates/netbox_nsm/setup_schema_detail.html:66
 msgid "Show bundle JSON"
@@ -3282,10 +3279,6 @@ msgstr "Bundle anwenden"
 msgid "Change preview"
 msgstr "Änderungsvorschau"
 
-#: templates/netbox_nsm/setup_schema_detail.html:132
-msgid "Schema"
-msgstr "Schema"
-
 #: templates/netbox_nsm/setup_schema_detail.html:144
 msgid "NSM side effects"
 msgstr "NSM-Nebeneffekte"
@@ -3293,19 +3286,6 @@ msgstr "NSM-Nebeneffekte"
 #: templates/netbox_nsm/setup_schema_detail.html:152
 msgid "Loading preview…"
 msgstr "Vorschau wird geladen…"
-
-#: bundles/views.py:79
-msgid ""
-"netbox-custom-objects database tables are missing. Run: python manage.py "
-"migrate netbox_custom_objects"
-msgstr ""
-"Datenbanktabellen von netbox-custom-objects fehlen. Ausführen: python "
-"manage.py migrate netbox_custom_objects"
-
-#: bundles/views.py:90
-#, python-format
-msgid "Unknown action: %(action)s"
-msgstr "Unbekannte Aktion: %(action)s"
 
 #: bundles/views.py:157
 msgid "Permission denied: custom object type add/change required."
@@ -3341,4 +3321,74 @@ msgid ""
 msgstr ""
 "Zuerst das NSM-Schema-Bundle anwenden (Security → Configuration → "
 "Bundles)."
+
+#: netbox_nsm/security/object_link_cot_form.py:20
+#: templates/netbox_nsm/inc/object_link_config_type_panel.html:5
+#: templates/netbox_nsm/object_link_config.html:26
+#: templates/netbox_nsm/object_link_edit.html:23
+msgid "Netbox object"
+msgstr "Netbox-Objekt"
+
+#: netbox_nsm/security/object_link_cot_form.py:21
+#: templates/netbox_nsm/inc/object_link_config_type_panel.html:5
+#: templates/netbox_nsm/object_link_config.html:41
+#: templates/netbox_nsm/object_link_edit.html:31
+msgid "Security object"
+msgstr "Security-Objekt"
+
+#: templates/netbox_nsm/object_link_assign.html:31
+msgid "Netbox object (this object)"
+msgstr "Netbox-Objekt (dieses Objekt)"
+
+#: forms/object_link.py:54 templates/netbox_nsm/object_link_assign.html:70
+msgid "Type (Security object)"
+msgstr "Typ (Security-Objekt)"
+
+#: templates/netbox_nsm/object_link_assign.html:88
+msgid "Element (Security object)"
+msgstr "Element (Security-Objekt)"
+
+#: netbox_nsm/security/object_link_config/forms.py:13
+msgid "Netbox object (host / inventory)"
+msgstr "Netbox-Objekt (Host / Inventar)"
+
+#: netbox_nsm/security/object_link_config/forms.py:18
+msgid "Security object (policy)"
+msgstr "Security-Objekt (Policy)"
+
+#: netbox_nsm/security/object_link_config/forms.py:48
+msgid "Select at least one Netbox object type."
+msgstr "Mindestens einen Netbox-Objekt-Typ auswählen."
+
+#: netbox_nsm/security/object_link_config/forms.py:50
+msgid "Select at least one Security object type."
+msgstr "Mindestens einen Security-Objekt-Typ auswählen."
+
+#: templates/netbox_nsm/object_link_config.html:11
+msgid ""
+"Polymorphic types allowed on Netbox object (host) and Security object "
+"(policy) for"
+msgstr ""
+"Polymorphe Typen für Netbox-Objekt (Host) und Security-Objekt (Policy) bei"
+
+#: templates/netbox_nsm/object_link_config_edit.html:11
+msgid ""
+"Add or remove object types for Netbox object and Security object. Changes "
+"are applied immediately."
+msgstr ""
+"Typen für Netbox-Objekt und Security-Objekt hinzufügen oder entfernen. "
+"Änderungen werden sofort angewendet."
+
+#: templates/netbox_nsm/inc/object_link_config_type_panel.html:33
+#: templates/netbox_nsm/object_link_config_edit.html:144
+msgid "All available types are already selected."
+msgstr "Alle verfügbaren Typen sind bereits ausgewählt."
+
+#: templates/netbox_nsm/inc/object_link_config_type_panel.html:42
+msgid "All inventory types from the fixed host list are selected."
+msgstr "Alle Inventar-Typen aus der festen Host-Liste sind ausgewählt."
+
+#: templates/netbox_nsm/inc/object_link_config_type_panel.html:44
+msgid "All security policy types are selected."
+msgstr "Alle Security-Policy-Typen sind ausgewählt."
 

@@ -1,6 +1,7 @@
 """Tests for demo bundle IPAM seeding (incl. 4-level IPA hierarchy)."""
 
 from django.test import TestCase
+from ipam.models import Prefix
 
 from netbox_nsm.bundles.demo_address_ipam import (
     DEMO_IPA_HIERARCHY,
@@ -42,3 +43,21 @@ class DemoIpaHierarchyIpamTests(TestCase):
                 }
             ),
         )
+
+    def test_seed_demo_ipa_hierarchy_ipam_creates_nested_prefixes(self):
+        from netbox_custom_objects.models import CustomObjectType
+
+        cot = CustomObjectType.objects.filter(slug="nsm_address").first()
+        if cot is None:
+            self.skipTest("nsm_address COT not deployed")
+
+        model = cot.get_model()
+        for level in DEMO_IPA_HIERARCHY:
+            model.objects.get_or_create(name=level.addr_name, defaults={"status": "active"})
+
+        linked = seed_demo_ipa_hierarchy_ipam()
+        self.assertEqual(linked, 4)
+
+        self.assertTrue(Prefix.objects.filter(prefix="10.210.0.0/16").exists())
+        self.assertTrue(Prefix.objects.filter(prefix="10.210.1.0/24").exists())
+        self.assertTrue(Prefix.objects.filter(prefix="10.210.1.64/26").exists())

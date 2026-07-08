@@ -73,8 +73,10 @@ def cot_link_table_flag(cot) -> bool:
     Resolution order (first match wins):
 
     1. Native ``CustomObjectType.link_table`` when present (netbox-custom-objects PR #482).
-    2. ``nsm_config`` in ``CustomObjectType.comments`` — top-level ``link_table``.
+    2. ``nsm_config`` in ``CustomObjectType.comments`` — top-level ``link_table: true``.
     3. Free-form ``CustomObjectType.metadata`` YAML/JSON with ``link_table: true``.
+
+    Slug names (e.g. ``nsm_object_link``) are never used for this check.
     """
     if cot is None:
         return False

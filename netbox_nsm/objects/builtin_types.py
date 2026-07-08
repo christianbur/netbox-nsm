@@ -38,6 +38,8 @@ markers are intentionally NOT used here — they have no equivalent in the
 portable schema and are silently ignored anyway.
 """
 
+from netbox_nsm.core.display_template import SERVICE_DISPLAY_TEMPLATE
+
 # Former setup seed rows for Network App (no longer created; removed on sync/demo seed).
 BUNDLED_NETWORK_APP_DEFAULT_NAMES = frozenset(
     {
@@ -73,7 +75,7 @@ BUILTIN_CUSTOM_TYPES = [
         "name": "Service",
         "areas": ["services"],
         "description": "Represents one network service (protocol + port or port range). Used in rulebook Service columns and Security Panel links.",
-        "display_template": "{{ name }} ({{ protocol }}/{% if port_end and port_end != port %}{{ port }}-{{ port_end }}{% elif port %}{{ port }}{% else %}—{% endif %})",
+        "display_template": SERVICE_DISPLAY_TEMPLATE,
         "field_definitions": [
             {
                 "name": "protocol",
@@ -376,45 +378,12 @@ BUILTIN_CUSTOM_TYPES = [
         "display_template": "{{ name }}",
         "field_definitions": [
             {
-                "name": "link_type",
-                "type": "choice",
-                "label": "Link Type",
-                "description": (
-                    "policy: inventory ↔ policy object; "
-                    "rulebook: device/VM/VDC ↔ deployed rulebook (Security Panel); "
-                    "enforcement_point: rulebook enforcement host assignment or interface ↔ NSM object."
-                ),
-                "required": True,
-                "choices": ["policy", "rulebook", "enforcement_point"],
-                "group_name": "NSM Object Link",
-                "weight": 9,
-            },
-            {
-                "name": "policy_object",
-                "type": "object_ref",
-                "label": "Policy Object",
-                "description": "NSM policy object (zone, address, label, service, …).",
-                "required": False,
-                "model": [
-                    "custom-objects.nsm_zone",
-                    "custom-objects.nsm_address",
-                    "custom-objects.nsm_address_custom",
-                    "custom-objects.nsm_address_group",
-                    "custom-objects.nsm_label",
-                    "custom-objects.nsm_service",
-                    "custom-objects.nsm_service_group",
-                    "custom-objects.nsm_app_business",
-                    "custom-objects.nsm_app_network",
-                ],
-                "weight": 10,
-            },
-            {
                 "name": "netbox_object",
                 "type": "object_ref",
-                "label": "NetBox Object",
+                "label": "Netbox object",
                 "description": (
-                    "NetBox inventory object this link is stored on "
-                    "(device, VM, interface, prefix, …)."
+                    "Host or inventory object this link is stored on "
+                    "(legacy object_a: device, VM, interface, prefix, …)."
                 ),
                 "required": True,
                 "model": [
@@ -427,18 +396,29 @@ BUILTIN_CUSTOM_TYPES = [
                     "ipam.IPAddress",
                     "ipam.IPRange",
                 ],
-                "weight": 11,
+                "weight": 10,
             },
             {
-                "name": "rulebook_slug",
-                "type": "text",
-                "label": "Rulebook Slug",
+                "name": "security_object",
+                "type": "object_ref",
+                "label": "Security object",
                 "description": (
-                    "Deployed COT rulebook slug (nsm_rb_*) when link_type is "
-                    "rulebook or enforcement_point."
+                    "NSM policy object on the policy side "
+                    "(legacy object_b: zone, address, label, service, …)."
                 ),
                 "required": False,
-                "weight": 14,
+                "model": [
+                    "custom-objects.nsm_zone",
+                    "custom-objects.nsm_address",
+                    "custom-objects.nsm_address_custom",
+                    "custom-objects.nsm_address_group",
+                    "custom-objects.nsm_label",
+                    "custom-objects.nsm_service",
+                    "custom-objects.nsm_service_group",
+                    "custom-objects.nsm_app_business",
+                    "custom-objects.nsm_app_network",
+                ],
+                "weight": 11,
             },
             {
                 "name": "comment",

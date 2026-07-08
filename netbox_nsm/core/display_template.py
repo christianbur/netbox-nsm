@@ -11,6 +11,7 @@ from jinja2.sandbox import SandboxedEnvironment
 
 __all__ = (
     "DEFAULT_DISPLAY_TEMPLATE",
+    "SERVICE_DISPLAY_TEMPLATE",
     "build_display_template_context",
     "normalize_display_template",
     "render_display_template",
@@ -18,6 +19,8 @@ __all__ = (
 )
 
 DEFAULT_DISPLAY_TEMPLATE = "{{ name }}"
+
+SERVICE_DISPLAY_TEMPLATE = "{{ name }} ({{ protocol }}/{% if port_end and port_end != port %}{{ port }}-{{ port_end }}{% elif port %}{{ port }}{% else %}—{% endif %})"
 
 _JINJA_ENV = SandboxedEnvironment(undefined=Undefined)
 

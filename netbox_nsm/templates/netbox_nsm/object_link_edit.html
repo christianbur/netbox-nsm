@@ -20,7 +20,7 @@
       <div class="card-body">
 
         <dl class="row mb-3">
-          <dt class="col-sm-4">{% trans "Object A" %}</dt>
+          <dt class="col-sm-4">{% trans "Netbox object" %}</dt>
           <dd class="col-sm-8">
             {% if link.object_a and link.object_a.get_absolute_url %}
               <a href="{{ link.object_a.get_absolute_url }}">{{ link.object_a }}</a>
@@ -28,7 +28,7 @@
               {{ link.object_a|default:"–" }}
             {% endif %}
           </dd>
-          <dt class="col-sm-4">{% trans "Object B" %}</dt>
+          <dt class="col-sm-4">{% trans "Security object" %}</dt>
           <dd class="col-sm-8">
             {% if link.object_b and link.object_b.get_absolute_url %}
               <a href="{{ link.object_b.get_absolute_url }}">{{ link.object_b }}</a>

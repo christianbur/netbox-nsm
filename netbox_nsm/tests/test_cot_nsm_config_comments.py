@@ -65,3 +65,38 @@ class CotNsmConfigCommentsApplyDocumentTests(TestCase):
             cot = CustomObjectType.objects.get(slug=spec["slug"])
             self.assertIn("nsm_config:", cot.comments)
             self.assertNotIn(f"# {spec['label']}", cot.comments)
+
+    def test_sync_display_template_upgrades_legacy_service_template(self):
+        try:
+            from netbox_custom_objects.models import CustomObjectType
+        except ImportError:
+            self.skipTest("netbox_custom_objects not installed")
+
+        from netbox_nsm.core.display_template import SERVICE_DISPLAY_TEMPLATE
+        from netbox_nsm.type_metadata.config import (
+            format_nsm_config_comment_yaml,
+            sync_cot_display_template_from_spec,
+        )
+        from netbox_nsm.type_metadata.specs import TYPECONFIG_SPEC_BY_SLUG
+
+        spec = TYPECONFIG_SPEC_BY_SLUG["nsm_service"]
+        cot, _ = CustomObjectType.objects.get_or_create(
+            slug="nsm_service",
+            defaults={"name": "nsm_service", "verbose_name": "Services"},
+        )
+        legacy = format_nsm_config_comment_yaml(
+            {
+                "sort_order": 20,
+                "display_template": "{{ name }} ({{ protocol }}/{{ port }})",
+                "areas": ["services"],
+            }
+        )
+        cot.comments = legacy
+        cot.save(update_fields=["comments"])
+
+        self.assertTrue(sync_cot_display_template_from_spec(cot, spec=spec))
+        cot.refresh_from_db()
+        from netbox_nsm.type_metadata.config import _stored_nsm_config_document
+
+        stored = _stored_nsm_config_document(cot.comments)
+        self.assertEqual(stored["rule_view"]["display_template"], SERVICE_DISPLAY_TEMPLATE)

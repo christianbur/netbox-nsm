@@ -3,7 +3,7 @@
   "schema_version": "1",
   "bundle_kind": "schema",
   "title": "RB Demo Zone/Address",
-  "description": "Zone, address, and address-group demo on nsm_rb_demo_zone_addresses: 20 zones, 504 addresses (incl. 4-level IPA hierarchy Europa→Deutschland→Berlin→Host), 103 groups (incl. nested demo-ipa-grp-1/2/3), and 500 rules (rules 1–20: 1–20 addresses/groups per side; rule 21: all 4 IPA hierarchy levels; assigns random IPAM hosts/prefixes to demo-addr-host-* on apply). Requires nsm_schema (ANY seed object).",
+  "description": "Zone, address, and address-group demo on nsm_rb_demo_zone_addresses: 20 zones, 504 addresses (incl. 4-level IPA hierarchy Kontinent→Land→Stadt→Host), 103 groups (incl. nested demo-ipa-grp-1/2/3), and 500 rules (rules 1–20: 1–20 addresses/groups per side; rule 21: overlapping prefixes across hierarchy levels for IP Analyzer; assigns random IPAM hosts/prefixes to demo-addr-host-* on apply). Requires nsm_schema (ANY seed object).",
   "requires": [
     "nsm_schema"
   ],
@@ -4209,17 +4209,12 @@
             "nsm_address/demo-ipa-continent",
             "nsm_address/demo-ipa-country",
             "nsm_address/demo-ipa-city",
-            "nsm_address/demo-ipa-host",
-            "nsm_address_group/demo-ipa-grp-1",
-            "nsm_address_group/demo-ipa-grp-2",
-            "nsm_address_group/demo-ipa-grp-3"
+            "nsm_address_group/demo-ipa-grp-1"
           ],
           "destination_addresses": [
-            "nsm_address/demo-ipa-continent",
             "nsm_address/demo-ipa-country",
             "nsm_address/demo-ipa-city",
             "nsm_address/demo-ipa-host",
-            "nsm_address_group/demo-ipa-grp-1",
             "nsm_address_group/demo-ipa-grp-2",
             "nsm_address_group/demo-ipa-grp-3"
           ],

@@ -4,34 +4,30 @@ All notable changes to **netbox-nsm** are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [0.4.15] - unreleased
 
-## [0.4.14] - 2026-07-07
+### Removed
+
+- **Object links — rulebook/enforcement types** — removed `link_type` and `rulebook_slug` COT fields, rulebook/enforcement_point link storage, assigned-objects UI on rulebook detail, bulk-assign views, and Security Panel enforcement-point / Rulebooks section. Policy-only object links remain the sole Security Panel assignment mechanism.
 
 ### Added
 
-- **Rulebook create — JSON schema** — wizard uses editable portable-schema JSON (`schema_json`) instead of YAML; tab, help text, and client validation updated.
-- **Bundle detail — JSON editor** — editable bundle document on schema bundle pages; preview sends `bundle_json`; auto-load preview panel on page open.
-- **Service port ranges** — optional `port_end` on `nsm_service` (bundle schema, display template, query engine).
-- **COT DB compat** — `cot_db_compat.py` sets PostgreSQL defaults for extension columns (`menu_name`, etc.) before `apply_document`; fixes rulebook/bundle create on netbox-custom-objects 0.6.x.
-- **Polymorphic M2M through helper** — `core/cot_m2m_through.py` tolerates standard vs polymorphic through tables during bundle preview/apply.
-- **Deployment check** — `netbox_nsm.W001` warns when other plugins are listed after `netbox_nsm` in `PLUGINS` (contacts/journal/changelog URLs).
-- **IP Analyzer — performance** — configurable client timeout (`ipa_analyzer_timeout_ms`, default 120000 ms) and response cache (`ipa_analyzer_cache_timeout`, default 300 s; `0` disables). Initial applet loads use `lazy=1` (collapsed groups, deferred IPAM child enumeration); diff/merge/export unchanged. Cache bypass via `refresh=1` or full (`lazy=0`) requests.
-- **Security — generic host URL** — `/plugins/netbox-nsm/security/<app>/<model>/<pk>/` works regardless of `PLUGINS` order (`host_security` reverse + URL patches).
-- **Demo bundle — IPA hierarchy** — RB Demo Zone/Address adds 4-level IPAM tree (continent → country → city → host), nested groups, and rule 21 for IP Analyzer testing.
+- **Object link config** — Security → Configuration → Object Links UI to view and edit Object A/B polymorphic type allow-lists (preview, destructive-change guard, apply).
+- **`nsm_address_custom` — ANY** — built-in custom address type for universal IPv4 match (`0.0.0.0/0`); seeded in NSM schema and demo bundle.
+- **Security tab eligibility** — tab and badge shown only for content types listed on deployed `nsm_object_link` endpoints.
+- **Security tab — type-metadata filter** — combined-tab CO reference rows limited to link-table COTs and COTs with `nsm_config` metadata.
+- **Service display template sync** — bundle apply syncs canonical service display template (incl. port ranges) into COT comments via `sync_cot_display_templates_from_specs()`.
+- **Field migration** — `policy_object` → `security_object` rename on deployed link-table COT (idempotent startup helper).
 
 ### Changed
 
-- **Plugin startup** — removed URL resolver warm-up from `SecurityConfig.ready()` so later plugins register feature tab URLs before URLconf loads; document `PLUGINS` order (netbox_nsm last before netbox_branching).
-- **IP Analyzer — cell tree columns** — **DNS** and **Description** are separate columns; **IP/Range/Prefix** shows IPAM child counters for prefix/range rows (Network keeps CIDR); depth markers (•) always visible in **Network**.
+- **`nsm_object_link` schema** — Object B field renamed to `security_object`; polymorphic allow-lists trimmed to policy types only.
+- **Object link assign URL** — Security tab uses shared `object_link_assign_url()` helper.
 
 ### Fixed
 
-- **IP Analyzer — large objects** — guard invalid COT PKs in navigation; cap IPAM child-IP enumeration at 4096 hosts (avoids HTTP 500 on large prefixes/groups).
-- **Bundle apply** — `content_type_id` FieldError when polymorphic flag and through-table schema mismatch; seed-object diff/apply uses `cot_m2m_through`.
-- **Rulebook clone / layout** — polymorphic multiobject reads use through-table column detection.
-- **IP Analyzer — lazy load** — cell-direct prefix rows get IPAM counters; DNS/description refs attached on lazy finalize; response cache key bumped to invalidate stale HTML.
-- **Bundle apply** — seed objects with forward portable references (e.g. nested `demo-ipa-grp-*`) apply in multiple passes instead of failing mid-transaction.
+- **Object link config apply** — updates `related_object_types` M2M in-place instead of full portable-schema apply (avoids FieldError when `schema_id` was never backfilled, e.g. legacy `security_object` column).
+- **IP Analyzer — custom ANY nesting** — `_renest_ipa_contained_cell_siblings()` restores depth consistency when ANY or subnet cells share a parent; subnet containment warnings on child rows.
 
 ## [0.4.13] - 2026-07-06
 

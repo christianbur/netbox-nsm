@@ -1,0 +1,30 @@
+{% extends 'base/layout.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Object Link" %}{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+  <div class="col">
+    <h1 class="h2">{% trans "Object Link" %}</h1>
+    <p class="text-muted mb-0">
+      {% trans "Polymorphic types allowed on Netbox object (host) and Security object (policy) for" %}
+      <code>{{ state.cot_slug }}</code>.
+    </p>
+  </div>
+  <div class="col-auto d-print-none">
+    <a href="{{ edit_url }}" class="btn btn-primary">
+      <i class="mdi mdi-pencil"></i> {% trans "Edit" %}
+    </a>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-6 mb-3">
+    {% include "netbox_nsm/inc/object_link_config_type_panel.html" with side="host" field_name="host_types" selected=host_types.selected available=host_types.available can_change=False %}
+  </div>
+  <div class="col-md-6 mb-3">
+    {% include "netbox_nsm/inc/object_link_config_type_panel.html" with side="security" field_name="security_types" selected=security_types.selected available=security_types.available can_change=False %}
+  </div>
+</div>
+{% endblock %}

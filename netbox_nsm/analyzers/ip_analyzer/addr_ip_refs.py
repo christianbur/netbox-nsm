@@ -232,6 +232,11 @@ def _addr_node_prefix_cidr(*, obj=None, ip_ref=None):
                         return cidr
         except Exception:
             pass
+        from netbox_nsm.addresses.address_literal import get_policy_address_cidr
+
+        policy_cidr = get_policy_address_cidr(obj)
+        if policy_cidr:
+            return policy_cidr
     return None
 
 

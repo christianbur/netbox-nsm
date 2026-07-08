@@ -28,17 +28,8 @@ from netbox_nsm.bundles.views import (
     SetupView,
 )
 from .views.plugin_static import PluginAssetView
-from netbox_nsm.security.views.rulebook_link import (
-    RulebookLinkAssignView,
-    RulebookLinkDeleteView,
-)
-from netbox_nsm.security.views.enforcement_point_link import (
-    EnforcementPointInterfaceAssignView,
-    EnforcementPointLinkDeleteView,
-)
 from netbox_nsm.rulebooks.views.list import RulebookListView
 from netbox_nsm.rulebooks.views.cot import (
-    CotRulebookBulkAssignView,
     CotRulebookChangelogView,
     CotRulebookCreateView,
     CotRulebookDeleteView,
@@ -54,6 +45,12 @@ from netbox_nsm.rulebooks.views.virtual_all import (
     AllRulesRulebookJournalView,
     AllRulesRulebookRulesView,
     AllRulesRulebookView,
+)
+from netbox_nsm.security.object_link_config.views import (
+    ObjectLinkConfigApplyView,
+    ObjectLinkConfigEditView,
+    ObjectLinkConfigPreviewView,
+    ObjectLinkConfigView,
 )
 from netbox_nsm.security.views.inherited_links_api import InheritedLinksApiView
 from netbox_nsm.security.views.object_link import (
@@ -122,6 +119,26 @@ urlpatterns = [
         TypeMetadataDeleteView.as_view(),
         name="typemetadata_delete",
     ),
+    path(
+        "object-link-config/",
+        ObjectLinkConfigView.as_view(),
+        name="object_link_config",
+    ),
+    path(
+        "object-link-config/edit/",
+        ObjectLinkConfigEditView.as_view(),
+        name="object_link_config_edit",
+    ),
+    path(
+        "object-link-config/preview/",
+        ObjectLinkConfigPreviewView.as_view(),
+        name="object_link_config_preview",
+    ),
+    path(
+        "object-link-config/apply/",
+        ObjectLinkConfigApplyView.as_view(),
+        name="object_link_config_apply",
+    ),
     path("rulebooks/", RulebookListView.as_view(), name="rulebook_list"),
     path(
         "rulebooks/0/",
@@ -167,16 +184,6 @@ urlpatterns = [
         "rulebooks/cot/<slug:slug>/delete/",
         CotRulebookDeleteView.as_view(),
         name="cot_rulebook_delete",
-    ),
-    path(
-        "rulebooks/cot/<slug:slug>/assign/",
-        CotRulebookBulkAssignView.as_view(),
-        name="cot_rulebook_bulk_assign",
-    ),
-    path(
-        "rulebooks/cot/<slug:slug>/enforcement-point/assign/",
-        EnforcementPointInterfaceAssignView.as_view(),
-        name="enforcement_point_link_assign",
     ),
     path(
         "rulebooks/cot/<slug:slug>/rules/export.json",
@@ -246,21 +253,6 @@ urlpatterns = [
         "object-link/<int:pk>/delete/",
         ObjectLinkDeleteView.as_view(),
         name="object_link_delete",
-    ),
-    path(
-        "rulebook-link/assign/",
-        RulebookLinkAssignView.as_view(),
-        name="rulebook_link_assign",
-    ),
-    path(
-        "rulebook-link/<int:pk>/delete/",
-        RulebookLinkDeleteView.as_view(),
-        name="rulebook_link_delete",
-    ),
-    path(
-        "enforcement-point-link/<int:pk>/delete/",
-        EnforcementPointLinkDeleteView.as_view(),
-        name="enforcement_point_link_delete",
     ),
     path(
         "panel-link/address-ipam-fk/<slug:slug>/clear/",

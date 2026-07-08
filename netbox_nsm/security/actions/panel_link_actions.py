@@ -88,24 +88,50 @@ def object_link_assign_url(
     object_b=None,
     link=None,
 ) -> str:
-    """Assign Link page URL with optional Object B prefill."""
+    """COT add form URL with Object A/B prefill from the Security panel page object."""
     from django.contrib.contenttypes.models import ContentType
 
-    ct_a = ContentType.objects.get_for_model(object_a)
-    params: dict[str, str | int] = {
-        "ct_id": ct_a.pk,
-        "obj_id": object_a.pk,
-        "return_url": return_url or "/",
-    }
+    from netbox_nsm.security.links.cot_link_schema import get_object_link_cot_slug
+    from netbox_nsm.security.links.object_link_service import (
+        classify_link_endpoints,
+        link_name_for_endpoints,
+    )
+    from netbox_nsm.security.object_link_cot_form import object_link_field_prefix_for_ct
+
+    params: dict[str, str | int] = {"status": "active"}
+
     if object_b is not None:
-        ct_b = ContentType.objects.get_for_model(object_b)
-        params["object_b_type_id"] = ct_b.pk
-        params["object_b_id"] = object_b.pk
-    if link is not None:
-        if link.comment:
-            params["comment"] = link.comment
+        netbox, policy = classify_link_endpoints(object_a, object_b)
+        netbox_ct = ContentType.objects.get_for_model(netbox)
+        policy_ct = ContentType.objects.get_for_model(policy)
+        params["ct_id"] = netbox_ct.pk
+        params["obj_id"] = netbox.pk
+        params["object_b_type_id"] = policy_ct.pk
+        params["object_b_id"] = policy.pk
+        params["name"] = link_name_for_endpoints(netbox, policy)
+    else:
+        ct = ContentType.objects.get_for_model(object_a)
+        if object_link_field_prefix_for_ct(ct.pk) == "security_object":
+            params["object_b_type_id"] = ct.pk
+            params["object_b_id"] = object_a.pk
+        else:
+            params["ct_id"] = ct.pk
+            params["obj_id"] = object_a.pk
+        params["name"] = str(object_a)[:200]
+
+    if link is not None and link.comment:
+        params["comments"] = link.comment
+    if return_url:
+        params["return_url"] = return_url
     query = urlencode(params, quote_via=quote)
-    return reverse("plugins:netbox_nsm:object_link_assign") + f"?{query}"
+    link_cot_slug = get_object_link_cot_slug()
+    if not link_cot_slug:
+        raise NoReverseMatch("link-table COT is not deployed")
+    base = reverse(
+        "plugins:netbox_custom_objects:customobject_add",
+        kwargs={"custom_object_type": link_cot_slug},
+    )
+    return f"{base}?{query}"
 
 
 def object_link_panel_edit_url(object_a, object_b, return_url: str | None) -> str:

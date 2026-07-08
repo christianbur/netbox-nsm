@@ -122,6 +122,20 @@ def _restrict_or_warn(qs, user, *, label):
         return qs
 
 
+def _cot_is_type_metadata_reference(cot) -> bool:
+    """True when *cot* may produce Security tab CO reference rows."""
+    if cot is None:
+        return False
+    if cot_link_table_flag(cot):
+        return True
+    try:
+        from netbox_nsm.type_metadata.config import resolve_nsm_config_for_cot
+
+        return resolve_nsm_config_for_cot(cot) is not None
+    except Exception:
+        return False
+
+
 def _iter_linked_fields(instance):
     """Yield (field, model, q) for every CO field referencing *instance*."""
     content_type = ContentType.objects.get_for_model(instance._meta.model)
@@ -151,6 +165,8 @@ def _iter_linked_fields(instance):
 
     model_cache = {}
     for field in list(non_poly) + list(poly):
+        if not _cot_is_type_metadata_reference(field.custom_object_type):
+            continue
         cot_id = field.custom_object_type_id
         model = model_cache.get(cot_id)
         if model is None:
@@ -297,6 +313,8 @@ def _outgoing_far_type_label(instance, field):
 def _outgoing_rows(instance):
     cot = getattr(instance, "custom_object_type", None)
     if cot is None:
+        return []
+    if not _cot_is_type_metadata_reference(cot):
         return []
     is_junction = _cot_is_junction(cot)
     rows = []

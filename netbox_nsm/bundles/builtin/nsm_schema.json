@@ -46,14 +46,6 @@
         "high",
         "critical"
       ]
-    },
-    {
-      "name": "nsm_object_link_type",
-      "choices": [
-        "policy",
-        "rulebook",
-        "enforcement_point"
-      ]
     }
   ],
   "types": [
@@ -737,7 +729,7 @@
       "verbose_name": "Object Link",
       "verbose_name_plural": "Object Links",
       "group_name": "NSM Object Links",
-      "description": "Links NetBox inventory to security policy objects or rulebooks (Security Panel source of truth).",
+      "description": "Links NetBox inventory to security policy objects (Security Panel source of truth).",
       "link_table": true,
       "fields": [
         {
@@ -781,24 +773,33 @@
           "weight": 100
         },
         {
-          "id": 99,
-          "name": "link_type",
-          "type": "select",
-          "label": "Link Type",
-          "description": "policy: inventory ↔ policy object; rulebook: device/VM/VDC ↔ rulebook (Security Panel); enforcement_point: rulebook enforcement host assignment or interface ↔ security object.",
+          "id": 101,
+          "name": "netbox_object",
+          "type": "object",
+          "label": "Netbox object",
+          "description": "Host or inventory object this link is stored on (legacy object_a: device, VM, VDC, interface, prefix, …).",
           "required": true,
-          "weight": 9,
-          "default": "policy",
-          "choice_set": "nsm_object_link_type"
+          "weight": 10,
+          "is_polymorphic": true,
+          "related_object_types": [
+            "dcim/device",
+            "virtualization/virtualmachine",
+            "dcim/virtualdevicecontext",
+            "dcim/interface",
+            "virtualization/vminterface",
+            "ipam/prefix",
+            "ipam/ipaddress",
+            "ipam/iprange"
+          ]
         },
         {
           "id": 100,
-          "name": "policy_object",
+          "name": "security_object",
           "type": "object",
-          "label": "Policy Object",
-          "description": "security policy object (zone, address, label, service, …). Required for policy links.",
+          "label": "Security object",
+          "description": "NSM policy object on the policy side (legacy object_b: zone, address, label, service, …).",
           "required": false,
-          "weight": 10,
+          "weight": 11,
           "is_polymorphic": true,
           "related_object_types": [
             "custom-objects/nsm_zone",
@@ -813,48 +814,29 @@
           ]
         },
         {
-          "id": 101,
-          "name": "netbox_object",
-          "type": "object",
-          "label": "NetBox Object",
-          "description": "NetBox inventory object this link is stored on (device, VM, VDC, interface, prefix, …).",
-          "required": true,
-          "weight": 11,
-          "is_polymorphic": true,
-          "related_object_types": [
-            "dcim/device",
-            "virtualization/virtualmachine",
-            "dcim/virtualdevicecontext",
-            "dcim/interface",
-            "virtualization/vminterface",
-            "ipam/prefix",
-            "ipam/ipaddress",
-            "ipam/iprange"
-          ]
-        },
-        {
           "id": 103,
           "name": "comment",
           "type": "longtext",
           "label": "Comment",
           "description": "Optional note shown in the Security Panel link row.",
           "weight": 13
-        },
-        {
-          "id": 104,
-          "name": "rulebook_slug",
-          "type": "text",
-          "label": "Rulebook Slug",
-          "description": "Deployed COT rulebook slug (nsm_rb_*) when link_type is rulebook or enforcement_point.",
-          "required": false,
-          "weight": 14
         }
       ],
       "removed_fields": [
         {
+          "id": 99,
+          "name": "link_type",
+          "type": "select"
+        },
+        {
           "id": 102,
           "name": "propagation",
           "type": "select"
+        },
+        {
+          "id": 104,
+          "name": "rulebook_slug",
+          "type": "text"
         }
       ]
     },

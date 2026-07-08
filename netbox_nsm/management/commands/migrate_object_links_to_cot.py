@@ -89,10 +89,10 @@ class Command(BaseCommand):
                         netbox
                     ),
                     "netbox_object_object_id": netbox.pk,
-                    "policy_object_content_type": ContentType.objects.get_for_model(
+                    "security_object_content_type": ContentType.objects.get_for_model(
                         policy
                     ),
-                    "policy_object_object_id": policy.pk,
+                    "security_object_object_id": policy.pk,
                 }
                 existing = model.objects.filter(**filt).first()
                 name = link_name_for_endpoints(netbox, policy)
@@ -122,7 +122,7 @@ class Command(BaseCommand):
                     model.objects.create(
                         name=name,
                         netbox_object=netbox,
-                        policy_object=policy,
+                        security_object=policy,
                         propagation=cot_propagation,
                         comment=link.comment or "",
                     )

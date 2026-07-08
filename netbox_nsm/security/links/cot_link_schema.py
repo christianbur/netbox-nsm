@@ -15,7 +15,9 @@ __all__ = (
     "ObjectLinkSchema",
     "classify_object_link_field_names",
     "get_object_link_cot",
+    "get_object_link_cot_slug",
     "get_object_link_schema",
+    "is_link_table_cot",
     "object_fields_for_cot",
     "read_link_endpoints",
 )
@@ -27,11 +29,11 @@ class ObjectLinkSchema:
 
     cot: object
     host_field: str
-    policy_field: str
+    security_field: str
 
     @property
     def object_field_names(self) -> tuple[str, str]:
-        return (self.host_field, self.policy_field)
+        return (self.host_field, self.security_field)
 
 
 def object_fields_for_cot(cot) -> list:
@@ -71,34 +73,44 @@ def _field_is_policy_side(field) -> bool:
 
 def classify_object_link_field_names(fields: Sequence) -> tuple[str, str] | None:
     """
-    Map two object-ref fields to ``(host_field, policy_field)`` names.
+    Map two object-ref fields to ``(host_field, security_field)`` names.
 
     Uses related-type linkability from ``nsm_config``; if ambiguous, keeps
     schema field order (legacy ObjectLink A/B semantics).
     """
     if len(fields) != 2:
         return None
-    policy_fields = [f for f in fields if _field_is_policy_side(f)]
+    security_fields = [f for f in fields if _field_is_policy_side(f)]
     host_fields = [f for f in fields if not _field_is_policy_side(f)]
-    if len(policy_fields) == 1 and len(host_fields) == 1:
-        return host_fields[0].name, policy_fields[0].name
+    if len(security_fields) == 1 and len(host_fields) == 1:
+        return host_fields[0].name, security_fields[0].name
     return fields[0].name, fields[1].name
 
 
+def is_link_table_cot(cot) -> bool:
+    """True when *cot* is flagged as a link/junction table (``nsm_config.link_table``)."""
+    return cot_link_table_flag(cot)
+
+
 def get_object_link_cot():
-    """Return the deployed link-table COT, or ``None``."""
+    """Return the deployed link-table COT, or ``None``.
+
+    Identified by ``link_table: true`` in ``nsm_config`` (COT comments or native
+    ``link_table`` field) — never by slug.
+    """
     try:
         for cot in CustomObjectType.objects.all():
             if cot_link_table_flag(cot):
                 return cot
-        # Fallback when nsm_object_link exists but link_table was not synced to comments
-        # (netbox-custom-objects < PR #482 and bundle apply before 0.4.10 metadata fix).
-        cot = CustomObjectType.objects.filter(slug="nsm_object_link").first()
-        if cot is not None and classify_object_link_field_names(object_fields_for_cot(cot)):
-            return cot
     except Exception:
         return None
     return None
+
+
+def get_object_link_cot_slug() -> str | None:
+    """Slug of the deployed link-table COT, or ``None``."""
+    cot = get_object_link_cot()
+    return getattr(cot, "slug", None) if cot is not None else None
 
 
 def get_object_link_schema() -> ObjectLinkSchema | None:
@@ -109,15 +121,15 @@ def get_object_link_schema() -> ObjectLinkSchema | None:
     names = classify_object_link_field_names(object_fields_for_cot(cot))
     if names is None:
         return None
-    host_field, policy_field = names
-    return ObjectLinkSchema(cot=cot, host_field=host_field, policy_field=policy_field)
+    host_field, security_field = names
+    return ObjectLinkSchema(cot=cot, host_field=host_field, security_field=security_field)
 
 
 def read_link_endpoints(
     schema: ObjectLinkSchema, instance
 ) -> tuple[object | None, object | None]:
-    """Read ``(host_object, policy_object)`` from a link row using *schema*."""
+    """Read ``(host_object, security_object)`` from a link row using *schema*."""
     return (
         getattr(instance, schema.host_field, None),
-        getattr(instance, schema.policy_field, None),
+        getattr(instance, schema.security_field, None),
     )

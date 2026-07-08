@@ -396,6 +396,10 @@ def apply_bundle(
     apply_portable_schema_field_groups(portable)
     sync_all_rulebook_cots()
 
+    from netbox_nsm.type_metadata.config import sync_cot_display_templates_from_specs
+
+    display_templates_synced = sync_cot_display_templates_from_specs()
+
     return {
         "types_applied": len(portable.get("types") or []),
         "choice_sets_applied": choice_sets_applied,
@@ -403,6 +407,7 @@ def apply_bundle(
         "ipam_addresses_linked": ipam_linked,
         "metadata_types_synced": meta_counts["types"],
         "metadata_rulebooks_synced": meta_counts["rulebooks"],
+        "display_templates_synced": display_templates_synced,
     }
 
 

@@ -35,6 +35,8 @@ __all__ = (
     "resolve_nsm_config_for_content_type",
     "sync_cot_nsm_config_comments",
     "sync_cot_nsm_config_comments_for_slugs",
+    "sync_cot_display_template_from_spec",
+    "sync_cot_display_templates_from_specs",
     "merge_nsm_config_document_into_comments",
     "save_nsm_config_document_for_cot",
     "clear_nsm_config_from_cot_comments",
@@ -288,6 +290,7 @@ def format_nsm_config_comment_yaml(config: dict[str, Any]) -> str:
             default_flow_style=False,
             allow_unicode=True,
             sort_keys=False,
+            width=4096,
         ).rstrip()
         + "\n"
     )
@@ -360,6 +363,7 @@ def _format_comments_with_nsm_document(
             default_flow_style=False,
             allow_unicode=True,
             sort_keys=False,
+            width=4096,
         ).rstrip()
         + "\n"
     )
@@ -726,7 +730,13 @@ def is_linkable_content_type(content_type_id: int) -> bool:
 def is_assignable_from_content_type(
     assigner_content_type_id: int, target_content_type_id: int
 ) -> bool:
-    del assigner_content_type_id
+    from netbox_nsm.security.tab.eligibility import get_object_link_allowed_content_type_ids
+
+    host_ids, security_ids = get_object_link_allowed_content_type_ids()
+    if host_ids and assigner_content_type_id not in host_ids:
+        return False
+    if security_ids and target_content_type_id not in security_ids:
+        return False
     return is_linkable_content_type(target_content_type_id)
 
 
@@ -812,3 +822,66 @@ def backfill_cot_nsm_config_comments() -> int:
     return sync_cot_nsm_config_comments_for_slugs(
         [spec["slug"] for spec in TYPECONFIG_UI_SPECS]
     )
+
+
+def sync_cot_display_template_from_spec(cot, *, spec: dict | None = None) -> bool:
+    """Update only ``display_template`` in COT comments from a bundled spec."""
+    from netbox_nsm.type_metadata.specs import (
+        TYPECONFIG_LIST_EXCLUDED_SLUGS,
+        TYPECONFIG_SPEC_BY_SLUG,
+    )
+
+    if cot.slug in TYPECONFIG_LIST_EXCLUDED_SLUGS:
+        return False
+    if spec is None:
+        spec = TYPECONFIG_SPEC_BY_SLUG.get(cot.slug)
+    if not spec:
+        return False
+
+    new_template = _normalized_display_template(spec.get("display_template"))
+    current_doc = _stored_nsm_config_document(cot.comments or "")
+    rule_view = dict(current_doc.get("rule_view") or {})
+    if rule_view.get("display_template") == new_template:
+        return False
+
+    config = config_dict_from_spec(spec)
+    rule_view["display_template"] = new_template
+    rule_view.setdefault("sort_order", config.get("sort_order", 0))
+    if not rule_view.get("areas") and config.get("areas"):
+        rule_view["areas"] = list(config["areas"])
+
+    before = (cot.comments or "").rstrip()
+    save_nsm_config_document_for_cot(cot, {"rule_view": rule_view})
+    cot.refresh_from_db()
+    return (cot.comments or "").rstrip() != before
+
+
+def sync_cot_display_templates_from_specs(slugs=None) -> int:
+    """Push bundled ``display_template`` values into COT comments (preserves sort/areas)."""
+    try:
+        from netbox_custom_objects.models import CustomObjectType
+    except ImportError:
+        return 0
+
+    from netbox_nsm.type_metadata.specs import (
+        TYPECONFIG_LIST_EXCLUDED_SLUGS,
+        TYPECONFIG_SPEC_BY_SLUG,
+        TYPECONFIG_UI_SPECS,
+    )
+
+    if slugs is None:
+        slugs = [
+            spec["slug"]
+            for spec in TYPECONFIG_UI_SPECS
+            if spec["slug"] not in TYPECONFIG_LIST_EXCLUDED_SLUGS
+        ]
+    updated = 0
+    for cot in CustomObjectType.objects.filter(slug__in=slugs):
+        if sync_cot_display_template_from_spec(
+            cot, spec=TYPECONFIG_SPEC_BY_SLUG.get(cot.slug)
+        ):
+            updated += 1
+    from netbox_nsm.core.display_utils import get_display_template_map
+
+    get_display_template_map.cache_clear()
+    return updated

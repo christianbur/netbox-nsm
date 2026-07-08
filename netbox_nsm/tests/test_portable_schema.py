@@ -126,17 +126,31 @@ class PortableSchemaTests(TestCase):
         )
         rule21 = next(r for r in rules.get("records") or [] if r.get("index") == 21)
         self.assertEqual(rule21.get("name"), "demo-ipa-hierarchy-rule")
-        expected = {
-            "nsm_address/demo-ipa-continent",
-            "nsm_address/demo-ipa-country",
-            "nsm_address/demo-ipa-city",
-            "nsm_address/demo-ipa-host",
-            "nsm_address_group/demo-ipa-grp-1",
-            "nsm_address_group/demo-ipa-grp-2",
-            "nsm_address_group/demo-ipa-grp-3",
-        }
-        self.assertEqual(set(rule21.get("source_addresses") or []), expected)
-        self.assertEqual(set(rule21.get("destination_addresses") or []), expected)
+        source = set(rule21.get("source_addresses") or [])
+        destination = set(rule21.get("destination_addresses") or [])
+        self.assertEqual(
+            source,
+            {
+                "nsm_address/demo-ipa-continent",
+                "nsm_address/demo-ipa-country",
+                "nsm_address/demo-ipa-city",
+                "nsm_address_group/demo-ipa-grp-1",
+            },
+        )
+        self.assertEqual(
+            destination,
+            {
+                "nsm_address/demo-ipa-country",
+                "nsm_address/demo-ipa-city",
+                "nsm_address/demo-ipa-host",
+                "nsm_address_group/demo-ipa-grp-2",
+                "nsm_address_group/demo-ipa-grp-3",
+            },
+        )
+        overlap = source & destination
+        self.assertTrue(overlap, "Rule 21 must include overlapping refs on both sides")
+        self.assertIn("nsm_address/demo-ipa-country", overlap)
+        self.assertIn("nsm_address/demo-ipa-city", overlap)
 
     def test_ipa_nested_groups_ordered_deepest_first(self):
         bundle = load_bundle(bundle_json_path("nsm_demo_zone_address_adressgroup"))

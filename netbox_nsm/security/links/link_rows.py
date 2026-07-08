@@ -33,10 +33,15 @@ def build_object_link_rows(obj, return_url: str | None) -> list[dict]:
     link_pairs = list(iter_links_for_object(obj))
 
     for link, direction in link_pairs:
-        linked = link.policy_object if direction == "fwd" else link.netbox_object
+        linked = link.security_object if direction == "fwd" else link.netbox_object
         if linked is None:
             continue
         lct = ContentType.objects.get_for_model(linked)
+        if direction == "fwd":
+            from netbox_nsm.type_metadata.config import is_linkable_content_type
+
+            if not is_linkable_content_type(lct.pk):
+                continue
         action_urls = object_link_action_urls(link, return_url)
         url = linked.get_absolute_url() if hasattr(linked, "get_absolute_url") else None
         rows.append(

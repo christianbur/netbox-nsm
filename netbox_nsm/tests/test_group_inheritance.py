@@ -105,7 +105,7 @@ class GroupInheritanceTests(SimpleTestCase):
             comment="",
             propagation=LinkPropagationChoices.INHERIT_GROUP,
             propagate_stop_on_own=False,
-            policy_object=zone,
+            security_object=zone,
         )
         iter_links_fn.return_value = [link]
 

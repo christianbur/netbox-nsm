@@ -46,11 +46,11 @@ __all__ = (
 def panel_link_payload(linked, lct, tmpl_map, **extra):
     object_status = get_nsm_object_status(linked)
     value_key, value_label = nsm_object_group_value(linked)
+    url = linked.get_absolute_url() if hasattr(linked, "get_absolute_url") else "#"
+    display_name = render_object_display(linked, lct.pk, tmpl_map)
     payload = {
-        "url": (
-            linked.get_absolute_url() if hasattr(linked, "get_absolute_url") else "#"
-        ),
-        "name": render_object_display(linked, lct.pk, tmpl_map),
+        "url": url,
+        "name": display_name,
         "ct_id": lct.pk,
         "obj_id": linked.pk,
         "addr_analyzable": _object_is_addr_analyzable(linked, lct.pk),
@@ -298,32 +298,15 @@ def build_security_tab_context(obj, request) -> dict:
 
     obj_name = str(obj)
     from netbox_nsm.analyzers.registry import analyzer_reverse
+    from netbox_nsm.security.actions.panel_link_actions import object_link_assign_url
 
     analyzer_url = (
         analyzer_reverse("object_analyzer")
         + f"?ct={ct.pk}&pk={obj.pk}&name={quote(obj_name)}"
     )
-    assign_url = (
-        reverse("plugins:netbox_nsm:object_link_assign")
-        + f"?ct_id={ct.pk}&obj_id={obj.pk}&return_url={return_url}"
-    )
+    assign_url = object_link_assign_url(obj, return_url)
 
     security_badge = count_security_tab_badge(obj) or None
-
-    nsm_enforcement_point = None
-    try:
-        from netbox_nsm.security.enforcement_point_panel import (
-            build_enforcement_point_panel,
-        )
-
-        nsm_enforcement_point = build_enforcement_point_panel(
-            obj,
-            request=request,
-            panel_url=_panel_url,
-            return_url=return_url,
-        )
-    except Exception:
-        pass
 
     nsm_interface_analysis = []
     try:
@@ -356,7 +339,6 @@ def build_security_tab_context(obj, request) -> dict:
         "nsm_page_object_ct": ct.pk,
         "nsm_page_object_pk": obj.pk,
         "nsm_page_object_name": obj_name,
-        "nsm_enforcement_point": nsm_enforcement_point,
         "nsm_interface_analysis": nsm_interface_analysis,
     }
     # Object-type tabs + value sub-grouping + pagination over the linked objects.

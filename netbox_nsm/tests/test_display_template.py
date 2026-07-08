@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 
 from netbox_nsm.core.display_template import (
     DEFAULT_DISPLAY_TEMPLATE,
+    SERVICE_DISPLAY_TEMPLATE,
     normalize_display_template,
     render_display_template,
     validate_display_template,
@@ -31,6 +32,34 @@ class DisplayTemplateRenderTests(TestCase):
                 "{{ name }} ({{ protocol }}/{{ port }})",
             ),
             "HTTPS (tcp/443)",
+        )
+
+    def test_render_service_template_single_port(self):
+        obj = SimpleNamespace(name="HTTP", protocol="tcp", port=80, port_end=None)
+        self.assertEqual(
+            render_display_template(obj, SERVICE_DISPLAY_TEMPLATE),
+            "HTTP (tcp/80)",
+        )
+
+    def test_render_service_template_port_range(self):
+        obj = SimpleNamespace(name="HTTP", protocol="tcp", port=80, port_end=90)
+        self.assertEqual(
+            render_display_template(obj, SERVICE_DISPLAY_TEMPLATE),
+            "HTTP (tcp/80-90)",
+        )
+
+    def test_render_service_template_same_start_and_end_port(self):
+        obj = SimpleNamespace(name="HTTP", protocol="tcp", port=80, port_end=80)
+        self.assertEqual(
+            render_display_template(obj, SERVICE_DISPLAY_TEMPLATE),
+            "HTTP (tcp/80)",
+        )
+
+    def test_render_service_template_icmp_without_ports(self):
+        obj = SimpleNamespace(name="ICMP", protocol="icmp", port=None, port_end=None)
+        self.assertEqual(
+            render_display_template(obj, SERVICE_DISPLAY_TEMPLATE),
+            "ICMP (icmp/—)",
         )
 
     def test_render_upper_filter(self):

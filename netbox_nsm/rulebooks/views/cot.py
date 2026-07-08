@@ -17,7 +17,6 @@ from django.views import View
 from core.models import ObjectChange
 from core.tables import ObjectChangeTable
 
-from netbox_nsm.rulebooks.assigned_objects import build_cot_rulebook_assigned_objects_panel
 from netbox_nsm.rulebooks.cot_hierarchy import (
     build_virtual_cot_rulebook_with_hierarchy,
     get_cot_row_group_by_col_id,
@@ -29,7 +28,6 @@ from netbox_nsm.rulebooks.create import (
     iter_deployed_rulebook_clone_choices,
     update_cot_rulebook_metadata,
 )
-from netbox_nsm.rulebooks.forms.bulk_assign import CotRulebookBulkAssignForm
 from netbox_nsm.rulebooks.registry import get_deployed_cot_rulebook
 from netbox_nsm.rulebooks.rules_tab import build_cot_rulebook_rules_tab_context
 from netbox_nsm.rulebooks.forms.cot import CotRulebookCreateForm, CotRulebookDetailForm
@@ -51,7 +49,6 @@ from netbox_nsm.rulebooks.permissions import (
 from netbox_nsm.rulebooks.virtual_cot_tabs import build_virtual_cot_rulebook_tabs
 
 __all__ = (
-    "CotRulebookBulkAssignView",
     "CotRulebookChangelogView",
     "CotRulebookCreateView",
     "CotRulebookSchemaValidateView",
@@ -154,9 +151,6 @@ class CotRulebookView(_CotRulebookMixin, View):
                 "rulebook_edit_url": rulebook_edit_url,
                 "rulebook_delete_url": rulebook_delete_url,
                 "matrix_tab_capable": instance.matrix_tab_capable,
-                "assigned_objects_panel": build_cot_rulebook_assigned_objects_panel(
-                    cot.slug, request
-                ),
             }
         )
         return ctx
@@ -245,73 +239,6 @@ class CotRulebookDeleteView(_CotRulebookMixin, View):
             _("Rulebook %(name)s deleted.") % {"name": ctx["object"].name},
         )
         return redirect(reverse("plugins:netbox_nsm:rulebook_list"))
-
-
-class CotRulebookBulkAssignView(_CotRulebookMixin, View):
-    """Assign a COT rulebook to multiple devices / VMs / VDCs in one step."""
-
-    template_name = "netbox_nsm/cot_rulebook_bulk_assign.html"
-
-    def get_permission_required(self):
-        from netbox_nsm.security.links.object_link_service import object_link_permission
-
-        return object_link_permission("add") or "netbox_custom_objects.add_customobject"
-
-    def get(self, request, slug: str):
-        instance = self.get_virtual_object(slug)
-        ctx = self.build_base_context(request, slug, tab_key="detail")
-        ctx.update(
-            {
-                "form": CotRulebookBulkAssignForm(),
-                "assigned_objects_panel": build_cot_rulebook_assigned_objects_panel(
-                    slug, request
-                ),
-            }
-        )
-        return render(request, self.template_name, ctx)
-
-    def post(self, request, slug: str):
-        instance = self.get_virtual_object(slug)
-        form = CotRulebookBulkAssignForm(request.POST)
-        if form.is_valid():
-            from netbox_nsm.security.links.object_link_service import create_or_update_enforcement_point_link
-
-            created = 0
-            skipped = 0
-            for device in form.cleaned_data.get("devices") or []:
-                _link, was_created = create_or_update_enforcement_point_link(device, slug)
-                if was_created:
-                    created += 1
-                else:
-                    skipped += 1
-            for vm in form.cleaned_data.get("virtual_machines") or []:
-                _link, was_created = create_or_update_enforcement_point_link(vm, slug)
-                if was_created:
-                    created += 1
-                else:
-                    skipped += 1
-            for vdc in form.cleaned_data.get("virtual_device_contexts") or []:
-                _link, was_created = create_or_update_enforcement_point_link(vdc, slug)
-                if was_created:
-                    created += 1
-                else:
-                    skipped += 1
-            messages.success(
-                request,
-                _("%(created)d assignment(s) created, %(skipped)d already existed.")
-                % {"created": created, "skipped": skipped},
-            )
-            return redirect(instance.get_absolute_url())
-        ctx = self.build_base_context(request, slug, tab_key="detail")
-        ctx.update(
-            {
-                "form": form,
-                "assigned_objects_panel": build_cot_rulebook_assigned_objects_panel(
-                    slug, request
-                ),
-            }
-        )
-        return render(request, self.template_name, ctx)
 
 
 class CotRulebookRulesView(_CotRulebookMixin, View):

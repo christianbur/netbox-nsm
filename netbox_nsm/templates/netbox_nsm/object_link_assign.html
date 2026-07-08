@@ -28,7 +28,7 @@
       <div class="card-body">
 
         <div class="mb-3">
-          <label class="form-label fw-semibold">{% trans "Object A (this object)" %}</label>
+          <label class="form-label fw-semibold">{% trans "Netbox object (this object)" %}</label>
           <div class="form-control-plaintext">
             {% if object_a.get_absolute_url %}
               <a href="{{ object_a.get_absolute_url }}">{{ object_a }}</a>
@@ -67,7 +67,7 @@
             {# Type selector #}
             <div class="mb-3">
               <label for="id_object_b_type" class="form-label fw-semibold">
-                {% trans "Type (Object B)" %} <span class="text-danger">*</span>
+                {% trans "Type (Security object)" %} <span class="text-danger">*</span>
               </label>
               <select name="object_b_type" id="id_object_b_type" class="form-select nsm-type-select">
                 {% for val, label in form.fields.object_b_type.choices %}
@@ -85,7 +85,7 @@
             {# Element picker — styled like form-select #}
             <div class="mb-0 nsm-element-picker-wrap hidden" id="element-picker-wrap">
               <label class="form-label fw-semibold">
-                {% trans "Element (Object B)" %} <span class="text-danger">*</span>
+                {% trans "Element (Security object)" %} <span class="text-danger">*</span>
               </label>
 
               <div class="ts-wrapper form-select single" id="element-ts-wrap">
@@ -140,26 +140,6 @@
           <tbody>
             {% for link in existing_links %}
             <tr>
-              {% if enforcement_point_mode %}
-              <td class="ps-3 text-muted small">
-                {% if link.policy_object %}
-                  {{ link.policy_object|meta:"verbose_name" }}
-                {% else %}
-                  –
-                {% endif %}
-              </td>
-              <td>
-                {% if link.policy_object %}
-                  {% if link.policy_object.get_absolute_url %}
-                  <a href="{{ link.policy_object.get_absolute_url }}">{{ link.policy_object }}</a>
-                  {% else %}
-                  {{ link.policy_object }}
-                  {% endif %}
-                {% else %}
-                  <span class="text-muted">–</span>
-                {% endif %}
-              </td>
-              {% else %}
               <td class="ps-3 text-muted small">{{ link.object_b_type }}</td>
               <td>
                 {% if link.object_b %}
@@ -172,11 +152,10 @@
                   <span class="text-muted">–</span>
                 {% endif %}
               </td>
-              {% endif %}
               <td class="text-muted small">{{ link.comment|default:"–" }}</td>
               <td class="text-end pe-3">
                 <form method="post"
-                      action="{% if enforcement_point_mode %}{% url 'plugins:netbox_nsm:enforcement_point_link_delete' pk=link.pk %}{% else %}{% url 'plugins:netbox_nsm:object_link_delete' pk=link.pk %}{% endif %}"
+                      action="{% url 'plugins:netbox_nsm:object_link_delete' pk=link.pk %}"
                       style="display:inline;"
                       onsubmit="return confirm('{% trans "Delete Link?" %}')">
                   {% csrf_token %}

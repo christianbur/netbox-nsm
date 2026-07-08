@@ -1,5 +1,4 @@
 from netbox_nsm.rulebooks.views.cot import (
-    CotRulebookBulkAssignView,
     CotRulebookChangelogView,
     CotRulebookCreateView,
     CotRulebookDeleteView,
@@ -39,11 +38,6 @@ from netbox_nsm.security.views.object_link import (
     ObjectLinkEditView,
     ObjectLinkDeleteView,
     ObjectTypeElementsApiView,
-)
-from netbox_nsm.security.views.rulebook_link import RulebookLinkAssignView, RulebookLinkDeleteView
-from netbox_nsm.security.views.enforcement_point_link import (
-    EnforcementPointInterfaceAssignView,
-    EnforcementPointLinkDeleteView,
 )
 from netbox_nsm.security.actions.confirm_views import (
     AddressIpamFkClearView,

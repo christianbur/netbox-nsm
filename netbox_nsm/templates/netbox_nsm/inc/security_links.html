@@ -289,59 +289,12 @@
   <div class="card-body p-0">
 {% endif %}
 
-    {% if not nsm_link_table and not nsm_enforcement_point and not nsm_interface_analysis %}
+    {% if not nsm_link_table and not nsm_interface_analysis %}
     <div class="ps-3 py-2 text-muted">{% trans "None" %}</div>
     {% endif %}
 
     {# ── Linked objects (object-type tabs + value sub-grouping + pagination) ─ #}
     {% include "netbox_nsm/inc/security_link_objects.html" %}
-
-    {# ── Enforcement point: host / interface rulebook context ───────────── #}
-    {% if nsm_enforcement_point %}
-    <div class="border-bottom">
-      <button class="nsm-tree-hdr"
-              data-bs-toggle="collapse"
-              data-bs-target="#nsm-cat-enforced"
-              aria-expanded="true">
-        <i class="mdi mdi-chevron-right nsm-chev"></i>
-        <span>{% trans "Enforcement Point" %}</span>
-        <span class="badge text-bg-secondary ms-1">{{ nsm_enforcement_point.count }}</span>
-      </button>
-      <div id="nsm-cat-enforced" class="collapse show">
-        <div class="nsm-rb-hdr">
-          <span>{% trans "Rulebooks" %}</span>
-          <span class="badge text-bg-secondary ms-1">{{ nsm_enforcement_point.count }}</span>
-          {% if nsm_enforcement_point.add_url %}
-          <a href="{{ nsm_enforcement_point.add_url }}"
-             class="btn btn-sm btn-ghost-primary ms-auto py-0"
-             title="{% trans 'Assign rulebook' %}"
-             aria-label="{% trans 'Assign rulebook' %}">
-            <i class="mdi mdi-plus-thick" aria-hidden="true"></i>
-          </a>
-          {% endif %}
-        </div>
-        <table class="table table-hover table-sm mb-0 nsm-link-table nsm-enforcement-rulebooks-table">
-          <tbody>
-            {% for row in nsm_enforcement_point.rulebooks %}
-            <tr>
-              <td class="col-object">
-                <a href="{{ row.url }}">{{ row.name }}</a>
-              </td>
-              {% if row.delete_url %}
-              <td class="col-actions text-end">
-                <a href="{{ row.delete_url }}" class="btn btn-danger btn-sm"
-                   title="{% trans 'Remove assignment' %}" aria-label="{% trans 'Remove assignment' %}">
-                  <i class="mdi mdi-trash-can-outline" aria-hidden="true"></i>
-                </a>
-              </td>
-              {% endif %}
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-    {% endif %}
 
     {# ── Per-interface analysis (Device / VM only) ─────────────────────── #}
     {% if nsm_interface_analysis %}

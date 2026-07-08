@@ -54,6 +54,7 @@ class NavigationMenuTests(TestCase):
         config_group = navigation._build_configuration_menu()[0]
         links = {item.link for item in config_group[1]}
         self.assertIn("plugins:netbox_nsm:typemetadata_list", links)
+        self.assertIn("plugins:netbox_nsm:object_link_config", links)
         self.assertNotIn("plugins:netbox_nsm:object_sync", links)
 
     def test_objects_group_not_in_menu(self):

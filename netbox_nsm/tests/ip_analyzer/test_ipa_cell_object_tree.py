@@ -14,6 +14,7 @@ from netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils import (
     _resolve_summary_type_counts,
 )
 from netbox_nsm.addresses.address_literal import format_network_nsm_config_comments
+from netbox_nsm.analyzers.ip_analyzer.ipa_perf import ipa_lazy_context
 from netbox_nsm.analyzers.ip_analyzer.ipa_object_node import (
     IPA_NODE_ROLE_GROUP,
     IPA_NODE_ROLE_HOST,
@@ -118,6 +119,34 @@ class IpaSubnetContainmentMetaTests(SimpleTestCase):
         self.assertEqual(child["subnet_contained_in_name"], "dm-addr-10-112-134-0-24")
         self.assertEqual(child["subnet_contained_in_url"], "/a/13/")
         self.assertEqual(child["subnet_containment_display_net"], "10.112.134.44")
+
+    def test_mark_subnet_containment_marks_nested_under_custom_any(self):
+        nodes = [
+            {
+                "name": "ANY",
+                "url": "/a/1/",
+                "prefix_display_cidr": "0.0.0.0/0",
+                "children": [
+                    {
+                        "name": "net-a",
+                        "prefix_display_cidr": "10.199.17.0/24",
+                        "children": [
+                            {
+                                "name": "host-a",
+                                "prefix_display_cidr": "10.199.17.16/32",
+                                "children": [],
+                            }
+                        ],
+                    }
+                ],
+            }
+        ]
+        _mark_ipa_subnet_containment_warnings(nodes)
+        child = nodes[0]["children"][0]
+        grandchild = child["children"][0]
+        self.assertEqual(child["subnet_contained_in"], "0.0.0.0/0")
+        self.assertEqual(child["subnet_contained_in_name"], "ANY")
+        self.assertEqual(grandchild["subnet_contained_in"], "0.0.0.0/0")
 
     def test_mark_subnet_containment_peer_fallback_marks_flat_sibling_host(self):
         from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import (
@@ -553,6 +582,138 @@ class IpaCellObjectTreeTests(SimpleTestCase):
         self.assertEqual(nodes[0]["name"], "ANY")
         self.assertEqual(nodes[0]["prefix_display_cidr"], "0.0.0.0/0")
         self.assertEqual(nodes[0]["node_role"], "nsm_prefix")
+
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._addr_group_members", return_value=[])
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._addr_ip_ref", return_value=None)
+    def test_build_ipa_cell_object_tree_lazy_nests_prefixes_under_custom_any(
+        self, _ip_ref_fn, _members_fn
+    ):
+        def make_obj(pk, name, *, comments=None, ipv4=None, subnet=None):
+            obj = MagicMock()
+            obj.pk = pk
+            obj.name = name
+            obj.get_absolute_url.return_value = f"/a/{pk}/"
+            obj.address_type = None
+            obj.comments = comments
+            obj.ipv4 = ipv4
+            obj.ipv6 = None
+            obj.subnet = subnet
+            cot = MagicMock()
+            cot.slug = (
+                "nsm_address_custom"
+                if ipv4 is not None
+                else "nsm_address"
+            )
+            obj.custom_object_type = cot
+            return obj
+
+        any_obj = make_obj(1, "ANY", ipv4="0.0.0.0", subnet=0)
+        prefix_obj = make_obj(2, "net-a")
+        host_obj = make_obj(3, "host-a")
+        obj_by_key = {
+            (10, 1): any_obj,
+            (10, 2): prefix_obj,
+            (10, 3): host_obj,
+        }
+        raw = [
+            {"ct": "10", "pk": "1", "name": "ANY"},
+            {"ct": "10", "pk": "2", "name": "net-a"},
+            {"ct": "10", "pk": "3", "name": "host-a"},
+        ]
+
+        def attach_meta(node, obj):
+            refs = {
+                2: {"str": "10.199.17.0/24", "url": "#", "type": "Prefix"},
+                3: {"str": "10.199.17.16/32", "url": "#", "type": "Prefix"},
+            }
+            if obj.pk == 1:
+                node["prefix_display_cidr"] = "0.0.0.0/0"
+                node["node_role"] = IPA_NODE_ROLE_PREFIX
+            else:
+                ip_ref = refs[obj.pk]
+                node["ip_ref"] = {"str": ip_ref["str"], "url": ip_ref["url"]}
+                node["prefix_display_cidr"] = ip_ref["str"]
+            node["kind"] = "leaf"
+            return node
+
+        with patch(
+            "netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_object_tree_ip_meta",
+            side_effect=attach_meta,
+        ):
+            with ipa_lazy_context(True):
+                nodes = _build_ipa_cell_object_tree(raw, obj_by_key)
+
+        self.assertEqual(len(nodes), 1)
+        self.assertEqual(nodes[0]["name"], "ANY")
+        self.assertEqual(nodes[0]["prefix_display_cidr"], "0.0.0.0/0")
+        children = nodes[0]["children"]
+        self.assertEqual(len(children), 1)
+        self.assertEqual(children[0]["name"], "net-a")
+        grandchildren = children[0]["children"]
+        self.assertEqual(len(grandchildren), 1)
+        self.assertEqual(grandchildren[0]["name"], "host-a")
+
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._addr_group_members", return_value=[])
+    @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._addr_ip_ref", return_value=None)
+    def test_build_ipa_cell_object_tree_nested_under_custom_any_marked_duplicate(
+        self, _ip_ref_fn, _members_fn
+    ):
+        def make_obj(pk, name, *, ipv4=None, subnet=None):
+            obj = MagicMock()
+            obj.pk = pk
+            obj.name = name
+            obj.get_absolute_url.return_value = f"/a/{pk}/"
+            obj.address_type = None
+            obj.comments = None
+            obj.ipv4 = ipv4
+            obj.ipv6 = None
+            obj.subnet = subnet
+            cot = MagicMock()
+            cot.slug = "nsm_address_custom" if ipv4 is not None else "nsm_address"
+            obj.custom_object_type = cot
+            return obj
+
+        any_obj = make_obj(1, "ANY", ipv4="0.0.0.0", subnet=0)
+        prefix_obj = make_obj(2, "net-a")
+        host_obj = make_obj(3, "host-a")
+        obj_by_key = {
+            (10, 1): any_obj,
+            (10, 2): prefix_obj,
+            (10, 3): host_obj,
+        }
+        raw = [
+            {"ct": "10", "pk": "1", "name": "ANY"},
+            {"ct": "10", "pk": "2", "name": "net-a"},
+            {"ct": "10", "pk": "3", "name": "host-a"},
+        ]
+
+        def attach_meta(node, obj):
+            if obj.pk == 1:
+                node["prefix_display_cidr"] = "0.0.0.0/0"
+                node["node_role"] = IPA_NODE_ROLE_PREFIX
+            else:
+                refs = {
+                    2: "10.199.17.0/24",
+                    3: "10.199.17.16/32",
+                }
+                ip_ref = refs[obj.pk]
+                node["ip_ref"] = {"str": ip_ref, "url": "#"}
+                node["prefix_display_cidr"] = ip_ref
+            node["kind"] = "leaf"
+            return node
+
+        with patch(
+            "netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_object_tree_ip_meta",
+            side_effect=attach_meta,
+        ):
+            with ipa_lazy_context(True):
+                nodes = _build_ipa_cell_object_tree(raw, obj_by_key)
+
+        child = nodes[0]["children"][0]
+        grandchild = child["children"][0]
+        self.assertEqual(child["subnet_contained_in"], "0.0.0.0/0")
+        self.assertEqual(child["subnet_contained_in_name"], "ANY")
+        self.assertEqual(grandchild["subnet_contained_in"], "0.0.0.0/0")
 
     @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._build_ipa_cell_flat_address_node")
     def test_build_ipa_cell_object_tree_ungrouped_direct_omits_group_pill(

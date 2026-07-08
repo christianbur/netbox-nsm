@@ -13,6 +13,7 @@ from netbox_nsm.addresses.address_literal import (
     is_literal_address,
     merge_network_into_instance_comments,
     parse_network_from_instance_comments,
+    policy_address_network,
     validate_address_fields,
 )
 from netbox_nsm.objects.builtin_types import BUILTIN_CUSTOM_TYPES
@@ -103,6 +104,15 @@ class AddressLiteralValidationTests(SimpleTestCase):
             get_network_literal(self._addr(comments="0.0.0.0/0")),
             "0.0.0.0/0",
         )
+
+    def test_policy_address_network_from_custom_any(self):
+        obj = MagicMock()
+        obj.ipv4 = "0.0.0.0"
+        obj.ipv6 = None
+        obj.subnet = 0
+        obj.custom_object_type = MagicMock(slug="nsm_address_custom")
+        net = policy_address_network(obj)
+        self.assertEqual(str(net), "0.0.0.0/0")
 
     def test_invalid_yaml_comments_are_ignored(self):
         tufin_like = (

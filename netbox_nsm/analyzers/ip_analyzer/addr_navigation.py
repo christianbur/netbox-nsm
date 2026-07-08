@@ -92,7 +92,7 @@ def _addr_nav_object_link_hosts(obj, refs, seen_urls, *, limit=_ADDR_NAV_REF_LIM
     for link, direction in iter_links_for_object(obj):
         if len(refs) >= limit:
             return
-        linked = link.policy_object if direction == "fwd" else link.netbox_object
+        linked = link.security_object if direction == "fwd" else link.netbox_object
         if linked is not None and _hub.isinstance(linked, host_types):
             _addr_nav_append_chain(refs, seen_urls, linked, limit=limit)
 

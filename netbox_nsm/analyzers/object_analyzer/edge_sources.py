@@ -17,7 +17,7 @@ def nsm_link_edges(obj, ct) -> list:
 
     edges = []
     for link, direction in iter_links_for_object(obj):
-        linked = link.policy_object if direction == "fwd" else link.netbox_object
+        linked = link.security_object if direction == "fwd" else link.netbox_object
         if linked is None:
             continue
         edges.append(

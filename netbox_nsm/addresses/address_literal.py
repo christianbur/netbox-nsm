@@ -24,6 +24,7 @@ __all__ = (
     "is_literal_address",
     "merge_network_into_instance_comments",
     "parse_network_from_instance_comments",
+    "policy_address_network",
     "validate_address_fields",
 )
 
@@ -177,6 +178,17 @@ def get_policy_address_cidr(addr_obj) -> str | None:
 
 def is_literal_address(addr_obj) -> bool:
     return get_policy_address_cidr(addr_obj) is not None
+
+
+def policy_address_network(addr_obj):
+    """Return ``ipaddress`` network for a custom/literal policy address, if any."""
+    cidr = get_policy_address_cidr(addr_obj)
+    if not cidr:
+        return None
+    try:
+        return ipaddress.ip_network(str(cidr).strip(), strict=False)
+    except ValueError:
+        return None
 
 
 def _normalize_literal(cidr: str) -> str:

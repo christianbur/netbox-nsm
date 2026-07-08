@@ -485,13 +485,16 @@ def _build_addr_tree_node(obj, visited=None):
             return _hub._attach_addr_navigation_refs(node, ipam_obj=obj)
     except Exception:
         pass
-    return {
+    node = {
         "name": str(getattr(obj, "name", obj)),
         "url": getattr(obj, "get_absolute_url", lambda: "#")(),
         "kind": "leaf",
         "ip_ref": None,
         "children": [],
     }
+    from netbox_nsm.addresses.address_literal import attach_literal_prefix_display
+
+    return attach_literal_prefix_display(node, obj)
 
 
 def _addr_path_line(path_parts):

@@ -34,6 +34,12 @@ _OBJECT_REPORT_MENU_ITEM = PluginMenuItem(
     permissions=[VIEW_CUSTOM_OBJECT_TYPE],
 )
 
+_OBJECT_LINK_CONFIG_MENU_ITEM = PluginMenuItem(
+    link="plugins:netbox_nsm:object_link_config",
+    link_text=_("Object Link"),
+    permissions=[VIEW_CUSTOM_OBJECT_TYPE],
+)
+
 
 def _build_configuration_menu():
     config_items = []
@@ -43,6 +49,7 @@ def _build_configuration_menu():
     except Exception:
         pass
     config_items.append(_TYPE_METADATA_MENU_ITEM)
+    config_items.append(_OBJECT_LINK_CONFIG_MENU_ITEM)
     config_items.append(_OBJECT_REPORT_MENU_ITEM)
     return ((_("Configuration"), tuple(config_items)),)
 

@@ -1628,8 +1628,14 @@ def _enrich_ipa_object_tree_networks_from_objects(nodes, obj_by_key):
                         obj=obj,
                         ip_ref=node.get("ip_ref") or ip_ref,
                     )
+            elif not node.get("prefix_display_cidr"):
+                from netbox_nsm.addresses.address_literal import (
+                    attach_literal_prefix_display,
+                )
+
+                attach_literal_prefix_display(node, obj)
             prefix = _ipa_prefix_for_cell_object(obj)
-            if prefix is not None:
+            if prefix is not None and ip_ref:
                 _enrich_ipa_node_from_resolved_prefix(node, prefix)
         _enrich_ipa_object_tree_networks_from_objects(
             node.get("children") or [], obj_by_key
@@ -1638,6 +1644,11 @@ def _enrich_ipa_object_tree_networks_from_objects(nodes, obj_by_key):
 
 def _ipa_member_containment_network(member):
     """Resolve one member object's network for group IPAM placement."""
+    from netbox_nsm.addresses.address_literal import policy_address_network
+
+    policy_net = policy_address_network(member)
+    if policy_net is not None:
+        return policy_net
     ip_ref = _hub._addr_ip_ref(member)
     if ip_ref and ip_ref.get("str"):
         net = _ipa_network_from_cidr_text(ip_ref.get("str"))
@@ -2497,6 +2508,30 @@ def _iter_ipa_object_tree_nodes(nodes):
         yield from _iter_ipa_object_tree_nodes(node.get("children") or [])
 
 
+def _iter_ipa_object_tree_nodes_with_ancestors(nodes, ancestors=None):
+    if ancestors is None:
+        ancestors = []
+    for node in nodes or []:
+        yield node, ancestors
+        next_ancestors = ancestors
+        if _hub._addr_tree_node_network(node) or _ipa_tree_node_is_ipam_prefix_container(
+            node
+        ):
+            next_ancestors = ancestors + [node]
+        yield from _iter_ipa_object_tree_nodes_with_ancestors(
+            node.get("children") or [], next_ancestors
+        )
+
+
+def _ipa_node_has_containing_tree_ancestor(node, net, ancestors) -> bool:
+    """True when a visible tree ancestor already structurally contains *net*."""
+    for anc in ancestors or []:
+        anc_net = _hub._addr_tree_node_network(anc)
+        if _ipa_subnet_containment_ancestor_match(node, net, anc, anc_net):
+            return True
+    return False
+
+
 def _ipa_tree_node_is_ipam_prefix_container(node):
     """True when a structural row still represents an IPAM prefix container."""
     if not node:
@@ -2614,11 +2649,13 @@ def _mark_ipa_subnet_containment_peer_fallback(nodes):
     if not containers:
         return
 
-    for node in _iter_ipa_object_tree_nodes(nodes):
+    for node, ancestors in _iter_ipa_object_tree_nodes_with_ancestors(nodes):
         if node.get("subnet_contained_in") or _ipa_tree_node_is_structural(node):
             continue
         net = _hub._addr_tree_node_network(node)
         if net is None:
+            continue
+        if _ipa_node_has_containing_tree_ancestor(node, net, ancestors):
             continue
 
         best = None
@@ -3496,6 +3533,10 @@ def _finalize_ipa_cell_object_tree_lazy(nodes, cell_object_keys, obj_by_key):
     nodes = _merge_ipa_cell_nodes_by_network(nodes)
     nodes = _sort_ipa_object_tree_siblings(nodes)
     nodes = _collapse_ipa_cell_siblings_by_network(nodes)
+    nodes = _renest_ipa_contained_cell_siblings(nodes)
+    nodes = _sort_ipa_object_tree_siblings(nodes)
+    _mark_ipa_subnet_containment_warnings(nodes)
+    _mark_ipa_subnet_containment_peer_fallback(nodes)
     _refresh_ipa_cell_tree_inventory_roles(nodes, obj_by_key)
     _mark_ipa_object_addr_drilldown_flags_lazy(nodes, obj_by_key)
     _mark_ipa_cell_direct_flags(nodes, cell_object_keys)

@@ -96,7 +96,7 @@ def _should_prefill_rule_index(view) -> bool:
 
 
 def patch_cot_rule_add_form() -> None:
-    """Monkey-patch CustomObjectEditView.get_form for nsm_rb_* rule add/edit forms."""
+    """Monkey-patch CustomObjectEditView.get_form for nsm_rb_* and nsm_object_link add forms."""
     try:
         from netbox_custom_objects.views import CustomObjectEditView
     except ImportError:
@@ -108,26 +108,41 @@ def patch_cot_rule_add_form() -> None:
     original_get_form = CustomObjectEditView.get_form
 
     def get_form(self, model):
+        from netbox_nsm.security.object_link_cot_form import (
+            apply_object_link_add_prefill,
+            apply_object_link_form_labels,
+            is_object_link_form,
+        )
+
         form_class = original_get_form(self, model)
-        if not _is_rulebook_cot_form(self):
+        is_rulebook = _is_rulebook_cot_form(self)
+        is_object_link = is_object_link_form(self)
+        if not is_rulebook and not is_object_link:
             return form_class
 
         original_init = form_class.__init__
         cot = self.object.custom_object_type
         prefill_index = _should_prefill_rule_index(self)
+        prefill_object_link = is_object_link and not self.object.pk
 
-        def init_with_rulebook_defaults(form_self, *args, **kwargs):
-            if prefill_index:
+        def init_with_cot_defaults(form_self, *args, **kwargs):
+            if prefill_index or prefill_object_link:
                 if "initial" not in kwargs:
                     kwargs["initial"] = {}
+            if prefill_index:
                 apply_rule_clone_prefill(cot, kwargs["initial"])
                 if "index" not in kwargs["initial"]:
                     kwargs["initial"]["index"] = next_rulebook_index(cot)
                 apply_matrix_zone_prefill(cot, kwargs["initial"])
+            if prefill_object_link:
+                apply_object_link_add_prefill(cot, kwargs["initial"])
             original_init(form_self, *args, **kwargs)
-            shorten_rulebook_poly_subfield_labels(form_self)
+            if is_rulebook:
+                shorten_rulebook_poly_subfield_labels(form_self)
+            if is_object_link:
+                apply_object_link_form_labels(form_self)
 
-        form_class.__init__ = init_with_rulebook_defaults
+        form_class.__init__ = init_with_cot_defaults
         return form_class
 
     CustomObjectEditView.get_form = get_form

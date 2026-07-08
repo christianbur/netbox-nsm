@@ -10,6 +10,7 @@ from django.views.generic import View
 from netbox_nsm.core.plugin_labels import get_nsm_panel_label
 from netbox_nsm.security.tab.badge import count_security_tab_badge
 from netbox_nsm.security.tab.context import build_security_tab_context
+from netbox_nsm.security.tab.eligibility import is_security_tab_eligible
 from utilities.views import ConditionalLoginRequiredMixin, ViewTab, get_default_template, register_model_view
 
 __all__ = (
@@ -27,6 +28,7 @@ SECURITY_VIEW_TAB = ViewTab(
     label=get_nsm_panel_label(),
     badge=count_security_tab_badge,
     weight=SECURITY_TAB_WEIGHT,
+    visible=is_security_tab_eligible,
 )
 _CO_BASE_TEMPLATE = "netbox_custom_objects/customobject.html"
 # NSM-scoped custom objects render their detail page (and Journal/Changelog tabs,
@@ -128,6 +130,7 @@ def make_co_security_view():
             label=get_nsm_panel_label(),
             badge=count_security_tab_badge,
             weight=SECURITY_TAB_WEIGHT,
+            visible=is_security_tab_eligible,
         )
 
         def get(self, request, custom_object_type, pk, **kwargs):

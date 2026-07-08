@@ -114,14 +114,6 @@ def build_virtual_rulebook_detail_context(instance) -> dict:
 
     return {
         "assignments": [],
-        "assigned_objects_panel": {
-            "hosts": [],
-            "add_url": None,
-            "can_add": False,
-            "can_delete": False,
-            "can_assign_links": False,
-            "is_empty": True,
-        },
         "rulebook_fields": rulebook_fields,
         "rulebook_fields_system": rulebook_fields_system,
         "rulebook_fields_object": rulebook_fields_object,

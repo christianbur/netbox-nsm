@@ -118,9 +118,9 @@ def iter_inherited_group_nsm_links(obj) -> Iterator[InheritedNsmLink]:
             )
         )
         instances = [link.instance for link in raw_links if link.instance is not None]
-        prefetch_related_objects(instances, "policy_object")
+        prefetch_related_objects(instances, "security_object")
         for link in raw_links:
-            linked = link.policy_object
+            linked = link.security_object
             if linked is None:
                 continue
             lct = ContentType.objects.get_for_model(linked)

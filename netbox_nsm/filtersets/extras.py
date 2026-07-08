@@ -16,7 +16,7 @@ class ObjectLinkFilterSet(FilterSet):
         label="Object A Type (ID)",
     )
     object_b_type_id = django_filters.NumberFilter(
-        field_name="policy_object_content_type_id",
+        field_name="security_object_content_type_id",
         label="Object B Type (ID)",
     )
     object_a_id = django_filters.NumberFilter(
@@ -24,7 +24,7 @@ class ObjectLinkFilterSet(FilterSet):
         label="Object A (ID)",
     )
     object_b_id = django_filters.NumberFilter(
-        field_name="policy_object_object_id",
+        field_name="security_object_object_id",
         label="Object B (ID)",
     )
     q = django_filters.CharFilter(method="search", label="Search")

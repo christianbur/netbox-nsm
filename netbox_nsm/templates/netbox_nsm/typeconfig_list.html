@@ -23,7 +23,6 @@
         <tr>
           <th>{% trans "Object Type" %}</th>
           <th>{% trans "Role" %}</th>
-          <th>{% trans "Status" %}</th>
           <th>{% trans "Sort order" %}</th>
           <th>{% trans "Display Template" %}</th>
           <th></th>
@@ -40,13 +39,6 @@
             <span class="text-muted">—</span>
             {% endif %}
           </td>
-          <td>
-            {% if entry.has_stored_metadata %}
-            <span class="badge text-bg-primary">{% trans "Stored" %}</span>
-            {% else %}
-            <span class="badge text-bg-secondary">{% trans "Defaults" %}</span>
-            {% endif %}
-          </td>
           <td>{{ entry.config.sort_order }}</td>
           <td><code>{{ entry.config.display_template }}</code></td>
           <td class="text-end text-nowrap">
@@ -61,7 +53,7 @@
         </tr>
         {% empty %}
         <tr>
-          <td colspan="6" class="text-muted">{% trans "No type metadata found. Add one or apply the NSM Schema bundle." %}</td>
+          <td colspan="5" class="text-muted">{% trans "No type metadata found. Add one or apply the NSM Schema bundle." %}</td>
         </tr>
         {% endfor %}
       </tbody>

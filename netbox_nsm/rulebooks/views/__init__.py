@@ -1,5 +1,4 @@
 from netbox_nsm.rulebooks.views.cot import (
-    CotRulebookBulkAssignView,
     CotRulebookChangelogView,
     CotRulebookCreateView,
     CotRulebookMatrixView,
@@ -8,7 +7,6 @@ from netbox_nsm.rulebooks.views.cot import (
 )
 
 __all__ = (
-    "CotRulebookBulkAssignView",
     "CotRulebookChangelogView",
     "CotRulebookCreateView",
     "CotRulebookMatrixView",

@@ -175,9 +175,9 @@ def iter_inherited_nsm_links(ipam_obj) -> Iterator[InheritedNsmLink]:
             )
         )
         instances = [link.instance for link in raw_links if link.instance is not None]
-        prefetch_related_objects(instances, "policy_object")
+        prefetch_related_objects(instances, "security_object")
         for link in raw_links:
-            linked = link.policy_object
+            linked = link.security_object
             if linked is None:
                 continue
             lct = ContentType.objects.get_for_model(linked)
@@ -201,8 +201,8 @@ def iter_inherited_nsm_links(ipam_obj) -> Iterator[InheritedNsmLink]:
                     for link in iter_links_on_container(
                         ancestor, inherit_mode=LinkPropagationChoices.INHERIT_IPAM
                     )
-                    if link.policy_object is not None
-                    and ContentType.objects.get_for_model(link.policy_object).pk
+                    if link.security_object is not None
+                    and ContentType.objects.get_for_model(link.security_object).pk
                     == _addr_ct.pk
                 ]
                 if not inherit_links:

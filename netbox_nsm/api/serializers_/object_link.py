@@ -73,7 +73,7 @@ class ObjectLinkSerializer(serializers.Serializer):
     @extend_schema_field({"type": "object"})
     def get_object_b(self, obj):
         record = self._record(obj)
-        return _serialize_linked_object(record.policy_object, self.context.get("request"))
+        return _serialize_linked_object(record.security_object, self.context.get("request"))
 
     def to_representation(self, instance):
         record = self._record(instance)
@@ -111,7 +111,7 @@ class ObjectLinkSerializer(serializers.Serializer):
         record = self._record(instance)
         updated = create_or_update_links(
             record.netbox_object,
-            record.policy_object,
+            record.security_object,
             comment=validated_data.get("comment", record.comment),
         )[0]
         return updated.instance
@@ -131,8 +131,8 @@ class ObjectLinkSerializer(serializers.Serializer):
         filt = {
             "netbox_object_content_type": data["object_a_type"],
             "netbox_object_object_id": data["object_a_id"],
-            "policy_object_content_type": data["object_b_type"],
-            "policy_object_object_id": data["object_b_id"],
+            "security_object_content_type": data["object_b_type"],
+            "security_object_object_id": data["object_b_id"],
         }
         if model.objects.filter(**filt).exists():
             raise serializers.ValidationError(

@@ -65,6 +65,24 @@ def _cot_ref_field_map(cot) -> dict[str, Any]:
     }
 
 
+def _collect_pending_portable_refs(objects: list | None) -> frozenset[str]:
+    """All ``cot_slug/name`` refs declared as seed rows in the same bundle."""
+    pending: set[str] = set()
+    for entry in objects or []:
+        if not isinstance(entry, dict):
+            continue
+        slug = str(entry.get("type", "")).strip()
+        if not slug:
+            continue
+        for record in entry.get("records") or []:
+            if not isinstance(record, dict):
+                continue
+            name = str(record.get("name", "")).strip()
+            if name:
+                pending.add(f"{slug}/{name}")
+    return frozenset(pending)
+
+
 def _resolve_portable_ref(ref: str) -> tuple[Any, Any]:
     """Resolve ``cot_slug/object_name`` to ``(instance, ContentType)``."""
     from django.contrib.contenttypes.models import ContentType
@@ -203,13 +221,26 @@ def format_portable_ref(instance) -> str:
     return f"{cot.slug}/{name}"
 
 
-def _resolve_reference_value(field, value: Any) -> Any:
+def _resolve_reference_value(
+    field,
+    value: Any,
+    *,
+    pending_refs: frozenset[str] | None = None,
+) -> Any:
     if isinstance(value, int) or isinstance(value, dict):
         return value
     if not isinstance(value, str) or "/" not in value:
         return value
 
-    instance, content_type = _resolve_portable_ref(value)
+    if pending_refs is not None and value in pending_refs:
+        try:
+            instance, content_type = _resolve_portable_ref(value)
+        except ValueError as exc:
+            if _is_unresolved_portable_reference_error(exc):
+                return value
+            raise
+    else:
+        instance, content_type = _resolve_portable_ref(value)
     from netbox_nsm.core.cot_m2m_through import field_uses_polymorphic_through
 
     if field_uses_polymorphic_through(field):
@@ -220,7 +251,12 @@ def _resolve_reference_value(field, value: Any) -> Any:
     return instance.pk
 
 
-def _resolve_payload_references(cot, payload: dict[str, Any]) -> dict[str, Any]:
+def _resolve_payload_references(
+    cot,
+    payload: dict[str, Any],
+    *,
+    pending_refs: frozenset[str] | None = None,
+) -> dict[str, Any]:
     from extras.choices import CustomFieldTypeChoices
 
     ref_fields = _cot_ref_field_map(cot)
@@ -235,12 +271,17 @@ def _resolve_payload_references(cot, payload: dict[str, Any]) -> dict[str, Any]:
         if field.type == CustomFieldTypeChoices.TYPE_MULTIOBJECT:
             if isinstance(value, list):
                 resolved[key] = [
-                    _resolve_reference_value(field, item) for item in value
+                    _resolve_reference_value(field, item, pending_refs=pending_refs)
+                    for item in value
                 ]
             else:
-                resolved[key] = _resolve_reference_value(field, value)
+                resolved[key] = _resolve_reference_value(
+                    field, value, pending_refs=pending_refs
+                )
         else:
-            resolved[key] = _resolve_reference_value(field, value)
+            resolved[key] = _resolve_reference_value(
+                field, value, pending_refs=pending_refs
+            )
     return resolved
 
 
@@ -444,6 +485,7 @@ def diff_seed_objects(objects: list | None) -> list[dict[str, Any]]:
     from netbox_custom_objects.models import CustomObjectType
 
     diffs: list[dict[str, Any]] = []
+    pending_refs = _collect_pending_portable_refs(objects)
     for entry in objects or []:
         if not isinstance(entry, dict):
             continue
@@ -475,7 +517,9 @@ def diff_seed_objects(objects: list | None) -> list[dict[str, Any]]:
             payload = _record_payload(record)
             if payload is None:
                 continue
-            payload = _resolve_payload_references(cot, payload)
+            payload = _resolve_payload_references(
+                cot, payload, pending_refs=pending_refs
+            )
             obj_name = payload["name"]
             instance = model.objects.filter(name=obj_name).first()
             if instance is None:

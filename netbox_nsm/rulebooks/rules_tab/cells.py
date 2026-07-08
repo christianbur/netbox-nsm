@@ -48,15 +48,20 @@ def _inject_rules_cell_context_attrs(
 
 
 def _render_status_cell_html(enabled: bool) -> str:
-    """NetBox object-list ChoiceFieldColumn badge (e.g. IP address status)."""
+    """NetBox object-list checkmark (utilities/builtins/checkmark.html)."""
     labels = enabled_status_labels()
     label = labels["on"] if enabled else labels["off"]
-    bg_color = "success" if enabled else "secondary"
-    badge = (
-        f'<span class="badge text-bg-{bg_color}"'
-        f' data-nsm-filter-value="{escape(label)}">{escape(label)}</span>'
-    )
-    return rules_filter_target_html(badge, label)
+    if enabled:
+        icon = (
+            f'<i class="mdi mdi-check-bold text-success"'
+            f' title="{escape(label)}" aria-label="{escape(label)}"></i>'
+        )
+    else:
+        icon = (
+            f'<i class="mdi mdi-close-thick text-danger"'
+            f' title="{escape(label)}" aria-label="{escape(label)}"></i>'
+        )
+    return rules_filter_target_html(icon, label)
 
 
 def _render_name_cell_html(name: str, url: str) -> str:

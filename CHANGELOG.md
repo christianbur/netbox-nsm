@@ -18,6 +18,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **Rules table — button layout** — aligned with NetBox `object_list`: primary actions in header controls, rule count + display options + Configure Table in the table-controls row, bulk actions in sticky footer on selection.
 - **Rules table — display options** — Grouped columns, cell mode, and Export JSON moved from the in-card chrome bar to the centered table-controls row (before Configure Table).
+- **Rules table — status column** — enabled/disabled shown as green checkmark / red X (NetBox `checkmark.html` style) instead of On/Off text badges.
 
 ### Fixed
 

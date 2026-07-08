@@ -1,0 +1,33 @@
+{% load i18n %}
+{% if rules_table_columns %}
+<div class="table-configure btn-group">
+  <button type="button"
+          id="nsm-rules-configure-table"
+          class="btn dropdown-toggle"
+          data-bs-toggle="dropdown"
+          data-bs-auto-close="outside"
+          aria-expanded="false"
+          title="{% trans 'Configure Table' %}">
+    <i class="mdi mdi-cog" aria-hidden="true"></i> {% trans "Configure Table" %}
+  </button>
+  <div class="dropdown-menu dropdown-menu-end nsm-rules-configure-table-menu"
+       aria-labelledby="nsm-rules-configure-table">
+    <div class="nsm-rules-configure-table-heading border-bottom mb-1">
+      {% trans "Show columns" %}
+    </div>
+    {% for col in rules_table_columns %}
+      {% if col.hideable %}
+      <label class="nsm-rules-configure-table-item form-check"
+             for="rules-col-vis-{{ col.col_id }}">
+        <input type="checkbox"
+               class="form-check-input nsm-rules-col-visibility"
+               id="rules-col-vis-{{ col.col_id }}"
+               data-col-id="{{ col.col_id }}"
+               checked>
+        <span class="form-check-label">{{ col.label }}</span>
+      </label>
+      {% endif %}
+    {% endfor %}
+  </div>
+</div>
+{% endif %}

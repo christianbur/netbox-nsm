@@ -519,6 +519,22 @@ def build_cot_rules_layout(cot) -> dict:
             continue
 
         if field.type != CustomFieldTypeChoices.TYPE_MULTIOBJECT:
+            field_label = field.label or field.name.replace("_", " ").title()
+            field_group = (field.group_name or "").strip()
+            display_label = _field_display_label(
+                {"label": field_label, "group_name": field_group},
+                cot=cot,
+            )
+            rules_layout.append(
+                {
+                    "kind": "field",
+                    "slug": field.name,
+                    "label": display_label,
+                    "field_label": field_label,
+                    "field_group": field_group,
+                    "field_type": field.type,
+                }
+            )
             continue
 
         types = []
@@ -581,7 +597,7 @@ def build_cot_rules_layout(cot) -> dict:
 
     col_index = 1
     for entry in rules_layout:
-        if entry["kind"] == "system":
+        if entry["kind"] in ("system", "field"):
             entry["col_index"] = col_index
             col_index += 1
         else:
@@ -644,6 +660,37 @@ def cot_row_group_object_field_names(
     return names
 
 
+def _scalar_field_display(instance, field) -> dict:
+    """Render a non-object COT field value for the rules table."""
+    from extras.choices import CustomFieldTypeChoices
+
+    value = getattr(instance, field.name, None)
+    ftype = field.type
+
+    if ftype == CustomFieldTypeChoices.TYPE_BOOLEAN:
+        if value is None:
+            return {"display": "-", "url": ""}
+        return {"display": "\u2713" if value else "\u2717", "url": "", "boolean": bool(value)}
+
+    if ftype == CustomFieldTypeChoices.TYPE_OBJECT:
+        if value is None:
+            return {"display": "-", "url": ""}
+        url = value.get_absolute_url() if hasattr(value, "get_absolute_url") else ""
+        return {"display": str(value), "url": url or ""}
+
+    if value is None or value == "":
+        return {"display": "-", "url": ""}
+
+    if isinstance(value, (list, tuple)):
+        text = ", ".join(str(v) for v in value if v not in (None, ""))
+        return {"display": text or "-", "url": ""}
+
+    if ftype == CustomFieldTypeChoices.TYPE_URL:
+        return {"display": str(value), "url": str(value)}
+
+    return {"display": str(value), "url": ""}
+
+
 def build_cot_grouped_rules_table_data(
     instances,
     virtual_rb,
@@ -655,6 +702,16 @@ def build_cot_grouped_rules_table_data(
     if layout is None:
         layout = build_cot_rules_layout(virtual_rb.cot)
     grouped_columns = layout["grouped_columns"]
+    scalar_field_slugs = [
+        entry["slug"]
+        for entry in (layout.get("rules_layout") or [])
+        if entry.get("kind") == "field"
+    ]
+    scalar_fields = (
+        list(virtual_rb.cot.fields.filter(name__in=scalar_field_slugs))
+        if scalar_field_slugs
+        else []
+    )
     if object_field_names is not None:
         grouped_columns = [
             col for col in grouped_columns if col["area_slug"] in object_field_names
@@ -718,6 +775,11 @@ def build_cot_grouped_rules_table_data(
                 )
             cells_filter[key] = " ".join(item["name"] for item in items)
 
+        field_values = {
+            field.name: _scalar_field_display(instance, field)
+            for field in scalar_fields
+        }
+
         index_val = getattr(instance, "index", None)
         status_val = bool(getattr(instance, "status", True))
         name_val = getattr(instance, "name", "") or ""
@@ -739,6 +801,7 @@ def build_cot_grouped_rules_table_data(
             },
             "cells_items": cells_items,
             "cells_filter": cells_filter,
+            "fields": field_values,
         }
         if include_links:
             row.update(

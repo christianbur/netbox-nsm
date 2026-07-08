@@ -1,0 +1,16 @@
+{% load custom_object_buttons %}
+
+{% if rules_show_bulk_edit or rules_show_bulk_delete %}
+<div class="card btn-list sticky-actions d-print-none"
+     data-sticky-position="right"
+     data-sticky-when="selection">
+  <div class="btn-list bulk-action-buttons">
+    {% if rules_show_bulk_edit and rules_model and rules_cot %}
+      {% custom_object_bulk_edit_button rules_model rules_cot query_params=request.GET %}
+    {% endif %}
+    {% if rules_show_bulk_delete and rules_model and rules_cot %}
+      {% custom_object_bulk_delete_button rules_model rules_cot query_params=request.GET %}
+    {% endif %}
+  </div>
+</div>
+{% endif %}

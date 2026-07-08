@@ -1,0 +1,9 @@
+{% load custom_object_buttons %}
+
+{% if not rulebook_readonly and rules_model and rules_cot %}
+<div class="btn-list justify-content-end mb-2">
+  {% custom_object_add_button rules_model rules_cot %}
+  {% custom_object_import_button rules_model rules_cot %}
+  {% custom_object_export_button rules_model %}
+</div>
+{% endif %}

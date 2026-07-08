@@ -4,7 +4,7 @@
 
 {% block head %}
 {{ block.super }}
-<link rel="stylesheet" href="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='css/rulebook_rules.css' %}?v=20260617e">
+<link rel="stylesheet" href="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='css/rulebook_rules.css' %}?v=20260708e">
 {% include "netbox_nsm/inc/nsm_ip_analyzer_applet_assets.html" %}
 {% endblock head %}
 
@@ -32,11 +32,13 @@
 <form method="post" class="form form-horizontal">
   {% csrf_token %}
   <input type="hidden" name="return_url" value="{{ rules_return_url }}">
+
+  {% include "netbox_nsm/inc/rulebook_rules_table_controls.html" %}
+
   <div class="card mb-3{% if rules_cell_mode == 'inline' %} nsm-rules-cell-mode-inline{% elif rules_cell_mode == 'compact' %} nsm-rules-cell-mode-compact{% elif rules_cell_mode == 'pill_more' %} nsm-rules-cell-mode-pill-more{% endif %}{% if rules_column_mode == 'collapsed' %} nsm-rules-column-mode-collapsed{% endif %}"
        id="rules"
        data-rules-total-rules="{{ rules_total_rules }}"
        data-rules-unfiltered-total="{{ rules_unfiltered_total }}">
-    {% include "netbox_nsm/inc/rulebook_rules_chrome_bar.html" %}
     <div class="nsm-rules-body{% if rules_row_group_active %} nsm-rules-body--with-side-tabs{% endif %}">
       {% include "netbox_nsm/inc/rulebook_rules_row_group_tabs.html" %}
       <div class="htmx-container table-responsive nsm-rules-table-scroll{% if rules_has_object_header_stack %} nsm-rules-table-scroll--subhead{% endif %}">
@@ -45,10 +47,12 @@
       </div>
     </div>
   </div>
+
+  {% include "netbox_nsm/inc/rulebook_rules_bulk_actions.html" %}
 </form>
 {{ rules_chrome_config|json_script:"rules-chrome-config" }}
 <script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/nsm_branch_api.js' %}?v=1"></script>
 <script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/rulebook_rules_chrome.js' %}?v=20260702b"></script>
-<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/rulebook_rules_columns.js' %}?v=20260612f"></script>
+<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/rulebook_rules_columns.js' %}?v=20260708a"></script>
 <script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/rulebook_rules_row_group.js' %}?v=20260617e"></script>
 {% endblock content %}

@@ -189,4 +189,80 @@
   }
 
   document.addEventListener("DOMContentLoaded", initRulesColumnResize);
+
+  // --- Column visibility (Configure Table) ---
+
+  var VISIBILITY_PREFIX = "nsm-rules-col-hidden:";
+
+  function loadHiddenColumns(rulebookId) {
+    try {
+      var raw = localStorage.getItem(VISIBILITY_PREFIX + String(rulebookId == null ? "0" : rulebookId));
+      var parsed = JSON.parse(raw || "[]");
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveHiddenColumns(rulebookId, hiddenIds) {
+    localStorage.setItem(
+      VISIBILITY_PREFIX + String(rulebookId == null ? "0" : rulebookId),
+      JSON.stringify(hiddenIds)
+    );
+  }
+
+  function setColumnVisible(table, colId, visible) {
+    if (!table || !colId) {
+      return;
+    }
+    table.querySelectorAll('[data-col-id="' + colId + '"]').forEach(function (el) {
+      el.classList.toggle("nsm-rules-col-hidden", !visible);
+    });
+  }
+
+  function applyColumnVisibility(table, config) {
+    var hidden = loadHiddenColumns(config.rulebookId);
+    hidden.forEach(function (colId) {
+      setColumnVisible(table, colId, false);
+    });
+    document.querySelectorAll(".nsm-rules-col-visibility").forEach(function (cb) {
+      var colId = cb.getAttribute("data-col-id");
+      cb.checked = hidden.indexOf(colId) === -1;
+    });
+  }
+
+  function bindColumnVisibility(table, config) {
+    document.querySelectorAll(".nsm-rules-col-visibility").forEach(function (cb) {
+      if (cb.dataset.nsmColVisBound === "1") {
+        return;
+      }
+      cb.dataset.nsmColVisBound = "1";
+      cb.addEventListener("change", function () {
+        var colId = cb.getAttribute("data-col-id");
+        var hidden = loadHiddenColumns(config.rulebookId);
+        if (cb.checked) {
+          hidden = hidden.filter(function (id) {
+            return id !== colId;
+          });
+        } else if (hidden.indexOf(colId) === -1) {
+          hidden.push(colId);
+        }
+        saveHiddenColumns(config.rulebookId, hidden);
+        setColumnVisible(table, colId, cb.checked);
+        syncResizeHandleSpans(table);
+      });
+    });
+  }
+
+  function initRulesColumnVisibility() {
+    var table = document.querySelector("#rules .nsm-rules-table");
+    var config = readConfig();
+    if (!table || !config) {
+      return;
+    }
+    applyColumnVisibility(table, config);
+    bindColumnVisibility(table, config);
+  }
+
+  document.addEventListener("DOMContentLoaded", initRulesColumnVisibility);
 })();

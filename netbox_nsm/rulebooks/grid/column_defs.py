@@ -95,6 +95,21 @@ def build_rulebook_rules_grid_column_defs(grouped: dict) -> dict:
             column_defs.append({"colId": slug, "headerName": entry["label"], **spec})
             continue
 
+        if entry.get("kind") == "field":
+            column_defs.append(
+                {
+                    "colId": entry["slug"],
+                    "field": entry["slug"],
+                    "headerName": entry.get("label") or entry["slug"],
+                    "rules_column_kind": "field",
+                    "field_type": entry.get("field_type") or "",
+                    "cellRenderer": "fieldCell",
+                    "minWidth": 120,
+                    "width": 160,
+                }
+            )
+            continue
+
         group = entry.get("group") or {}
         children = [_object_column_def(col) for col in (group.get("columns") or [])]
         if not children:

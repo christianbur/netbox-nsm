@@ -42,6 +42,20 @@ class NsmObjectStatusTests(SimpleTestCase):
         self.assertIn("old-zone", html)
         self.assertIn("nsm-object-status-icon--deprecated", html)
 
+    def test_rule_enabled_status_renders_checkmark_icons(self):
+        from netbox_nsm.rulebooks.rules_tab.cells import _render_status_cell_html
+
+        on_html = _render_status_cell_html(True)
+        off_html = _render_status_cell_html(False)
+        self.assertIn("mdi-check-bold", on_html)
+        self.assertIn("text-success", on_html)
+        self.assertNotIn("mdi-close-thick", on_html)
+        self.assertIn("mdi-close-thick", off_html)
+        self.assertIn("text-danger", off_html)
+        self.assertNotIn("mdi-check-bold", off_html)
+        self.assertNotIn("badge", on_html)
+        self.assertNotIn("badge", off_html)
+
 
     def test_object_without_status_field_has_no_indicator(self):
         self.assertIsNone(get_nsm_object_status(SimpleNamespace(name="no-status")))

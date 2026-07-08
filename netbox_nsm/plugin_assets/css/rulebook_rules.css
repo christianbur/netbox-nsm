@@ -166,6 +166,7 @@ body.nsm-rules-column-resizing {
 #rules .table.nsm-rules-table .nsm-rules-th--status,
 #rules .table.nsm-rules-table .nsm-rules-td--status {
   white-space: nowrap;
+  text-align: center;
 }
 
 #rules .table.nsm-rules-table tbody tr.nsm-rules-data-row.nsm-rules-row--inactive,

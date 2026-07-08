@@ -62,7 +62,10 @@ def attach_rules_column_defs_meta(column_defs: list, flat_columns: list) -> None
         col_id = col_def.get("colId")
         if col_id and col_id != "_actions":
             flat = by_col_id.get(col_id)
-            if flat:
+            if flat and flat.get("kind") == "field":
+                col_def["rules_column_kind"] = "field"
+                col_def["display_label"] = flat.get("label") or col_id
+            elif flat:
                 col_def["rules_meta"] = _rules_column_meta_payload(flat)
                 if flat.get("kind") == "object" and not children:
                     col_def["rules_column_kind"] = "object"
@@ -272,6 +275,21 @@ def flatten_rules_column_defs(
                 {
                     "kind": "actions",
                     "col_id": "_actions",
+                    **_rules_column_width_fields(col),
+                }
+            )
+            continue
+        if col_id and col.get("rules_column_kind") == "field":
+            label = col.get("headerName") or col_id
+            columns.append(
+                {
+                    "kind": "field",
+                    "slug": col_id,
+                    "col_id": col_id,
+                    "label": label,
+                    "header_title": label,
+                    "header_subtitle": "",
+                    "field_type": col.get("field_type") or "",
                     **_rules_column_width_fields(col),
                 }
             )

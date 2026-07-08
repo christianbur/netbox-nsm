@@ -5,7 +5,7 @@ No firewall push — inventory and policy only.
 
 > **⚠️ Work in progress** — Not recommended for production use yet. Breaking changes possible (e.g. 0.4.5 permission migration).
 
-**Status:** **NetBox:** 4.5–4.6 · **Plugin:** 0.4.15 · **Requires:** [netbox-custom-objects](https://github.com/netboxlabs/netbox-custom-objects)
+**Status:** **NetBox:** 4.5–4.6 · **Plugin:** 0.4.16 · **Requires:** [netbox-custom-objects](https://github.com/netboxlabs/netbox-custom-objects)
 
 ## Features
 

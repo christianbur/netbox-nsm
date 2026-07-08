@@ -116,6 +116,31 @@ def _render_actions_cell_html(
         always_show_edit=True,
         cell_wrapper=True,
     )
+def _render_field_cell_html(col: dict, row: dict, *, request) -> str:
+    """Render a generic (non-object) COT field value cell."""
+    slug = col.get("slug") or col.get("col_id") or ""
+    data = (row.get("fields") or {}).get(slug) or {}
+    display = data.get("display")
+    if display in (None, ""):
+        return '<span class="text-muted">-</span>'
+    text = str(display)
+    url = data.get("url") or ""
+    if url:
+        safe_url = with_branch_query(url, request) if not url.startswith(("http://", "https://")) else url
+        link = (
+            f'<a href="{conditional_escape(safe_url)}"'
+            f' class="nsm-ag-cell-link text-decoration-none"'
+            f' data-nsm-filter-value="{escape(text)}"'
+            f' title="{escape(text)}">{escape(text)}</a>'
+        )
+        return rules_filter_target_html(link, text)
+    span = (
+        f'<span class="nsm-rules-cell-text"'
+        f' data-nsm-filter-value="{escape(text)}">{escape(text)}</span>'
+    )
+    return rules_filter_target_html(span, text)
+
+
 def _object_line_count(row: dict) -> int:
     cells_items = row.get("cells_items") or {}
     if not cells_items:
@@ -188,6 +213,9 @@ def _build_rules_cell_html(
                 system.get("description") or row.get("description") or ""
             )
         return f'<span class="nsm-cell-empty">-</span>'
+
+    if col["kind"] == "field":
+        return _render_field_cell_html(col, row, request=request)
 
     if col["kind"] == "object":
         key = col["key"]

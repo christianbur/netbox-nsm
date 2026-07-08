@@ -77,6 +77,7 @@ from netbox_nsm.rulebooks.permissions import (
     can_add_rulebook_rules,
     can_change_rulebook,
     can_delete_rulebook_rules,
+    can_view_rulebook,
 )
 from utilities.paginator import EnhancedPaginator, get_paginate_count
 
@@ -510,6 +511,7 @@ def build_cot_rulebook_rules_tab_context(request, virtual_rb, *, readonly=False)
         total_rule_count = paginator.count
 
     cot = virtual_rb.cot
+    can_view = can_view_rulebook(request.user, cot)
     can_change = can_change_rulebook(request.user, cot)
     can_delete = can_delete_rulebook_rules(request.user, cot)
     can_add = can_add_rulebook_rules(request.user, cot)
@@ -519,6 +521,16 @@ def build_cot_rulebook_rules_tab_context(request, virtual_rb, *, readonly=False)
         bulk_delete_url = with_branch_query(
             reverse(
                 "plugins:netbox_custom_objects:customobject_bulk_delete",
+                kwargs={"custom_object_type": virtual_rb.slug},
+            ),
+            request,
+        )
+    show_bulk_edit = can_change and not readonly
+    bulk_edit_url = ""
+    if show_bulk_edit:
+        bulk_edit_url = with_branch_query(
+            reverse(
+                "plugins:netbox_custom_objects:customobject_bulk_edit",
                 kwargs={"custom_object_type": virtual_rb.slug},
             ),
             request,
@@ -562,6 +574,16 @@ def build_cot_rulebook_rules_tab_context(request, virtual_rb, *, readonly=False)
         filter_column_map, rules_layout
     )
 
+    rules_table_columns = [
+        {
+            "col_id": col["col_id"],
+            "label": col.get("display_label") or col.get("label") or col["col_id"],
+            "hideable": col.get("col_id") not in ("_actions",),
+        }
+        for col in flat_columns
+        if col.get("col_id") and col.get("col_id") != "_select"
+    ]
+
     filter_active = bool(filter_model) or bool(filter_q_raw)
     filtered_count = total_rule_count or paginator.count
     if filter_active:
@@ -601,8 +623,14 @@ def build_cot_rulebook_rules_tab_context(request, virtual_rb, *, readonly=False)
         "rules_can_delete": can_delete and not readonly,
         "rules_show_bulk_delete": show_bulk_delete,
         "bulk_delete_url": bulk_delete_url,
+        "rules_show_bulk_edit": show_bulk_edit,
+        "bulk_edit_url": bulk_edit_url,
         "rules_show_selection_column": not readonly,
         "rules_show_add_rule": can_add and not readonly,
+        "rules_show_import": can_add and not readonly,
+        "rules_show_export": can_view and not readonly,
+        "rules_cot": cot,
+        "rules_model": cot.get_model(),
         "nsm_rule_add_url": add_url if not readonly else "",
         "rules_return_url": with_branch_query(request.get_full_path(), request),
         "rules_cell_mode": cell_mode,
@@ -611,6 +639,7 @@ def build_cot_rulebook_rules_tab_context(request, virtual_rb, *, readonly=False)
         "rules_row_group_col_id": row_group_col_id or "",
         "rules_row_group_tabs": row_group_tabs,
         "rules_row_group_tab_active": row_group_tab_active,
+        "rules_table_columns": rules_table_columns,
         "rules_chrome_config": {
             "queryValidateUrl": "",
             "rulebookId": virtual_rb.slug,

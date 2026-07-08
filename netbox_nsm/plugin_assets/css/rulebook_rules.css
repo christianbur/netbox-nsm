@@ -1105,18 +1105,35 @@ body.nsm-rules-tab-sidebar-resizing {
   overflow: hidden;
 }
 
-.container-fluid.tab-content:has(#rules) > form {
+.container-fluid.tab-content:has(#rules) > form.form-horizontal {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
   min-height: 0;
 }
 
-#rules .nsm-ag-toolbar-actions-start .sticky-actions {
-  display: flex;
-  align-items: center;
-  margin: 0;
-  padding: 0;
+#rules-results {
+  flex-shrink: 0;
+}
+
+#rules-results .nsm-rules-display-options {
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+@media screen and (max-width: 992px) {
+  #rules-results > .col.d-flex {
+    flex: 1 1 100%;
+    justify-content: flex-start !important;
+  }
+}
+
+#rules + .card.sticky-actions {
+  flex-shrink: 0;
+  margin-top: 0.5rem;
 }
 
 #rules.card {
@@ -1130,14 +1147,82 @@ body.nsm-rules-tab-sidebar-resizing {
   overflow: hidden;
 }
 
-#rules .nsm-ag-chrome-bar {
-  flex-shrink: 0;
-}
-
 #rules .nsm-rules-body {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+}
+
+/* Configure Table — hidden columns */
+.nsm-rules-table col.nsm-rules-col-hidden,
+.nsm-rules-table th.nsm-rules-col-hidden,
+.nsm-rules-table td.nsm-rules-col-hidden {
+  display: none;
+}
+
+.nsm-rules-configure-table-menu {
+  min-width: 16rem;
+  max-height: min(24rem, 70vh);
+  overflow-y: auto;
+  overflow-x: visible;
+  padding: 0.25rem 0;
+}
+
+.nsm-rules-configure-table-menu .nsm-rules-configure-table-heading {
+  padding: 0.35rem 0.75rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--bs-secondary-color);
+}
+
+.nsm-rules-configure-table-menu .nsm-rules-configure-table-item,
+.nsm-rules-configure-table-menu .form-check {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin: 0;
+  padding: 0.4rem 0.75rem;
+  min-height: 2rem;
+  border-radius: var(--bs-border-radius-sm, 0.25rem);
+  cursor: pointer;
+}
+
+.nsm-rules-configure-table-menu .nsm-rules-configure-table-item:hover,
+.nsm-rules-configure-table-menu .form-check:hover {
+  background-color: var(--bs-dropdown-link-hover-bg, rgba(255, 255, 255, 0.06));
+}
+
+.nsm-rules-configure-table-menu .form-check-input {
+  float: none;
+  margin: 0 !important;
+  flex: 0 0 1rem;
+  width: 1rem;
+  height: 1rem;
+  border: 1px solid var(--bs-border-color);
+  background-color: var(--bs-body-bg);
+  box-shadow: none;
+}
+
+.nsm-rules-configure-table-menu .form-check-input:checked {
+  background-color: var(--bs-primary);
+  border-color: var(--bs-primary);
+}
+
+.nsm-rules-configure-table-menu .form-check-input:focus {
+  border-color: var(--bs-primary);
+  box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--bs-primary) 25%, transparent);
+}
+
+.nsm-rules-configure-table-menu .form-check-label {
+  flex: 1 1 auto;
+  margin: 0;
+  padding: 0;
+  color: var(--bs-dropdown-link-color, var(--bs-body-color));
+  cursor: pointer;
+  line-height: 1.3;
+  user-select: none;
 }

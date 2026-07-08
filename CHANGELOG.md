@@ -4,7 +4,28 @@ All notable changes to **netbox-nsm** are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [0.4.16] - unreleased
+## [0.4.17] - unreleased
+
+## [0.4.16] - 2026-07-08
+
+### Added
+
+- **Rules table — dynamic field columns** — non-multiobject COT scalar fields render as `kind: field` columns automatically when new fields are added to the rulebook type.
+- **Rules table — Configure Table** — NetBox-style column visibility dropdown with `localStorage` persistence (`rulebook_rules_columns.js`).
+- **Rules table — NetBox object-list controls** — Add, Import, and Export via `custom_object_*` buttons in page controls; Bulk Edit and Bulk Delete below the table via CO bulk button tags.
+
+### Changed
+
+- **Rules table — button layout** — aligned with NetBox `object_list`: primary actions in header controls, rule count + display options + Configure Table in the table-controls row, bulk actions in sticky footer on selection.
+- **Rules table — display options** — Grouped columns, cell mode, and Export JSON moved from the in-card chrome bar to the centered table-controls row (before Configure Table).
+
+### Fixed
+
+- **Rules table — Configure Table menu** — checkbox rows no longer clipped to thin bars (flex layout, zero negative margin, improved contrast).
+
+### Removed
+
+- **Rules table — sticky chrome bulk actions** — `rulebook_rules_sticky_actions.html` replaced by footer bulk-action bar.
 
 ## [0.4.15] - 2026-07-08
 
@@ -650,3 +671,4 @@ First release in the 0.2.x line.
 [0.4.13]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.13
 [0.4.12]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.12
 [0.4.15]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.15
+[0.4.16]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.16

@@ -19,24 +19,21 @@ _RULE_VIEW_KEYS = ("sort_order", "display_template", "areas")
 def default_rule_view_for_slug(slug: str) -> dict[str, Any]:
     """Return bundled default ``rule_view`` for a policy COT slug."""
     from netbox_nsm.core.display_template import DEFAULT_DISPLAY_TEMPLATE
-    from netbox_nsm.type_metadata.config import config_dict_from_spec
-    from netbox_nsm.type_metadata.specs import TYPECONFIG_SPEC_BY_SLUG
+    from netbox_nsm.type_metadata.config import (
+        _normalized_display_template,
+        metadata_block_for_cot_slug,
+    )
 
-    spec = TYPECONFIG_SPEC_BY_SLUG.get(slug)
-    if not spec:
-        return {
-            "sort_order": 0,
-            "display_template": DEFAULT_DISPLAY_TEMPLATE,
-            "areas": [],
-        }
-    config = config_dict_from_spec(spec)
-    rule_view = {
-        "sort_order": int(config.get("sort_order", 0)),
-        "display_template": config.get("display_template"),
+    block = metadata_block_for_cot_slug(slug) or {}
+    rule_view = block.get("rule_view") if isinstance(block.get("rule_view"), dict) else {}
+    result = {
+        "sort_order": int(rule_view.get("sort_order", 0)),
+        "display_template": _normalized_display_template(
+            rule_view.get("display_template") or DEFAULT_DISPLAY_TEMPLATE
+        ),
+        "areas": list(rule_view.get("areas") or []),
     }
-    if config.get("areas"):
-        rule_view["areas"] = list(config["areas"])
-    return rule_view
+    return result
 
 
 def normalize_rule_view_config(
@@ -44,7 +41,7 @@ def normalize_rule_view_config(
     *,
     slug: str,
 ) -> dict[str, Any]:
-    """Return a complete ``rule_view`` block with defaults applied for *slug*."""
+    """Return a complete ``rule_view`` block with bundle defaults applied for *slug*."""
     result = default_rule_view_for_slug(slug)
     if not raw:
         return result
@@ -72,7 +69,7 @@ def compact_rule_view_block(
     *,
     slug: str,
 ) -> dict[str, Any] | None:
-    """Return only ``rule_view`` keys that differ from default, or ``None``."""
+    """Return only ``rule_view`` keys that differ from bundle default, or ``None``."""
     if is_default_rule_view_config(rule_view, slug=slug):
         return None
     default = default_rule_view_for_slug(slug)

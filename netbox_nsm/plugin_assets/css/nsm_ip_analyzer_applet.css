@@ -1294,6 +1294,8 @@
   --nsm-ipa-cell-tree-ipam-width: 6.5rem;
   --nsm-ipa-cell-tree-dns-width: 8rem;
   --nsm-ipa-cell-tree-description-width: 10rem;
+  --nsm-ipa-cell-tree-zone-width: 8rem;
+  --nsm-ipa-cell-tree-label-width: 8rem;
   --nsm-ipa-cell-tree-duplicate-width: 3rem;
   --nsm-ipa-cell-tree-address-width: 9rem;
   --nsm-ipa-cell-tree-address-group-width: 12.5rem;
@@ -1303,6 +1305,7 @@
   --nsm-ipa-cell-tree-min-width: calc(
     var(--nsm-ipa-cell-tree-network-width) + var(--nsm-ipa-cell-tree-ipam-width) +
       var(--nsm-ipa-cell-tree-dns-width) + var(--nsm-ipa-cell-tree-description-width) +
+      var(--nsm-ipa-cell-tree-zone-width) + var(--nsm-ipa-cell-tree-label-width) +
       var(--nsm-ipa-cell-tree-duplicate-width) +
       var(--nsm-ipa-cell-tree-address-width) + var(--nsm-ipa-cell-tree-address-group-width) +
       var(--nsm-ipa-cell-tree-merge-width) + var(--nsm-ipa-cell-tree-diff-width) +
@@ -1391,6 +1394,32 @@
 .nsm-ipa-applet .nsm-ipa-cell-tree-header-col--description {
   width: var(--nsm-ipa-cell-tree-description-width);
   min-width: var(--nsm-ipa-cell-tree-description-width);
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-col--zone,
+.nsm-ipa-applet .nsm-ipa-cell-tree-header-col--zone {
+  width: var(--nsm-ipa-cell-tree-zone-width);
+  min-width: var(--nsm-ipa-cell-tree-zone-width);
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-col--label,
+.nsm-ipa-applet .nsm-ipa-cell-tree-header-col--label {
+  width: var(--nsm-ipa-cell-tree-label-width);
+  min-width: var(--nsm-ipa-cell-tree-label-width);
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-col--zone,
+.nsm-ipa-applet .nsm-ipa-cell-tree-col--label {
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+  vertical-align: top;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-zone-link,
+.nsm-ipa-applet .nsm-ipa-cell-label-link {
+  cursor: help;
 }
 
 .nsm-ipa-applet .nsm-ipa-cell-tree-col--description {

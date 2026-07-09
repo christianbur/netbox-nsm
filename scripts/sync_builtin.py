@@ -12,7 +12,7 @@ from netbox_nsm.bundles.schema_builder import (
     build_choice_set_specs,
     build_schema_document,
 )
-from netbox_nsm.type_metadata.export import sync_cot_nsm_config_comments_for_slugs
+from netbox_nsm.type_metadata.config import apply_schema_bundle_metadata
 
 choice_specs = build_choice_set_specs()
 for spec in choice_specs:
@@ -25,8 +25,8 @@ for spec in choice_specs:
 
 doc = build_schema_document()
 apply_document(doc, allow_destructive=True)
-sync_cot_nsm_config_comments_for_slugs(t["slug"] for t in doc["types"])
-print("Sync OK")
+counts = apply_schema_bundle_metadata()
+print(f"Metadata sync OK ({counts})")
 
 for cot in CustomObjectType.objects.filter(slug__startswith="nsm_").order_by("slug"):
     print(f"=== {cot.slug} ===")

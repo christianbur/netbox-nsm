@@ -7,7 +7,6 @@ from django.utils.translation import gettext_lazy as _
 __all__ = (
     "COT_ROLE_CHOICES",
     "COT_ROLE_VALUES",
-    "DEFAULT_ROLE_BY_SLUG",
     "default_role_for_slug",
     "normalize_cot_role",
     "parse_role_from_comments",
@@ -44,20 +43,6 @@ COT_ROLE_CHOICES = (
     ("rulebook", _("Rulebook")),
 )
 
-DEFAULT_ROLE_BY_SLUG = {
-    "nsm_zone": "zone",
-    "nsm_address": "address",
-    "nsm_address_custom": "address",
-    "nsm_address_group": "address_group",
-    "nsm_label": "label",
-    "nsm_service": "service",
-    "nsm_service_group": "service_group",
-    "nsm_action": "action",
-    "nsm_app_business": "app_business",
-    "nsm_app_network": "app_network",
-    "nsm_object_link": "object_link",
-}
-
 
 def normalize_cot_role(value: str | None) -> str | None:
     if value is None:
@@ -71,12 +56,10 @@ def normalize_cot_role(value: str | None) -> str | None:
 
 
 def default_role_for_slug(slug: str) -> str | None:
+    """Infer role from slug naming convention only (``nsm_rb_*`` → rulebook)."""
     slug = (slug or "").strip()
     if not slug:
         return None
-    explicit = DEFAULT_ROLE_BY_SLUG.get(slug)
-    if explicit:
-        return explicit
     from netbox_nsm.rulebooks.templates import is_rulebook_template_slug
 
     if slug.startswith("nsm_rb_") and not is_rulebook_template_slug(slug):
@@ -108,7 +91,7 @@ def parse_role_from_comments(text: str) -> str | None:
 
 
 def resolve_role_for_cot(cot) -> str | None:
-    """Return the effective role for *cot* (comments override slug defaults)."""
+    """Return the effective role for *cot* (comments override slug conventions)."""
     from netbox_nsm.type_metadata.config import _custom_object_type_comments, _is_custom_object_type
 
     if not _is_custom_object_type(cot):

@@ -4,7 +4,27 @@ All notable changes to **netbox-nsm** are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [0.4.17] - unreleased
+## [0.4.18] - unreleased
+
+## [0.4.17] - 2026-07-09
+
+### Added
+
+- **IP Analyzer — Zone / Label columns** — flat cell-tree table adds **Zone** and **Label** after **Description** (12 columns total). Zone shows direct `nsm_object_link` refs or inherits from parent prefixes; labels are direct links only. Backend: `ipa_zone_label.py`, `ipa_cell_tree_zone_cell.html`, `ipa_cell_tree_label_cell.html`. Asset cache bump.
+- **Type metadata — `rule_view` in bundle** — `metadata.types` in `nsm_schema.json` now carries `rule_view` (incl. `nsm_address_custom`); `sync_metadata()` writes it into COT `comments` alongside `role` and `menu`.
+- **Bundle generator — canonical metadata maps** — `BUNDLE_ROLE_BY_SLUG`, `BUNDLE_MENU_BY_ROLE`, `BUNDLE_SORT_ORDER_BY_SLUG` in `generate_schema_bundles.py`; service display template supports port ranges.
+
+### Changed
+
+- **Type metadata — bundle/comments only** — removed Python runtime fallbacks (`DEFAULT_ROLE_BY_SLUG`, `TYPECONFIG_SPECS`, `DEFAULT_MENU_BY_ROLE`, `sync_cot_display_templates_from_specs()`). Resolvers read instance metadata exclusively from COT `comments` / bundle apply (`config.py`, `dispatch.py`, `roles.py`, `menus.py`, `specs.py`).
+- **IP Analyzer — Dup column position** — **Dup** moved to column 2 (directly after **Network**).
+- **NSM object menu labels** — navigation uses COT `verbose_name_plural` instead of removed `TYPECONFIG_SPEC_BY_SLUG` labels.
+- **Rules layout sort order** — column sort uses `resolve_nsm_config_for_cot().sort_order` instead of slug-based Python defaults.
+- **Docs** — `using_netbox_nsm.md` notes `rule_view` in schema bundle sync.
+
+### Fixed
+
+- **Type metadata tests** — updated for comment-only resolver and bundle-sourced defaults.
 
 ## [0.4.16] - 2026-07-08
 
@@ -673,3 +693,4 @@ First release in the 0.2.x line.
 [0.4.12]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.12
 [0.4.15]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.15
 [0.4.16]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.16
+[0.4.17]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.17

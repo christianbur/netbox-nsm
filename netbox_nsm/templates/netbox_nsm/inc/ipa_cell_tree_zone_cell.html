@@ -1,0 +1,14 @@
+{% load i18n %}
+{% if node.zone_refs %}
+<div class="nsm-ipa-cell-zone-refs">
+  {% for ref in node.zone_refs %}
+  {% if ref.url %}
+  <a href="{{ ref.url }}" class="nsm-ipa-cell-zone-link"{% if ref.inherited %} title="{% blocktrans with prefix=ref.inherited_from %}Inherited from {{ prefix }}{% endblocktrans %}"{% else %} title="{{ ref.name }}"{% endif %}>{{ ref.name }}</a>{% if not forloop.last %}<span class="text-muted">, </span>{% endif %}
+  {% else %}
+  <span class="nsm-ipa-cell-zone-text"{% if ref.inherited %} title="{% blocktrans with prefix=ref.inherited_from %}Inherited from {{ prefix }}{% endblocktrans %}"{% endif %}>{{ ref.name }}</span>{% if not forloop.last %}<span class="text-muted">, </span>{% endif %}
+  {% endif %}
+  {% endfor %}
+</div>
+{% else %}
+<span class="text-muted">—</span>
+{% endif %}

@@ -13,11 +13,10 @@ from netbox_nsm.core.display_template import DEFAULT_DISPLAY_TEMPLATE, normalize
 
 __all__ = (
     "NsmTypeConfig",
-    "backfill_cot_nsm_config_comments",
     "build_nsm_config_lookup",
     "build_nsm_config_preview_rows",
-    "config_dict_from_spec",
     "cot_slug_for_content_type",
+    "cot_has_metadata_eligibility",
     "extract_nsm_config_from_type_comments",
     "filter_assignable_configs",
     "format_nsm_config_comment_yaml",
@@ -27,16 +26,15 @@ __all__ = (
     "is_assignable_from_content_type",
     "is_linkable_content_type",
     "iter_linkable_configs",
+    "config_dict_from_metadata_block",
+    "apply_schema_bundle_metadata",
+    "metadata_block_for_cot_slug",
     "normalize_nsm_config_list",
     "parse_nsm_config_from_cot",
     "parse_nsm_config_document_from_cot",
     "resolve_nsm_config_dict_for_cot",
     "resolve_nsm_config_for_cot",
     "resolve_nsm_config_for_content_type",
-    "sync_cot_nsm_config_comments",
-    "sync_cot_nsm_config_comments_for_slugs",
-    "sync_cot_display_template_from_spec",
-    "sync_cot_display_templates_from_specs",
     "merge_nsm_config_document_into_comments",
     "save_nsm_config_document_for_cot",
     "clear_nsm_config_from_cot_comments",
@@ -121,19 +119,57 @@ def cot_slug_for_content_type(content_type: ContentType) -> str | None:
     return cot.slug if cot else None
 
 
-def config_dict_from_spec(spec: dict) -> dict[str, Any]:
-    """Build a normalized config dict from a ``TYPECONFIG_*`` spec."""
-    from netbox_nsm.type_metadata.roles import default_role_for_slug
-    slug = spec.get("slug", "")
-    result = {
-        "sort_order": spec.get("sort_order", 0),
-        "display_template": _normalized_display_template(spec.get("display_template")),
-        "areas": list(spec.get("areas") or _areas_for_cot_slug(slug)),
+def config_dict_from_metadata_block(block: dict[str, Any] | None) -> dict[str, Any]:
+    """Build a normalized config dict from a bundle ``metadata`` block."""
+    config: dict[str, Any] = {
+        "sort_order": 0,
+        "display_template": DEFAULT_DISPLAY_TEMPLATE,
+        "areas": [],
     }
-    role = default_role_for_slug(slug)
-    if role:
-        result["role"] = role
-    return result
+    if not block:
+        return config
+    if block.get("role"):
+        config["role"] = block["role"]
+    if block.get("menu"):
+        config["menu"] = block["menu"]
+    rule_view = block.get("rule_view")
+    if isinstance(rule_view, dict):
+        config = _merge_parsed_into_config(config, rule_view)
+    return config
+
+
+def metadata_block_for_cot_slug(slug: str) -> dict[str, Any] | None:
+    """Return bundled metadata block for *slug* from built-in schema JSON."""
+    from netbox_nsm.bundles.dispatch import load_bundle, normalize_bundle_metadata
+    from netbox_nsm.bundles.paths import bundle_json_path
+
+    bundle = load_bundle(bundle_json_path("nsm_schema"))
+    metadata = normalize_bundle_metadata(bundle)
+    block = (metadata.get("types") or {}).get(slug)
+    if isinstance(block, dict):
+        return dict(block)
+    block = (metadata.get("rulebooks") or {}).get(slug)
+    if isinstance(block, dict):
+        return dict(block)
+    return None
+
+
+def cot_has_metadata_eligibility(cot) -> bool:
+    """True when *cot* has stored ``nsm_config`` or is a deployed rulebook."""
+    from netbox_nsm.type_metadata.roles import resolve_role_for_cot
+
+    comments = _custom_object_type_comments(cot) or ""
+    if has_nsm_config_in_comments(comments):
+        return True
+    return resolve_role_for_cot(cot) == "rulebook"
+
+
+def has_nsm_config_in_comments(text: str) -> bool:
+    if not _comments_may_contain_nsm_config(text):
+        return False
+    document = _load_yaml_document(text)
+    raw_list = _extract_nsm_config_list_from_document(document)
+    return bool(raw_list)
 
 
 def normalize_nsm_config_list(raw_list: list | None) -> dict[str, Any] | None:
@@ -169,6 +205,20 @@ def normalize_nsm_config_list(raw_list: list | None) -> dict[str, Any] | None:
     merged["display_template"] = _normalized_display_template(merged.get("display_template"))
     merged.setdefault("sort_order", 0)
     return merged
+
+
+def _normalize_config_dict(config: dict[str, Any]) -> dict[str, Any]:
+    result = {
+        "sort_order": int(config.get("sort_order", 0)),
+        "display_template": _normalized_display_template(config.get("display_template")),
+    }
+    if "areas" in config:
+        result["areas"] = list(config.get("areas") or [])
+    if "role" in config:
+        result["role"] = config.get("role")
+    if "menu" in config:
+        result["menu"] = config.get("menu")
+    return result
 
 
 def _strip_markdown_fence(text: str) -> str:
@@ -241,24 +291,6 @@ def extract_nsm_config_from_type_comments(type_def: dict) -> dict[str, Any] | No
             continue
         return normalize_nsm_config_list(entry.get("nsm_config"))
     return None
-
-
-def has_nsm_config_in_comments(text: str) -> bool:
-    return _parse_nsm_config_yaml(text) is not None
-
-
-def _normalize_config_dict(config: dict[str, Any]) -> dict[str, Any]:
-    result = {
-        "sort_order": int(config.get("sort_order", 0)),
-        "display_template": _normalized_display_template(config.get("display_template")),
-    }
-    if "areas" in config:
-        result["areas"] = list(config.get("areas") or [])
-    if "role" in config:
-        result["role"] = config.get("role")
-    if "menu" in config:
-        result["menu"] = config.get("menu")
-    return result
 
 
 def _build_nsm_config_list(config: dict[str, Any]) -> list[dict]:
@@ -615,55 +647,49 @@ def resolve_nsm_config_dict_for_cot(
     *,
     rulebook_cot=None,
 ) -> dict[str, Any] | None:
-    """Return merged spec + comments config dict for *cot*."""
+    """Return config dict for *cot* from COT comments (and rulebook type overrides)."""
     if not _is_custom_object_type(cot):
         return None
 
-    from netbox_nsm.type_metadata.roles import parse_role_from_comments, resolve_role_for_cot
-    from netbox_nsm.type_metadata.specs import TYPECONFIG_SPEC_BY_SLUG
+    from netbox_nsm.type_metadata.roles import resolve_role_for_cot
 
-    comments = _custom_object_type_comments(cot) or ""
-    spec = TYPECONFIG_SPEC_BY_SLUG.get(cot.slug)
-    if spec:
-        config = config_dict_from_spec(spec)
-        rule_view = _rule_view_from_rulebook_comments(rulebook_cot, cot.slug)
-        if rule_view:
-            config.update(rule_view)
-        elif not rulebook_cot:
-            parsed = parse_nsm_config_from_cot(cot)
-            if parsed:
-                config = _merge_parsed_into_config(config, parsed)
-    else:
-        config = {
-            "sort_order": 0,
-            "display_template": DEFAULT_DISPLAY_TEMPLATE,
-            "areas": [],
-        }
-        parsed = parse_nsm_config_from_cot(cot)
-        if parsed:
-            config = _merge_parsed_into_config(config, parsed)
+    doc = parse_nsm_config_document_from_cot(cot)
+    config: dict[str, Any] = {
+        "sort_order": 0,
+        "display_template": DEFAULT_DISPLAY_TEMPLATE,
+        "areas": [],
+    }
+    rule_view = dict(doc.get("rule_view") or {})
+    override = _rule_view_from_rulebook_comments(rulebook_cot, cot.slug)
+    if override:
+        rule_view.update(override)
+    if rule_view:
+        config = _merge_parsed_into_config(config, rule_view)
 
-    role = parse_role_from_comments(comments) or resolve_role_for_cot(cot)
+    role = doc.get("role") or resolve_role_for_cot(cot)
     if role:
         config["role"] = role
+    if doc.get("menu"):
+        config["menu"] = doc["menu"]
     return config
 
 
 def resolve_nsm_config_for_cot(cot, *, rulebook_cot=None) -> NsmTypeConfig | None:
-    """Resolve settings for *cot* from comments with spec fallback."""
+    """Resolve settings for *cot* from COT comments only."""
     from django.contrib.contenttypes.models import ContentType as DjCT
 
-    from netbox_nsm.type_metadata.roles import resolve_role_for_cot
-    from netbox_nsm.type_metadata.specs import TYPECONFIG_SPEC_BY_SLUG
+    if not cot_has_metadata_eligibility(cot):
+        return None
 
     config_dict = resolve_nsm_config_dict_for_cot(cot, rulebook_cot=rulebook_cot)
     if config_dict is None:
         return None
-    if resolve_role_for_cot(cot) != "rulebook" and cot.slug not in TYPECONFIG_SPEC_BY_SLUG:
-        return None
-    spec = TYPECONFIG_SPEC_BY_SLUG.get(cot.slug)
+
     ct = DjCT.objects.get_for_model(cot.get_model())
-    name = spec["label"] if spec else (getattr(cot, "name", None) or cot.slug)
+    name = (getattr(cot, "name", None) or cot.slug)
+    verbose = getattr(cot, "verbose_name_plural", None) or getattr(cot, "verbose_name", None)
+    if verbose:
+        name = str(verbose)
 
     return _build_nsm_type_config(
         slug=cot.slug,
@@ -695,14 +721,11 @@ def resolve_nsm_config_for_content_type(
 
 
 def build_nsm_config_lookup(*, rulebook_cot=None) -> dict[int, NsmTypeConfig]:
-    """Map ``content_type_id`` → resolved config for all UI COT slugs."""
+    """Map ``content_type_id`` → resolved config for all COTs with metadata."""
     from netbox_custom_objects.models import CustomObjectType
 
-    from netbox_nsm.type_metadata.specs import TYPECONFIG_UI_SPECS
-
     lookup: dict[int, NsmTypeConfig] = {}
-    slugs = [spec["slug"] for spec in TYPECONFIG_UI_SPECS]
-    for cot in CustomObjectType.objects.filter(slug__in=slugs):
+    for cot in CustomObjectType.objects.all().order_by("slug"):
         resolved = resolve_nsm_config_for_cot(cot, rulebook_cot=rulebook_cot)
         if resolved:
             lookup[resolved.content_type_id] = resolved
@@ -769,119 +792,10 @@ def build_nsm_config_preview_rows(config: NsmTypeConfig) -> list[dict]:
     ]
 
 
-def sync_cot_nsm_config_comments(cot, *, spec: dict | None = None) -> bool:
-    """Write bundled defaults into COT ``comments``."""
-    from netbox_nsm.type_metadata.specs import (
-        TYPECONFIG_LIST_EXCLUDED_SLUGS,
-        TYPECONFIG_SPEC_BY_SLUG,
-    )
+def apply_schema_bundle_metadata() -> dict[str, int]:
+    """Write ``metadata`` from the built-in NSM schema bundle into COT comments."""
+    from netbox_nsm.bundles.dispatch import load_bundle, normalize_bundle_metadata, sync_metadata
+    from netbox_nsm.bundles.paths import bundle_json_path
 
-    if cot.slug in TYPECONFIG_LIST_EXCLUDED_SLUGS:
-        return False
-    if spec is None:
-        spec = TYPECONFIG_SPEC_BY_SLUG.get(cot.slug)
-    if not spec:
-        return False
-    config = config_dict_from_spec(spec)
-    updates: dict[str, Any] = {
-        "rule_view": {
-            "sort_order": config.get("sort_order", 0),
-            "display_template": _normalized_display_template(config.get("display_template")),
-        },
-    }
-    if config.get("areas"):
-        updates["rule_view"]["areas"] = list(config["areas"])
-    if config.get("role"):
-        updates["role"] = config["role"]
-    before = (cot.comments or "").rstrip()
-    save_nsm_config_document_for_cot(cot, updates)
-    cot.refresh_from_db()
-    return (cot.comments or "").rstrip() != before
-
-
-def sync_cot_nsm_config_comments_for_slugs(slugs) -> int:
-    try:
-        from netbox_custom_objects.models import CustomObjectType
-    except ImportError:
-        return 0
-
-    from netbox_nsm.type_metadata.specs import TYPECONFIG_SPEC_BY_SLUG
-
-    updated = 0
-    for cot in CustomObjectType.objects.filter(slug__in=slugs):
-        if sync_cot_nsm_config_comments(
-            cot, spec=TYPECONFIG_SPEC_BY_SLUG.get(cot.slug)
-        ):
-            updated += 1
-    return updated
-
-
-def backfill_cot_nsm_config_comments() -> int:
-    from netbox_nsm.type_metadata.specs import TYPECONFIG_UI_SPECS
-
-    return sync_cot_nsm_config_comments_for_slugs(
-        [spec["slug"] for spec in TYPECONFIG_UI_SPECS]
-    )
-
-
-def sync_cot_display_template_from_spec(cot, *, spec: dict | None = None) -> bool:
-    """Update only ``display_template`` in COT comments from a bundled spec."""
-    from netbox_nsm.type_metadata.specs import (
-        TYPECONFIG_LIST_EXCLUDED_SLUGS,
-        TYPECONFIG_SPEC_BY_SLUG,
-    )
-
-    if cot.slug in TYPECONFIG_LIST_EXCLUDED_SLUGS:
-        return False
-    if spec is None:
-        spec = TYPECONFIG_SPEC_BY_SLUG.get(cot.slug)
-    if not spec:
-        return False
-
-    new_template = _normalized_display_template(spec.get("display_template"))
-    current_doc = _stored_nsm_config_document(cot.comments or "")
-    rule_view = dict(current_doc.get("rule_view") or {})
-    if rule_view.get("display_template") == new_template:
-        return False
-
-    config = config_dict_from_spec(spec)
-    rule_view["display_template"] = new_template
-    rule_view.setdefault("sort_order", config.get("sort_order", 0))
-    if not rule_view.get("areas") and config.get("areas"):
-        rule_view["areas"] = list(config["areas"])
-
-    before = (cot.comments or "").rstrip()
-    save_nsm_config_document_for_cot(cot, {"rule_view": rule_view})
-    cot.refresh_from_db()
-    return (cot.comments or "").rstrip() != before
-
-
-def sync_cot_display_templates_from_specs(slugs=None) -> int:
-    """Push bundled ``display_template`` values into COT comments (preserves sort/areas)."""
-    try:
-        from netbox_custom_objects.models import CustomObjectType
-    except ImportError:
-        return 0
-
-    from netbox_nsm.type_metadata.specs import (
-        TYPECONFIG_LIST_EXCLUDED_SLUGS,
-        TYPECONFIG_SPEC_BY_SLUG,
-        TYPECONFIG_UI_SPECS,
-    )
-
-    if slugs is None:
-        slugs = [
-            spec["slug"]
-            for spec in TYPECONFIG_UI_SPECS
-            if spec["slug"] not in TYPECONFIG_LIST_EXCLUDED_SLUGS
-        ]
-    updated = 0
-    for cot in CustomObjectType.objects.filter(slug__in=slugs):
-        if sync_cot_display_template_from_spec(
-            cot, spec=TYPECONFIG_SPEC_BY_SLUG.get(cot.slug)
-        ):
-            updated += 1
-    from netbox_nsm.core.display_utils import get_display_template_map
-
-    get_display_template_map.cache_clear()
-    return updated
+    bundle = load_bundle(bundle_json_path("nsm_schema"))
+    return sync_metadata(normalize_bundle_metadata(bundle))

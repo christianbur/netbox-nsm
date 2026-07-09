@@ -6,7 +6,6 @@ import contextvars
 
 from django.urls import reverse
 
-from netbox_nsm.type_metadata.specs import TYPECONFIG_SPEC_BY_SLUG
 from netbox_nsm.type_metadata.menus import (
     MENU_GROUP_NAMES,
     cot_has_menu,
@@ -70,9 +69,6 @@ def iter_nsm_objects_menu_cots():
 
 
 def nsm_object_menu_label_for_cot(cot) -> str:
-    spec = TYPECONFIG_SPEC_BY_SLUG.get(cot.slug)
-    if spec and spec.get("label"):
-        return spec["label"]
     return cot.get_verbose_name_plural()
 
 

@@ -11,7 +11,7 @@ from netbox_nsm.objects.cot_routes import (
     iter_nsm_objects_menu_cots,
     nsm_object_menu_label_for_cot,
 )
-from netbox_nsm.type_metadata.specs import default_sort_order_for_slug
+from netbox_nsm.type_metadata.config import resolve_nsm_config_for_cot
 
 __all__ = (
     "build_nsm_objects_menu_group",
@@ -19,11 +19,16 @@ __all__ = (
 )
 
 
+def _menu_sort_order(cot) -> int:
+    resolved = resolve_nsm_config_for_cot(cot)
+    return resolved.sort_order if resolved else 0
+
+
 def _sorted_nsm_objects_menu_cots():
     return sorted(
         iter_nsm_objects_menu_cots(),
         key=lambda cot: (
-            default_sort_order_for_slug(cot.slug),
+            _menu_sort_order(cot),
             nsm_object_menu_label_for_cot(cot).casefold(),
             cot.slug,
         ),

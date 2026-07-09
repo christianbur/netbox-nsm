@@ -10,19 +10,19 @@
   {% csrf_token %}
   <div class="card">
     <div class="card-body">
-      <p class="text-muted">{% trans "Select a Custom Object Type without nsm_config in comments." %}</p>
+      <p class="text-muted">{% trans "Select a Custom Object Type without nsm_config in comments. Defaults are taken from the NSM Schema bundle metadata." %}</p>
       <div class="list-group">
         {% for entry in missing %}
         <label class="list-group-item d-flex gap-2">
-          <input class="form-check-input" type="radio" name="slug" value="{{ entry.spec.slug }}" required>
+          <input class="form-check-input" type="radio" name="slug" value="{{ entry.slug }}" required>
           <span>
-            <strong>{{ entry.spec.label }}</strong>
-            <code class="ms-2">{{ entry.spec.slug }}</code>
+            <strong>{{ entry.cot.name }}</strong>
+            <code class="ms-2">{{ entry.slug }}</code>
           </span>
         </label>
         {% endfor %}
       </div>
-      <button type="submit" class="btn btn-primary mt-3">{% trans "Create with defaults" %}</button>
+      <button type="submit" class="btn btn-primary mt-3">{% trans "Create from bundle metadata" %}</button>
       <a href="{% url 'plugins:netbox_nsm:typemetadata_list' %}" class="btn btn-secondary mt-3">{% trans "Cancel" %}</a>
     </div>
   </div>

@@ -16,8 +16,9 @@ from netbox_nsm.type_metadata.forms import (
 from netbox_nsm.core.display_template import DEFAULT_DISPLAY_TEMPLATE, normalize_display_template
 from netbox_nsm.type_metadata.config import (
     clear_nsm_config_from_cot_comments,
-    config_dict_from_spec,
+    cot_has_metadata_eligibility,
     has_nsm_config_in_comments,
+    metadata_block_for_cot_slug,
     resolve_nsm_config_dict_for_cot,
     resolve_nsm_config_for_cot,
     save_nsm_config_document_for_cot,
@@ -29,10 +30,7 @@ from netbox_nsm.type_metadata.permissions import (
     nsm_config_view_permission,
 )
 from netbox_nsm.type_metadata.roles import resolve_role_for_cot
-from netbox_nsm.type_metadata.specs import (
-    TYPECONFIG_SPEC_BY_SLUG,
-    TYPECONFIG_UI_SPECS,
-)
+from netbox_nsm.type_metadata.specs import REQUIRED_COT_SLUGS, TYPECONFIG_LIST_EXCLUDED_SLUGS
 
 __all__ = (
     "TypeMetadataListView",
@@ -50,12 +48,27 @@ class TypeMetadataListEntry:
 
 
 def _metadata_eligible_slugs() -> set[str]:
-    slugs = set(TYPECONFIG_SPEC_BY_SLUG)
+    slugs = {slug for slug in REQUIRED_COT_SLUGS if slug not in TYPECONFIG_LIST_EXCLUDED_SLUGS}
     from netbox_nsm.rulebooks.registry import iter_deployed_cot_rulebooks
 
     for cot in iter_deployed_cot_rulebooks():
         slugs.add(cot.slug)
     return slugs
+
+
+def _bundle_metadata_updates_for_cot(cot) -> dict | None:
+    block = metadata_block_for_cot_slug(cot.slug)
+    if not block:
+        return None
+    updates: dict = {}
+    if block.get("role"):
+        updates["role"] = block["role"]
+    if block.get("menu"):
+        updates["menu"] = block["menu"]
+    rule_view = block.get("rule_view")
+    if isinstance(rule_view, dict):
+        updates["rule_view"] = dict(rule_view)
+    return updates or None
 
 
 def _plugin_name_template_rows() -> list[dict]:
@@ -93,24 +106,8 @@ def _resolved_configs() -> list[TypeMetadataListEntry]:
         return []
 
     entries: list[TypeMetadataListEntry] = []
-    seen: set[str] = set()
-    for spec in TYPECONFIG_UI_SPECS:
-        cot = CustomObjectType.objects.filter(slug=spec["slug"]).first()
-        if not cot:
-            continue
-        seen.add(cot.slug)
-        resolved = resolve_nsm_config_for_cot(cot)
-        if resolved:
-            entries.append(
-                TypeMetadataListEntry(
-                    config=resolved,
-                    has_stored_metadata=_has_metadata(cot),
-                )
-            )
-    for cot in CustomObjectType.objects.order_by("name", "slug"):
-        if cot.slug in seen:
-            continue
-        if resolve_role_for_cot(cot) != "rulebook":
+    for cot in CustomObjectType.objects.all().order_by("name", "slug"):
+        if not cot_has_metadata_eligibility(cot):
             continue
         resolved = resolve_nsm_config_for_cot(cot)
         if resolved:
@@ -259,22 +256,27 @@ class TypeMetadataAddView(PermissionRequiredMixin, View):
         except ImportError:
             raise Http404
         missing = []
-        for spec in TYPECONFIG_UI_SPECS:
-            cot = CustomObjectType.objects.filter(slug=spec["slug"]).first()
-            if cot and not _has_metadata(cot):
-                missing.append({"spec": spec, "cot": cot})
+        for slug in sorted(_metadata_eligible_slugs()):
+            if slug in TYPECONFIG_LIST_EXCLUDED_SLUGS:
+                continue
+            cot = CustomObjectType.objects.filter(slug=slug).first()
+            if cot and not _has_metadata(cot) and metadata_block_for_cot_slug(slug):
+                missing.append({"slug": slug, "cot": cot})
         return render(request, self.template_name, {"missing": missing})
 
     def post(self, request):
         slug = request.POST.get("slug", "").strip()
-        if not slug or slug not in TYPECONFIG_SPEC_BY_SLUG:
+        if not slug or slug not in _metadata_eligible_slugs():
             messages.error(request, _("Invalid object type slug."))
             return redirect(reverse("plugins:netbox_nsm:typemetadata_add"))
         cot = _get_ui_cot(slug)
-        spec = TYPECONFIG_SPEC_BY_SLUG[slug]
-        save_nsm_config_document_for_cot(
-            cot,
-            _document_updates_from_config_dict(config_dict_from_spec(spec)),
-        )
-        messages.success(request, _("Type Metadata created."))
+        updates = _bundle_metadata_updates_for_cot(cot)
+        if not updates:
+            messages.error(
+                request,
+                _("No bundled metadata found for this type. Apply the NSM Schema bundle first."),
+            )
+            return redirect(reverse("plugins:netbox_nsm:typemetadata_add"))
+        save_nsm_config_document_for_cot(cot, updates)
+        messages.success(request, _("Type Metadata created from bundle metadata."))
         return redirect(reverse("plugins:netbox_nsm:typemetadata", args=[slug]))

@@ -157,12 +157,15 @@ def export_portable_schema_yaml(
     import yaml
 
     from netbox_nsm.type_metadata.config import (
-        config_dict_from_spec,
+        NsmTypeConfig,
+        build_nsm_config_preview_rows,
+        config_dict_from_metadata_block,
+        format_nsm_config_comment_yaml,
         format_type_comments_for_setup_yaml,
+        metadata_block_for_cot_slug,
     )
     from netbox_nsm.type_metadata.specs import (
         TYPECONFIG_LIST_EXCLUDED_SLUGS,
-        TYPECONFIG_SPEC_BY_SLUG,
     )
 
     document = load_portable_schema_document(
@@ -173,10 +176,10 @@ def export_portable_schema_yaml(
     for type_def in document.get("types", []):
         export_def = dict(type_def)
         slug = export_def.get("slug", "")
-        spec = TYPECONFIG_SPEC_BY_SLUG.get(slug)
-        if spec and slug not in TYPECONFIG_LIST_EXCLUDED_SLUGS:
+        block = metadata_block_for_cot_slug(slug)
+        if block and slug not in TYPECONFIG_LIST_EXCLUDED_SLUGS:
             export_def["comments"] = format_type_comments_for_setup_yaml(
-                config_dict_from_spec(spec)
+                config_dict_from_metadata_block(block)
             )
         types_for_export.append(export_def)
     payload = {
@@ -201,14 +204,13 @@ def build_portable_schema_preview_types(
 ) -> list[dict]:
     """Human-readable preview rows per bundled COT type (slug, label, fields)."""
     from netbox_nsm.type_metadata.config import (
+        NsmTypeConfig,
         build_nsm_config_preview_rows,
-        config_dict_from_spec,
+        config_dict_from_metadata_block,
         format_nsm_config_comment_yaml,
+        metadata_block_for_cot_slug,
     )
-    from netbox_nsm.type_metadata.specs import (
-        TYPECONFIG_LIST_EXCLUDED_SLUGS,
-        TYPECONFIG_SPEC_BY_SLUG,
-    )
+    from netbox_nsm.type_metadata.specs import TYPECONFIG_LIST_EXCLUDED_SLUGS
 
     document = load_portable_schema_document(
         slugs=slugs,
@@ -227,23 +229,19 @@ def build_portable_schema_preview_types(
                     "required": bool(field_def.get("required")),
                 }
             )
-        spec = TYPECONFIG_SPEC_BY_SLUG.get(slug)
+        block = metadata_block_for_cot_slug(slug)
         nsm_config_yaml = ""
         nsm_config_preview: list[dict] = []
-        if spec and slug not in TYPECONFIG_LIST_EXCLUDED_SLUGS:
-            from netbox_nsm.type_metadata.config import NsmTypeConfig
-
-            spec_config = config_dict_from_spec(spec)
+        if block and slug not in TYPECONFIG_LIST_EXCLUDED_SLUGS:
+            spec_config = config_dict_from_metadata_block(block)
             cfg = NsmTypeConfig(
                 slug=slug,
                 content_type_id=0,
-                name=spec["label"],
+                name=type_def.get("verbose_name") or slug,
                 sort_order=spec_config["sort_order"],
                 display_template=spec_config["display_template"],
             )
-            nsm_config_yaml = format_nsm_config_comment_yaml(
-                config_dict_from_spec(spec)
-            ).rstrip()
+            nsm_config_yaml = format_nsm_config_comment_yaml(spec_config).rstrip()
             nsm_config_preview = build_nsm_config_preview_rows(cfg)
         preview_types.append(
             {

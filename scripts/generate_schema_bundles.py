@@ -32,7 +32,35 @@ _IDENT_CLEAN_RE = re.compile(r"[^a-z0-9]+")
 _IDENT_COLLAPSE_RE = re.compile(r"_+")
 
 TYPECONFIG_LIST_EXCLUDED_SLUGS = frozenset({"nsm_object_link"})
-TYPECONFIG_SORT_ORDER_BY_SLUG = {
+
+# Canonical metadata defaults — written into bundle JSON only (not runtime Python).
+BUNDLE_ROLE_BY_SLUG = {
+    "nsm_zone": "zone",
+    "nsm_address": "address",
+    "nsm_address_custom": "address",
+    "nsm_address_group": "address_group",
+    "nsm_label": "label",
+    "nsm_service": "service",
+    "nsm_service_group": "service_group",
+    "nsm_action": "action",
+    "nsm_app_business": "app_business",
+    "nsm_app_network": "app_network",
+    "nsm_object_link": "object_link",
+}
+BUNDLE_MENU_BY_ROLE = {
+    "zone": "objects",
+    "address": "objects",
+    "address_group": "objects",
+    "label": "objects",
+    "service": "objects",
+    "service_group": "objects",
+    "action": "objects",
+    "app_business": "objects",
+    "app_network": "objects",
+    "object_link": "links",
+    "rulebook": "rulebooks",
+}
+BUNDLE_SORT_ORDER_BY_SLUG = {
     "nsm_zone": 10,
     "nsm_label": 11,
     "nsm_address": 12,
@@ -43,7 +71,13 @@ TYPECONFIG_SORT_ORDER_BY_SLUG = {
     "nsm_app_network": 22,
     "nsm_action": 30,
     "nsm_app_business": 40,
+    "nsm_object_link": 50,
 }
+
+SERVICE_DISPLAY_TEMPLATE = (
+    "{{ name }} ({{ protocol }}/{% if port_end and port_end != port %}"
+    "{{ port }}-{{ port_end }}{% elif port %}{{ port }}{% else %}—{% endif %})"
+)
 
 TYPECONFIG_SPECS = [
     ("nsm_zone", "Zones", "{{ name }}"),
@@ -51,7 +85,7 @@ TYPECONFIG_SPECS = [
     ("nsm_address_custom", "Addresses Custom", "{{ name }}"),
     ("nsm_address_group", "Address Groups", "{{ name }}"),
     ("nsm_label", "Labels", "{{ label_type[0] | upper }}:{{ name }}"),
-    ("nsm_service", "Services", "{{ name }} ({{ protocol }}/{{ port }})"),
+    ("nsm_service", "Services", SERVICE_DISPLAY_TEMPLATE),
     ("nsm_service_group", "Service Groups", "{{ name }}"),
     ("nsm_action", "Action", "{{ name | upper }}"),
     ("nsm_app_business", "Business Apps", "{{ name }}"),
@@ -109,7 +143,7 @@ def _write_json(path: Path, payload: dict) -> None:
 
 def _config_dict_from_spec(slug: str, display_template: str, areas: list[str]) -> dict:
     return {
-        "sort_order": TYPECONFIG_SORT_ORDER_BY_SLUG.get(slug, 0),
+        "sort_order": BUNDLE_SORT_ORDER_BY_SLUG.get(slug, 0),
         "display_template": display_template,
         "areas": list(areas),
     }
@@ -144,9 +178,6 @@ def _build_link_table_metadata(builtin_types) -> dict:
 
 
 def _build_metadata_types(builtin_types) -> dict:
-    from netbox_nsm.type_metadata.menus import DEFAULT_MENU_BY_ROLE
-    from netbox_nsm.type_metadata.roles import DEFAULT_ROLE_BY_SLUG
-
     areas_by_slug = {
         slug: areas for _td, _base, slug, areas in iter_builtin_types(builtin_types)
     }
@@ -157,13 +188,20 @@ def _build_metadata_types(builtin_types) -> dict:
         cfg = _config_dict_from_spec(
             slug, display_template, areas_by_slug.get(slug, [])
         )
-        role = DEFAULT_ROLE_BY_SLUG.get(slug)
+        role = BUNDLE_ROLE_BY_SLUG.get(slug)
         entry: dict = {}
         if role:
             entry["role"] = role
-            menu = DEFAULT_MENU_BY_ROLE.get(role)
+            menu = BUNDLE_MENU_BY_ROLE.get(role)
             if menu:
                 entry["menu"] = menu
+        rule_view = {
+            "sort_order": cfg["sort_order"],
+            "display_template": cfg["display_template"],
+        }
+        if cfg.get("areas"):
+            rule_view["areas"] = list(cfg["areas"])
+        entry["rule_view"] = rule_view
         result[slug] = entry
     return result
 
@@ -195,7 +233,7 @@ def _default_rule_view_for_slug(
     areas: list[str],
 ) -> dict:
     rule_view = {
-        "sort_order": TYPECONFIG_SORT_ORDER_BY_SLUG.get(slug, 0),
+        "sort_order": BUNDLE_SORT_ORDER_BY_SLUG.get(slug, 0),
         "display_template": display_template,
     }
     if areas:
@@ -239,6 +277,10 @@ def _rulebook_metadata_block(
         "rulebook": rulebook_cfg,
         "role": "rulebook",
         "menu": "rulebooks",
+        "rule_view": {
+            "sort_order": 0,
+            "display_template": "{{ name }}",
+        },
     }
     if rule_view_types:
         block["types"] = rule_view_types

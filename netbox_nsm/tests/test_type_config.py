@@ -10,9 +10,11 @@ class TypeMetadataPackageImportTests(TestCase):
     def test_config_module_importable(self):
         from netbox_nsm.type_metadata.config import (  # noqa: F401
             NsmTypeConfig,
+            apply_schema_bundle_metadata,
             build_nsm_config_lookup,
-            config_dict_from_spec,
+            config_dict_from_metadata_block,
             has_nsm_config_in_comments,
+            metadata_block_for_cot_slug,
             normalize_nsm_config_list,
             parse_nsm_config_from_cot,
             resolve_nsm_config_for_cot,
@@ -21,13 +23,12 @@ class TypeMetadataPackageImportTests(TestCase):
     def test_specs_module_importable(self):
         from netbox_nsm.type_metadata.specs import (  # noqa: F401
             REQUIRED_COT_SLUGS,
-            TYPECONFIG_SPEC_BY_SLUG,
-            TYPECONFIG_SPECS,
-            TYPECONFIG_UI_SPECS,
+            TYPECONFIG_LIST_EXCLUDED_SLUGS,
         )
 
     def test_export_module_importable(self):
         from netbox_nsm.type_metadata.export import (  # noqa: F401
+            apply_schema_bundle_metadata,
             build_type_config_export_data,
             content_type_export_ref,
             export_all_type_configs_yaml,
@@ -67,34 +68,16 @@ class TypeMetadataPackageImportTests(TestCase):
             config_form_class_for_slug,
         )
 
-    def test_legacy_objects_stubs_forward_to_type_metadata(self):
-        from netbox_nsm.objects import nsm_config, type_config_specs, type_config_export
-        from netbox_nsm.type_metadata import config, specs, export
-
-        self.assertIs(nsm_config.NsmTypeConfig, config.NsmTypeConfig)
-        self.assertIs(type_config_specs.TYPECONFIG_SPEC_BY_SLUG, specs.TYPECONFIG_SPEC_BY_SLUG)
-        self.assertIs(
-            type_config_export.export_type_config_yaml, export.export_type_config_yaml
-        )
-
-    def test_legacy_views_stub_forwards_to_type_metadata(self):
-        from netbox_nsm.views import type_metadata as old_views
-        from netbox_nsm.type_metadata import views
-
-        self.assertIs(old_views.TypeMetadataListView, views.TypeMetadataListView)
-
-    def test_legacy_forms_stub_forwards_to_type_metadata(self):
-        from netbox_nsm.forms import type_config as old_forms
-        from netbox_nsm.type_metadata import forms
-
-        self.assertIs(old_forms.NsmConfigForm, forms.NsmConfigForm)
-
-    def test_specs_have_required_cot_slugs(self):
-        from netbox_nsm.type_metadata.specs import REQUIRED_COT_SLUGS, TYPECONFIG_SPEC_BY_SLUG
+    def test_bundle_metadata_has_required_cot_slugs(self):
+        from netbox_nsm.type_metadata.config import metadata_block_for_cot_slug
+        from netbox_nsm.type_metadata.specs import REQUIRED_COT_SLUGS
 
         for slug in REQUIRED_COT_SLUGS:
             if slug != "nsm_object_link":
-                self.assertIn(slug, TYPECONFIG_SPEC_BY_SLUG)
+                self.assertIsNotNone(
+                    metadata_block_for_cot_slug(slug),
+                    msg=f"missing bundle metadata for {slug}",
+                )
 
     def test_permissions_return_strings(self):
         from netbox_nsm.type_metadata.permissions import (

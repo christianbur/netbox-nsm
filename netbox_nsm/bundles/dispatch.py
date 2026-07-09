@@ -396,10 +396,6 @@ def apply_bundle(
     apply_portable_schema_field_groups(portable)
     sync_all_rulebook_cots()
 
-    from netbox_nsm.type_metadata.config import sync_cot_display_templates_from_specs
-
-    display_templates_synced = sync_cot_display_templates_from_specs()
-
     return {
         "types_applied": len(portable.get("types") or []),
         "choice_sets_applied": choice_sets_applied,
@@ -407,7 +403,6 @@ def apply_bundle(
         "ipam_addresses_linked": ipam_linked,
         "metadata_types_synced": meta_counts["types"],
         "metadata_rulebooks_synced": meta_counts["rulebooks"],
-        "display_templates_synced": display_templates_synced,
     }
 
 
@@ -503,6 +498,8 @@ def sync_metadata(metadata: dict | None) -> dict[str, int]:
             updates["role"] = block["role"]
         if "menu" in block:
             updates["menu"] = block["menu"]
+        if "rule_view" in block and isinstance(block["rule_view"], dict):
+            updates["rule_view"] = dict(block["rule_view"])
         if not updates:
             continue
         save_nsm_config_document_for_cot(cot, updates)
@@ -538,6 +535,8 @@ def sync_metadata(metadata: dict | None) -> dict[str, int]:
             updates["role"] = block["role"]
         if "menu" in block:
             updates["menu"] = block["menu"]
+        if "rule_view" in block and isinstance(block["rule_view"], dict):
+            updates["rule_view"] = dict(block["rule_view"])
         if not updates:
             continue
         save_nsm_config_document_for_cot(cot, updates)

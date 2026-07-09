@@ -3544,6 +3544,9 @@ def _finalize_ipa_cell_object_tree_lazy(nodes, cell_object_keys, obj_by_key):
     _attach_ipa_cell_address_fields(nodes, obj_by_key)
     _attach_ipa_drilldown_meta(nodes, obj_by_key)
     _attach_ipa_cell_ipam_object_refs(nodes, obj_by_key)
+    from netbox_nsm.analyzers.ip_analyzer.ipa_zone_label import attach_ipa_cell_zone_label_refs
+
+    attach_ipa_cell_zone_label_refs(nodes, obj_by_key)
     _attach_ipa_cell_display_hints(nodes)
     _mark_ipa_cell_open_by_default(nodes)
     _annotate_ipa_cell_tree_depth(nodes)
@@ -3601,6 +3604,9 @@ def _build_ipa_cell_object_tree(raw_selections, obj_by_key):
     _ensure_ipa_cell_tree_network_links(nodes, tree_obj_by_key)
     _attach_ipa_cell_address_fields(nodes, tree_obj_by_key)
     _attach_ipa_cell_ipam_object_refs(nodes, tree_obj_by_key)
+    from netbox_nsm.analyzers.ip_analyzer.ipa_zone_label import attach_ipa_cell_zone_label_refs
+
+    attach_ipa_cell_zone_label_refs(nodes, tree_obj_by_key)
     _sync_ipa_cell_tree_node_flags(nodes)
     nodes = _prune_ipa_info_gap_nodes(nodes)
     _mark_ipa_ipam_parent_prefix_flags(nodes)
@@ -3733,6 +3739,9 @@ def _build_ipa_cell_object_tree_from_diff(addr_analyzer):
     _attach_ipa_drilldown_meta(nodes, {})
     _ensure_ipa_cell_tree_network_links(nodes, {})
     _attach_ipa_cell_ipam_object_refs(nodes, {})
+    from netbox_nsm.analyzers.ip_analyzer.ipa_zone_label import attach_ipa_cell_zone_label_refs
+
+    attach_ipa_cell_zone_label_refs(nodes, {})
     _sync_ipa_cell_tree_node_flags(nodes)
     _attach_ipa_cell_display_hints(nodes)
     _attach_ipa_explain_fields(nodes)

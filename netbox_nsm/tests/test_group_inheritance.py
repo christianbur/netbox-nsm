@@ -13,12 +13,14 @@ from netbox_nsm.objects.group_inheritance import (
 from netbox_nsm.addresses.ipam_inheritance import should_include_inherited_type
 from netbox_nsm.security.links.link_propagation import LinkPropagationChoices
 from netbox_nsm.security.links.object_link_service import ObjectLinkRecord
-from netbox_nsm.type_metadata.specs import TYPECONFIG_SPEC_BY_SLUG
+from netbox_nsm.type_metadata.config import metadata_block_for_cot_slug
 
 
 class GroupInheritanceTests(SimpleTestCase):
-    def test_specs_no_longer_define_inherit_mode(self):
-        self.assertNotIn("inherit_mode", TYPECONFIG_SPEC_BY_SLUG["nsm_zone"])
+    def test_bundle_metadata_no_longer_defines_inherit_mode(self):
+        block = metadata_block_for_cot_slug("nsm_zone")
+        self.assertIsNotNone(block)
+        self.assertNotIn("inherit_mode", block)
 
     def test_should_include_respects_link_propagation(self):
         link = MagicMock(

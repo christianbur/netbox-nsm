@@ -10,9 +10,14 @@ from dcim.models import Device, Interface, Rack, Region, Site
 from ipam.models import IPAddress, Prefix, VLAN, VRF
 from virtualization.models import VirtualMachine
 
-from netbox_nsm.type_metadata.config import NsmTypeConfig
+from netbox_nsm.type_metadata.config import (
+    NsmTypeConfig,
+    config_dict_from_metadata_block,
+    metadata_block_for_cot_slug,
+)
+from netbox_nsm.type_metadata.specs import REQUIRED_COT_SLUGS, TYPECONFIG_LIST_EXCLUDED_SLUGS
 from netbox_nsm.type_metadata.export import (
-    backfill_cot_nsm_config_comments,
+    apply_schema_bundle_metadata,
     build_all_type_configs_preview_rows,
     build_type_config_export_data,
     build_type_config_preview_rows,
@@ -22,11 +27,9 @@ from netbox_nsm.type_metadata.export import (
     export_type_config_yaml,
     format_all_type_configs_comment_yaml,
     format_type_config_comment_yaml,
-    format_type_config_comment_yaml_for_spec,
+    format_type_config_comment_yaml_for_metadata_block,
     format_type_config_comment_yaml_for_config,
-    sync_cot_nsm_config_comments,
 )
-from netbox_nsm.type_metadata.specs import TYPECONFIG_UI_SPECS
 from netbox_nsm.tests.rulebook_permission_helpers import grant_nsm_config_perms
 from netbox_nsm.type_metadata.views import TypeMetadataListEntry
 from utilities.testing import TestCase
@@ -112,16 +115,21 @@ class TypeConfigAllExportTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.prefix_ct = ContentType.objects.get_for_model(Prefix)
-        cls.ui_specs = TYPECONFIG_UI_SPECS
         cls.configs: list[NsmTypeConfig] = []
-        for spec in cls.ui_specs:
+        for slug in REQUIRED_COT_SLUGS:
+            if slug in TYPECONFIG_LIST_EXCLUDED_SLUGS:
+                continue
+            block = metadata_block_for_cot_slug(slug)
+            if not block:
+                continue
+            cfg_dict = config_dict_from_metadata_block(block)
             cls.configs.append(
                 NsmTypeConfig(
-                    slug=spec["slug"],
+                    slug=slug,
                     content_type_id=cls.prefix_ct.pk,
-                    name=spec["label"],
-                    sort_order=spec["sort_order"],
-                    display_template=spec["display_template"],
+                    name=slug,
+                    sort_order=cfg_dict["sort_order"],
+                    display_template=cfg_dict["display_template"],
                 )
             )
         cls.configs.sort(key=lambda cfg: (cfg.sort_order, cfg.name))
@@ -135,7 +143,7 @@ class TypeConfigAllExportTests(TestCase):
     def test_export_all_yaml_has_ten_configs(self):
         with self._patch_configs():
             sections = _parse_export_sections(export_all_type_configs_yaml())
-        self.assertEqual(len(sections), 11)
+        self.assertEqual(len(sections), 10)
 
     def test_export_all_yaml_sorted_by_sort_order(self):
         with self._patch_configs():
@@ -143,19 +151,19 @@ class TypeConfigAllExportTests(TestCase):
         sort_orders = [row["sort_order"] for row in sections]
         self.assertEqual(sort_orders, sorted(sort_orders))
         self.assertEqual(sections[0]["sort_order"], 10)
-        self.assertEqual(sections[-1]["sort_order"], 50)
+        self.assertEqual(sections[-1]["sort_order"], 40)
 
-    def test_export_all_yaml_includes_object_link(self):
+    def test_export_all_yaml_includes_all_ui_types_except_object_link(self):
         with self._patch_configs():
             sections = _parse_export_sections(export_all_type_configs_yaml())
         slugs = {cfg.slug for cfg in self.configs}
-        self.assertIn("nsm_object_link", slugs)
-        self.assertEqual(len(sections), 11)
+        self.assertNotIn("nsm_object_link", slugs)
+        self.assertEqual(len(sections), 10)
 
     def test_preview_rows_match_export_count(self):
         with self._patch_configs():
             rows = build_all_type_configs_preview_rows()
-        self.assertEqual(len(rows), 11)
+        self.assertEqual(len(rows), 10)
         self.assertEqual(rows[0]["slug"], "nsm_zone")
         self.assertEqual(rows[0]["sort_order"], 10)
 
@@ -190,18 +198,19 @@ class TypeConfigCommentYamlTests(TestCase):
         self.assertIn("display_template:", yaml_text)
         self.assertIn("{{ name }}", yaml_text)
 
-    def test_format_type_config_comment_yaml_for_spec(self):
-        spec = TYPECONFIG_UI_SPECS[0]
-        yaml_text = format_type_config_comment_yaml_for_spec(spec)
+    def test_format_type_config_comment_yaml_for_metadata_block(self):
+        block = metadata_block_for_cot_slug("nsm_zone")
+        self.assertIsNotNone(block)
+        yaml_text = format_type_config_comment_yaml_for_metadata_block(block)
         self.assertNotIn("# ", yaml_text)
-        self.assertIn(f"sort_order: {spec['sort_order']}\n", yaml_text)
+        self.assertIn("sort_order: 10\n", yaml_text)
         self.assertIn("display_template:", yaml_text)
 
-    def test_format_all_type_configs_comment_yaml_has_eleven_sections(self):
+    def test_format_all_type_configs_comment_yaml_has_ten_sections(self):
         sections = _parse_export_sections(format_all_type_configs_comment_yaml())
-        self.assertEqual(len(sections), 11)
+        self.assertEqual(len(sections), 10)
         self.assertEqual(sections[0]["sort_order"], 10)
-        self.assertEqual(sections[-1]["sort_order"], 50)
+        self.assertEqual(sections[-1]["sort_order"], 40)
 
     def test_comment_yaml_matches_export_format(self):
         type_config = NsmTypeConfig(
@@ -215,40 +224,7 @@ class TypeConfigCommentYamlTests(TestCase):
         export_yaml = export_type_config_yaml(type_config)
         self.assertEqual(comment_yaml.rstrip(), export_yaml.rstrip())
 
-    def test_sync_cot_nsm_config_comments_from_spec(self):
-        try:
-            from netbox_custom_objects.models import CustomObjectType
-        except ImportError:
-            self.skipTest("netbox_custom_objects not installed")
-
-        spec = TYPECONFIG_UI_SPECS[0]
-        cot = CustomObjectType.objects.create(
-            name="nsm_zone",
-            slug="nsm_zone",
-            verbose_name="Zones",
-        )
-        self.assertTrue(sync_cot_nsm_config_comments(cot, spec=spec))
-        cot.refresh_from_db()
-        self.assertNotIn("# Zones\n", cot.comments)
-        self.assertIn("nsm_config:", cot.comments)
-        self.assertFalse(sync_cot_nsm_config_comments(cot, spec=spec))
-
-    def test_sync_cot_nsm_config_comments_skips_object_link(self):
-        try:
-            from netbox_custom_objects.models import CustomObjectType
-        except ImportError:
-            self.skipTest("netbox_custom_objects not installed")
-
-        cot = CustomObjectType.objects.create(
-            name="nsm_object_link",
-            slug="nsm_object_link",
-            verbose_name="Object Links",
-        )
-        self.assertFalse(sync_cot_nsm_config_comments(cot))
-        cot.refresh_from_db()
-        self.assertNotIn("nsm_config:", cot.comments or "")
-
-    def test_backfill_cot_nsm_config_comments(self):
+    def test_apply_schema_bundle_metadata_writes_comments(self):
         try:
             from netbox_custom_objects.models import CustomObjectType
         except ImportError:
@@ -259,7 +235,13 @@ class TypeConfigCommentYamlTests(TestCase):
             slug="nsm_zone",
             verbose_name="Zones",
         )
-        updated = backfill_cot_nsm_config_comments()
-        self.assertGreaterEqual(updated, 1)
+        counts = apply_schema_bundle_metadata()
+        self.assertGreaterEqual(counts.get("types", 0), 1)
         cot.refresh_from_db()
         self.assertIn("nsm_config:", cot.comments)
+
+    def test_object_link_metadata_has_no_rule_view(self):
+        block = metadata_block_for_cot_slug("nsm_object_link")
+        self.assertIsNotNone(block)
+        self.assertTrue(block.get("link_table"))
+        self.assertNotIn("rule_view", block)

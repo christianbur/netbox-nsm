@@ -8,19 +8,18 @@ from django.utils.translation import gettext_lazy as _
 from netbox_nsm.core.display_template import DEFAULT_DISPLAY_TEMPLATE
 from netbox_nsm.type_metadata.config import (
     NsmTypeConfig,
-    backfill_cot_nsm_config_comments,
+    apply_schema_bundle_metadata,
+    build_nsm_config_lookup,
     build_nsm_config_preview_rows,
-    config_dict_from_spec,
+    config_dict_from_metadata_block,
     cot_slug_for_content_type,
     format_nsm_config_comment_yaml,
+    metadata_block_for_cot_slug,
     resolve_nsm_config_for_cot,
-    sync_cot_nsm_config_comments,
-    sync_cot_nsm_config_comments_for_slugs,
 )
-from netbox_nsm.type_metadata.specs import TYPECONFIG_UI_SPECS
 
 __all__ = (
-    "backfill_cot_nsm_config_comments",
+    "apply_schema_bundle_metadata",
     "build_all_type_configs_preview_rows",
     "build_type_config_export_data",
     "build_type_config_preview_rows",
@@ -30,10 +29,8 @@ __all__ = (
     "export_type_config_yaml",
     "format_all_type_configs_comment_yaml",
     "format_type_config_comment_yaml",
-    "format_type_config_comment_yaml_for_spec",
+    "format_type_config_comment_yaml_for_metadata_block",
     "format_type_config_comment_yaml_for_config",
-    "sync_cot_nsm_config_comments",
-    "sync_cot_nsm_config_comments_for_slugs",
 )
 
 
@@ -66,9 +63,9 @@ def format_type_config_comment_yaml(
     )
 
 
-def format_type_config_comment_yaml_for_spec(spec: dict) -> str:
-    """YAML section for a ``TYPECONFIG_*`` spec dict."""
-    return format_nsm_config_comment_yaml(config_dict_from_spec(spec))
+def format_type_config_comment_yaml_for_metadata_block(block: dict) -> str:
+    """YAML section for a bundle ``metadata`` block."""
+    return format_nsm_config_comment_yaml(config_dict_from_metadata_block(block))
 
 
 def format_type_config_comment_yaml_for_config(config: NsmTypeConfig) -> str:
@@ -82,32 +79,30 @@ def format_type_config_comment_yaml_for_config(config: NsmTypeConfig) -> str:
 
 
 def format_all_type_configs_comment_yaml() -> str:
-    """All nine UI Object Config definitions from ``TYPECONFIG_UI_SPECS``."""
+    """All bundled UI Object Config definitions from ``nsm_schema`` metadata."""
+    from netbox_nsm.type_metadata.specs import REQUIRED_COT_SLUGS, TYPECONFIG_LIST_EXCLUDED_SLUGS
+
+    rows: list[tuple[int, str, dict]] = []
+    for slug in REQUIRED_COT_SLUGS:
+        if slug in TYPECONFIG_LIST_EXCLUDED_SLUGS:
+            continue
+        block = metadata_block_for_cot_slug(slug)
+        if not block:
+            continue
+        cfg = config_dict_from_metadata_block(block)
+        rows.append((int(cfg.get("sort_order", 0)), slug, block))
     sections = [
-        format_type_config_comment_yaml_for_spec(spec).rstrip()
-        for spec in sorted(
-            TYPECONFIG_UI_SPECS,
-            key=lambda item: (item["sort_order"], item["label"]),
-        )
+        format_type_config_comment_yaml_for_metadata_block(block).rstrip()
+        for _sort, _slug, block in sorted(rows, key=lambda item: (item[0], item[1]))
     ]
-    return "\n\n".join(sections) + "\n"
+    return "\n\n".join(sections) + ("\n" if sections else "")
 
 
 def _resolved_ui_configs() -> list[NsmTypeConfig]:
-    try:
-        from netbox_custom_objects.models import CustomObjectType
-    except ImportError:
-        return []
-
-    configs: list[NsmTypeConfig] = []
-    for spec in TYPECONFIG_UI_SPECS:
-        cot = CustomObjectType.objects.filter(slug=spec["slug"]).first()
-        if not cot:
-            continue
-        resolved = resolve_nsm_config_for_cot(cot)
-        if resolved:
-            configs.append(resolved)
-    return sorted(configs, key=lambda item: (item.sort_order, item.name))
+    return sorted(
+        build_nsm_config_lookup().values(),
+        key=lambda item: (item.sort_order, item.name),
+    )
 
 
 def export_type_config_yaml(config: NsmTypeConfig) -> str:

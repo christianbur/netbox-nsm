@@ -7,8 +7,8 @@ from django.core.management.base import BaseCommand
 
 class Command(BaseCommand):
     help = (
-        "Write bundled nsm_config YAML into CustomObjectType.comments for all "
-        "nine UI object types (zones, addresses, services, …)."
+        "Write bundled nsm_config YAML from nsm_schema.json into "
+        "CustomObjectType.comments for all metadata types."
     )
 
     def handle(self, *args, **options):
@@ -20,11 +20,13 @@ class Command(BaseCommand):
             )
             return
 
-        from netbox_nsm.type_metadata.export import backfill_cot_nsm_config_comments
+        from netbox_nsm.type_metadata.config import apply_schema_bundle_metadata
 
-        updated = backfill_cot_nsm_config_comments()
+        counts = apply_schema_bundle_metadata()
+        updated = counts.get("types", 0) + counts.get("rulebooks", 0)
         self.stdout.write(
             self.style.SUCCESS(
-                f"Synced nsm_config comments on {updated} Custom Object Type(s)."
+                f"Synced nsm_config comments for {updated} Custom Object Type(s) "
+                f"({counts.get('types', 0)} types, {counts.get('rulebooks', 0)} rulebooks)."
             )
         )

@@ -9,7 +9,6 @@ from django.utils.translation import gettext_lazy as _
 __all__ = (
     "COT_MENU_CHOICES",
     "COT_MENU_VALUES",
-    "DEFAULT_MENU_BY_ROLE",
     "MENU_GROUP_NAMES",
     "cot_has_menu",
     "default_menu_for_slug",
@@ -33,20 +32,6 @@ COT_MENU_CHOICES = (
     ("rulebooks", _("Rulebooks")),
 )
 
-DEFAULT_MENU_BY_ROLE = {
-    "zone": "objects",
-    "address": "objects",
-    "address_group": "objects",
-    "label": "objects",
-    "service": "objects",
-    "service_group": "objects",
-    "action": "objects",
-    "app_business": "objects",
-    "app_network": "objects",
-    "object_link": "links",
-    "rulebook": "rulebooks",
-}
-
 
 def normalize_cot_menu(value: str | None) -> str | None:
     if value is None:
@@ -60,12 +45,9 @@ def normalize_cot_menu(value: str | None) -> str | None:
 
 
 def default_menu_for_slug(slug: str) -> str | None:
-    from netbox_nsm.type_metadata.roles import default_role_for_slug
-
-    role = default_role_for_slug(slug)
-    if not role:
-        return None
-    return DEFAULT_MENU_BY_ROLE.get(role)
+    """No slug-based menu defaults — menu must be stored in COT comments or bundle metadata."""
+    del slug
+    return None
 
 
 @lru_cache(maxsize=512)
@@ -89,15 +71,14 @@ def parse_menu_from_comments(text: str) -> str | None:
 
 
 def resolve_menu_for_cot(cot) -> str | None:
-    """Return the effective menu bucket for *cot* (COT type comments override slug defaults)."""
+    """Return the effective menu bucket for *cot* from COT type comments only."""
     from netbox_nsm.type_metadata.config import _custom_object_type_comments, _is_custom_object_type
 
     if not _is_custom_object_type(cot):
         parent = getattr(cot, "custom_object_type", None)
         if parent is not None and parent is not cot:
             return resolve_menu_for_cot(parent)
-        slug = getattr(cot, "slug", "") or getattr(parent, "slug", "") or ""
-        return default_menu_for_slug(slug)
+        return default_menu_for_slug(getattr(cot, "slug", "") or getattr(parent, "slug", "") or "")
 
     stored = parse_menu_from_comments(_custom_object_type_comments(cot) or "")
     if stored:

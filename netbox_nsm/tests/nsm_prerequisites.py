@@ -13,14 +13,7 @@ from netbox_nsm.bundles.schema_builder import (
     iter_types,
     slugify_identifier,
 )
-from netbox_nsm.type_metadata.export import (
-    sync_cot_nsm_config_comments,
-    sync_cot_nsm_config_comments_for_slugs,
-)
-from netbox_nsm.type_metadata.specs import (
-    REQUIRED_COT_SLUGS,
-    TYPECONFIG_SPEC_BY_SLUG,
-)
+from netbox_nsm.type_metadata.specs import REQUIRED_COT_SLUGS
 from netbox_nsm.rulebooks.templates import (
     RULEBOOK_TEMPLATE_SLUGS,
     build_rulebook_document,
@@ -122,13 +115,9 @@ def _import_all_types() -> None:
 
 
 def _create_all_typeconfigs() -> None:
-    for typedef, _base_slug, slug, _areas in iter_types(BUILTIN_CUSTOM_TYPES):
-        try:
-            cot = CustomObjectType.objects.get(slug=slug)
-        except CustomObjectType.DoesNotExist:
-            continue
-        spec = TYPECONFIG_SPEC_BY_SLUG.get(slug)
-        sync_cot_nsm_config_comments(cot, spec=spec)
+    from netbox_nsm.type_metadata.config import apply_schema_bundle_metadata
+
+    apply_schema_bundle_metadata()
 
 
 def _typeconfigs_ok(cot_status: dict) -> bool:

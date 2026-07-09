@@ -1,12 +1,9 @@
-"""COT comments field: nsm_config YAML sync and backfill."""
+"""COT comments field: nsm_config YAML sync from bundle metadata."""
 
 from django.test import TestCase
 
-from netbox_nsm.type_metadata.export import (
-    backfill_cot_nsm_config_comments,
-    sync_cot_nsm_config_comments,
-)
-from netbox_nsm.type_metadata.specs import TYPECONFIG_LIST_EXCLUDED_SLUGS, TYPECONFIG_UI_SPECS
+from netbox_nsm.type_metadata.config import apply_schema_bundle_metadata, metadata_block_for_cot_slug
+from netbox_nsm.type_metadata.specs import REQUIRED_COT_SLUGS, TYPECONFIG_LIST_EXCLUDED_SLUGS
 
 
 class CotNsmConfigCommentsApplyDocumentTests(TestCase):
@@ -17,86 +14,61 @@ class CotNsmConfigCommentsApplyDocumentTests(TestCase):
         for type_def in document["types"]:
             self.assertNotIn("comments", type_def)
 
-    def test_sync_restores_comments_after_manual_clear(self):
+    def test_apply_schema_bundle_metadata_restores_comments(self):
         try:
             from netbox_custom_objects.models import CustomObjectType
         except ImportError:
             self.skipTest("netbox_custom_objects not installed")
 
-        spec = next(s for s in TYPECONFIG_UI_SPECS if s["slug"] == "nsm_zone")
         cot, _ = CustomObjectType.objects.get_or_create(
             slug="nsm_zone",
             defaults={"name": "nsm_zone", "verbose_name": "Zones"},
         )
-        sync_cot_nsm_config_comments(cot, spec=spec)
+        counts = apply_schema_bundle_metadata()
+        self.assertGreaterEqual(counts.get("types", 0), 1)
         cot.refresh_from_db()
         self.assertIn("nsm_config:", cot.comments)
 
         cot.comments = ""
         cot.save(update_fields=["comments"])
-        sync_cot_nsm_config_comments(cot, spec=spec)
+        counts = apply_schema_bundle_metadata()
+        self.assertGreaterEqual(counts.get("types", 0), 1)
         cot.refresh_from_db()
         self.assertIn("nsm_config:", cot.comments)
 
-    def test_backfill_populates_empty_ui_cots(self):
+    def test_apply_schema_bundle_metadata_populates_ui_cots(self):
         try:
             from netbox_custom_objects.models import CustomObjectType
         except ImportError:
             self.skipTest("netbox_custom_objects not installed")
 
-        for spec in TYPECONFIG_UI_SPECS:
+        for slug in REQUIRED_COT_SLUGS:
             CustomObjectType.objects.get_or_create(
-                slug=spec["slug"],
-                defaults={
-                    "name": spec["slug"],
-                    "verbose_name": spec["label"],
-                },
+                slug=slug,
+                defaults={"name": slug, "verbose_name": slug},
             )
 
-        updated = backfill_cot_nsm_config_comments()
+        counts = apply_schema_bundle_metadata()
         expected = len(
-            [spec for spec in TYPECONFIG_UI_SPECS if spec["slug"] not in TYPECONFIG_LIST_EXCLUDED_SLUGS]
+            [
+                slug
+                for slug in REQUIRED_COT_SLUGS
+                if slug not in TYPECONFIG_LIST_EXCLUDED_SLUGS
+                and metadata_block_for_cot_slug(slug)
+            ]
         )
-        self.assertEqual(updated, expected)
+        self.assertGreaterEqual(counts.get("types", 0), expected)
 
-        for spec in TYPECONFIG_UI_SPECS:
-            if spec["slug"] in TYPECONFIG_LIST_EXCLUDED_SLUGS:
+        for slug in REQUIRED_COT_SLUGS:
+            if slug in TYPECONFIG_LIST_EXCLUDED_SLUGS:
                 continue
-            cot = CustomObjectType.objects.get(slug=spec["slug"])
+            cot = CustomObjectType.objects.get(slug=slug)
             self.assertIn("nsm_config:", cot.comments)
-            self.assertNotIn(f"# {spec['label']}", cot.comments)
 
-    def test_sync_display_template_upgrades_legacy_service_template(self):
-        try:
-            from netbox_custom_objects.models import CustomObjectType
-        except ImportError:
-            self.skipTest("netbox_custom_objects not installed")
-
+    def test_bundle_service_metadata_has_port_range_template(self):
         from netbox_nsm.core.display_template import SERVICE_DISPLAY_TEMPLATE
-        from netbox_nsm.type_metadata.config import (
-            format_nsm_config_comment_yaml,
-            sync_cot_display_template_from_spec,
-        )
-        from netbox_nsm.type_metadata.specs import TYPECONFIG_SPEC_BY_SLUG
 
-        spec = TYPECONFIG_SPEC_BY_SLUG["nsm_service"]
-        cot, _ = CustomObjectType.objects.get_or_create(
-            slug="nsm_service",
-            defaults={"name": "nsm_service", "verbose_name": "Services"},
-        )
-        legacy = format_nsm_config_comment_yaml(
-            {
-                "sort_order": 20,
-                "display_template": "{{ name }} ({{ protocol }}/{{ port }})",
-                "areas": ["services"],
-            }
-        )
-        cot.comments = legacy
-        cot.save(update_fields=["comments"])
-
-        self.assertTrue(sync_cot_display_template_from_spec(cot, spec=spec))
-        cot.refresh_from_db()
-        from netbox_nsm.type_metadata.config import _stored_nsm_config_document
-
-        stored = _stored_nsm_config_document(cot.comments)
-        self.assertEqual(stored["rule_view"]["display_template"], SERVICE_DISPLAY_TEMPLATE)
+        block = metadata_block_for_cot_slug("nsm_service")
+        self.assertIsNotNone(block)
+        rule_view = block.get("rule_view") or {}
+        self.assertEqual(rule_view.get("display_template"), SERVICE_DISPLAY_TEMPLATE)

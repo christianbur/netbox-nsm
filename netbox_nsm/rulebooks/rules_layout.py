@@ -327,8 +327,6 @@ def _sort_key_for_object_type(
     *,
     tc_lookup: dict[int, tuple[int, str]] | None = None,
 ) -> tuple[int, str, str]:
-    from netbox_nsm.type_metadata.specs import default_sort_order_for_slug
-
     ct_id = None
     try:
         ct_id = _content_type_for_object_type(object_type).pk
@@ -340,8 +338,12 @@ def _sort_key_for_object_type(
 
     cot = _cot_for_object_type(object_type)
     if cot is not None:
+        from netbox_nsm.type_metadata.config import resolve_nsm_config_for_cot
+
+        resolved = resolve_nsm_config_for_cot(cot)
+        sort_order = resolved.sort_order if resolved else 0
         return (
-            default_sort_order_for_slug(cot.slug),
+            sort_order,
             (cot.verbose_name or cot.name or "").strip(),
             object_type.model,
         )

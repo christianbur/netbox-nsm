@@ -19,7 +19,7 @@ PLUGINS = ["netbox_custom_objects", "netbox_nsm"]
 
 | Step | Content | Action |
 |------|---------|--------|
-| 1 | NSM Schema (`nsm_schema`) | **Apply** (required) — imports built-in `nsm_*` COTs and syncs bundle `metadata.types` / `metadata.rulebooks` into each type's `comments` (`nsm_config` YAML) |
+| 1 | NSM Schema (`nsm_schema`) | **Apply** (required) — imports built-in `nsm_*` COTs and syncs bundle `metadata.types` / `metadata.rulebooks` (role, menu, `rule_view`) into each type's `comments` (`nsm_config` YAML) |
 | 2 | Demo bundles | Optional **RB Demo Zone Matrix**, **RB Demo Zone/Address** (Preview → Apply) |
 
 `nsm_config` is written during bundle apply (`sync_metadata()`). Adjust per-type settings later via **Security → Type Metadata** or the REST API.

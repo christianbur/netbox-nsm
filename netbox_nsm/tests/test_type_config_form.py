@@ -2,14 +2,10 @@
 
 from django.utils.translation import gettext as _
 
+from netbox_nsm.type_metadata.config import config_dict_from_metadata_block, metadata_block_for_cot_slug
 from netbox_nsm.type_metadata.forms import NsmAddressConfigForm, NsmConfigForm, area_labels_for_values
 from netbox_nsm.forms.widgets import BtnCheckMultipleWidget
-from netbox_nsm.type_metadata.specs import (
-    TYPECONFIG_SORT_ORDER_BY_SLUG,
-    TYPECONFIG_SPECS,
-    TYPECONFIG_UI_SPECS,
-    default_sort_order_for_slug,
-)
+from netbox_nsm.type_metadata.specs import REQUIRED_COT_SLUGS, TYPECONFIG_LIST_EXCLUDED_SLUGS
 from utilities.testing import TestCase
 
 
@@ -80,15 +76,15 @@ class NsmConfigFormTests(TestCase):
             ["Action", "Services"],
         )
 
-    def test_ui_specs_include_object_link(self):
-        ui_slugs = {spec["slug"] for spec in TYPECONFIG_UI_SPECS}
-        spec_slugs = {spec["slug"] for spec in TYPECONFIG_SPECS}
-        self.assertEqual(ui_slugs, spec_slugs)
-        self.assertIn("nsm_object_link", ui_slugs)
-        for slug, expected in {
-            **TYPECONFIG_SORT_ORDER_BY_SLUG,
-        }.items():
-            self.assertEqual(default_sort_order_for_slug(slug), expected)
+    def test_bundle_metadata_covers_required_cot_slugs(self):
+        for slug in REQUIRED_COT_SLUGS:
+            if slug in TYPECONFIG_LIST_EXCLUDED_SLUGS:
+                continue
+            block = metadata_block_for_cot_slug(slug)
+            self.assertIsNotNone(block, msg=slug)
+            cfg = config_dict_from_metadata_block(block)
+            self.assertIn("sort_order", cfg)
+            self.assertIn("display_template", cfg)
 
         form = NsmAddressConfigForm()
         fieldset_names = [fs.name for fs in form.fieldsets]

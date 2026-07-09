@@ -1,0 +1,14 @@
+{% load i18n %}
+{% if node.label_refs %}
+<div class="nsm-ipa-cell-label-refs">
+  {% for ref in node.label_refs %}
+  {% if ref.url %}
+  <a href="{{ ref.url }}" class="nsm-ipa-cell-label-link" title="{{ ref.name }}">{{ ref.name }}</a>{% if not forloop.last %}<span class="text-muted">, </span>{% endif %}
+  {% else %}
+  <span class="nsm-ipa-cell-label-text">{{ ref.name }}</span>{% if not forloop.last %}<span class="text-muted">, </span>{% endif %}
+  {% endif %}
+  {% endfor %}
+</div>
+{% else %}
+<span class="text-muted">—</span>
+{% endif %}

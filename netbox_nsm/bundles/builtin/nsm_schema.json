@@ -1168,39 +1168,83 @@
     "types": {
       "nsm_zone": {
         "role": "zone",
-        "menu": "objects"
+        "menu": "objects",
+        "rule_view": {
+          "sort_order": 10,
+          "display_template": "{{ name }}"
+        }
       },
       "nsm_address": {
         "role": "address",
-        "menu": "objects"
+        "menu": "objects",
+        "rule_view": {
+          "sort_order": 12,
+          "display_template": "{{ name }}"
+        }
+      },
+      "nsm_address_custom": {
+        "role": "address",
+        "menu": "objects",
+        "rule_view": {
+          "sort_order": 13,
+          "display_template": "{{ name }}"
+        }
       },
       "nsm_address_group": {
         "role": "address_group",
-        "menu": "objects"
+        "menu": "objects",
+        "rule_view": {
+          "sort_order": 14,
+          "display_template": "{{ name }}"
+        }
       },
       "nsm_label": {
         "role": "label",
-        "menu": "objects"
+        "menu": "objects",
+        "rule_view": {
+          "sort_order": 11,
+          "display_template": "{{ label_type[0] | upper }}:{{ name }}"
+        }
       },
       "nsm_service": {
         "role": "service",
-        "menu": "objects"
+        "menu": "objects",
+        "rule_view": {
+          "sort_order": 20,
+          "display_template": "{{ name }} ({{ protocol }}/{% if port_end and port_end != port %}{{ port }}-{{ port_end }}{% elif port %}{{ port }}{% else %}—{% endif %})"
+        }
       },
       "nsm_service_group": {
         "role": "service_group",
-        "menu": "objects"
+        "menu": "objects",
+        "rule_view": {
+          "sort_order": 21,
+          "display_template": "{{ name }}"
+        }
       },
       "nsm_action": {
         "role": "action",
-        "menu": "objects"
+        "menu": "objects",
+        "rule_view": {
+          "sort_order": 30,
+          "display_template": "{{ name | upper }}"
+        }
       },
       "nsm_app_business": {
         "role": "app_business",
-        "menu": "objects"
+        "menu": "objects",
+        "rule_view": {
+          "sort_order": 40,
+          "display_template": "{{ name }}"
+        }
       },
       "nsm_app_network": {
         "role": "app_network",
-        "menu": "objects"
+        "menu": "objects",
+        "rule_view": {
+          "sort_order": 22,
+          "display_template": "{{ name }}"
+        }
       },
       "nsm_object_link": {
         "link_table": true
@@ -1212,7 +1256,11 @@
           "parent_slug": ""
         },
         "role": "rulebook",
-        "menu": "rulebooks"
+        "menu": "rulebooks",
+        "rule_view": {
+          "sort_order": 0,
+          "display_template": "{{ name }}"
+        }
       }
     }
   }

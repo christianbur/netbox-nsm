@@ -7,15 +7,15 @@ import yaml
 from netbox_nsm.security.tab.cot_metadata import cot_link_table_flag
 from netbox_nsm.type_metadata.config import (
     _parse_nsm_config_yaml,
-    config_dict_from_spec,
+    config_dict_from_metadata_block,
     extract_nsm_config_from_type_comments,
     format_nsm_config_comment_yaml,
     has_nsm_config_in_comments,
+    metadata_block_for_cot_slug,
     normalize_nsm_config_list,
     parse_nsm_config_from_cot,
     resolve_nsm_config_dict_for_cot,
 )
-from netbox_nsm.type_metadata.specs import TYPECONFIG_SPEC_BY_SLUG
 from utilities.testing import TestCase
 
 
@@ -78,9 +78,10 @@ class NsmConfigFormatTests(TestCase):
         self.assertEqual(config["sort_order"], 10)
         self.assertNotIn("links", config)
 
-    def test_nsm_address_spec_has_no_links_block(self):
-        spec = TYPECONFIG_SPEC_BY_SLUG["nsm_address"]
-        config = config_dict_from_spec(spec)
+    def test_bundle_address_metadata_has_no_links_block(self):
+        block = metadata_block_for_cot_slug("nsm_address")
+        self.assertIsNotNone(block)
+        config = config_dict_from_metadata_block(block)
         self.assertNotIn("links", config)
         self.assertNotIn("object_builder", config)
         yaml_text = format_nsm_config_comment_yaml(config)
@@ -199,4 +200,4 @@ class NsmConfigFormatTests(TestCase):
             slug="nsm_address",
             custom_object_type=SimpleNamespace(slug="nsm_address"),
         )
-        self.assertEqual(resolve_menu_for_cot(instance), "objects")
+        self.assertIsNone(resolve_menu_for_cot(instance))

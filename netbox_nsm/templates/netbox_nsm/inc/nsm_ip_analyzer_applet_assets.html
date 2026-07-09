@@ -1,6 +1,6 @@
 {% load i18n object_type %}
 {% include "netbox_nsm/inc/ip_analyzer_assets.html" %}
-<link rel="stylesheet" href="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='css/nsm_ip_analyzer_applet.css' %}?v=202607077">
+<link rel="stylesheet" href="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='css/nsm_ip_analyzer_applet.css' %}?v=202607099">
 <script>
   window.NSM_IPA_ANALYZER_TIMEOUT_MS = window.NSM_IPA_ANALYZER_TIMEOUT_MS || {% nsm_plugin_setting "ipa_analyzer_timeout_ms" 120000 %};
   window.NSM_IP_ANALYZER_API = window.NSM_IP_ANALYZER_API || "{% url 'plugins:netbox_nsm:ip_analyzer_api' %}";

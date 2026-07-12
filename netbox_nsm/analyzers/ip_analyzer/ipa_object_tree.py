@@ -30,6 +30,14 @@ from netbox_nsm.analyzers.ip_analyzer.ipa_object_node import (
     _ipa_object_node_role_from_tree_node,
     _ipa_object_node_should_drilldown,
 )
+from netbox_nsm.analyzers.ip_analyzer.ipa_network_identity import (
+    host_network_from_value,
+    values_equal as _ipa_values_equal,
+)
+from netbox_nsm.analyzers.ip_analyzer.ipa_cell_merge import (
+    collapse_siblings_by_network as _ipa_collapse_siblings_by_network,
+    merge_nodes_by_network as _ipa_merge_nodes_by_network,
+)
 
 IPA_TREE_NODE_CELL_SELECTED = "cell_selected"
 IPA_TREE_NODE_IPAM_FILLER = "ipam_filler"
@@ -1370,6 +1378,19 @@ def _ipa_object_tree_containment_network(node):
     # merging stays stable even when display strings contain FQDN/domain labels.
     ipam_obj = _hub._ipam_obj_from_ip_ref(ip_ref) if ip_ref else None
     if ipam_obj is not None:
+        ipam_model = _ipa_ipam_model_name(ipam_obj)
+        ipam_address = getattr(ipam_obj, "address", None)
+        ipam_prefix = getattr(ipam_obj, "prefix", None)
+        ipam_start = getattr(ipam_obj, "start_address", None)
+        looks_like_ipaddress = (
+            ipam_address is not None and ipam_prefix is None and ipam_start is None
+        )
+        force_host = (
+            role == IPA_NODE_ROLE_HOST
+            or ip_ref.get("type") == _FIELD_TYPE_LABELS["ip_address"]
+            or ipam_model == "ipaddress"
+            or looks_like_ipaddress
+        )
         for candidate in (
             getattr(ipam_obj, "address", None),
             getattr(ipam_obj, "prefix", None),
@@ -1380,16 +1401,11 @@ def _ipa_object_tree_containment_network(node):
                 net = ipaddress.ip_network(str(candidate).strip(), strict=False)
             except ValueError:
                 continue
-            if role == IPA_NODE_ROLE_HOST or ip_ref.get("type") == _FIELD_TYPE_LABELS["ip_address"]:
-                if net.prefixlen == net.max_prefixlen:
-                    return net
-                host_ip = str(net.network_address)
-                try:
-                    return ipaddress.ip_network(
-                        f"{host_ip}/{net.max_prefixlen}", strict=False
-                    )
-                except ValueError:
-                    continue
+            if force_host:
+                host_net = host_network_from_value(candidate)
+                if host_net is not None:
+                    return host_net
+                continue
             return net
 
         start_address = getattr(ipam_obj, "start_address", None)
@@ -1406,23 +1422,17 @@ def _ipa_object_tree_containment_network(node):
         for candidate in (
             _ipa_cidr_from_host_object_name(node.get("name")),
             ip_ref.get("str"),
-            node.get("prefix_display_cidr"),
         ):
             if not candidate:
                 continue
-            try:
-                net = ipaddress.ip_network(str(candidate).strip(), strict=False)
-            except ValueError:
+            host_net = host_network_from_value(candidate)
+            if host_net is None:
                 continue
-            if net.prefixlen == net.max_prefixlen:
-                return net
-            host_ip = str(net.network_address)
-            try:
-                return ipaddress.ip_network(
-                    f"{host_ip}/{net.max_prefixlen}", strict=False
-                )
-            except ValueError:
-                continue
+            return host_net
+        # Do not fall back to prefix-scale hints (/24, /16, ...) for host rows.
+        # Otherwise unrelated host-like entries can collapse into one row and
+        # incorrectly show MERGE/DUP badges.
+        return None
     net = _hub._addr_tree_node_network(node)
     if net is not None:
         return net
@@ -1655,36 +1665,21 @@ def _merge_ipa_cell_node_metadata(keeper, other):
 
 def _merge_ipa_cell_nodes_by_network(nodes):
     """Collapse distinct address objects that resolve to the same network."""
-    merged: dict[tuple, dict] = {}
-    unkeyed: list[dict] = []
-    for node in nodes or []:
-        net_key = _ipa_object_tree_network_key(node)
-        if net_key is None:
-            unkeyed.append(node)
-            continue
-        keeper = merged.get(net_key)
-        if keeper is None:
-            merged[net_key] = node
-            continue
-        if node.get("is_cell_direct") and not keeper.get("is_cell_direct"):
-            _merge_ipa_cell_node_metadata(node, keeper)
-            merged[net_key] = node
-        else:
-            _merge_ipa_cell_node_metadata(keeper, node)
-    result = _sort_ipa_object_tree_siblings(list(merged.values()) + unkeyed)
-    for node in result:
-        _sync_cell_addresses(node)
-    return result
+    return _ipa_merge_nodes_by_network(
+        nodes,
+        network_key_fn=_ipa_object_tree_network_key,
+        sort_fn=_sort_ipa_object_tree_siblings,
+        merge_metadata_fn=_merge_ipa_cell_node_metadata,
+        sync_addresses_fn=_sync_cell_addresses,
+    )
 
 
 def _collapse_ipa_cell_siblings_by_network(nodes):
     """Merge same-network siblings at every tree level (one row per CIDR)."""
-    collapsed = _merge_ipa_cell_nodes_by_network(nodes)
-    for node in collapsed:
-        children = node.get("children")
-        if children:
-            node["children"] = _collapse_ipa_cell_siblings_by_network(children)
-    return collapsed
+    return _ipa_collapse_siblings_by_network(
+        nodes,
+        merge_nodes_fn=_merge_ipa_cell_nodes_by_network,
+    )
 
 
 def _ipa_cidr_from_dashed_octet_tail(name):
@@ -1804,10 +1799,8 @@ def _ipa_member_containment_network(member):
 
 
 def _ipa_networks_equal(left, right):
-    """True when two ipaddress networks represent the same CIDR."""
-    if left is None or right is None:
-        return False
-    return str(left) == str(right)
+    """True when IP/prefix/range values represent the same endpoint set."""
+    return _ipa_values_equal(left, right)
 
 
 def _ipa_resolve_group_containment_network_from_members(obj):

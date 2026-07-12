@@ -4,6 +4,16 @@ All notable changes to **netbox-nsm** are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.21] - 2026-07-12
+
+### Changed
+
+- IP Analyzer intern refactored: Netzwerk-Identitaet in ipa_network_identity.py und Merge/Collapse-Orchestrierung in ipa_cell_merge.py ausgelagert (verhaltensstabil).
+
+### Fixed
+
+- IP Analyzer: Host-Merge nutzt konsequent Python-ipaddress-Normalisierung (IP/Prefix/Range) und verhindert falsche DUP/MERGE-Marker bei Prefix-only-Hinweisen.
+
 ## [0.4.20] - 2026-07-12
 
 ### Fixed
@@ -715,3 +725,4 @@ First release in the 0.2.x line.
 [0.4.18]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.18
 [0.4.19]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.19
 [0.4.20]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.20
+[0.4.21]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.21

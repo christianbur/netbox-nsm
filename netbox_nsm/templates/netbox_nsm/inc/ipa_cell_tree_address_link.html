@@ -49,7 +49,7 @@
 <span class="nsm-ipa-cell-tree-address-entry{% if node.status %} nsm-ipa-cell-tree-address-entry--inactive{% endif %}"><a href="{{ node.url }}" class="nsm-addr-obj-link{% if node.status %} text-muted fst-italic{% endif %}" title="{% ipa_cell_tree_address_link_title node.name node=node address_status=node.status %}">{{ node_ipam_display }}</a>{% if node.status %}{% include "netbox_nsm/inc/ipa_nsm_object_status_icon.html" with status=node.status %}{% endif %}</span>
 {% endif %}
 {% endif %}
-{% if node.addr_drilldown_lazy %}
+{% if node.addr_drilldown_lazy and node.ip_ref.type != "IP Address" %}
 <button type="button" class="btn btn-sm btn-link p-0 nsm-ipa-cell-lazy-network-load"
 	title="{% trans 'Expand network objects' %}"
 	aria-label="{% trans 'Expand network objects' %}">

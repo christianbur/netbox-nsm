@@ -4,14 +4,22 @@
 
 ## ⚠️ KRITISCH: Tag-Platzierung
 
-Das Tag **muss auf dem Merge-Commit zeigen**, nicht auf Release-Commit!
+Das Tag **muss auf dem neuesten main-Commit zeigen** (nach allen Merges), nicht auf einen älteren Commit!
 
 ```
-Merge dev into main (26fd0b9) ← TAG v0.4.23 HIER! ✅
-Release v0.4.23 (2df83ed)     ← NICHT hier! ❌
+3915ac5 main (after all merges) ← TAG v0.4.23 HIER! ✅
+  └─ version.py = 0.4.23
+  └─ Alle Features
+  └─ Finale Doku
 ```
 
-**Richtig**: Tag erst nach Merge erstellen!
+**WICHTIG**: 
+- Tag wird **AUF main** erstellt (nicht auf dev!)
+- Das muss der **neueste main** Commit sein  
+- GitHub Actions triggert auf Tags und baut damit → MUSS korrekte version.py haben!
+- Falls Tag auf altem Commit: PyPI-Upload schlägt fehl mit "File already exists"
+
+**Richtig**: Tag erst nach Merge auf main erstellen!
 
 ---
 

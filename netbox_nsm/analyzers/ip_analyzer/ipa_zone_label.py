@@ -46,6 +46,11 @@ def _display_ref(linked, *, tmpl_map, inherited: bool = False, inherited_from: s
 def _direct_refs_for_roles(obj, *, roles: set[str], tmpl_map, include_found_on: bool = False) -> list[dict[str, Any]]:
     from netbox_nsm.security.links.object_link_service import iter_links_for_object
 
+    # Some analyzer rows can carry scalar CIDR helpers (e.g. netaddr.IPNetwork).
+    # These are not Django model instances and cannot be resolved via ContentType.
+    if obj is None or getattr(obj, "_meta", None) is None:
+        return []
+
     refs: list[dict[str, Any]] = []
     seen: set[tuple[str, str]] = set()
     for link, direction in iter_links_for_object(obj):

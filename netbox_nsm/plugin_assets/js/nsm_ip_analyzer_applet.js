@@ -1401,8 +1401,20 @@
 
     this._unobserveBodyContent();
     if (tab.status === "loading") {
-      this.bodyEl.innerHTML = loadingHtml();
-      statusEl.textContent = "";
+      this.bodyEl.innerHTML = loadingHtml({
+        objectCount: tab._loadingObjectCount,
+        lazy: tab._loadingLazy,
+      });
+      var loadingStatusParts = [ipaT("Analyzer running…")];
+      if (tab._loadingObjectCount != null) {
+        loadingStatusParts.push(
+          ipaTf("Selected objects: %(count)s", { count: tab._loadingObjectCount })
+        );
+      }
+      if (tab._loadingLazy) {
+        loadingStatusParts.push(ipaT("Lazy preview"));
+      }
+      statusEl.textContent = loadingStatusParts.join(" | ");
       countEl.textContent = "";
       return;
     }
@@ -1594,10 +1606,6 @@
     var token = tab.loadToken;
     var self = this;
 
-    if (tab.id === this.activeTabId) {
-      this.renderActiveContent();
-    }
-
     var tabObjectCount =
       tab.mode === "diff"
         ? (tab.sides || []).reduce(function (count, side) {
@@ -1605,6 +1613,12 @@
           }, 0)
         : ((tab.rawObjects && tab.rawObjects.length) || (tab.objects && tab.objects.length) || 0);
     var useLazy = true;
+    tab._loadingObjectCount = tabObjectCount;
+    tab._loadingLazy = useLazy;
+
+    if (tab.id === this.activeTabId) {
+      this.renderActiveContent();
+    }
     var scheduleBackgroundFullRefresh = false;
 
     var url =

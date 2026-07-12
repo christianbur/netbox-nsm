@@ -273,10 +273,20 @@ def _ipam_obj_from_ip_ref(ip_ref):
 
 
 def _ipam_fk_object_for_addr_node(obj):
+    # Direct IPAM ORM objects should resolve to themselves.
+    try:
+        meta = getattr(obj, "_meta", None)
+        if meta and getattr(meta, "app_label", "") == "ipam":
+            if getattr(meta, "model_name", "") in {"prefix", "iprange", "ipaddress"}:
+                return obj
+    except Exception:
+        pass
+
     for field_name in _addr_ip_ref_field_order(obj):
         try:
             related = getattr(obj, field_name, None)
-            if related is not None:
+            # Ignore scalar helpers (e.g. Prefix.prefix -> netaddr.IPNetwork).
+            if related is not None and getattr(related, "_meta", None) is not None:
                 return related
         except Exception:
             pass

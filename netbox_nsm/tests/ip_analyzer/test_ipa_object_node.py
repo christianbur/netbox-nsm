@@ -94,6 +94,12 @@ class IpaObjectNodeRoleTests(SimpleTestCase):
             IPA_NODE_ROLE_HOST,
         )
 
+    def test_role_from_direct_ipam_prefix_object(self):
+        obj = MagicMock()
+        obj._meta = MagicMock(app_label="ipam", model_name="prefix")
+
+        self.assertEqual(_ipa_object_node_role_from_obj(obj), IPA_NODE_ROLE_PREFIX)
+
     def test_should_drilldown_prefix_node_without_type(self):
         node = {
             "kind": "group",

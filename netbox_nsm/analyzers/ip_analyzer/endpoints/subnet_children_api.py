@@ -22,6 +22,12 @@ from netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils import (
 __all__ = ("IpAnalyzerSubnetChildrenApiView",)
 
 
+def _mark_lazy_loaded_nodes(nodes):
+    for node in nodes or []:
+        node["ipa_lazy_loaded"] = True
+        _mark_lazy_loaded_nodes(node.get("children") or [])
+
+
 class IpAnalyzerSubnetChildrenApiView(LoginRequiredMixin, View):
     """Load child prefixes (subnets) for Cell-Tree lazy expansion."""
 
@@ -60,7 +66,10 @@ class IpAnalyzerSubnetChildrenApiView(LoginRequiredMixin, View):
                 _enrich_addr_tree_copy_lines(node)
                 _enrich_addr_tree_leaf_counts(node)
                 node["ipa_lazy_subnet_child"] = True
+                node["ipa_lazy_loaded"] = True
                 nodes.append(node)
+
+        _mark_lazy_loaded_nodes(nodes)
 
         # Get stats for total count
         stats = _prefix_ipam_stats(prefix)

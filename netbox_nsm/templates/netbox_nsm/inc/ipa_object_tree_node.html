@@ -12,28 +12,23 @@
   </tr>
   {% include "netbox_nsm/inc/ipa_object_tree_node.html" with nodes=node.children depth=depth|add:1 ipa_cell_pill=ipa_cell_pill|default_if_none:True root_groups_member=True %}
   {% elif node.kind == "lazy_batch" %}
-  <tr class="nsm-ipa-cell-tree-row nsm-ipa-lazy-batch-row nsm-ipa-depth-{{ depth }}">
+  {% include "netbox_nsm/inc/ipa_object_tree_node.html" with nodes=node.children depth=depth|add:1 ipa_cell_pill=ipa_cell_pill|default_if_none:True root_groups_member=root_groups_member %}
+  {% if node.lazy_load %}
+  <tr class="nsm-ipa-cell-tree-row nsm-ipa-lazy-load-row nsm-ipa-depth-{{ depth|add:1 }}"{% if node.lazy_ctx.prefix_pk %} data-lazy-prefix="{{ node.lazy_ctx.prefix_pk }}"{% endif %}{% if node.lazy_ctx.range_pk %} data-lazy-range="{{ node.lazy_ctx.range_pk }}"{% endif %}{% if node.lazy_ctx.category %} data-lazy-category="{{ node.lazy_ctx.category }}"{% endif %}>
     <td colspan="12" class="nsm-ipa-lazy-batch-cell">
-      <table class="table table-sm table-hover object-list nsm-ipa-cell-tree-table nsm-ipa-cell-tree-table--nested mb-0">
-        <tbody>
-          {% for child in node.children %}
-            {% include "netbox_nsm/inc/ipa_cell_tree_row.html" with node=child depth=depth|add:1 ipa_cell_pill=ipa_cell_pill|default_if_none:True root_groups_member=root_groups_member %}
-          {% endfor %}
-        </tbody>
-      </table>
-      {% if node.lazy_load %}
       <button type="button" class="btn btn-sm btn-outline-secondary nsm-addr-lazy-load mt-1"
         data-offset="{{ node.loaded_count }}"
         data-loaded="{{ node.loaded_count }}"
         data-total="{{ node.count }}"
+        data-depth="{{ depth|add:1 }}"
         data-label-load="{% trans 'Load preview' %}"
         data-label-loading="{% trans 'Loading…' %}"
         data-label-retry="{% trans 'Loading failed — retry' %}">
         {% blocktrans with loaded=node.loaded_count total=node.count %}Load preview ({{ loaded }}/{{ total }}){% endblocktrans %}
       </button>
-      {% endif %}
     </td>
   </tr>
+  {% endif %}
   {% elif node.is_ipam_filler or node.ipam_synthetic or node.ipa_tree_node_type == "ipam_filler" %}
   {% if node.children %}
   {% include "netbox_nsm/inc/ipa_object_tree_node.html" with nodes=node.children depth=depth ipa_cell_pill=ipa_cell_pill|default_if_none:True root_groups_member=root_groups_member %}

@@ -243,6 +243,21 @@ class IpamPrefixTreeTests(SimpleTestCase):
         self.assertEqual(ip_ref["pk"], 25)
         self.assertIs(_ipam_fk_object_for_addr_node(addr), prefix)
 
+    def test_ipam_prefix_object_does_not_resolve_to_scalar_prefix_field(self):
+        from netaddr import IPNetwork
+
+        from netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils import (
+            _ipam_fk_object_for_addr_node,
+        )
+
+        prefix_obj = MagicMock()
+        prefix_obj._meta.app_label = "ipam"
+        prefix_obj._meta.model_name = "prefix"
+        prefix_obj.prefix = IPNetwork("10.112.0.0/15")
+
+        resolved = _ipam_fk_object_for_addr_node(prefix_obj)
+        self.assertIs(resolved, prefix_obj)
+
     @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._object_supports_addr_analyzer", return_value=True)
     @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._build_ipam_prefix_layer_node")
     @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils._collect_ipam_prefix_drilldown")

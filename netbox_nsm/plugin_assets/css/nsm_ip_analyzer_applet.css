@@ -735,6 +735,38 @@
   background: var(--nsm-ag-bg, var(--nsm-ipa-bg));
 }
 
+.nsm-ipa-applet-loading {
+  flex-direction: column;
+  padding: 1rem;
+  gap: 0.65rem;
+}
+
+.nsm-ipa-applet-loading-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: var(--nsm-ag-text, var(--nsm-ipa-text));
+}
+
+.nsm-ipa-applet-loading-meta,
+.nsm-ipa-applet-loading-hints {
+  max-width: 42rem;
+}
+
+.nsm-ipa-applet-loading-meta {
+  font-size: 0.78rem;
+  color: var(--nsm-ag-text-muted, var(--nsm-ipa-text-muted));
+}
+
+.nsm-ipa-applet-loading-hints {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  color: var(--nsm-ag-text-muted, var(--nsm-ipa-text-muted));
+}
+
 .nsm-ipa-applet-error {
   flex-direction: column;
   align-items: stretch;
@@ -1743,6 +1775,29 @@
 .nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--cell-indirect .record-depth {
   opacity: 0.42;
   color: var(--bs-secondary-color);
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--lazy-loaded > td {
+  color: var(--bs-secondary-color);
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--lazy-loaded .nsm-addr-link,
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--lazy-loaded .nsm-addr-obj-link:not(.text-muted),
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--lazy-loaded .nsm-ipa-cell-cidr,
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--lazy-loaded .nsm-ipa-cell-cidr-link,
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--lazy-loaded .nsm-addr-prefix-text,
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--lazy-loaded .nsm-ipa-cell-parent-hint,
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--lazy-loaded .nsm-ipa-cell-parent-hint a,
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--lazy-loaded .nsm-addr-ipam-short {
+  color: var(--bs-secondary-color);
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--lazy-loaded .record-depth {
+  display: none;
+}
+
+.nsm-ipa-applet .nsm-ipa-drilldown-marker {
+  display: none !important;
 }
 
 .nsm-ipa-applet .nsm-ipa-cell-tree-row.nsm-ipa-object-node--cell-indirect.nsm-ipa-object-node--ipam-parent-prefix .nsm-ipa-cell-cidr,

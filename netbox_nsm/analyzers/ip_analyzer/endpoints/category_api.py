@@ -51,7 +51,14 @@ class IpAnalyzerCategoryApiView(LoginRequiredMixin, View):
         prefix_pk = request.GET.get("prefix_pk")
         range_pk = request.GET.get("range_pk")
         category = request.GET.get("category")
+        render_prefix = "ipa" if request.GET.get("prefix") == "ipa" else "lazy"
+        depth_raw = request.GET.get("depth", "2")
         offset_raw = request.GET.get("offset", "0")
+
+        try:
+            depth = max(int(depth_raw), 0)
+        except (TypeError, ValueError):
+            depth = 2
 
         try:
             offset = max(int(offset_raw), 0)
@@ -77,7 +84,13 @@ class IpAnalyzerCategoryApiView(LoginRequiredMixin, View):
             loaded = offset + len(nodes)
             html = render_to_string(
                 "netbox_nsm/inc/addr_tree_nodes_fragment.html",
-                {"nodes": nodes, "depth": 2, "prefix": "lazy", "show_copy": True},
+                {
+                    "nodes": nodes,
+                    "depth": depth,
+                    "prefix": render_prefix,
+                    "show_copy": True,
+                    "ipa_cell_pill": False,
+                },
                 request=request,
             )
             return JsonResponse(
@@ -116,7 +129,13 @@ class IpAnalyzerCategoryApiView(LoginRequiredMixin, View):
 
         html = render_to_string(
             "netbox_nsm/inc/addr_tree_nodes_fragment.html",
-            {"nodes": nodes, "depth": 2, "prefix": "lazy", "show_copy": True},
+            {
+                "nodes": nodes,
+                "depth": depth,
+                "prefix": render_prefix,
+                "show_copy": True,
+                "ipa_cell_pill": False,
+            },
             request=request,
         )
         return JsonResponse(

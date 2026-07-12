@@ -139,6 +139,7 @@
   .nsm-addr-type-title { font-size: .8rem; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; color: var(--bs-secondary-color); }
   .nsm-addr-prefix-format .btn { font-size: .68rem; line-height: 1.2; min-width: 2.4rem; }
   .nsm-addr-lazy-load--loading { pointer-events: none; opacity: 0.85; }
+  .nsm-ipa-cell-lazy-subnet-load--loading { pointer-events: none; opacity: 0.85; }
   .nsm-addr-lazy-progress { max-width: 14rem; }
   .nsm-ipa-subnet-contained { line-height: inherit; }
   .nsm-ipa-addr-drilldown { margin-top: 2px; }
@@ -445,6 +446,73 @@
     e.preventDefault();
     e.stopPropagation();
     runLazyCategoryLoad(btn);
+  });
+
+  function subnetChildrenApiUrl() {
+    return window.NSM_IP_ANALYZER_SUBNET_CHILDREN_API || '/plugins/netbox-nsm/api/ip-analyzer/subnet-children/';
+  }
+
+  function fetchSubnetChildren(btn, prefixPk, offset) {
+    var params = new URLSearchParams({
+      prefix_pk: String(prefixPk),
+      offset: String(offset || 0),
+    });
+    return nsmFetchCategory(subnetChildrenApiUrl() + '?' + params.toString(), {
+      headers: mergeBranchHeaders({ 'X-Requested-With': 'XMLHttpRequest' }),
+    })
+      .then(function (resp) {
+        if (!resp.ok) {
+          throw new Error('HTTP ' + resp.status);
+        }
+        return resp.json();
+      })
+      .then(function (data) {
+        var parentRow = btn.closest('tr');
+        if (parentRow && data.html) {
+          parentRow.insertAdjacentHTML('afterend', data.html || '');
+        }
+        return data;
+      });
+  }
+
+  function runLazySubnetChildrenLoad(btn) {
+    var parentRow = btn.closest('tr');
+    if (!parentRow) {
+      return;
+    }
+    var prefixPk = parentRow.getAttribute('data-lazy-subnet-prefix-pk');
+    if (!prefixPk || parseInt(prefixPk, 10) <= 0) {
+      return;
+    }
+
+    btn.disabled = true;
+    btn.classList.add('nsm-ipa-cell-lazy-subnet-load--loading');
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Loading…';
+
+    fetchSubnetChildren(btn, prefixPk, 0)
+      .then(function (data) {
+        btn.remove();
+        if (window.NsmIpAnalyzerApplet && window.NsmIpAnalyzerApplet.scheduleBodyScale) {
+          window.NsmIpAnalyzerApplet.scheduleBodyScale();
+        }
+        return data;
+      })
+      .catch(function (err) {
+        btn.disabled = false;
+        btn.classList.remove('nsm-ipa-cell-lazy-subnet-load--loading');
+        btn.innerHTML = '<span class="badge bg-secondary-subtle text-secondary">+</span>';
+        console.error('Failed to load subnet children:', err);
+      });
+  }
+
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.nsm-ipa-cell-lazy-subnet-load');
+    if (!btn || btn.disabled) {
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    runLazySubnetChildrenLoad(btn);
   });
 
   function fetchObjectDrilldown(container, ct, pk, depth) {

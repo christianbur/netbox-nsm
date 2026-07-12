@@ -1,6 +1,15 @@
 {% load i18n %}
 {% if node.layer == "ipam_prefix" %}
-<span class="nsm-addr-link fw-semibold">{{ node.name }}</span>
+<div class="d-flex align-items-center gap-2">
+  <span class="nsm-addr-link fw-semibold">{{ node.name }}</span>
+  {% if node.ipa_drilldown_meta and node.ipa_drilldown_meta.count_subnets > 0 %}
+  <button type="button" class="btn btn-sm btn-link p-0 nsm-ipa-cell-lazy-subnet-load" 
+    title="{% trans 'Expand subnet children' %}"
+    aria-label="{% trans 'Expand subnet children' %}">
+    <span class="badge bg-secondary-subtle text-secondary">+</span>
+  </button>
+  {% endif %}
+</div>
 {% elif node.is_ipam_filler or node.ipam_synthetic %}
 <span class="nsm-ipa-cell-cidr"><span class="nsm-addr-prefix-text" data-cidr="{{ node.prefix_display_cidr }}">{{ node.prefix_display_cidr }}</span></span>
 {% elif node.prefix_display_cidr %}

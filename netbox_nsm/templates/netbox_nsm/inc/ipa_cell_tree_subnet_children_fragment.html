@@ -1,0 +1,8 @@
+{% load i18n %}
+{% comment %}
+Cell-Tree subnet children fragment for lazy-loading child prefixes.
+Renders each child prefix node as a cell-tree row.
+{% endcomment %}
+{% for node in nodes %}
+  {% include "netbox_nsm/inc/ipa_cell_tree_row.html" %}
+{% endfor %}

@@ -4,6 +4,21 @@ All notable changes to **netbox-nsm** are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.27] - 2026-07-12
+
+### Fixed
+
+- Restored CIDR/Mask toggle rendering in the IPA table by emitting `nsm-addr-prefix-text` markup with `data-cidr`/`data-netmask` attributes.
+- Aligned duplicate badge conditions with summary counters for IPA rows.
+
+## [0.4.26] - 2026-07-12
+
+### Fixed
+
+- IPA table lazy-loading now inserts fully structured rows (instead of nested preview blocks) so all columns stay aligned.
+- Re-added missing `Dup` cell in IPA row template to prevent column shift.
+- Category lazy-batch endpoint now supports IPA fragment rendering mode and depth-aware insertion.
+
 ## [0.4.25] - 2026-07-12
 
 ### Added

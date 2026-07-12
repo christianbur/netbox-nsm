@@ -4,7 +4,7 @@ All notable changes to **netbox-nsm** are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [0.4.24] - 2026-07-12
+## [0.4.25] - 2026-07-12
 
 ### Added
 
@@ -16,6 +16,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **IP Analyzer Cell-Tree — first column now shows hierarchical IPAM objects** — the first column now renders IPv4/IPv6 IPs, ranges and prefixes as the visible hierarchy instead of NSM/COT object names.
 - **IP Analyzer Cell-Tree — type column now shows child counters** — the Type column keeps the row type label and now displays compact `P/R/IP` counters for child prefixes, ranges and IPs instead of the previous CIDR/IP pill.
 - **IP Analyzer Cell-Tree — column semantics updated** — first header renamed to `IPAM-Object`; dedicated `IP/Range/Prefix` column removed; counter legend moved into the Type header.
+
+### Fixed
+
+- **PyPI publish workflow** — duplicate publish attempts no longer fail the GitHub Actions release job; publish now triggers only on tag push and ignores already-existing files on reruns.
+
+## [0.4.24] - 2026-07-12
 
 ### Fixed
 

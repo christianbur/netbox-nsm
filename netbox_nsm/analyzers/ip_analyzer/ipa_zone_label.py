@@ -42,7 +42,7 @@ def _display_ref(linked, *, tmpl_map, inherited: bool = False, inherited_from: s
     return ref
 
 
-def _direct_refs_for_roles(obj, *, roles: set[str], tmpl_map) -> list[dict[str, Any]]:
+def _direct_refs_for_roles(obj, *, roles: set[str], tmpl_map, include_found_on: bool = False) -> list[dict[str, Any]]:
     from netbox_nsm.security.links.object_link_service import iter_links_for_object
 
     refs: list[dict[str, Any]] = []
@@ -65,12 +65,20 @@ def _direct_refs_for_roles(obj, *, roles: set[str], tmpl_map) -> list[dict[str, 
             continue
         seen.add(dedupe)
         lct = ContentType.objects.get_for_model(linked)
-        refs.append(
-            {
-                "name": render_object_display(linked, lct.pk, tmpl_map),
-                "url": url,
-            }
-        )
+        ref_dict = {
+            "name": render_object_display(linked, lct.pk, tmpl_map),
+            "url": url,
+        }
+        if include_found_on:
+            # Add info about which object (host/interface) has the label/zone
+            obj_display = str(obj)
+            if hasattr(obj, "get_absolute_url"):
+                try:
+                    ref_dict["found_on_object"] = obj
+                    ref_dict["found_on_object_display"] = obj_display
+                except Exception:
+                    pass
+        refs.append(ref_dict)
     refs.sort(key=lambda row: (row.get("name") or "").lower())
     return refs
 
@@ -95,13 +103,18 @@ def _safe_display_template_map():
 
 
 def resolve_ipa_zone_refs(obj, *, tmpl_map=None) -> list[dict[str, Any]]:
-    """Return zone display refs for *obj* (direct, else inherited from prefixes)."""
+    """Return zone display refs for *obj* (direct, else all inherited from prefixes).
+    
+    For each zone, includes 'found_on_prefix' showing where it was linked (for inherited)
+    or 'found_on_object' showing the directly linked object.
+    """
     if obj is None:
         return []
     if tmpl_map is None:
         tmpl_map = _safe_display_template_map()
 
-    direct = _direct_refs_for_roles(obj, roles={"zone"}, tmpl_map=tmpl_map)
+    # Check for direct zones on the object itself
+    direct = _direct_refs_for_roles(obj, roles={"zone"}, tmpl_map=tmpl_map, include_found_on=True)
     if direct:
         return direct
 
@@ -119,34 +132,44 @@ def resolve_ipa_zone_refs(obj, *, tmpl_map=None) -> list[dict[str, Any]]:
     except Exception:
         inherited_links = []
 
+    # Collect ALL zones from all ancestor prefixes (not just first)
     for inherited in inherited_links:
         linked = inherited.linked
         if linked is None:
             continue
         if _role_for_linked_object(linked) != "zone":
             continue
+        
+        ancestor_prefix = _prefix_display(inherited.ancestor)
         ref = _display_ref(
             linked,
             tmpl_map=tmpl_map,
             inherited=True,
-            inherited_from=_prefix_display(inherited.ancestor),
+            inherited_from=ancestor_prefix,
         )
+        # Add info about which prefix the zone was found on
+        ref["found_on_prefix"] = ancestor_prefix
+        
         dedupe = (ref.get("name") or "", ref.get("url") or "")
         if dedupe in seen:
             continue
         seen.add(dedupe)
         refs.append(ref)
+    
     refs.sort(key=lambda row: (row.get("name") or "").lower())
     return refs
 
 
 def resolve_ipa_label_refs(obj, *, tmpl_map=None) -> list[dict[str, Any]]:
-    """Return label display refs assigned directly to *obj* (no prefix inheritance)."""
+    """Return label display refs assigned directly to *obj* (no prefix inheritance).
+    
+    Includes 'found_on_object' info showing which object (host/interface) has the label.
+    """
     if obj is None:
         return []
     if tmpl_map is None:
         tmpl_map = _safe_display_template_map()
-    return _direct_refs_for_roles(obj, roles={"label"}, tmpl_map=tmpl_map)
+    return _direct_refs_for_roles(obj, roles={"label"}, tmpl_map=tmpl_map, include_found_on=True)
 
 
 def resolve_ipa_zone_label_refs(obj, *, tmpl_map=None) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:

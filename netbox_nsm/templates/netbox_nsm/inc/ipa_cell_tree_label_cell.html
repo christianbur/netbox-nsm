@@ -3,9 +3,9 @@
 <div class="nsm-ipa-cell-label-refs">
   {% for ref in node.label_refs %}
   {% if ref.url %}
-  <a href="{{ ref.url }}" class="nsm-ipa-cell-label-link" title="{{ ref.name }}">{{ ref.name }}</a>{% if not forloop.last %}<span class="text-muted">, </span>{% endif %}
+  <a href="{{ ref.url }}" class="nsm-ipa-cell-label-link" title="{% if ref.found_on_object_display %}{{ ref.name }} ({{ ref.found_on_object_display }}){% else %}{{ ref.name }}{% endif %}">{{ ref.name }}</a>{% if not forloop.last %}<span class="text-muted">, </span>{% endif %}
   {% else %}
-  <span class="nsm-ipa-cell-label-text">{{ ref.name }}</span>{% if not forloop.last %}<span class="text-muted">, </span>{% endif %}
+  <span class="nsm-ipa-cell-label-text" title="{% if ref.found_on_object_display %}{{ ref.name }} ({{ ref.found_on_object_display }}){% endif %}">{{ ref.name }}</span>{% if not forloop.last %}<span class="text-muted">, </span>{% endif %}
   {% endif %}
   {% endfor %}
 </div>

@@ -1,0 +1,24 @@
+{% load i18n %}
+{% if node.ipam_object_ref and node.ipam_object_ref.kind %}
+  {% if node.ipam_object_ref.kind == "prefix" %}
+<span class="nsm-ipa-cell-type" title="{% trans 'Actual row type' %}">IPAM &gt; Prefix</span>
+  {% elif node.ipam_object_ref.kind == "iprange" %}
+<span class="nsm-ipa-cell-type" title="{% trans 'Actual row type' %}">IPAM &gt; Range</span>
+  {% elif node.ipam_object_ref.kind == "ipaddress" %}
+<span class="nsm-ipa-cell-type" title="{% trans 'Actual row type' %}">IPAM &gt; IP Address</span>
+  {% else %}
+<span class="nsm-ipa-cell-type" title="{% trans 'Actual row type' %}">IPAM &gt; {{ node.ipam_object_ref.kind }}</span>
+  {% endif %}
+{% elif node.ip_ref and node.ip_ref.type %}
+<span class="nsm-ipa-cell-type" title="{% trans 'Actual row type' %}">IPAM &gt; {{ node.ip_ref.type }}</span>
+{% elif node.node_role == "nsm_group" %}
+<span class="nsm-ipa-cell-type" title="{% trans 'Actual row type' %}">NSM &gt; Address group</span>
+{% elif node.node_role == "nsm_prefix" %}
+<span class="nsm-ipa-cell-type" title="{% trans 'Actual row type' %}">NSM &gt; Prefix</span>
+{% elif node.node_role == "nsm_range" %}
+<span class="nsm-ipa-cell-type" title="{% trans 'Actual row type' %}">NSM &gt; Range</span>
+{% elif node.node_role == "nsm_host" %}
+<span class="nsm-ipa-cell-type" title="{% trans 'Actual row type' %}">NSM &gt; Host</span>
+{% else %}
+<span class="text-muted">—</span>
+{% endif %}

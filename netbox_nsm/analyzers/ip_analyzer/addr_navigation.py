@@ -134,10 +134,7 @@ def _addr_navigation_refs(obj) -> list[dict]:
     refs: list[dict] = []
     seen_urls: set[str] = set()
     try:
-        from dcim.models import Device, Interface
-        from ipam.models import IPAddress, IPRange, Prefix
-        from netbox_nsm.addresses.address_ipam_fk import is_nsm_address_object
-        from virtualization.models import VirtualMachine, VMInterface
+        from ipam.models import IPAddress
     except ImportError:
         return refs
 
@@ -147,20 +144,9 @@ def _addr_navigation_refs(obj) -> list[dict]:
         _addr_nav_from_assigned(
             getattr(obj, "assigned_object", None), refs, seen_urls, limit=limit
         )
-    elif _hub.isinstance(obj, Interface):
-        _addr_nav_append_chain(refs, seen_urls, obj, limit=limit)
-    elif _hub.isinstance(obj, VMInterface):
-        _addr_nav_append_chain(refs, seen_urls, obj, limit=limit)
-    elif _hub.isinstance(obj, (Device, VirtualMachine)):
-        pass
-    elif _hub.isinstance(obj, Prefix):
-        _addr_nav_object_link_hosts(obj, refs, seen_urls, limit=limit)
-        _addr_nav_assigned_ips_in_prefix(obj, refs, seen_urls, limit=limit)
-    elif _hub.isinstance(obj, IPRange):
-        _addr_nav_object_link_hosts(obj, refs, seen_urls, limit=limit)
-        _addr_nav_assigned_ips_in_range(obj, refs, seen_urls, limit=limit)
-    elif is_nsm_address_object(obj):
-        _addr_nav_object_link_hosts(obj, refs, seen_urls, limit=limit)
+    else:
+        # Used-by is intentionally restricted to concrete IP rows.
+        return refs
 
     return refs
 

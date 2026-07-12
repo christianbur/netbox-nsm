@@ -736,7 +736,43 @@
 }
 
 .nsm-ipa-applet-error {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
   color: var(--bs-danger);
+  padding: 0.75rem;
+}
+
+.nsm-ipa-applet-error-message {
+  text-align: center;
+}
+
+.nsm-ipa-applet-error-debug {
+  width: min(100%, 980px);
+  margin-top: 0.5rem;
+  text-align: left;
+  border: 1px solid var(--nsm-ag-border, var(--nsm-ipa-border));
+  border-radius: 0.35rem;
+  background: var(--nsm-ag-bg-subtle, var(--nsm-ipa-bg-subtle));
+  color: var(--nsm-ag-text, var(--nsm-ipa-text));
+}
+
+.nsm-ipa-applet-error-debug summary {
+  cursor: pointer;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--nsm-ag-text-muted, var(--nsm-ipa-text-muted));
+}
+
+.nsm-ipa-applet-error-debug pre {
+  margin: 0;
+  padding: 0 0.5rem 0.5rem;
+  max-height: 260px;
+  overflow: auto;
+  font-size: 0.72rem;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .nsm-ipa-loupe {
@@ -1296,7 +1332,7 @@
   --nsm-ipa-cell-tree-description-width: 10rem;
   --nsm-ipa-cell-tree-zone-width: 8rem;
   --nsm-ipa-cell-tree-label-width: 8rem;
-  --nsm-ipa-cell-tree-duplicate-width: 3rem;
+  --nsm-ipa-cell-tree-duplicate-width: 8.5rem;
   --nsm-ipa-cell-tree-address-width: 9rem;
   --nsm-ipa-cell-tree-address-group-width: 12.5rem;
   --nsm-ipa-cell-tree-merge-width: 3.25rem;
@@ -1328,6 +1364,10 @@
   padding-top: 0.18rem;
   padding-bottom: 0.18rem;
   border-bottom: none !important;
+  border-top: none;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-table > tbody > tr + tr > td {
   border-top: none;
 }
 
@@ -1479,6 +1519,22 @@
 .nsm-ipa-applet .nsm-ipa-cell-tree-header-col--duplicate {
   width: var(--nsm-ipa-cell-tree-duplicate-width);
   min-width: var(--nsm-ipa-cell-tree-duplicate-width);
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-col--duplicate {
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+  vertical-align: top;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-type {
+  font-weight: 600;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-type-dup {
+  margin-top: 0.15rem;
 }
 
 .nsm-ipa-applet .nsm-ipa-cell-tree-col--us,

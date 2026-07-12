@@ -24,7 +24,7 @@ class IpAnalyzerApiTests(SimpleTestCase):
 
     def _auth_request(self, path):
         request = self.factory.get(path)
-        request.user = MagicMock(is_authenticated=True)
+        request.user = MagicMock(is_authenticated=True, pk=1)
         return request
 
     def test_requires_ct_and_pk(self):
@@ -552,8 +552,12 @@ class IpAnalyzerApiTests(SimpleTestCase):
     @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_service._build_multi_object_addr_analyzer")
     @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_service._object_is_addr_analyzable")
     @patch("netbox_nsm.analyzers.ip_analyzer.ip_analyzer_service.ContentType")
+    @patch("netbox_nsm.analyzers.ip_analyzer.endpoints.api.parse_export_expanded_refs_from_request")
+    @patch("netbox_nsm.analyzers.ip_analyzer.endpoints.api.build_ipa_export_child_objects")
     def test_returns_yaml_attachment_for_format_yaml(
         self,
+        child_objects_fn,
+        parse_expanded_fn,
         content_type_cls,
         analyzable_fn,
         build_fn,
@@ -570,6 +574,8 @@ class IpAnalyzerApiTests(SimpleTestCase):
         content_type_cls.objects.get.return_value = ct
 
         analyzable_fn.return_value = True
+        parse_expanded_fn.return_value = [(10, 42)]
+        child_objects_fn.return_value = []
         build_fn.return_value = [
             {
                 "field_name": "",
@@ -595,6 +601,7 @@ class IpAnalyzerApiTests(SimpleTestCase):
             self._auth_request(
                 "/plugins/netbox-nsm/api/ip-analyzer/"
                 "?format=yaml&ct=10&pk=42&export_title=demo-addr"
+                "&view_only=1&exp_ct=10&exp_pk=42"
             )
         )
 
@@ -606,6 +613,9 @@ class IpAnalyzerApiTests(SimpleTestCase):
         self.assertIn(b"copy_lines:", response.content)
         self.assertIn(b"addr_analyzer:", response.content)
         self.assertNotIn(b'"html"', response.content)
+        parse_expanded_fn.assert_called_once()
+        child_objects_fn.assert_called_once()
+        self.assertEqual(child_objects_fn.call_args.kwargs.get("expanded_refs"), [(10, 42)])
 
     @patch("netbox_nsm.analyzers.ip_analyzer.endpoints.api.execute_ip_analyzer_merge")
     @patch("netbox_nsm.analyzers.ip_analyzer.endpoints.api.parse_selections_from_request")
@@ -624,3 +634,27 @@ class IpAnalyzerApiTests(SimpleTestCase):
         self.assertIn("error", data)
         self.assertIn("boom", data["error"])
         self.assertEqual(data.get("detail"), "boom")
+        self.assertEqual(data.get("debug_info", {}).get("exception_class"), "RuntimeError")
+        self.assertEqual(data.get("debug_info", {}).get("mode"), "merge")
+        self.assertEqual(data.get("debug_info", {}).get("status_code"), 500)
+
+    @patch("netbox_nsm.analyzers.ip_analyzer.endpoints.api.execute_ip_analyzer_merge")
+    @patch("netbox_nsm.analyzers.ip_analyzer.endpoints.api.parse_selections_from_request")
+    def test_returns_504_and_debug_info_for_timeout(
+        self, parse_fn, merge_fn
+    ):
+        parse_fn.return_value = ([], [], [], [], {}, [])
+        merge_fn.side_effect = TimeoutError("deadline exceeded")
+
+        response = self.view(
+            self._auth_request("/plugins/netbox-nsm/api/ip-analyzer/?ct=10&pk=42&lazy=1")
+        )
+
+        self.assertEqual(response.status_code, 504)
+        data = json.loads(response.content)
+        self.assertIn("error", data)
+        self.assertIn("deadline exceeded", data["error"])
+        self.assertEqual(data.get("detail"), "deadline exceeded")
+        self.assertEqual(data.get("debug_info", {}).get("exception_class"), "TimeoutError")
+        self.assertEqual(data.get("debug_info", {}).get("status_code"), 504)
+        self.assertEqual(data.get("debug_info", {}).get("lazy"), True)

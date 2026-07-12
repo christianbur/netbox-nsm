@@ -1,6 +1,6 @@
 {% load i18n object_type %}
 {% include "netbox_nsm/inc/ip_analyzer_assets.html" %}
-<link rel="stylesheet" href="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='css/nsm_ip_analyzer_applet.css' %}?v=202607091">
+<link rel="stylesheet" href="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='css/nsm_ip_analyzer_applet.css' %}?v=202607121">
 <script>
   window.NSM_IPA_ANALYZER_TIMEOUT_MS = window.NSM_IPA_ANALYZER_TIMEOUT_MS || {% nsm_plugin_setting "ipa_analyzer_timeout_ms" 240000 %};
   window.NSM_IP_ANALYZER_API = window.NSM_IP_ANALYZER_API || "{% url 'plugins:netbox_nsm:ip_analyzer_api' %}";
@@ -53,6 +53,7 @@
     "Analyzer failed (HTTP %(status)s).": "{% trans 'Analyzer failed (HTTP %(status)s).'|escapejs %}",
     "Analyzer timed out.": "{% trans 'Analyzer timed out.'|escapejs %}",
     "Analyzer failed.": "{% trans 'Analyzer failed.'|escapejs %}",
+    "Debug details": "{% trans 'Debug details'|escapejs %}",
     "IP Analyzer (%(count)s)": "{% trans 'IP Analyzer (%(count)s)'|escapejs %}",
     "Export YAML": "{% trans 'Export YAML'|escapejs %}",
     "Export displayed data and IPAM children (YAML)": "{% trans 'Export displayed data and IPAM children (YAML)'|escapejs %}",
@@ -69,6 +70,6 @@
     "All": "{% trans 'All'|escapejs %}"
   };
 </script>
-<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/nsm_ipa_util.js' %}?v=202607071"></script>
+<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/nsm_ipa_util.js' %}?v=202607121"></script>
 <script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/nsm_ipa_cell.js' %}?v=202606200"></script>
-<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/nsm_ip_analyzer_applet.js' %}?v=202607071"></script>
+<script src="{% url 'plugins:netbox_nsm:plugin_asset' asset_path='js/nsm_ip_analyzer_applet.js' %}?v=202607121"></script>

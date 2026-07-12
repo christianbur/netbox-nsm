@@ -18,6 +18,7 @@
   var readIpaApiJson = U.readIpaApiJson;
   var fetchIpaAnalyzer = U.fetchIpaAnalyzer;
   var ipaFetchAbortMessage = U.ipaFetchAbortMessage;
+  var normalizeIpaApiError = U.normalizeIpaApiError;
   var mergeBranchHeaders = U.mergeBranchHeaders;
   var normalizeObjects = U.normalizeObjects;
   var collectRawObjects = U.collectRawObjects;
@@ -55,8 +56,6 @@
   var VIEWPORT_MARGIN = 12;
   var SIZE_STORAGE_KEY = "nsm-ipa-applet-size";
   var MIN_BODY_SCALE = 0.55;
-  var HEAVY_TAB_LAZY_THRESHOLD = 6;
-  var VERY_HEAVY_TAB_FULL_REFRESH_THRESHOLD = 12;
 
   function Applet() {
     this.el = null;
@@ -887,7 +886,7 @@
     this._exporting = true;
     this.renderToolbar();
 
-    var url = apiUrl() + "?" + buildExportQuery(tab);
+    var url = apiUrl() + "?" + buildExportQuery(tab, this._collectExportViewState());
     var self = this;
     nsmFetch(url, {
       headers: mergeBranchHeaders({ "X-Requested-With": "XMLHttpRequest" }),
@@ -913,6 +912,32 @@
         self._exporting = false;
         self.renderToolbar();
       });
+  };
+
+  Applet.prototype._collectExportViewState = function () {
+    var state = { expandedObjects: [] };
+    if (!this.bodyEl) {
+      return state;
+    }
+    var seen = {};
+    this.bodyEl
+      .querySelectorAll(
+        ".nsm-ipa-addr-drilldown[data-lazy-ct][data-lazy-pk][data-loaded='1']"
+      )
+      .forEach(function (container) {
+        var ct = container.getAttribute("data-lazy-ct") || "";
+        var pk = container.getAttribute("data-lazy-pk") || "";
+        if (!ct || !pk) {
+          return;
+        }
+        var key = ct + ":" + pk;
+        if (seen[key]) {
+          return;
+        }
+        seen[key] = true;
+        state.expandedObjects.push({ ct: ct, pk: pk });
+      });
+    return state;
   };
 
   Applet.prototype.renderTabs = function () {
@@ -1286,6 +1311,7 @@
       html: "",
       message: "",
       error: "",
+      errorDebug: null,
       leafCount: 0,
       unsupportedCount: 0,
       diffSummary: null,
@@ -1345,6 +1371,7 @@
       html: "",
       message: "",
       error: "",
+      errorDebug: null,
       leafCount: 0,
       unsupportedCount: 0,
       loadToken: 0,
@@ -1380,7 +1407,7 @@
       return;
     }
     if (tab.status === "error") {
-      this.bodyEl.innerHTML = errorHtml(tab.error);
+      this.bodyEl.innerHTML = errorHtml(tab.error, tab.errorDebug);
       statusEl.textContent = "";
       countEl.textContent = "";
       return;
@@ -1440,6 +1467,7 @@
   Applet.prototype._applyTabAnalyzerPayload = function (tab, data) {
     tab.status = "ready";
     tab.error = "";
+    tab.errorDebug = null;
     tab.html = data.html || "";
     tab.message = data.message || "";
     tab.leafCount = data.leaf_count || 0;
@@ -1455,7 +1483,7 @@
       data.unsupported && data.unsupported.length ? data.unsupported.length : 0;
   };
 
-  Applet.prototype._failTabLoad = function (tab, token, message) {
+  Applet.prototype._failTabLoad = function (tab, token, err) {
     tab._loading = false;
     if (token !== tab.loadToken) {
       return;
@@ -1463,8 +1491,12 @@
     if (!this.tabs.some(function (t) { return t.id === tab.id; })) {
       return;
     }
+    var normalized = normalizeIpaApiError(err, {
+      fallbackMessage: ipaT("Analyzer could not be loaded."),
+    });
     tab.status = "error";
-    tab.error = message || ipaT("Analyzer could not be loaded.");
+    tab.error = normalized.message;
+    tab.errorDebug = normalized.debugInfo;
     if (tab.id === this.activeTabId) {
       this.renderActiveContent();
       this.renderToolbar();
@@ -1556,6 +1588,7 @@
     }
     tab.status = "loading";
     tab.error = "";
+    tab.errorDebug = null;
     tab._loading = true;
     tab.loadToken = (tab.loadToken || 0) + 1;
     var token = tab.loadToken;
@@ -1571,12 +1604,8 @@
             return count + ((side && side.objects && side.objects.length) || 0);
           }, 0)
         : ((tab.rawObjects && tab.rawObjects.length) || (tab.objects && tab.objects.length) || 0);
-    var useLazy =
-      tab.mode !== "diff" && tab.mode !== "merge"
-        ? true
-        : tabObjectCount >= HEAVY_TAB_LAZY_THRESHOLD;
-    var scheduleBackgroundFullRefresh =
-      useLazy && tabObjectCount >= VERY_HEAVY_TAB_FULL_REFRESH_THRESHOLD;
+    var useLazy = true;
+    var scheduleBackgroundFullRefresh = false;
 
     var url =
       tab.mode === "diff"
@@ -1596,7 +1625,7 @@
         });
       })
       .catch(function (err) {
-        self._failTabLoad(tab, token, ipaFetchAbortMessage(err));
+        self._failTabLoad(tab, token, err);
       });
   };
 
@@ -1697,6 +1726,7 @@
       html: "",
       message: "",
       error: "",
+      errorDebug: null,
       leafCount: 0,
       unsupportedCount: 0,
       loadToken: 0,

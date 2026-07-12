@@ -1327,23 +1327,26 @@
 
 .nsm-ipa-applet .nsm-ipa-cell-tree-table {
   --nsm-ipa-cell-tree-network-width: 12.5rem;
+  --nsm-ipa-cell-tree-duplicate-width: 6rem;
+  --nsm-ipa-cell-tree-type-width: 14rem;
+  --nsm-ipa-cell-tree-address-width: 9rem;
+  --nsm-ipa-cell-tree-address-group-width: 12.5rem;
   --nsm-ipa-cell-tree-ipam-width: 6.5rem;
   --nsm-ipa-cell-tree-dns-width: 8rem;
   --nsm-ipa-cell-tree-description-width: 10rem;
   --nsm-ipa-cell-tree-zone-width: 8rem;
   --nsm-ipa-cell-tree-label-width: 8rem;
-  --nsm-ipa-cell-tree-duplicate-width: 8.5rem;
-  --nsm-ipa-cell-tree-address-width: 9rem;
-  --nsm-ipa-cell-tree-address-group-width: 12.5rem;
   --nsm-ipa-cell-tree-merge-width: 3.25rem;
   --nsm-ipa-cell-tree-diff-width: 6.5rem;
   --nsm-ipa-cell-tree-us-width: 18rem;
   --nsm-ipa-cell-tree-min-width: calc(
-    var(--nsm-ipa-cell-tree-network-width) + var(--nsm-ipa-cell-tree-ipam-width) +
+    var(--nsm-ipa-cell-tree-network-width) +
+      var(--nsm-ipa-cell-tree-duplicate-width) +
+      var(--nsm-ipa-cell-tree-type-width) +
+      var(--nsm-ipa-cell-tree-address-width) + var(--nsm-ipa-cell-tree-address-group-width) +
+      var(--nsm-ipa-cell-tree-ipam-width) +
       var(--nsm-ipa-cell-tree-dns-width) + var(--nsm-ipa-cell-tree-description-width) +
       var(--nsm-ipa-cell-tree-zone-width) + var(--nsm-ipa-cell-tree-label-width) +
-      var(--nsm-ipa-cell-tree-duplicate-width) +
-      var(--nsm-ipa-cell-tree-address-width) + var(--nsm-ipa-cell-tree-address-group-width) +
       var(--nsm-ipa-cell-tree-merge-width) + var(--nsm-ipa-cell-tree-diff-width) +
       var(--nsm-ipa-cell-tree-us-width)
   );
@@ -1529,8 +1532,37 @@
   vertical-align: top;
 }
 
+.nsm-ipa-applet .nsm-ipa-cell-tree-col--type,
+.nsm-ipa-applet .nsm-ipa-cell-tree-header-col--type {
+  width: var(--nsm-ipa-cell-tree-type-width);
+  min-width: var(--nsm-ipa-cell-tree-type-width);
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-col--type {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.35;
+  vertical-align: top;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-type-with-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-type-with-pill .nsm-ipa-cell-cidr,
+.nsm-ipa-applet .nsm-ipa-cell-type-with-pill .nsm-ipa-cell-cidr-link,
+.nsm-ipa-applet .nsm-ipa-cell-type-with-pill .nsm-addr-prefix-text {
+  white-space: nowrap;
+  display: inline;
+}
+
 .nsm-ipa-applet .nsm-ipa-cell-type {
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .nsm-ipa-applet .nsm-ipa-cell-type-dup {

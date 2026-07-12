@@ -6,12 +6,16 @@
     {% include "netbox_nsm/inc/ipa_cell_tree_network_cell.html" %}
   </td>
   <td class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--duplicate">
-    {% include "netbox_nsm/inc/ipa_cell_tree_type_cell.html" %}
     {% if node.is_doppelt or node.count_duplicate or node.object_duplicate or node.cell_addresses_multi or node.dup_cell_statuses or node.subnet_contained_in and node.node_role != "nsm_host" and node.ip_ref.type != "IP Address" and node.ipam_object_ref.kind != "ipaddress" and node.prefix_display_cidr|slice:"-3:" != "/32" and node.prefix_display_cidr|slice:"-4:" != "/128" %}
     <div class="nsm-ipa-cell-type-dup">
       {% include "netbox_nsm/inc/ipa_cell_tree_duplicate_cell.html" %}
     </div>
+    {% else %}
+    <span class="text-muted">—</span>
     {% endif %}
+  </td>
+  <td class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--type">
+    {% include "netbox_nsm/inc/ipa_cell_tree_type_cell.html" %}
   </td>
   <td class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--address">
     {% include "netbox_nsm/inc/ipa_cell_tree_address_cell.html" %}

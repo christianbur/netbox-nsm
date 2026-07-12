@@ -1,17 +1,24 @@
 {% load i18n %}
 {% if node.kind != "ipa_info_gap" and node.ipa_tree_node_type != "info_gap" and not node.info_summary and node.ipa_tree_node_type != "ipam_filler" and not node.is_ipam_filler and not node.ipam_synthetic %}
-<tr class="nsm-ipa-cell-tree-row nsm-ipa-depth-{{ depth }}{% if root_groups_member %} nsm-ipa-root-groups-collapsed-member{% endif %}{% if node.ct %} nsm-ipa-object-node{% endif %}{% if node.in_cell or node.is_cell_direct %} nsm-ipa-object-node--cell-direct{% else %} nsm-ipa-object-node--cell-indirect{% endif %}{% if node.is_ipam_filler or node.ipam_synthetic %} nsm-ipa-tree-node--ipam-filler nsm-ipa-object-node--ipam-synthetic{% elif node.is_ipam_parent_prefix %} nsm-ipa-object-node--ipam-parent-prefix{% endif %}{% if node.subnet_contained_in %} nsm-ipa-object-node--subnet-warning{% endif %}{% if node.is_doppelt %} nsm-ipa-object-node--doppelt-warning{% endif %}{% if node.cell_groups_multi %} nsm-ipa-object-node--groups-multi{% endif %}{% if node.diff_group %} nsm-addr-diff-group nsm-addr-diff-group--{{ node.diff_group }}{% endif %}{% if node.diff_status and not node.diff_suppress_status %} nsm-addr-diff-leaf nsm-addr-diff-leaf--{{ node.diff_status }}{% if node.diff_side %} nsm-addr-diff-leaf--side-{{ node.diff_side }}{% endif %}{% if node.diff_fund %} nsm-addr-diff-leaf--fund{% endif %}{% elif node.diff_fund %} nsm-addr-diff-leaf nsm-addr-diff-leaf--fund{% endif %}">
+<tr class="nsm-ipa-cell-tree-row nsm-ipa-depth-{{ depth }}{% if root_groups_member %} nsm-ipa-root-groups-collapsed-member{% endif %}{% if node.ct %} nsm-ipa-object-node{% endif %}{% if node.in_cell or node.is_cell_direct %} nsm-ipa-object-node--cell-direct{% else %} nsm-ipa-object-node--cell-indirect{% endif %}{% if node.is_ipam_filler or node.ipam_synthetic %} nsm-ipa-tree-node--ipam-filler nsm-ipa-object-node--ipam-synthetic{% elif node.is_ipam_parent_prefix %} nsm-ipa-object-node--ipam-parent-prefix{% endif %}{% if node.subnet_contained_in %} nsm-ipa-object-node--subnet-warning{% endif %}{% if node.is_doppelt %} nsm-ipa-object-node--doppelt-warning{% endif %}{% if node.cell_groups_multi %} nsm-ipa-object-node--groups-multi{% endif %}{% if node.diff_group %} nsm-addr-diff-group nsm-addr-diff-group--{{ node.diff_group }}{% endif %}{% if node.diff_status and not node.diff_suppress_status %} nsm-addr-diff-leaf nsm-addr-diff-leaf--{{ node.diff_status }}{% if node.diff_side %} nsm-addr-diff-leaf--side-{{ node.diff_side }}{% endif %}{% if node.diff_fund %} nsm-addr-diff-leaf--fund{% endif %}{% elif node.diff_fund %} nsm-addr-diff-leaf nsm-addr-diff-leaf--fund{% endif %}"{% if node.layer == "ipam_prefix" and node.pk %} data-lazy-subnet-prefix-pk="{{ node.pk }}"{% endif %}>
   <td class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--network"{% if node.ipa_explain_title %} title="{{ node.ipa_explain_title }}"{% endif %}>
     {% include "netbox_nsm/inc/ipa_cell_tree_depth_marker.html" %}
     {% include "netbox_nsm/inc/ipa_cell_tree_network_cell.html" %}
   </td>
   <td class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--duplicate">
-    {% include "netbox_nsm/inc/ipa_cell_tree_type_cell.html" %}
     {% if node.is_doppelt or node.count_duplicate or node.object_duplicate or node.cell_addresses_multi or node.dup_cell_statuses or node.subnet_contained_in and node.node_role != "nsm_host" and node.ip_ref.type != "IP Address" and node.ipam_object_ref.kind != "ipaddress" and node.prefix_display_cidr|slice:"-3:" != "/32" and node.prefix_display_cidr|slice:"-4:" != "/128" %}
     <div class="nsm-ipa-cell-type-dup">
       {% include "netbox_nsm/inc/ipa_cell_tree_duplicate_cell.html" %}
     </div>
+    {% else %}
+    <span class="text-muted">—</span>
     {% endif %}
+  </td>
+  <td class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--type">
+    {% include "netbox_nsm/inc/ipa_cell_tree_type_cell.html" %}
+  </td>
+  <td class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--tenant">
+    {% include "netbox_nsm/inc/ipa_cell_tree_tenant_cell.html" %}
   </td>
   <td class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--address">
     {% include "netbox_nsm/inc/ipa_cell_tree_address_cell.html" %}

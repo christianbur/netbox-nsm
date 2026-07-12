@@ -5,6 +5,7 @@ from .api import IpAnalyzerApiView
 from .category_api import IpAnalyzerCategoryApiView
 from .legacy_redirect import IpAnalyzerLegacyRedirectView
 from .object_api import IpAnalyzerObjectDrilldownApiView
+from .subnet_children_api import IpAnalyzerSubnetChildrenApiView
 
 __all__ = (
     "IpAnalyzerAddObjectTypesApiView",
@@ -12,4 +13,5 @@ __all__ = (
     "IpAnalyzerCategoryApiView",
     "IpAnalyzerLegacyRedirectView",
     "IpAnalyzerObjectDrilldownApiView",
+    "IpAnalyzerSubnetChildrenApiView",
 )

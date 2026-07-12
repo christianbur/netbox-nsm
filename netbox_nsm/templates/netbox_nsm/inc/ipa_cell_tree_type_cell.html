@@ -1,24 +1,59 @@
 {% load i18n %}
-{% if node.ipam_object_ref and node.ipam_object_ref.kind %}
-  {% if node.ipam_object_ref.kind == "prefix" %}
-<span class="nsm-ipa-cell-type" title="{% trans 'Actual row type' %}">IPAM &gt; Prefix</span>
-  {% elif node.ipam_object_ref.kind == "iprange" %}
-<span class="nsm-ipa-cell-type" title="{% trans 'Actual row type' %}">IPAM &gt; Range</span>
-  {% elif node.ipam_object_ref.kind == "ipaddress" %}
-<span class="nsm-ipa-cell-type" title="{% trans 'Actual row type' %}">IPAM &gt; IP Address</span>
-  {% else %}
-<span class="nsm-ipa-cell-type" title="{% trans 'Actual row type' %}">IPAM &gt; {{ node.ipam_object_ref.kind }}</span>
+<div class="nsm-ipa-cell-type-with-pill">
+  <span class="nsm-ipa-cell-type" title="{% trans 'Actual row type' %}">
+    {% if node.ipam_object_ref and node.ipam_object_ref.kind %}
+      {% if node.ipam_object_ref.kind == "prefix" %}
+        IPAM &gt; Prefix
+      {% elif node.ipam_object_ref.kind == "iprange" %}
+        IPAM &gt; Range
+      {% elif node.ipam_object_ref.kind == "ipaddress" %}
+        IPAM &gt; IP Address
+      {% else %}
+        IPAM &gt; {{ node.ipam_object_ref.kind }}
+      {% endif %}
+    {% elif node.ip_ref and node.ip_ref.type %}
+      IPAM &gt; {{ node.ip_ref.type }}
+    {% elif node.node_role == "nsm_group" %}
+      NSM &gt; Address group
+    {% elif node.node_role == "nsm_prefix" %}
+      NSM &gt; Prefix
+    {% elif node.node_role == "nsm_range" %}
+      NSM &gt; Range
+    {% elif node.node_role == "nsm_host" %}
+      NSM &gt; Host
+    {% else %}
+      <span class="text-muted">—</span>
+    {% endif %}
+  </span>
+  {% if node.is_ipam_filler or node.ipam_synthetic %}
+  <span class="nsm-ipa-cell-cidr"><span class="nsm-addr-prefix-text" data-cidr="{{ node.prefix_display_cidr }}">{{ node.prefix_display_cidr }}</span></span>
+  {% elif node.prefix_display_cidr %}
+  <span class="nsm-ipa-cell-cidr">
+    {% if node.ip_ref and node.ip_ref.url %}
+    <a href="{{ node.ip_ref.url }}" class="nsm-ipa-cell-cidr-link">
+      <span class="nsm-addr-prefix-text" data-cidr="{{ node.prefix_display_cidr }}"{% if node.prefix_display_netmask %} data-netmask="{{ node.prefix_display_netmask }}"{% endif %}>{{ node.prefix_display_cidr }}</span>
+    </a>
+    {% elif node.url %}
+    <a href="{{ node.url }}" class="nsm-ipa-cell-cidr-link">
+      <span class="nsm-addr-prefix-text" data-cidr="{{ node.prefix_display_cidr }}"{% if node.prefix_display_netmask %} data-netmask="{{ node.prefix_display_netmask }}"{% endif %}>{{ node.prefix_display_cidr }}</span>
+    </a>
+    {% else %}
+    <span class="nsm-addr-prefix-text" data-cidr="{{ node.prefix_display_cidr }}"{% if node.prefix_display_netmask %} data-netmask="{{ node.prefix_display_netmask }}"{% endif %}>{{ node.prefix_display_cidr }}</span>
+    {% endif %}
+  </span>
+  {% elif node.ip_ref and node.ip_ref.str %}
+  <span class="nsm-ipa-cell-cidr">
+    {% if node.ip_ref.url %}
+    <a href="{{ node.ip_ref.url }}" class="nsm-ipa-cell-cidr-link">
+      <span class="nsm-addr-prefix-text" data-cidr="{{ node.ip_ref.str }}">{{ node.ip_ref.str }}</span>
+    </a>
+    {% elif node.url %}
+    <a href="{{ node.url }}" class="nsm-ipa-cell-cidr-link">
+      <span class="nsm-addr-prefix-text" data-cidr="{{ node.ip_ref.str }}">{{ node.ip_ref.str }}</span>
+    </a>
+    {% else %}
+    <span class="nsm-addr-prefix-text" data-cidr="{{ node.ip_ref.str }}">{{ node.ip_ref.str }}</span>
+    {% endif %}
+  </span>
   {% endif %}
-{% elif node.ip_ref and node.ip_ref.type %}
-<span class="nsm-ipa-cell-type" title="{% trans 'Actual row type' %}">IPAM &gt; {{ node.ip_ref.type }}</span>
-{% elif node.node_role == "nsm_group" %}
-<span class="nsm-ipa-cell-type" title="{% trans 'Actual row type' %}">NSM &gt; Address group</span>
-{% elif node.node_role == "nsm_prefix" %}
-<span class="nsm-ipa-cell-type" title="{% trans 'Actual row type' %}">NSM &gt; Prefix</span>
-{% elif node.node_role == "nsm_range" %}
-<span class="nsm-ipa-cell-type" title="{% trans 'Actual row type' %}">NSM &gt; Range</span>
-{% elif node.node_role == "nsm_host" %}
-<span class="nsm-ipa-cell-type" title="{% trans 'Actual row type' %}">NSM &gt; Host</span>
-{% else %}
-<span class="text-muted">—</span>
-{% endif %}
+</div>

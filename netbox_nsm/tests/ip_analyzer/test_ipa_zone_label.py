@@ -22,15 +22,13 @@ class IpaZoneLabelResolveTests(SimpleTestCase):
         )
         with patch(
             "netbox_nsm.analyzers.ip_analyzer.ipa_zone_label._direct_refs_for_roles",
-            side_effect=[
-                [{"name": "TRUST", "url": "/zone/trust/"}],
-                [],
-            ],
+            return_value=[{"name": "TRUST", "url": "/zone/trust/"}],
         ) as direct_mock:
             zones = resolve_ipa_zone_refs(ipam_obj, tmpl_map={})
         self.assertEqual(zones[0]["name"], "TRUST")
         direct_mock.assert_called_once()
         self.assertEqual(direct_mock.call_args.kwargs["roles"], {"zone"})
+        self.assertTrue(direct_mock.call_args.kwargs.get("include_found_on", False))
 
     def test_inherited_zone_used_when_direct_missing(self):
         ipam_obj = object()
@@ -73,6 +71,7 @@ class IpaZoneLabelResolveTests(SimpleTestCase):
         self.assertEqual(len(zones), 1)
         self.assertTrue(zones[0]["inherited"])
         self.assertEqual(zones[0]["inherited_from"], "10.0.0.0/8")
+        self.assertEqual(zones[0]["found_on_prefix"], "10.0.0.0/8")
 
     def test_labels_are_direct_only(self):
         ipam_obj = object()
@@ -84,6 +83,7 @@ class IpaZoneLabelResolveTests(SimpleTestCase):
         self.assertEqual(labels[0]["name"], "R:PROD")
         direct_mock.assert_called_once()
         self.assertEqual(direct_mock.call_args.kwargs["roles"], {"label"})
+        self.assertTrue(direct_mock.call_args.kwargs.get("include_found_on", False))
 
 
 class IpaZoneLabelAttachTests(SimpleTestCase):

@@ -4,6 +4,24 @@ All notable changes to **netbox-nsm** are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.23] - 2026-07-12
+
+### Added
+
+- **IP Analyzer Cell-Tree — Tenant column** — new **Tenant** column (after **Type**) displays IPAM object tenant with link; shows "—" if no tenant assigned.
+- **IP Analyzer Cell-Tree — Zone/Label source info** — Zone and Label cells now display source info in tooltips. Zones show all inherited zones from parent-prefix chain with prefix context; Labels show which direct object (host/interface) has the label.
+- **IP Analyzer Cell-Tree — Subnet lazy-load expansion** — subnet children now load on-demand via "+" button in Network column (requires parent prefix with child subnets).
+
+### Changed
+
+- **IP Analyzer Cell-Tree — dynamic column widths** — table layout switched from `table-layout: fixed` to `table-layout: auto` for content-responsive width. All columns use `min-width` only (no fixed width), enabling table to expand/contract based on cell content.
+- **IP Analyzer Cell-Tree — column reorganization** — **Duplicate** moved to position 2 (after Network), **Type** to position 3, **Tenant** to position 4 (new). Full order: Network | Duplicate | Type | Tenant | Address | Address group | IPAM | DNS | Description | Zone | Label | Merge | Diff | Used by.
+- **IP Analyzer Cell-Tree — Type+CIDR combination** — Type column now displays Type label and CIDR/IP pill inline using flexbox, removing separate display in Network column.
+
+### Fixed
+
+- IP Analyzer Cell-Tree renders all zones from ancestor prefix chain (not just first), enabling multi-tenant/multi-zone networks.
+
 ## [0.4.22] - 2026-07-12
 
 ### Added

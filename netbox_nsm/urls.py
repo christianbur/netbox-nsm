@@ -12,6 +12,7 @@ from netbox_nsm.analyzers.ip_analyzer.endpoints import (
     IpAnalyzerApiView,
     IpAnalyzerCategoryApiView,
     IpAnalyzerObjectDrilldownApiView,
+    IpAnalyzerSubnetChildrenApiView,
 )
 from netbox_nsm.analyzers.object_report.views import ObjectReportView
 from netbox_nsm.type_metadata.views import (
@@ -210,6 +211,11 @@ urlpatterns = [
         "api/ip-analyzer/category/",
         IpAnalyzerCategoryApiView.as_view(),
         name="ip_analyzer_category_api",
+    ),
+    path(
+        "api/ip-analyzer/subnet-children/",
+        IpAnalyzerSubnetChildrenApiView.as_view(),
+        name="ip_analyzer_subnet_children_api",
     ),
     path(
         "api/ip-analyzer/object/",

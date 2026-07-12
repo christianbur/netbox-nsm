@@ -1,0 +1,5 @@
+{% if node.tenant_ref %}
+<a href="{{ node.tenant_ref.url }}" class="nsm-ipa-cell-tenant-link" title="{{ node.tenant_ref.name }}">{{ node.tenant_ref.name }}</a>
+{% else %}
+<span class="text-muted">—</span>
+{% endif %}

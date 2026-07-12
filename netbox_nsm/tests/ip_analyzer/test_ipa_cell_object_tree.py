@@ -1,6 +1,8 @@
 """Tests for IPA cell object tree builders."""
 
+import ipaddress
 from unittest.mock import MagicMock, patch
+from types import SimpleNamespace
 
 from django.test import SimpleTestCase
 
@@ -48,6 +50,7 @@ from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import (
     _ipa_intermediate_ipam_prefix_chain,
     _ipa_cidr_from_object_name,
     _ipa_format_gap_label,
+    _ipa_networks_equal,
     _ipa_object_tree_sort_key,
     _ipa_subnet_containment_display_net,
     _collapse_ipa_cell_siblings_by_network,
@@ -84,6 +87,36 @@ class IpaCidrFromNameTests(SimpleTestCase):
         self.assertEqual(
             _ipa_cidr_from_object_name("h-10.112.134.44"),
             "10.112.134.44/32",
+        )
+
+
+class IpaNetworkEqualityTests(SimpleTestCase):
+    def test_networks_equal_uses_ipaddress_semantics(self):
+        self.assertTrue(
+            _ipa_networks_equal(
+                ipaddress.ip_network("10.112.134.0/24", strict=False),
+                "10.112.134.0/24",
+            )
+        )
+        self.assertFalse(
+            _ipa_networks_equal(
+                ipaddress.ip_network("10.112.134.0/24", strict=False),
+                "10.112.135.0/24",
+            )
+        )
+
+    def test_networks_equal_handles_range_and_single_host_network(self):
+        self.assertTrue(
+            _ipa_networks_equal(
+                "10.112.134.44 - 10.112.134.44",
+                "10.112.134.44/32",
+            )
+        )
+        self.assertFalse(
+            _ipa_networks_equal(
+                "10.112.134.44 - 10.112.134.45",
+                "10.112.134.44/32",
+            )
         )
 
 
@@ -1370,6 +1403,114 @@ class IpaCellObjectTreeTests(SimpleTestCase):
             [item["name"] for item in merged[0].get("cell_addresses") or []],
             ["app01.example.org", "app01.prod.example.org"],
         )
+
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._hub._ipam_obj_from_ip_ref")
+    def test_merge_ipa_cell_nodes_by_network_normalizes_generic_address_refs_to_host_ip(
+        self, ipam_obj_from_ref
+    ):
+        ipam_ip_mask24 = SimpleNamespace(
+            _meta=SimpleNamespace(app_label="ipam", model_name="ipaddress"),
+            address="10.112.134.44/24",
+            prefix=None,
+            start_address=None,
+        )
+
+        ipam_ip_mask32 = SimpleNamespace(
+            _meta=SimpleNamespace(app_label="ipam", model_name="ipaddress"),
+            address="10.112.134.44/32",
+            prefix=None,
+            start_address=None,
+        )
+
+        def resolve_ipam_obj(ip_ref):
+            pk = str((ip_ref or {}).get("pk") or "")
+            if pk == "44":
+                return ipam_ip_mask24
+            if pk == "99":
+                return ipam_ip_mask32
+            return None
+
+        ipam_obj_from_ref.side_effect = resolve_ipam_obj
+
+        nodes = [
+            {
+                "name": "node-a.example.org",
+                "url": "/a/1/",
+                "ct": "10",
+                "pk": "1",
+                "kind": "leaf",
+                "ip_ref": {
+                    "str": "node-a.example.org",
+                    "url": "/ipam/ip-addresses/44/",
+                    "type": "Address",
+                    "ct": 4,
+                    "pk": 44,
+                },
+                "children": [],
+            },
+            {
+                "name": "node-b.example.org",
+                "url": "/a/2/",
+                "ct": "10",
+                "pk": "2",
+                "kind": "leaf",
+                "ip_ref": {
+                    "str": "node-b.example.org",
+                    "url": "/ipam/ip-addresses/99/",
+                    "type": "Address",
+                    "ct": 4,
+                    "pk": 99,
+                },
+                "children": [],
+            },
+        ]
+
+        merged = _merge_ipa_cell_nodes_by_network(nodes)
+        self.assertEqual(len(merged), 1)
+        self.assertTrue(merged[0].get("cell_addresses_multi"))
+        self.assertEqual(
+            [item["name"] for item in merged[0].get("cell_addresses") or []],
+            ["node-a.example.org", "node-b.example.org"],
+        )
+
+    def test_merge_ipa_cell_nodes_by_network_skips_host_rows_with_only_prefix_hints(self):
+        nodes = [
+            {
+                "name": "app01.example.org",
+                "url": "/a/1/",
+                "ct": "10",
+                "pk": "1",
+                "kind": "leaf",
+                "node_role": IPA_NODE_ROLE_HOST,
+                "ip_ref": {
+                    "str": "app01.example.org",
+                    "url": "/ipam/ip-addresses/44/",
+                    "type": "IP Address",
+                },
+                "prefix_display_cidr": "10.112.134.0/24",
+                "children": [],
+            },
+            {
+                "name": "app02.example.org",
+                "url": "/a/2/",
+                "ct": "10",
+                "pk": "2",
+                "kind": "leaf",
+                "node_role": IPA_NODE_ROLE_HOST,
+                "ip_ref": {
+                    "str": "app02.example.org",
+                    "url": "/ipam/ip-addresses/45/",
+                    "type": "IP Address",
+                },
+                "prefix_display_cidr": "10.112.134.0/24",
+                "children": [],
+            },
+        ]
+
+        merged = _merge_ipa_cell_nodes_by_network(nodes)
+        self.assertEqual(len(merged), 2)
+        self.assertFalse(merged[0].get("cell_addresses_multi"))
+        self.assertFalse(merged[1].get("cell_addresses_multi"))
 
     @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_prefix_for_cell_object", return_value=None)
     @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_object_tree_ipam_stats")

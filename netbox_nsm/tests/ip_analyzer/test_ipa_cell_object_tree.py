@@ -51,6 +51,7 @@ from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import (
     _ipa_cidr_from_object_name,
     _ipa_format_gap_label,
     _ipa_networks_equal,
+    _ipa_object_tree_containment_network,
     _ipa_object_tree_sort_key,
     _ipa_subnet_containment_display_net,
     _collapse_ipa_cell_siblings_by_network,
@@ -118,6 +119,20 @@ class IpaNetworkEqualityTests(SimpleTestCase):
                 "10.112.134.44/32",
             )
         )
+
+    def test_containment_network_fallback_normalizes_to_ipaddress(self):
+        node = {
+            "name": "bench-prefix",
+            "kind": "leaf",
+            "children": [],
+        }
+        with patch(
+            "netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._hub._addr_tree_node_network",
+            return_value="10.112.134.0/24",
+        ):
+            net = _ipa_object_tree_containment_network(node)
+        self.assertIsInstance(net, ipaddress.IPv4Network)
+        self.assertEqual(str(net), "10.112.134.0/24")
 
 
 class IpaSubnetContainmentMetaTests(SimpleTestCase):

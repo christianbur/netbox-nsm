@@ -618,7 +618,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         merge_multi_end = html_multi_addresses.index("</td>", merge_multi_start)
         merge_multi_html = html_multi_addresses[merge_multi_start:merge_multi_end]
         self.assertIn("nsm-ipa-cell-merge", merge_multi_html)
-        self.assertIn("merge", merge_multi_html)
+        self.assertIn("merge +1", merge_multi_html)
         self.assertNotIn("nsm-ipa-cell-secondary-hint--aliases", html_compact_addresses)
         self.assertNotIn("nsm-ipa-cell-secondary-expand-summary", html_compact_addresses)
         self.assertIn("nsm-ipa-cell-tree-address--multi", html_compact_addresses)
@@ -642,7 +642,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         merge_end = html_compact_addresses.index("</td>", merge_start)
         merge_col_html = html_compact_addresses[merge_start:merge_end]
         self.assertIn("nsm-ipa-cell-merge", merge_col_html)
-        self.assertIn("merge", merge_col_html)
+        self.assertIn("merge +1", merge_col_html)
 
     def test_multi_address_peers_render_vertically_in_address_column(self):
         from django.template.loader import render_to_string
@@ -693,7 +693,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         dup_end = html.index("</td>", dup_start)
         dup_html = html[dup_start:dup_end]
         self.assertIn("nsm-ipa-cell-duplicate", dup_html)
-        self.assertIn("dup", dup_html)
+        self.assertIn("dup +2", dup_html)
         self.assertIn(
             'title="Multiple address names share this network in the rule cell"',
             dup_html,
@@ -729,6 +729,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         address_end = html.index("</td>", address_start)
         address_html = html[address_start:address_end]
         self.assertIn("nsm-ipa-cell-duplicate", dup_html)
+        self.assertIn("dup +1", dup_html)
         self.assertNotIn("nsm-ipa-cell-duplicate", address_html)
         self.assertIn("nsm-ipa-cell-tree-address--multi", address_html)
 
@@ -852,6 +853,8 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
                     "prefix_display_cidr": "10.1.0.0/16",
                     "subnet_contained_in": "10.0.0.0/8",
                     "subnet_contained_in_name": "g-10.0.0.0/8",
+                    "subnet_contained_dup": True,
+                    "dup_reason_title": "contained in parent prefix: g-10.0.0.0/8",
                     "children": [],
                 },
                 "depth": 1,
@@ -864,9 +867,39 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         us_end = html.index("</td>", us_start)
         us_html = html[us_start:us_end]
         self.assertIn("nsm-ipa-cell-duplicate", dup_html)
-        self.assertIn("Redundant — contained in parent prefix 10.0.0.0/8", dup_html)
+        self.assertIn("contained in parent prefix: g-10.0.0.0/8", dup_html)
+        self.assertIn("dup", dup_html)
+        self.assertIn("in g-10.0.0.0/8", dup_html)
         self.assertNotIn("nsm-ipa-cell-tree-col--parent", html)
         self.assertNotIn("nsm-ipa-cell-duplicate", us_html)
+
+    def test_object_duplicate_badge_shows_duplicate_target(self):
+        from django.template.loader import render_to_string
+
+        html = render_to_string(
+            "netbox_nsm/inc/ipa_cell_tree_row.html",
+            {
+                "node": {
+                    "name": "bench-ip",
+                    "url": "/a/5/",
+                    "kind": "leaf",
+                    "prefix_display_cidr": "10.1.0.5/32",
+                    "object_duplicate": True,
+                    "object_duplicate_of": "bench-ip-parent",
+                    "object_duplicate_of_url": "/a/1/",
+                    "children": [],
+                },
+                "depth": 1,
+            },
+        )
+        dup_start = html.index("nsm-ipa-cell-tree-col--duplicate")
+        dup_end = html.index("</td>", dup_start)
+        dup_html = html[dup_start:dup_end]
+        self.assertIn("nsm-ipa-cell-duplicate", dup_html)
+        self.assertIn("dup", dup_html)
+        self.assertIn("in", dup_html)
+        self.assertIn("bench-ip-parent", dup_html)
+        self.assertIn('href="/a/1/"', dup_html)
 
     def test_ipam_filler_row_is_not_rendered_in_cell_tree(self):
         from django.template.loader import render_to_string
@@ -1066,6 +1099,8 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
                     "prefix_display_cidr": "198.18.0.0/24",
                     "subnet_contained_in": "198.18.0.0/16",
                     "subnet_contained_in_name": "198.18.0.0/16",
+                    "subnet_contained_dup": True,
+                    "dup_reason_title": "contained in parent prefix: 198.18.0.0/16",
                     "children": [],
                 },
                 "depth": 1,
@@ -1083,7 +1118,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         dup_end = html.index("</td>", dup_start)
         dup_html = html[dup_start:dup_end]
         self.assertIn("nsm-ipa-cell-duplicate", dup_html)
-        self.assertIn("Redundant — contained in parent prefix 198.18.0.0/16", dup_html)
+        self.assertIn("contained in parent prefix: 198.18.0.0/16", dup_html)
 
     def test_empty_info_gap_row_is_not_rendered(self):
         from django.template.loader import render_to_string
@@ -2043,6 +2078,8 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
                         "ip_ref": {"str": "10.1.0.0/16", "url": "#"},
                         "prefix_display_cidr": "10.1.0.0/16",
                         "subnet_contained_in": "10.0.0.0/8",
+                        "subnet_contained_dup": True,
+                        "dup_reason_title": "contained in parent prefix: 10.0.0.0/8",
                         "children": [
                             {
                                 "name": "objekt 2",
@@ -2077,7 +2114,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         self.assertNotIn("nsm-ipa-expanded-warnings", html)
         self.assertNotIn("nsm-ipa-expanded-warning--subnet", html)
         self.assertIn(
-            'title="Redundant — contained in parent prefix 10.0.0.0/8"',
+            'title="contained in parent prefix: 10.0.0.0/8"',
             html,
         )
         self.assertNotIn("warn duplicate →", html)

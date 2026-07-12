@@ -1435,7 +1435,9 @@ def _ipa_object_tree_containment_network(node):
         return None
     net = _hub._addr_tree_node_network(node)
     if net is not None:
-        return net
+        normalized = _ipa_std_network(net)
+        if normalized is not None:
+            return normalized
     for candidate in (
         node.get("prefix_display_cidr"),
         ip_ref.get("str"),
@@ -3655,6 +3657,76 @@ def _attach_ipa_explain_fields(nodes):
         _attach_ipa_explain_fields(node.get("children") or [])
 
 
+def _ipa_subnet_contained_dup_visible(node):
+    """True when subnet containment should render as DUP (computed via ipaddress)."""
+    if not node.get("subnet_contained_in"):
+        return False
+    net = _ipa_object_tree_containment_network(node)
+    if net is None:
+        return False
+    if net.prefixlen >= net.max_prefixlen:
+        return False
+    return _ipa_object_node_role_from_tree_node(node) != IPA_NODE_ROLE_HOST
+
+
+def _ipa_dup_groups_label(node):
+    """Comma-separated list of group names that place this row in duplicate context."""
+    names = []
+    for ref in _display_cell_group_refs(node.get("cell_groups")):
+        name = str(ref.get("name") or "").strip()
+        if name and name not in names:
+            names.append(name)
+    return ", ".join(names)
+
+
+def _attach_ipa_dup_context_fields(nodes):
+    """Attach render-ready duplicate tooltip/context fields for Dup column."""
+    for node in nodes or []:
+        node["subnet_contained_dup"] = _ipa_subnet_contained_dup_visible(node)
+
+        reasons = []
+        if node.get("subnet_contained_dup"):
+            target = str(
+                node.get("subnet_contained_in_name")
+                or node.get("subnet_contained_in")
+                or ""
+            ).strip()
+            if target:
+                reasons.append(f"contained in parent prefix: {target}")
+            else:
+                reasons.append("contained in parent prefix")
+        if node.get("object_duplicate"):
+            target = str(node.get("object_duplicate_of") or "").strip()
+            reasons.append(
+                f"same object already shown in: {target}" if target else "same object already shown elsewhere"
+            )
+        if node.get("count_duplicate"):
+            target = str(node.get("count_duplicate_of") or "").strip()
+            reasons.append(
+                f"excluded from total IP count (covered by: {target})"
+                if target
+                else "excluded from total IP count"
+            )
+        if node.get("is_doppelt"):
+            reasons.append("duplicate cell entry")
+        if node.get("cell_addresses_multi") and len(node.get("cell_addresses") or []) > 1:
+            reasons.append(
+                f"multiple address names share this network (+{len(node.get('cell_addresses') or []) - 1})"
+            )
+        if node.get("cell_groups_multi"):
+            groups_label = _ipa_dup_groups_label(node)
+            reasons.append(
+                f"member of multiple groups: {groups_label}" if groups_label else "member of multiple groups"
+            )
+
+        if reasons:
+            node["dup_reason_title"] = " | ".join(reasons)
+        else:
+            node.pop("dup_reason_title", None)
+
+        _attach_ipa_dup_context_fields(node.get("children") or [])
+
+
 def _mark_ipa_object_addr_drilldown_flags_lazy(nodes, obj_by_key=None):
     """Mark IPAM drilldown only for prefix nodes (no empty spacer rows)."""
     for node in nodes or []:
@@ -3703,6 +3775,7 @@ def _finalize_ipa_cell_object_tree_lazy(nodes, cell_object_keys, obj_by_key):
     attach_ipa_cell_zone_label_refs(nodes, obj_by_key)
     attach_ipa_cell_tenant_ref(nodes, obj_by_key)
     _attach_ipa_cell_display_hints(nodes)
+    _attach_ipa_dup_context_fields(nodes)
     _mark_ipa_cell_open_by_default(nodes)
     _annotate_ipa_cell_tree_depth(nodes)
     return nodes
@@ -3778,6 +3851,7 @@ def _build_ipa_cell_object_tree(raw_selections, obj_by_key):
     _scrub_ipa_cell_group_self_refs(nodes)
     _attach_ipa_cell_display_hints(nodes)
     _attach_ipa_explain_fields(nodes)
+    _attach_ipa_dup_context_fields(nodes)
     _mark_ipa_cell_open_by_default(nodes)
     _annotate_ipa_cell_tree_depth(nodes)
     return nodes

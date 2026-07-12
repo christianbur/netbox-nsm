@@ -43,7 +43,7 @@
     {% include "netbox_nsm/inc/ipa_cell_tree_us_cell.html" %}
   </td>
 </tr>
-{% if node.addr_drilldown_lazy %}
+{% if node.addr_drilldown_lazy and node.ip_ref.type != "IP Address" %}
 <tr class="nsm-ipa-drilldown-marker nsm-ipa-drilldown-marker--start" hidden data-lazy-ct="{{ node.ct }}" data-lazy-pk="{{ node.pk }}" data-lazy-depth="{{ depth|default:0 }}" data-loaded="0"><td colspan="12"></td></tr>
 <tr class="nsm-ipa-drilldown-marker nsm-ipa-drilldown-marker--end" hidden><td colspan="12"></td></tr>
 {% endif %}

@@ -1,5 +1,1 @@
-<table class="table table-sm table-hover object-list nsm-ipa-cell-tree-table nsm-ipa-cell-tree-table--nested mb-0">
-  <tbody class="nsm-ipa-object-tree-rows">
-    {% include "netbox_nsm/inc/ipa_object_tree_node.html" with nodes=nodes depth=depth ipa_cell_pill=ipa_cell_pill|default_if_none:True %}
-  </tbody>
-</table>
+{% include "netbox_nsm/inc/ipa_object_tree_node.html" with nodes=nodes depth=depth ipa_cell_pill=ipa_cell_pill|default_if_none:True %}

@@ -349,6 +349,15 @@
     var params = new URLSearchParams({
       offset: String(offset),
     });
+    var inIpaTable = !!btn.closest('.nsm-ipa-cell-tree-table');
+    var depthAttr = btn.getAttribute('data-depth');
+    var depth = parseInt(depthAttr || '0', 10);
+    if (inIpaTable) {
+      params.set('prefix', 'ipa');
+      if (!isNaN(depth) && depth >= 0) {
+        params.set('depth', String(depth));
+      }
+    }
     var rangePk = container.getAttribute('data-lazy-range');
     var prefixPk = container.getAttribute('data-lazy-prefix');
     var category = container.getAttribute('data-lazy-category');
@@ -370,7 +379,16 @@
         return resp.json();
       })
       .then(function (data) {
-        btn.insertAdjacentHTML('beforebegin', data.html || '');
+        if (inIpaTable) {
+          var row = btn.closest('tr');
+          if (row) {
+            row.insertAdjacentHTML('beforebegin', data.html || '');
+          } else {
+            btn.insertAdjacentHTML('beforebegin', data.html || '');
+          }
+        } else {
+          btn.insertAdjacentHTML('beforebegin', data.html || '');
+        }
         if (window.nsmInitAddrPrefixToggle) {
           window.nsmInitAddrPrefixToggle(container);
         }
@@ -398,7 +416,12 @@
 
     function loadNext() {
       if (state.loaded >= state.total && state.total > 0) {
-        btn.remove();
+        var doneRow = btn.closest('.nsm-ipa-lazy-load-row');
+        if (doneRow) {
+          doneRow.remove();
+        } else {
+          btn.remove();
+        }
         updateLazyProgress(btn, state.total, state.total, false);
         return;
       }
@@ -421,7 +444,12 @@
             updateLazyProgress(btn, state.loaded, state.total, false);
           } else {
             updateLazyProgress(btn, state.total, state.total, false);
-            btn.remove();
+            var finalRow = btn.closest('.nsm-ipa-lazy-load-row');
+            if (finalRow) {
+              finalRow.remove();
+            } else {
+              btn.remove();
+            }
           }
           if (window.NsmIpAnalyzerApplet && window.NsmIpAnalyzerApplet.scheduleBodyScale) {
             window.NsmIpAnalyzerApplet.scheduleBodyScale();
@@ -526,26 +554,70 @@
     if (!row) {
       return;
     }
-    var drilldownRow = row.nextElementSibling;
-    if (!drilldownRow || !drilldownRow.classList.contains('nsm-ipa-drilldown-row')) {
+    var startMarker = row.nextElementSibling;
+    var endMarker = startMarker && startMarker.nextElementSibling;
+    if (!startMarker || !startMarker.classList.contains('nsm-ipa-drilldown-marker--start')) {
       return;
     }
-    var details = drilldownRow.querySelector('details.nsm-ipa-drilldown-details');
-    if (!details) {
+    if (!endMarker || !endMarker.classList.contains('nsm-ipa-drilldown-marker--end')) {
       return;
     }
-    details.open = !details.open;
+
+    var loadedState = startMarker.getAttribute('data-loaded');
+    var isOpen = startMarker.getAttribute('data-open') === '1';
+    var badge = btn.querySelector('.badge');
+
+    function setOpenState(open) {
+      var cursor = startMarker.nextElementSibling;
+      while (cursor && cursor !== endMarker) {
+        cursor.hidden = !open;
+        cursor = cursor.nextElementSibling;
+      }
+      startMarker.setAttribute('data-open', open ? '1' : '0');
+      if (badge) {
+        badge.textContent = open ? '−' : '+';
+      }
+    }
+
+    if (loadedState === '1') {
+      setOpenState(!isOpen);
+      return;
+    }
+
+    var ct = startMarker.getAttribute('data-lazy-ct');
+    var pk = startMarker.getAttribute('data-lazy-pk');
+    var depth = parseInt(startMarker.getAttribute('data-lazy-depth') || '0', 10);
+    if (!ct || !pk) {
+      return;
+    }
+
+    btn.disabled = true;
+    btn.classList.add('nsm-ipa-cell-lazy-subnet-load--loading');
+    if (badge) {
+      badge.textContent = '…';
+    }
+
+    fetchObjectDrilldown(startMarker, endMarker, ct, pk, isNaN(depth) ? 0 : depth)
+      .then(function () {
+        btn.disabled = false;
+        btn.classList.remove('nsm-ipa-cell-lazy-subnet-load--loading');
+        setOpenState(true);
+      })
+      .catch(function () {
+        startMarker.setAttribute('data-loaded', '0');
+        btn.disabled = false;
+        btn.classList.remove('nsm-ipa-cell-lazy-subnet-load--loading');
+        if (badge) {
+          badge.textContent = '+';
+        }
+      });
   });
 
-  function fetchObjectDrilldown(container, ct, pk, depth) {
-    if (container.getAttribute('data-loaded') === 'loading') {
+  function fetchObjectDrilldown(startMarker, endMarker, ct, pk, depth) {
+    if (startMarker.getAttribute('data-loaded') === 'loading') {
       return Promise.resolve();
     }
-    container.setAttribute('data-loaded', 'loading');
-    var loadingEl = container.querySelector('.nsm-ipa-addr-drilldown-loading');
-    if (loadingEl) {
-      loadingEl.hidden = false;
-    }
+    startMarker.setAttribute('data-loaded', 'loading');
     var params = new URLSearchParams({
       ct: String(ct),
       pk: String(pk),
@@ -563,75 +635,37 @@
       .then(function (data) {
         var html = String(data.html || '').trim();
         if (!html) {
-          container.hidden = true;
+          startMarker.hidden = true;
+          endMarker.hidden = true;
         } else {
-          container.insertAdjacentHTML('beforeend', html);
+          endMarker.insertAdjacentHTML('beforebegin', html);
+          var cursor = startMarker.nextElementSibling;
+          while (cursor && cursor !== endMarker) {
+            cursor.hidden = true;
+            cursor = cursor.nextElementSibling;
+          }
+          var scope = startMarker.closest('tbody') || startMarker.parentNode;
           if (window.nsmIpaStripLegacyExpandedWarnings) {
-            window.nsmIpaStripLegacyExpandedWarnings(container.closest('.nsm-addr-children') || container);
+            window.nsmIpaStripLegacyExpandedWarnings(scope);
           }
           if (window.nsmInitAddrPrefixToggle) {
-            window.nsmInitAddrPrefixToggle(container.closest('.nsm-addr-children') || container);
+            window.nsmInitAddrPrefixToggle(scope);
           }
         }
-        container.setAttribute('data-loaded', '1');
+        startMarker.setAttribute('data-loaded', '1');
         if (window.NsmIpAnalyzerApplet && window.NsmIpAnalyzerApplet.scheduleBodyScale) {
           window.NsmIpAnalyzerApplet.scheduleBodyScale();
         }
         return data;
-      })
-      .finally(function () {
-        if (loadingEl) {
-          loadingEl.hidden = true;
-        }
       });
-  }
-
-  function maybeLoadObjectDrilldown(details) {
-    if (!details || !details.open) {
-      return;
-    }
-    var container = details.querySelector('.nsm-ipa-addr-drilldown[data-lazy-ct][data-lazy-pk]');
-    if (!container) {
-      return;
-    }
-    var loadedState = container.getAttribute('data-loaded');
-    if (loadedState === '1' || loadedState === 'loading') {
-      return;
-    }
-    var ct = container.getAttribute('data-lazy-ct');
-    var pk = container.getAttribute('data-lazy-pk');
-    if (!ct || !pk) {
-      return;
-    }
-    var depth = parseInt(container.getAttribute('data-lazy-depth') || '0', 10);
-    fetchObjectDrilldown(container, ct, pk, isNaN(depth) ? 0 : depth).catch(function () {
-      container.setAttribute('data-loaded', '0');
-    });
-  }
-
-  document.addEventListener('toggle', function (e) {
-    var details = e.target;
-    if (!details || details.tagName !== 'DETAILS') {
-      return;
-    }
-    maybeLoadObjectDrilldown(details);
-  }, true);
-
-  function nsmInitOpenIpaDrilldowns(root) {
-    var scope = root || document;
-    scope.querySelectorAll('details[open]').forEach(function (details) {
-      maybeLoadObjectDrilldown(details);
-    });
   }
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
       window.nsmInitAddrPrefixToggle(document);
-      nsmInitOpenIpaDrilldowns(document);
     });
   } else {
     window.nsmInitAddrPrefixToggle(document);
-    nsmInitOpenIpaDrilldowns(document);
   }
 })();
 </script>

@@ -22,6 +22,12 @@ def _build_object_drilldown_nodes(obj):
     return _build_ipa_object_drilldown_nodes(obj)
 
 
+def _mark_lazy_loaded_nodes(nodes):
+    for node in nodes or []:
+        node["ipa_lazy_loaded"] = True
+        _mark_lazy_loaded_nodes(node.get("children") or [])
+
+
 class IpAnalyzerObjectDrilldownApiView(LoginRequiredMixin, View):
     http_method_names = ["get"]
 
@@ -51,6 +57,7 @@ class IpAnalyzerObjectDrilldownApiView(LoginRequiredMixin, View):
             return JsonResponse({"error": "object not found"}, status=404)
 
         nodes, copy_lines = _build_object_drilldown_nodes(obj)
+        _mark_lazy_loaded_nodes(nodes)
         html = render_to_string(
             "netbox_nsm/inc/ipa_cell_tree_drilldown_fragment.html",
             {

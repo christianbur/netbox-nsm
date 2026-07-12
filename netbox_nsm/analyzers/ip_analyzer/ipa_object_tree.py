@@ -3656,16 +3656,22 @@ def _attach_ipa_explain_fields(nodes):
 
 
 def _mark_ipa_object_addr_drilldown_flags_lazy(nodes, obj_by_key=None):
-    """Mark IPAM drilldown only for prefix/range nodes (no empty spacer rows)."""
+    """Mark IPAM drilldown only for prefix nodes (no empty spacer rows)."""
     for node in nodes or []:
         key = _ipa_object_tree_node_key(node)
         obj = obj_by_key.get(key) if key and obj_by_key else None
         if obj is not None:
             role = _ipa_object_node_role_from_tree_node(node)
-            if role in (IPA_NODE_ROLE_PREFIX, IPA_NODE_ROLE_RANGE):
-                if not _ipa_cell_tree_has_visible_address_children(node):
-                    if _ipa_object_has_addr_drilldown(obj):
-                        node["addr_drilldown_lazy"] = True
+            obj_role = _ipa_object_node_role_from_obj(obj)
+            cidr_hint = node.get("prefix_display_cidr") or (node.get("ip_ref") or {}).get("str")
+            cidr_role = _ipa_object_node_role_from_cidr_hint(cidr_hint)
+            if (
+                role == IPA_NODE_ROLE_PREFIX
+                or obj_role == IPA_NODE_ROLE_PREFIX
+                or cidr_role == IPA_NODE_ROLE_PREFIX
+            ):
+                if _ipa_object_has_addr_drilldown(obj):
+                    node["addr_drilldown_lazy"] = True
         _mark_ipa_object_addr_drilldown_flags_lazy(
             node.get("children") or [], obj_by_key
         )
@@ -3796,9 +3802,14 @@ def _mark_ipa_object_addr_drilldown_flags(nodes, obj_by_key=None):
                 lazy = _ipa_object_drilldown_has_visible_content(obj)
         if lazy:
             role = _ipa_object_node_role_from_tree_node(node)
-            if role in (IPA_NODE_ROLE_PREFIX, IPA_NODE_ROLE_RANGE):
-                if _ipa_cell_tree_has_visible_address_children(node):
-                    lazy = False
+            obj_role = _ipa_object_node_role_from_obj(obj) if obj is not None else IPA_NODE_ROLE_EMPTY
+            cidr_hint = node.get("prefix_display_cidr") or (node.get("ip_ref") or {}).get("str")
+            cidr_role = _ipa_object_node_role_from_cidr_hint(cidr_hint)
+            lazy = (
+                role == IPA_NODE_ROLE_PREFIX
+                or obj_role == IPA_NODE_ROLE_PREFIX
+                or cidr_role == IPA_NODE_ROLE_PREFIX
+            )
         if lazy:
             node["addr_drilldown_lazy"] = True
         _mark_ipa_object_addr_drilldown_flags(node.get("children") or [], obj_by_key)

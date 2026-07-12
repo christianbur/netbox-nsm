@@ -743,11 +743,31 @@
     return btn;
   }
 
-  function loadingHtml() {
+  function loadingHtml(options) {
+    options = options || {};
+    var meta = "";
+    if (options.objectCount != null) {
+      meta =
+        '<div class="nsm-ipa-applet-loading-meta">' +
+        escHtml(ipaTf("Selected objects: %(count)s", { count: options.objectCount })) +
+        "</div>";
+    }
+    var hints = [
+      ipaT("Initial preview loads first; drilldowns and child networks load on demand."),
+      ipaT("Large rule cells, merges or diffs can take a while."),
+      ipaT("Results appear automatically as soon as the analyzer finishes."),
+    ];
     return (
       '<div class="nsm-ipa-applet-loading">' +
-      '<span class="mdi mdi-loading mdi-spin" aria-hidden="true"></span> ' +
+      '<div class="nsm-ipa-applet-loading-head"><span class="mdi mdi-loading mdi-spin" aria-hidden="true"></span> ' +
       escHtml(ipaT("Analyzer running…")) +
+      '</div>' +
+      meta +
+      '<div class="nsm-ipa-applet-loading-hints">' +
+      hints.map(function (hint) {
+        return '<div>' + escHtml(hint) + '</div>';
+      }).join("") +
+      '</div>' +
       "</div>"
     );
   }

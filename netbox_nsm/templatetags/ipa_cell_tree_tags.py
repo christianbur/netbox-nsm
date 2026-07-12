@@ -1,6 +1,7 @@
 """Template tags for IP Analyzer flat cell-tree columns."""
 
 from django import template
+from django.utils.html import format_html
 from django.utils.translation import gettext as _
 
 register = template.Library()
@@ -18,18 +19,54 @@ def _resolve_address_cidr(address_cidr, node):
     return str((node.get("ip_ref") or {}).get("str") or "").strip()
 
 
+def _resolve_address_netmask(address_netmask, node):
+    netmask = str(address_netmask or "").strip()
+    if netmask:
+        return netmask
+    if not isinstance(node, dict):
+        return ""
+    return str(node.get("prefix_display_netmask") or "").strip()
+
+
 @register.simple_tag
 def ipa_cell_tree_ipam_display(value=None, node=None):
     """Return the visible first-column IPAM text (IP, range, prefix) with safe fallback."""
     if isinstance(value, dict):
         cidr = _resolve_address_cidr(value.get("prefix_display_cidr") or value.get("cidr"), value)
         if cidr:
-            return cidr
+            netmask = _resolve_address_netmask(
+                value.get("prefix_display_netmask") or value.get("netmask"),
+                value,
+            )
+            if netmask:
+                return format_html(
+                    '<span class="nsm-addr-prefix-text" data-cidr="{}" data-netmask="{}">{}</span>',
+                    cidr,
+                    netmask,
+                    cidr,
+                )
+            return format_html(
+                '<span class="nsm-addr-prefix-text" data-cidr="{}">{}</span>',
+                cidr,
+                cidr,
+            )
         return str(value.get("name") or "").strip()
 
     cidr = _resolve_address_cidr(value, node)
     if cidr:
-        return cidr
+        netmask = _resolve_address_netmask("", node)
+        if netmask:
+            return format_html(
+                '<span class="nsm-addr-prefix-text" data-cidr="{}" data-netmask="{}">{}</span>',
+                cidr,
+                netmask,
+                cidr,
+            )
+        return format_html(
+            '<span class="nsm-addr-prefix-text" data-cidr="{}">{}</span>',
+            cidr,
+            cidr,
+        )
     if isinstance(node, dict):
         ipam_ref = node.get("ipam_object_ref") or {}
         ref_value = str(ipam_ref.get("value") or ipam_ref.get("display") or "").strip()

@@ -371,7 +371,64 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         network_col_html = html[network_col_start:network_col_end]
         self.assertIn("198.18.0.0/24", network_col_html)
         self.assertIn("nsm-ipa-cell-lazy-network-load", network_col_html)
-        self.assertIn("nsm-ipa-drilldown-row", html)
+        self.assertIn("nsm-ipa-drilldown-marker--start", html)
+        self.assertIn("nsm-ipa-drilldown-marker--end", html)
+
+    def test_prefix_row_with_children_stays_collapsed_until_lazy_click(self):
+        from django.template.loader import render_to_string
+
+        html = render_to_string(
+            "netbox_nsm/inc/ipa_object_tree_node.html",
+            {
+                "nodes": [
+                    {
+                        "name": "bench-net-0001",
+                        "url": "/a/1/",
+                        "ct": "10",
+                        "pk": "1",
+                        "kind": "leaf",
+                        "node_role": "nsm_prefix",
+                        "is_cell_direct": True,
+                        "addr_drilldown_lazy": True,
+                        "prefix_display_cidr": "198.18.0.0/24",
+                        "children": [
+                            {
+                                "name": "bench-host-0002",
+                                "url": "/a/2/",
+                                "kind": "leaf",
+                                "node_role": "nsm_host",
+                                "prefix_display_cidr": "198.18.0.2/32",
+                                "children": [],
+                            }
+                        ],
+                    }
+                ],
+                "depth": 0,
+            },
+        )
+        self.assertIn("198.18.0.0/24", html)
+        self.assertIn("nsm-ipa-cell-lazy-network-load", html)
+        self.assertNotIn("198.18.0.2/32", html)
+
+    def test_lazy_loaded_row_is_marked_without_depth_marker(self):
+        from django.template.loader import render_to_string
+
+        html = render_to_string(
+            "netbox_nsm/inc/ipa_cell_tree_row.html",
+            {
+                "node": {
+                    "name": "10.10.10.0/24",
+                    "url": "/ipam/prefixes/24/",
+                    "kind": "leaf",
+                    "layer": "ipam_prefix",
+                    "ipa_lazy_loaded": True,
+                    "ipa_lazy_subnet_child": True,
+                    "children": [],
+                },
+                "depth": 1,
+            },
+        )
+        self.assertIn("nsm-ipa-object-node--lazy-loaded", html)
 
     def test_lazy_loaded_subnet_row_shows_not_direct_hint_in_first_column(self):
         from django.template.loader import render_to_string

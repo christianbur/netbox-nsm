@@ -116,6 +116,13 @@ def _ipa_object_node_role_from_obj(obj, *, expands_members: bool | None = None) 
         expands_members = _ipa_object_expands_members(obj)
     if expands_members:
         return IPA_NODE_ROLE_GROUP
+
+    # Directly selected IPAM objects (Prefix/IPRange/IPAddress) may not expose
+    # a usable ``ip_ref`` via address helpers; classify them from ORM type first.
+    direct_ipam_role = _ipa_object_node_role_from_ipam_obj(obj)
+    if direct_ipam_role is not None:
+        return direct_ipam_role
+
     ip_ref = _hub._addr_ip_ref(obj)
     if ip_ref:
         return _ipa_object_node_role_from_ip_ref(ip_ref) or IPA_NODE_ROLE_EMPTY

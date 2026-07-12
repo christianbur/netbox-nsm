@@ -9,6 +9,7 @@ from django.contrib.contenttypes.models import ContentType
 from netbox_nsm.core.display_utils import get_display_template_map, render_object_display
 
 __all__ = (
+    "attach_ipa_cell_tenant_ref",
     "attach_ipa_cell_zone_label_refs",
     "resolve_ipa_label_refs",
     "resolve_ipa_zone_label_refs",
@@ -232,3 +233,48 @@ def attach_ipa_cell_zone_label_refs(nodes, obj_by_key=None):
                 node["label_refs"] = labels
 
         attach_ipa_cell_zone_label_refs(node.get("children") or [], obj_by_key)
+
+
+def attach_ipa_cell_tenant_ref(nodes, obj_by_key=None):
+    """Attach ``tenant_ref`` to visible cell-tree rows."""
+    from netbox_nsm.analyzers.ip_analyzer import ipa_object_tree as tree
+
+    def _ipam_target_for_node(node, obj):
+        ipam_obj = tree._ipa_cell_tree_ipam_object_for_node(node, obj=obj)
+        if ipam_obj is not None:
+            return ipam_obj
+        return None
+
+    for node in nodes or []:
+        if node.get("layer") == "ipam_prefix":
+            attach_ipa_cell_tenant_ref(node.get("children") or [], obj_by_key)
+            continue
+        if tree._ipa_tree_node_is_structural(node):
+            attach_ipa_cell_tenant_ref(node.get("children") or [], obj_by_key)
+            continue
+
+        # Lazy mode should stay responsive on large trees: resolve refs only for
+        # directly selected rows.
+        try:
+            if tree.ipa_lazy_load_enabled() and not (
+                node.get("is_cell_direct") or node.get("in_cell")
+            ):
+                attach_ipa_cell_tenant_ref(node.get("children") or [], obj_by_key)
+                continue
+        except Exception:
+            pass
+
+        key = tree._ipa_object_tree_node_key(node)
+        obj = obj_by_key.get(key) if key and obj_by_key else None
+        ipam_obj = _ipam_target_for_node(node, obj)
+        
+        if ipam_obj is not None:
+            tenant = getattr(ipam_obj, "tenant", None)
+            if tenant is not None:
+                tenant_ref = {
+                    "name": str(tenant),
+                    "url": tenant.get_absolute_url() if hasattr(tenant, "get_absolute_url") else None,
+                }
+                node["tenant_ref"] = tenant_ref
+
+        attach_ipa_cell_tenant_ref(node.get("children") or [], obj_by_key)

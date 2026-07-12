@@ -1329,6 +1329,7 @@
   --nsm-ipa-cell-tree-network-width: 12.5rem;
   --nsm-ipa-cell-tree-duplicate-width: 6rem;
   --nsm-ipa-cell-tree-type-width: 14rem;
+  --nsm-ipa-cell-tree-tenant-width: 8rem;
   --nsm-ipa-cell-tree-address-width: 9rem;
   --nsm-ipa-cell-tree-address-group-width: 12.5rem;
   --nsm-ipa-cell-tree-ipam-width: 6.5rem;
@@ -1544,9 +1545,23 @@
   margin-top: 0.15rem;
 }
 
-.nsm-ipa-applet .nsm-ipa-cell-tree-col--us,
-.nsm-ipa-applet .nsm-ipa-cell-tree-header-col--us {
-  min-width: var(--nsm-ipa-cell-tree-us-width);
+.nsm-ipa-applet .nsm-ipa-cell-tree-col--tenant,
+.nsm-ipa-applet .nsm-ipa-cell-tree-header-col--tenant {
+  min-width: var(--nsm-ipa-cell-tree-tenant-width);
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tree-col--tenant {
+  white-space: nowrap;
+  text-align: left;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tenant-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.nsm-ipa-applet .nsm-ipa-cell-tenant-link:hover {
+  text-decoration: underline;
 }
 
 .nsm-ipa-applet .nsm-ipa-cell-tree-col--network {

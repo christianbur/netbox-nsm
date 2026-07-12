@@ -1,4 +1,4 @@
-<div class="btn-group btn-group-sm flex-wrap nsm-btn-check-group" role="group"{% if widget.attrs.id %} id="{{ widget.attrs.id }}"{% endif %}>
+<div class="d-flex flex-wrap gap-2 nsm-btn-check-group" role="group"{% if widget.attrs.id %} id="{{ widget.attrs.id }}"{% endif %}>
 {% for group, options, index in widget.optgroups %}
   {% for option in options %}
     {% include option.template_name with widget=option %}

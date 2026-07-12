@@ -67,6 +67,39 @@
             {% endif %}
           </td>
         </tr>
+        <tr>
+          <th scope="row">{% trans "Rule View columns" %}</th>
+          <td>
+            {% with cols=config_dict.columns %}
+              {% if cols %}
+                <div class="table-responsive">
+                  <table class="table table-sm mb-0">
+                    <thead>
+                      <tr>
+                        <th>{% trans "Label" %}</th>
+                        <th>{% trans "Order" %}</th>
+                        <th>{% trans "Key" %}</th>
+                        <th>{% trans "Value template" %}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for c in cols %}
+                        <tr>
+                          <td>{{ c.label }}</td>
+                          <td>{{ c.column_order }}</td>
+                          <td><code>{{ c.key }}</code></td>
+                          <td><code>{{ c.value_template }}</code></td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              {% else %}
+                <span class="text-muted">{% trans "None" %}</span>
+              {% endif %}
+            {% endwith %}
+          </td>
+        </tr>
       </table>
     </div>
     {% if show_plugin_name_templates and plugin_name_templates %}

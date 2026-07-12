@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 from collections import defaultdict
+import re
 
 from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
 
 from netbox_nsm.analyzers.ip_analyzer.ip_analyzer_utils import object_is_addr_analyzable
+from netbox_nsm.core.display_template import render_display_template
 from netbox_nsm.rulebooks.templates import _OBJECT_TYPE_LABELS, _field_display_label
 from netbox_nsm.core.interface_parent import (
     interface_parent_host_payload,
@@ -46,6 +48,183 @@ _DB_SORT_FIELD_MAP = {
     "status": "status",
     "description": "description",
 }
+
+
+def _is_multiobject_field_type(field_type) -> bool:
+    try:
+        from extras.choices import CustomFieldTypeChoices
+
+        return field_type == CustomFieldTypeChoices.TYPE_MULTIOBJECT
+    except Exception:
+        return str(field_type or "").strip().lower() == "multiobject"
+
+
+def _is_object_field_type(field_type) -> bool:
+    try:
+        from extras.choices import CustomFieldTypeChoices
+
+        return field_type == CustomFieldTypeChoices.TYPE_OBJECT
+    except Exception:
+        return str(field_type or "").strip().lower() == "object"
+
+
+def _template_references_field(template: str, field_name: str) -> bool:
+    # Match patterns like {{ target }} or {{ target|... }} with optional whitespace.
+    pattern = r"\{\{\s*" + re.escape(field_name) + r"\s*(?:\||\}\})"
+    return re.search(pattern, template or "") is not None
+
+
+def _related_object_type_label(related_obj, ct_id: int | None = None) -> str:
+    cot = getattr(related_obj, "custom_object_type", None)
+    if cot is not None:
+        label = (getattr(cot, "verbose_name", None) or getattr(cot, "name", None) or "").strip()
+        if label:
+            return label
+    if ct_id is not None:
+        from netbox_nsm.type_metadata.config import resolve_nsm_config_for_content_type
+
+        cfg = resolve_nsm_config_for_content_type(ct_id)
+        if cfg and (cfg.name or "").strip():
+            return cfg.name.strip()
+    return related_obj.__class__.__name__.replace("_", " ").strip() or "Object"
+
+
+def _related_object_url(related_obj) -> str:
+    cot = getattr(related_obj, "custom_object_type", None)
+    slug = getattr(cot, "slug", None) if cot is not None else None
+    if slug and cot_has_menu(cot, "objects"):
+        from netbox_nsm.objects.cot_routes import nsm_object_reverse
+
+        return nsm_object_reverse(None, slug, pk=getattr(related_obj, "pk", None))
+    if hasattr(related_obj, "get_absolute_url"):
+        try:
+            return related_obj.get_absolute_url() or ""
+        except Exception:
+            return ""
+    return ""
+
+
+def _render_polymorphic_multiobject_items(
+    obj,
+    field_name: str,
+    field,
+    *,
+    include_links: bool,
+) -> list[dict[str, str]]:
+    related = getattr(obj, field_name, None)
+    if related is None:
+        return [{"name": "-"}]
+    try:
+        refs = list(related.all()) if hasattr(related, "all") else list(related)
+    except Exception:
+        return [{"name": "-"}]
+    if not refs:
+        return [{"name": "-"}]
+
+    from netbox_nsm.core.display_utils import get_display_template_map, render_object_display
+
+    tmpl_map = get_display_template_map()
+    ct_cache: dict[type, int | None] = {}
+    grouped: dict[str, list[str]] = {}
+    order: list[str] = []
+    field_label = (getattr(field, "label", None) or field_name.replace("_", " ").title()).strip()
+
+    for ref_obj in refs:
+        if ref_obj is None:
+            continue
+        model_cls = ref_obj.__class__
+        if model_cls not in ct_cache:
+            try:
+                ct_cache[model_cls] = ContentType.objects.get_for_model(ref_obj).pk
+            except Exception:
+                ct_cache[model_cls] = None
+        ct_id = ct_cache[model_cls]
+        if ct_id is None:
+            rendered = str(ref_obj)
+            type_label = _related_object_type_label(ref_obj, None)
+        else:
+            rendered = render_object_display(ref_obj, ct_id, tmpl_map)
+            type_label = _related_object_type_label(ref_obj, ct_id)
+        url = _related_object_url(ref_obj) if include_links else ""
+        title = f"{type_label} ({field_label})"
+        if title not in grouped:
+            grouped[title] = []
+            order.append(title)
+        grouped[title].append({"name": rendered, "url": url})
+
+    items: list[dict[str, str]] = []
+    for title in order:
+        items.append({"name": title, "group_label": True})
+        for value in grouped.get(title) or []:
+            item = {"name": value.get("name") or "", "group_item": True}
+            if value.get("url"):
+                item["url"] = value["url"]
+            items.append(item)
+    return items or [{"name": "-"}]
+
+
+def _extra_column_render_items(
+    obj,
+    value_template: str,
+    *,
+    include_links: bool,
+) -> list[dict[str, str]]:
+    rendered = render_display_template(obj, value_template or "{{ name }}")
+    text = str(rendered or "").strip()
+    if not text:
+        return [{"name": "-"}]
+
+    field_objects = getattr(obj, "_field_objects", None)
+    if not isinstance(field_objects, dict) or not field_objects:
+        return [{"name": text}]
+
+    uses_multiobject = False
+    referenced_multiobject_fields: list[tuple[str, object]] = []
+    referenced_object_fields: list[tuple[str, object]] = []
+    for field_info in field_objects.values():
+        field_name = str(field_info.get("name") or "").strip()
+        field = field_info.get("field")
+        if not field_name or field is None:
+            continue
+        field_type = getattr(field, "type", None)
+        if _is_object_field_type(field_type) and _template_references_field(
+            value_template or "", field_name
+        ):
+            referenced_object_fields.append((field_name, field))
+        if not _is_multiobject_field_type(getattr(field, "type", None)):
+            continue
+        if _template_references_field(value_template or "", field_name):
+            uses_multiobject = True
+            referenced_multiobject_fields.append((field_name, field))
+
+    if len(referenced_object_fields) == 1:
+        field_name, _field = referenced_object_fields[0]
+        related_obj = getattr(obj, field_name, None)
+        if related_obj is not None:
+            item = {"name": text}
+            if include_links:
+                url = _related_object_url(related_obj)
+                if url:
+                    item["url"] = url
+            return [item]
+
+    if not uses_multiobject:
+        return [{"name": text}]
+
+    if len(referenced_multiobject_fields) == 1:
+        field_name, field = referenced_multiobject_fields[0]
+        if bool(getattr(field, "is_polymorphic", False)):
+            return _render_polymorphic_multiobject_items(
+                obj,
+                field_name,
+                field,
+                include_links=include_links,
+            )
+
+    parts = [part.strip() for part in text.split(",") if part and part.strip()]
+    if len(parts) <= 1:
+        return [{"name": text}]
+    return [{"name": part} for part in parts]
 
 
 def cot_object_field_names_from_layout(layout: dict) -> list[str]:
@@ -322,6 +501,17 @@ def _build_type_config_sort_lookup(*, rulebook_cot=None) -> dict[int, tuple[int,
     }
 
 
+def _build_type_config_columns_lookup(*, rulebook_cot=None) -> dict[int, list[dict]]:
+    """Map ``content_type_id`` → normalized extra rule-view columns."""
+    from netbox_nsm.type_metadata.config import build_nsm_config_lookup
+
+    return {
+        config.content_type_id: list(config.columns or [])
+        for config in build_nsm_config_lookup(rulebook_cot=rulebook_cot).values()
+        if config.columns
+    }
+
+
 def _sort_key_for_object_type(
     object_type,
     *,
@@ -504,6 +694,7 @@ def build_cot_rules_layout(cot) -> dict:
         cot.fields.exclude(ui_visible="hidden").order_by("weight", "name")
     )
     tc_lookup = _build_type_config_sort_lookup(rulebook_cot=cot)
+    tc_columns_lookup = _build_type_config_columns_lookup(rulebook_cot=cot)
     rules_layout = []
     header_groups = []
     grouped_columns = []
@@ -543,11 +734,11 @@ def build_cot_rules_layout(cot) -> dict:
         if field.is_polymorphic:
             for ot in _sorted_related_object_types(field, tc_lookup=tc_lookup):
                 ct = _content_type_for_object_type(ot)
-                types.append((f"ct_{ct.pk}", _object_type_label(ot)))
+                types.append((f"ct_{ct.pk}", _object_type_label(ot), ct.pk))
         elif field.related_object_type_id:
             ot = field.related_object_type
             ct = _content_type_for_object_type(ot)
-            types.append((f"ct_{ct.pk}", _object_type_label(ot)))
+            types.append((f"ct_{ct.pk}", _object_type_label(ot), ct.pk))
 
         if not types:
             continue
@@ -560,7 +751,7 @@ def build_cot_rules_layout(cot) -> dict:
             {"label": field_label, "group_name": field_group},
             cot=cot,
         )
-        for type_key, type_label in types:
+        for type_key, type_label, type_ct_id in types:
             key = f"{field_slug}::{type_key}"
             col_def = {
                 "key": key,
@@ -570,6 +761,22 @@ def build_cot_rules_layout(cot) -> dict:
             }
             cols.append(col_def)
             grouped_columns.append(col_def)
+
+            for extra in tc_columns_lookup.get(type_ct_id, []):
+                extra_key = f"{key}::col_{extra['key']}"
+                extra_def = {
+                    "key": extra_key,
+                    "label": extra["label"],
+                    "area_slug": field_slug,
+                    "type_name": type_key,
+                    "source_key": key,
+                    "column_key": extra["key"],
+                    "column_order": int(extra.get("column_order", 0)),
+                    "value_template": extra["value_template"],
+                    "show_colored_pills": False,
+                }
+                cols.append(extra_def)
+                grouped_columns.append(extra_def)
 
         group = {
             "label": display_label,
@@ -736,6 +943,25 @@ def build_cot_grouped_rules_table_data(
     from netbox_nsm.core.display_utils import get_display_template_map
 
     tmpl_map = get_display_template_map()
+    extra_columns_by_source: dict[str, list[dict]] = {}
+    source_column_label_by_key: dict[str, str] = {}
+    source_column_is_polymorphic: dict[str, bool] = {}
+    for entry in layout.get("rules_layout") or []:
+        if entry.get("kind") != "object":
+            continue
+        is_poly = bool(entry.get("is_polymorphic"))
+        for group_col in (entry.get("group") or {}).get("columns") or []:
+            key = group_col.get("key")
+            if not key or group_col.get("source_key"):
+                continue
+            source_column_is_polymorphic[key] = is_poly
+
+    for col in grouped_columns:
+        if not col.get("source_key"):
+            source_column_label_by_key[col["key"]] = str(col.get("label") or "").strip()
+        source_key = col.get("source_key")
+        if source_key and col.get("value_template"):
+            extra_columns_by_source.setdefault(source_key, []).append(col)
 
     for instance in instances:
         per_key = {col["key"]: [] for col in grouped_columns}
@@ -750,21 +976,42 @@ def build_cot_grouped_rules_table_data(
                     continue
                 objs = related.all() if hasattr(related, "all") else []
             prefetch_interface_parents(objs)
-            for obj in objs:
+            for idx, obj in enumerate(objs):
                 model_cls = obj.__class__
                 if model_cls not in ct_cache:
                     ct_cache[model_cls] = ContentType.objects.get_for_model(obj).pk
                 key = f"{field.name}::ct_{ct_cache[model_cls]}"
                 if key in per_key:
-                    per_key[key].append(
-                        _object_item_dict(
-                            obj,
-                            ct_cache=ct_cache,
-                            address_ct_ids=address_ct_ids,
-                            include_links=include_links,
-                            tmpl_map=tmpl_map,
-                        )
+                    item = _object_item_dict(
+                        obj,
+                        ct_cache=ct_cache,
+                        address_ct_ids=address_ct_ids,
+                        include_links=include_links,
+                        tmpl_map=tmpl_map,
                     )
+                    per_key[key].append(item)
+                    for extra_col in extra_columns_by_source.get(key, []):
+                        if source_column_is_polymorphic.get(key, False):
+                            if idx > 0:
+                                per_key[extra_col["key"]].append(
+                                    {"name": "", "segment_break": True}
+                                )
+                            segment_header = {
+                                "name": item.get("name") or "",
+                                "segment_label": True,
+                            }
+                            segment_type_label = source_column_label_by_key.get(key, "")
+                            if segment_type_label:
+                                segment_header["segment_type_label"] = segment_type_label
+                            if item.get("url"):
+                                segment_header["url"] = item["url"]
+                            per_key[extra_col["key"]].append(segment_header)
+                        items = _extra_column_render_items(
+                            obj,
+                            extra_col.get("value_template") or "{{ name }}",
+                            include_links=include_links,
+                        )
+                        per_key[extra_col["key"]].extend(items)
 
         cells = {}
         cells_items = {}

@@ -168,6 +168,49 @@
     return html;
   }
 
+  function changedCotEntries(data) {
+    return (data.cot_diff || []).filter(function (entry) {
+      return entry && entry.slug && (entry.is_new || entry.has_changes || (entry.warnings && entry.warnings.length));
+    });
+  }
+
+  function selectableCotEntries(data) {
+    const bySlug = new Map();
+    (data.cot_diff || []).forEach(function (entry) {
+      const slug = String(entry && entry.slug || "").trim();
+      if (!slug) {
+        return;
+      }
+      bySlug.set(slug, {
+        slug: slug,
+        changed: Boolean(entry.is_new || entry.has_changes || (entry.warnings && entry.warnings.length)),
+      });
+    });
+
+    const types = (((data || {}).portable_document || {}).types || []);
+    types.forEach(function (typeDef) {
+      const slug = String(typeDef && typeDef.slug || "").trim();
+      if (!slug) {
+        return;
+      }
+      if (!bySlug.has(slug)) {
+        bySlug.set(slug, {slug: slug, changed: false});
+      }
+    });
+
+    return Array.from(bySlug.values()).sort(function (a, b) {
+      return a.slug.localeCompare(b.slug);
+    });
+  }
+
+  function interpolate(template, values) {
+    let result = String(template || "");
+    Object.entries(values || {}).forEach(function ([key, value]) {
+      result = result.replaceAll("%(" + key + ")s", String(value));
+    });
+    return result;
+  }
+
   function renderChoiceSetDiff(diffs, i18n) {
     if (!diffs || !diffs.length) {
       return "";
@@ -320,9 +363,14 @@
     const jsonEditor = root.querySelector("#bundleJsonEditor");
     const applyForm = root.querySelector("#applyBundleForm");
     const applyJsonInput = root.querySelector("#applyBundleJson");
+    const selectedCotsInput = root.querySelector("#applySelectedCotSlugs");
+    const selectionActiveInput = root.querySelector("#applyCotSelectionActive");
+    const selectionPanel = root.querySelector("#bundleCotSelectionPanel");
+    const selectionList = root.querySelector("#bundleCotSelectionList");
     let previewRequestId = 0;
     let panelOpen = false;
     let lastData = null;
+    let selectedCotSlugs = null;
 
     function csrfToken() {
       const input = root.querySelector("[name=csrfmiddlewaretoken]");
@@ -364,8 +412,98 @@
       summaryEl.classList.remove("d-none");
       schemaTab.innerHTML = renderCotTab(data, i18n);
       sideTab.innerHTML = renderSideEffectsTab(data, i18n);
+      renderCotSelection(data);
       syncDestructiveAlert(data);
       setState("content");
+    }
+
+    function syncSelectionInputs() {
+      if (!selectedCotsInput || !selectionActiveInput) {
+        return;
+      }
+      if (!selectionPanel || selectionPanel.classList.contains("d-none")) {
+        selectionActiveInput.value = "0";
+        selectedCotsInput.value = "";
+        return;
+      }
+      const selected = selectedCotSlugs ? Array.from(selectedCotSlugs).sort() : [];
+      selectionActiveInput.value = "1";
+      selectedCotsInput.value = selected.join(",");
+    }
+
+    function renderCotSelection(data) {
+      if (!selectionPanel || !selectionList) {
+        return;
+      }
+
+      const entries = selectableCotEntries(data);
+      if (!entries.length) {
+        selectionPanel.classList.add("d-none");
+        selectionList.innerHTML = "";
+        selectedCotSlugs = null;
+        syncSelectionInputs();
+        return;
+      }
+
+      const allowed = new Set(entries.map(function (entry) { return String(entry.slug); }));
+      if (!selectedCotSlugs) {
+        selectedCotSlugs = new Set(allowed);
+      } else {
+        selectedCotSlugs = new Set(Array.from(selectedCotSlugs).filter(function (slug) {
+          return allowed.has(slug);
+        }));
+        if (!selectedCotSlugs.size) {
+          selectedCotSlugs = new Set(allowed);
+        }
+      }
+
+      let listItems = "";
+      entries.forEach(function (entry) {
+        const slug = String(entry.slug);
+        const checked = selectedCotSlugs.has(slug) ? " checked" : "";
+        const changedBadge = entry.changed
+          ? ' <span class="badge bg-info-subtle text-info border border-info-subtle">' + escapeHtml(i18n.changed || "Changed") + '</span>'
+          : "";
+        listItems += '<li class="list-group-item py-1 px-2 border-0">'
+          + '<label class="form-check mb-0">'
+          + '<input class="form-check-input" type="checkbox" data-cot-select="1" value="' + escapeHtml(slug) + '"' + checked + '>'
+          + '<span class="form-check-label"><code>' + escapeHtml(slug) + '</code>' + changedBadge + '</span>'
+          + '</label>'
+          + '</li>';
+      });
+
+      const selectedCount = selectedCotSlugs.size;
+      const countText = interpolate(i18n.cotSelectionCount, {
+        selected: selectedCount,
+        total: entries.length,
+      });
+
+      let html = '<div class="w-100 text-muted mb-2">' + escapeHtml(countText) + '</div>'
+        + '<ul class="list-group list-group-flush nsm-cot-list">' + listItems + '</ul>';
+      if (!selectedCount && i18n.cotSelectionNone) {
+        html += '<div class="w-100 text-danger mt-1">' + escapeHtml(i18n.cotSelectionNone) + '</div>';
+      }
+
+      selectionList.innerHTML = html;
+      selectionPanel.classList.remove("d-none");
+
+      selectionList.querySelectorAll('input[data-cot-select="1"]').forEach(function (input) {
+        input.addEventListener("change", function () {
+          const slug = String(input.value || "").trim();
+          if (!slug) {
+            return;
+          }
+          if (input.checked) {
+            selectedCotSlugs.add(slug);
+          } else {
+            selectedCotSlugs.delete(slug);
+          }
+          renderCotSelection(lastData || data);
+          syncSelectionInputs();
+        });
+      });
+
+      syncSelectionInputs();
     }
 
     function bundleJsonText() {
@@ -466,8 +604,13 @@
     toggleBtn.addEventListener("click", togglePanel);
 
     if (applyForm && applyJsonInput) {
-      applyForm.addEventListener("submit", function () {
+      applyForm.addEventListener("submit", function (event) {
         applyJsonInput.value = bundleJsonText();
+        syncSelectionInputs();
+        if (selectionActiveInput && selectionActiveInput.value === "1" && selectedCotsInput && !selectedCotsInput.value) {
+          event.preventDefault();
+          setState("error", i18n.cotSelectionNone || i18n.previewFailed);
+        }
       });
     }
 

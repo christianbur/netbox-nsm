@@ -1,17 +1,17 @@
 {% load i18n %}
 
-<div class="row mb-3 align-items-center d-print-none" id="rules-results">
-  <div class="col-auto">
+<div class="nsm-rules-results mb-3 d-print-none" id="rules-results">
+  <div class="nsm-rules-results-left">
     <span class="text-muted">
       {% blocktrans trimmed with count=rules_filtered_count %}
         {{ count }} rules
       {% endblocktrans %}
     </span>
   </div>
-  <div class="col d-flex justify-content-center min-w-0">
+  <div class="nsm-rules-results-center min-w-0">
     {% include "netbox_nsm/inc/rulebook_rules_display_options.html" %}
   </div>
-  <div class="col-auto">
+  <div class="nsm-rules-results-right">
     {% include "netbox_nsm/inc/rulebook_rules_configure_table.html" %}
   </div>
 </div>

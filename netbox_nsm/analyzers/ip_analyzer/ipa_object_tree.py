@@ -172,34 +172,113 @@ def _ipa_prefix_broadcast_ip_int(prefix):
     return None
 
 
-def _attach_ipa_object_tree_ipam_stats(nodes, obj_by_key=None):
+def _ipa_tree_cache_bucket(resolve_cache, name):
+    if resolve_cache is None:
+        return None
+    return resolve_cache.setdefault(name, {})
+
+
+def _ipa_tree_ref_cache_key(ip_ref):
+    if not isinstance(ip_ref, dict):
+        return None
+    ct_raw = ip_ref.get("ct")
+    pk_raw = ip_ref.get("pk")
+    if str(ct_raw or "").isdigit() and str(pk_raw or "").isdigit():
+        return ("ctpk", int(ct_raw), int(pk_raw))
+    ref_type = str(ip_ref.get("type") or "").strip().casefold()
+    ref_str = str(ip_ref.get("str") or "").strip().casefold()
+    if ref_str:
+        return ("ref", ref_type, ref_str)
+    return None
+
+
+def _ipa_tree_prefix_cache_key(prefix):
+    if prefix is None:
+        return None
+    try:
+        pk = getattr(prefix, "pk", None)
+        if pk is not None:
+            return ("prefix", int(pk))
+    except (TypeError, ValueError):
+        pass
+    try:
+        cidr = str(prefix.prefix).strip().casefold()
+    except Exception:
+        cidr = ""
+    return ("prefix-cidr", cidr) if cidr else None
+
+
+def _ipa_cached_resolve_ipam_stats(ip_ref, *, resolve_cache=None):
+    cache = _ipa_tree_cache_bucket(resolve_cache, "ipam_stats")
+    cache_key = _ipa_tree_ref_cache_key(ip_ref)
+    if cache is None or cache_key is None:
+        return _hub._resolve_ipam_stats_from_ip_ref(ip_ref)
+    if cache_key not in cache:
+        cache[cache_key] = _hub._resolve_ipam_stats_from_ip_ref(ip_ref)
+    return cache[cache_key]
+
+
+def _ipa_cached_lookup_prefix(ip_ref, *, resolve_cache=None):
+    cache = _ipa_tree_cache_bucket(resolve_cache, "prefix_lookup")
+    cache_key = _ipa_tree_ref_cache_key(ip_ref)
+    if cache is None or cache_key is None:
+        return _hub._lookup_ipam_prefix_from_ip_ref(ip_ref)
+    if cache_key not in cache:
+        cache[cache_key] = _hub._lookup_ipam_prefix_from_ip_ref(ip_ref)
+    return cache[cache_key]
+
+
+def _ipa_cached_prefix_stats(prefix, *, resolve_cache=None):
+    cache = _ipa_tree_cache_bucket(resolve_cache, "prefix_stats")
+    cache_key = _ipa_tree_prefix_cache_key(prefix)
+    if cache is None or cache_key is None:
+        return _hub._prefix_ipam_stats(prefix)
+    if cache_key not in cache:
+        cache[cache_key] = _hub._prefix_ipam_stats(prefix)
+    return cache[cache_key]
+
+
+def _attach_ipa_object_tree_ipam_stats(nodes, obj_by_key=None, resolve_cache=None):
     """Attach NetBox prefix/range tab counts to object-tree nodes for summary badges."""
     for node in nodes or []:
         if not node.get("ipam_stats"):
             ip_ref = node.get("ip_ref") or {}
-            stats = _hub._resolve_ipam_stats_from_ip_ref(ip_ref)
+            stats = None
+            if ip_ref:
+                stats = _ipa_cached_resolve_ipam_stats(
+                    ip_ref, resolve_cache=resolve_cache
+                )
             if stats is None and node.get("prefix_display_cidr"):
-                stats = _hub._resolve_ipam_stats_from_ip_ref(
-                    {"str": node["prefix_display_cidr"]}
+                stats = _ipa_cached_resolve_ipam_stats(
+                    {"str": node["prefix_display_cidr"]},
+                    resolve_cache=resolve_cache,
                 )
             if stats is None:
                 cidr = _ipa_cidr_from_object_name(node.get("name"))
                 if cidr:
-                    stats = _hub._resolve_ipam_stats_from_ip_ref({"str": cidr})
+                    stats = _ipa_cached_resolve_ipam_stats(
+                        {"str": cidr}, resolve_cache=resolve_cache
+                    )
             if stats is None and obj_by_key:
                 key = _ipa_object_tree_node_key(node)
                 obj = obj_by_key.get(key) if key else None
                 if obj is not None:
                     full_ref = _hub._addr_ip_ref(obj)
                     if full_ref is not None:
-                        stats = _hub._resolve_ipam_stats_from_ip_ref(full_ref)
+                        stats = _ipa_cached_resolve_ipam_stats(
+                            full_ref, resolve_cache=resolve_cache
+                        )
                     if stats is None:
                         prefix = _ipa_prefix_for_cell_object(obj)
                         if prefix is not None:
-                            stats = _hub._prefix_ipam_stats(prefix)
+                            stats = _ipa_cached_prefix_stats(
+                                prefix, resolve_cache=resolve_cache
+                            )
             if stats:
                 _hub._attach_ipam_stats_meta(node, stats)
-        _attach_ipa_object_tree_ipam_stats(node.get("children") or [], obj_by_key)
+        _attach_ipa_object_tree_ipam_stats(
+            node.get("children") or [], obj_by_key, resolve_cache=resolve_cache
+        )
 
 
 def _ipa_drilldown_meta_from_ipam_stats(node, stats=None):
@@ -221,7 +300,7 @@ def _ipa_drilldown_meta_from_ipam_stats(node, stats=None):
     }
 
 
-def _resolve_ipa_drilldown_meta_for_node(node, obj_by_key=None):
+def _resolve_ipa_drilldown_meta_for_node(node, obj_by_key=None, resolve_cache=None):
     """Return drilldown counters for a prefix/range tree node."""
     from netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree import _build_ipa_drilldown_source_meta
     from netbox_nsm.analyzers.ip_analyzer.ipa_object_node import (
@@ -231,7 +310,11 @@ def _resolve_ipa_drilldown_meta_for_node(node, obj_by_key=None):
     role = _ipa_object_node_role_from_tree_node(node)
     cidr = node.get("prefix_display_cidr") or (node.get("ip_ref") or {}).get("str")
     cidr_role = _ipa_object_node_role_from_cidr_hint(cidr)
-    if cidr_role in {IPA_NODE_ROLE_PREFIX, IPA_NODE_ROLE_RANGE}:
+    ip_ref = node.get("ip_ref") or {}
+    has_explicit_host_ref = ip_ref.get("type") == _FIELD_TYPE_LABELS["ip_address"]
+    cidr_looks_host = cidr_role == IPA_NODE_ROLE_HOST
+    lock_host_role = role == IPA_NODE_ROLE_HOST and (has_explicit_host_ref or cidr_looks_host)
+    if not lock_host_role and cidr_role in {IPA_NODE_ROLE_PREFIX, IPA_NODE_ROLE_RANGE}:
         role = cidr_role
     if role not in {IPA_NODE_ROLE_PREFIX, IPA_NODE_ROLE_RANGE}:
         return None
@@ -253,36 +336,46 @@ def _resolve_ipa_drilldown_meta_for_node(node, obj_by_key=None):
     for ref in candidates:
         if not ref or not ref.get("str"):
             continue
-        stats = _hub._resolve_ipam_stats_from_ip_ref(ref)
+        stats = _ipa_cached_resolve_ipam_stats(ref, resolve_cache=resolve_cache)
         if stats is not None:
             return _ipa_drilldown_meta_from_ipam_stats(node, stats)
     return None
 
 
-def _attach_ipa_drilldown_meta(nodes, obj_by_key=None):
+def _attach_ipa_drilldown_meta(nodes, obj_by_key=None, resolve_cache=None):
     """Attach NetBox child counters to prefix/range rows in the cell tree."""
     for node in nodes or []:
         if not node.get("ipa_drilldown_meta"):
-            meta = _resolve_ipa_drilldown_meta_for_node(node, obj_by_key)
+            meta = _resolve_ipa_drilldown_meta_for_node(
+                node, obj_by_key, resolve_cache=resolve_cache
+            )
             if meta is not None:
                 node["ipa_drilldown_meta"] = meta
-        _attach_ipa_drilldown_meta(node.get("children") or [], obj_by_key)
+        _attach_ipa_drilldown_meta(
+            node.get("children") or [], obj_by_key, resolve_cache=resolve_cache
+        )
 
 
-def _ensure_ipa_cell_tree_network_links(nodes, obj_by_key=None):
+def _ensure_ipa_cell_tree_network_links(nodes, obj_by_key=None, resolve_cache=None):
     """Ensure the network column can link rows backed by NSM or IPAM objects."""
     for node in nodes or []:
         if node.get("layer") == "ipam_prefix":
-            _ensure_ipa_cell_tree_network_links(node.get("children") or [], obj_by_key)
+            _ensure_ipa_cell_tree_network_links(
+                node.get("children") or [], obj_by_key, resolve_cache=resolve_cache
+            )
             continue
         if node.get("is_ipam_filler") or node.get("ipam_synthetic"):
             cidr = node.get("prefix_display_cidr")
             ip_ref = node.get("ip_ref") or {}
             if cidr and not ip_ref.get("url"):
-                prefix = _hub._lookup_ipam_prefix_from_ip_ref({"str": cidr})
+                prefix = _ipa_cached_lookup_prefix(
+                    {"str": cidr}, resolve_cache=resolve_cache
+                )
                 if prefix is not None:
                     _enrich_ipa_node_from_resolved_prefix(node, prefix)
-            _ensure_ipa_cell_tree_network_links(node.get("children") or [], obj_by_key)
+            _ensure_ipa_cell_tree_network_links(
+                node.get("children") or [], obj_by_key, resolve_cache=resolve_cache
+            )
             continue
 
         cidr = node.get("prefix_display_cidr") or (node.get("ip_ref") or {}).get("str")
@@ -302,7 +395,9 @@ def _ensure_ipa_cell_tree_network_links(nodes, obj_by_key=None):
                 if not ip_ref.get("url") and node.get("url"):
                     ip_ref["url"] = node["url"]
                 if not ip_ref.get("url"):
-                    prefix = _hub._lookup_ipam_prefix_from_ip_ref(ip_ref)
+                    prefix = _ipa_cached_lookup_prefix(
+                        ip_ref, resolve_cache=resolve_cache
+                    )
                     if prefix is not None:
                         ip_ref["url"] = prefix.get_absolute_url()
                         ip_ref.setdefault("type", _FIELD_TYPE_LABELS["prefix"])
@@ -310,7 +405,9 @@ def _ensure_ipa_cell_tree_network_links(nodes, obj_by_key=None):
                 node["ip_ref"] = _hub._addr_ip_ref_node_dict(ip_ref)
             elif ip_ref.get("str"):
                 node["ip_ref"] = ip_ref
-        _ensure_ipa_cell_tree_network_links(node.get("children") or [], obj_by_key)
+        _ensure_ipa_cell_tree_network_links(
+            node.get("children") or [], obj_by_key, resolve_cache=resolve_cache
+        )
 
 
 def _attach_ipa_cell_address_fields(nodes, obj_by_key=None):
@@ -3218,7 +3315,17 @@ def _ipa_ipam_ip_keys_for_object(ipam_obj):
         try:
             child_qs = ipam_obj.get_child_ips()
             child_count = _ipa_queryset_count_safe(child_qs)
+            if child_count is None:
+                try:
+                    raw_count = child_qs.count()
+                    child_count = int(raw_count)
+                except Exception:
+                    child_count = None
             if child_count is not None and child_count > IPA_IPAM_CHILD_IP_ENUM_MAX:
+                return set(), False
+            if child_count is None and not _ipa_is_django_queryset(child_qs):
+                # Unknown-size non-queryset sources are treated as unresolved to
+                # avoid expensive/incorrect full enumeration on large objects.
                 return set(), False
             keys = _ipa_queryset_pk_set(
                 child_qs, max_rows=IPA_IPAM_CHILD_IP_ENUM_MAX + 1
@@ -3237,7 +3344,15 @@ def _ipa_ipam_ip_keys_for_object(ipam_obj):
                 address__lte=ipam_obj.end_address,
             )
             child_count = _ipa_queryset_count_safe(child_qs)
+            if child_count is None:
+                try:
+                    raw_count = child_qs.count()
+                    child_count = int(raw_count)
+                except Exception:
+                    child_count = None
             if child_count is not None and child_count > IPA_IPAM_CHILD_IP_ENUM_MAX:
+                return set(), False
+            if child_count is None and not _ipa_is_django_queryset(child_qs):
                 return set(), False
             keys = _ipa_queryset_pk_set(
                 child_qs, max_rows=IPA_IPAM_CHILD_IP_ENUM_MAX + 1
@@ -3595,13 +3710,18 @@ def _build_ipa_cell_object_tree(raw_selections, obj_by_key):
     nodes = _prune_ipa_object_tree_duplicate_nodes(nodes)
     nodes = _sort_ipa_object_tree_siblings(nodes)
     tree_obj_by_key = _collect_ipa_tree_member_obj_by_key(obj_by_key)
+    resolve_cache: dict[str, dict] = {}
     _mark_ipa_object_addr_drilldown_flags(nodes, tree_obj_by_key)
-    _attach_ipa_object_tree_ipam_stats(nodes, tree_obj_by_key)
+    _attach_ipa_object_tree_ipam_stats(
+        nodes, tree_obj_by_key, resolve_cache=resolve_cache
+    )
     _mark_ipa_cell_direct_flags(nodes, cell_object_keys)
     _attach_ipa_object_tree_status(nodes, tree_obj_by_key)
     _attach_ipa_dup_cell_statuses(nodes)
-    _attach_ipa_drilldown_meta(nodes, tree_obj_by_key)
-    _ensure_ipa_cell_tree_network_links(nodes, tree_obj_by_key)
+    _attach_ipa_drilldown_meta(nodes, tree_obj_by_key, resolve_cache=resolve_cache)
+    _ensure_ipa_cell_tree_network_links(
+        nodes, tree_obj_by_key, resolve_cache=resolve_cache
+    )
     _attach_ipa_cell_address_fields(nodes, tree_obj_by_key)
     _attach_ipa_cell_ipam_object_refs(nodes, tree_obj_by_key)
     from netbox_nsm.analyzers.ip_analyzer.ipa_zone_label import attach_ipa_cell_zone_label_refs

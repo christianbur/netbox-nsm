@@ -14,6 +14,7 @@ def _base_form_data(**overrides):
         "role": "zone",
         "sort_order": 12,
         "display_template": "{{ name }}",
+        "columns": "[]",
     }
     data.update(overrides)
     return data
@@ -25,6 +26,7 @@ class NsmConfigFormTests(TestCase):
         self.assertIn("sort_order", form.fields)
         self.assertIn("display_template", form.fields)
         self.assertIn("areas", form.fields)
+        self.assertIn("columns", form.fields)
         self.assertIsInstance(form.fields["areas"].widget, BtnCheckMultipleWidget)
         self.assertNotIn("linkable", form.fields)
         self.assertNotIn("inherit_links", form.fields)
@@ -55,6 +57,7 @@ class NsmConfigFormTests(TestCase):
                 "sort_order": 12,
                 "display_template": "{{ name }}",
                 "areas": ["srcdst", "services"],
+                "columns": [],
             },
         )
 
@@ -65,9 +68,18 @@ class NsmConfigFormTests(TestCase):
                 "sort_order": 5,
                 "display_template": "{{ name | upper }}",
                 "areas": ["action"],
+                "columns": [
+                    {
+                        "key": "notes",
+                        "label": "Notes",
+                        "column_order": 300,
+                        "value_template": "{{ description|default('-') }}",
+                    }
+                ],
             }
         )
         self.assertEqual(initial["areas"], ["action"])
+        self.assertEqual(initial["columns"][0]["key"], "notes")
         self.assertNotIn("linkable", initial)
 
     def test_area_labels_for_values(self):

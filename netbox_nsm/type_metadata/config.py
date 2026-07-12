@@ -46,7 +46,46 @@ _MARKDOWN_FENCE_RE = re.compile(
     re.DOTALL,
 )
 
-_RULE_VIEW_KEYS = frozenset({"sort_order", "display_template", "areas"})
+_RULE_VIEW_KEYS = frozenset({"sort_order", "display_template", "areas", "columns"})
+
+
+def _normalize_rule_view_columns(columns: list[dict] | None) -> list[dict[str, Any]]:
+    """Normalize ``rule_view.columns`` entries.
+
+    Supported keys per column:
+    - ``key`` (optional stable id)
+    - ``label`` (required)
+    - ``column_order`` (int; alias: ``sort_order``)
+    - ``value_template`` (required Jinja2 value template)
+    """
+    normalized: list[dict[str, Any]] = []
+    if not isinstance(columns, list):
+        return normalized
+
+    for idx, entry in enumerate(columns):
+        if not isinstance(entry, dict):
+            continue
+        label = str(entry.get("label") or "").strip()
+        value_template = str(entry.get("value_template") or "").strip()
+        if not label or not value_template:
+            continue
+        key = str(entry.get("key") or "").strip() or f"col_{idx + 1}"
+        raw_order = entry.get("column_order", entry.get("sort_order", 100 * (idx + 1)))
+        try:
+            column_order = int(raw_order)
+        except (TypeError, ValueError):
+            column_order = 100 * (idx + 1)
+        normalized.append(
+            {
+                "key": key,
+                "label": label,
+                "column_order": column_order,
+                "value_template": value_template,
+            }
+        )
+
+    normalized.sort(key=lambda c: (c["column_order"], c["label"].lower(), c["key"]))
+    return normalized
 
 
 def _normalized_display_template(value: str | None) -> str:
@@ -125,6 +164,7 @@ def config_dict_from_metadata_block(block: dict[str, Any] | None) -> dict[str, A
         "sort_order": 0,
         "display_template": DEFAULT_DISPLAY_TEMPLATE,
         "areas": [],
+        "columns": [],
     }
     if not block:
         return config
@@ -203,6 +243,7 @@ def normalize_nsm_config_list(raw_list: list | None) -> dict[str, Any] | None:
         return None
     merged.setdefault("display_template", DEFAULT_DISPLAY_TEMPLATE)
     merged["display_template"] = _normalized_display_template(merged.get("display_template"))
+    merged["columns"] = _normalize_rule_view_columns(merged.get("columns") or [])
     merged.setdefault("sort_order", 0)
     return merged
 
@@ -211,6 +252,7 @@ def _normalize_config_dict(config: dict[str, Any]) -> dict[str, Any]:
     result = {
         "sort_order": int(config.get("sort_order", 0)),
         "display_template": _normalized_display_template(config.get("display_template")),
+        "columns": _normalize_rule_view_columns(config.get("columns") or []),
     }
     if "areas" in config:
         result["areas"] = list(config.get("areas") or [])
@@ -299,6 +341,8 @@ def _build_nsm_config_list(config: dict[str, Any]) -> list[dict]:
         "sort_order": normalized["sort_order"],
         "display_template": normalized["display_template"],
     }
+    if normalized.get("columns"):
+        rule_view_block["columns"] = deepcopy(normalized["columns"])
     if normalized.get("areas"):
         rule_view_block["areas"] = list(normalized["areas"])
     segments: list[dict] = [{"rule_view": rule_view_block}]
@@ -348,6 +392,9 @@ def _document_to_nsm_config_segments(document: dict[str, Any]) -> list[dict]:
             "sort_order": int(rule_view.get("sort_order", 0)),
             "display_template": _normalized_display_template(rule_view.get("display_template")),
         }
+        columns = _normalize_rule_view_columns(rule_view.get("columns") or [])
+        if columns:
+            block["columns"] = columns
         if rule_view.get("areas"):
             block["areas"] = list(rule_view.get("areas") or [])
         segments.append({"rule_view": block})
@@ -411,6 +458,9 @@ def _stored_nsm_config_document(text: str) -> dict[str, Any]:
             "sort_order": int(policy.get("sort_order", 0)),
             "display_template": _normalized_display_template(policy.get("display_template")),
         }
+        columns = _normalize_rule_view_columns(policy.get("columns") or [])
+        if columns:
+            result["rule_view"]["columns"] = columns
         if policy.get("areas"):
             result["rule_view"]["areas"] = list(policy.get("areas") or [])
     from netbox_nsm.type_metadata.roles import parse_role_from_comments
@@ -572,6 +622,7 @@ class NsmTypeConfig:
     name: str
     sort_order: int = 0
     display_template: str = DEFAULT_DISPLAY_TEMPLATE
+    columns: list[dict[str, Any]] | None = None
     role: str | None = None
 
     @property
@@ -614,6 +665,7 @@ def _build_nsm_type_config(
         name=name,
         sort_order=normalized["sort_order"],
         display_template=normalized["display_template"],
+        columns=list(normalized.get("columns") or []),
         role=normalized.get("role"),
     )
 
@@ -632,7 +684,7 @@ def _merge_parsed_into_config(
     parsed: dict[str, Any],
 ) -> dict[str, Any]:
     result = deepcopy(base)
-    for key in ("sort_order", "display_template", "areas"):
+    for key in ("sort_order", "display_template", "areas", "columns"):
         if key in parsed:
             result[key] = parsed[key]
     if "role" in parsed:
@@ -658,6 +710,7 @@ def resolve_nsm_config_dict_for_cot(
         "sort_order": 0,
         "display_template": DEFAULT_DISPLAY_TEMPLATE,
         "areas": [],
+        "columns": [],
     }
     rule_view = dict(doc.get("rule_view") or {})
     override = _rule_view_from_rulebook_comments(rulebook_cot, cot.slug)
@@ -787,6 +840,11 @@ def build_nsm_config_preview_rows(config: NsmTypeConfig) -> list[dict]:
             "label": str(_("Display Template")),
             "value": config.display_template,
             "mono": True,
+            "group": "rule_view",
+        },
+        {
+            "label": str(_("Columns")),
+            "value": str(len(config.columns or [])),
             "group": "rule_view",
         },
     ]

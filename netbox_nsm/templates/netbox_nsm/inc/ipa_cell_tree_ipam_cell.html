@@ -7,6 +7,8 @@ Network column carries CIDR/IP; hosts show em dash here.
 {% with meta=node.ipa_drilldown_meta %}
 <span class="badge bg-secondary-subtle text-secondary nsm-addr-ipam-short font-monospace" title="{% trans 'Prefixes' %}: {{ meta.count_subnets }} · {% trans 'IP Ranges' %}: {{ meta.count_ranges }} · {% trans 'IP Addresses' %}: {{ meta.count_ips }}">{{ meta.count_subnets }}/{{ meta.count_ranges }}/{{ meta.count_ips }}</span>
 {% endwith %}
+{% elif node.node_role == "nsm_host" %}
+<span class="badge bg-secondary-subtle text-secondary nsm-addr-ipam-short font-monospace" title="{% trans 'Prefixes' %}: 1 · {% trans 'IP Ranges' %}: 0 · {% trans 'IP Addresses' %}: 0">1/0/0</span>
 {% elif node.ipam_stats_short %}
 {% include "netbox_nsm/inc/addr_ipam_stats.html" %}
 {% else %}

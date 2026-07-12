@@ -176,6 +176,40 @@ def _interface_parent_link_html(item) -> str:
 
 def rules_pill_html_ag(item, *, hidden=False, colored=True):
     """Colored dot + plain text link (no pill chrome)."""
+    if item.get("segment_break"):
+        hidden_class = " nsm-pill-hidden" if hidden else ""
+        return (
+            f'<span class="nsm-ag-cell-item nsm-ag-cell-segment-break{hidden_class}" aria-hidden="true"></span>'
+        )
+
+    if item.get("segment_label"):
+        name = item.get("name") or ""
+        hidden_class = " nsm-pill-hidden" if hidden else ""
+        url = (item.get("url") or "").strip()
+        if url:
+            content = (
+                f'<a href="{conditional_escape(url)}" class="nsm-ag-cell-link text-decoration-none nsm-ag-cell-segment-label-text"'
+                f' title="{conditional_escape(name)}">{escape(name)}</a>'
+            )
+        else:
+            content = f'<span class="nsm-ag-cell-segment-label-text">{escape(name)}</span>'
+        return (
+            f'<span class="nsm-ag-cell-item nsm-ag-cell-segment-label{hidden_class}">'
+            f"{content}"
+            f"</span>"
+        )
+
+    if item.get("group_label"):
+        name = item.get("name") or ""
+        hidden_class = " nsm-pill-hidden" if hidden else ""
+        return (
+            f'<span class="nsm-ag-cell-item nsm-ag-cell-group-label{hidden_class}">'
+            f'<span class="nsm-ag-cell-group-label-text">{escape(name)}</span>'
+            f"</span>"
+        )
+
+    group_item_class = " nsm-ag-cell-group-item" if item.get("group_item") else ""
+
     color = (item.get("color") or "").strip() if colored else ""
     dot_html = ""
     if color:
@@ -201,17 +235,30 @@ def rules_pill_html_ag(item, *, hidden=False, colored=True):
     loupe = rules_filter_loupe_button_html(name)
     loupe_class = " nsm-rules-filter-target--has-loupe" if loupe else ""
     status_icon = _object_status_icon_html(item)
+    url = (item.get("url") or "").strip()
+    if url:
+        link_or_text = (
+            f'<a href="{conditional_escape(url)}" '
+            f' class="nsm-ag-cell-link text-decoration-none"'
+            f' data-nsm-filter-value="{conditional_escape(name)}"'
+            f' title="{conditional_escape(name)}">'
+            f"{escape(name)}"
+            f"</a>"
+        )
+    else:
+        link_or_text = (
+            f'<span class="nsm-ag-cell-text"'
+            f' data-nsm-filter-value="{conditional_escape(name)}"'
+            f' title="{conditional_escape(name)}">'
+            f"{escape(name)}"
+            f"</span>"
+        )
     return (
-        f'<span class="nsm-ag-cell-item nsm-rules-filter-target{loupe_class}{hidden_class}{excluded_class}"{data_attrs}>'
+        f'<span class="nsm-ag-cell-item{group_item_class} nsm-rules-filter-target{loupe_class}{hidden_class}{excluded_class}"{data_attrs}>'
         f'<span class="nsm-rules-filter-target-body">'
         f"{dot_html}"
         f"{_interface_parent_link_html(item)}"
-        f'<a href="{conditional_escape(item["url"])}" '
-        f' class="nsm-ag-cell-link text-decoration-none"'
-        f' data-nsm-filter-value="{conditional_escape(name)}"'
-        f' title="{conditional_escape(name)}">'
-        f"{escape(name)}"
-        f"</a>"
+        f"{link_or_text}"
         f"{status_icon}"
         f"</span>"
         f"{loupe}"
@@ -389,6 +436,138 @@ def _render_merged_type_group(
     )
 
 
+def _segment_blocks_from_type_segments(type_segments: list) -> list[dict] | None:
+    """Transpose type-oriented segments into segment-oriented blocks.
+
+    Input shape (collapsed mode):
+      - type segment labels (e.g. Business App, Segment Type, Targets)
+      - each type has items containing segment headers and values
+
+    Output shape:
+      - one block per segment with ordered field entries per type label
+    """
+    if not type_segments:
+        return None
+
+    parsed_by_type: list[tuple[str, str, list[dict]]] = []
+    has_segment_labels = False
+    for segment in type_segments:
+        type_label = str(segment.get("type_label") or "").strip()
+        group_label = str(segment.get("group_label") or "").strip()
+        items = list(segment.get("items") or [])
+        groups: list[dict] = []
+        current: dict | None = None
+        for item in items:
+            if item.get("segment_label"):
+                has_segment_labels = True
+                current = {
+                    "segment_name": str(item.get("name") or "").strip(),
+                    "segment_url": str(item.get("url") or "").strip(),
+                    "segment_type_label": str(item.get("segment_type_label") or "").strip(),
+                    "items": [],
+                }
+                groups.append(current)
+                continue
+            if item.get("segment_break"):
+                continue
+            if current is None:
+                continue
+            current["items"].append(item)
+        parsed_by_type.append((type_label, group_label, groups))
+
+    if not has_segment_labels:
+        return None
+
+    segment_map: dict[tuple[str, str], dict] = {}
+    segment_order: list[tuple[str, str]] = []
+    for type_label, group_label, groups in parsed_by_type:
+        for group in groups:
+            key = (group["segment_name"], group["segment_url"])
+            if key not in segment_map:
+                segment_map[key] = {
+                    "segment_name": group["segment_name"],
+                    "segment_url": group["segment_url"],
+                    "segment_type_label": group.get("segment_type_label") or "",
+                    "fields": [],
+                }
+                segment_order.append(key)
+            segment_map[key]["fields"].append(
+                {
+                    "group_label": group_label,
+                    "type_label": type_label,
+                    "items": list(group.get("items") or []),
+                }
+            )
+
+    return [segment_map[key] for key in segment_order]
+
+
+def _render_segment_oriented_merged_cell(
+    segment_blocks: list[dict],
+    *,
+    colored: bool,
+    cell_mode: str,
+    all_items: list,
+) -> str:
+    segment_kind_label = ""
+    for block in segment_blocks:
+        candidate = str(block.get("segment_type_label") or "").strip()
+        if candidate:
+            segment_kind_label = candidate
+            break
+
+    parts: list[str] = []
+    if segment_kind_label:
+        parts.append(
+            f'<span class="nsm-ag-cell-segment-kind">{escape(segment_kind_label)}</span>'
+        )
+
+    for idx, block in enumerate(segment_blocks):
+        seg_name = block.get("segment_name") or ""
+        seg_url = (block.get("segment_url") or "").strip()
+        if seg_url:
+            seg_header = (
+                f'<a href="{conditional_escape(seg_url)}" '
+                f' class="nsm-ag-cell-link text-decoration-none nsm-ag-cell-segment-label-text"'
+                f' title="{conditional_escape(seg_name)}">{escape(seg_name)}</a>'
+            )
+        else:
+            seg_header = f'<span class="nsm-ag-cell-segment-label-text">{escape(seg_name)}</span>'
+
+        field_parts: list[str] = []
+        for field in block.get("fields") or []:
+            type_label = str(field.get("type_label") or "").strip()
+            items = list(field.get("items") or [])
+            if not items:
+                continue
+            inner = render_rules_object_cell_html(
+                items,
+                colored=colored,
+                cell_mode=cell_mode,
+                include_cell_loupe=False,
+            )
+            label_html = ""
+            if type_label:
+                label_html = (
+                    f'<span class="nsm-ag-cell-group-label-text">{escape(type_label)}</span>'
+                )
+            field_parts.append(
+                f'<div class="nsm-ag-cell-segment-field">{label_html}{inner}</div>'
+            )
+
+        segment_block = (
+            f'<div class="nsm-ag-cell-segment-block">'
+            f'<div class="nsm-ag-cell-segment-label">{seg_header}</div>'
+            f"{''.join(field_parts)}"
+            f"</div>"
+        )
+        if idx > 0:
+            parts.append('<span class="nsm-ag-cell-segment-break" aria-hidden="true"></span>')
+        parts.append(segment_block)
+
+    return _wrap_merged_cell_html(all_items, "".join(parts))
+
+
 def render_rules_merged_object_cell_html(
     type_segments: list,
     *,
@@ -409,6 +588,15 @@ def render_rules_merged_object_cell_html(
         )
 
     groups = []
+    segment_blocks = _segment_blocks_from_type_segments(type_segments or [])
+    if segment_blocks:
+        return _render_segment_oriented_merged_cell(
+            segment_blocks,
+            colored=colored,
+            cell_mode=cell_mode,
+            all_items=all_items,
+        )
+
     for segment in type_segments or []:
         items = segment.get("items") or []
         if not items:

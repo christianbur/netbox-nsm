@@ -20,6 +20,40 @@ from utilities.testing import TestCase
 
 
 class NsmConfigFormatTests(TestCase):
+    def test_columns_roundtrip_with_sort_order_alias(self):
+        raw = [
+            {
+                "rule_view": {
+                    "sort_order": 10,
+                    "display_template": "{{ name }}",
+                    "columns": [
+                        {
+                            "key": "device",
+                            "label": "Device",
+                            "sort_order": 300,
+                            "value_template": "{{ name }}",
+                        },
+                        {
+                            "label": "Counter",
+                            "column_order": 100,
+                            "value_template": "{{ pk }}",
+                        },
+                    ],
+                }
+            }
+        ]
+        config = normalize_nsm_config_list(raw)
+        self.assertEqual(
+            [c["label"] for c in config["columns"]],
+            ["Counter", "Device"],
+        )
+        self.assertEqual(config["columns"][0]["column_order"], 100)
+
+        yaml_text = format_nsm_config_comment_yaml(config)
+        parsed = _parse_nsm_config_yaml(yaml_text)
+        self.assertEqual(parsed["columns"][0]["label"], "Counter")
+        self.assertEqual(parsed["columns"][1]["key"], "device")
+
     def test_format_and_parse_rule_view_block(self):
         config = {
             "sort_order": 10,

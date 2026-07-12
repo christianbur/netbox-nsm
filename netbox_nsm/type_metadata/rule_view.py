@@ -13,13 +13,14 @@ __all__ = (
     "normalize_rule_view_config",
 )
 
-_RULE_VIEW_KEYS = ("sort_order", "display_template", "areas")
+_RULE_VIEW_KEYS = ("sort_order", "display_template", "areas", "columns")
 
 
 def default_rule_view_for_slug(slug: str) -> dict[str, Any]:
     """Return bundled default ``rule_view`` for a policy COT slug."""
     from netbox_nsm.core.display_template import DEFAULT_DISPLAY_TEMPLATE
     from netbox_nsm.type_metadata.config import (
+        _normalize_rule_view_columns,
         _normalized_display_template,
         metadata_block_for_cot_slug,
     )
@@ -32,6 +33,7 @@ def default_rule_view_for_slug(slug: str) -> dict[str, Any]:
             rule_view.get("display_template") or DEFAULT_DISPLAY_TEMPLATE
         ),
         "areas": list(rule_view.get("areas") or []),
+        "columns": _normalize_rule_view_columns(rule_view.get("columns") or []),
     }
     return result
 
@@ -55,6 +57,10 @@ def normalize_rule_view_config(
         )
     if "areas" in raw:
         result["areas"] = list(raw.get("areas") or [])
+    if "columns" in raw:
+        from netbox_nsm.type_metadata.config import _normalize_rule_view_columns
+
+        result["columns"] = _normalize_rule_view_columns(raw.get("columns") or [])
     return result
 
 

@@ -97,9 +97,9 @@
   var IPA_ANALYZER_TIMEOUT_MS =
     window.NSM_IPA_ANALYZER_TIMEOUT_MS != null
       ? Number(window.NSM_IPA_ANALYZER_TIMEOUT_MS)
-      : 120000;
+      : 240000;
   if (!IPA_ANALYZER_TIMEOUT_MS || IPA_ANALYZER_TIMEOUT_MS < 0) {
-    IPA_ANALYZER_TIMEOUT_MS = 120000;
+    IPA_ANALYZER_TIMEOUT_MS = 240000;
   }
 
   function parseIpaApiErrorBody(body, status) {
@@ -542,7 +542,8 @@
     return params.toString();
   }
 
-  function buildDiffQuery(sides) {
+  function buildDiffQuery(sides, options) {
+    options = options || {};
     var params = new URLSearchParams();
     params.append("mode", "diff");
     (sides || []).forEach(function (side, index) {
@@ -556,6 +557,12 @@
         params.append(prefix + "name", label);
       }
     });
+    if (options.lazy) {
+      params.append("lazy", "1");
+    }
+    if (options.refresh) {
+      params.append("refresh", "1");
+    }
     return params.toString();
   }
 

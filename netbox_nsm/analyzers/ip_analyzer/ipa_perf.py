@@ -48,9 +48,9 @@ class ipa_lazy_context:
 
 def get_ipa_analyzer_timeout_ms() -> int:
     try:
-        return int(get_plugin_config("netbox_nsm", "ipa_analyzer_timeout_ms", 120000))
+        return int(get_plugin_config("netbox_nsm", "ipa_analyzer_timeout_ms", 240000))
     except (TypeError, ValueError):
-        return 120000
+        return 240000
 
 
 def get_ipa_analyzer_cache_timeout() -> int:
@@ -71,7 +71,7 @@ def parse_refresh_flag(request) -> bool:
 
 
 def should_bypass_ipa_cache(*, lazy: bool, refresh: bool, cache_timeout: int) -> bool:
-    if refresh or not lazy:
+    if refresh:
         return True
     return cache_timeout <= 0
 
@@ -92,6 +92,7 @@ def build_ipa_cache_key(
     user_id: int | None,
     mode: str,
     lazy: bool,
+    variant: str = "default",
     selections=None,
     sides=None,
 ) -> str:
@@ -99,6 +100,7 @@ def build_ipa_cache_key(
         "mode": mode,
         "lazy": bool(lazy),
         "uid": user_id,
+        "variant": str(variant or "default"),
     }
     if mode == "diff":
         side_data = []

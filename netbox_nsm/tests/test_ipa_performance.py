@@ -37,9 +37,10 @@ class IpaPerfFlagTests(SimpleTestCase):
         self.assertTrue(parse_refresh_flag(_FakeRequest({"refresh": "1"})))
 
     def test_should_bypass_cache(self):
-        self.assertTrue(should_bypass_ipa_cache(lazy=False, refresh=False, cache_timeout=300))
+        self.assertFalse(should_bypass_ipa_cache(lazy=False, refresh=False, cache_timeout=300))
         self.assertTrue(should_bypass_ipa_cache(lazy=True, refresh=True, cache_timeout=300))
         self.assertFalse(should_bypass_ipa_cache(lazy=True, refresh=False, cache_timeout=300))
+        self.assertTrue(should_bypass_ipa_cache(lazy=False, refresh=True, cache_timeout=300))
         self.assertTrue(should_bypass_ipa_cache(lazy=True, refresh=False, cache_timeout=0))
 
 
@@ -102,6 +103,23 @@ class IpaCacheKeyTests(SimpleTestCase):
         self.assertNotEqual(base, other_user)
         self.assertNotEqual(base, full_load)
         self.assertNotEqual(base, diff_key)
+
+    def test_cache_key_varies_by_response_variant(self):
+        html_key = build_ipa_cache_key(
+            user_id=1,
+            mode="merge",
+            lazy=False,
+            variant="html",
+            selections=[{"ct": "1", "pk": "1"}],
+        )
+        yaml_key = build_ipa_cache_key(
+            user_id=1,
+            mode="merge",
+            lazy=False,
+            variant="yaml",
+            selections=[{"ct": "1", "pk": "1"}],
+        )
+        self.assertNotEqual(html_key, yaml_key)
 
 
 class IpaCachePayloadTests(SimpleTestCase):
@@ -197,3 +215,58 @@ class IpaLazyFastPathTests(SimpleTestCase):
         reorganize.assert_not_called()
         self.assertEqual(len(nodes), 1)
         self.assertNotIn("addr_drilldown_lazy", nodes[0])
+
+
+class IpaTreeResolveCacheTests(SimpleTestCase):
+    def test_attach_ipam_stats_reuses_cached_resolution_for_same_ref(self):
+        from unittest.mock import patch
+
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import (
+            _attach_ipa_object_tree_ipam_stats,
+        )
+
+        stats = {
+            "child_prefixes": {"count": 1},
+            "ip_addresses": {"count": 2},
+            "ip_ranges": {"count": 3},
+        }
+        nodes = [
+            {"ip_ref": {"str": "10.0.0.0/8"}, "children": []},
+            {"prefix_display_cidr": "10.0.0.0/8", "children": []},
+        ]
+
+        with patch(
+            "netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._hub._resolve_ipam_stats_from_ip_ref",
+            return_value=stats,
+        ) as resolve_stats:
+            _attach_ipa_object_tree_ipam_stats(nodes, resolve_cache={})
+
+        self.assertEqual(resolve_stats.call_count, 1)
+        self.assertEqual(nodes[0]["ipam_stats"][1]["count"], 2)
+        self.assertEqual(nodes[1]["ipam_stats"][2]["count"], 3)
+
+    def test_network_link_resolution_reuses_cached_prefix_lookup(self):
+        from unittest.mock import patch
+
+        from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import (
+            _ensure_ipa_cell_tree_network_links,
+        )
+
+        class _FakePrefix:
+            def get_absolute_url(self):
+                return "/ipam/prefixes/1/"
+
+        nodes = [
+            {"prefix_display_cidr": "10.0.0.0/8", "children": []},
+            {"prefix_display_cidr": "10.0.0.0/8", "children": []},
+        ]
+
+        with patch(
+            "netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._hub._lookup_ipam_prefix_from_ip_ref",
+            return_value=_FakePrefix(),
+        ) as lookup_prefix:
+            _ensure_ipa_cell_tree_network_links(nodes, resolve_cache={})
+
+        self.assertEqual(lookup_prefix.call_count, 1)
+        self.assertEqual(nodes[0]["ip_ref"]["url"], "/ipam/prefixes/1/")
+        self.assertEqual(nodes[1]["ip_ref"]["url"], "/ipam/prefixes/1/")

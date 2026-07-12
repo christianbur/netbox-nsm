@@ -16,6 +16,7 @@ class RuleViewCompactTests(SimpleTestCase):
         self.assertEqual(zone["sort_order"], 10)
         self.assertEqual(zone["display_template"], "{{ name }}")
         self.assertEqual(zone["areas"], ["srcdst"])
+        self.assertEqual(zone["columns"], [])
 
     def test_compact_drops_default_entries(self):
         types_map = {

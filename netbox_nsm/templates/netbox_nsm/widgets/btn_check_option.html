@@ -1,2 +1,2 @@
 <input type="{{ widget.type }}" name="{{ widget.name }}"{% if widget.value != None %} value="{{ widget.value|stringformat:'s' }}"{% endif %}{% include "django/forms/widgets/attrs.html" %}{% if widget.attrs.id %} id="{{ widget.attrs.id }}"{% endif %}>
-<label class="btn btn-outline-secondary"{% if widget.attrs.id %} for="{{ widget.attrs.id }}"{% endif %}>{{ widget.label }}</label>
+<label class="btn btn-outline-secondary text-start fw-semibold px-3 py-2" style="min-width: 10rem;"{% if widget.attrs.id %} for="{{ widget.attrs.id }}"{% endif %}>{{ widget.label }}</label>

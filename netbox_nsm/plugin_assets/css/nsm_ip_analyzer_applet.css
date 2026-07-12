@@ -1379,22 +1379,11 @@
 
 .nsm-ipa-applet .nsm-ipa-cell-tree-col--network {
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  cursor: help;
-}
-
-.nsm-ipa-applet .nsm-ipa-cell-tree-col--ipam,
-.nsm-ipa-applet .nsm-ipa-cell-tree-header-col--ipam {
-  min-width: var(--nsm-ipa-cell-tree-ipam-width);
-}
-
-.nsm-ipa-applet .nsm-ipa-cell-tree-col--ipam {
-  white-space: nowrap;
-  text-align: left;
-}
-
-.nsm-ipa-applet .nsm-ipa-cell-tree-col--ipam .nsm-addr-ipam-short {
-  font-variant-numeric: tabular-nums;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+  vertical-align: top;
 }
 
 .nsm-ipa-applet .nsm-ipa-cell-tree-col--dns,
@@ -1476,11 +1465,6 @@
 
 .nsm-ipa-applet .nsm-ipa-cell-ipam-description-link:hover {
   text-decoration: underline;
-}
-
-.nsm-ipa-applet .nsm-ipa-cell-tree-col--address,
-.nsm-ipa-applet .nsm-ipa-cell-tree-header-col--address {
-  min-width: var(--nsm-ipa-cell-tree-address-width);
 }
 
 .nsm-ipa-applet .nsm-ipa-cell-tree-col--address-group,
@@ -1658,7 +1642,6 @@
   background-color: rgba(253, 126, 20, 0.15) !important;
 }
 
-.nsm-ipa-applet .nsm-ipa-cell-tree-col--address,
 .nsm-ipa-applet .nsm-ipa-cell-tree-col--address-group {
   white-space: normal;
   word-break: break-word;

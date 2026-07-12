@@ -236,11 +236,7 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         )
         address_group_col_end = html.index("</td>", address_group_col_start)
         self.assertIn("bench-grp-00346", html[address_group_col_start:address_group_col_end])
-        address_col_start = html.index(
-            '<td class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--address">'
-        )
-        address_col_end = html.index("</td>", address_col_start)
-        self.assertIn("—", html[address_col_start:address_col_end])
+        self.assertNotIn('nsm-ipa-cell-tree-col--address', html)
 
     def test_collapsed_group_row_renders_anchor_member_in_address_column(self):
         from django.template.loader import render_to_string
@@ -268,13 +264,13 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
             "netbox_nsm/inc/ipa_cell_tree_row.html",
             {"node": object_tree[0], "depth": 0},
         )
-        address_col_start = html.index(
-            '<td class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--address">'
+        network_col_start = html.index(
+            '<td class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--network"'
         )
-        address_col_end = html.index("</td>", address_col_start)
-        address_col_html = html[address_col_start:address_col_end]
-        self.assertIn("bench-net-00346", address_col_html)
-        self.assertNotIn("—", address_col_html)
+        network_col_end = html.index("</td>", network_col_start)
+        network_col_html = html[network_col_start:network_col_end]
+        self.assertIn("198.19.90.0/24", network_col_html)
+        self.assertNotIn("—", network_col_html)
 
     def test_group_member_renders_address_name_via_cell_groups(self):
         from django.template.loader import render_to_string
@@ -301,13 +297,106 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
                 "depth": 0,
             },
         )
-        address_col_start = html.index(
-            '<td class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--address">'
+        network_col_start = html.index(
+            '<td class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--network"'
         )
-        address_col_end = html.index("</td>", address_col_start)
-        address_col_html = html[address_col_start:address_col_end]
-        self.assertIn("bench-ip-0000099", address_col_html)
-        self.assertNotIn("—", address_col_html)
+        network_col_end = html.index("</td>", network_col_start)
+        network_col_html = html[network_col_start:network_col_end]
+        self.assertIn("198.18.0.99/32", network_col_html)
+        self.assertNotIn("—", network_col_html)
+
+    def test_type_column_keeps_cidr_pill_after_object_move(self):
+        from django.template.loader import render_to_string
+
+        html = render_to_string(
+            "netbox_nsm/inc/ipa_cell_tree_row.html",
+            {
+                "node": {
+                    "name": "bench-ip-0000042",
+                    "url": "/a/42/",
+                    "ct": "10",
+                    "pk": "42",
+                    "kind": "leaf",
+                    "is_cell_direct": True,
+                    "ip_ref": {"str": "198.18.0.42/32", "url": "/ip/42/"},
+                    "ipam_object_ref": {"kind": "ipaddress"},
+                    "prefix_display_cidr": "198.18.0.42/32",
+                    "children": [],
+                },
+                "depth": 0,
+            },
+        )
+        type_col_start = html.index(
+            '<td class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--type">'
+        )
+        type_col_end = html.index("</td>", type_col_start)
+        type_col_html = html[type_col_start:type_col_end]
+        self.assertIn("IPAM &gt; IP Address", type_col_html)
+        self.assertIn("1/0/0", type_col_html)
+        self.assertNotIn('nsm-ipa-cell-tree-col--ipam', html)
+
+    def test_type_header_shows_ipam_counter_legend(self):
+        from django.template.loader import render_to_string
+
+        html = render_to_string("netbox_nsm/inc/ipa_cell_tree_column_header.html", {})
+        self.assertIn("IPAM-Object", html)
+        self.assertIn("Type (P/R/IP)", html)
+        self.assertIn("Prefixes / IP Ranges / IP Addresses", html)
+
+    def test_prefix_row_renders_network_lazy_button_in_first_column(self):
+        from django.template.loader import render_to_string
+
+        html = render_to_string(
+            "netbox_nsm/inc/ipa_cell_tree_row.html",
+            {
+                "node": {
+                    "name": "bench-net-0001",
+                    "url": "/a/1/",
+                    "ct": "10",
+                    "pk": "1",
+                    "kind": "leaf",
+                    "node_role": "nsm_prefix",
+                    "is_cell_direct": True,
+                    "addr_drilldown_lazy": True,
+                    "prefix_display_cidr": "198.18.0.0/24",
+                    "children": [],
+                },
+                "depth": 0,
+            },
+        )
+        network_col_start = html.index(
+            '<td class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--network"'
+        )
+        network_col_end = html.index("</td>", network_col_start)
+        network_col_html = html[network_col_start:network_col_end]
+        self.assertIn("198.18.0.0/24", network_col_html)
+        self.assertIn("nsm-ipa-cell-lazy-network-load", network_col_html)
+        self.assertIn("nsm-ipa-drilldown-row", html)
+
+    def test_lazy_loaded_subnet_row_shows_not_direct_hint_in_first_column(self):
+        from django.template.loader import render_to_string
+
+        html = render_to_string(
+            "netbox_nsm/inc/ipa_cell_tree_row.html",
+            {
+                "node": {
+                    "name": "10.10.10.0/24",
+                    "url": "/ipam/prefixes/24/",
+                    "kind": "leaf",
+                    "layer": "ipam_prefix",
+                    "ipa_lazy_subnet_child": True,
+                    "children": [],
+                },
+                "depth": 1,
+            },
+        )
+        network_col_start = html.index(
+            '<td class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--network"'
+        )
+        network_col_end = html.index("</td>", network_col_start)
+        network_col_html = html[network_col_start:network_col_end]
+        self.assertIn("10.10.10.0/24", network_col_html)
+        self.assertIn("IPAM child subnet only - not directly in the cell or loaded group", network_col_html)
 
     def test_address_group_row_membership_excludes_self_duplicate(self):
         from django.template.loader import render_to_string

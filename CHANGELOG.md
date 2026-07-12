@@ -6,9 +6,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [0.4.24] - 2026-07-12
 
+### Added
+
+- **IP Analyzer Cell-Tree — lazy network expansion in first column** — prefix/range rows now expose `+` directly beside the first-column IPAM object to lazy-load the full network tree using the same cell-tree columns.
+- **IP Analyzer Cell-Tree — lazy subnet provenance hint** — subnet rows loaded via `+` now show a first-column hint that they are IPAM child subnets and not direct rule-cell or loaded-group members.
+
+### Changed
+
+- **IP Analyzer Cell-Tree — first column now shows hierarchical IPAM objects** — the first column now renders IPv4/IPv6 IPs, ranges and prefixes as the visible hierarchy instead of NSM/COT object names.
+- **IP Analyzer Cell-Tree — type column now shows child counters** — the Type column keeps the row type label and now displays compact `P/R/IP` counters for child prefixes, ranges and IPs instead of the previous CIDR/IP pill.
+- **IP Analyzer Cell-Tree — column semantics updated** — first header renamed to `IPAM-Object`; dedicated `IP/Range/Prefix` column removed; counter legend moved into the Type header.
+
 ### Fixed
 
-- Fixed PyPI upload process - corrected Git tag placement to ensure GitHub Actions builds correct version.
+- Fixed PyPI upload process - corrected Git tag placement and synchronized `pyproject.toml`/`version.py` so GitHub Actions builds the released version instead of stale package metadata.
 
 ## [0.4.23] - 2026-07-12
 

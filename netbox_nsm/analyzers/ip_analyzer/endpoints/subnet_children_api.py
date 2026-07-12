@@ -59,6 +59,7 @@ class IpAnalyzerSubnetChildrenApiView(LoginRequiredMixin, View):
             if node:
                 _enrich_addr_tree_copy_lines(node)
                 _enrich_addr_tree_leaf_counts(node)
+                node["ipa_lazy_subnet_child"] = True
                 nodes.append(node)
 
         # Get stats for total count

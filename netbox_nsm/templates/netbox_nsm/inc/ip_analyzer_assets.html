@@ -515,6 +515,28 @@
     runLazySubnetChildrenLoad(btn);
   });
 
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.nsm-ipa-cell-lazy-network-load');
+    if (!btn || btn.disabled) {
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    var row = btn.closest('tr');
+    if (!row) {
+      return;
+    }
+    var drilldownRow = row.nextElementSibling;
+    if (!drilldownRow || !drilldownRow.classList.contains('nsm-ipa-drilldown-row')) {
+      return;
+    }
+    var details = drilldownRow.querySelector('details.nsm-ipa-drilldown-details');
+    if (!details) {
+      return;
+    }
+    details.open = !details.open;
+  });
+
   function fetchObjectDrilldown(container, ct, pk, depth) {
     if (container.getAttribute('data-loaded') === 'loading') {
       return Promise.resolve();

@@ -19,6 +19,27 @@ def _resolve_address_cidr(address_cidr, node):
 
 
 @register.simple_tag
+def ipa_cell_tree_ipam_display(value=None, node=None):
+    """Return the visible first-column IPAM text (IP, range, prefix) with safe fallback."""
+    if isinstance(value, dict):
+        cidr = _resolve_address_cidr(value.get("prefix_display_cidr") or value.get("cidr"), value)
+        if cidr:
+            return cidr
+        return str(value.get("name") or "").strip()
+
+    cidr = _resolve_address_cidr(value, node)
+    if cidr:
+        return cidr
+    if isinstance(node, dict):
+        ipam_ref = node.get("ipam_object_ref") or {}
+        ref_value = str(ipam_ref.get("value") or ipam_ref.get("display") or "").strip()
+        if ref_value:
+            return ref_value
+        return str(node.get("name") or "").strip()
+    return str(value or "").strip()
+
+
+@register.simple_tag
 def ipa_cell_tree_address_link_title(
     address_name,
     node=None,

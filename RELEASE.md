@@ -116,18 +116,57 @@ git checkout dev
 
 ---
 
+## ⚠️ KRITISCH: pyproject.toml Version-Sync
+
+**WICHTIG**: Sowohl **version.py** ALS AUCH **pyproject.toml** müssen die gleiche Version haben!
+
+```python
+# netbox_nsm/version.py
+__version__ = "0.4.24"  # ← aktualisieren
+
+# pyproject.toml  
+version = "0.4.24"      # ← AUCH hier aktualisieren!
+```
+
+**Grund**: setuptools liest die Version von **pyproject.toml**, nicht von version.py! 
+- Wenn pyproject.toml älter ist → setuptools baut alte Version
+- GitHub Actions baut dann 0.4.22 obwohl Tag 0.4.24
+- PyPI lehnt mit "File already exists" ab!
+
+**Checkliste vor Release**:
+- [ ] netbox_nsm/version.py aktualisiert
+- [ ] pyproject.toml `version = "..."` aktualisiert (NICHT vergessen!)
+- [ ] CHANGELOG.md neue Sektion hinzugefügt
+- [ ] Beide Files im Release Commit: `git add CHANGELOG.md netbox_nsm/version.py pyproject.toml`
+
+---
+
 ## Häufige Fehler
+
+### ❌ PyPI: "File already exists" + falsche Version
+
+**Symptom**: Workflow zeigt `Building netbox_nsm-0.4.22` aber Tag ist `v0.4.24`
+
+**Ursache**: pyproject.toml hat alte Version oder nicht aktualisiert
+
+**Lösung**:
+```bash
+# 1. pyproject.toml auf richtige Version setzen
+# 2. Commit + Push
+# 3. Tag neu erstellen auf neuesten main
+# 4. GitHub Actions triggert neu → korrekte Version
+```
 
 ### ❌ Tag auf falschem Commit?
 
 ```bash
 # Alte Tag löschen
-git tag -d v0.4.23
-git push origin :refs/tags/v0.4.23
+git tag -d v0.4.24
+git push origin :refs/tags/v0.4.24
 
-# Neu auf Merge-Commit erstellen
-git tag -a v0.4.23 26fd0b9 -m "Release v0.4.23"
-git push origin v0.4.23
+# Neu auf aktuellen main erstellen
+git tag v0.4.24  # (ohne -a für Lightweight Tag, zeigt direkt auf HEAD)
+git push origin v0.4.24
 ```
 
 ### ❌ SSH Permission Denied?
@@ -145,24 +184,24 @@ git status
 
 # Manuell in Editor beheben, dann:
 git add <konflikt-datei>
-git commit -m "Merge dev into main for release v0.4.23"
+git commit -m "Merge dev into main for release v0.4.24"
 git push origin main
 ```
 
 ### ❌ CHANGELOG format unklar?
 
 ```markdown
-## [0.4.23] - 2026-07-12
+## [0.4.24] - 2026-07-12
 
 ### Added
-- Tenant column in Cell-Tree
-- Zone/Label source info
+- Feature 1
+- Feature 2
 
 ### Changed
-- Dynamic column widths
+- Changed item
 
 ### Fixed
-- Collect all inherited zones
+- Fixed issue
 ```
 
 ---
@@ -170,9 +209,29 @@ git push origin main
 ## GitHub Verifizierung
 
 Nach Release prüfen:
-1. GitHub Releases Tab: Tag v0.4.23 sichtbar?
+1. GitHub Releases Tab: Tag v0.4.24 sichtbar?
 2. Branch `main`: Merge-Commit sichtbar?
 3. Branch `dev`: Release-Commit sichtbar?
-4. Tag Details: Zeigt auf Merge-Commit (26fd0b9)?
+4. Tag Details: Zeigt auf aktuellen main-Commit?
+5. GitHub Actions: Workflow gestartet und baute 0.4.24? ✅
+6. PyPI: https://pypi.org/project/netbox-nsm/0.4.24/ verfügbar?
 
 Alle grün? → Release erfolgreich! ✅
+
+---
+
+## Release Checkliste (Schnellreferenz)
+
+- [ ] **CHANGELOG.md** neue [0.4.24] Sektion mit Added/Changed/Fixed
+- [ ] **netbox_nsm/version.py** auf "0.4.24" (beide Dateien!)
+- [ ] **pyproject.toml** version = "0.4.24" (CRITICAL!)
+- [ ] **Release Commit**: `git commit -m "Release v0.4.24"`
+- [ ] **Dev gepusht**: `git push origin dev`
+- [ ] **Main gemerged**: `git merge --no-ff dev` + `git push origin main`
+- [ ] **Tag erstellt** auf aktuellem main: `git tag v0.4.24 && git push origin v0.4.24`
+- [ ] **Verifiziert**:
+  - [ ] `git show v0.4.24:pyproject.toml | grep version` → 0.4.24 ✓
+  - [ ] `git show v0.4.24:netbox_nsm/version.py` → 0.4.24 ✓
+  - [ ] GitHub Actions Workflow gestartet und lief bis zum Ende
+  - [ ] Keine "File already exists" Fehler von PyPI
+  - [ ] https://pypi.org/project/netbox-nsm/ zeigt neue Version

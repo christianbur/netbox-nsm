@@ -43,15 +43,5 @@
   {% if node.children %}
   {% include "netbox_nsm/inc/ipa_object_tree_node.html" with nodes=node.children depth=depth|add:1 ipa_cell_pill=ipa_cell_pill|default_if_none:True root_groups_member=root_groups_member %}
   {% endif %}
-  {% if node.addr_drilldown_lazy %}
-  <tr class="nsm-ipa-cell-tree-row nsm-ipa-drilldown-row nsm-ipa-depth-{{ depth|add:1 }}">
-    <td colspan="11" class="nsm-ipa-drilldown-cell">
-      <details class="nsm-ipa-object-node nsm-ipa-drilldown-details"{% if node.ipa_open_by_default %} open{% endif %}>
-        <summary class="nsm-ipa-drilldown-summary visually-hidden">{% trans "IPAM drilldown" %}</summary>
-        {% include "netbox_nsm/inc/ipa_object_addr_drilldown.html" %}
-      </details>
-    </td>
-  </tr>
-  {% endif %}
   {% endif %}
 {% endfor %}

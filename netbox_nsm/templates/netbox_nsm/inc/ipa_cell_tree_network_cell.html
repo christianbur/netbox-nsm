@@ -1,7 +1,13 @@
-{% load i18n %}
+{% load i18n ipa_cell_tree_tags %}
 {% if node.layer == "ipam_prefix" %}
-<div class="d-flex align-items-center gap-2">
-  <span class="nsm-addr-link fw-semibold">{{ node.name }}</span>
+{% ipa_cell_tree_ipam_display node=node as node_ipam_display %}
+<div class="d-flex align-items-start gap-2">
+  <span class="d-flex flex-column">
+    <span class="nsm-addr-link fw-semibold">{{ node_ipam_display }}</span>
+    {% if node.ipa_lazy_subnet_child %}
+    <span class="text-muted small">{% trans "IPAM child subnet only - not directly in the cell or loaded group" %}</span>
+    {% endif %}
+  </span>
   {% if node.ipa_drilldown_meta and node.ipa_drilldown_meta.count_subnets > 0 %}
   <button type="button" class="btn btn-sm btn-link p-0 nsm-ipa-cell-lazy-subnet-load" 
     title="{% trans 'Expand subnet children' %}"

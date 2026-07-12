@@ -82,12 +82,24 @@ def _prefix_display(ancestor) -> str:
     return str(ancestor)
 
 
+def _safe_display_template_map():
+    """Best-effort display template map for analyzer rendering.
+
+    Some SimpleTestCase-based analyzer tests disallow DB access. In that
+    context we fall back to an empty template map instead of raising.
+    """
+    try:
+        return get_display_template_map()
+    except Exception:
+        return {}
+
+
 def resolve_ipa_zone_refs(obj, *, tmpl_map=None) -> list[dict[str, Any]]:
     """Return zone display refs for *obj* (direct, else inherited from prefixes)."""
     if obj is None:
         return []
     if tmpl_map is None:
-        tmpl_map = get_display_template_map()
+        tmpl_map = _safe_display_template_map()
 
     direct = _direct_refs_for_roles(obj, roles={"zone"}, tmpl_map=tmpl_map)
     if direct:
@@ -102,7 +114,12 @@ def resolve_ipa_zone_refs(obj, *, tmpl_map=None) -> list[dict[str, Any]]:
 
     refs: list[dict[str, Any]] = []
     seen: set[tuple[str, str]] = set()
-    for inherited in iter_inherited_nsm_links(obj):
+    try:
+        inherited_links = list(iter_inherited_nsm_links(obj))
+    except Exception:
+        inherited_links = []
+
+    for inherited in inherited_links:
         linked = inherited.linked
         if linked is None:
             continue
@@ -128,13 +145,13 @@ def resolve_ipa_label_refs(obj, *, tmpl_map=None) -> list[dict[str, Any]]:
     if obj is None:
         return []
     if tmpl_map is None:
-        tmpl_map = get_display_template_map()
+        tmpl_map = _safe_display_template_map()
     return _direct_refs_for_roles(obj, roles={"label"}, tmpl_map=tmpl_map)
 
 
 def resolve_ipa_zone_label_refs(obj, *, tmpl_map=None) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     if tmpl_map is None:
-        tmpl_map = get_display_template_map()
+        tmpl_map = _safe_display_template_map()
     return resolve_ipa_zone_refs(obj, tmpl_map=tmpl_map), resolve_ipa_label_refs(
         obj, tmpl_map=tmpl_map
     )
@@ -144,7 +161,23 @@ def attach_ipa_cell_zone_label_refs(nodes, obj_by_key=None):
     """Attach ``zone_refs`` / ``label_refs`` to visible cell-tree rows."""
     from netbox_nsm.analyzers.ip_analyzer import ipa_object_tree as tree
 
-    tmpl_map = get_display_template_map()
+    tmpl_map = _safe_display_template_map()
+    prefix_cache: dict[str, Any] = {}
+
+    def _ipam_target_for_node(node, obj):
+        ipam_obj = tree._ipa_cell_tree_ipam_object_for_node(node, obj=obj)
+        if ipam_obj is not None:
+            return ipam_obj
+        cidr = (node.get("prefix_display_cidr") or (node.get("ip_ref") or {}).get("str") or "").strip()
+        if not cidr or "/" not in cidr:
+            return None
+        if cidr not in prefix_cache:
+            try:
+                prefix_cache[cidr] = tree._hub._lookup_ipam_prefix_from_ip_ref({"str": cidr})
+            except Exception:
+                prefix_cache[cidr] = None
+        return prefix_cache[cidr]
+
     for node in nodes or []:
         if node.get("layer") == "ipam_prefix":
             attach_ipa_cell_zone_label_refs(node.get("children") or [], obj_by_key)
@@ -153,9 +186,20 @@ def attach_ipa_cell_zone_label_refs(nodes, obj_by_key=None):
             attach_ipa_cell_zone_label_refs(node.get("children") or [], obj_by_key)
             continue
 
+        # Lazy mode should stay responsive on large trees: resolve refs only for
+        # directly selected rows.
+        try:
+            if tree.ipa_lazy_load_enabled() and not (
+                node.get("is_cell_direct") or node.get("in_cell")
+            ):
+                attach_ipa_cell_zone_label_refs(node.get("children") or [], obj_by_key)
+                continue
+        except Exception:
+            pass
+
         key = tree._ipa_object_tree_node_key(node)
         obj = obj_by_key.get(key) if key and obj_by_key else None
-        ipam_obj = tree._ipa_cell_tree_ipam_object_for_node(node, obj=obj)
+        ipam_obj = _ipam_target_for_node(node, obj)
         target = ipam_obj or obj
         if target is not None:
             zones, labels = resolve_ipa_zone_label_refs(target, tmpl_map=tmpl_map)

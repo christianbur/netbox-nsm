@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from copy import deepcopy
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -52,6 +53,132 @@ def _resolve_bundle_from_request(request, slug: str) -> dict:
     bundle = parse_bundle_json_override(override)
     bundle["_slug"] = slug
     return bundle
+
+
+def _selected_cot_slugs_from_request(request) -> set[str] | None:
+    """Return selected COT slugs from POST, or ``None`` when selection UI inactive."""
+    if request.POST.get("cot_selection_active") != "1":
+        return None
+
+    values = request.POST.getlist("selected_cot_slugs")
+    if not values:
+        raw = (request.POST.get("selected_cot_slugs") or "").strip()
+        if raw:
+            values = [raw]
+
+    selected: set[str] = set()
+    for raw in values:
+        for item in str(raw).split(","):
+            slug = item.strip()
+            if slug:
+                selected.add(slug)
+    return selected
+
+
+def _filter_bundle_to_selected_cots(bundle: dict, selected_slugs: set[str] | None) -> dict:
+    """Return a filtered bundle with only the selected COT definitions and side effects."""
+    if selected_slugs is None:
+        return bundle
+    if not selected_slugs:
+        raise ValueError("No COT selected. Select at least one COT to apply.")
+
+    filtered = deepcopy(bundle)
+
+    selected_types = [
+        entry
+        for entry in (filtered.get("types") or [])
+        if isinstance(entry, dict) and str(entry.get("slug", "")).strip() in selected_slugs
+    ]
+    if not selected_types:
+        raise ValueError("Selected COTs are not present in this bundle.")
+
+    selected_type_slugs = {
+        str(entry.get("slug", "")).strip()
+        for entry in selected_types
+        if isinstance(entry, dict)
+    }
+
+    filtered["types"] = selected_types
+
+    object_entries = [
+        entry
+        for entry in (filtered.get("objects") or [])
+        if isinstance(entry, dict)
+    ]
+    object_by_type: dict[str, dict] = {}
+    for entry in object_entries:
+        obj_type = str(entry.get("type", "")).strip()
+        if obj_type and obj_type not in object_by_type:
+            object_by_type[obj_type] = entry
+
+    def _collect_local_refs(value, local_types: set[str], refs: set[str]) -> None:
+        if isinstance(value, str):
+            if "/" in value:
+                type_name = value.split("/", 1)[0].strip()
+                if type_name in local_types:
+                    refs.add(type_name)
+            return
+        if isinstance(value, list):
+            for item in value:
+                _collect_local_refs(item, local_types, refs)
+            return
+        if isinstance(value, dict):
+            for item in value.values():
+                _collect_local_refs(item, local_types, refs)
+
+    local_types = set(object_by_type.keys())
+    included_object_types = {t for t in selected_type_slugs if t in local_types}
+    queue = list(included_object_types)
+    while queue:
+        current = queue.pop(0)
+        current_entry = object_by_type.get(current)
+        if not current_entry:
+            continue
+        refs: set[str] = set()
+        _collect_local_refs(current_entry.get("records") or [], local_types, refs)
+        for ref_type in sorted(refs):
+            if ref_type not in included_object_types:
+                included_object_types.add(ref_type)
+                queue.append(ref_type)
+
+    filtered["objects"] = [
+        entry
+        for entry in object_entries
+        if str(entry.get("type", "")).strip() in included_object_types
+    ]
+
+    used_choice_sets: set[str] = set()
+    for type_def in selected_types:
+        for field in (type_def.get("fields") or []):
+            if not isinstance(field, dict):
+                continue
+            choice_set = str(field.get("choice_set", "")).strip()
+            if choice_set:
+                used_choice_sets.add(choice_set)
+    filtered["choice_sets"] = [
+        entry
+        for entry in (filtered.get("choice_sets") or [])
+        if isinstance(entry, dict) and str(entry.get("name", "")).strip() in used_choice_sets
+    ]
+
+    metadata = filtered.get("metadata")
+    if isinstance(metadata, dict):
+        type_meta = metadata.get("types")
+        if isinstance(type_meta, dict):
+            metadata["types"] = {
+                slug: block
+                for slug, block in type_meta.items()
+                if slug in selected_type_slugs
+            }
+        rulebook_meta = metadata.get("rulebooks")
+        if isinstance(rulebook_meta, dict):
+            metadata["rulebooks"] = {
+                slug: block
+                for slug, block in rulebook_meta.items()
+                if slug in selected_type_slugs
+            }
+
+    return filtered
 
 
 class _SetupBase(LoginRequiredMixin, View):
@@ -184,6 +311,13 @@ class SetupSchemaApplyView(_SetupBase):
                 request, _("Python bundles cannot be applied via this endpoint.")
             )
             return redirect(reverse("plugins:netbox_nsm:bundles"))
+
+        selected_slugs = _selected_cot_slugs_from_request(request)
+        try:
+            bundle = _filter_bundle_to_selected_cots(bundle, selected_slugs)
+        except ValueError as exc:
+            messages.error(request, _("Apply failed: %(error)s") % {"error": exc})
+            return redirect(reverse("plugins:netbox_nsm:bundle_detail", args=[slug]))
 
         allow_destructive = (
             setup_allow_destructive_actions()

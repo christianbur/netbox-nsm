@@ -1,0 +1,352 @@
+{
+  "schema_type": "nsm",
+  "schema_version": "1",
+  "bundle_kind": "schema",
+  "title": "NSM Demo Business Segments",
+  "description": "Demo bundle for business app segmentation using users, URLs, and segment objects. Requires nsm_schema.",
+  "requires": [
+    "nsm_schema"
+  ],
+  "types": [
+    {
+      "name": "nsm_rb_demo_business_segments",
+      "slug": "nsm_rb_demo_business_segments",
+      "verbose_name": "Rulebook Demo Business Segments",
+      "verbose_name_plural": "Rulebook Demo Business Segments",
+      "description": "Demo rulebook where source and destination are app business segments.",
+      "group_name": "NSM Rulebooks",
+      "fields": [
+        {
+          "id": 1,
+          "name": "index",
+          "type": "integer",
+          "label": "Index",
+          "description": "Rule sequence number (primary key).",
+          "required": true,
+          "weight": 1,
+          "primary": true
+        },
+        {
+          "id": 2,
+          "name": "status",
+          "type": "boolean",
+          "label": "Status",
+          "description": "When false, the rule is disabled.",
+          "required": false,
+          "weight": 2
+        },
+        {
+          "id": 3,
+          "name": "name",
+          "type": "text",
+          "label": "Name",
+          "description": "Optional short rule name.",
+          "required": false,
+          "weight": 3
+        },
+        {
+          "id": 4,
+          "name": "source_segment",
+          "type": "multiobject",
+          "label": "Source Segment",
+          "description": "Source business app segment(s).",
+          "required": true,
+          "weight": 11,
+          "is_polymorphic": true,
+          "related_object_types": [
+            "custom-objects/nsm_app_business_segment"
+          ]
+        },
+        {
+          "id": 5,
+          "name": "destination_segment",
+          "type": "multiobject",
+          "label": "Destination Segment",
+          "description": "Destination business app segment(s).",
+          "required": true,
+          "weight": 21,
+          "is_polymorphic": true,
+          "related_object_types": [
+            "custom-objects/nsm_app_business_segment"
+          ]
+        },
+        {
+          "id": 6,
+          "name": "services",
+          "type": "multiobject",
+          "label": "Services",
+          "description": "Service objects: service and service groups.",
+          "required": true,
+          "weight": 40,
+          "is_polymorphic": true,
+          "related_object_types": [
+            "custom-objects/nsm_service",
+            "custom-objects/nsm_service_group"
+          ]
+        },
+        {
+          "id": 7,
+          "name": "actions",
+          "type": "multiobject",
+          "label": "Actions",
+          "description": "Rule outcome(s), e.g. permit or deny.",
+          "required": true,
+          "weight": 50,
+          "related_object_type": "custom-objects/nsm_action"
+        }
+      ],
+      "removed_fields": []
+    }
+  ],
+  "objects": [
+    {
+      "type": "nsm_service",
+      "records": [
+        {
+          "name": "SSH",
+          "status": "active",
+          "protocol": "tcp",
+          "port": 22,
+          "description": "Secure Shell"
+        },
+        {
+          "name": "POSTGRESQL",
+          "status": "active",
+          "protocol": "tcp",
+          "port": 5432,
+          "description": "PostgreSQL DB"
+        }
+      ]
+    },
+    {
+      "type": "nsm_service_group",
+      "records": [
+        {
+          "name": "G-DB",
+          "status": "active",
+          "group": [
+            "nsm_service/POSTGRESQL"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "nsm_user",
+      "records": [
+        {
+          "name": "john.doe",
+          "status": "active",
+          "user_id": "entra-u-1001",
+          "username": "john.doe",
+          "display_name": "John Doe",
+          "email": "john.doe@example.org",
+          "directory_source": "entra"
+        },
+        {
+          "name": "jane.admin",
+          "status": "active",
+          "user_id": "entra-u-1002",
+          "username": "jane.admin",
+          "display_name": "Jane Admin",
+          "email": "jane.admin@example.org",
+          "directory_source": "entra"
+        }
+      ]
+    },
+    {
+      "type": "nsm_user_group",
+      "records": [
+        {
+          "name": "ERP-Admins",
+          "status": "active",
+          "group_id": "entra-g-2001",
+          "group_name": "ERP-Admins",
+          "directory_source": "entra",
+          "group": [
+            "nsm_user/jane.admin"
+          ]
+        },
+        {
+          "name": "ERP-Users",
+          "status": "active",
+          "group_id": "entra-g-2002",
+          "group_name": "ERP-Users",
+          "directory_source": "entra",
+          "group": [
+            "nsm_user/john.doe"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "nsm_address_url",
+      "records": [
+        {
+          "name": "erp-admin-url",
+          "status": "active",
+          "url": "https://admin.erp.example.org",
+          "description": "Admin endpoint"
+        },
+        {
+          "name": "erp-user-url",
+          "status": "active",
+          "url": "https://app.erp.example.org",
+          "description": "User endpoint"
+        },
+        {
+          "name": "erp-backend-url",
+          "status": "active",
+          "url": "db.erp.example.org",
+          "description": "Backend DB endpoint"
+        }
+      ]
+    },
+    {
+      "type": "nsm_app_business",
+      "records": [
+        {
+          "name": "ERP-Core",
+          "status": "active",
+          "criticality": "high",
+          "description": "Demo ERP business application"
+        }
+      ]
+    },
+    {
+      "type": "nsm_app_business_segment",
+      "records": [
+        {
+          "name": "erp-source-users",
+          "status": "active",
+          "app_business": "nsm_app_business/ERP-Core",
+          "segment_type": "source",
+          "target": [
+            "nsm_user_group/ERP-Users"
+          ],
+          "description": "End users as source segment"
+        },
+        {
+          "name": "erp-source-admin",
+          "status": "active",
+          "app_business": "nsm_app_business/ERP-Core",
+          "segment_type": "source",
+          "target": [
+            "nsm_user_group/ERP-Admins"
+          ],
+          "description": "Admin users as source segment"
+        },
+        {
+          "name": "erp-destination-frontend",
+          "status": "active",
+          "app_business": "nsm_app_business/ERP-Core",
+          "segment_type": "destination",
+          "target": [
+            "nsm_address_url/erp-user-url"
+          ],
+          "description": "Frontend destination segment"
+        },
+        {
+          "name": "erp-destination-admin",
+          "status": "active",
+          "app_business": "nsm_app_business/ERP-Core",
+          "segment_type": "destination",
+          "target": [
+            "nsm_address_url/erp-admin-url"
+          ],
+          "description": "Admin destination segment"
+        },
+        {
+          "name": "erp-destination-backend",
+          "status": "active",
+          "app_business": "nsm_app_business/ERP-Core",
+          "segment_type": "destination",
+          "target": [
+            "nsm_address_url/erp-backend-url"
+          ],
+          "description": "Backend DB destination segment"
+        }
+      ]
+    },
+    {
+      "type": "nsm_rb_demo_business_segments",
+      "records": [
+        {
+          "index": 1,
+          "status": true,
+          "name": "users-to-frontend-permit",
+          "source_segment": [
+            "nsm_app_business_segment/erp-source-users"
+          ],
+          "destination_segment": [
+            "nsm_app_business_segment/erp-destination-frontend"
+          ],
+          "services": [
+            "nsm_service/HTTPS"
+          ],
+          "actions": [
+            "nsm_action/Permit"
+          ]
+        },
+        {
+          "index": 2,
+          "status": true,
+          "name": "admins-to-admin-permit",
+          "source_segment": [
+            "nsm_app_business_segment/erp-source-admin"
+          ],
+          "destination_segment": [
+            "nsm_app_business_segment/erp-destination-admin"
+          ],
+          "services": [
+            "nsm_service/SSH"
+          ],
+          "actions": [
+            "nsm_action/Permit"
+          ]
+        },
+        {
+          "index": 3,
+          "status": true,
+          "name": "users-to-backend-deny",
+          "source_segment": [
+            "nsm_app_business_segment/erp-source-users"
+          ],
+          "destination_segment": [
+            "nsm_app_business_segment/erp-destination-backend"
+          ],
+          "services": [
+            "nsm_service_group/G-DB"
+          ],
+          "actions": [
+            "nsm_action/Deny"
+          ]
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "types": {
+      "nsm_rb_demo_business_segments": {
+        "role": "rulebook",
+        "menu": "rulebooks",
+        "rule_view": {
+          "sort_order": 1,
+          "display_template": "{{ name }}"
+        }
+      }
+    },
+    "rulebooks": {
+      "nsm_rb_demo_business_segments": {
+        "rulebook": {
+          "parent_slug": ""
+        },
+        "role": "rulebook",
+        "menu": "rulebooks",
+        "rule_view": {
+          "sort_order": 1,
+          "display_template": "{{ name }}"
+        }
+      }
+    }
+  }
+}

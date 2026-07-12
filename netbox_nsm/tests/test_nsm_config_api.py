@@ -68,6 +68,31 @@ class NsmConfigApiTests(APITestCase):
         parsed = parse_nsm_config_document_from_comments(self.zone_cot.comments)
         self.assertEqual(parsed["rule_view"]["sort_order"], 15)
 
+    def test_patch_updates_rule_view_columns(self):
+        grant_nsm_config_perms(self, change=True)
+        self.client.force_authenticate(self.user)
+
+        response = self.client.patch(
+            self._url(self.zone_cot.slug),
+            {
+                "rule_view": {
+                    "columns": [
+                        {
+                            "label": "Counter",
+                            "sort_order": 100,
+                            "value_template": "{{ pk }}",
+                        }
+                    ]
+                }
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.zone_cot.refresh_from_db()
+        parsed = parse_nsm_config_document_from_comments(self.zone_cot.comments)
+        self.assertEqual(parsed["rule_view"]["columns"][0]["label"], "Counter")
+        self.assertEqual(parsed["rule_view"]["columns"][0]["column_order"], 100)
+
     def test_patch_rulebook_preserves_rule_view(self):
         self.zone_cot.comments = (
             "nsm_config:\n  - rule_view:\n      sort_order: 3\n      display_template: '{{ name }}'\n"

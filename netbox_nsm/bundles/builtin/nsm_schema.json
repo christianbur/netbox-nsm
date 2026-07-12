@@ -46,6 +46,25 @@
         "high",
         "critical"
       ]
+    },
+    {
+      "name": "nsm_directory_source",
+      "choices": [
+        "entra",
+        "ad",
+        "ldap",
+        "local",
+        "other"
+      ]
+    },
+    {
+      "name": "nsm_app_business_segment_type",
+      "choices": [
+        "user",
+        "server",
+        "source",
+        "destination"
+      ]
     }
   ],
   "types": [
@@ -444,14 +463,205 @@
           "name": "group",
           "type": "multiobject",
           "label": "Group Members",
-          "description": "Member address objects, custom addresses, or nested address groups.",
+          "description": "Member address objects, URL addresses, custom addresses, or nested address groups.",
           "required": true,
           "weight": 10,
           "is_polymorphic": true,
           "related_object_types": [
             "custom-objects/nsm_address",
+            "custom-objects/nsm_address_url",
             "custom-objects/nsm_address_custom",
             "custom-objects/nsm_address_group"
+          ]
+        }
+      ],
+      "removed_fields": []
+    },
+    {
+      "name": "nsm_address_url",
+      "slug": "nsm_address_url",
+      "verbose_name": "Address URL",
+      "verbose_name_plural": "Address URLs",
+      "group_name": "NSM Objects",
+      "description": "Named URL/FQDN address object for policy matching.",
+      "fields": [
+        {
+          "id": 1,
+          "name": "name",
+          "type": "text",
+          "label": "Name",
+          "primary": true,
+          "required": true,
+          "weight": 1
+        },
+        {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
+        },
+        {
+          "id": 2,
+          "name": "color",
+          "type": "text",
+          "label": "Color",
+          "weight": 91
+        },
+        {
+          "id": 3,
+          "name": "description",
+          "type": "text",
+          "label": "Description",
+          "weight": 90
+        },
+        {
+          "id": 4,
+          "name": "comments",
+          "type": "longtext",
+          "label": "Comments",
+          "weight": 100
+        },
+        {
+          "id": 113,
+          "name": "url",
+          "type": "text",
+          "label": "URL/FQDN",
+          "required": true,
+          "weight": 11,
+          "description": "URL or FQDN to match (e.g. https://example.org or app.example.org)."
+        }
+      ],
+      "removed_fields": []
+    },
+    {
+      "name": "nsm_lable_group",
+      "slug": "nsm_lable_group",
+      "verbose_name": "Lable Group",
+      "verbose_name_plural": "Lable Groups",
+      "group_name": "NSM Objects",
+      "description": "Named collection of label objects.",
+      "fields": [
+        {
+          "id": 1,
+          "name": "name",
+          "type": "text",
+          "label": "Name",
+          "primary": true,
+          "required": true,
+          "weight": 1
+        },
+        {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
+        },
+        {
+          "id": 2,
+          "name": "color",
+          "type": "text",
+          "label": "Color",
+          "weight": 91
+        },
+        {
+          "id": 3,
+          "name": "description",
+          "type": "text",
+          "label": "Description",
+          "weight": 90
+        },
+        {
+          "id": 4,
+          "name": "comments",
+          "type": "longtext",
+          "label": "Comments",
+          "weight": 100
+        },
+        {
+          "id": 100,
+          "name": "group",
+          "type": "multiobject",
+          "label": "Group Members",
+          "description": "Member label objects or nested label groups.",
+          "required": true,
+          "weight": 10,
+          "is_polymorphic": true,
+          "related_object_types": [
+            "custom-objects/nsm_label",
+            "custom-objects/nsm_lable_group"
+          ]
+        }
+      ],
+      "removed_fields": []
+    },
+    {
+      "name": "nsm_zone_group",
+      "slug": "nsm_zone_group",
+      "verbose_name": "Zone Group",
+      "verbose_name_plural": "Zone Groups",
+      "group_name": "NSM Objects",
+      "description": "Named collection of zone objects.",
+      "fields": [
+        {
+          "id": 1,
+          "name": "name",
+          "type": "text",
+          "label": "Name",
+          "primary": true,
+          "required": true,
+          "weight": 1
+        },
+        {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
+        },
+        {
+          "id": 2,
+          "name": "color",
+          "type": "text",
+          "label": "Color",
+          "weight": 91
+        },
+        {
+          "id": 3,
+          "name": "description",
+          "type": "text",
+          "label": "Description",
+          "weight": 90
+        },
+        {
+          "id": 4,
+          "name": "comments",
+          "type": "longtext",
+          "label": "Comments",
+          "weight": 100
+        },
+        {
+          "id": 100,
+          "name": "group",
+          "type": "multiobject",
+          "label": "Group Members",
+          "description": "Member zone objects or nested zone groups.",
+          "required": true,
+          "weight": 10,
+          "is_polymorphic": true,
+          "related_object_types": [
+            "custom-objects/nsm_zone",
+            "custom-objects/nsm_zone_group"
           ]
         }
       ],
@@ -724,6 +934,315 @@
       "removed_fields": []
     },
     {
+      "name": "nsm_user",
+      "slug": "nsm_user",
+      "verbose_name": "User",
+      "verbose_name_plural": "Users",
+      "group_name": "NSM Objects",
+      "description": "Directory-backed user identity (Entra, AD, LDAP, local, ...).",
+      "fields": [
+        {
+          "id": 1,
+          "name": "name",
+          "type": "text",
+          "label": "Name",
+          "primary": true,
+          "required": true,
+          "weight": 1
+        },
+        {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
+        },
+        {
+          "id": 2,
+          "name": "color",
+          "type": "text",
+          "label": "Color",
+          "weight": 91
+        },
+        {
+          "id": 3,
+          "name": "description",
+          "type": "text",
+          "label": "Description",
+          "weight": 90
+        },
+        {
+          "id": 4,
+          "name": "comments",
+          "type": "longtext",
+          "label": "Comments",
+          "weight": 100
+        },
+        {
+          "id": 100,
+          "name": "user_id",
+          "type": "text",
+          "label": "User ID",
+          "required": true,
+          "weight": 10,
+          "description": "Unique external user identifier from directory provider."
+        },
+        {
+          "id": 101,
+          "name": "username",
+          "type": "text",
+          "label": "Username",
+          "required": true,
+          "weight": 11
+        },
+        {
+          "id": 102,
+          "name": "display_name",
+          "type": "text",
+          "label": "Display Name",
+          "weight": 12
+        },
+        {
+          "id": 103,
+          "name": "email",
+          "type": "text",
+          "label": "Email",
+          "weight": 13
+        },
+        {
+          "id": 104,
+          "name": "directory_source",
+          "type": "select",
+          "label": "Directory Source",
+          "required": true,
+          "weight": 14,
+          "choice_set": "nsm_directory_source"
+        },
+        {
+          "id": 105,
+          "name": "technical_owner",
+          "type": "object",
+          "label": "Technical Owner",
+          "weight": 15,
+          "related_object_type": "tenancy/contactgroup"
+        }
+      ],
+      "removed_fields": []
+    },
+    {
+      "name": "nsm_user_group",
+      "slug": "nsm_user_group",
+      "verbose_name": "User Group",
+      "verbose_name_plural": "User Groups",
+      "group_name": "NSM Objects",
+      "description": "Directory-backed user group with optional nested groups.",
+      "fields": [
+        {
+          "id": 1,
+          "name": "name",
+          "type": "text",
+          "label": "Name",
+          "primary": true,
+          "required": true,
+          "weight": 1
+        },
+        {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
+        },
+        {
+          "id": 2,
+          "name": "color",
+          "type": "text",
+          "label": "Color",
+          "weight": 91
+        },
+        {
+          "id": 3,
+          "name": "description",
+          "type": "text",
+          "label": "Description",
+          "weight": 90
+        },
+        {
+          "id": 4,
+          "name": "comments",
+          "type": "longtext",
+          "label": "Comments",
+          "weight": 100
+        },
+        {
+          "id": 100,
+          "name": "group_id",
+          "type": "text",
+          "label": "Group ID",
+          "required": true,
+          "weight": 10,
+          "description": "Unique external group identifier from directory provider."
+        },
+        {
+          "id": 101,
+          "name": "group_name",
+          "type": "text",
+          "label": "Group Name",
+          "required": true,
+          "weight": 11
+        },
+        {
+          "id": 102,
+          "name": "directory_source",
+          "type": "select",
+          "label": "Directory Source",
+          "required": true,
+          "weight": 12,
+          "choice_set": "nsm_directory_source"
+        },
+        {
+          "id": 103,
+          "name": "group",
+          "type": "multiobject",
+          "label": "Group Members",
+          "description": "Member users or nested user groups.",
+          "required": false,
+          "weight": 13,
+          "is_polymorphic": true,
+          "related_object_types": [
+            "custom-objects/nsm_user",
+            "custom-objects/nsm_user_group"
+          ]
+        },
+        {
+          "id": 104,
+          "name": "technical_owner",
+          "type": "object",
+          "label": "Technical Owner",
+          "weight": 14,
+          "related_object_type": "tenancy/contactgroup"
+        }
+      ],
+      "removed_fields": []
+    },
+    {
+      "name": "nsm_app_business_segment",
+      "slug": "nsm_app_business_segment",
+      "verbose_name": "Business App Segment",
+      "verbose_name_plural": "Business App Segments",
+      "group_name": "NSM Objects",
+      "description": "Segment definition for business apps across user/server/source/destination perspectives.",
+      "fields": [
+        {
+          "id": 1,
+          "name": "name",
+          "type": "text",
+          "label": "Name",
+          "primary": true,
+          "required": true,
+          "weight": 1
+        },
+        {
+          "id": 5,
+          "name": "status",
+          "type": "select",
+          "label": "Status",
+          "required": true,
+          "weight": 2,
+          "default": "active",
+          "choice_set": "nsm_object_status"
+        },
+        {
+          "id": 2,
+          "name": "color",
+          "type": "text",
+          "label": "Color",
+          "weight": 91
+        },
+        {
+          "id": 3,
+          "name": "description",
+          "type": "text",
+          "label": "Description",
+          "weight": 90
+        },
+        {
+          "id": 4,
+          "name": "comments",
+          "type": "longtext",
+          "label": "Comments",
+          "weight": 100
+        },
+        {
+          "id": 100,
+          "name": "app_business",
+          "type": "object",
+          "label": "Business App",
+          "required": true,
+          "weight": 10,
+          "related_object_type": "custom-objects/nsm_app_business"
+        },
+        {
+          "id": 101,
+          "name": "segment_type",
+          "type": "select",
+          "label": "Segment Type",
+          "required": true,
+          "weight": 11,
+          "choice_set": "nsm_app_business_segment_type"
+        },
+        {
+          "id": 102,
+          "name": "target",
+          "type": "multiobject",
+          "label": "Target",
+          "description": "Policy-relevant target objects (addresses, labels, identities).",
+          "required": true,
+          "weight": 12,
+          "is_polymorphic": true,
+          "related_object_types": [
+            "custom-objects/nsm_address",
+            "custom-objects/nsm_address_url",
+            "custom-objects/nsm_address_custom",
+            "custom-objects/nsm_address_group",
+            "custom-objects/nsm_label",
+            "custom-objects/nsm_lable_group",
+            "custom-objects/nsm_user",
+            "custom-objects/nsm_user_group"
+          ]
+        },
+        {
+          "id": 103,
+          "name": "technical_owner",
+          "type": "object",
+          "label": "Technical Owner",
+          "weight": 14,
+          "related_object_type": "tenancy/contactgroup"
+        },
+        {
+          "id": 104,
+          "name": "criticality_override",
+          "type": "select",
+          "label": "Criticality Override",
+          "weight": 15,
+          "choice_set": "nsm_app_business_criticality"
+        }
+      ],
+      "removed_fields": [
+        {
+          "id": 106,
+          "name": "services",
+          "type": "multiobject"
+        }
+      ]
+    },
+    {
       "name": "nsm_object_link",
       "slug": "nsm_object_link",
       "verbose_name": "Object Link",
@@ -803,14 +1322,20 @@
           "is_polymorphic": true,
           "related_object_types": [
             "custom-objects/nsm_zone",
+            "custom-objects/nsm_zone_group",
             "custom-objects/nsm_address",
+            "custom-objects/nsm_address_url",
             "custom-objects/nsm_address_custom",
             "custom-objects/nsm_address_group",
             "custom-objects/nsm_label",
+            "custom-objects/nsm_lable_group",
             "custom-objects/nsm_service",
             "custom-objects/nsm_service_group",
             "custom-objects/nsm_app_business",
-            "custom-objects/nsm_app_network"
+            "custom-objects/nsm_app_network",
+            "custom-objects/nsm_user",
+            "custom-objects/nsm_user_group",
+            "custom-objects/nsm_app_business_segment"
           ]
         },
         {
@@ -886,7 +1411,22 @@
           "weight": 11,
           "is_polymorphic": true,
           "related_object_types": [
-            "custom-objects/nsm_zone"
+            "custom-objects/nsm_zone",
+            "custom-objects/nsm_zone_group"
+          ]
+        },
+        {
+          "id": 15,
+          "name": "source_labels",
+          "type": "multiobject",
+          "label": "Labels (Source)",
+          "description": "Source objects: labels and label groups",
+          "required": false,
+          "weight": 12,
+          "is_polymorphic": true,
+          "related_object_types": [
+            "custom-objects/nsm_label",
+            "custom-objects/nsm_lable_group"
           ]
         },
         {
@@ -899,7 +1439,22 @@
           "weight": 21,
           "is_polymorphic": true,
           "related_object_types": [
-            "custom-objects/nsm_zone"
+            "custom-objects/nsm_zone",
+            "custom-objects/nsm_zone_group"
+          ]
+        },
+        {
+          "id": 16,
+          "name": "destination_labels",
+          "type": "multiobject",
+          "label": "Labels (Destination)",
+          "description": "Destination objects: labels and label groups",
+          "required": false,
+          "weight": 22,
+          "is_polymorphic": true,
+          "related_object_types": [
+            "custom-objects/nsm_label",
+            "custom-objects/nsm_lable_group"
           ]
         },
         {
@@ -913,6 +1468,7 @@
           "is_polymorphic": true,
           "related_object_types": [
             "custom-objects/nsm_address",
+            "custom-objects/nsm_address_url",
             "custom-objects/nsm_address_custom",
             "custom-objects/nsm_address_group"
           ]
@@ -928,6 +1484,7 @@
           "is_polymorphic": true,
           "related_object_types": [
             "custom-objects/nsm_address",
+            "custom-objects/nsm_address_url",
             "custom-objects/nsm_address_custom",
             "custom-objects/nsm_address_group"
           ]
@@ -1190,11 +1747,35 @@
           "display_template": "{{ name }}"
         }
       },
+      "nsm_address_url": {
+        "role": "address",
+        "menu": "objects",
+        "rule_view": {
+          "sort_order": 14,
+          "display_template": "{{ name }}"
+        }
+      },
       "nsm_address_group": {
         "role": "address_group",
         "menu": "objects",
         "rule_view": {
-          "sort_order": 14,
+          "sort_order": 15,
+          "display_template": "{{ name }}"
+        }
+      },
+      "nsm_lable_group": {
+        "role": "label",
+        "menu": "objects",
+        "rule_view": {
+          "sort_order": 16,
+          "display_template": "{{ name }}"
+        }
+      },
+      "nsm_zone_group": {
+        "role": "zone",
+        "menu": "objects",
+        "rule_view": {
+          "sort_order": 17,
           "display_template": "{{ name }}"
         }
       },
@@ -1238,12 +1819,36 @@
           "display_template": "{{ name }}"
         }
       },
+      "nsm_app_business_segment": {
+        "role": "app_business",
+        "menu": "objects",
+        "rule_view": {
+          "sort_order": 41,
+          "display_template": "{{ name }} | Targets: {% if target %}{{ target }}{% else %}-{% endif %}"
+        }
+      },
       "nsm_app_network": {
         "role": "app_network",
         "menu": "objects",
         "rule_view": {
           "sort_order": 22,
           "display_template": "{{ name }}"
+        }
+      },
+      "nsm_user": {
+        "role": "label",
+        "menu": "objects",
+        "rule_view": {
+          "sort_order": 42,
+          "display_template": "{{ username }}"
+        }
+      },
+      "nsm_user_group": {
+        "role": "label",
+        "menu": "objects",
+        "rule_view": {
+          "sort_order": 43,
+          "display_template": "{{ group_name }}"
         }
       },
       "nsm_object_link": {

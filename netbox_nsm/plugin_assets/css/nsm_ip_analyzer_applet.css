@@ -1322,14 +1322,20 @@
   display: table-row-group;
 }
 
-.nsm-ipa-applet .nsm-ipa-cell-tree-table > tbody > tr > td {
+.nsm-ipa-applet .nsm-ipa-cell-tree-table > tbody > tr > td,
+.nsm-ipa-applet .nsm-ipa-cell-tree-table--nested > tbody > tr > td {
   vertical-align: middle;
   padding-top: 0.18rem;
   padding-bottom: 0.18rem;
+  border-bottom: none !important;
   border-top: none;
 }
 
-.nsm-ipa-applet .nsm-ipa-cell-tree-table > tbody > tr + tr > td {
+/* One separator per visible row transition (skip diff-filtered hidden rows). */
+.nsm-ipa-applet .nsm-ipa-cell-tree-table > tbody > tr.nsm-ipa-cell-tree-row:not(.nsm-ipa-diff-filtered-row)
+  ~ tr.nsm-ipa-cell-tree-row:not(.nsm-ipa-diff-filtered-row) > td,
+.nsm-ipa-applet .nsm-ipa-cell-tree-table--nested > tbody > tr.nsm-ipa-cell-tree-row:not(.nsm-ipa-diff-filtered-row)
+  ~ tr.nsm-ipa-cell-tree-row:not(.nsm-ipa-diff-filtered-row) > td {
   border-top: 1px solid color-mix(in srgb, var(--nsm-ag-border, var(--nsm-ipa-border)) 42%, transparent);
 }
 
@@ -1717,12 +1723,17 @@
 }
 
 .nsm-ipa-applet .nsm-ipa-cell-tree-table--nested {
-  margin-top: 0.12rem;
+  margin-top: 0;
 }
 
 .nsm-ipa-applet .nsm-ipa-cell-tree-table--nested > tbody > tr > td {
   padding-top: 0.12rem;
   padding-bottom: 0.12rem;
+}
+
+/* Nested table shares the outer lazy-batch row separator — no second line at the top. */
+.nsm-ipa-applet .nsm-ipa-lazy-batch-cell > .nsm-ipa-cell-tree-table--nested > tbody > tr:first-child > td {
+  border-top: none !important;
 }
 
 .nsm-ipa-applet .nsm-ipa-drilldown-cell,
@@ -1755,8 +1766,6 @@
 }
 
 .nsm-ipa-applet .nsm-ipa-root-groups-collapsed-header td {
-  border-top: 1px dashed var(--nsm-ag-border, var(--nsm-ipa-border));
-  border-bottom: 1px dashed var(--nsm-ag-border, var(--nsm-ipa-border));
   background: color-mix(in srgb, var(--nsm-ag-bg-subtle, var(--nsm-ipa-bg-subtle)) 65%, transparent);
 }
 

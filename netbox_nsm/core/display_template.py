@@ -27,6 +27,59 @@ _JINJA_ENV = SandboxedEnvironment(undefined=Undefined)
 _NAME_FALLBACKS = ("name", "prefix", "address", "cidr", "slug")
 
 
+def _is_multiobject_field_type(field_type: Any) -> bool:
+    """Best-effort check for CustomField multiobject type across NetBox/plugin versions."""
+    try:
+        from extras.choices import CustomFieldTypeChoices
+
+        return field_type == CustomFieldTypeChoices.TYPE_MULTIOBJECT
+    except Exception:
+        return str(field_type or "").strip().lower() == "multiobject"
+
+
+def _render_multiobject_context_value(obj: Any, field_name: str) -> str:
+    """Return comma-separated display labels for a multiobject field.
+
+    Uses NSM type display templates per referenced object type.
+    """
+    related = getattr(obj, field_name, None)
+    if related is None:
+        return ""
+
+    try:
+        objects = list(related.all()) if hasattr(related, "all") else list(related)
+    except Exception:
+        return ""
+
+    if not objects:
+        return ""
+
+    try:
+        from django.contrib.contenttypes.models import ContentType
+        from netbox_nsm.core.display_utils import get_display_template_map, render_object_display
+
+        tmpl_map = get_display_template_map()
+        ct_cache: dict[type, int | None] = {}
+        rendered: list[str] = []
+        for ref_obj in objects:
+            if ref_obj is None:
+                continue
+            model_cls = ref_obj.__class__
+            if model_cls not in ct_cache:
+                try:
+                    ct_cache[model_cls] = ContentType.objects.get_for_model(ref_obj).pk
+                except Exception:
+                    ct_cache[model_cls] = None
+            ct_id = ct_cache[model_cls]
+            if ct_id is None:
+                rendered.append(str(ref_obj))
+            else:
+                rendered.append(render_object_display(ref_obj, ct_id, tmpl_map))
+        return ", ".join(text for text in rendered if text)
+    except Exception:
+        return ", ".join(str(ref_obj) for ref_obj in objects if ref_obj is not None)
+
+
 def normalize_display_template(tmpl: str | None) -> str:
     """Return a stripped display template string, defaulting when empty."""
     return (tmpl or "").strip() or DEFAULT_DISPLAY_TEMPLATE
@@ -72,6 +125,9 @@ def build_display_template_context(obj: Any) -> dict[str, Any]:
             if field_name in ctx:
                 continue
             field = field_info.get("field")
+            if field is not None and _is_multiobject_field_type(getattr(field, "type", None)):
+                ctx[field_name] = _context_value(_render_multiobject_context_value(obj, field_name))
+                continue
             if FIELD_TYPE_CLASS is not None and field is not None:
                 try:
                     field_type = FIELD_TYPE_CLASS[field.type]()

@@ -51,14 +51,28 @@ def _rules_pill_html(item, *, hidden=False, colored=True):
             f'<span class="text-muted"> / </span>'
         )
     status_icon = nsm_object_status_icon_html(item.get("status"))
+    url = (item.get("url") or "").strip()
+    name = item.get("name") or ""
+    if url:
+        content_html = (
+            f'<a href="{conditional_escape(url)}" '
+            f' class="nsm-rule-pill{colored_class}{hidden_class} text-decoration-none{excluded_class}"'
+            f"{style_attr}"
+            f' title="{conditional_escape(name)}">'
+            f"{conditional_escape(name)}"
+            f"</a>"
+        )
+    else:
+        content_html = (
+            f'<span class="nsm-rule-pill{colored_class}{hidden_class}{excluded_class}"'
+            f"{style_attr}"
+            f' title="{conditional_escape(name)}">'
+            f"{conditional_escape(name)}"
+            f"</span>"
+        )
     return (
         f"{parent_html}"
-        f'<a href="{conditional_escape(item["url"])}" '
-        f' class="nsm-rule-pill{colored_class}{hidden_class} text-decoration-none{excluded_class}"'
-        f"{style_attr}"
-        f' title="{conditional_escape(item["name"])}">'
-        f'{conditional_escape(item["name"])}'
-        f"</a>"
+        f"{content_html}"
         f"{status_icon}"
     )
 

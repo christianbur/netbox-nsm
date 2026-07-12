@@ -5,6 +5,55 @@
 
 {% block content %}
 <link rel="stylesheet" href="{% url 'plugins:netbox_nsm:plugin_asset' 'css/bundle_preview.css' %}">
+<style>
+  #bundlePreviewSummary {
+    margin-top: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+  }
+
+  #bundlePreviewSummary .badge {
+    display: inline-flex;
+    white-space: nowrap;
+  }
+
+  .nsm-cot-selection-panel {
+    display: block;
+    width: 100%;
+  }
+
+  .nsm-cot-selection-panel .nsm-cot-selection-head {
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+
+  .nsm-cot-selection-panel .nsm-cot-selection-details summary {
+    display: block;
+    width: 100%;
+    cursor: pointer;
+    user-select: none;
+    margin-bottom: 0.5rem;
+  }
+
+  .nsm-cot-selection-panel .nsm-cot-selection-list {
+    display: block;
+    width: 100%;
+  }
+
+  .nsm-cot-selection-panel .nsm-cot-selection-list .list-group {
+    width: 100%;
+    max-height: 20rem;
+    overflow: auto;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.375rem;
+  }
+
+  .nsm-cot-selection-panel .nsm-cot-selection-list .list-group-item {
+    background: transparent;
+  }
+</style>
 <div class="row justify-content-center">
   <div class="col-12 col-xl-10" id="bundlePreviewRoot"
        data-preview-url="{% url 'plugins:netbox_nsm:bundle_preview' bundle_slug %}"
@@ -104,6 +153,8 @@
                   id="applyBundleForm">
               {% csrf_token %}
               <input type="hidden" name="bundle_json" id="applyBundleJson" value="">
+              <input type="hidden" name="selected_cot_slugs" id="applySelectedCotSlugs" value="">
+              <input type="hidden" name="cot_selection_active" id="applyCotSelectionActive" value="0">
               <button type="submit" class="btn btn-primary">
                 <i class="mdi mdi-play-circle-outline me-1" aria-hidden="true"></i>{% trans "Apply bundle" %}
               </button>
@@ -116,13 +167,25 @@
 
     <div class="card mb-3 nsm-bundle-preview-panel" id="bundlePreviewPanel">
       <div class="card-header py-3 border-bottom-0">
-        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <div>
           <h5 class="card-title mb-0">{% trans "Change preview" %}</h5>
           <div id="bundlePreviewSummary" class="nsm-bundle-preview-summary d-none"></div>
         </div>
         <div id="bundlePreviewDestructiveAlert"
              class="alert alert-danger py-2 px-3 mb-0 mt-2 small d-none"
              role="alert"></div>
+        {% if can_apply %}
+        <div id="bundleCotSelectionPanel" class="alert alert-info py-2 px-3 mb-0 mt-2 small d-none nsm-cot-selection-panel" role="region" aria-live="polite">
+          <div class="nsm-cot-selection-head">
+            <div class="fw-semibold">{% trans "COT selection for apply" %}</div>
+            <div class="text-muted">{% trans "Select which COTs should be applied from this preview." %}</div>
+          </div>
+          <details id="bundleCotSelectionDetails" class="mt-2 nsm-cot-selection-details">
+            <summary class="text-body-emphasis">{% trans "Show/Hide COT list" %}</summary>
+            <div id="bundleCotSelectionList" class="nsm-cot-selection-list mt-2"></div>
+          </details>
+        </div>
+        {% endif %}
       </div>
       <div class="card-body p-0">
         <ul class="nav nav-tabs nsm-bundle-preview-tabs px-3" id="bundlePreviewTabNav" role="tablist">
@@ -147,7 +210,7 @@
                     role="tab"
                     aria-controls="bundlePreviewSideEffectsPane"
                     aria-selected="false">
-              {% trans "NSM side effects" %}
+              {% trans "Additional Changes" %}
             </button>
           </li>
         </ul>
@@ -184,13 +247,13 @@
 
 {% block javascript %}
 {{ block.super }}
-<script src="{% url 'plugins:netbox_nsm:plugin_asset' 'js/bundle_preview.js' %}?v=20260706"></script>
+<script src="{% url 'plugins:netbox_nsm:plugin_asset' 'js/bundle_preview.js' %}?v=20260711d"></script>
 <script id="bundlePreviewI18n" type="application/json">
 {
   "previewFailed": "{% filter escapejs %}{% trans 'Preview request failed.' %}{% endfilter %}",
   "noChanges": "{% filter escapejs %}{% trans 'No changes' %}{% endfilter %}",
   "noSchemaChanges": "{% filter escapejs %}{% trans 'Schema matches the current database.' %}{% endfilter %}",
-  "noSideEffects": "{% filter escapejs %}{% trans 'No choice set, seed object, or metadata changes.' %}{% endfilter %}",
+  "noSideEffects": "{% filter escapejs %}{% trans 'No additional changes (choice sets, seed objects, or metadata).' %}{% endfilter %}",
   "destructiveBlocked": "{% filter escapejs %}{% trans 'Destructive schema changes are present. Enable “Allow destructive changes” before applying.' %}{% endfilter %}",
   "destructivePresent": "{% filter escapejs %}{% trans 'This preview includes destructive schema changes (field or type removals).' %}{% endfilter %}",
   "refreshPreview": "{% filter escapejs %}{% trans 'Refresh preview' %}{% endfilter %}",
@@ -225,7 +288,10 @@
   "summaryTypes": "{% filter escapejs %}{% trans 'type changes' %}{% endfilter %}",
   "summaryChoiceSets": "{% filter escapejs %}{% trans 'choice sets' %}{% endfilter %}",
   "summaryObjects": "{% filter escapejs %}{% trans 'seed objects' %}{% endfilter %}",
-  "summaryMetadata": "{% filter escapejs %}{% trans 'metadata blocks' %}{% endfilter %}"
+  "summaryMetadata": "{% filter escapejs %}{% trans 'metadata blocks' %}{% endfilter %}",
+  "cotSelectionLabel": "{% filter escapejs %}{% trans 'Apply COT' %}{% endfilter %}",
+  "cotSelectionCount": "{% filter escapejs %}{% trans 'Selected %(selected)s of %(total)s COTs for apply.' %}{% endfilter %}",
+  "cotSelectionNone": "{% filter escapejs %}{% trans 'Select at least one COT to apply.' %}{% endfilter %}"
 }
 </script>
 <script>

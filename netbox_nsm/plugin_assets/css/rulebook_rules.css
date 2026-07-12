@@ -404,11 +404,15 @@ body.nsm-rules-column-resizing {
   white-space: normal;
 }
 
+#rules .table.nsm-rules-table tbody td.nsm-rules-td--object {
+  vertical-align: top;
+}
+
 #rules .nsm-ag-cell-list {
   align-items: flex-start;
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 0.08rem;
   max-width: 100%;
   min-width: 0;
 }
@@ -567,6 +571,94 @@ body.nsm-rules-column-resizing {
   min-width: max-content;
 }
 
+#rules .nsm-ag-cell-group-label {
+  margin-top: 0.1rem;
+  margin-left: 0.25rem;
+}
+
+#rules .nsm-ag-cell-segment-label {
+  margin-top: 0.1rem;
+}
+
+#rules .nsm-ag-cell-segment-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.08rem;
+}
+
+#rules .nsm-ag-cell-segment-kind {
+  align-self: flex-start;
+  background: color-mix(in srgb, var(--bs-secondary-bg) 86%, var(--bs-border-color));
+  border: 1px solid color-mix(in srgb, var(--bs-border-color) 72%, transparent);
+  border-radius: 999px;
+  color: var(--bs-secondary-color);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  margin-left: 0.55rem;
+  padding: 0.12rem 0.45rem;
+  text-transform: uppercase;
+}
+
+#rules .nsm-ag-cell-segment-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.03rem;
+  margin-left: 0.65rem;
+  padding-left: 0.35rem;
+}
+
+#rules .nsm-ag-cell-segment-field .nsm-ag-cell-group-label-text {
+  color: color-mix(in srgb, var(--bs-body-color) 88%, var(--bs-secondary-color));
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  margin-left: 0.28rem;
+  text-transform: none;
+}
+
+#rules .nsm-ag-cell-segment-field .nsm-ag-cell-list {
+  gap: 0.01rem;
+}
+
+#rules .nsm-ag-cell-segment-field .nsm-ag-cell-item.nsm-ag-cell-group-item {
+  margin-left: 0;
+}
+
+#rules .nsm-ag-cell-segment-break {
+  border-top: 1px solid color-mix(in srgb, var(--bs-border-color) 68%, transparent);
+  display: block;
+  margin: 0.12rem 0 0.08rem;
+  min-width: 100%;
+  width: 100%;
+}
+
+#rules .nsm-ag-cell-segment-label + .nsm-ag-cell-group-label,
+#rules .nsm-ag-cell-segment-label + .nsm-ag-cell-item.nsm-ag-cell-group-item,
+#rules .nsm-ag-cell-segment-label + .nsm-ag-cell-item.nsm-rules-filter-target {
+  margin-top: 0.05rem;
+}
+
+#rules .nsm-ag-cell-segment-label-text {
+  color: var(--tblr-primary, var(--bs-primary));
+  font-size: 1.05em;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+#rules .nsm-ag-cell-group-label-text {
+  color: var(--bs-secondary-color);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+}
+
+#rules .nsm-ag-cell-item.nsm-ag-cell-group-item {
+  margin-left: 1rem;
+}
+
 #rules .nsm-ag-cell-dot {
   border-radius: 50%;
   flex-shrink: 0;
@@ -627,7 +719,7 @@ body.nsm-rules-column-resizing {
 #rules .nsm-ag-cell-merged {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.16rem;
   min-width: 0;
 }
 
@@ -1113,22 +1205,53 @@ body.nsm-rules-tab-sidebar-resizing {
   min-height: 0;
 }
 
-#rules-results {
+#rules-results.nsm-rules-results {
   flex-shrink: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 0.5rem;
 }
 
-#rules-results .nsm-rules-display-options {
-  flex-wrap: wrap;
+#rules-results.nsm-rules-results > .nsm-rules-results-left {
+  justify-self: start;
+}
+
+#rules-results.nsm-rules-results > .nsm-rules-results-right {
+  justify-self: end;
+}
+
+#rules-results.nsm-rules-results > .nsm-rules-results-center {
+  min-width: 0;
+  justify-self: center;
+  display: flex;
+  justify-content: center;
+}
+
+#rules-results.nsm-rules-results .nsm-rules-display-options {
+  flex-wrap: nowrap;
   justify-content: center;
   max-width: 100%;
-  overflow-x: auto;
-  scrollbar-width: thin;
+  overflow: hidden;
 }
 
 @media screen and (max-width: 992px) {
-  #rules-results > .col.d-flex {
-    flex: 1 1 100%;
-    justify-content: flex-start !important;
+  #rules-results.nsm-rules-results {
+    grid-template-columns: 1fr;
+    row-gap: 0.35rem;
+  }
+
+  #rules-results.nsm-rules-results > .nsm-rules-results-left,
+  #rules-results.nsm-rules-results > .nsm-rules-results-right {
+    justify-self: start;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  #rules-results.nsm-rules-results > .nsm-rules-results-center {
+    justify-self: stretch;
+    width: 100%;
+    max-width: 100%;
   }
 }
 

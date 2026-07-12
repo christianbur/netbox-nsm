@@ -1,8 +1,11 @@
 """Rules tab column layout mode (expanded vs collapsed polymorphic columns)."""
 
 from django.test import RequestFactory, SimpleTestCase
+from unittest.mock import patch
 
 from netbox_nsm.rulebooks.cell_html import render_rules_merged_object_cell_html
+from netbox_nsm.rulebooks.cell_html import render_rules_object_cell_html
+from netbox_nsm.rulebooks.rules_pill_render import render_rules_pill_cell
 from netbox_nsm.rulebooks.grid import (
     _record_field_filter_text,
     build_rulebook_rules_grid_column_defs,
@@ -91,6 +94,166 @@ def _sample_zone_polymorphic():
 
 
 class RulesColumnModeTests(SimpleTestCase):
+    def test_merged_cell_suppresses_redundant_targets_heading_for_grouped_items(self):
+        from netbox_nsm.rulebooks.rules_tab.cells import _build_rules_cell_html
+
+        request = RequestFactory().get("/rules/")
+        row = {
+            "index": 1,
+            "name": "Rule A",
+            "cells_items": {
+                "source_segments::ct_7::col_targets": [
+                    {"name": "Service (Targets)", "group_label": True},
+                    {"name": "HTTPS (tcp/443)"},
+                ]
+            },
+            "system": {},
+        }
+        col = {
+            "kind": "object",
+            "key": "source_segments",
+            "merged_keys": ["source_segments::ct_7::col_targets"],
+            "type_segments": [
+                {
+                    "key": "source_segments::ct_7::col_targets",
+                    "type_label": "Targets",
+                }
+            ],
+            "is_polymorphic": True,
+        }
+
+        with patch(
+            "netbox_nsm.rulebooks.rules_tab.cells.render_rules_merged_object_cell_html",
+            return_value="<div></div>",
+        ) as mocked:
+            _build_rules_cell_html(
+                col,
+                row,
+                request=request,
+                can_change=False,
+                can_delete=False,
+                can_add=False,
+                rulebook_slug="",
+                object_fields_by_slug={},
+            )
+
+        args, kwargs = mocked.call_args
+        type_segments = args[0]
+        self.assertEqual(type_segments[0]["type_label"], "")
+        self.assertTrue(kwargs["is_polymorphic"])
+
+    def test_merged_cell_suppresses_outer_heading_for_segment_split_items(self):
+        from netbox_nsm.rulebooks.rules_tab.cells import _build_rules_cell_html
+
+        request = RequestFactory().get("/rules/")
+        row = {
+            "index": 1,
+            "name": "Rule A",
+            "cells_items": {
+                "source_segments::ct_7::col_app": [
+                    {"name": "erp-src-admin", "segment_label": True},
+                    {"name": "ERP-Core", "group_item": True},
+                ]
+            },
+            "system": {},
+        }
+        col = {
+            "kind": "object",
+            "key": "source_segments",
+            "merged_keys": ["source_segments::ct_7::col_app"],
+            "type_segments": [
+                {
+                    "key": "source_segments::ct_7::col_app",
+                    "type_label": "Business App",
+                }
+            ],
+            "is_polymorphic": True,
+        }
+
+        with patch(
+            "netbox_nsm.rulebooks.rules_tab.cells.render_rules_merged_object_cell_html",
+            return_value="<div></div>",
+        ) as mocked:
+            _build_rules_cell_html(
+                col,
+                row,
+                request=request,
+                can_change=False,
+                can_delete=False,
+                can_add=False,
+                rulebook_slug="",
+                object_fields_by_slug={},
+            )
+
+        args, kwargs = mocked.call_args
+        type_segments = args[0]
+        self.assertEqual(type_segments[0]["type_label"], "Business App")
+        self.assertTrue(kwargs["is_polymorphic"])
+
+    def test_render_rules_merged_object_cell_html_segment_oriented(self):
+        html = render_rules_merged_object_cell_html(
+            [
+                {
+                    "type_label": "Business App",
+                    "items": [
+                        {
+                            "name": "erp-src-admin",
+                            "segment_label": True,
+                            "segment_type_label": "Business App Segment",
+                            "url": "/s/1/",
+                        },
+                        {"name": "ERP-Core", "group_item": True, "url": "/a/1/"},
+                        {
+                            "name": "erp-src-users",
+                            "segment_label": True,
+                            "segment_type_label": "Business App Segment",
+                            "url": "/s/2/",
+                        },
+                        {"name": "ERP-Core", "group_item": True, "url": "/a/2/"},
+                    ],
+                },
+                {
+                    "type_label": "Segment Type",
+                    "items": [
+                        {
+                            "name": "erp-src-admin",
+                            "segment_label": True,
+                            "segment_type_label": "Business App Segment",
+                            "url": "/s/1/",
+                        },
+                        {"name": "source", "group_item": True},
+                        {
+                            "name": "erp-src-users",
+                            "segment_label": True,
+                            "segment_type_label": "Business App Segment",
+                            "url": "/s/2/",
+                        },
+                        {"name": "source", "group_item": True},
+                    ],
+                },
+            ],
+            is_polymorphic=True,
+        )
+        self.assertIn("erp-src-admin", html)
+        self.assertIn("erp-src-users", html)
+        self.assertIn("Business App Segment", html)
+        self.assertIn("Business App", html)
+        self.assertIn("Segment Type", html)
+        self.assertIn("nsm-ag-cell-segment-block", html)
+
+    def test_render_rules_pill_cell_allows_items_without_url(self):
+        html = render_rules_pill_cell([{"name": "ERP-Core"}], colored=False)
+        self.assertIn("ERP-Core", html)
+        self.assertNotIn('href=""', html)
+
+    def test_render_rules_object_cell_html_allows_items_without_url(self):
+        html = render_rules_object_cell_html(
+            [{"name": "destination", "color": ""}],
+            colored=False,
+        )
+        self.assertIn("destination", html)
+        self.assertNotIn('href=""', html)
+
     def test_normalize_rules_column_mode(self):
         self.assertEqual(normalize_rules_column_mode("collapsed"), COLUMN_MODE_COLLAPSED)
         self.assertEqual(normalize_rules_column_mode("expanded"), COLUMN_MODE_EXPANDED)

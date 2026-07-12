@@ -136,6 +136,7 @@ def _document_updates_from_config_dict(config: dict) -> dict:
                 config.get("display_template") or DEFAULT_DISPLAY_TEMPLATE
             ),
             "areas": list(config.get("areas") or []),
+            "columns": list(config.get("columns") or []),
         },
     }
 

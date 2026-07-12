@@ -112,6 +112,7 @@ def _merge_polymorphic_children_col(col: dict, children: list) -> dict:
         {
             "key": child.get("field") or child.get("colId") or "",
             "type_label": child.get("headerName") or "",
+            "group_label": header_name,
         }
         for child in children
     ]

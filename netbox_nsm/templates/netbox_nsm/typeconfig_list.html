@@ -24,7 +24,7 @@
           <th>{% trans "Object Type" %}</th>
           <th>{% trans "Role" %}</th>
           <th>{% trans "Sort order" %}</th>
-          <th>{% trans "Display Template" %}</th>
+          <th>{% trans "Rule View" %}</th>
           <th></th>
         </tr>
       </thead>
@@ -40,7 +40,24 @@
             {% endif %}
           </td>
           <td>{{ entry.config.sort_order }}</td>
-          <td><code>{{ entry.config.display_template }}</code></td>
+          <td>
+            {% if entry.config.columns %}
+            <div class="small text-muted mb-1">{% trans "Columns" %}: {{ entry.config.columns|length }}</div>
+            <div class="d-flex flex-column gap-1">
+              {% for col in entry.config.columns %}
+              <div>
+                <span class="badge text-bg-secondary me-1">{{ col.column_order }}</span>
+                <strong>{{ col.label }}</strong>
+                <span class="text-muted">→</span>
+                <code>{{ col.value_template }}</code>
+              </div>
+              {% endfor %}
+            </div>
+            {% else %}
+            <div class="small text-muted mb-1">{% trans "Display Template" %}</div>
+            <code>{{ entry.config.display_template }}</code>
+            {% endif %}
+          </td>
           <td class="text-end text-nowrap">
             {% url 'plugins:netbox_nsm:typemetadata_edit' entry.config.slug as edit_url %}
             {% if entry.has_stored_metadata %}

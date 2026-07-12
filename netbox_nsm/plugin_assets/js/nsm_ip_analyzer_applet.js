@@ -55,6 +55,8 @@
   var VIEWPORT_MARGIN = 12;
   var SIZE_STORAGE_KEY = "nsm-ipa-applet-size";
   var MIN_BODY_SCALE = 0.55;
+  var HEAVY_TAB_LAZY_THRESHOLD = 6;
+  var VERY_HEAVY_TAB_FULL_REFRESH_THRESHOLD = 12;
 
   function Applet() {
     this.el = null;
@@ -283,13 +285,15 @@
       host.style.width = "100%";
       host.style.maxWidth = "100%";
       host.style.height = "auto";
-      this.bodyEl.style.overflowX = "hidden";
+      this.bodyEl.style.overflowX = "auto";
+      this.bodyEl.style.overflowY = "auto";
     } else if (scale < 0.999) {
       inner.style.width = contentW + "px";
       inner.style.transform = "scale(" + scale + ")";
       host.style.width = scaledW + "px";
       host.style.height = scaledH + "px";
       this.bodyEl.style.overflowX = scaledW > available + 1 ? "auto" : "hidden";
+      this.bodyEl.style.overflowY = "auto";
     } else {
       inner.style.transform = "";
       inner.style.width = "";
@@ -298,7 +302,8 @@
       host.style.width = "";
       host.style.maxWidth = "";
       host.style.height = "";
-      this.bodyEl.style.overflowX = "hidden";
+      this.bodyEl.style.overflowX = "auto";
+      this.bodyEl.style.overflowY = "auto";
     }
   };
 
@@ -1416,9 +1421,14 @@
     } else {
       countEl.textContent = formatTypeCountSummary(tab);
     }
-    statusEl.textContent = tab.unsupportedCount
-      ? ipaTf("%(count)s skipped", { count: tab.unsupportedCount })
-      : "";
+    var statusParts = [];
+    if (tab._backgroundRefreshing) {
+      statusParts.push(ipaT("Analyzer running…"));
+    }
+    if (tab.unsupportedCount) {
+      statusParts.push(ipaTf("%(count)s skipped", { count: tab.unsupportedCount }));
+    }
+    statusEl.textContent = statusParts.join(" | ");
   };
 
   Applet.prototype._resumeStaleTabLoad = function (tab) {
@@ -1461,7 +1471,7 @@
     }
   };
 
-  Applet.prototype._completeTabLoad = function (tab, token, data) {
+  Applet.prototype._completeTabLoad = function (tab, token, data, stage) {
     tab._loading = false;
     if (token !== tab.loadToken) {
       return;
@@ -1474,6 +1484,64 @@
       this.renderActiveContent();
       this.renderToolbar();
     }
+    if (stage && stage.scheduleBackgroundFullRefresh) {
+      this._startBackgroundFullRefresh(tab);
+    }
+  };
+
+  Applet.prototype._startBackgroundFullRefresh = function (tab) {
+    if (!tab || tab._backgroundRefreshing) {
+      return;
+    }
+    if (!this.tabs.some(function (t) { return t.id === tab.id; })) {
+      return;
+    }
+
+    tab._backgroundRefreshing = true;
+    tab.refreshToken = (tab.refreshToken || 0) + 1;
+    var refreshToken = tab.refreshToken;
+    var self = this;
+
+    if (tab.id === this.activeTabId) {
+      this.renderActiveContent();
+    }
+
+    var refreshUrl =
+      tab.mode === "diff"
+        ? apiUrl() + "?" + buildDiffQuery(tab.sides || [], { refresh: true })
+        : apiUrl() +
+          "?" +
+          buildQuery(tab.objects, tab.rawObjects, { refresh: true });
+
+    fetchIpaAnalyzer(refreshUrl, {
+      headers: mergeBranchHeaders({ "X-Requested-With": "XMLHttpRequest" }),
+    })
+      .then(function (resp) {
+        return readIpaApiJson(resp);
+      })
+      .then(function (data) {
+        tab._backgroundRefreshing = false;
+        if (refreshToken !== tab.refreshToken) {
+          return;
+        }
+        if (!self.tabs.some(function (t) { return t.id === tab.id; })) {
+          return;
+        }
+        self._applyTabAnalyzerPayload(tab, data);
+        if (tab.id === self.activeTabId) {
+          self.renderActiveContent();
+          self.renderToolbar();
+        }
+      })
+      .catch(function () {
+        tab._backgroundRefreshing = false;
+        if (refreshToken !== tab.refreshToken) {
+          return;
+        }
+        if (tab.id === self.activeTabId) {
+          self.renderActiveContent();
+        }
+      });
   };
 
   Applet.prototype.loadTab = function (tab) {
@@ -1497,16 +1565,25 @@
       this.renderActiveContent();
     }
 
+    var tabObjectCount =
+      tab.mode === "diff"
+        ? (tab.sides || []).reduce(function (count, side) {
+            return count + ((side && side.objects && side.objects.length) || 0);
+          }, 0)
+        : ((tab.rawObjects && tab.rawObjects.length) || (tab.objects && tab.objects.length) || 0);
+    var useLazy =
+      tab.mode !== "diff" && tab.mode !== "merge"
+        ? true
+        : tabObjectCount >= HEAVY_TAB_LAZY_THRESHOLD;
+    var scheduleBackgroundFullRefresh =
+      useLazy && tabObjectCount >= VERY_HEAVY_TAB_FULL_REFRESH_THRESHOLD;
+
     var url =
       tab.mode === "diff"
-        ? apiUrl() + "?" + buildDiffQuery(tab.sides || [])
+        ? apiUrl() + "?" + buildDiffQuery(tab.sides || [], { lazy: useLazy })
         : apiUrl() +
           "?" +
-          buildQuery(
-            tab.objects,
-            tab.rawObjects,
-            tab.mode !== "diff" && tab.mode !== "merge" ? { lazy: true } : null
-          );
+          buildQuery(tab.objects, tab.rawObjects, useLazy ? { lazy: true } : null);
     fetchIpaAnalyzer(url, {
       headers: mergeBranchHeaders({ "X-Requested-With": "XMLHttpRequest" }),
     })
@@ -1514,7 +1591,9 @@
         return readIpaApiJson(resp);
       })
       .then(function (data) {
-        self._completeTabLoad(tab, token, data);
+        self._completeTabLoad(tab, token, data, {
+          scheduleBackgroundFullRefresh: scheduleBackgroundFullRefresh,
+        });
       })
       .catch(function (err) {
         self._failTabLoad(tab, token, ipaFetchAbortMessage(err));

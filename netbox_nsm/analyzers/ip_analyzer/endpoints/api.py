@@ -135,6 +135,7 @@ class IpAnalyzerApiView(LoginRequiredMixin, View):
             user_id=getattr(request.user, "pk", None),
             mode="merge",
             lazy=lazy,
+            variant="yaml" if export_yaml else "html",
             selections=selections,
         )
         payload, from_cache = cached_ipa_payload(cache_key, cache_timeout, builder)
@@ -192,6 +193,7 @@ class IpAnalyzerApiView(LoginRequiredMixin, View):
             user_id=getattr(request.user, "pk", None),
             mode="diff",
             lazy=lazy,
+            variant="yaml" if export_yaml else "html",
             sides=sides,
         )
         payload, from_cache = cached_ipa_payload(cache_key, cache_timeout, builder)

@@ -240,9 +240,15 @@ def _build_rules_cell_html(
                     if copy.get("url"):
                         copy["url"] = with_branch_query(copy["url"], request)
                     branched.append(copy)
+                segment_label = segment.get("type_label") or ""
+                if any(item.get("group_label") for item in branched):
+                    # Grouped polymorphic rows already contain their own section headers,
+                    # so suppress the redundant outer segment label (e.g. "Targets").
+                    segment_label = ""
                 type_segments.append(
                     {
-                        "type_label": segment.get("type_label") or "",
+                        "type_label": segment_label,
+                        "group_label": segment.get("group_label") or "",
                         "items": branched,
                     }
                 )

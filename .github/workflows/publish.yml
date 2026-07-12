@@ -1,9 +1,6 @@
 name: PyPI Publish
 
 on:
-    release:
-        types:
-          - published
     push:
         tags:
           - "v*"
@@ -36,4 +33,5 @@ jobs:
             uses: pypa/gh-action-pypi-publish@release/v1
             with:
                 verbose: true
+                skip-existing: true
                 repository-url: ${{ vars.REPOSITORY_URL }}

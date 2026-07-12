@@ -4,6 +4,12 @@ All notable changes to **netbox-nsm** are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.24] - 2026-07-12
+
+### Fixed
+
+- Fixed PyPI upload process - corrected Git tag placement to ensure GitHub Actions builds correct version.
+
 ## [0.4.23] - 2026-07-12
 
 ### Added

@@ -4,6 +4,12 @@ All notable changes to **netbox-nsm** are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.20] - 2026-07-12
+
+### Fixed
+
+- IP Analyzer: Gleiche Host-IP wird jetzt strikt anhand der IPAM-IP zusammengefuehrt (auch bei FQDN/Domain-Labels), sodass mehrere Address-Objekte in einer IP-Zeile landen.
+
 ## [0.4.19] - 2026-07-12
 
 ### Notes
@@ -708,3 +714,4 @@ First release in the 0.2.x line.
 [0.4.17]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.17
 [0.4.18]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.18
 [0.4.19]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.19
+[0.4.20]: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.20

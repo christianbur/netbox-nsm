@@ -1339,19 +1339,8 @@
   --nsm-ipa-cell-tree-merge-width: 3.25rem;
   --nsm-ipa-cell-tree-diff-width: 6.5rem;
   --nsm-ipa-cell-tree-us-width: 18rem;
-  --nsm-ipa-cell-tree-min-width: calc(
-    var(--nsm-ipa-cell-tree-network-width) +
-      var(--nsm-ipa-cell-tree-duplicate-width) +
-      var(--nsm-ipa-cell-tree-type-width) +
-      var(--nsm-ipa-cell-tree-address-width) + var(--nsm-ipa-cell-tree-address-group-width) +
-      var(--nsm-ipa-cell-tree-ipam-width) +
-      var(--nsm-ipa-cell-tree-dns-width) + var(--nsm-ipa-cell-tree-description-width) +
-      var(--nsm-ipa-cell-tree-zone-width) + var(--nsm-ipa-cell-tree-label-width) +
-      var(--nsm-ipa-cell-tree-merge-width) + var(--nsm-ipa-cell-tree-diff-width) +
-      var(--nsm-ipa-cell-tree-us-width)
-  );
-  table-layout: fixed;
-  width: var(--nsm-ipa-cell-tree-min-width);
+  table-layout: auto;
+  width: auto;
   max-width: none;
   font-size: 0.76rem;
   line-height: 1.25;
@@ -1384,7 +1373,6 @@
 
 .nsm-ipa-applet .nsm-ipa-cell-tree-col--network,
 .nsm-ipa-applet .nsm-ipa-cell-tree-header-col--network {
-  width: var(--nsm-ipa-cell-tree-network-width);
   min-width: var(--nsm-ipa-cell-tree-network-width);
 }
 
@@ -1396,7 +1384,6 @@
 
 .nsm-ipa-applet .nsm-ipa-cell-tree-col--ipam,
 .nsm-ipa-applet .nsm-ipa-cell-tree-header-col--ipam {
-  width: var(--nsm-ipa-cell-tree-ipam-width);
   min-width: var(--nsm-ipa-cell-tree-ipam-width);
 }
 
@@ -1411,7 +1398,6 @@
 
 .nsm-ipa-applet .nsm-ipa-cell-tree-col--dns,
 .nsm-ipa-applet .nsm-ipa-cell-tree-header-col--dns {
-  width: var(--nsm-ipa-cell-tree-dns-width);
   min-width: var(--nsm-ipa-cell-tree-dns-width);
 }
 
@@ -1441,19 +1427,16 @@
 
 .nsm-ipa-applet .nsm-ipa-cell-tree-col--description,
 .nsm-ipa-applet .nsm-ipa-cell-tree-header-col--description {
-  width: var(--nsm-ipa-cell-tree-description-width);
   min-width: var(--nsm-ipa-cell-tree-description-width);
 }
 
 .nsm-ipa-applet .nsm-ipa-cell-tree-col--zone,
 .nsm-ipa-applet .nsm-ipa-cell-tree-header-col--zone {
-  width: var(--nsm-ipa-cell-tree-zone-width);
   min-width: var(--nsm-ipa-cell-tree-zone-width);
 }
 
 .nsm-ipa-applet .nsm-ipa-cell-tree-col--label,
 .nsm-ipa-applet .nsm-ipa-cell-tree-header-col--label {
-  width: var(--nsm-ipa-cell-tree-label-width);
   min-width: var(--nsm-ipa-cell-tree-label-width);
 }
 
@@ -1496,31 +1479,26 @@
 
 .nsm-ipa-applet .nsm-ipa-cell-tree-col--address,
 .nsm-ipa-applet .nsm-ipa-cell-tree-header-col--address {
-  width: var(--nsm-ipa-cell-tree-address-width);
   min-width: var(--nsm-ipa-cell-tree-address-width);
 }
 
 .nsm-ipa-applet .nsm-ipa-cell-tree-col--address-group,
 .nsm-ipa-applet .nsm-ipa-cell-tree-header-col--address-group {
-  width: var(--nsm-ipa-cell-tree-address-group-width);
   min-width: var(--nsm-ipa-cell-tree-address-group-width);
 }
 
 .nsm-ipa-applet .nsm-ipa-cell-tree-col--merge,
 .nsm-ipa-applet .nsm-ipa-cell-tree-header-col--merge {
-  width: var(--nsm-ipa-cell-tree-merge-width);
   min-width: var(--nsm-ipa-cell-tree-merge-width);
 }
 
 .nsm-ipa-applet .nsm-ipa-cell-tree-col--diff,
 .nsm-ipa-applet .nsm-ipa-cell-tree-header-col--diff {
-  width: var(--nsm-ipa-cell-tree-diff-width);
   min-width: var(--nsm-ipa-cell-tree-diff-width);
 }
 
 .nsm-ipa-applet .nsm-ipa-cell-tree-col--duplicate,
 .nsm-ipa-applet .nsm-ipa-cell-tree-header-col--duplicate {
-  width: var(--nsm-ipa-cell-tree-duplicate-width);
   min-width: var(--nsm-ipa-cell-tree-duplicate-width);
 }
 
@@ -1534,14 +1512,11 @@
 
 .nsm-ipa-applet .nsm-ipa-cell-tree-col--type,
 .nsm-ipa-applet .nsm-ipa-cell-tree-header-col--type {
-  width: var(--nsm-ipa-cell-tree-type-width);
   min-width: var(--nsm-ipa-cell-tree-type-width);
 }
 
 .nsm-ipa-applet .nsm-ipa-cell-tree-col--type {
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   line-height: 1.35;
   vertical-align: top;
 }
@@ -1571,12 +1546,13 @@
 
 .nsm-ipa-applet .nsm-ipa-cell-tree-col--us,
 .nsm-ipa-applet .nsm-ipa-cell-tree-header-col--us {
-  width: var(--nsm-ipa-cell-tree-us-width);
   min-width: var(--nsm-ipa-cell-tree-us-width);
 }
 
 .nsm-ipa-applet .nsm-ipa-cell-tree-col--network {
-  overflow: hidden;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  cursor: help;
 }
 
 .nsm-ipa-applet .nsm-ipa-cell-tree-col--network .record-depth {

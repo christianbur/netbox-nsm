@@ -7,17 +7,39 @@ Dokumentation für manuelles Bauen und Veröffentlichung eines Releases.
 - `main` = Production/Release-Branch
 - **Release**: dev wird in main gemerged, dann tagged
 
+## ⚠️ KRITISCH: Tag-Platzierung
+
+Das **v0.4.23 Tag muss auf dem Merge-Commit zeigen**, nicht auf dem Release-Commit!
+
+**Richtig:**
+```
+Merge dev into main (26fd0b9) ← TAG v0.4.23 HERE!
+Release v0.4.23 (2df83ed)     ← Nicht hier!
+```
+
+**Warum?** Das Release muss den finalen main-Code enthalten, inkl. aktualisierter Doku/Prozess.
+
+**Fix (falls falsch getaggt):**
+```bash
+git tag -d v0.4.23                    # Lokales Tag löschen
+git push origin :refs/tags/v0.4.23   # Remote Tag löschen
+git tag -a v0.4.23 26fd0b9 -m "..."  # Neues Tag auf Merge-Commit
+git push origin v0.4.23
+```
+
 ## Schnelleinstieg - 9 Schritte
 
 1. ✏️ **CHANGELOG.md** aktualisieren
 2. ✏️ **version.py** erhöhen (0.4.22 → 0.4.23)
 3. 💾 **Release Commit** erstellen
-4. 🏷️ **Git Tag** erstellen (v0.4.23)
-5. 🚀 **Dev branch** zu GitHub pushen
-6. 🚀 **Tag** zu GitHub pushen
-7. 🔀 **Dev in main mergen** (Merge-Commit)
-8. 🚀 **Main branch** zu GitHub pushen
+4. 🚀 **Dev branch** zu GitHub pushen
+5. 🔀 **Dev in main mergen** (Merge-Commit) ← **Zuerst mergen!**
+6. 🚀 **Main branch** zu GitHub pushen
+7. 🏷️ **Git Tag auf Merge-Commit** erstellen (v0.4.23) ← **Nach dem Merge!**
+8. 🚀 **Tag** zu GitHub pushen
 9. ✅ **GitHub** verifizieren (Tag + Branches)
+
+**⚠️ WICHTIG**: Das Tag muss auf dem **Merge-Commit** zeigen, nicht auf dem Release-Commit! Nur so enthält die Release den finalen main-Code.
 
 ---
 
@@ -109,11 +131,39 @@ Oder verkürzt:
 git commit -m "Release v0.4.23"
 ```
 
-## Schritt 6: Git Tag erstellen
+## Schritt 6: Dev Branch pushen
 
 ```bash
-# Annotated Tag mit aussagekräftiger Nachricht
-git tag -a v0.4.23 -m "Release v0.4.23: IP Analyzer Cell-Tree improvements
+# Dev zu GitHub pushen
+git push origin dev
+```
+
+**Note**: Tag wird NACH dem Merge erstellt (siehe Schritt 7)!
+
+## Schritt 7: Dev in Main mergen
+
+```bash
+# Main aktualisieren
+git checkout main
+git pull origin main
+
+# Dev mit --no-ff mergen (Merge-Commit)
+git merge --no-ff dev -m "Merge dev into main for release v0.4.23"
+
+# Main pushen
+git push origin main
+```
+
+## Schritt 8: Git Tag auf Merge-Commit erstellen
+
+**⚠️ WICHTIG**: Das Tag muss auf dem **gerade erstellten Merge-Commit** zeigen!
+
+```bash
+# Den Merge-Commit Commit-Hash prüfen
+git log --oneline -3
+
+# Tag auf dem Merge-Commit erstellen (z.B. 26fd0b9)
+git tag -a v0.4.23 26fd0b9 -m "Release v0.4.23: IP Analyzer Cell-Tree improvements
 
 ## New Features
 - Tenant column in Cell-Tree
@@ -123,48 +173,18 @@ git tag -a v0.4.23 -m "Release v0.4.23: IP Analyzer Cell-Tree improvements
 See CHANGELOG.md for full details."
 ```
 
-## Schritt 7: Dev und Tag zu GitHub pushen (als christian-User)
+## Schritt 9: Tag zu GitHub pushen (als christian-User)
 
 ```bash
-# Sicherstellen, dass man die richtigen SSH-Keys hat
-ssh -T git@github.com
+su - christian -c "cd /home/christian/homelab/docker/netbox_dev/netbox-nsm && git push origin v0.4.23"
+```
 
-# Dev Branch pushen
-git push origin dev
-
-# Tag pushen
+Oder lokal pushen (SSH müsste konfiguriert sein):
+```bash
 git push origin v0.4.23
 ```
 
-Oder mit `su`:
-```bash
-su - christian -c "cd /home/christian/homelab/docker/netbox_dev/netbox-nsm && git push origin dev && git push origin v0.4.23"
-```
-
-## Schritt 8: Dev in Main mergen (als christian-User)
-
-```bash
-# Wechsel zu main und aktualisieren
-su - christian -c "cd /home/christian/homelab/docker/netbox_dev/netbox-nsm && git checkout main && git pull origin main"
-
-# Dev in main mergen mit Merge-Commit
-su - christian -c "cd /home/christian/homelab/docker/netbox_dev/netbox-nsm && git merge --no-ff dev -m 'Merge dev into main for release v0.4.23'"
-
-# Main zu GitHub pushen
-su - christian -c "cd /home/christian/homelab/docker/netbox_dev/netbox-nsm && git push origin main"
-
-# Zurück zu dev
-git checkout dev
-```
-
-**Wichtig**: Das Merge-Commit erstellt eine klare Trennlinie zwischen den Releases. Die `--no-ff` Flag erzeugt immer einen Merge-Commit, auch wenn es ein Fast-Forward sein könnte.
-
-Merge-Commit Message Format:
-```
-Merge dev into main for release v0.4.23
-```
-
-## Schritt 9: Release auf GitHub verifizieren
+## Schritt 10: Release auf GitHub verifizieren
 
 1. Browser: https://github.com/christianbur/netbox-nsm/releases/tag/v0.4.23
 2. Tag sollte visible sein mit Release-Notes
@@ -172,31 +192,43 @@ Merge dev into main for release v0.4.23
 4. **Main Branch** sollte den Merge-Commit enthalten
 5. `origin/HEAD` sollte auf main zeigen (main ist primary)
 
-## Vollständiger Workflow (all in one) - als christian-User
+## Vollständiger Workflow (Schritt-für-Schritt)
 
 ```bash
-# 1. Zur christian-User wechseln und ins Projekt gehen
+# 1. Als christian-User anmelden
 su - christian
 cd /home/christian/homelab/docker/netbox_dev/netbox-nsm
 
-# 2. Dev branch aktualisieren und auf dem Neuesten sein
+# 2. Dev branch aktualisieren
 git checkout dev
 git pull origin dev
 
-# 3. Version prüfen - Commits seit letztem Release
-git log --oneline -5
-git tag -l | grep "^v0.4" | sort -V | tail -1   # Letzte Version
+# 3. Letzte Release prüfen
+git tag -l | grep "^v0.4" | sort -V | tail -1
+git log --oneline -10
 
-# 4. CHANGELOG.md und version.py manuell editieren
+# 4. CHANGELOG.md und version.py bearbeiten (manuell!)
 nano CHANGELOG.md
 nano netbox_nsm/version.py
 
-# 5. Release committen
+# 5. Release Commit erstellen
 git add CHANGELOG.md netbox_nsm/version.py
 git commit -m "Release v0.4.23"
 
-# 6. Tag erstellen
-git tag -a v0.4.23 -m "Release v0.4.23: IP Analyzer Cell-Tree improvements
+# 6. Dev zu GitHub pushen
+git push origin dev
+
+# 7. Wechsel zu main und mergen
+git checkout main
+git pull origin main
+git merge --no-ff dev -m "Merge dev into main for release v0.4.23"
+git push origin main
+
+# 8. Merge-Commit Hash ermitteln
+git log --oneline -2  # Zeigt den Merge-Commit
+
+# 9. Tag auf dem Merge-Commit erstellen (ersetze 26fd0b9 mit aktuellem Hash!)
+git tag -a v0.4.23 26fd0b9 -m "Release v0.4.23: IP Analyzer Cell-Tree improvements
 
 New Features:
 - Tenant column in Cell-Tree
@@ -205,55 +237,43 @@ New Features:
 
 See CHANGELOG.md for full details."
 
-# 7. Dev Branch zu GitHub pushen
-git push origin dev
+# 10. Tag zu GitHub pushen
 git push origin v0.4.23
 
-# 8. Dev in main mergen
-git checkout main
-git pull origin main
-git merge --no-ff dev -m "Merge dev into main for release v0.4.23"
-git push origin main
-
-# 9. Zurück zu dev
+# 11. Zurück zu dev
 git checkout dev
 
-# 10. Logout
+# 12. Logout
 exit
 ```
 
-## Kompakter Workflow (Einzelcommand)
+## Kompakter Workflow (für erfahrene Benutzer)
+
+Als christian-User:
 
 ```bash
 su - christian -c "
 cd /home/christian/homelab/docker/netbox_dev/netbox-nsm
 
-# Git Status prüfen
-git status
+# Release Commit erstellen und dev pushen
+git add CHANGELOG.md netbox_nsm/version.py && git commit -m 'Release v0.4.23' && git push origin dev
 
-# (CHANGELOG.md und version.py manuell editieren!)
-
-# Release Commit
-git add CHANGELOG.md netbox_nsm/version.py
-git commit -m 'Release v0.4.23'
-
-# Tag erstellen
-git tag -a v0.4.23 -m 'Release v0.4.23'
-
-# Dev pushen
-git push origin dev
-git push origin v0.4.23
-
-# In main mergen
-git checkout main
-git pull origin main
+# Wechsel zu main und mergen
+git checkout main && git pull origin main
 git merge --no-ff dev -m 'Merge dev into main for release v0.4.23'
 git push origin main
+
+# Tag auf dem Merge-Commit erstellen
+MERGE_HASH=\$(git rev-parse HEAD)
+git tag -a v0.4.23 \$MERGE_HASH -m 'Release v0.4.23'
+git push origin v0.4.23
 
 # Zurück zu dev
 git checkout dev
 "
 ```
+
+**Wichtig**: CHANGELOG.md und version.py müssen manuell VOR diesem Workflow bearbeitet werden!
 
 ## Automatisierte Checks vor Release (optional)
 

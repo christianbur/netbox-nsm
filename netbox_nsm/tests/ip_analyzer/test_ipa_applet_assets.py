@@ -512,8 +512,8 @@ class IpAnalyzerMergeAssetsTests(SimpleTestCase):
         self.assertIn("nsm_ip_analyzer_applet.js", assets)
         self.assertIn("nsm_ipa_util.js", assets)
         self.assertIn("nsm_ipa_cell.js", assets)
-        self.assertIn("?v=202606261", assets)
-        self.assertIn("?v=202606258", assets)
+        self.assertIn("?v=202607121", assets)
+        self.assertIn("?v=202606200", assets)
         self.assertIn("NSM_IP_ANALYZER_ADD_OBJECT_TYPES_API", assets)
 
     def test_ipam_parent_prefix_css(self):
@@ -650,6 +650,10 @@ class IpAnalyzerMergeAssetsTests(SimpleTestCase):
         self.assertIn("_resumeStaleTabLoad", js)
         self.assertIn("_completeTabLoad", js)
         self.assertIn("tab.status = \"error\"", js)
+        self.assertIn("normalizeIpaApiError", js)
+        self.assertIn("errorDebug", js)
+        self.assertIn("normalizeIpaApiError", util)
+        self.assertIn("nsm-ipa-applet-error-debug", util)
 
     def test_applet_assets_expose_analysis_error_i18n(self):
         assets = (
@@ -657,4 +661,5 @@ class IpAnalyzerMergeAssetsTests(SimpleTestCase):
         ).read_text(encoding="utf-8")
         self.assertIn("Analyzer timed out.", assets)
         self.assertIn("Analyzer failed (HTTP %(status)s).", assets)
+        self.assertIn("Debug details", assets)
 

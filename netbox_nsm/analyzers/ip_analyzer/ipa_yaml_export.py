@@ -11,6 +11,7 @@ __all__ = (
     "build_ipa_export_document",
     "ipa_export_filename",
     "parse_export_context_from_request",
+    "parse_export_expanded_refs_from_request",
     "serialize_ipa_export_yaml",
 )
 
@@ -250,6 +251,7 @@ def _collect_object_tree_refs(
 def build_ipa_export_child_objects(
     payload: dict[str, Any],
     *,
+    expanded_refs: list[tuple[int, int]] | None = None,
     max_objects: int = _IPA_EXPORT_MAX_EXPANDED_OBJECTS,
 ) -> list[dict[str, Any]]:
     """Resolve the full address / IPAM child expansion for the visible objects.
@@ -269,12 +271,21 @@ def build_ipa_export_child_objects(
     if not refs:
         return []
 
+    allowed_refs: set[tuple[int, int]] | None = None
+    if expanded_refs is not None:
+        allowed_refs = set(expanded_refs)
+        if not allowed_refs:
+            return []
+
     from django.contrib.contenttypes.models import ContentType
 
     from netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree import _build_ipa_object_drilldown_nodes
 
     entries: list[dict[str, Any]] = []
     for ref in refs[: max(int(max_objects), 0)]:
+        key = (int(ref["ct"]), int(ref["pk"]))
+        if allowed_refs is not None and key not in allowed_refs:
+            continue
         try:
             ct = ContentType.objects.get(pk=ref["ct"])
             model_cls = ct.model_class()
@@ -311,6 +322,24 @@ def parse_export_context_from_request(request) -> dict[str, str]:
     if title:
         context["title"] = title
     return context
+
+
+def parse_export_expanded_refs_from_request(request) -> list[tuple[int, int]]:
+    """Expanded object refs from the currently opened lazy drilldowns in UI."""
+    refs: list[tuple[int, int]] = []
+    seen: set[tuple[int, int]] = set()
+    ct_values = request.GET.getlist("exp_ct")
+    pk_values = request.GET.getlist("exp_pk")
+    for index, ct_raw in enumerate(ct_values):
+        pk_raw = pk_values[index] if index < len(pk_values) else ""
+        if not (str(ct_raw).isdigit() and str(pk_raw).isdigit()):
+            continue
+        key = (int(ct_raw), int(pk_raw))
+        if key in seen:
+            continue
+        seen.add(key)
+        refs.append(key)
+    return refs
 
 
 def _build_ipam_children_section(

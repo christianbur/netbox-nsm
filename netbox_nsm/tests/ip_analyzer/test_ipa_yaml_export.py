@@ -10,6 +10,7 @@ from netbox_nsm.analyzers.ip_analyzer.ipa_yaml_export import (
     build_ipa_export_document,
     ipa_export_filename,
     parse_export_context_from_request,
+    parse_export_expanded_refs_from_request,
     serialize_ipa_export_yaml,
 )
 
@@ -219,6 +220,49 @@ class IpaYamlExportTests(SimpleTestCase):
             build_ipa_export_child_objects({"object_tree": []}), []
         )
 
+    @patch(
+        "netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree._build_ipa_object_drilldown_nodes"
+    )
+    @patch("django.contrib.contenttypes.models.ContentType")
+    def test_build_ipa_export_child_objects_respects_expanded_refs(
+        self, content_type_cls, drilldown_fn
+    ):
+        obj = MagicMock()
+        obj.name = "demo-addr"
+        model_cls = MagicMock()
+        model_cls.objects.filter.return_value.first.return_value = obj
+        ct = MagicMock()
+        ct.model_class.return_value = model_cls
+        content_type_cls.objects.get.return_value = ct
+
+        drilldown_fn.return_value = (
+            [
+                {
+                    "name": "10.0.0.1/32",
+                    "kind": "leaf",
+                    "ip_ref": {"str": "10.0.0.1/32"},
+                    "children": [],
+                }
+            ],
+            ["demo-addr,10.0.0.1/32"],
+        )
+
+        payload = {
+            "object_tree": [
+                {"name": "demo-addr", "ct": "10", "pk": "42", "children": []}
+            ]
+        }
+
+        entries = build_ipa_export_child_objects(payload, expanded_refs=[])
+        self.assertEqual(entries, [])
+
+        entries = build_ipa_export_child_objects(payload, expanded_refs=[(10, 99)])
+        self.assertEqual(entries, [])
+
+        entries = build_ipa_export_child_objects(payload, expanded_refs=[(10, 42)])
+        self.assertEqual(len(entries), 1)
+        drilldown_fn.assert_called_once_with(obj)
+
     def test_parse_export_context_from_request(self):
         request = MagicMock()
         request.GET = {
@@ -234,3 +278,14 @@ class IpaYamlExportTests(SimpleTestCase):
         self.assertEqual(context["rule_index"], "4")
         self.assertEqual(context["rule_name"], "Deny SSH")
         self.assertEqual(context["column_position"], "src")
+
+    def test_parse_export_expanded_refs_from_request(self):
+        request = MagicMock()
+        request.GET.getlist.side_effect = lambda key: {
+            "exp_ct": ["10", "10", "x", "11"],
+            "exp_pk": ["42", "42", "7", "9"],
+        }.get(key, [])
+
+        refs = parse_export_expanded_refs_from_request(request)
+
+        self.assertEqual(refs, [(10, 42), (11, 9)])

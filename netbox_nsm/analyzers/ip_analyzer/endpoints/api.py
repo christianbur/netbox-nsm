@@ -24,6 +24,7 @@ from netbox_nsm.analyzers.ip_analyzer.ipa_perf import (
     build_ipa_cache_key,
     cached_ipa_payload,
     get_ipa_analyzer_cache_timeout,
+    get_ipa_analyzer_timeout_ms,
     ipa_lazy_context,
     parse_lazy_flag,
     parse_refresh_flag,
@@ -34,6 +35,7 @@ from netbox_nsm.analyzers.ip_analyzer.ipa_yaml_export import (
     build_ipa_export_document,
     ipa_export_filename,
     parse_export_context_from_request,
+    parse_export_expanded_refs_from_request,
     serialize_ipa_export_yaml,
 )
 
@@ -46,25 +48,41 @@ class IpAnalyzerApiView(LoginRequiredMixin, View):
     http_method_names = ["get"]
 
     def get(self, request):
-        try:
-            return self._get(request)
-        except Exception as exc:
-            logger.exception("IP analyzer UI API failed")
-            detail = str(exc).strip() or exc.__class__.__name__
-            return JsonResponse(
-                {
-                    "error": _("Analyzer failed: %(detail)s") % {"detail": detail},
-                    "detail": detail,
-                },
-                status=500,
-            )
-
-    def _get(self, request):
         mode = (request.GET.get("mode") or "merge").strip().lower()
         export_yaml = (request.GET.get("format") or "").strip().lower() == "yaml"
         lazy = parse_lazy_flag(request)
         refresh = parse_refresh_flag(request)
+        try:
+            return self._get(
+                request,
+                mode=mode,
+                export_yaml=export_yaml,
+                lazy=lazy,
+                refresh=refresh,
+            )
+        except Exception as exc:
+            logger.exception("IP analyzer UI API failed")
+            detail = str(exc).strip() or exc.__class__.__name__
+            status_code = self._error_status_code(exc)
+            return JsonResponse(
+                {
+                    "error": _("Analyzer failed: %(detail)s") % {"detail": detail},
+                    "detail": detail,
+                    "debug_info": self._build_debug_info(
+                        request,
+                        mode=mode,
+                        export_yaml=export_yaml,
+                        lazy=lazy,
+                        refresh=refresh,
+                        exc=exc,
+                        detail=detail,
+                        status_code=status_code,
+                    ),
+                },
+                status=status_code,
+            )
 
+    def _get(self, request, *, mode, export_yaml, lazy, refresh):
         if mode == "diff":
             return self._get_diff(
                 request, export_yaml=export_yaml, lazy=lazy, refresh=refresh
@@ -94,6 +112,52 @@ class IpAnalyzerApiView(LoginRequiredMixin, View):
             return self._yaml_response(request, payload)
         return ip_analyzer_json_response(payload)
 
+    @staticmethod
+    def _error_status_code(exc):
+        if isinstance(exc, TimeoutError):
+            return 504
+        return 500
+
+    def _build_debug_info(
+        self,
+        request,
+        *,
+        mode,
+        export_yaml,
+        lazy,
+        refresh,
+        exc,
+        detail,
+        status_code,
+    ):
+        query = request.GET
+        ct_list = query.getlist("ct")
+        pk_list = query.getlist("pk")
+        side_keys = {
+            key.split("_", 1)[0]
+            for key in query.keys()
+            if key.startswith("s") and "_" in key
+        }
+        return {
+            "mode": mode,
+            "export_yaml": bool(export_yaml),
+            "lazy": bool(lazy),
+            "refresh": bool(refresh),
+            "status_code": int(status_code),
+            "exception_class": exc.__class__.__name__,
+            "detail": detail,
+            "selection_counts": {
+                "ct": len(ct_list),
+                "pk": len(pk_list),
+                "diff_sides": len(side_keys),
+            },
+            "timeouts": {
+                "analyzer_timeout_ms": get_ipa_analyzer_timeout_ms(),
+                "cache_timeout": get_ipa_analyzer_cache_timeout(),
+            },
+            "query_keys": sorted(query.keys()),
+        }
+
     def _cached_merge_payload(
         self,
         *,
@@ -108,7 +172,7 @@ class IpAnalyzerApiView(LoginRequiredMixin, View):
         obj_by_key,
     ):
         cache_timeout = get_ipa_analyzer_cache_timeout()
-        bypass_cache = should_bypass_ipa_cache(
+        bypass_cache = export_yaml or should_bypass_ipa_cache(
             lazy=lazy, refresh=refresh, cache_timeout=cache_timeout
         )
 
@@ -170,7 +234,7 @@ class IpAnalyzerApiView(LoginRequiredMixin, View):
         export_yaml,
     ):
         cache_timeout = get_ipa_analyzer_cache_timeout()
-        bypass_cache = should_bypass_ipa_cache(
+        bypass_cache = export_yaml or should_bypass_ipa_cache(
             lazy=lazy, refresh=refresh, cache_timeout=cache_timeout
         )
 
@@ -202,7 +266,19 @@ class IpAnalyzerApiView(LoginRequiredMixin, View):
 
     def _yaml_response(self, request, payload):
         export_context = parse_export_context_from_request(request)
-        child_objects = build_ipa_export_child_objects(payload)
+        view_only = (request.GET.get("view_only") or "").strip() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
+        expanded_refs = (
+            parse_export_expanded_refs_from_request(request) if view_only else None
+        )
+        child_objects = build_ipa_export_child_objects(
+            payload,
+            expanded_refs=expanded_refs,
+        )
         document = build_ipa_export_document(
             payload,
             export_context=export_context,

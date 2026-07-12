@@ -120,6 +120,49 @@
     return ipaT("Analyzer could not be loaded.");
   }
 
+  function extractIpaApiDebugInfo(body) {
+    if (!body || typeof body !== "object") {
+      return null;
+    }
+    if (body.debug_info && typeof body.debug_info === "object") {
+      return body.debug_info;
+    }
+    return null;
+  }
+
+  function normalizeIpaApiError(err, options) {
+    options = options || {};
+    var fallbackMessage = options.fallbackMessage || ipaT("Analyzer could not be loaded.");
+    var fallbackDebugInfo = options.debugInfo || null;
+    if (err && err.name === "AbortError") {
+      return {
+        message: ipaT("Analyzer timed out."),
+        status: 504,
+        detail: "AbortError",
+        debugInfo: fallbackDebugInfo,
+      };
+    }
+
+    if (err && typeof err === "object") {
+      return {
+        message: err.message ? String(err.message) : fallbackMessage,
+        status: err.status != null ? Number(err.status) : null,
+        detail: err.detail ? String(err.detail) : null,
+        debugInfo:
+          (err.debugInfo && typeof err.debugInfo === "object" ? err.debugInfo : null) ||
+          (err.debug_info && typeof err.debug_info === "object" ? err.debug_info : null) ||
+          fallbackDebugInfo,
+      };
+    }
+
+    return {
+      message: fallbackMessage,
+      status: null,
+      detail: null,
+      debugInfo: fallbackDebugInfo,
+    };
+  }
+
   function readIpaApiJson(resp) {
     return resp.text().then(function (text) {
       var body = null;
@@ -131,7 +174,18 @@
         }
       }
       if (!resp.ok) {
-        throw new Error(parseIpaApiErrorBody(body, resp.status));
+        var err = new Error(parseIpaApiErrorBody(body, resp.status));
+        err.status = resp.status;
+        if (body && typeof body === "object") {
+          if (body.detail != null && body.detail !== "") {
+            err.detail = String(body.detail);
+          }
+          var debugInfo = extractIpaApiDebugInfo(body);
+          if (debugInfo) {
+            err.debugInfo = debugInfo;
+          }
+        }
+        throw err;
       }
       if (body == null) {
         throw new Error(ipaT("Analyzer could not be loaded."));
@@ -167,13 +221,18 @@
   }
 
   function ipaFetchAbortMessage(err) {
-    if (err && err.name === "AbortError") {
-      return ipaT("Analyzer timed out.");
+    return normalizeIpaApiError(err).message;
+  }
+
+  function formatDebugInfo(debugInfo) {
+    if (!debugInfo || typeof debugInfo !== "object") {
+      return "";
     }
-    if (err && err.message) {
-      return String(err.message);
+    try {
+      return JSON.stringify(debugInfo, null, 2);
+    } catch (_) {
+      return String(debugInfo);
     }
-    return ipaT("Analyzer could not be loaded.");
   }
 
   function mergeBranchHeaders(headers) {
@@ -597,7 +656,7 @@
     }
   }
 
-  function buildExportQuery(tab) {
+  function buildExportQuery(tab, exportView) {
     var params = new URLSearchParams();
     params.append("format", "yaml");
     if (tab.mode === "diff") {
@@ -621,6 +680,23 @@
         params.append("pk", obj.pk);
       });
     }
+    var expandedObjects =
+      exportView && Array.isArray(exportView.expandedObjects)
+        ? exportView.expandedObjects
+        : [];
+    params.append("view_only", "1");
+    expandedObjects.forEach(function (obj) {
+      if (!obj) {
+        return;
+      }
+      var ct = obj.ct != null ? String(obj.ct) : "";
+      var pk = obj.pk != null ? String(obj.pk) : "";
+      if (!ct || !pk) {
+        return;
+      }
+      params.append("exp_ct", ct);
+      params.append("exp_pk", pk);
+    });
     appendExportContextParams(params, tab);
     return params.toString();
   }
@@ -676,10 +752,23 @@
     );
   }
 
-  function errorHtml(message) {
+  function errorHtml(message, debugInfo) {
+    var detailsHtml = "";
+    var debugText = formatDebugInfo(debugInfo);
+    if (debugText) {
+      detailsHtml =
+        '<details class="nsm-ipa-applet-error-debug"><summary>' +
+        escHtml(ipaT("Debug details")) +
+        '</summary><pre>' +
+        escHtml(debugText) +
+        "</pre></details>";
+    }
     return (
       '<div class="nsm-ipa-applet-error">' +
+      '<div class="nsm-ipa-applet-error-message">' +
       escHtml(message || ipaT("Analyzer failed.")) +
+      "</div>" +
+      detailsHtml +
       "</div>"
     );
   }
@@ -705,6 +794,7 @@
     nsmFetch: nsmFetch,
     IPA_ANALYZER_TIMEOUT_MS: IPA_ANALYZER_TIMEOUT_MS,
     parseIpaApiErrorBody: parseIpaApiErrorBody,
+    normalizeIpaApiError: normalizeIpaApiError,
     readIpaApiJson: readIpaApiJson,
     fetchIpaAnalyzer: fetchIpaAnalyzer,
     ipaFetchAbortMessage: ipaFetchAbortMessage,

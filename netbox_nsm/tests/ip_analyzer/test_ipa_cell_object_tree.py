@@ -1309,6 +1309,68 @@ class IpaCellObjectTreeTests(SimpleTestCase):
             ["subnet", "host"],
         )
 
+    @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._hub._ipam_obj_from_ip_ref")
+    def test_merge_ipa_cell_nodes_by_network_uses_ipam_ref_for_fqdn_hosts(
+        self, ipam_obj_from_ref
+    ):
+        ipam_ip = MagicMock()
+        ipam_ip.address = "10.112.134.44/32"
+        ipam_ip_from_other = MagicMock()
+        ipam_ip_from_other.address = "10.112.134.44/32"
+
+        def resolve_ipam_obj(ip_ref):
+            pk = str((ip_ref or {}).get("pk") or "")
+            if pk == "44":
+                return ipam_ip
+            if pk == "99":
+                return ipam_ip_from_other
+            return None
+
+        ipam_obj_from_ref.side_effect = resolve_ipam_obj
+
+        nodes = [
+            {
+                "name": "app01.example.org",
+                "url": "/a/1/",
+                "ct": "10",
+                "pk": "1",
+                "kind": "leaf",
+                "node_role": IPA_NODE_ROLE_HOST,
+                "ip_ref": {
+                    "str": "app01.example.org",
+                    "url": "/ipam/ip-addresses/44/",
+                    "type": "IP Address",
+                    "ct": 4,
+                    "pk": 44,
+                },
+                "children": [],
+            },
+            {
+                "name": "app01.prod.example.org",
+                "url": "/a/2/",
+                "ct": "10",
+                "pk": "2",
+                "kind": "leaf",
+                "node_role": IPA_NODE_ROLE_HOST,
+                "ip_ref": {
+                    "str": "app01.prod.example.org",
+                    "url": "/ipam/ip-addresses/99/",
+                    "type": "IP Address",
+                    "ct": 4,
+                    "pk": 99,
+                },
+                "children": [],
+            },
+        ]
+
+        merged = _merge_ipa_cell_nodes_by_network(nodes)
+        self.assertEqual(len(merged), 1)
+        self.assertTrue(merged[0].get("cell_addresses_multi"))
+        self.assertEqual(
+            [item["name"] for item in merged[0].get("cell_addresses") or []],
+            ["app01.example.org", "app01.prod.example.org"],
+        )
+
     @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_prefix_for_cell_object", return_value=None)
     @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._attach_ipa_object_tree_ipam_stats")
     @patch("netbox_nsm.analyzers.ip_analyzer.ipa_object_tree._ipa_object_drilldown_has_visible_content", return_value=False)

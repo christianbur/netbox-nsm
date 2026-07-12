@@ -1365,6 +1365,43 @@ def _ipa_object_tree_containment_network(node):
 
     role = _ipa_object_node_role_from_tree_node(node or {})
     ip_ref = (node or {}).get("ip_ref") or {}
+
+    # Prefer canonical data from the referenced IPAM object (ct/pk) so host
+    # merging stays stable even when display strings contain FQDN/domain labels.
+    ipam_obj = _hub._ipam_obj_from_ip_ref(ip_ref) if ip_ref else None
+    if ipam_obj is not None:
+        for candidate in (
+            getattr(ipam_obj, "address", None),
+            getattr(ipam_obj, "prefix", None),
+        ):
+            if not candidate:
+                continue
+            try:
+                net = ipaddress.ip_network(str(candidate).strip(), strict=False)
+            except ValueError:
+                continue
+            if role == IPA_NODE_ROLE_HOST or ip_ref.get("type") == _FIELD_TYPE_LABELS["ip_address"]:
+                if net.prefixlen == net.max_prefixlen:
+                    return net
+                host_ip = str(net.network_address)
+                try:
+                    return ipaddress.ip_network(
+                        f"{host_ip}/{net.max_prefixlen}", strict=False
+                    )
+                except ValueError:
+                    continue
+            return net
+
+        start_address = getattr(ipam_obj, "start_address", None)
+        if start_address:
+            try:
+                host_ip = ipaddress.ip_address(str(start_address).strip())
+                return ipaddress.ip_network(
+                    f"{host_ip}/{host_ip.max_prefixlen}", strict=False
+                )
+            except ValueError:
+                pass
+
     if role == IPA_NODE_ROLE_HOST or ip_ref.get("type") == _FIELD_TYPE_LABELS["ip_address"]:
         for candidate in (
             _ipa_cidr_from_host_object_name(node.get("name")),

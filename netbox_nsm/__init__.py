@@ -36,8 +36,8 @@ class SecurityConfig(PluginConfig):
         "bundle_paths": [],
         # Include built-in bundles shipped with the plugin (default: True)
         "builtin_bundles": True,
-        # IP Analyzer client fetch timeout in milliseconds (default: 120000)
-        "ipa_analyzer_timeout_ms": 120000,
+        # IP Analyzer client fetch timeout in milliseconds (default: 240000)
+        "ipa_analyzer_timeout_ms": 240000,
         # IP Analyzer response cache TTL in seconds; 0 disables (default: 300)
         "ipa_analyzer_cache_timeout": 300,
     }

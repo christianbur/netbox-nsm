@@ -12,7 +12,21 @@ from django.http import JsonResponse
 from django.template.loader import render_to_string
 from django.views import View
 
+from ._common import mark_lazy_loaded_nodes, parse_non_negative_int
 from netbox_nsm.analyzers.ip_analyzer.ipa_ipam_tree import _build_ipa_object_drilldown_nodes
+from netbox_nsm.analyzers.ip_analyzer.ipa_object_tree import (
+    _attach_ipa_cell_address_fields,
+    _attach_ipa_cell_display_hints,
+    _attach_ipa_cell_ipam_object_refs,
+    _attach_ipa_dup_cell_statuses,
+    _attach_ipa_dup_context_fields,
+    _attach_ipa_object_tree_status,
+    _ensure_ipa_cell_tree_network_links,
+)
+from netbox_nsm.analyzers.ip_analyzer.ipa_zone_label import (
+    attach_ipa_cell_tenant_ref,
+    attach_ipa_cell_zone_label_refs,
+)
 
 __all__ = ("IpAnalyzerObjectDrilldownApiView",)
 
@@ -22,10 +36,18 @@ def _build_object_drilldown_nodes(obj):
     return _build_ipa_object_drilldown_nodes(obj)
 
 
-def _mark_lazy_loaded_nodes(nodes):
-    for node in nodes or []:
-        node["ipa_lazy_loaded"] = True
-        _mark_lazy_loaded_nodes(node.get("children") or [])
+def _enrich_object_drilldown_nodes(nodes):
+    """Attach the same render metadata columns as the regular cell-tree path."""
+    obj_by_key = {}
+    _ensure_ipa_cell_tree_network_links(nodes, obj_by_key)
+    _attach_ipa_object_tree_status(nodes, obj_by_key)
+    _attach_ipa_dup_cell_statuses(nodes)
+    _attach_ipa_cell_address_fields(nodes, obj_by_key)
+    _attach_ipa_cell_ipam_object_refs(nodes, obj_by_key)
+    attach_ipa_cell_zone_label_refs(nodes, obj_by_key)
+    attach_ipa_cell_tenant_ref(nodes, obj_by_key)
+    _attach_ipa_cell_display_hints(nodes)
+    _attach_ipa_dup_context_fields(nodes)
 
 
 class IpAnalyzerObjectDrilldownApiView(LoginRequiredMixin, View):
@@ -39,10 +61,7 @@ class IpAnalyzerObjectDrilldownApiView(LoginRequiredMixin, View):
         if not (str(ct_raw).isdigit() and str(pk_raw).isdigit()):
             return JsonResponse({"error": "ct and pk required"}, status=400)
 
-        try:
-            depth = max(int(depth_raw), 0)
-        except (TypeError, ValueError):
-            depth = 0
+        depth = parse_non_negative_int(depth_raw, default=0)
 
         ct = ContentType.objects.filter(pk=int(ct_raw)).first()
         if ct is None:
@@ -57,7 +76,8 @@ class IpAnalyzerObjectDrilldownApiView(LoginRequiredMixin, View):
             return JsonResponse({"error": "object not found"}, status=404)
 
         nodes, copy_lines = _build_object_drilldown_nodes(obj)
-        _mark_lazy_loaded_nodes(nodes)
+        mark_lazy_loaded_nodes(nodes)
+        _enrich_object_drilldown_nodes(nodes)
         html = render_to_string(
             "netbox_nsm/inc/ipa_cell_tree_drilldown_fragment.html",
             {

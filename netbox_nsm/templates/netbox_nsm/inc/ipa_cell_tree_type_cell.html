@@ -1,5 +1,6 @@
 {% load i18n %}
 <div class="nsm-ipa-cell-type-with-pill">
+  {% with ref_type=node.ip_ref.type|default:"" %}
   <span class="nsm-ipa-cell-type" title="{% trans 'Actual row type' %}">
     {% if node.ipam_object_ref and node.ipam_object_ref.kind %}
       {% if node.ipam_object_ref.kind == "prefix" %}
@@ -11,8 +12,6 @@
       {% else %}
         IPAM &gt; {{ node.ipam_object_ref.kind }}
       {% endif %}
-    {% elif node.ip_ref and node.ip_ref.type %}
-      IPAM &gt; {{ node.ip_ref.type }}
     {% elif node.node_role == "nsm_group" %}
       NSM &gt; Address group
     {% elif node.node_role == "nsm_prefix" %}
@@ -21,19 +20,28 @@
       NSM &gt; Range
     {% elif node.node_role == "nsm_host" %}
       NSM &gt; Host
+    {% elif node.ip_ref and node.ip_ref.type %}
+      {% if ref_type == "Address" and node.prefix_display_cidr and "/" in node.prefix_display_cidr %}
+        {% if node.prefix_display_cidr|slice:"-3:" == "/32" %}
+          IPAM &gt; IP Address
+        {% else %}
+          IPAM &gt; Prefix
+        {% endif %}
+      {% else %}
+        IPAM &gt; {{ node.ip_ref.type }}
+      {% endif %}
     {% else %}
       <span class="text-muted">—</span>
     {% endif %}
   </span>
-  {% if node.ipa_drilldown_meta %}
+  {% if node.ipa_drilldown_meta and node.ipam_object_ref.kind != "ipaddress" and node.node_role != "nsm_host" and ref_type != "IP Address" %}
   {% with meta=node.ipa_drilldown_meta %}
   <span class="badge bg-secondary-subtle text-secondary nsm-addr-ipam-short font-monospace" title="{% trans 'Prefixes' %}: {{ meta.count_subnets }} · {% trans 'IP Ranges' %}: {{ meta.count_ranges }} · {% trans 'IP Addresses' %}: {{ meta.count_ips }}">{{ meta.count_subnets }}/{{ meta.count_ranges }}/{{ meta.count_ips }}</span>
   {% endwith %}
-  {% elif node.node_role == "nsm_host" %}
-  <span class="badge bg-secondary-subtle text-secondary nsm-addr-ipam-short font-monospace" title="{% trans 'Prefixes' %}: 1 · {% trans 'IP Ranges' %}: 0 · {% trans 'IP Addresses' %}: 0">1/0/0</span>
   {% elif node.ipam_stats_short %}
   {% include "netbox_nsm/inc/addr_ipam_stats.html" %}
   {% else %}
   <span class="text-muted">—</span>
   {% endif %}
+  {% endwith %}
 </div>

@@ -429,13 +429,18 @@ class IpaCellTreeIpamObjectRefTests(SimpleTestCase):
         self.assertEqual(nodes[0]["ipam_object_ref"]["url"], "/ipam/prefixes/10/")
         nav_fn.assert_called_once()
 
-    def test_ipam_object_ref_prefix_without_description_returns_none(self):
+    def test_ipam_object_ref_prefix_without_description_keeps_kind_for_type_column(self):
         prefix = MagicMock()
         prefix.description = ""
         prefix.prefix = "10.0.0.0/8"
+        prefix.get_absolute_url.return_value = "/ipam/prefixes/10/"
         prefix._meta.app_label = "ipam"
         prefix._meta.model_name = "prefix"
-        self.assertIsNone(_ipa_ipam_object_display_ref(prefix))
+        ref = _ipa_ipam_object_display_ref(prefix)
+        self.assertEqual(ref["kind"], "prefix")
+        self.assertEqual(ref["description"], "")
+        self.assertEqual(ref["dns_name"], "")
+        self.assertEqual(ref["url"], "/ipam/prefixes/10/")
 
     def test_ipam_object_ref_uses_nsm_description_fallback(self):
         prefix = MagicMock()

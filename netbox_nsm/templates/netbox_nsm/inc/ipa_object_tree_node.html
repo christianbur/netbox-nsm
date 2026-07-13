@@ -15,18 +15,30 @@
   {% include "netbox_nsm/inc/ipa_object_tree_node.html" with nodes=node.children depth=depth|add:1 ipa_cell_pill=ipa_cell_pill|default_if_none:True root_groups_member=root_groups_member %}
   {% if node.lazy_load %}
   <tr class="nsm-ipa-cell-tree-row nsm-ipa-lazy-load-row nsm-ipa-depth-{{ depth|add:1 }}"{% if node.lazy_ctx.prefix_pk %} data-lazy-prefix="{{ node.lazy_ctx.prefix_pk }}"{% endif %}{% if node.lazy_ctx.range_pk %} data-lazy-range="{{ node.lazy_ctx.range_pk }}"{% endif %}{% if node.lazy_ctx.category %} data-lazy-category="{{ node.lazy_ctx.category }}"{% endif %}>
-    <td colspan="12" class="nsm-ipa-lazy-batch-cell">
-      <button type="button" class="btn btn-sm btn-outline-secondary nsm-addr-lazy-load mt-1"
+    <td class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--network nsm-ipa-lazy-batch-cell">
+      <button type="button" class="btn btn-sm btn-link p-0 nsm-addr-lazy-load"
         data-offset="{{ node.loaded_count }}"
         data-loaded="{{ node.loaded_count }}"
         data-total="{{ node.count }}"
         data-depth="{{ depth|add:1 }}"
-        data-label-load="{% trans 'Load preview' %}"
+        data-label-load="+"
         data-label-loading="{% trans 'Loading…' %}"
-        data-label-retry="{% trans 'Loading failed — retry' %}">
-        {% blocktrans with loaded=node.loaded_count total=node.count %}Load preview ({{ loaded }}/{{ total }}){% endblocktrans %}
+        data-label-retry="{% trans 'Loading failed — retry' %}"
+        title="{% blocktrans with loaded=node.loaded_count total=node.count %}Load preview ({{ loaded }}/{{ total }}){% endblocktrans %}">
+        <span class="badge bg-dark text-white">+</span>
       </button>
     </td>
+    <td class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--duplicate"><span class="text-muted">—</span></td>
+    <td class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--type"><span class="text-muted">—</span></td>
+    <td class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--tenant"><span class="text-muted">—</span></td>
+    <td class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--address-group"><span class="text-muted">—</span></td>
+    <td class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--dns"><span class="text-muted">—</span></td>
+    <td class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--description"><span class="text-muted">—</span></td>
+    <td class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--zone"><span class="text-muted">—</span></td>
+    <td class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--label"><span class="text-muted">—</span></td>
+    <td class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--merge"><span class="text-muted">—</span></td>
+    <td class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--diff"><span class="text-muted">—</span></td>
+    <td class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--us"><span class="text-muted">—</span></td>
   </tr>
   {% endif %}
   {% elif node.is_ipam_filler or node.ipam_synthetic or node.ipa_tree_node_type == "ipam_filler" %}

@@ -3184,12 +3184,6 @@ def _ipa_ipam_object_display_ref(ipam_obj, nsm_obj=None):
     if kind == "ipaddress":
         dns_name = str(getattr(ipam_obj, "dns_name", "") or "").strip()
 
-    if kind == "ipaddress":
-        if not dns_name and not description:
-            return None
-    elif not description:
-        return None
-
     url = None
     if hasattr(ipam_obj, "get_absolute_url"):
         try:

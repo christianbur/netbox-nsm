@@ -108,10 +108,14 @@ class ObjectLinkAssignUrlTests(SimpleTestCase):
         "netbox_nsm.security.links.cot_link_schema.get_object_link_cot_slug",
         return_value="nsm_object_link",
     )
+    @patch(
+        "netbox_nsm.security.links.cot_link_schema.get_object_link_schema",
+        return_value=SimpleNamespace(host_field="netbox_object", security_field="security_object"),
+    )
     @patch("netbox_nsm.security.links.object_link_service.classify_link_endpoints")
     @patch("django.contrib.contenttypes.models.ContentType")
     @patch("netbox_nsm.security.actions.panel_link_actions.reverse", return_value="/cot-add")
-    def test_builds_prefilled_assign_url(self, mock_reverse, mock_ct, mock_classify, _slug):
+    def test_builds_prefilled_assign_url(self, mock_reverse, mock_ct, mock_classify, _schema, _slug):
         mock_classify.return_value = (
             type("Prefix", (), {"pk": 5})(),
             type("Zone", (), {"pk": 10})(),
@@ -126,8 +130,14 @@ class ObjectLinkAssignUrlTests(SimpleTestCase):
         self.assertTrue(url.startswith("/cot-add?"))
         self.assertIn("ct_id=234", url)
         self.assertIn("obj_id=5", url)
+        self.assertIn("object_a_type_id=234", url)
+        self.assertIn("object_a_id=5", url)
         self.assertIn("object_b_type_id=99", url)
         self.assertIn("object_b_id=10", url)
+        self.assertIn("netbox_object__ct=234", url)
+        self.assertIn("netbox_object__obj=5", url)
+        self.assertIn("security_object__ct=99", url)
+        self.assertIn("security_object__obj=10", url)
         self.assertIn("status=active", url)
         self.assertIn("name=", url)
         self.assertIn("return_url=", url)
@@ -140,16 +150,23 @@ class ObjectLinkAssignUrlTests(SimpleTestCase):
         "netbox_nsm.security.links.cot_link_schema.get_object_link_cot_slug",
         return_value="nsm_object_link",
     )
+    @patch(
+        "netbox_nsm.security.links.cot_link_schema.get_object_link_schema",
+        return_value=SimpleNamespace(host_field="netbox_object", security_field="security_object"),
+    )
     @patch("netbox_nsm.security.object_link_cot_form.object_link_field_prefix_for_ct", return_value="security_object")
     @patch("django.contrib.contenttypes.models.ContentType")
     @patch("netbox_nsm.security.actions.panel_link_actions.reverse", return_value="/cot-add")
-    def test_builds_policy_side_assign_url(self, mock_reverse, mock_ct, _prefix, _slug):
+    def test_builds_policy_side_assign_url(self, mock_reverse, mock_ct, _prefix, _schema, _slug):
         mock_ct.objects.get_for_model.return_value = SimpleNamespace(pk=272)
         group = type("Group", (), {"pk": 1, "__str__": lambda self: "G-DNS"})()
         url = object_link_assign_url(group, "/back/")
         self.assertIn("object_b_type_id=272", url)
         self.assertIn("object_b_id=1", url)
         self.assertNotIn("ct_id=", url)
+        self.assertNotIn("obj_id=", url)
+        self.assertIn("security_object__ct=272", url)
+        self.assertIn("security_object__obj=1", url)
 
 
 class AddressIpamFkActionUrlTests(SimpleTestCase):

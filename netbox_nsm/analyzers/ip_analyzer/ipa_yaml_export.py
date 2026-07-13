@@ -72,6 +72,7 @@ _NODE_KEEP_KEYS = frozenset(
         "types",
         "nodes",
         "all_copy_lines",
+        "dup_tooltip",
         "label",
         "only_a",
         "only_b",

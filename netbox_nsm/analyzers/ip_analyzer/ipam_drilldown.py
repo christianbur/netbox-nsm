@@ -7,7 +7,9 @@ from netbox_nsm.core.api_urls import get_api_url_for_content_type as _get_api_ur
 
 _IPAM_ADDR_MODEL_NAMES = frozenset({"prefix", "ipaddress", "iprange"})
 _IPAM_PREFIX_CHILDREN_MAX = 250
-_IPAM_PREFIX_LARGE_CHILD_THRESHOLD = 50
+# Keep subtree previews usable for medium-sized prefixes (e.g. /17 -> /22 children)
+# and avoid collapsing them into a lone lazy-batch "+" row.
+_IPAM_PREFIX_LARGE_CHILD_THRESHOLD = 250
 _IPAM_PREFIX_LARGE_IP_THRESHOLD = 1000
 
 
@@ -386,6 +388,8 @@ def _filter_ipam_drilldown_category_nodes(nodes):
     """Drop NSM-address mirror categories from prefix drill-down (show IPAM only)."""
     filtered = []
     for node in nodes or []:
+        if node.get("kind") == "lazy_batch":
+            continue
         ctx = node.get("lazy_ctx") or {}
         if ctx.get("category") == "nsm_addresses":
             continue

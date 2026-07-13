@@ -36,7 +36,7 @@ __all__ = ("IpAnalyzerSubnetChildrenApiView",)
 
 
 def _build_lazy_subnet_nodes(child_prefixes, *, prefix_ct):
-    """Build lazy subnet rows via the same cell-tree builder used during initial table render."""
+    """Build lazy subnet rows and return both nodes and object lookup map."""
     raw_selections = []
     obj_by_key = {}
     for obj in child_prefixes:
@@ -49,7 +49,7 @@ def _build_lazy_subnet_nodes(child_prefixes, *, prefix_ct):
                 "name": str(obj),
             }
         )
-    return _build_ipa_cell_object_tree(raw_selections, obj_by_key)
+    return _build_ipa_cell_object_tree(raw_selections, obj_by_key), obj_by_key
 
 
 def _mark_loaded_nodes_contained_in_parent(nodes, parent_prefix):
@@ -67,6 +67,42 @@ def _mark_loaded_nodes_contained_in_parent(nodes, parent_prefix):
         node.setdefault("subnet_contained_in_url", parent_url)
         node["subnet_contained_dup"] = True
         _mark_loaded_nodes_contained_in_parent(node.get("children") or [], parent_prefix)
+
+
+def _prune_lazy_batch_nodes(nodes):
+    """Drop synthetic lazy-batch rows from subnet-child endpoint output."""
+    pruned = []
+    for node in nodes or []:
+        if node.get("kind") == "lazy_batch":
+            continue
+        children = node.get("children") or []
+        if children:
+            node["children"] = _prune_lazy_batch_nodes(children)
+        pruned.append(node)
+    return pruned
+
+
+def _node_key(node):
+    """Return normalized (ct, pk) key for a tree node, if possible."""
+    try:
+        return (int(node.get("ct")), int(node.get("pk")))
+    except (TypeError, ValueError):
+        return None
+
+
+def _prune_to_selected_nodes(nodes, selected_keys):
+    """Keep only nodes selected for this lazy batch; promote selected descendants."""
+    pruned = []
+    for node in nodes or []:
+        children = _prune_to_selected_nodes(node.get("children") or [], selected_keys)
+        key = _node_key(node)
+        if key in selected_keys:
+            node["children"] = children
+            pruned.append(node)
+            continue
+        if children:
+            pruned.extend(children)
+    return pruned
 
 
 class IpAnalyzerSubnetChildrenApiView(LoginRequiredMixin, View):
@@ -100,12 +136,17 @@ class IpAnalyzerSubnetChildrenApiView(LoginRequiredMixin, View):
         )
 
         prefix_ct = ContentType.objects.get_for_model(Prefix).pk
-        nodes = _build_lazy_subnet_nodes(child_prefixes, prefix_ct=prefix_ct)
+        nodes, obj_by_key = _build_lazy_subnet_nodes(
+            child_prefixes,
+            prefix_ct=prefix_ct,
+        )
+        nodes = _prune_lazy_batch_nodes(nodes)
+        nodes = _prune_to_selected_nodes(nodes, set(obj_by_key.keys()))
         mark_lazy_subnet_child_nodes(nodes)
         mark_lazy_loaded_nodes(nodes)
         # Re-attach refs after lazy flags so tenant/zone resolution does not get skipped.
-        attach_ipa_cell_zone_label_refs(nodes, {})
-        attach_ipa_cell_tenant_ref(nodes, {})
+        attach_ipa_cell_zone_label_refs(nodes, obj_by_key)
+        attach_ipa_cell_tenant_ref(nodes, obj_by_key)
         _mark_loaded_nodes_contained_in_parent(nodes, prefix)
         _mark_ipa_object_tree_duplicate_flags(nodes, is_root=True)
         _attach_ipa_dup_cell_statuses(nodes)
@@ -122,8 +163,8 @@ class IpAnalyzerSubnetChildrenApiView(LoginRequiredMixin, View):
             "netbox_nsm/inc/ipa_cell_tree_subnet_children_fragment.html",
             {
                 "nodes": nodes,
-                # Client sends parent row depth; children render one level deeper.
-                "depth": depth + 1,
+                # Client sends the parent row depth; render children at that table level.
+                "depth": depth,
                 "ipa_cell_pill": False,
             },
             request=request,

@@ -170,6 +170,7 @@
   .nsm-addr-type-title { font-size: .8rem; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; color: var(--bs-secondary-color); }
   .nsm-addr-prefix-format .btn { font-size: .68rem; line-height: 1.2; min-width: 2.4rem; }
   .nsm-addr-lazy-load--loading { pointer-events: none; opacity: 0.85; }
+  .nsm-ipa-cell-lazy-network-load--loading { pointer-events: none; opacity: 0.85; }
   .nsm-ipa-cell-lazy-subnet-load--loading { pointer-events: none; opacity: 0.85; }
   .nsm-addr-lazy-progress { max-width: 14rem; }
   .nsm-ipa-subnet-contained { line-height: inherit; }
@@ -665,7 +666,14 @@
 
     var loadedState = startMarker.getAttribute('data-loaded');
     var isOpen = startMarker.getAttribute('data-open') === '1';
-    var badge = btn.querySelector('.badge');
+
+    function currentBadge() {
+      return btn.querySelector('.badge');
+    }
+
+    function renderNetworkExpandButton(symbol) {
+      btn.innerHTML = '<span class="badge bg-dark text-white">' + symbol + '</span>';
+    }
 
     function setOpenState(open) {
       var cursor = startMarker.nextElementSibling;
@@ -674,8 +682,11 @@
         cursor = cursor.nextElementSibling;
       }
       startMarker.setAttribute('data-open', open ? '1' : '0');
+      var badge = currentBadge();
       if (badge) {
         badge.textContent = open ? '−' : '+';
+      } else {
+        renderNetworkExpandButton(open ? '−' : '+');
       }
     }
 
@@ -708,25 +719,22 @@
     }
 
     btn.disabled = true;
-    btn.classList.add('nsm-ipa-cell-lazy-subnet-load--loading');
-    if (badge) {
-      badge.textContent = '…';
-    }
+    btn.classList.add('nsm-ipa-cell-lazy-network-load--loading');
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Loading…';
 
     fetchObjectDrilldown(startMarker, endMarker, ct, pk, isNaN(depth) ? 0 : depth)
       .then(function () {
         btn.disabled = false;
-        btn.classList.remove('nsm-ipa-cell-lazy-subnet-load--loading');
+        btn.classList.remove('nsm-ipa-cell-lazy-network-load--loading');
+        renderNetworkExpandButton('+');
         setOpenState(true);
         triggerLazyLoadsInOpenedRows();
       })
       .catch(function () {
         startMarker.setAttribute('data-loaded', '0');
         btn.disabled = false;
-        btn.classList.remove('nsm-ipa-cell-lazy-subnet-load--loading');
-        if (badge) {
-          badge.textContent = '+';
-        }
+        btn.classList.remove('nsm-ipa-cell-lazy-network-load--loading');
+        renderNetworkExpandButton('+');
       });
   });
 

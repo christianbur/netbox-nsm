@@ -208,9 +208,6 @@ def attach_ipa_cell_zone_label_refs(nodes, obj_by_key=None):
         return prefix_cache[cidr]
 
     for node in nodes or []:
-        if node.get("layer") == "ipam_prefix":
-            attach_ipa_cell_zone_label_refs(node.get("children") or [], obj_by_key)
-            continue
         if tree._ipa_tree_node_is_structural(node):
             attach_ipa_cell_zone_label_refs(node.get("children") or [], obj_by_key)
             continue
@@ -219,7 +216,10 @@ def attach_ipa_cell_zone_label_refs(nodes, obj_by_key=None):
         # directly selected rows.
         try:
             if tree.ipa_lazy_load_enabled() and not (
-                node.get("is_cell_direct") or node.get("in_cell")
+                node.get("is_cell_direct")
+                or node.get("in_cell")
+                or node.get("ipa_lazy_loaded")
+                or node.get("ipa_lazy_subnet_child")
             ):
                 attach_ipa_cell_zone_label_refs(node.get("children") or [], obj_by_key)
                 continue
@@ -251,9 +251,6 @@ def attach_ipa_cell_tenant_ref(nodes, obj_by_key=None):
         return None
 
     for node in nodes or []:
-        if node.get("layer") == "ipam_prefix":
-            attach_ipa_cell_tenant_ref(node.get("children") or [], obj_by_key)
-            continue
         if tree._ipa_tree_node_is_structural(node):
             attach_ipa_cell_tenant_ref(node.get("children") or [], obj_by_key)
             continue
@@ -262,7 +259,10 @@ def attach_ipa_cell_tenant_ref(nodes, obj_by_key=None):
         # directly selected rows.
         try:
             if tree.ipa_lazy_load_enabled() and not (
-                node.get("is_cell_direct") or node.get("in_cell")
+                node.get("is_cell_direct")
+                or node.get("in_cell")
+                or node.get("ipa_lazy_loaded")
+                or node.get("ipa_lazy_subnet_child")
             ):
                 attach_ipa_cell_tenant_ref(node.get("children") or [], obj_by_key)
                 continue

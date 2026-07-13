@@ -332,8 +332,40 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         type_col_end = html.index("</td>", type_col_start)
         type_col_html = html[type_col_start:type_col_end]
         self.assertIn("IPAM &gt; IP Address", type_col_html)
-        self.assertIn("1/0/0", type_col_html)
+        self.assertNotIn("1/0/0", type_col_html)
         self.assertNotIn('nsm-ipa-cell-tree-col--ipam', html)
+
+    def test_type_column_maps_generic_address_ref_with_prefix_cidr(self):
+        from django.template.loader import render_to_string
+
+        html = render_to_string(
+            "netbox_nsm/inc/ipa_cell_tree_row.html",
+            {
+                "node": {
+                    "name": "dm-addr-10-112-0-0-15",
+                    "url": "/a/505/",
+                    "ct": "10",
+                    "pk": "505",
+                    "kind": "leaf",
+                    "is_cell_direct": True,
+                    "ip_ref": {
+                        "str": "10.112.0.0/15",
+                        "url": "/plugins/netbox-nsm/objects/nsm_address/505/",
+                        "type": "Address",
+                    },
+                    "prefix_display_cidr": "10.112.0.0/15",
+                    "children": [],
+                },
+                "depth": 0,
+            },
+        )
+        type_col_start = html.index(
+            '<td class="nsm-ipa-cell-tree-col nsm-ipa-cell-tree-col--type">'
+        )
+        type_col_end = html.index("</td>", type_col_start)
+        type_col_html = html[type_col_start:type_col_end]
+        self.assertIn("IPAM &gt; Prefix", type_col_html)
+        self.assertNotIn("IPAM &gt; Address", type_col_html)
 
     def test_type_header_shows_ipam_counter_legend(self):
         from django.template.loader import render_to_string
@@ -868,12 +900,12 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         us_html = html[us_start:us_end]
         self.assertIn("nsm-ipa-cell-duplicate", dup_html)
         self.assertIn("contained in parent prefix: g-10.0.0.0/8", dup_html)
-        self.assertIn("dup", dup_html)
-        self.assertIn("in g-10.0.0.0/8", dup_html)
+        self.assertIn("nsm-ipa-cell-dup-icon--contained", dup_html)
+        self.assertIn("g-10.0.0.0/8", dup_html)
         self.assertNotIn("nsm-ipa-cell-tree-col--parent", html)
         self.assertNotIn("nsm-ipa-cell-duplicate", us_html)
 
-    def test_object_duplicate_badge_shows_duplicate_target(self):
+    def test_object_duplicate_badge_renders_icon_only(self):
         from django.template.loader import render_to_string
 
         html = render_to_string(
@@ -896,10 +928,9 @@ class IpaObjectTreeTemplateIntegrationTests(SimpleTestCase):
         dup_end = html.index("</td>", dup_start)
         dup_html = html[dup_start:dup_end]
         self.assertIn("nsm-ipa-cell-duplicate", dup_html)
-        self.assertIn("dup", dup_html)
-        self.assertIn("in", dup_html)
-        self.assertIn("bench-ip-parent", dup_html)
-        self.assertIn('href="/a/1/"', dup_html)
+        self.assertIn("nsm-ipa-cell-dup-icon--object", dup_html)
+        self.assertNotIn("bench-ip-parent", dup_html)
+        self.assertNotIn('href="/a/1/"', dup_html)
 
     def test_ipam_filler_row_is_not_rendered_in_cell_tree(self):
         from django.template.loader import render_to_string

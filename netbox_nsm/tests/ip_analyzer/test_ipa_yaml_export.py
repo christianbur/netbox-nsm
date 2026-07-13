@@ -56,6 +56,7 @@ class IpaYamlExportTests(SimpleTestCase):
                     "pk": "42",
                     "kind": "leaf",
                     "ip_ref": {"str": "10.0.0.1", "url": "#"},
+                    "dup_tooltip": "contained in parent prefix: g-10.0.0.0/8",
                     "copy_lines": ["demo-addr,10.0.0.1"],
                     "children": [],
                 }
@@ -81,6 +82,10 @@ class IpaYamlExportTests(SimpleTestCase):
 
         tree_node = displayed["object_tree"][0]
         self.assertEqual(tree_node["ip"], "10.0.0.1")
+        self.assertEqual(
+            tree_node["dup_tooltip"],
+            "contained in parent prefix: g-10.0.0.0/8",
+        )
         self.assertNotIn("url", tree_node)
 
         # No child expansion provided -> additional section absent.

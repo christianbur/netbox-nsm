@@ -123,3 +123,29 @@ def ipa_cell_tree_address_link_title(
         text = f"{text} | {_('Indirect (not directly in rule cell)')}"
 
     return text
+
+
+@register.simple_tag
+def ipa_cell_tree_can_expand_subnets(node):
+    """Return True when a row should render the inline subnet expand button."""
+    if not isinstance(node, dict):
+        return False
+    url = str(node.get("url") or "")
+    is_prefix_link = "/ipam/prefixes/" in url or node.get("layer") == "ipam_prefix"
+    if not is_prefix_link:
+        return False
+
+    drilldown_meta = node.get("ipa_drilldown_meta") or {}
+    if int(drilldown_meta.get("count_subnets") or 0) > 0:
+        return True
+    if node.get("ipa_lazy_subnet_child"):
+        return True
+    if node.get("lazy_load"):
+        return True
+    children = node.get("children") or []
+    if children and (children[0] or {}).get("kind") == "lazy_batch":
+        return True
+    stats_short = str(node.get("ipam_stats_short") or "")
+    if stats_short and stats_short != "0/0/0":
+        return True
+    return False

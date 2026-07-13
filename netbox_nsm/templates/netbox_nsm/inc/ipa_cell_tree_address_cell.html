@@ -13,7 +13,13 @@
 {% include "netbox_nsm/inc/addr_diff_name_pill.html" %}
 {% elif node.name and node.url and node.layer != "ipam_prefix" %}
 {% ipa_cell_tree_ipam_display node=node as node_ipam_display %}
-<a href="{{ node.url }}" class="nsm-addr-obj-link{% if node.status %} text-muted fst-italic{% endif %}" title="{% ipa_cell_tree_address_link_title node.name node=node address_status=node.status %}">{{ node_ipam_display }}</a>{% if node.status %}{% include "netbox_nsm/inc/ipa_nsm_object_status_icon.html" with status=node.status %}{% endif %}
+{% ipa_cell_tree_can_expand_subnets node as can_expand_subnets %}
+<span class="nsm-ipa-inline-network-wrap" style="display:inline-flex;align-items:flex-start;gap:.5rem;white-space:nowrap;">
+  <a href="{{ node.url }}" class="nsm-addr-obj-link{% if node.status %} text-muted fst-italic{% endif %}" title="{% ipa_cell_tree_address_link_title node.name node=node address_status=node.status %}">{{ node_ipam_display }}</a>{% if node.status %}{% include "netbox_nsm/inc/ipa_nsm_object_status_icon.html" with status=node.status %}{% endif %}
+  {% if can_expand_subnets %}
+  {% include "netbox_nsm/inc/ipa_cell_tree_subnet_expand_button.html" %}
+  {% endif %}
+</span>
 {% else %}
 <span class="text-muted">—</span>
 {% endif %}

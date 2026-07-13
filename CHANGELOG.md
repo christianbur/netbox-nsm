@@ -4,6 +4,14 @@ All notable changes to **netbox-nsm** are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.30] - 2026-07-13
+
+### Fixed
+
+- Restored lazy subnet/drilldown enrichment so tenant and duplicate context propagate correctly on lazily loaded IPA prefix rows.
+- Added a visible loading state for the white network drilldown `+` button in the IPA modal.
+- Filtered synthetic lazy-batch placeholder rows from the IPA object drilldown while preserving medium-sized prefix expansion behavior.
+
 ## [0.4.29] - 2026-07-12
 
 ### Notes

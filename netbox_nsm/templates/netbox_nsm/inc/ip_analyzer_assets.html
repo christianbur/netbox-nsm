@@ -20,6 +20,37 @@
   .nsm-addr-duplicate { font-size: .68rem; font-weight: 600; line-height: 1.2; padding: .12rem .35rem; text-transform: lowercase; white-space: nowrap; }
   .nsm-addr-duplicate-in { text-transform: none; font-weight: 500; margin-left: .15rem; }
   .nsm-addr-duplicate a:hover { color: var(--bs-warning-text-emphasis, var(--bs-warning)) !important; }
+  .nsm-ipa-cell-dup-stack { display: inline-flex; align-items: center; gap: .3rem; flex-wrap: wrap; }
+  .nsm-ipa-cell-dup-icons { display: inline-flex; align-items: center; gap: .2rem; flex-wrap: wrap; }
+  .nsm-ipa-cell-dup-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.15rem;
+    height: 1.15rem;
+    padding: 0 .25rem;
+    border-radius: 999px;
+    font-size: .64rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: .02em;
+      text-transform: uppercase;
+    border: 1px solid transparent;
+  }
+  .nsm-ipa-cell-dup-icon--contained { background: var(--bs-warning-bg-subtle); color: var(--bs-warning-text-emphasis, #8a5a00); border-color: color-mix(in srgb, var(--bs-warning, #fd7e14) 45%, transparent); }
+  .nsm-ipa-cell-dup-icon--object { background: var(--bs-danger-bg-subtle); color: var(--bs-danger-text-emphasis, #842029); border-color: color-mix(in srgb, var(--bs-danger, #dc3545) 45%, transparent); }
+  .nsm-ipa-cell-dup-icon--count { background: var(--bs-info-bg-subtle); color: var(--bs-info-text-emphasis, #055160); border-color: color-mix(in srgb, var(--bs-info, #0dcaf0) 45%, transparent); }
+  .nsm-ipa-cell-dup-icon--group { background: var(--bs-primary-bg-subtle); color: var(--bs-primary-text-emphasis, #084298); border-color: color-mix(in srgb, var(--bs-primary, #0d6efd) 45%, transparent); }
+  .nsm-ipa-cell-dup-icon--alias { background: var(--bs-success-bg-subtle); color: var(--bs-success-text-emphasis, #0f5132); border-color: color-mix(in srgb, var(--bs-success, #198754) 45%, transparent); }
+  .nsm-ipa-cell-dup-icon--entry { background: var(--bs-secondary-bg); color: var(--bs-secondary-text-emphasis, #41464b); border-color: color-mix(in srgb, var(--bs-secondary, #6c757d) 45%, transparent); }
+  .nsm-ipa-cell-dup-target {
+    font-size: .7rem;
+    line-height: 1.1;
+    max-width: 16rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .badge.nsm-addr-diff { --bs-badge-color: #fff; border: none; }
   .nsm-addr-diff { font-size: .68rem; font-weight: 600; line-height: 1.2; padding: .12rem .35rem; text-transform: lowercase; white-space: nowrap; flex-shrink: 0; color: #fff; }
   .nsm-addr-diff--only_a,
@@ -139,6 +170,7 @@
   .nsm-addr-type-title { font-size: .8rem; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; color: var(--bs-secondary-color); }
   .nsm-addr-prefix-format .btn { font-size: .68rem; line-height: 1.2; min-width: 2.4rem; }
   .nsm-addr-lazy-load--loading { pointer-events: none; opacity: 0.85; }
+  .nsm-ipa-cell-lazy-network-load--loading { pointer-events: none; opacity: 0.85; }
   .nsm-ipa-cell-lazy-subnet-load--loading { pointer-events: none; opacity: 0.85; }
   .nsm-addr-lazy-progress { max-width: 14rem; }
   .nsm-ipa-subnet-contained { line-height: inherit; }
@@ -164,6 +196,35 @@
 (function () {
   'use strict';
   var currentFormat = 'cidr';
+
+  function stripLegacyDuplicateText(scope) {
+    var root = scope && scope.querySelectorAll ? scope : document;
+    root.querySelectorAll('.nsm-ipa-expanded-warnings, .nsm-ipa-expanded-warning, .nsm-ipa-cell-dup-target').forEach(function (el) {
+      el.remove();
+    });
+    root.querySelectorAll('.nsm-ipa-cell-tree-col--duplicate').forEach(function (cell) {
+      Array.prototype.slice.call(cell.childNodes || []).forEach(function (node) {
+        if (!node || node.nodeType !== Node.TEXT_NODE) {
+          return;
+        }
+        var text = String(node.textContent || '').trim();
+        if (!text) {
+          return;
+        }
+        if (/^p\[[^\]]+\]g$/i.test(text) || /duplicate\s+in/i.test(text)) {
+          node.textContent = '';
+        }
+      });
+    });
+  }
+
+  var previousStripLegacyWarnings = window.nsmIpaStripLegacyExpandedWarnings;
+  window.nsmIpaStripLegacyExpandedWarnings = function (scope) {
+    if (typeof previousStripLegacyWarnings === 'function') {
+      previousStripLegacyWarnings(scope);
+    }
+    stripLegacyDuplicateText(scope);
+  };
 
   function getFormat() {
     return currentFormat === 'netmask' ? 'netmask' : 'cidr';
@@ -327,14 +388,22 @@
 
   function setLazyButtonLoading(btn, loaded, total, loading) {
     var labels = lazyButtonLabels(btn);
+    var progressTitle = labels.load === '+'
+      ? ('Vorschau laden (' + loaded + '/' + total + ')')
+      : (labels.load + ' (' + loaded + '/' + total + ')');
     btn.disabled = true;
     btn.classList.toggle('nsm-addr-lazy-load--loading', loading);
     if (loading) {
       btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>' +
-        labels.loading + ' (' + loaded + '/' + total + ')';
+        labels.loading;
     } else {
-      btn.textContent = labels.load + ' (' + loaded + '/' + total + ')';
+      if (labels.load === '+') {
+        btn.innerHTML = '<span class="badge bg-dark text-white">+</span>';
+      } else {
+        btn.textContent = labels.load;
+      }
     }
+    btn.setAttribute('title', progressTitle);
     btn.setAttribute('data-loaded', String(loaded));
     btn.setAttribute('data-offset', String(loaded));
     btn.setAttribute('data-total', String(total));
@@ -389,6 +458,7 @@
         } else {
           btn.insertAdjacentHTML('beforebegin', data.html || '');
         }
+        stripLegacyDuplicateText(container.closest('tbody') || container);
         if (window.nsmInitAddrPrefixToggle) {
           window.nsmInitAddrPrefixToggle(container);
         }
@@ -480,11 +550,26 @@
     return window.NSM_IP_ANALYZER_SUBNET_CHILDREN_API || '/plugins/netbox-nsm/api/ip-analyzer/subnet-children/';
   }
 
-  function fetchSubnetChildren(btn, prefixPk, offset) {
+  function rowDepth(row) {
+    if (!row || !row.className) {
+      return 0;
+    }
+    var match = String(row.className).match(/\bnsm-ipa-depth-(\d+)\b/);
+    if (!match) {
+      return 0;
+    }
+    var parsed = parseInt(match[1], 10);
+    return isNaN(parsed) || parsed < 0 ? 0 : parsed;
+  }
+
+  function fetchSubnetChildren(btn, prefixPk, offset, depth) {
     var params = new URLSearchParams({
       prefix_pk: String(prefixPk),
       offset: String(offset || 0),
     });
+    if (!isNaN(depth) && depth >= 0) {
+      params.set('depth', String(depth));
+    }
     return nsmFetchCategory(subnetChildrenApiUrl() + '?' + params.toString(), {
       headers: mergeBranchHeaders({ 'X-Requested-With': 'XMLHttpRequest' }),
     })
@@ -509,15 +594,31 @@
       return;
     }
     var prefixPk = parentRow.getAttribute('data-lazy-subnet-prefix-pk');
+    if (!prefixPk) {
+      var prefixLink = parentRow.querySelector('td.nsm-ipa-cell-tree-col--network a[href*="/ipam/prefixes/"]');
+      if (prefixLink && prefixLink.getAttribute('href')) {
+        var match = String(prefixLink.getAttribute('href')).match(/\/ipam\/prefixes\/(\d+)\/?$/);
+        if (match) {
+          prefixPk = match[1];
+          parentRow.setAttribute('data-lazy-subnet-prefix-pk', prefixPk);
+        }
+      }
+    }
     if (!prefixPk || parseInt(prefixPk, 10) <= 0) {
       return;
+    }
+
+    var depthAttr = btn.getAttribute('data-depth');
+    var depth = parseInt(depthAttr || '', 10);
+    if (isNaN(depth)) {
+      depth = rowDepth(parentRow);
     }
 
     btn.disabled = true;
     btn.classList.add('nsm-ipa-cell-lazy-subnet-load--loading');
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Loading…';
 
-    fetchSubnetChildren(btn, prefixPk, 0)
+    fetchSubnetChildren(btn, prefixPk, 0, depth)
       .then(function (data) {
         btn.remove();
         if (window.NsmIpAnalyzerApplet && window.NsmIpAnalyzerApplet.scheduleBodyScale) {
@@ -528,7 +629,7 @@
       .catch(function (err) {
         btn.disabled = false;
         btn.classList.remove('nsm-ipa-cell-lazy-subnet-load--loading');
-        btn.innerHTML = '<span class="badge bg-secondary-subtle text-secondary">+</span>';
+        btn.innerHTML = '<span class="badge bg-dark text-white">+</span>';
         console.error('Failed to load subnet children:', err);
       });
   }
@@ -565,7 +666,14 @@
 
     var loadedState = startMarker.getAttribute('data-loaded');
     var isOpen = startMarker.getAttribute('data-open') === '1';
-    var badge = btn.querySelector('.badge');
+
+    function currentBadge() {
+      return btn.querySelector('.badge');
+    }
+
+    function renderNetworkExpandButton(symbol) {
+      btn.innerHTML = '<span class="badge bg-dark text-white">' + symbol + '</span>';
+    }
 
     function setOpenState(open) {
       var cursor = startMarker.nextElementSibling;
@@ -574,13 +682,32 @@
         cursor = cursor.nextElementSibling;
       }
       startMarker.setAttribute('data-open', open ? '1' : '0');
+      var badge = currentBadge();
       if (badge) {
         badge.textContent = open ? '−' : '+';
+      } else {
+        renderNetworkExpandButton(open ? '−' : '+');
+      }
+    }
+
+    function triggerLazyLoadsInOpenedRows() {
+      var cursor = startMarker.nextElementSibling;
+      while (cursor && cursor !== endMarker) {
+        cursor.querySelectorAll('.nsm-addr-lazy-load').forEach(function (lazyBtn) {
+          if (lazyBtn.disabled || lazyBtn.classList.contains('nsm-addr-lazy-load--loading')) {
+            return;
+          }
+          runLazyCategoryLoad(lazyBtn);
+        });
+        cursor = cursor.nextElementSibling;
       }
     }
 
     if (loadedState === '1') {
       setOpenState(!isOpen);
+      if (!isOpen) {
+        triggerLazyLoadsInOpenedRows();
+      }
       return;
     }
 
@@ -592,24 +719,22 @@
     }
 
     btn.disabled = true;
-    btn.classList.add('nsm-ipa-cell-lazy-subnet-load--loading');
-    if (badge) {
-      badge.textContent = '…';
-    }
+    btn.classList.add('nsm-ipa-cell-lazy-network-load--loading');
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Loading…';
 
     fetchObjectDrilldown(startMarker, endMarker, ct, pk, isNaN(depth) ? 0 : depth)
       .then(function () {
         btn.disabled = false;
-        btn.classList.remove('nsm-ipa-cell-lazy-subnet-load--loading');
+        btn.classList.remove('nsm-ipa-cell-lazy-network-load--loading');
+        renderNetworkExpandButton('+');
         setOpenState(true);
+        triggerLazyLoadsInOpenedRows();
       })
       .catch(function () {
         startMarker.setAttribute('data-loaded', '0');
         btn.disabled = false;
-        btn.classList.remove('nsm-ipa-cell-lazy-subnet-load--loading');
-        if (badge) {
-          badge.textContent = '+';
-        }
+        btn.classList.remove('nsm-ipa-cell-lazy-network-load--loading');
+        renderNetworkExpandButton('+');
       });
   });
 
@@ -648,6 +773,7 @@
           if (window.nsmIpaStripLegacyExpandedWarnings) {
             window.nsmIpaStripLegacyExpandedWarnings(scope);
           }
+          stripLegacyDuplicateText(scope);
           if (window.nsmInitAddrPrefixToggle) {
             window.nsmInitAddrPrefixToggle(scope);
           }
@@ -662,9 +788,11 @@
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
+      stripLegacyDuplicateText(document);
       window.nsmInitAddrPrefixToggle(document);
     });
   } else {
+    stripLegacyDuplicateText(document);
     window.nsmInitAddrPrefixToggle(document);
   }
 })();

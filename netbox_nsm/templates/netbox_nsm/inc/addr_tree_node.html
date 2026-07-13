@@ -16,10 +16,11 @@ Renders one node of the address tree.
       data-offset="{{ node.loaded_count }}"
       data-loaded="{{ node.loaded_count }}"
       data-total="{{ node.count }}"
-      data-label-load="{% trans 'Load preview' %}"
+      data-label-load="+"
       data-label-loading="{% trans 'Loading…' %}"
-      data-label-retry="{% trans 'Loading failed — retry' %}">
-      {% blocktrans with loaded=node.loaded_count total=node.count %}Load preview ({{ loaded }}/{{ total }}){% endblocktrans %}
+      data-label-retry="{% trans 'Loading failed — retry' %}"
+      title="{% blocktrans with loaded=node.loaded_count total=node.count %}Load preview ({{ loaded }}/{{ total }}){% endblocktrans %}">
+      +
     </button>
     {% endif %}
   </div>
@@ -48,10 +49,11 @@ Renders one node of the address tree.
         data-offset="{{ node.loaded_count }}"
         data-loaded="{{ node.loaded_count }}"
         data-total="{{ node.count }}"
-        data-label-load="{% trans 'Load preview' %}"
+        data-label-load="+"
         data-label-loading="{% trans 'Loading…' %}"
-        data-label-retry="{% trans 'Loading failed — retry' %}">
-        {% blocktrans with loaded=node.loaded_count total=node.count %}Load preview ({{ loaded }}/{{ total }}){% endblocktrans %}
+        data-label-retry="{% trans 'Loading failed — retry' %}"
+        title="{% blocktrans with loaded=node.loaded_count total=node.count %}Load preview ({{ loaded }}/{{ total }}){% endblocktrans %}">
+        +
       </button>
       {% endif %}
     </div>
@@ -103,7 +105,7 @@ Renders one node of the address tree.
       {% if node.count_duplicate %}
       <span class="badge bg-warning-subtle text-warning nsm-addr-duplicate ms-1" title="{% trans 'Excluded from total IP count' %}">
         {% trans "duplicate" %}{% if node.count_duplicate_of %}
-        <span class="nsm-addr-duplicate-in">{% trans "in" %}
+        <span class="nsm-addr-duplicate-in">
           {% if node.count_duplicate_of_url %}<a href="{{ node.count_duplicate_of_url }}" class="text-warning text-decoration-underline" onclick="event.stopPropagation();">{{ node.count_duplicate_of }}</a>{% else %}{{ node.count_duplicate_of }}{% endif %}
         </span>{% endif %}
       </span>
@@ -111,7 +113,7 @@ Renders one node of the address tree.
       {% if node.object_duplicate %}
       <span class="badge bg-warning-subtle text-warning nsm-addr-duplicate ms-1" title="{% trans 'Same object already shown elsewhere in this tree' %}">
         {% trans "duplicate" %}{% if node.object_duplicate_of %}
-        <span class="nsm-addr-duplicate-in">{% trans "in" %}
+        <span class="nsm-addr-duplicate-in">
           {% if node.object_duplicate_of_url %}<a href="{{ node.object_duplicate_of_url }}" class="text-warning text-decoration-underline" onclick="event.stopPropagation();">{{ node.object_duplicate_of }}</a>{% else %}{{ node.object_duplicate_of }}{% endif %}
         </span>{% endif %}
       </span>
@@ -184,7 +186,7 @@ Renders one node of the address tree.
     {% if node.object_duplicate %}
     <span class="badge bg-warning-subtle text-warning nsm-addr-duplicate ms-1" title="{% trans 'Same object already shown elsewhere in this tree' %}">
       {% trans "duplicate" %}{% if node.object_duplicate_of %}
-      <span class="nsm-addr-duplicate-in">{% trans "in" %}
+      <span class="nsm-addr-duplicate-in">
         {% if node.object_duplicate_of_url %}<a href="{{ node.object_duplicate_of_url }}" class="text-warning text-decoration-underline">{{ node.object_duplicate_of }}</a>{% else %}{{ node.object_duplicate_of }}{% endif %}
       </span>{% endif %}
     </span>

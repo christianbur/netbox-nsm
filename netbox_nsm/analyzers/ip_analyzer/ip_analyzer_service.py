@@ -56,6 +56,54 @@ __all__ = (
 )
 
 
+def _dup_tooltip_for_node(node: dict) -> str | None:
+    """Return a stable duplicate-tooltip text for API/export payload nodes."""
+    text = str(node.get("dup_reason_title") or "").strip()
+    if text:
+        return text
+
+    reasons = []
+    if node.get("subnet_contained_dup"):
+        reasons.append("contained in parent prefix")
+    if node.get("object_duplicate"):
+        reasons.append("same object shown elsewhere")
+    if node.get("count_duplicate"):
+        reasons.append("excluded from total IP count")
+    if node.get("cell_groups_multi"):
+        reasons.append("address belongs to multiple groups")
+    if node.get("cell_addresses_multi"):
+        reasons.append("multiple address names share this network")
+    if node.get("is_doppelt"):
+        reasons.append("duplicate cell entry")
+    if not reasons:
+        return None
+    return " | ".join(reasons)
+
+
+def _attach_dup_tooltips_to_nodes(nodes):
+    """Expose duplicate tooltip text as ``dup_tooltip`` for API/export consumers."""
+    for node in nodes or []:
+        if isinstance(node, dict):
+            tooltip = _dup_tooltip_for_node(node)
+            if tooltip:
+                node["dup_tooltip"] = tooltip
+            _attach_dup_tooltips_to_nodes(node.get("children") or [])
+            for block in node.get("types") or []:
+                if isinstance(block, dict):
+                    _attach_dup_tooltips_to_nodes(block.get("nodes") or [])
+
+
+def _attach_dup_tooltips(addr_analyzer, object_tree):
+    """Add duplicate tooltip fields to both analyzer trees before API/export serialization."""
+    for field_block in addr_analyzer or []:
+        if not isinstance(field_block, dict):
+            continue
+        for type_block in field_block.get("types") or []:
+            if isinstance(type_block, dict):
+                _attach_dup_tooltips_to_nodes(type_block.get("nodes") or [])
+    _attach_dup_tooltips_to_nodes(object_tree or [])
+
+
 def _object_ref_key(ref: dict) -> tuple[int, int] | None:
     ct_raw = ref.get("content_type", ref.get("content_type_id", ref.get("ct")))
     pk_raw = ref.get("id", ref.get("object_id", ref.get("pk")))
@@ -307,6 +355,8 @@ def build_ip_analyzer_payload(
 
     if object_tree:
         addr_analyzer = _apply_object_tree_copy_lines(addr_analyzer, object_tree)
+
+    _attach_dup_tooltips(addr_analyzer, object_tree or object_tree_metadata or None)
 
     type_counts = _resolve_summary_type_counts(
         addr_analyzer, object_tree or object_tree_metadata or None

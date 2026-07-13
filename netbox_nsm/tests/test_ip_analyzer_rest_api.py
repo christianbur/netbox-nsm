@@ -66,6 +66,54 @@ class IpAnalyzerRestApiTests(SimpleTestCase):
         execute_fn.assert_called_once()
         self.assertFalse(execute_fn.call_args.kwargs["include_html"])
 
+    @patch("netbox_nsm.api.ip_analyzer.execute_ip_analyzer_merge")
+    @patch("netbox_nsm.api.ip_analyzer.parse_selections_from_request")
+    def test_get_merge_includes_dup_tooltip_in_response(self, parse_fn, execute_fn):
+        parse_fn.return_value = ([{"ct": "10", "pk": "42", "name": "demo"}], [MagicMock()], [], [{"ct": "10", "pk": "42", "name": "demo"}], {(10, 42): MagicMock()}, [])
+        execute_fn.return_value = {
+            "mode": "merge",
+            "leaf_count": 1,
+            "count_subnets": 0,
+            "count_ranges": 0,
+            "count_ips": 1,
+            "count_duplicates": 1,
+            "objects": [{"ct": "10", "pk": "42", "name": "demo"}],
+            "unsupported": [],
+            "addr_analyzer": [
+                {
+                    "field_name": "",
+                    "types": [
+                        {
+                            "nodes": [
+                                {
+                                    "name": "demo",
+                                    "dup_tooltip": "contained in parent prefix: g-10.0.0.0/8",
+                                }
+                            ]
+                        }
+                    ],
+                }
+            ],
+            "object_tree": [
+                {
+                    "name": "demo",
+                    "dup_tooltip": "contained in parent prefix: g-10.0.0.0/8",
+                }
+            ],
+        }
+
+        response = self._get("/api/plugins/netbox-nsm/ip-analyzer/?ct=10&pk=42")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data["addr_analyzer"][0]["types"][0]["nodes"][0]["dup_tooltip"],
+            "contained in parent prefix: g-10.0.0.0/8",
+        )
+        self.assertEqual(
+            response.data["object_tree"][0]["dup_tooltip"],
+            "contained in parent prefix: g-10.0.0.0/8",
+        )
+
     @patch("netbox_nsm.api.ip_analyzer.execute_ip_analyzer_diff")
     @patch("netbox_nsm.api.ip_analyzer.parse_diff_sides_from_request")
     def test_get_diff_mode(self, parse_sides_fn, execute_fn):

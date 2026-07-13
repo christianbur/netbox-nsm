@@ -1368,4 +1368,53 @@ class AddrDiffTests(SimpleTestCase):
         self.assertNotIn("nsm-addr-ip", html)
         self.assertNotIn("→", html)
 
+    def test_attach_dup_tooltips_sets_stable_tooltip_field(self):
+        from netbox_nsm.analyzers.ip_analyzer.ip_analyzer_service import (
+            _attach_dup_tooltips,
+        )
+
+        addr_analyzer = [
+            {
+                "types": [
+                    {
+                        "nodes": [
+                            {
+                                "name": "a",
+                                "dup_reason_title": "contained in parent prefix: g-10.0.0.0/8",
+                                "children": [],
+                            },
+                            {
+                                "name": "b",
+                                "object_duplicate": True,
+                                "count_duplicate": True,
+                                "children": [],
+                            },
+                        ]
+                    }
+                ]
+            }
+        ]
+        object_tree = [
+            {
+                "name": "root",
+                "is_doppelt": True,
+                "children": [],
+            }
+        ]
+
+        _attach_dup_tooltips(addr_analyzer, object_tree)
+
+        first = addr_analyzer[0]["types"][0]["nodes"][0]
+        second = addr_analyzer[0]["types"][0]["nodes"][1]
+        tree = object_tree[0]
+        self.assertEqual(
+            first.get("dup_tooltip"),
+            "contained in parent prefix: g-10.0.0.0/8",
+        )
+        self.assertEqual(
+            second.get("dup_tooltip"),
+            "same object shown elsewhere | excluded from total IP count",
+        )
+        self.assertEqual(tree.get("dup_tooltip"), "duplicate cell entry")
+
 

@@ -91,7 +91,10 @@ def object_link_assign_url(
     """COT add form URL with Object A/B prefill from the Security panel page object."""
     from django.contrib.contenttypes.models import ContentType
 
-    from netbox_nsm.security.links.cot_link_schema import get_object_link_cot_slug
+    from netbox_nsm.security.links.cot_link_schema import (
+        get_object_link_cot_slug,
+        get_object_link_schema,
+    )
     from netbox_nsm.security.links.object_link_service import (
         classify_link_endpoints,
         link_name_for_endpoints,
@@ -99,24 +102,39 @@ def object_link_assign_url(
     from netbox_nsm.security.object_link_cot_form import object_link_field_prefix_for_ct
 
     params: dict[str, str | int] = {"status": "active"}
+    schema = get_object_link_schema()
+
+    def _set_prefill(field_prefix: str, ct_pk: int, obj_pk: int, *, legacy_role: str) -> None:
+        # Legacy query keys are kept for compatibility with existing add-form prefill hooks.
+        if legacy_role == "a":
+            params["ct_id"] = ct_pk
+            params["obj_id"] = obj_pk
+            params["object_a_type_id"] = ct_pk
+            params["object_a_id"] = obj_pk
+        else:
+            params["object_b_type_id"] = ct_pk
+            params["object_b_id"] = obj_pk
+        # Direct polymorphic field prefill works even when hook-based mapping is bypassed.
+        params[f"{field_prefix}__ct"] = ct_pk
+        params[f"{field_prefix}__obj"] = obj_pk
 
     if object_b is not None:
         netbox, policy = classify_link_endpoints(object_a, object_b)
         netbox_ct = ContentType.objects.get_for_model(netbox)
         policy_ct = ContentType.objects.get_for_model(policy)
-        params["ct_id"] = netbox_ct.pk
-        params["obj_id"] = netbox.pk
-        params["object_b_type_id"] = policy_ct.pk
-        params["object_b_id"] = policy.pk
+        host_prefix = schema.host_field if schema is not None else "netbox_object"
+        security_prefix = schema.security_field if schema is not None else "security_object"
+        _set_prefill(host_prefix, int(netbox_ct.pk), int(netbox.pk), legacy_role="a")
+        _set_prefill(security_prefix, int(policy_ct.pk), int(policy.pk), legacy_role="b")
         params["name"] = link_name_for_endpoints(netbox, policy)
     else:
         ct = ContentType.objects.get_for_model(object_a)
         if object_link_field_prefix_for_ct(ct.pk) == "security_object":
-            params["object_b_type_id"] = ct.pk
-            params["object_b_id"] = object_a.pk
+            field_prefix = schema.security_field if schema is not None else "security_object"
+            _set_prefill(field_prefix, int(ct.pk), int(object_a.pk), legacy_role="b")
         else:
-            params["ct_id"] = ct.pk
-            params["obj_id"] = object_a.pk
+            field_prefix = schema.host_field if schema is not None else "netbox_object"
+            _set_prefill(field_prefix, int(ct.pk), int(object_a.pk), legacy_role="a")
         params["name"] = str(object_a)[:200]
 
     if link is not None and link.comment:

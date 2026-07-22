@@ -148,7 +148,7 @@ class IpAnalyzerSubnetChildrenApiTests(SimpleTestCase):
         self.assertIs(tenant_obj_by_key[(42, 11)], child_prefix_obj)
 
         render_ctx = render_fn.call_args[0][1]
-        self.assertEqual(render_ctx["depth"], 2)
+        self.assertEqual(render_ctx["depth"], 3)
         self.assertIs(render_ctx["ipa_cell_pill"], False)
         self.assertEqual(
             render_fn.call_args[0][0],

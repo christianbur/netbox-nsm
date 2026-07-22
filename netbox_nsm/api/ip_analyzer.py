@@ -52,23 +52,12 @@ class IpAnalyzerRestApiView(APIView):
             OpenApiExample(
                 "Merge two objects",
                 value=None,
-                parameter_only=[
-                    ("ct", "10"),
-                    ("pk", "42"),
-                    ("ct", "10"),
-                    ("pk", "43"),
-                ],
+                parameter_only=("ct", "10"),
             ),
             OpenApiExample(
                 "Diff two sides",
                 value=None,
-                parameter_only=[
-                    ("mode", "diff"),
-                    ("a_ct", "10"),
-                    ("a_pk", "1"),
-                    ("b_ct", "10"),
-                    ("b_pk", "2"),
-                ],
+                parameter_only=("mode", "diff"),
             ),
         ],
     )

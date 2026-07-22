@@ -4,6 +4,14 @@ All notable changes to **netbox-nsm** are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.31] - 2026-07-22
+
+### Fixed
+
+- IP Analyzer subnet child expansion now renders exactly one level deeper per expansion step.
+- OpenAPI examples for IP Analyzer API parameters were simplified for cleaner schema output.
+- Object link API schema handling now uses a model-backed empty queryset and excludes the legacy endpoint from generated schema.
+
 ## [0.4.30] - 2026-07-13
 
 ### Fixed

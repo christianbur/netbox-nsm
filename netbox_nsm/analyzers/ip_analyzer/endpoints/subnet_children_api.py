@@ -163,8 +163,8 @@ class IpAnalyzerSubnetChildrenApiView(LoginRequiredMixin, View):
             "netbox_nsm/inc/ipa_cell_tree_subnet_children_fragment.html",
             {
                 "nodes": nodes,
-                # Client sends the parent row depth; render children at that table level.
-                "depth": depth,
+                # Client sends the parent row depth; each expansion reveals exactly one child level.
+                "depth": depth + 1,
                 "ipa_cell_pill": False,
             },
             request=request,

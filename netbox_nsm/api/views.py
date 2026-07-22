@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework.routers import APIRootView
 from rest_framework.views import APIView
+from drf_spectacular.utils import extend_schema
 from netbox.api.authentication import TokenPermissions
 from netbox.api.viewsets import NetBoxModelViewSet
 from users.models import Token
@@ -102,10 +103,12 @@ class ObjectLinkPermission(TokenPermissions):
         return request.user.has_perm(perm)
 
 
+@extend_schema(exclude=True)
 class ObjectLinkViewSet(NetBoxModelViewSet):
     """CRUD for COT ``nsm_object_link`` rows (legacy ``/object-links/`` path)."""
 
-    queryset = []
+    # Keep a queryset with `.model` for schema generation; runtime queryset is set in `initial()`.
+    queryset = Token.objects.none()
     serializer_class = ObjectLinkSerializer
     filterset_class = ObjectLinkFilterSet
     permission_classes = [ObjectLinkPermission]
@@ -137,7 +140,7 @@ class ObjectLinkViewSet(NetBoxModelViewSet):
             return self.queryset
         model = get_object_link_model()
         if model is None:
-            return []
+            return Token.objects.none()
         return model.objects.all().order_by("pk")
 
     def get_object(self):

@@ -5,7 +5,6 @@ from __future__ import annotations
 from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext_lazy as _
 
-from netbox_nsm.core.display_template import DEFAULT_DISPLAY_TEMPLATE
 from netbox_nsm.type_metadata.config import (
     NsmTypeConfig,
     apply_schema_bundle_metadata,
@@ -44,23 +43,14 @@ def content_type_export_ref(content_type: ContentType) -> str:
 
 def build_type_config_export_data(config: NsmTypeConfig) -> dict:
     """Build a plain dict of Object Config settings for YAML export."""
-    return {
-        "sort_order": config.sort_order,
-        "display_template": config.display_template or DEFAULT_DISPLAY_TEMPLATE,
-    }
+    return {"sort_order": config.sort_order}
 
 
 def format_type_config_comment_yaml(
     sort_order: int,
-    display_template: str,
 ) -> str:
-    """Return canonical ``nsm_config`` YAML (legacy two-arg helper)."""
-    return format_nsm_config_comment_yaml(
-        {
-            "sort_order": sort_order,
-            "display_template": display_template or DEFAULT_DISPLAY_TEMPLATE,
-        }
-    )
+    """Return canonical ``nsm_config`` YAML."""
+    return format_nsm_config_comment_yaml({"sort_order": sort_order})
 
 
 def format_type_config_comment_yaml_for_metadata_block(block: dict) -> str:
@@ -70,12 +60,7 @@ def format_type_config_comment_yaml_for_metadata_block(block: dict) -> str:
 
 def format_type_config_comment_yaml_for_config(config: NsmTypeConfig) -> str:
     """YAML section reflecting resolved Object Config."""
-    return format_nsm_config_comment_yaml(
-        {
-            "sort_order": config.sort_order,
-            "display_template": config.display_template,
-        }
-    )
+    return format_nsm_config_comment_yaml({"sort_order": config.sort_order})
 
 
 def format_all_type_configs_comment_yaml() -> str:
@@ -124,7 +109,6 @@ def build_all_type_configs_preview_rows(configs=None) -> list[dict]:
             "name": cfg.name,
             "sort_order": cfg.sort_order,
             "slug": cfg.slug,
-            "display_template": cfg.display_template or DEFAULT_DISPLAY_TEMPLATE,
         }
         for cfg in configs
     ]

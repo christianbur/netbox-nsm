@@ -57,14 +57,13 @@ class NsmConfigFormatTests(TestCase):
     def test_format_and_parse_rule_view_block(self):
         config = {
             "sort_order": 10,
-            "display_template": "{{ name }}",
         }
         yaml_text = format_nsm_config_comment_yaml(config)
         self.assertIn("rule_view:", yaml_text)
         self.assertNotIn("- panel:", yaml_text)
         parsed = _parse_nsm_config_yaml(yaml_text)
         self.assertEqual(parsed["sort_order"], 10)
-        self.assertEqual(parsed["display_template"], "{{ name }}")
+        self.assertNotIn("display_template", parsed)
 
     def test_extract_from_setup_type_comments(self):
         type_def = {
@@ -125,7 +124,6 @@ class NsmConfigFormatTests(TestCase):
     def test_formatted_output_uses_markdown_fences(self):
         config = {
             "sort_order": 22,
-            "display_template": "{{ name }}",
             "areas": ["srcdst"],
             "role": "app_network",
         }
@@ -139,12 +137,11 @@ class NsmConfigFormatTests(TestCase):
     def test_parse_fenced_and_unfenced_comments(self):
         config = {
             "sort_order": 10,
-            "display_template": "{{ name }}",
         }
         fenced = format_nsm_config_comment_yaml(config)
         unfenced = (
             yaml.dump(
-                {"nsm_config": [{"rule_view": {"sort_order": 10, "display_template": "{{ name }}"}}]},
+                {"nsm_config": [{"rule_view": {"sort_order": 10}}]},
                 default_flow_style=False,
                 allow_unicode=True,
                 sort_keys=False,
@@ -154,13 +151,12 @@ class NsmConfigFormatTests(TestCase):
         for text in (fenced, unfenced):
             parsed = _parse_nsm_config_yaml(text)
             self.assertEqual(parsed["sort_order"], 10)
-            self.assertEqual(parsed["display_template"], "{{ name }}")
+            self.assertNotIn("display_template", parsed)
 
     def test_format_includes_menu_when_present(self):
         yaml_text = format_nsm_config_comment_yaml(
             {
                 "sort_order": 0,
-                "display_template": "{{ name }}",
                 "menu": "objects",
             }
         )
@@ -189,13 +185,12 @@ class NsmConfigFormatTests(TestCase):
             comments=format_nsm_config_comment_yaml(
                 {
                     "sort_order": 42,
-                    "display_template": "{{ name }}",
                 }
             ),
         )
         parsed = parse_nsm_config_from_cot(cot)
         self.assertEqual(parsed["sort_order"], 42)
-        self.assertEqual(parsed["display_template"], "{{ name }}")
+        self.assertNotIn("display_template", parsed)
 
     def test_parse_nsm_config_from_custom_object_instance_is_skipped(self):
         from netbox_nsm.addresses.address_cot_schema import object_builder_in_nsm_config

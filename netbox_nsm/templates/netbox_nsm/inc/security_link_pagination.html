@@ -1,0 +1,53 @@
+{% load i18n %}
+{% if nsm_link_table.pagination.num_pages > 1 or nsm_link_table.pagination.total %}
+<div class="d-flex justify-content-between align-items-center {{ nsm_link_pagination_border }} p-2 nsm-link-paginator">
+  {% if nsm_link_table.pagination.num_pages > 1 %}
+  <nav aria-label="{% trans 'Page selection' %}">
+    <ul class="pagination pagination-sm mb-0">
+      {% if nsm_link_table.pagination.prev_url %}
+      <li class="page-item">
+        <a href="{{ nsm_link_table.pagination.prev_url }}" class="page-link" aria-label="{% trans 'Previous page' %}">
+          <i class="mdi mdi-chevron-left" aria-hidden="true"></i>
+        </a>
+      </li>
+      {% endif %}
+      {% for p in nsm_link_table.pagination.pages %}
+        {% if p.gap %}
+        <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+        {% else %}
+        <li class="page-item{% if p.current %} active{% endif %}"{% if p.current %} aria-current="page"{% endif %}>
+          <a href="{{ p.url }}" class="page-link">{{ p.number }}</a>
+        </li>
+        {% endif %}
+      {% endfor %}
+      {% if nsm_link_table.pagination.next_url %}
+      <li class="page-item">
+        <a href="{{ nsm_link_table.pagination.next_url }}" class="page-link" aria-label="{% trans 'Next page' %}">
+          <i class="mdi mdi-chevron-right" aria-hidden="true"></i>
+        </a>
+      </li>
+      {% endif %}
+    </ul>
+  </nav>
+  {% else %}<span></span>{% endif %}
+
+  <small class="text-end text-muted">
+    {% blocktrans trimmed with start=nsm_link_table.pagination.showing_start end=nsm_link_table.pagination.showing_end total=nsm_link_table.pagination.total %}
+      Showing {{ start }}-{{ end }} of {{ total }}
+    {% endblocktrans %}
+  </small>
+
+  <nav aria-label="{% trans 'Pagination options' %}">
+    <div class="dropdown dropdown-menu-end">
+      <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+        {% trans "Per Page" %}
+      </button>
+      <ul class="dropdown-menu">
+        {% for choice in nsm_link_table.pagination.per_page_choices %}
+        <li><a href="{{ choice.url }}" class="dropdown-item{% if choice.n == nsm_link_table.pagination.per_page %} active{% endif %}">{{ choice.n }}</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+  </nav>
+</div>
+{% endif %}

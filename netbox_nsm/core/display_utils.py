@@ -1,25 +1,11 @@
-"""
-Shared utility: apply TypeConfig.display_template to NetBox objects.
-
-Usage (one DB query per request):
-    from netbox_nsm.core.display_utils import get_display_template_map, render_object_display
-
-    tmpl_map = get_display_template_map()           # {ct_id: "{{ name }}", ...}
-    label = render_object_display(obj, ct_id, tmpl_map)
-"""
+"""Shared object display helpers."""
 
 from __future__ import annotations
 
 import functools
 from typing import Any
 
-from netbox_nsm.core.display_template import (
-    DEFAULT_DISPLAY_TEMPLATE,
-    render_display_template,
-)
-
 __all__ = (
-    "apply_display_template",
     "changelog_content_type_label",
     "ct_display_label",
     "get_display_template_map",
@@ -32,35 +18,15 @@ __all__ = (
 
 @functools.lru_cache(maxsize=1)
 def get_display_template_map() -> dict[int, str]:
-    """Return {content_type_id: display_template} for all configured types.
-
-    Result is cached for the lifetime of the Python process (templates are
-    virtually static at runtime; a container restart resets the cache).
-    """
-    from netbox_nsm.type_metadata.config import build_nsm_config_lookup
-
-    return {
-        config.content_type_id: config.display_template
-        for config in build_nsm_config_lookup().values()
-        if config.display_template
-    }
-
-
-def apply_display_template(obj: Any, tmpl: str) -> str:
-    """Render a Jinja2 display template for *obj*."""
-    return render_display_template(obj, tmpl)
+    """Compatibility shim; Custom Objects renders display expressions."""
+    return {}
 
 
 def render_object_display(
     obj: Any, content_type_id: int, tmpl_map: dict[int, str] | None = None
 ) -> str:
-    """Return the display label for *obj*, applying the TypeConfig template if available."""
-    if tmpl_map is None:
-        tmpl_map = get_display_template_map()
-    tmpl = tmpl_map.get(content_type_id, "") or DEFAULT_DISPLAY_TEMPLATE
-    if tmpl:
-        return apply_display_template(obj, tmpl)
-    return render_display_template(obj, DEFAULT_DISPLAY_TEMPLATE)
+    """Return the model's native display label."""
+    return str(obj)
 
 
 @functools.lru_cache(maxsize=256)

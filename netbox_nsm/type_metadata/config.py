@@ -9,8 +9,6 @@ from typing import Any
 
 from django.contrib.contenttypes.models import ContentType
 
-from netbox_nsm.core.display_template import DEFAULT_DISPLAY_TEMPLATE, normalize_display_template
-
 __all__ = (
     "NsmTypeConfig",
     "build_nsm_config_lookup",
@@ -46,7 +44,7 @@ _MARKDOWN_FENCE_RE = re.compile(
     re.DOTALL,
 )
 
-_RULE_VIEW_KEYS = frozenset({"sort_order", "display_template", "areas", "columns"})
+_RULE_VIEW_KEYS = frozenset({"sort_order", "areas", "columns"})
 
 
 def _normalize_rule_view_columns(columns: list[dict] | None) -> list[dict[str, Any]]:
@@ -86,10 +84,6 @@ def _normalize_rule_view_columns(columns: list[dict] | None) -> list[dict[str, A
 
     normalized.sort(key=lambda c: (c["column_order"], c["label"].lower(), c["key"]))
     return normalized
-
-
-def _normalized_display_template(value: str | None) -> str:
-    return normalize_display_template(value or DEFAULT_DISPLAY_TEMPLATE)
 
 
 def _is_custom_object_type(obj) -> bool:
@@ -162,7 +156,6 @@ def config_dict_from_metadata_block(block: dict[str, Any] | None) -> dict[str, A
     """Build a normalized config dict from a bundle ``metadata`` block."""
     config: dict[str, Any] = {
         "sort_order": 0,
-        "display_template": DEFAULT_DISPLAY_TEMPLATE,
         "areas": [],
         "columns": [],
     }
@@ -241,8 +234,6 @@ def normalize_nsm_config_list(raw_list: list | None) -> dict[str, Any] | None:
 
     if not merged:
         return None
-    merged.setdefault("display_template", DEFAULT_DISPLAY_TEMPLATE)
-    merged["display_template"] = _normalized_display_template(merged.get("display_template"))
     merged["columns"] = _normalize_rule_view_columns(merged.get("columns") or [])
     merged.setdefault("sort_order", 0)
     return merged
@@ -251,7 +242,6 @@ def normalize_nsm_config_list(raw_list: list | None) -> dict[str, Any] | None:
 def _normalize_config_dict(config: dict[str, Any]) -> dict[str, Any]:
     result = {
         "sort_order": int(config.get("sort_order", 0)),
-        "display_template": _normalized_display_template(config.get("display_template")),
         "columns": _normalize_rule_view_columns(config.get("columns") or []),
     }
     if "areas" in config:
@@ -339,7 +329,6 @@ def _build_nsm_config_list(config: dict[str, Any]) -> list[dict]:
     normalized = _normalize_config_dict(config)
     rule_view_block = {
         "sort_order": normalized["sort_order"],
-        "display_template": normalized["display_template"],
     }
     if normalized.get("columns"):
         rule_view_block["columns"] = deepcopy(normalized["columns"])
@@ -390,7 +379,6 @@ def _document_to_nsm_config_segments(document: dict[str, Any]) -> list[dict]:
     if isinstance(rule_view, dict) and rule_view:
         block = {
             "sort_order": int(rule_view.get("sort_order", 0)),
-            "display_template": _normalized_display_template(rule_view.get("display_template")),
         }
         columns = _normalize_rule_view_columns(rule_view.get("columns") or [])
         if columns:
@@ -456,7 +444,6 @@ def _stored_nsm_config_document(text: str) -> dict[str, Any]:
     if policy:
         result["rule_view"] = {
             "sort_order": int(policy.get("sort_order", 0)),
-            "display_template": _normalized_display_template(policy.get("display_template")),
         }
         columns = _normalize_rule_view_columns(policy.get("columns") or [])
         if columns:
@@ -621,7 +608,6 @@ class NsmTypeConfig:
     content_type_id: int
     name: str
     sort_order: int = 0
-    display_template: str = DEFAULT_DISPLAY_TEMPLATE
     columns: list[dict[str, Any]] | None = None
     role: str | None = None
 
@@ -664,7 +650,6 @@ def _build_nsm_type_config(
         content_type_id=content_type_id,
         name=name,
         sort_order=normalized["sort_order"],
-        display_template=normalized["display_template"],
         columns=list(normalized.get("columns") or []),
         role=normalized.get("role"),
     )
@@ -684,7 +669,7 @@ def _merge_parsed_into_config(
     parsed: dict[str, Any],
 ) -> dict[str, Any]:
     result = deepcopy(base)
-    for key in ("sort_order", "display_template", "areas", "columns"):
+    for key in ("sort_order", "areas", "columns"):
         if key in parsed:
             result[key] = parsed[key]
     if "role" in parsed:
@@ -708,7 +693,6 @@ def resolve_nsm_config_dict_for_cot(
     doc = parse_nsm_config_document_from_cot(cot)
     config: dict[str, Any] = {
         "sort_order": 0,
-        "display_template": DEFAULT_DISPLAY_TEMPLATE,
         "areas": [],
         "columns": [],
     }
@@ -833,12 +817,6 @@ def build_nsm_config_preview_rows(config: NsmTypeConfig) -> list[dict]:
         {
             "label": str(_("Slug")),
             "value": config.slug,
-            "mono": True,
-            "group": "rule_view",
-        },
-        {
-            "label": str(_("Display Template")),
-            "value": config.display_template,
             "mono": True,
             "group": "rule_view",
         },

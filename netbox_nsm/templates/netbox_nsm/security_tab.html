@@ -2,10 +2,15 @@
 {% load i18n %}
 
 {% block content %}
-  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-    <h2 class="h4 mb-0">{{ nsm_panel_label }}</h2>
-    <span class="d-flex gap-1 align-items-center nsm-security-header-actions">
-      <span class="d-inline-flex align-items-center gap-1">
+<div class="nsm-security-tab">
+  <div class="row mb-3">
+    {% if nsm_link_table %}
+      {% include "netbox_nsm/inc/security_link_controls.html" with nsm_link_controls_classes="col d-flex flex-wrap align-items-center gap-2 nsm-link-controls" %}
+    {% else %}
+      <div class="col"></div>
+    {% endif %}
+    <div class="col-auto ms-auto d-print-none">
+      <div class="btn-group nsm-security-header-actions">
         <a href="{{ nsm_analyzer_url }}" class="btn btn-ghost-primary btn-sm"
            title="{% trans 'Object Analyzer' %}"
            aria-label="{% trans 'Object Analyzer' %}">
@@ -21,11 +26,12 @@
           <i class="mdi mdi-magnify" aria-hidden="true"></i>
         </button>
         {% endif %}
-      </span>
-      <a href="{{ nsm_assign_url }}" class="btn btn-ghost-primary btn-sm">
-        <i class="mdi mdi-plus-thick"></i> {% trans "Assign" %}
-      </a>
-    </span>
+        <a href="{{ nsm_assign_url }}" class="btn btn-ghost-primary btn-sm">
+          <i class="mdi mdi-plus-thick"></i> {% trans "Assign" %}
+        </a>
+      </div>
+    </div>
   </div>
   {% include "netbox_nsm/inc/security_links.html" with nsm_security_tab_mode=True %}
+</div>
 {% endblock content %}

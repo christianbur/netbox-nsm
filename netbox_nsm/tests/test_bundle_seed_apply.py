@@ -8,7 +8,7 @@ from netbox_nsm.bundles.bundle_extensions import (
     _apply_seed_records_with_deferred_refs,
     diff_seed_objects,
 )
-from netbox_nsm.bundles.dispatch import load_bundle
+from netbox_nsm.bundles.dispatch import apply_bundle, load_bundle
 from netbox_nsm.bundles.paths import bundle_json_path
 
 
@@ -67,3 +67,34 @@ class ApplySeedDeferredRefTests(SimpleTestCase):
 
         self.assertEqual(seeded, 3)
         self.assertEqual(attempts["demo-ipa-grp-1"], 2)
+
+
+class ApplyBundleCacheTests(TestCase):
+    @patch("netbox_nsm.security.tab.eligibility.clear_object_link_eligibility_cache")
+    @patch("netbox_nsm.rulebooks.rulebook_groups.sync_all_rulebook_cots")
+    @patch("netbox_nsm.rulebooks.rulebook_groups.apply_portable_schema_field_groups")
+    @patch("netbox_nsm.bundles.dispatch.sync_metadata", return_value={"types": 0, "rulebooks": 0})
+    @patch("netbox_nsm.bundles.demo_address_ipam.demo_address_names_from_bundle", return_value=[])
+    @patch("netbox_nsm.bundles.bundle_extensions.apply_seed_objects", return_value=0)
+    @patch("netbox_nsm.bundles.bundle_extensions.apply_choice_sets", return_value=0)
+    @patch("netbox_nsm.bundles.cot_db_compat.apply_schema_document")
+    @patch("netbox_nsm.bundles.dispatch._reconcile_portable_types_with_existing_cots")
+    @patch("netbox_nsm.bundles.dispatch.to_portable_document", return_value={"types": []})
+    @patch("netbox_nsm.bundles.dispatch._check_requires", return_value=[])
+    def test_apply_bundle_clears_security_tab_eligibility_cache(
+        self,
+        _check_requires,
+        _to_portable_document,
+        _reconcile,
+        _apply_schema_document,
+        _apply_choice_sets,
+        _apply_seed_objects,
+        _demo_address_names,
+        _sync_metadata,
+        _apply_field_groups,
+        _sync_rulebook_cots,
+        clear_eligibility_cache,
+    ):
+        apply_bundle({})
+
+        clear_eligibility_cache.assert_called_once_with()

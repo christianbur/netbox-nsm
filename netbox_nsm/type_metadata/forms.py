@@ -4,11 +4,6 @@ from django.utils.translation import gettext_lazy as _
 
 from utilities.forms.rendering import FieldSet
 
-from netbox_nsm.core.display_template import (
-    DEFAULT_DISPLAY_TEMPLATE,
-    normalize_display_template,
-    validate_display_template,
-)
 from netbox_nsm.forms.widgets import BtnCheckMultipleWidget
 from netbox_nsm.type_metadata.roles import COT_ROLE_CHOICES, normalize_cot_role
 from netbox_nsm.type_metadata.config import _normalize_rule_view_columns
@@ -77,17 +72,6 @@ class NsmConfigForm(forms.Form):
         label=_("Sort order"),
         help_text=_("Lower values appear first in the Rule Viewer and Type Metadata list."),
     )
-    display_template = forms.CharField(
-        max_length=500,
-        required=False,
-        initial=DEFAULT_DISPLAY_TEMPLATE,
-        label=_("Display Template"),
-        help_text=_(
-            "Jinja2 template for object labels in the Rule Viewer and pickers. "
-            "Reference fields by name, e.g. {{ name }} or {{ name | upper }}."
-        ),
-        widget=forms.TextInput(attrs={"style": "font-family: monospace;"}),
-    )
     areas = forms.MultipleChoiceField(
         choices=AREA_CHOICES,
         required=False,
@@ -112,7 +96,7 @@ class NsmConfigForm(forms.Form):
 
     fieldsets = (
         FieldSet("role", name=_("Metadata")),
-        FieldSet("sort_order", "display_template", "areas", "columns", name=_("Rule View")),
+        FieldSet("sort_order", "areas", "columns", name=_("Rule View")),
     )
 
     @classmethod
@@ -127,9 +111,6 @@ class NsmConfigForm(forms.Form):
         return {
             "role": config.get("role") or "",
             "sort_order": config.get("sort_order", 0),
-            "display_template": normalize_display_template(
-                config.get("display_template") or DEFAULT_DISPLAY_TEMPLATE
-            ),
             "areas": list(config.get("areas") or []),
             "columns": list(config.get("columns") or []),
         }
@@ -138,7 +119,6 @@ class NsmConfigForm(forms.Form):
         return {
             "role": self.cleaned_data["role"],
             "sort_order": self.cleaned_data["sort_order"],
-            "display_template": self.cleaned_data.get("display_template") or DEFAULT_DISPLAY_TEMPLATE,
             "areas": list(self.cleaned_data.get("areas") or []),
             "columns": list(self.cleaned_data.get("columns") or []),
         }
@@ -148,13 +128,6 @@ class NsmConfigForm(forms.Form):
         if not role:
             raise forms.ValidationError(_("Select a valid role."))
         return role
-
-    def clean_display_template(self):
-        value = (self.cleaned_data.get("display_template") or "").strip()
-        if not value:
-            value = DEFAULT_DISPLAY_TEMPLATE
-        validate_display_template(value)
-        return normalize_display_template(value)
 
     def clean_columns(self):
         value = self.cleaned_data.get("columns") or []

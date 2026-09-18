@@ -26,7 +26,6 @@ def _edit_post_data(**overrides):
     data = {
         "role": "zone",
         "sort_order": 9,
-        "display_template": "{{ name }}",
     }
     data.update(overrides)
     return data
@@ -65,6 +64,7 @@ class ObjectConfigViewMergeTests(TestCase):
         document = _parse_comments_document(self.cot.comments)
         self.assertEqual(document["operator_note"], "keep-me")
         self.assertEqual(document["rule_view"]["sort_order"], 9)
+        self.assertNotIn("display_template", self.cot.comments)
 
     def test_edit_persists_areas(self):
         response = self.client.post(

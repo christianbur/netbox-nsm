@@ -13,7 +13,6 @@ def _base_form_data(**overrides):
     data = {
         "role": "zone",
         "sort_order": 12,
-        "display_template": "{{ name }}",
         "columns": "[]",
     }
     data.update(overrides)
@@ -24,7 +23,7 @@ class NsmConfigFormTests(TestCase):
     def test_form_has_rule_view_fields(self):
         form = NsmConfigForm()
         self.assertIn("sort_order", form.fields)
-        self.assertIn("display_template", form.fields)
+        self.assertNotIn("display_template", form.fields)
         self.assertIn("areas", form.fields)
         self.assertIn("columns", form.fields)
         self.assertIsInstance(form.fields["areas"].widget, BtnCheckMultipleWidget)
@@ -55,7 +54,6 @@ class NsmConfigFormTests(TestCase):
             {
                 "role": "zone",
                 "sort_order": 12,
-                "display_template": "{{ name }}",
                 "areas": ["srcdst", "services"],
                 "columns": [],
             },
@@ -66,7 +64,6 @@ class NsmConfigFormTests(TestCase):
             {
                 "role": "zone",
                 "sort_order": 5,
-                "display_template": "{{ name | upper }}",
                 "areas": ["action"],
                 "columns": [
                     {
@@ -96,7 +93,7 @@ class NsmConfigFormTests(TestCase):
             self.assertIsNotNone(block, msg=slug)
             cfg = config_dict_from_metadata_block(block)
             self.assertIn("sort_order", cfg)
-            self.assertIn("display_template", cfg)
+            self.assertNotIn("display_template", cfg)
 
         form = NsmAddressConfigForm()
         fieldset_names = [fs.name for fs in form.fieldsets]

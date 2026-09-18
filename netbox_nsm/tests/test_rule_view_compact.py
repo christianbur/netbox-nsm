@@ -14,8 +14,8 @@ class RuleViewCompactTests(SimpleTestCase):
     def test_default_rule_view_matches_spec(self):
         zone = default_rule_view_for_slug("nsm_zone")
         self.assertEqual(zone["sort_order"], 10)
-        self.assertEqual(zone["display_template"], "{{ name }}")
-        self.assertEqual(zone["areas"], ["srcdst"])
+        self.assertNotIn("display_template", zone)
+        self.assertEqual(zone["areas"], [])
         self.assertEqual(zone["columns"], [])
 
     def test_compact_drops_default_entries(self):
@@ -23,15 +23,13 @@ class RuleViewCompactTests(SimpleTestCase):
             "nsm_zone": {
                 "rule_view": {
                     "sort_order": 10,
-                    "display_template": "{{ name }}",
-                    "areas": ["srcdst"],
+                    "areas": [],
                 }
             },
             "nsm_service": {
                 "rule_view": {
                     "sort_order": 20,
-                    "display_template": "{{ name }} ({{ protocol }}/{{ port }})",
-                    "areas": ["services"],
+                    "areas": [],
                 }
             },
         }
@@ -42,8 +40,7 @@ class RuleViewCompactTests(SimpleTestCase):
             "nsm_zone": {
                 "rule_view": {
                     "sort_order": 99,
-                    "display_template": "{{ name }}",
-                    "areas": ["srcdst"],
+                    "areas": [],
                 }
             }
         }
@@ -57,7 +54,7 @@ class RuleViewCompactTests(SimpleTestCase):
         self.assertTrue(is_default_rule_view_config(default, slug="nsm_label"))
         self.assertFalse(
             is_default_rule_view_config(
-                {"display_template": "{{ name }}"},
+                {"sort_order": 99},
                 slug="nsm_label",
             )
         )

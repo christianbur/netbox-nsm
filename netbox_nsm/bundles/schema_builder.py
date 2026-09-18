@@ -239,7 +239,6 @@ def build_portable_schema_preview_types(
                 content_type_id=0,
                 name=type_def.get("verbose_name") or slug,
                 sort_order=spec_config["sort_order"],
-                display_template=spec_config["display_template"],
             )
             nsm_config_yaml = format_nsm_config_comment_yaml(spec_config).rstrip()
             nsm_config_preview = build_nsm_config_preview_rows(cfg)

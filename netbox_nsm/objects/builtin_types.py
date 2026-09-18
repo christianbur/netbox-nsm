@@ -26,7 +26,7 @@ Keys used by the schema builder:
 * ``areas``               — list of section slugs (``source``+``destination``
                            are collapsed into ``srcdst``)
 * ``description``         — short description (clipped to 200 chars)
-* ``display_template``    — Jinja2 template stored in ``nsm_config`` (e.g. ``{{ name }}``)
+* ``display_expression``  — Jinja2 expression rendered by Custom Objects
 * ``field_definitions``   — list of fields; supported types: ``text``,
                            ``markdown``, ``number``/``integer``, ``boolean``,
                            ``date``, ``json``/``table``, ``choice`` (with
@@ -62,7 +62,7 @@ BUILTIN_CUSTOM_TYPES = [
         "name": "Action",
         "areas": ["action"],
         "description": "Policy action for matching traffic in a rule (e.g. permit, deny, drop, reject). Used in rulebook Action columns.",
-        "display_template": "{{ name | upper }}",
+        "display_expression": "{{ name | upper }}",
         "field_definitions": [],
         "default_objects": [
             {"name": "Permit", "field_data": {"status": "active","color": "#28a745"}},
@@ -75,7 +75,7 @@ BUILTIN_CUSTOM_TYPES = [
         "name": "Service",
         "areas": ["services"],
         "description": "Represents one network service (protocol + port or port range). Used in rulebook Service columns and Security Panel links.",
-        "display_template": SERVICE_DISPLAY_TEMPLATE,
+        "display_expression": SERVICE_DISPLAY_TEMPLATE,
         "field_definitions": [
             {
                 "name": "protocol",
@@ -166,7 +166,7 @@ BUILTIN_CUSTOM_TYPES = [
         "name": "Service Group",
         "areas": ["services"],
         "description": "Named collection of services. Referenced in rulebook Service columns; members are nsm_service objects.",
-        "display_template": "{{ name }}",
+        "display_expression": "{{ name }}",
         "field_definitions": [
             {
                 "name": "group",
@@ -184,7 +184,7 @@ BUILTIN_CUSTOM_TYPES = [
         "name": "Address",
         "areas": ["source", "destination"],
         "description": "Named address object for policy rules (host, prefix, or range). Used in Source/Destination columns and Security Panel links.",
-        "display_template": "{{ name }}",
+        "display_expression": "{{ name }}",
         "field_definitions": [
             {
                 "name": "address",
@@ -209,7 +209,7 @@ BUILTIN_CUSTOM_TYPES = [
             "Named address without IPAM link: manual IPv4 or IPv6 plus prefix length "
             "(e.g. 0.0.0.0/0 for ANY). Used wherever nsm_address is allowed."
         ),
-        "display_template": "{{ name }}",
+        "display_expression": "{{ name }}",
         "field_definitions": [
             {
                 "name": "ipv4",
@@ -254,7 +254,7 @@ BUILTIN_CUSTOM_TYPES = [
         "name": "Address Group",
         "areas": ["source", "destination"],
         "description": "Named collection of address objects. Used in Source/Destination columns; members are nsm_address or nsm_address_custom objects.",
-        "display_template": "{{ name }}",
+        "display_expression": "{{ name }}",
         "field_definitions": [
             {
                 "name": "group",
@@ -274,7 +274,7 @@ BUILTIN_CUSTOM_TYPES = [
         "name": "Label",
         "areas": ["source", "destination"],
         "description": "Classification tag for inventory or rules (e.g. compliance, tier). Used in label columns and Security Panel links.",
-        "display_template": "{{ label_type }}={{ name }}",
+        "display_expression": "{{ label_type }}={{ name }}",
         "field_definitions": [
             {
                 "name": "label_type",
@@ -296,7 +296,7 @@ BUILTIN_CUSTOM_TYPES = [
         "name": "Zone",
         "areas": ["source", "destination"],
         "description": "Security zone (logical segment of the network).",
-        "display_template": "{{ name }}",
+        "display_expression": "{{ name }}",
         "field_definitions": [],
         "default_objects": [
             {"name": "trust", "field_data": {"status": "active","color": "#2196f3"}},
@@ -310,7 +310,7 @@ BUILTIN_CUSTOM_TYPES = [
         "name": "App Business",
         "areas": ["source", "destination"],
         "description": "Business application with technical and business ownership.",
-        "display_template": "{{ name }}",
+        "display_expression": "{{ name }}",
         "field_definitions": [
             {
                 "name": "criticality",
@@ -341,7 +341,7 @@ BUILTIN_CUSTOM_TYPES = [
         "name": "App Network",
         "areas": ["source", "destination"],
         "description": "Network application identifier, similar to Palo Alto App-ID (e.g. ssh, onedrive, ssl).",
-        "display_template": "{{ name }}",
+        "display_expression": "{{ name }}",
         "field_definitions": [
             {
                 "name": "app_category",
@@ -375,7 +375,7 @@ BUILTIN_CUSTOM_TYPES = [
             "Links NetBox inventory to an NSM policy object. "
             "Sole source of truth for Security Panel object links."
         ),
-        "display_template": "{{ name }}",
+        "display_expression": "{{ name }}",
         "field_definitions": [
             {
                 "name": "netbox_object",

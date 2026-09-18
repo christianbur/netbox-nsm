@@ -13,7 +13,6 @@ from netbox_nsm.type_metadata.forms import (
     area_labels_for_values,
     config_form_class_for_slug,
 )
-from netbox_nsm.core.display_template import DEFAULT_DISPLAY_TEMPLATE, normalize_display_template
 from netbox_nsm.type_metadata.config import (
     clear_nsm_config_from_cot_comments,
     cot_has_metadata_eligibility,
@@ -132,9 +131,6 @@ def _document_updates_from_config_dict(config: dict) -> dict:
         "role": config.get("role"),
         "rule_view": {
             "sort_order": config.get("sort_order", 0),
-            "display_template": normalize_display_template(
-                config.get("display_template") or DEFAULT_DISPLAY_TEMPLATE
-            ),
             "areas": list(config.get("areas") or []),
             "columns": list(config.get("columns") or []),
         },

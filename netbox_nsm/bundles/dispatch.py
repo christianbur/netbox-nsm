@@ -395,6 +395,9 @@ def apply_bundle(
 
     apply_portable_schema_field_groups(portable)
     sync_all_rulebook_cots()
+    from netbox_nsm.security.tab.eligibility import clear_object_link_eligibility_cache
+
+    clear_object_link_eligibility_cache()
 
     return {
         "types_applied": len(portable.get("types") or []),

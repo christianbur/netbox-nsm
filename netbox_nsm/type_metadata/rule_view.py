@@ -13,15 +13,13 @@ __all__ = (
     "normalize_rule_view_config",
 )
 
-_RULE_VIEW_KEYS = ("sort_order", "display_template", "areas", "columns")
+_RULE_VIEW_KEYS = ("sort_order", "areas", "columns")
 
 
 def default_rule_view_for_slug(slug: str) -> dict[str, Any]:
     """Return bundled default ``rule_view`` for a policy COT slug."""
-    from netbox_nsm.core.display_template import DEFAULT_DISPLAY_TEMPLATE
     from netbox_nsm.type_metadata.config import (
         _normalize_rule_view_columns,
-        _normalized_display_template,
         metadata_block_for_cot_slug,
     )
 
@@ -29,9 +27,6 @@ def default_rule_view_for_slug(slug: str) -> dict[str, Any]:
     rule_view = block.get("rule_view") if isinstance(block.get("rule_view"), dict) else {}
     result = {
         "sort_order": int(rule_view.get("sort_order", 0)),
-        "display_template": _normalized_display_template(
-            rule_view.get("display_template") or DEFAULT_DISPLAY_TEMPLATE
-        ),
         "areas": list(rule_view.get("areas") or []),
         "columns": _normalize_rule_view_columns(rule_view.get("columns") or []),
     }
@@ -49,12 +44,6 @@ def normalize_rule_view_config(
         return result
     if "sort_order" in raw:
         result["sort_order"] = int(raw.get("sort_order", 0))
-    if "display_template" in raw:
-        from netbox_nsm.type_metadata.config import _normalized_display_template
-
-        result["display_template"] = _normalized_display_template(
-            raw.get("display_template")
-        )
     if "areas" in raw:
         result["areas"] = list(raw.get("areas") or [])
     if "columns" in raw:

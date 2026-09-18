@@ -180,3 +180,15 @@ class SecurityLinkObjectsTemplateTests(SimpleTestCase):
         html = self._render(ctx)
         self.assertIn('class="col-type"', html)
         self.assertIn("Zones", html)
+
+    def test_security_tab_mode_uses_pagination_above_and_below_table(self):
+        groups = [_group("co__zone", "Zones", [_obj("trust")])]
+        ctx = prepare_link_tab_view(groups, RequestFactory().get("/security/"))
+        ctx["nsm_security_tab_mode"] = True
+
+        html = self._render(ctx)
+
+        self.assertNotIn("nsm-link-controls", html)
+        self.assertEqual(html.count("nsm-link-paginator"), 2)
+        self.assertIn("border-bottom p-2 nsm-link-paginator", html)
+        self.assertIn("border-top p-2 nsm-link-paginator", html)

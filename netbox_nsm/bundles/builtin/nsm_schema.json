@@ -71,6 +71,7 @@
     {
       "name": "nsm_action",
       "slug": "nsm_action",
+      "display_expression": "{{ name | upper }}",
       "verbose_name": "Action",
       "verbose_name_plural": "Actions",
       "group_name": "NSM Objects",
@@ -122,6 +123,7 @@
     {
       "name": "nsm_service",
       "slug": "nsm_service",
+      "display_expression": "{{ name }} ({{ protocol }}/{% if port_end and port_end != port %}{{ port }}-{{ port_end }}{% elif port %}{{ port }}{% else %}—{% endif %})",
       "verbose_name": "Service",
       "verbose_name_plural": "Services",
       "group_name": "NSM Objects",
@@ -202,6 +204,7 @@
     {
       "name": "nsm_service_group",
       "slug": "nsm_service_group",
+      "display_expression": "{{ name }}",
       "verbose_name": "Service Group",
       "verbose_name_plural": "Service Groups",
       "group_name": "NSM Objects",
@@ -267,6 +270,7 @@
     {
       "name": "nsm_address",
       "slug": "nsm_address",
+      "display_expression": "{{ name }}",
       "verbose_name": "Address",
       "verbose_name_plural": "Addresses",
       "group_name": "NSM Objects",
@@ -333,6 +337,7 @@
     {
       "name": "nsm_address_custom",
       "slug": "nsm_address_custom",
+      "display_expression": "{{ name }}",
       "verbose_name": "Address Custom",
       "verbose_name_plural": "Addresses Custom",
       "group_name": "NSM Objects",
@@ -413,6 +418,7 @@
     {
       "name": "nsm_address_group",
       "slug": "nsm_address_group",
+      "display_expression": "{{ name }}",
       "verbose_name": "Address Group",
       "verbose_name_plural": "Address Groups",
       "group_name": "NSM Objects",
@@ -480,6 +486,7 @@
     {
       "name": "nsm_address_url",
       "slug": "nsm_address_url",
+      "display_expression": "{{ name }}",
       "verbose_name": "Address URL",
       "verbose_name_plural": "Address URLs",
       "group_name": "NSM Objects",
@@ -540,6 +547,7 @@
     {
       "name": "nsm_lable_group",
       "slug": "nsm_lable_group",
+      "display_expression": "{{ name }}",
       "verbose_name": "Lable Group",
       "verbose_name_plural": "Lable Groups",
       "group_name": "NSM Objects",
@@ -605,6 +613,7 @@
     {
       "name": "nsm_zone_group",
       "slug": "nsm_zone_group",
+      "display_expression": "{{ name }}",
       "verbose_name": "Zone Group",
       "verbose_name_plural": "Zone Groups",
       "group_name": "NSM Objects",
@@ -670,6 +679,7 @@
     {
       "name": "nsm_label",
       "slug": "nsm_label",
+      "display_expression": "{{ label_type[0] | upper }}:{{ name }}",
       "verbose_name": "Label",
       "verbose_name_plural": "Labels",
       "group_name": "NSM Objects",
@@ -736,6 +746,7 @@
     {
       "name": "nsm_zone",
       "slug": "nsm_zone",
+      "display_expression": "{{ name }}",
       "verbose_name": "Zone",
       "verbose_name_plural": "Zones",
       "group_name": "NSM Objects",
@@ -787,6 +798,7 @@
     {
       "name": "nsm_app_business",
       "slug": "nsm_app_business",
+      "display_expression": "{{ name }}",
       "verbose_name": "Business App",
       "verbose_name_plural": "Business Apps",
       "group_name": "NSM Objects",
@@ -862,6 +874,7 @@
     {
       "name": "nsm_app_network",
       "slug": "nsm_app_network",
+      "display_expression": "{{ name }}",
       "verbose_name": "Network App",
       "verbose_name_plural": "Network Apps",
       "group_name": "NSM Objects",
@@ -936,6 +949,7 @@
     {
       "name": "nsm_user",
       "slug": "nsm_user",
+      "display_expression": "{{ username }}",
       "verbose_name": "User",
       "verbose_name_plural": "Users",
       "group_name": "NSM Objects",
@@ -1035,6 +1049,7 @@
     {
       "name": "nsm_user_group",
       "slug": "nsm_user_group",
+      "display_expression": "{{ group_name }}",
       "verbose_name": "User Group",
       "verbose_name_plural": "User Groups",
       "group_name": "NSM Objects",
@@ -1134,6 +1149,7 @@
     {
       "name": "nsm_app_business_segment",
       "slug": "nsm_app_business_segment",
+      "display_expression": "{{ name }} | Targets: {% if target %}{{ target }}{% else %}-{% endif %}",
       "verbose_name": "Business App Segment",
       "verbose_name_plural": "Business App Segments",
       "group_name": "NSM Objects",
@@ -1727,128 +1743,112 @@
         "role": "zone",
         "menu": "objects",
         "rule_view": {
-          "sort_order": 10,
-          "display_template": "{{ name }}"
+          "sort_order": 10
         }
       },
       "nsm_address": {
         "role": "address",
         "menu": "objects",
         "rule_view": {
-          "sort_order": 12,
-          "display_template": "{{ name }}"
+          "sort_order": 12
         }
       },
       "nsm_address_custom": {
         "role": "address",
         "menu": "objects",
         "rule_view": {
-          "sort_order": 13,
-          "display_template": "{{ name }}"
+          "sort_order": 13
         }
       },
       "nsm_address_url": {
         "role": "address",
         "menu": "objects",
         "rule_view": {
-          "sort_order": 14,
-          "display_template": "{{ name }}"
+          "sort_order": 14
         }
       },
       "nsm_address_group": {
         "role": "address_group",
         "menu": "objects",
         "rule_view": {
-          "sort_order": 15,
-          "display_template": "{{ name }}"
+          "sort_order": 15
         }
       },
       "nsm_lable_group": {
         "role": "label",
         "menu": "objects",
         "rule_view": {
-          "sort_order": 16,
-          "display_template": "{{ name }}"
+          "sort_order": 16
         }
       },
       "nsm_zone_group": {
         "role": "zone",
         "menu": "objects",
         "rule_view": {
-          "sort_order": 17,
-          "display_template": "{{ name }}"
+          "sort_order": 17
         }
       },
       "nsm_label": {
         "role": "label",
         "menu": "objects",
         "rule_view": {
-          "sort_order": 11,
-          "display_template": "{{ label_type[0] | upper }}:{{ name }}"
+          "sort_order": 11
         }
       },
       "nsm_service": {
         "role": "service",
         "menu": "objects",
         "rule_view": {
-          "sort_order": 20,
-          "display_template": "{{ name }} ({{ protocol }}/{% if port_end and port_end != port %}{{ port }}-{{ port_end }}{% elif port %}{{ port }}{% else %}—{% endif %})"
+          "sort_order": 20
         }
       },
       "nsm_service_group": {
         "role": "service_group",
         "menu": "objects",
         "rule_view": {
-          "sort_order": 21,
-          "display_template": "{{ name }}"
+          "sort_order": 21
         }
       },
       "nsm_action": {
         "role": "action",
         "menu": "objects",
         "rule_view": {
-          "sort_order": 30,
-          "display_template": "{{ name | upper }}"
+          "sort_order": 30
         }
       },
       "nsm_app_business": {
         "role": "app_business",
         "menu": "objects",
         "rule_view": {
-          "sort_order": 40,
-          "display_template": "{{ name }}"
+          "sort_order": 40
         }
       },
       "nsm_app_business_segment": {
         "role": "app_business",
         "menu": "objects",
         "rule_view": {
-          "sort_order": 41,
-          "display_template": "{{ name }} | Targets: {% if target %}{{ target }}{% else %}-{% endif %}"
+          "sort_order": 41
         }
       },
       "nsm_app_network": {
         "role": "app_network",
         "menu": "objects",
         "rule_view": {
-          "sort_order": 22,
-          "display_template": "{{ name }}"
+          "sort_order": 22
         }
       },
       "nsm_user": {
         "role": "label",
         "menu": "objects",
         "rule_view": {
-          "sort_order": 42,
-          "display_template": "{{ username }}"
+          "sort_order": 42
         }
       },
       "nsm_user_group": {
         "role": "label",
         "menu": "objects",
         "rule_view": {
-          "sort_order": 43,
-          "display_template": "{{ group_name }}"
+          "sort_order": 43
         }
       },
       "nsm_object_link": {
@@ -1863,8 +1863,7 @@
         "role": "rulebook",
         "menu": "rulebooks",
         "rule_view": {
-          "sort_order": 0,
-          "display_template": "{{ name }}"
+          "sort_order": 0
         }
       }
     }

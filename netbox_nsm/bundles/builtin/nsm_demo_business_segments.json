@@ -11,6 +11,7 @@
     {
       "name": "nsm_rb_demo_business_segments",
       "slug": "nsm_rb_demo_business_segments",
+      "display_expression": "{{ name }}",
       "verbose_name": "Rulebook Demo Business Segments",
       "verbose_name_plural": "Rulebook Demo Business Segments",
       "description": "Demo rulebook where source and destination are app business segments.",
@@ -330,8 +331,7 @@
         "role": "rulebook",
         "menu": "rulebooks",
         "rule_view": {
-          "sort_order": 1,
-          "display_template": "{{ name }}"
+          "sort_order": 1
         }
       }
     },
@@ -343,8 +343,7 @@
         "role": "rulebook",
         "menu": "rulebooks",
         "rule_view": {
-          "sort_order": 1,
-          "display_template": "{{ name }}"
+          "sort_order": 1
         }
       }
     }

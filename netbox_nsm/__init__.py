@@ -16,7 +16,7 @@ class SecurityConfig(PluginConfig):
     base_url = "netbox-nsm"
     required_settings = []
     min_version = "4.5.0"
-    max_version = "4.6.99"
+    max_version = "4.7.99"
     default_settings = {
         # Show top-level NSM menu (default: on)
         "top_level_menu": True,

@@ -302,7 +302,7 @@ class SecurityLinkRowActionsTemplateTests(SimpleTestCase):
                 }
             ]
         )
-        self.assertIn('class="btn-group btn-group-sm nsm-link-actions"', html)
+        self.assertIn('class="btn-group dropdown nsm-link-actions"', html)
         self.assertNotIn('data-col="actions"', html)
         self.assertIn("btn-light", html)
         self.assertIn("btn-warning", html)
@@ -315,7 +315,7 @@ class SecurityLinkRowActionsTemplateTests(SimpleTestCase):
         self.assertIn("dropdown-menu", row_html)
         self.assertNotIn('class="btn btn-danger btn-sm"', row_html)
         loupe_pos = row_html.index("nsm-ipa-loupe")
-        edit_pos = row_html.index("nsm-link-edit-menu")
+        edit_pos = row_html.index("mdi-pencil")
         self.assertLess(loupe_pos, edit_pos)
 
     def test_loupe_only_for_analyzable_without_edit_delete(self):
@@ -385,7 +385,7 @@ class SecurityLinkRowActionsTemplateTests(SimpleTestCase):
             type_label="Address Group",
         )
         row_html = self._row(html)
-        self.assertIn('class="btn-group btn-group-sm nsm-link-actions"', row_html)
+        self.assertIn('class="btn-group dropdown nsm-link-actions"', row_html)
         self.assertIn("dropdown-toggle-split", row_html)
         self.assertIn("nsm-ipa-loupe", row_html)
         self.assertIn("mdi-pencil", row_html)

@@ -90,23 +90,6 @@
     height: 0.85rem;
     border-width: 0.12em;
   }
-  .nsm-link-table .col-actions .nsm-link-actions.btn-group-sm > .btn {
-    line-height: 1;
-    padding: 0.12rem 0.28rem;
-  }
-  .nsm-link-table .col-actions .nsm-link-actions .nsm-link-edit-menu > .btn {
-    line-height: 1;
-    padding: 0.12rem 0.28rem;
-  }
-  .nsm-link-table .col-actions .nsm-link-actions .nsm-link-edit-menu > .dropdown-toggle-split {
-    padding-left: 0.18rem;
-    padding-right: 0.22rem;
-  }
-  .nsm-link-table .col-actions .nsm-link-actions.btn-group-sm > .btn .mdi,
-  .nsm-link-table .col-actions .nsm-link-actions .nsm-link-edit-menu > .btn .mdi {
-    font-size: 0.8rem;
-    line-height: 1;
-  }
   .nsm-link-objects .htmx-container.table-responsive {
     overflow: visible;
   }
@@ -253,6 +236,36 @@
   }
   .nsm-link-paginator .pagination {
     flex-wrap: wrap;
+  }
+  .nsm-security-tab .nsm-link-objects .nsm-link-controls .quicksearch .form-control,
+  .nsm-security-tab .nsm-link-objects table.nsm-link-table .col-type,
+  .nsm-security-tab .nsm-link-objects table.nsm-link-table .col-object,
+  .nsm-security-tab .nsm-link-objects table.nsm-link-table .col-value,
+  .nsm-security-tab .nsm-link-objects table.nsm-link-table .col-field,
+  .nsm-security-tab .nsm-link-objects table.nsm-link-table thead th {
+    font-size: inherit;
+  }
+  .nsm-security-tab .nsm-link-objects table.nsm-link-table {
+    table-layout: auto;
+    min-width: 26rem;
+  }
+  .nsm-security-tab .nsm-link-objects .htmx-container.table-responsive {
+    overflow-x: auto;
+  }
+  .nsm-security-tab .nsm-link-objects table.nsm-link-table thead th {
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .nsm-security-tab .nsm-link-objects table.nsm-link-table .col-type,
+  .nsm-security-tab .nsm-link-objects table.nsm-link-table .col-object,
+  .nsm-security-tab .nsm-link-objects table.nsm-link-table .col-value,
+  .nsm-security-tab .nsm-link-objects table.nsm-link-table .col-actions {
+    width: auto;
+    min-width: 0;
+    max-width: none;
+  }
+  .nsm-security-tab .nsm-link-objects table.nsm-link-table .col-actions {
+    width: 1%;
   }
 </style>
 

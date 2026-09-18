@@ -60,13 +60,14 @@ class NsmConfigApiTests(APITestCase):
 
         response = self.client.patch(
             self._url(self.zone_cot.slug),
-            {"rule_view": {"sort_order": 15, "display_template": "{{ name }}"}},
+            {"rule_view": {"sort_order": 15}},
             format="json",
         )
         self.assertEqual(response.status_code, 200)
         self.zone_cot.refresh_from_db()
         parsed = parse_nsm_config_document_from_comments(self.zone_cot.comments)
         self.assertEqual(parsed["rule_view"]["sort_order"], 15)
+        self.assertNotIn("display_template", self.zone_cot.comments)
 
     def test_patch_updates_rule_view_columns(self):
         grant_nsm_config_perms(self, change=True)
@@ -113,6 +114,7 @@ class NsmConfigApiTests(APITestCase):
         document = parse_nsm_config_document_from_comments(self.rulebook_cot.comments)
         self.assertIn("rule_view", document)
         self.assertIn("rulebook", document)
+        self.assertNotIn("display_template", self.rulebook_cot.comments)
 
     def test_delete_clears_nsm_config(self):
         self.zone_cot.comments = "nsm_config:\n  - rule_view:\n      sort_order: 1\n"

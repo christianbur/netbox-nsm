@@ -45,7 +45,7 @@
   {% if group.show_actions %}
   <td class="col-actions pe-2 text-end text-nowrap noprint">
     {% if linked.supports_addr_analyzer or linked.edit_url or linked.delete_url or linked.changelog_url %}
-    <span class="btn-group btn-group-sm nsm-link-actions" role="group">
+    <span class="btn-group dropdown nsm-link-actions" role="group">
       {% if linked.supports_addr_analyzer %}
       <button type="button" class="btn btn-light btn-sm nsm-ipa-loupe"
               data-ct="{{ linked.ct_id }}"
@@ -57,7 +57,6 @@
       </button>
       {% endif %}
       {% if linked.edit_url %}
-      <span class="btn-group btn-group-sm dropdown nsm-link-edit-menu">
         <a href="{{ linked.edit_url }}" class="btn btn-warning btn-sm"
            title="{% trans 'Edit' %}" aria-label="{% trans 'Edit' %}">
           <i class="mdi mdi-pencil" aria-hidden="true"></i>
@@ -92,7 +91,6 @@
           {% endif %}
         </ul>
         {% endif %}
-      </span>
       {% endif %}
     </span>
     {% endif %}

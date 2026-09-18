@@ -1,0 +1,40 @@
+{% load i18n %}
+<form method="get" class="{{ nsm_link_controls_classes }}">
+  <div class="input-group input-group-flat quicksearch" style="max-width: 24rem;">
+    <input type="search"
+           name="nsm_q"
+           value="{{ nsm_link_table.q }}"
+           class="form-control"
+           placeholder="{% trans 'Quick search' %}"
+           aria-label="{% trans 'Quick search' %}">
+    <span class="input-group-text">
+      {% if nsm_link_table.q or nsm_link_table.active_row_type %}
+      <a href="{{ nsm_link_table.clear_filters_url }}"
+         class="text-secondary"
+         aria-label="{% trans 'Clear filters' %}"><i class="mdi mdi-close-circle" aria-hidden="true"></i></a>
+      {% else %}
+      <span class="invisible"><i class="mdi mdi-close-circle" aria-hidden="true"></i></span>
+      {% endif %}
+    </span>
+  </div>
+
+  {% if nsm_link_table.has_row_type_filter %}
+  <select name="nsm_ty"
+          class="form-select form-select-sm w-auto"
+          aria-label="{% trans 'Filter by type' %}"
+          onchange="this.form.submit()">
+    <option value=""{% if not nsm_link_table.active_row_type %} selected{% endif %}>
+      {% trans "All types" %}
+    </option>
+    {% for opt in nsm_link_table.row_type_options %}
+    <option value="{{ opt.key }}"{% if opt.key == nsm_link_table.active_row_type %} selected{% endif %}>
+      {{ opt.label }} ({{ opt.count }})
+    </option>
+    {% endfor %}
+  </select>
+  {% endif %}
+  {% if nsm_link_table.pagination.per_page %}
+  <input type="hidden" name="nsm_pp" value="{{ nsm_link_table.pagination.per_page }}">
+  {% endif %}
+  <button type="submit" class="visually-hidden">{% trans "Search" %}</button>
+</form>

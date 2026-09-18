@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from functools import lru_cache
-
 from django.contrib.contenttypes.models import ContentType
 
 __all__ = (
@@ -27,7 +25,6 @@ def _field_related_content_type_ids(field) -> set[int]:
     return ids
 
 
-@lru_cache(maxsize=1)
 def get_object_link_allowed_content_type_ids() -> tuple[frozenset[int], frozenset[int]]:
     """Return ``(host_ct_ids, security_ct_ids)`` from the deployed link-table schema."""
     from netbox_nsm.security.links.cot_link_schema import (
@@ -51,7 +48,7 @@ def get_object_link_allowed_content_type_ids() -> tuple[frozenset[int], frozense
 
 
 def clear_object_link_eligibility_cache() -> None:
-    get_object_link_allowed_content_type_ids.cache_clear()
+    """Compatibility hook retained for callers after removing process-local caching."""
 
 
 def is_security_tab_eligible(obj) -> bool:

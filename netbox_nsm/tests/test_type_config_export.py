@@ -58,7 +58,6 @@ class TypeConfigExportTests(TestCase):
             content_type_id=cls.prefix_ct.pk,
             name="Test Zones",
             sort_order=10,
-            display_template="{{ name }}",
         )
 
     def test_content_type_export_ref_uses_app_label_model(self):
@@ -73,18 +72,14 @@ class TypeConfigExportTests(TestCase):
         data = build_type_config_export_data(self.type_config)
         self.assertEqual(
             data,
-            {
-                "sort_order": 10,
-                "display_template": "{{ name }}",
-            },
+            {"sort_order": 10},
         )
 
     def test_export_yaml_format(self):
         yaml_text = export_type_config_yaml(self.type_config)
         self.assertIn("nsm_config:\n", yaml_text)
         self.assertIn("sort_order: 10\n", yaml_text)
-        self.assertIn("display_template:", yaml_text)
-        self.assertIn("{{ name }}", yaml_text)
+        self.assertNotIn("display_template:", yaml_text)
         self.assertNotIn("# Test Zones", yaml_text)
         self.assertNotIn("name: Test Zones", yaml_text)
         self.assertNotIn("slug:", yaml_text)
@@ -96,7 +91,7 @@ class TypeConfigExportTests(TestCase):
         labels = [row["label"] for row in rows]
         self.assertIn("Name", labels)
         self.assertIn("Sort order", labels)
-        self.assertIn("Display Template", labels)
+        self.assertNotIn("Display Template", labels)
 
     def test_cot_slug_for_non_custom_objects_content_type(self):
         self.assertIsNone(cot_slug_for_content_type(self.prefix_ct))
@@ -129,7 +124,6 @@ class TypeConfigAllExportTests(TestCase):
                     content_type_id=cls.prefix_ct.pk,
                     name=slug,
                     sort_order=cfg_dict["sort_order"],
-                    display_template=cfg_dict["display_template"],
                 )
             )
         cls.configs.sort(key=lambda cfg: (cfg.sort_order, cfg.name))
@@ -143,7 +137,7 @@ class TypeConfigAllExportTests(TestCase):
     def test_export_all_yaml_has_ten_configs(self):
         with self._patch_configs():
             sections = _parse_export_sections(export_all_type_configs_yaml())
-        self.assertEqual(len(sections), 10)
+        self.assertEqual(len(sections), len(self.configs))
 
     def test_export_all_yaml_sorted_by_sort_order(self):
         with self._patch_configs():
@@ -151,19 +145,19 @@ class TypeConfigAllExportTests(TestCase):
         sort_orders = [row["sort_order"] for row in sections]
         self.assertEqual(sort_orders, sorted(sort_orders))
         self.assertEqual(sections[0]["sort_order"], 10)
-        self.assertEqual(sections[-1]["sort_order"], 40)
+        self.assertEqual(sections[-1]["sort_order"], self.configs[-1].sort_order)
 
     def test_export_all_yaml_includes_all_ui_types_except_object_link(self):
         with self._patch_configs():
             sections = _parse_export_sections(export_all_type_configs_yaml())
         slugs = {cfg.slug for cfg in self.configs}
         self.assertNotIn("nsm_object_link", slugs)
-        self.assertEqual(len(sections), 10)
+        self.assertEqual(len(sections), len(self.configs))
 
     def test_preview_rows_match_export_count(self):
         with self._patch_configs():
             rows = build_all_type_configs_preview_rows()
-        self.assertEqual(len(rows), 10)
+        self.assertEqual(len(rows), len(self.configs))
         self.assertEqual(rows[0]["slug"], "nsm_zone")
         self.assertEqual(rows[0]["sort_order"], 10)
 
@@ -172,7 +166,7 @@ class TypeConfigAllExportTests(TestCase):
             sections = _parse_export_sections(export_all_type_configs_yaml())
         for entry in sections:
             self.assertIn("sort_order", entry)
-            self.assertIn("display_template", entry)
+            self.assertNotIn("display_template", entry)
 
     def test_list_view_excludes_export_panel(self):
         grant_nsm_config_perms(self, view=True)
@@ -191,12 +185,11 @@ class TypeConfigAllExportTests(TestCase):
 
 class TypeConfigCommentYamlTests(TestCase):
     def test_format_type_config_comment_yaml(self):
-        yaml_text = format_type_config_comment_yaml(10, "{{ name }}")
+        yaml_text = format_type_config_comment_yaml(10)
         self.assertIn("nsm_config:", yaml_text)
         self.assertIn("rule_view:", yaml_text)
         self.assertIn("sort_order: 10", yaml_text)
-        self.assertIn("display_template:", yaml_text)
-        self.assertIn("{{ name }}", yaml_text)
+        self.assertNotIn("display_template:", yaml_text)
 
     def test_format_type_config_comment_yaml_for_metadata_block(self):
         block = metadata_block_for_cot_slug("nsm_zone")
@@ -204,13 +197,18 @@ class TypeConfigCommentYamlTests(TestCase):
         yaml_text = format_type_config_comment_yaml_for_metadata_block(block)
         self.assertNotIn("# ", yaml_text)
         self.assertIn("sort_order: 10\n", yaml_text)
-        self.assertIn("display_template:", yaml_text)
+        self.assertNotIn("display_template:", yaml_text)
 
     def test_format_all_type_configs_comment_yaml_has_ten_sections(self):
         sections = _parse_export_sections(format_all_type_configs_comment_yaml())
-        self.assertEqual(len(sections), 10)
+        expected = len([
+            slug for slug in REQUIRED_COT_SLUGS
+            if slug not in TYPECONFIG_LIST_EXCLUDED_SLUGS
+            and metadata_block_for_cot_slug(slug)
+        ])
+        self.assertEqual(len(sections), expected)
         self.assertEqual(sections[0]["sort_order"], 10)
-        self.assertEqual(sections[-1]["sort_order"], 40)
+        self.assertEqual(sections[-1]["sort_order"], 43)
 
     def test_comment_yaml_matches_export_format(self):
         type_config = NsmTypeConfig(
@@ -218,7 +216,6 @@ class TypeConfigCommentYamlTests(TestCase):
             content_type_id=ContentType.objects.get_for_model(Prefix).pk,
             name="Test Zones",
             sort_order=10,
-            display_template="{{ name }}",
         )
         comment_yaml = format_type_config_comment_yaml_for_config(type_config)
         export_yaml = export_type_config_yaml(type_config)

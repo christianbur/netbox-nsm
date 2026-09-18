@@ -1,10 +1,5 @@
 from rest_framework import serializers
 
-from netbox_nsm.core.display_template import (
-    DEFAULT_DISPLAY_TEMPLATE,
-    normalize_display_template,
-    validate_display_template,
-)
 from netbox_nsm.type_metadata.config import _normalize_rule_view_columns
 
 __all__ = (
@@ -23,18 +18,7 @@ class NsmConfigRuleViewSerializer(serializers.Serializer):
         value_template = serializers.CharField(required=True, allow_blank=False)
 
     sort_order = serializers.IntegerField(min_value=0, required=False, default=0)
-    display_template = serializers.CharField(
-        max_length=500,
-        required=False,
-        allow_blank=True,
-        default=DEFAULT_DISPLAY_TEMPLATE,
-    )
     columns = ColumnSerializer(many=True, required=False, default=list)
-
-    def validate_display_template(self, value):
-        tmpl = normalize_display_template(value)
-        validate_display_template(tmpl)
-        return tmpl
 
     def validate_columns(self, value):
         normalized = _normalize_rule_view_columns(value or [])

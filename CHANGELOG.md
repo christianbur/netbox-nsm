@@ -4,6 +4,17 @@ All notable changes to **netbox-nsm** are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.32] - 2026-09-18
+
+### Added
+
+- Native `display_expression` support for portable Custom Objects schemas.
+
+### Fixed
+
+- Stabilized dynamic Custom Objects and polymorphic through-model registration.
+- Removed the redundant NSM display-expression synchronization workaround from bundle application.
+
 ## [0.4.31] - 2026-07-22
 
 ### Fixed
